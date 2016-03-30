@@ -67,21 +67,3 @@ int main(int argc, char * argv[])
 
     return rc;
 }
-
-/*
-    cleri_parse_result_t * pr;
-    timeit_start();
-    for (int i=0; i<1000; i++) {
-        pr = cleri_parse(siri.grammar,
-                "select mean(1h + 1m) from \"series-001\", \"series-002\", "
-                "\"series-003\" between 1360152000 and 1360152000 + 1d merge as "
-                "\"series\" using mean(1)");
-        cleri_free_parse_result(pr);
-    }
-    log_debug("Finished walk... success: %d (pos: %d)", pr->is_valid, pr->pos);
-
-    log_info("Time in milliseconds: %.3f",timeit_stop());
- */
-
-
-
