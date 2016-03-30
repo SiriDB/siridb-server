@@ -30,3 +30,11 @@
 
 # Debug files
 *.dSYM/
+
+/Debug
+/Release
+
+# Eclipse
+/.settings
+.cproject
+.project
