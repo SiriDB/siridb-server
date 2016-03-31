@@ -21,6 +21,7 @@
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_SERIES_SCHEMA 1
 
+static int save_series(siridb_t * siridb);
 
 siridb_series_t * siridb_new_series(uint32_t id, uint8_t tp)
 {
@@ -31,13 +32,46 @@ siridb_series_t * siridb_new_series(uint32_t id, uint8_t tp)
     return series;
 }
 
+siridb_series_t * siridb_create_series(
+        siridb_t * siridb,
+        const char * series_name,
+        uint8_t tp)
+{
+    siridb_series_t * series;
+
+    series = siridb_new_series(++siridb->max_series_id, tp);
+
+    /* We only should add the series to series_map and assume the caller
+     * takes responsibility adding the series to SiriDB -> series
+     */
+    imap32_add(siridb->series_map, series->id, series);
+
+    return series;
+}
+
+uint8_t siridb_qp_map_tp(qp_types_t tp)
+{
+    switch (tp)
+    {
+    case QP_INT64:
+        return SIRIDB_SERIES_TP_INT;
+    case QP_DOUBLE:
+        return SIRIDB_SERIES_TP_DOUBLE;
+    case QP_RAW:
+        return SIRIDB_SERIES_TP_STRING;
+    default:
+        log_critical("No map found for %d", tp);
+        return 0;
+    }
+}
+
 void siridb_free_series(siridb_series_t * series)
 {
     log_debug("Free series ID : %d", series->id);
     free(series);
 }
 
-int siridb_read_series(siridb_t * siridb)
+int siridb_load_series(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
     qp_obj_t * qp_series_name = NULL;
@@ -50,8 +84,7 @@ int siridb_read_series(siridb_t * siridb)
     assert(siridb->max_series_id == 0);
 
     /* get series file name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_SERIES_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_SERIES_FN);
+    siridb_get_fn(SIRIDB_SERIES_FN);
 
     if (access(fn, R_OK) == -1)
     {
@@ -79,7 +112,15 @@ int siridb_read_series(siridb_t * siridb)
         series = siridb_new_series(
                 (uint32_t) qp_series_id->via->int64,
                 (uint8_t) qp_series_tp->via->int64);
+
+        /* update max_series_id */
+        if (series->id > siridb->max_series_id)
+            siridb->max_series_id = series->id;
+
+        /* add series to c-tree */
         ct_add(siridb->series, qp_series_name->via->raw, series);
+
+        /* add series to imap32 */
         imap32_add(siridb->series_map, series->id, series);
     }
 
@@ -115,15 +156,13 @@ static void pack_series(
     qp_add_int8(packer, (int8_t) series->tp);
 }
 
-
 static int save_series(siridb_t * siridb)
 {
     FILE * fp;
     qp_packer_t * packer;
 
-    /* get series file name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_SERIES_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_SERIES_FN);
+    /* macro get series file name */
+    siridb_get_fn(SIRIDB_SERIES_FN)
 
     if ((fp = fopen(fn, "w")) == NULL)
         return 1;

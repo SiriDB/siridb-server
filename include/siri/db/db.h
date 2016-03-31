@@ -21,6 +21,10 @@
 
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
 
+#define siridb_get_fn(FILENAME)                             \
+    char fn[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
+    sprintf(fn, "%s%s", siridb->dbpath, FILENAME);
+
 struct siridb_server_s;
 struct siridb_users_s;
 struct siridb_servers_s;

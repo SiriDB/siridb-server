@@ -171,7 +171,7 @@ static void siridb_free(siridb_t * siridb)
         siridb_free_servers(siridb->servers);
         siridb_free_pools(siridb->pools);
         ct_free(siridb->series);
-        imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_free_series);
+        imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_free_series, NULL);
         imap32_free(siridb->series_map);
         free(siridb);
     }

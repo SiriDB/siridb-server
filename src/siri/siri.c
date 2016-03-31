@@ -188,6 +188,13 @@ static int siridb_load_databases(void)
             return 1;
         }
 
+        /* load series */
+        if (siridb_load_series(siridb))
+        {
+            log_error("Could not read series for database '%s'", siridb->dbname);
+            return 1;
+        }
+
         /* generate pools */
         siridb_gen_pools(siridb);
 

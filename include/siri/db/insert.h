@@ -16,7 +16,7 @@
 #include <uv.h>
 
 
-#define SIRIDB_INSERT_ERR_SIZE 6
+#define SIRIDB_INSERT_ERR_SIZE 7
 
 typedef enum
 {
@@ -25,7 +25,8 @@ typedef enum
     ERR_EXPECTING_MAP_OR_ARRAY,
     ERR_EXPECTING_INTEGER_TS,
     ERR_TIMESTAMP_OUT_OF_RANGE,
-    ERR_UNSUPPORTED_VALUE
+    ERR_UNSUPPORTED_VALUE,
+    ERR_EXPECTING_AT_LEAST_ONE_POINT
 
 } siridb_insert_err_t;
 

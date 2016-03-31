@@ -202,8 +202,7 @@ int siridb_load_users(siridb_t * siridb)
     siridb->users = new_users();
 
     /* get user access file name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_USER_ACCESS_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_USER_ACCESS_FN);
+    siridb_get_fn(SIRIDB_USER_ACCESS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -392,8 +391,7 @@ static int save_users(siridb_t * siridb)
     siridb_users_t * current = siridb->users;
 
     /* get user access fine name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_USER_ACCESS_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_USER_ACCESS_FN);
+    siridb_get_fn(SIRIDB_USER_ACCESS_FN)
 
     if ((fp = fopen(fn, "w")) == NULL)
         return 1;

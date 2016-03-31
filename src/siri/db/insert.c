@@ -38,7 +38,9 @@ static const char * err_msg[SIRIDB_INSERT_ERR_SIZE] = {
         "Received at least one time-stamp which is out-of-range.",
 
         "Unsupported value received. (only integer, string and float values "
-        "are supported)."
+        "are supported).",
+
+        "Expecting a series to have at least one point."
 };
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err)
@@ -136,6 +138,7 @@ static void send_points_to_pools(uv_async_t * handle)
     siridb_series_t ** series;
     siridb_t * siridb = ((sirinet_handle_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
+    char * series_name;
 
     for (uint16_t n = 0; n < insert->packer_size; n++)
     {
@@ -148,17 +151,24 @@ static void send_points_to_pools(uv_async_t * handle)
             tp = qp_next_object(unpacker); // first series or end
             while (tp == QP_RAW)
             {
-                qp_next_object(unpacker); // array open
-                log_debug("Series: -%s-", unpacker->qp_obj->via->raw);
+                series_name = unpacker->qp_obj->via->raw;
+
                 series = (siridb_series_t **) ct_get_sure(
                         siridb->series,
-                        unpacker->qp_obj->via->raw);
+                        series_name);
+
+                qp_next_object(unpacker); // array open
+                qp_next_object(unpacker); // first point array2
+                qp_next_object(unpacker); // first ts
+                qp_next_object(unpacker); // first val
+
                 if (ct_is_empty(*series))
                 {
                     log_debug("Yesssss, this is a new series...");
-                    siridb->max_series_id++;
-                    (*series) = siridb_new_series(siridb->max_series_id);
-                    imap32_add(siridb->series_map, (*series)->id, *series);
+                    (*series) = siridb_create_series(
+                            series_name,
+                            siridb->max_series_id,
+                            siridb_qp_map_tp(unpacker->qp_obj->tp));
                 }
                 else
                 {
@@ -224,6 +234,10 @@ static int32_t assign_by_map(
             return ERR_EXPECTING_ARRAY;
 
         qp_array_open(packer[pool]);
+
+        if ((tp = qp_next_object(unpacker)) != QP_ARRAY2)
+            return ERR_EXPECTING_AT_LEAST_ONE_POINT;
+
         for (; (tp = qp_next_object(unpacker)) == QP_ARRAY2; count++)
         {
             qp_add_array2(packer[pool]);

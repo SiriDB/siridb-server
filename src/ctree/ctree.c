@@ -148,7 +148,7 @@ static void pv_walk(
     memcpy(buffer + len, node->key, sz + 1);
 
     if (node->data != NULL)
-        (*cb)(buffer, node->data);
+        (*cb)(buffer, node->data, args);
 
     if (node->nodes != NULL)
     {

@@ -51,8 +51,7 @@ int siridb_load_servers(siridb_t * siridb)
     siridb->servers = new_servers();
 
     /* get servers file name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_SERVERS_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_SERVERS_FN);
+    siridb_get_fn(SIRIDB_SERVERS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -256,8 +255,7 @@ static int save_servers(siridb_t * siridb)
     siridb_servers_t * current = siridb->servers;
 
     /* get servers file name */
-    char fn[strlen(siridb->dbpath) + strlen(SIRIDB_SERVERS_FN) + 1];
-    sprintf(fn, "%s%s", siridb->dbpath, SIRIDB_SERVERS_FN);
+    siridb_get_fn(SIRIDB_SERVERS_FN)
 
     if ((fp = fopen(fn, "w")) == NULL)
         return 1;
