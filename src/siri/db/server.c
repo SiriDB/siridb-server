@@ -42,6 +42,7 @@ int siridb_load_servers(siridb_t * siridb)
     qp_obj_t * qp_port = NULL;
     qp_obj_t * qp_pool = NULL;
     siridb_server_t * server;
+    qp_types_t tp;
 
     /* we should not have any servers at this moment */
     assert(siridb->servers == NULL);
@@ -79,12 +80,13 @@ int siridb_load_servers(siridb_t * siridb)
     }
 
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
-            return 1;
+        return 1;
 
     if (!qp_is_array(qp_next_object(unpacker)) ||
             qp_next_object(unpacker) != QP_INT64 ||
             unpacker->qp_obj->via->int64 != SIRIDB_SERVERS_SCHEMA)
     {
+        log_critical("Invalid schema detected in '%s'", fn);
         qp_free_unpacker(unpacker);
         return 1;
     }
@@ -111,6 +113,9 @@ int siridb_load_servers(siridb_t * siridb)
             siridb->server = server;
     }
 
+    /* save last object, should be QP_END */
+    tp = qp_next_object(unpacker);
+
     /* free objects */
     qp_free_object(qp_uuid);
     qp_free_object(qp_address);
@@ -123,6 +128,12 @@ int siridb_load_servers(siridb_t * siridb)
     if (siridb->server == NULL)
     {
         log_critical("Could not find my own uuid in '%s'", SIRIDB_SERVERS_FN);
+        return 1;
+    }
+
+    if (tp != QP_END)
+    {
+        log_critical("Expected end of file '%s'", fn);
         return 1;
     }
 

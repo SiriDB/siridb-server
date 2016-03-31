@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
     /* initialize random */
     srand(time(NULL));
 
-    /* parse arguments fist since this can exit the program */
+    /* parse arguments first since this can exit the program */
     siri_args_parse(argc, argv);
 
     /* setup logger, this must be done before logging the first line */

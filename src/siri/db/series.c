@@ -40,10 +40,14 @@ void siridb_free_series(siridb_series_t * series)
 int siridb_read_series(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
+    qp_obj_t * qp_series_name = NULL;
+    qp_obj_t * qp_series_id = NULL;
+    qp_obj_t * qp_series_tp = NULL;
+    siridb_series_t * series;
+    qp_types_t tp;
 
     /* we should not have any users at this moment */
     assert(siridb->max_series_id == 0);
-
 
     /* get series file name */
     char fn[strlen(siridb->dbpath) + strlen(SIRIDB_SERIES_FN) + 1];
@@ -53,6 +57,47 @@ int siridb_read_series(siridb_t * siridb)
     {
         // missing series file, create an empty file and return
         return save_series(siridb);
+    }
+
+    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
+        return 1;
+
+    if (!qp_is_array(qp_next_object(unpacker)) ||
+            qp_next_object(unpacker) != QP_INT64 ||
+            unpacker->qp_obj->via->int64 != SIRIDB_SERIES_SCHEMA)
+    {
+        log_critical("Invalid schema detected in '%s'", fn);
+        qp_free_unpacker(unpacker);
+        return 1;
+    }
+
+    while (qp_next_object(unpacker) == QP_ARRAY3 &&
+            qp_copy_next_object(unpacker, &qp_series_name) == QP_RAW &&
+            qp_copy_next_object(unpacker, &qp_series_id) == QP_INT64 &&
+            qp_copy_next_object(unpacker, &qp_series_tp) == QP_INT64)
+    {
+        series = siridb_new_series(
+                (uint32_t) qp_series_id->via->int64,
+                (uint8_t) qp_series_tp->via->int64);
+        ct_add(siridb->series, qp_series_name->via->raw, series);
+        imap32_add(siridb->series_map, series->id, series);
+    }
+
+    /* save last object, should be QP_END */
+    tp = qp_next_object(unpacker);
+
+    /* free objects */
+    qp_free_object(qp_series_name);
+    qp_free_object(qp_series_id);
+    qp_free_object(qp_series_tp);
+
+    /* free unpacker */
+    qp_free_unpacker(unpacker);
+
+    if (tp != QP_END)
+    {
+        log_critical("Expected end of file '%s'", fn);
+        return 1;
     }
 
     return 0;
