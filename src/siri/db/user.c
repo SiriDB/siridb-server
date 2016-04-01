@@ -189,9 +189,9 @@ void siridb_free_user(siridb_user_t * user)
 int siridb_load_users(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t * username = NULL;
-    qp_obj_t * password = NULL;
-    qp_obj_t * access_bit = NULL;
+    qp_obj_t * username;
+    qp_obj_t * password;
+    qp_obj_t * access_bit;
     siridb_user_t * user;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
 
@@ -227,19 +227,17 @@ int siridb_load_users(siridb_t * siridb)
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
         return 1;
 
-    if (!qp_is_array(qp_next_object(unpacker)) ||
-            qp_next_object(unpacker) != QP_INT64 ||
-            unpacker->qp_obj->via->int64 != SIRIDB_USER_ACCESS_SCHEMA)
-    {
-        log_critical("Invalid schema detected in '%s'", fn);
-        qp_free_unpacker(unpacker);
-        return 1;
-    }
+    /* unpacker will be freed in case macro fails */
+    siridb_schema_check(SIRIDB_USER_ACCESS_SCHEMA)
 
-    while (qp_is_array(qp_next_object(unpacker)) &&
-            qp_copy_next_object(unpacker, &username) == QP_RAW &&
-            qp_copy_next_object(unpacker, &password) == QP_RAW &&
-            qp_copy_next_object(unpacker, &access_bit) == QP_INT64)
+    username = qp_new_object();
+    password = qp_new_object();
+    access_bit = qp_new_object();
+
+    while (qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, username) == QP_RAW &&
+            qp_next(unpacker, password) == QP_RAW &&
+            qp_next(unpacker, access_bit) == QP_INT64)
     {
         user = siridb_new_user();
 

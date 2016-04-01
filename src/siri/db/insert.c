@@ -21,7 +21,8 @@
 static int32_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_packer_t * packer[]);
+        qp_packer_t * packer[],
+        qp_obj_t * qp_obj);
 
 static void send_points_to_pools(uv_async_t * handle);
 
@@ -48,16 +49,10 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     return err_msg[err + SIRIDB_INSERT_ERR_SIZE];
 }
 
-void siridb_async_insert(
-        uint64_t pid,
-        uv_handle_t * client)
-{
-
-}
-
 int32_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj,
         qp_packer_t * packer[])
 {
     size_t n;
@@ -69,7 +64,7 @@ int32_t siridb_insert_assign_pools(
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
-    tp = qp_next_object(unpacker);
+    tp = qp_next(unpacker, NULL);
 
     if (qp_is_array(tp))
     {
@@ -78,9 +73,7 @@ int32_t siridb_insert_assign_pools(
     }
 
     if (qp_is_map(tp))
-    {
-        return assign_by_map(siridb, unpacker, packer);
-    }
+        return assign_by_map(siridb, unpacker, packer, qp_obj);
 
     return ERR_EXPECTING_MAP_OR_ARRAY;
 }
@@ -167,13 +160,13 @@ static void send_points_to_pools(uv_async_t * handle)
                             qp_series_name->via->raw,
                             siridb_qp_map_tp(qp_series_val->tp));
                 }
-                while ((tp = qp_next_object(unpacker)) == QP_ARRAY2)
+                while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
                 {
                     qp_next(unpacker, qp_series_ts); // ts
                     qp_next(unpacker, qp_series_val); // val
                 }
                 if (tp == QP_ARRAY_CLOSE)
-                    tp = qp_next(unpacker, NULL);
+                    tp = qp_next(unpacker, qp_series_name);
             }
             qp_free_unpacker(unpacker);
         }
@@ -205,61 +198,62 @@ static void send_points_to_pools(uv_async_t * handle)
 static int32_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_packer_t * packer[])
+        qp_packer_t * packer[],
+        qp_obj_t * qp_obj)
 {
     qp_types_t tp;
     uint16_t pool;
     int32_t count = 0;
 
-    tp = qp_next_object(unpacker);
+    tp = qp_next(unpacker, qp_obj);
 
     while (tp == QP_RAW)
     {
         pool = siridb_pool_sn_raw(
                 siridb,
-                unpacker->qp_obj->via->raw,
-                unpacker->qp_obj->len);
+                qp_obj->via->raw,
+                qp_obj->len);
 
         qp_add_raw_term(packer[pool],
-                unpacker->qp_obj->via->raw,
-                unpacker->qp_obj->len);
+                qp_obj->via->raw,
+                qp_obj->len);
 
-        if (!qp_is_array(qp_next_object(unpacker)))
+        if (!qp_is_array(qp_next(unpacker, NULL)))
             return ERR_EXPECTING_ARRAY;
 
-        qp_array_open(packer[pool]);
+        qp_add_type(packer[pool], QP_ARRAY_OPEN);
 
-        if ((tp = qp_next_object(unpacker)) != QP_ARRAY2)
+        if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2)
             return ERR_EXPECTING_AT_LEAST_ONE_POINT;
 
-        for (; tp == QP_ARRAY2; count++, tp = qp_next_object(unpacker))
+        for (; tp == QP_ARRAY2; count++, tp = qp_next(unpacker, qp_obj))
         {
-            qp_add_array2(packer[pool]);
+            qp_add_type(packer[pool], QP_ARRAY2);
 
-            if (qp_next_object(unpacker) != QP_INT64)
+            if (qp_next(unpacker, qp_obj) != QP_INT64)
                 return ERR_EXPECTING_INTEGER_TS;
 
-            if (!siridb_int64_valid_ts(siridb, unpacker->qp_obj->via->int64))
+            if (!siridb_int64_valid_ts(siridb, qp_obj->via->int64))
                 return ERR_TIMESTAMP_OUT_OF_RANGE;
 
-            qp_add_int64(packer[pool], unpacker->qp_obj->via->int64);
+            qp_add_int64(packer[pool], qp_obj->via->int64);
 
-            switch (qp_next_object(unpacker))
+            switch (qp_next(unpacker, qp_obj))
             {
             case QP_RAW:
                 qp_add_raw(packer[pool],
-                        unpacker->qp_obj->via->raw,
-                        unpacker->qp_obj->len);
+                        qp_obj->via->raw,
+                        qp_obj->len);
                 break;
 
             case QP_INT64:
                 qp_add_int64(packer[pool],
-                        unpacker->qp_obj->via->int64);
+                        qp_obj->via->int64);
                 break;
 
             case QP_DOUBLE:
                 qp_add_double(packer[pool],
-                        unpacker->qp_obj->via->real);
+                        qp_obj->via->real);
                 break;
 
             default:
@@ -268,9 +262,9 @@ static int32_t assign_by_map(
         }
 
         if (tp == QP_ARRAY_CLOSE)
-            tp = qp_next_object(unpacker);
+            tp = qp_next(unpacker, qp_obj);
 
-        qp_array_close(packer[pool]);
+        qp_add_type(packer[pool], QP_ARRAY_CLOSE);
     }
 
     if (tp != QP_END && tp != QP_MAP_CLOSE)

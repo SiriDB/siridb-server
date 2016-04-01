@@ -25,6 +25,25 @@
     char FN[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
     sprintf(FN, "%s%s", siridb->dbpath, FILENAME);
 
+/* Schema File Check
+ * Needs fn and unpacker, free unpacker in case of an error.
+ * Returns current function with -1 in case of an error
+ */
+#define siridb_schema_check(SCHEMA)                             \
+    /* read and check schema */                                 \
+    qp_obj_t * qp_schema = qp_new_object();                     \
+    if (!qp_is_array(qp_next(unpacker, NULL)) ||                \
+            qp_next(unpacker, qp_schema) != QP_INT64 ||         \
+            qp_schema->via->int64 != SCHEMA)                    \
+    {                                                           \
+        log_critical("Invalid schema detected in '%s'", fn);    \
+        qp_free_object(qp_schema);                              \
+        qp_free_unpacker(unpacker);                             \
+        return -1;                                              \
+    }                                                           \
+    /* finished schema check, free schema object */             \
+    qp_free_object(qp_schema);
+
 struct siridb_server_s;
 struct siridb_users_s;
 struct siridb_servers_s;

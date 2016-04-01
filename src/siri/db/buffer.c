@@ -10,6 +10,7 @@
  *
  */
 #include <siri/db/buffer.h>
+#include <siri/db/db.h>
 #include <stdio.h>
 #include <sys/unistd.h>
 #include <logger/logger.h>

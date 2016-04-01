@@ -66,8 +66,10 @@ if (packer->len + LEN > packer->buffer_size)                            \
         packer->len += 8;                                   \
     }
 
-static qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
-static qp_types_t print_unpacker(qp_types_t tp, qp_unpacker_t * unpacker);
+static qp_types_t print_unpacker(
+        qp_types_t tp,
+        qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj);
 
 qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len)
 {
@@ -212,7 +214,7 @@ static qp_types_t print_unpacker(
         {
             if (found )
                 printf(", ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("]");
         return tp;
@@ -226,9 +228,9 @@ static qp_types_t print_unpacker(
         {
             if (found )
                 printf(", ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
             printf(": ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("}");
         return tp;
@@ -241,7 +243,7 @@ static qp_types_t print_unpacker(
         {
             if (count)
                 printf(", ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("]");
     }
@@ -253,9 +255,9 @@ static qp_types_t print_unpacker(
         {
             if (count)
                 printf(", ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
             printf(": ");
-            tp = print_unpacker(tp, unpacker);
+            tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("}");
     }
@@ -505,9 +507,9 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
     /* unpack raw strings */
     if (tp < 232)
     {
-        size_t sz = (QP_RAW8)   ? (size_t) *((uint8_t *) unpacker->pt):
-                    (QP_RAW16)  ? (size_t) *((uint16_t *) unpacker->pt):
-                    (QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
+        size_t sz = (tp == QP_RAW8)   ? (size_t) *((uint8_t *) unpacker->pt):
+                    (tp == QP_RAW16)  ? (size_t) *((uint16_t *) unpacker->pt):
+                    (tp == QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
                                   (size_t) *((uint64_t *) unpacker->pt);
 
         unpacker->pt += ipow(2, -QP_RAW8 + tp);
@@ -529,9 +531,9 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         {
             qp_obj->tp = QP_INT64;
             qp_obj->via->int64 =
-                    (QP_INT8)   ? (int64_t) *((int8_t *) unpacker->pt):
-                    (QP_INT16)  ? (int64_t) *((int16_t *) unpacker->pt):
-                    (QP_INT32)  ? (int64_t) *((int32_t *) unpacker->pt):
+                    (tp == QP_INT8)  ? (int64_t) *((int8_t *) unpacker->pt):
+                    (tp == QP_INT16) ? (int64_t) *((int16_t *) unpacker->pt):
+                    (tp == QP_INT32) ? (int64_t) *((int32_t *) unpacker->pt):
                                   (int64_t) *((int64_t *) unpacker->pt);
         }
         unpacker->pt += ipow(2, -QP_INT8 + tp);

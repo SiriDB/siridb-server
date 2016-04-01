@@ -33,6 +33,7 @@ typedef enum
 struct siridb_s;
 struct qp_unpacker_s;
 struct qp_packer_s;
+struct qp_obj_s;
 
 typedef struct siridb_insert_s
 {
@@ -46,6 +47,7 @@ typedef struct siridb_insert_s
 int32_t siridb_insert_assign_pools(
         struct siridb_s * siridb,
         struct qp_unpacker_s * unpacker,
+        struct qp_obj_s * qp_obj,
         struct qp_packer_s * packer[]);
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err);

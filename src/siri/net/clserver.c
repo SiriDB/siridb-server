@@ -227,12 +227,14 @@ static void on_insert(
 {
     CHECK_SIRIDB
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
+    qp_obj_t * qp_obj = qp_new_object();
     siridb_t * siridb = ((sirinet_handle_t *) client->data)->siridb;
     qp_packer_t * packer[siridb->pools->size];
     int32_t rc;
+
     const char * err_msg;
 
-    rc = siridb_insert_assign_pools(siridb, unpacker, packer);
+    rc = siridb_insert_assign_pools(siridb, unpacker, qp_obj, packer);
 
     if (rc < 0)
     {
@@ -261,6 +263,9 @@ static void on_insert(
                 siridb->pools->size,
                 packer);
     }
+
+    /* free qp_object */
+    qp_free_object(qp_obj);
 
     /* free unpacker */
     qp_free_unpacker(unpacker);

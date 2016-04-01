@@ -37,10 +37,10 @@ static void update_server_name(siridb_server_t * server);
 int siridb_load_servers(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t * qp_uuid = NULL;
-    qp_obj_t * qp_address = NULL;
-    qp_obj_t * qp_port = NULL;
-    qp_obj_t * qp_pool = NULL;
+    qp_obj_t * qp_uuid;
+    qp_obj_t * qp_address;
+    qp_obj_t * qp_port;
+    qp_obj_t * qp_pool;
     siridb_server_t * server;
     qp_types_t tp;
 
@@ -81,21 +81,20 @@ int siridb_load_servers(siridb_t * siridb)
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
         return 1;
 
-    if (!qp_is_array(qp_next_object(unpacker)) ||
-            qp_next_object(unpacker) != QP_INT64 ||
-            unpacker->qp_obj->via->int64 != SIRIDB_SERVERS_SCHEMA)
-    {
-        log_critical("Invalid schema detected in '%s'", fn);
-        qp_free_unpacker(unpacker);
-        return 1;
-    }
+    /* unpacker will be freed in case macro fails */
+    siridb_schema_check(SIRIDB_SERVERS_SCHEMA)
 
-    while (qp_is_array(qp_next_object(unpacker)) &&
-            qp_copy_next_object(unpacker, &qp_uuid) == QP_RAW &&
+    qp_uuid = qp_new_object();
+    qp_address = qp_new_object();
+    qp_port = qp_new_object();
+    qp_pool = qp_new_object();
+
+    while (qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, qp_uuid) == QP_RAW &&
             qp_uuid->len == 16 &&
-            qp_copy_next_object(unpacker, &qp_address) == QP_RAW &&
-            qp_copy_next_object(unpacker, &qp_port) == QP_INT64 &&
-            qp_copy_next_object(unpacker, &qp_pool) == QP_INT64)
+            qp_next(unpacker, qp_address) == QP_RAW &&
+            qp_next(unpacker, qp_port) == QP_INT64 &&
+            qp_next(unpacker, qp_pool) == QP_INT64)
     {
         server = new_server(
                 qp_uuid->via->raw,
@@ -113,7 +112,7 @@ int siridb_load_servers(siridb_t * siridb)
     }
 
     /* save last object, should be QP_END */
-    tp = qp_next_object(unpacker);
+    tp = qp_next(unpacker, NULL);
 
     /* free objects */
     qp_free_object(qp_uuid);

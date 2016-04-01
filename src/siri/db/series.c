@@ -98,9 +98,9 @@ void siridb_free_series(siridb_series_t * series)
 int siridb_load_series(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t * qp_series_name = NULL;
-    qp_obj_t * qp_series_id = NULL;
-    qp_obj_t * qp_series_tp = NULL;
+    qp_obj_t * qp_series_name;
+    qp_obj_t * qp_series_id;
+    qp_obj_t * qp_series_tp;
     siridb_series_t * series;
     qp_types_t tp;
 
@@ -119,19 +119,17 @@ int siridb_load_series(siridb_t * siridb)
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
         return 1;
 
-    if (!qp_is_array(qp_next_object(unpacker)) ||
-            qp_next_object(unpacker) != QP_INT64 ||
-            unpacker->qp_obj->via->int64 != SIRIDB_SERIES_SCHEMA)
-    {
-        log_critical("Invalid schema detected in '%s'", fn);
-        qp_free_unpacker(unpacker);
-        return 1;
-    }
+    /* unpacker will be freed in case macro fails */
+    siridb_schema_check(SIRIDB_SERIES_SCHEMA)
 
-    while (qp_next_object(unpacker) == QP_ARRAY3 &&
-            qp_copy_next_object(unpacker, &qp_series_name) == QP_RAW &&
-            qp_copy_next_object(unpacker, &qp_series_id) == QP_INT64 &&
-            qp_copy_next_object(unpacker, &qp_series_tp) == QP_INT64)
+    qp_series_name = qp_new_object();
+    qp_series_id = qp_new_object();
+    qp_series_tp = qp_new_object();
+
+    while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
+            qp_next(unpacker, qp_series_name) == QP_RAW &&
+            qp_next(unpacker, qp_series_id) == QP_INT64 &&
+            qp_next(unpacker, qp_series_tp) == QP_INT64)
     {
         series = siridb_new_series(
                 (uint32_t) qp_series_id->via->int64,
@@ -149,7 +147,7 @@ int siridb_load_series(siridb_t * siridb)
     }
 
     /* save last object, should be QP_END */
-    tp = qp_next_object(unpacker);
+    tp = qp_next(unpacker, NULL);
 
     /* free objects */
     qp_free_object(qp_series_name);
