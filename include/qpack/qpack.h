@@ -13,6 +13,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define QP_SUGGESTED_SIZE 65536
 
@@ -94,7 +95,6 @@ typedef struct qp_unpacker_s
     char * source; // can be NULL or a copy or the source
     const char * pt;
     const char * end;
-    qp_obj_t * qp_obj;
 } qp_unpacker_t;
 
 typedef struct qp_packer_s
@@ -105,7 +105,12 @@ typedef struct qp_packer_s
     char * buffer;
 } qp_packer_t;
 
+typedef FILE qp_fpacker_t;
+#define qp_open fopen
+#define qp_close fclose
+
 qp_packer_t * qp_new_packer(size_t alloc_size);
+qp_obj_t * qp_new_object(void);
 
 void qp_free_packer(qp_packer_t * packer);
 
@@ -118,11 +123,10 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn);
 
 void qp_free_unpacker(qp_unpacker_t * unpacker);
 
-/* do not forget to run qp_free_object() on the returned object */
-qp_obj_t * qp_copy_object(qp_unpacker_t * unpacker);
-
-/* do not forget to run qp_free_object() on the given object */
-qp_types_t qp_copy_next_object(qp_unpacker_t * unpacker, qp_obj_t ** qp_obj);
+/* its fine to reuse the same object without calling free in between.
+ * (qp_obj may also be NULL)
+ */
+qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
 
 void qp_free_object(qp_obj_t * qp_obj);
 
@@ -170,7 +174,17 @@ void qp_map_open(qp_packer_t * packer);
 void qp_array_close(qp_packer_t * packer);
 void qp_map_close(qp_packer_t * packer);
 
+void qp_add_type(qp_packer_t * packer, qp_types_t tp);
+
 /* adds a format string to the packer, but take in account that only
  * QPACK_MAX_FMT_SIZE characters are supported. (rest will be cut off)
  */
 void qp_add_fmt(qp_packer_t * packer, const char * fmt, ...);
+
+void qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
+void qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);
+void qp_fadd_string(qp_fpacker_t * fpacker, const char * str);
+void qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
+void qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
+void qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer);
+void qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);

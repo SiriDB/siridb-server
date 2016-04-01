@@ -34,15 +34,19 @@ void siridb_gen_pools(siridb_t * siridb)
     /* we must have at least one server */
     assert(siridb->servers->server != NULL);
 
+    /* get max_pool (this can be used to get the number of pools) */
     for (servers = siridb->servers; servers != NULL; servers = servers->next)
         if (servers->server->pool > max_pool)
             max_pool = servers->server->pool;
 
+    /* set number of pools */
     siridb->pools->size = max_pool + 1;
 
+    /* allocate memory for all pools */
     siridb->pools->pool = (siridb_pool_t *)
             malloc(sizeof(siridb_pool_t) * siridb->pools->size);
 
+    /* initialize number of servers with zero for each pool */
     for (n = 0; n < siridb->pools->size; n++)
         siridb->pools->pool[n].size = 0;
 
@@ -52,12 +56,15 @@ void siridb_gen_pools(siridb_t * siridb)
         pool->size++;
         if (pool->size == 1)
         {
+            /* this is the first server found for this pool */
             pool->server[0] = servers->server;
         }
         else
         {
+            /* we can only have 1 or 2 servers per pool */
             assert (pool->size == 2);
 
+            /* add the server to the pool, ordered by UUID */
             if (siridb_server_cmp(pool->server[0], servers->server) < 0)
                 pool->server[1] = servers->server;
             else
@@ -69,8 +76,9 @@ void siridb_gen_pools(siridb_t * siridb)
             }
         }
     }
+
+    /* generate pool lookup for series */
     siridb->pools->lookup = siridb_gen_lookup(siridb->pools->size);
-    log_debug("Servers: %s", siridb->pools->pool[0].server[0]->name);
 }
 
 void siridb_free_pools(siridb_pools_t * pools)
@@ -82,7 +90,7 @@ void siridb_free_pools(siridb_pools_t * pools)
     free(pools);
 }
 
-uint16_t siridb_pool_sn_null(
+uint16_t siridb_pool_sn(
         siridb_t * siridb,
         const char * sn)
 {
@@ -92,7 +100,7 @@ uint16_t siridb_pool_sn_null(
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 
-uint16_t siridb_pool_sn_len(
+uint16_t siridb_pool_sn_raw(
         siridb_t * siridb,
         const char * sn,
         size_t len)

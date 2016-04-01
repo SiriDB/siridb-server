@@ -202,7 +202,7 @@ int siridb_load_users(siridb_t * siridb)
     siridb->users = new_users();
 
     /* get user access file name */
-    siridb_get_fn(SIRIDB_USER_ACCESS_FN)
+    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -231,6 +231,7 @@ int siridb_load_users(siridb_t * siridb)
             qp_next_object(unpacker) != QP_INT64 ||
             unpacker->qp_obj->via->int64 != SIRIDB_USER_ACCESS_SCHEMA)
     {
+        log_critical("Invalid schema detected in '%s'", fn);
         qp_free_unpacker(unpacker);
         return 1;
     }
@@ -386,45 +387,36 @@ static void append_user(siridb_t * siridb, siridb_user_t * user)
 
 static int save_users(siridb_t * siridb)
 {
-    FILE * fp;
-    qp_packer_t * packer;
+    qp_fpacker_t * fpacker;
     siridb_users_t * current = siridb->users;
 
     /* get user access fine name */
-    siridb_get_fn(SIRIDB_USER_ACCESS_FN)
+    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
 
-    if ((fp = fopen(fn, "w")) == NULL)
+    if ((fpacker = qp_open(fn, "w")) == NULL)
         return 1;
 
-    packer = qp_new_packer(8192);
-
     /* open a new array */
-    qp_array_open(packer);
+    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
     /* write the current schema */
-    qp_add_int8(packer, SIRIDB_USER_ACCESS_SCHEMA);
+    qp_fadd_int8(fpacker, SIRIDB_USER_ACCESS_SCHEMA);
 
     /* we can and should skip this if we have no users to save */
     if (current->user != NULL)
     {
         while (current != NULL)
         {
-            qp_add_array3(packer);
-            qp_add_string(packer, current->user->username);
-            qp_add_string(packer, current->user->password);
-            qp_add_int32(packer, (int32_t) current->user->access_bit);
+            qp_fadd_type(fpacker, QP_ARRAY3);
+            qp_fadd_string(fpacker, current->user->username);
+            qp_fadd_string(fpacker, current->user->password);
+            qp_fadd_int32(fpacker, (int32_t) current->user->access_bit);
             current = current->next;
         }
     }
 
-    /* write output to file */
-    fwrite(packer->buffer, packer->len, 1, fp);
-
     /* close file pointer */
-    fclose(fp);
-
-    /* free packer */
-    qp_free_packer(packer);
+    qp_close(fpacker);
 
     return 0;
 }

@@ -38,7 +38,14 @@ typedef struct siridb_pools_s
 siridb_lookup_t * siridb_gen_lookup(uint_fast16_t num_pools);
 void siridb_gen_pools(struct siridb_s * siridb);
 void siridb_free_pools(siridb_pools_t * pools);
-uint16_t siridb_pool_sn_len(
+
+/* lookup by 0 terminated string */
+uint16_t siridb_pool_sn(
+        struct siridb_s * siridb,
+        const char * sn);
+
+/* lookup by raw string */
+uint16_t siridb_pool_sn_raw(
         struct siridb_s * siridb,
         const char * sn,
         size_t len);

@@ -14,6 +14,7 @@
 #include <logger/logger.h>
 #include <unistd.h>
 #include <siri/db/db.h>
+#include <siri/db/buffer.h>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -38,6 +39,8 @@ siridb_series_t * siridb_create_series(
         uint8_t tp)
 {
     siridb_series_t * series;
+    qp_fpacker_t * fpacker;
+    size_t len = strlen(series_name);
 
     series = siridb_new_series(++siridb->max_series_id, tp);
 
@@ -45,6 +48,27 @@ siridb_series_t * siridb_create_series(
      * takes responsibility adding the series to SiriDB -> series
      */
     imap32_add(siridb->series_map, series->id, series);
+
+    siridb_get_fn(fn, SIRIDB_SERIES_FN);
+
+    /* create a buffer for series (except string series) */
+    if (tp != SIRIDB_SERIES_TP_STRING &&
+            siridb_buffer_new_series(siridb, series))
+        log_critical("Could not create buffer for series '%s'.", series_name);
+
+    if ((fpacker = qp_open(fn, "a")) == NULL)
+    {
+        log_critical("Could not write series '%s' to disk.", series_name);
+        return series;
+    }
+
+    qp_fadd_type(fpacker, QP_ARRAY3);
+    qp_fadd_raw(fpacker, series_name, len + 1);
+    qp_fadd_int32(fpacker, (int32_t) series->id);
+    qp_fadd_int8(fpacker, (int8_t) series->tp);
+
+    /* close file packer */
+    qp_close(fpacker);
 
     return series;
 }
@@ -84,7 +108,7 @@ int siridb_load_series(siridb_t * siridb)
     assert(siridb->max_series_id == 0);
 
     /* get series file name */
-    siridb_get_fn(SIRIDB_SERIES_FN);
+    siridb_get_fn(fn, SIRIDB_SERIES_FN);
 
     if (access(fn, R_OK) == -1)
     {
@@ -147,44 +171,34 @@ int siridb_load_series(siridb_t * siridb)
 static void pack_series(
         const char * key,
         siridb_series_t * series,
-        qp_packer_t * packer)
+        qp_fpacker_t * fpacker)
 {
-    log_debug("Series '%s' with ID %d", key, series->id);
-    qp_add_array3(packer);
-    qp_add_string_term(packer, key);
-    qp_add_int32(packer, (int32_t) series->id);
-    qp_add_int8(packer, (int8_t) series->tp);
+    qp_fadd_type(fpacker, QP_ARRAY3);
+    qp_fadd_raw(fpacker, key, strlen(key) + 1);
+    qp_fadd_int32(fpacker, (int32_t) series->id);
+    qp_fadd_int8(fpacker, (int8_t) series->tp);
 }
 
 static int save_series(siridb_t * siridb)
 {
-    FILE * fp;
-    qp_packer_t * packer;
+    qp_fpacker_t * fpacker;
 
     /* macro get series file name */
-    siridb_get_fn(SIRIDB_SERIES_FN)
+    siridb_get_fn(fn, SIRIDB_SERIES_FN)
 
-    if ((fp = fopen(fn, "w")) == NULL)
+    if ((fpacker = qp_open(fn, "w")) == NULL)
         return 1;
 
-    packer = qp_new_packer(8192);
-
     /* open a new array */
-    qp_array_open(packer);
+    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
     /* write the current schema */
-    qp_add_int8(packer, SIRIDB_SERIES_SCHEMA);
+    qp_fadd_int8(fpacker, SIRIDB_SERIES_SCHEMA);
 
-    ct_walk(siridb->series, &pack_series, packer);
-
-    /* write output to file */
-    fwrite(packer->buffer, packer->len, 1, fp);
+    ct_walk(siridb->series, (ct_cb_t) &pack_series, fpacker);
 
     /* close file pointer */
-    fclose(fp);
-
-    /* free packer */
-    qp_free_packer(packer);
+    qp_close(fpacker);
 
     return 0;
 }

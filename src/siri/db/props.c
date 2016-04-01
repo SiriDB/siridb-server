@@ -29,6 +29,8 @@ if (map)                                \
     qp_add_raw(packer, "value", 5);     \
 }
 
+static void prop_buffer_path(siridb_t * siridb, qp_packer_t * packer, int map);
+static void prop_buffer_size(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_dbname(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_dbpath(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_libuv(siridb_t * siridb, qp_packer_t * packer, int map);
@@ -53,6 +55,8 @@ void siridb_init_props(void)
     for (i = 0; i < KW_COUNT; i++)
         siridb_props[i] = NULL;
 
+    siridb_props[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] = prop_buffer_path;
+    siridb_props[CLERI_GID_K_BUFFER_SIZE - KW_OFFSET] = prop_buffer_size;
     siridb_props[CLERI_GID_K_DBNAME - KW_OFFSET] = prop_dbname;
     siridb_props[CLERI_GID_K_DBPATH - KW_OFFSET] = prop_dbpath;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] = prop_libuv;
@@ -66,6 +70,18 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_VERSION - KW_OFFSET] = prop_version;
     siridb_props[CLERI_GID_K_WHO_AM_I - KW_OFFSET] = prop_who_am_i;
 
+}
+
+static void prop_buffer_path(siridb_t * siridb, qp_packer_t * packer, int map)
+{
+    SIRIDB_PROP_MAP("buffer_path", 11)
+        qp_add_string(packer, siridb->buffer_path);
+}
+
+static void prop_buffer_size(siridb_t * siridb, qp_packer_t * packer, int map)
+{
+    SIRIDB_PROP_MAP("buffer_size", 11)
+    qp_add_int32(packer, (int32_t) siridb->buffer_size);
 }
 
 static void prop_dbname(siridb_t * siridb, qp_packer_t * packer, int map)

@@ -66,7 +66,7 @@ int32_t siridb_insert_assign_pools(
     for (n = 0; n < siridb->pools->size; n++)
     {
         packer[n] = qp_new_packer(QP_SUGGESTED_SIZE);
-        qp_map_open(packer[n]);
+        qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
     tp = qp_next_object(unpacker);
@@ -126,11 +126,6 @@ void siridb_free_insert(uv_handle_t * handle)
     #endif
 }
 
-//static void insert_points_pool()
-//{
-//
-//}
-
 static void send_points_to_pools(uv_async_t * handle)
 {
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
@@ -138,7 +133,11 @@ static void send_points_to_pools(uv_async_t * handle)
     siridb_series_t ** series;
     siridb_t * siridb = ((sirinet_handle_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
-    char * series_name;
+    qp_obj_t * qp_series_name = qp_new_object();
+    qp_obj_t * qp_series_ts = qp_new_object();
+    qp_obj_t * qp_series_val = qp_new_object();
+    sirinet_pkg_t * package;
+    qp_packer_t * packer;
 
     for (uint16_t n = 0; n < insert->packer_size; n++)
     {
@@ -147,47 +146,42 @@ static void send_points_to_pools(uv_async_t * handle)
             qp_unpacker_t * unpacker = qp_new_unpacker(
                     insert->packer[n]->buffer,
                     insert->packer[n]->len);
-            qp_next_object(unpacker); // map
-            tp = qp_next_object(unpacker); // first series or end
+            qp_next(unpacker, NULL); // map
+            tp = qp_next(unpacker, qp_series_name); // first series or end
             while (tp == QP_RAW)
             {
-                series_name = unpacker->qp_obj->via->raw;
 
                 series = (siridb_series_t **) ct_get_sure(
                         siridb->series,
-                        series_name);
+                        qp_series_name->via->raw);
 
-                qp_next_object(unpacker); // array open
-                qp_next_object(unpacker); // first point array2
-                qp_next_object(unpacker); // first ts
-                qp_next_object(unpacker); // first val
+                qp_next(unpacker, NULL); // array open
+                qp_next(unpacker, NULL); // first point array2
+                qp_next(unpacker, qp_series_ts); // first ts
+                qp_next(unpacker, qp_series_val); // first val
 
                 if (ct_is_empty(*series))
                 {
-                    log_debug("Yesssss, this is a new series...");
                     (*series) = siridb_create_series(
-                            series_name,
-                            siridb->max_series_id,
-                            siridb_qp_map_tp(unpacker->qp_obj->tp));
-                }
-                else
-                {
-                    log_debug("Oke, We have this series...");
+                            siridb,
+                            qp_series_name->via->raw,
+                            siridb_qp_map_tp(qp_series_val->tp));
                 }
                 while ((tp = qp_next_object(unpacker)) == QP_ARRAY2)
                 {
-                    qp_next_object(unpacker); // ts
-                    qp_next_object(unpacker); // val
+                    qp_next(unpacker, qp_series_ts); // ts
+                    qp_next(unpacker, qp_series_val); // val
                 }
                 if (tp == QP_ARRAY_CLOSE)
-                    tp = qp_next_object(unpacker);
+                    tp = qp_next(unpacker, NULL);
             }
             qp_free_unpacker(unpacker);
         }
     }
 
-    sirinet_pkg_t * package;
-    qp_packer_t * packer;
+    qp_free_object(qp_series_name);
+    qp_free_object(qp_series_ts);
+    qp_free_object(qp_series_val);
 
     packer = qp_new_packer(1024);
     qp_map_open(packer);
@@ -202,7 +196,7 @@ static void send_points_to_pools(uv_async_t * handle)
     sirinet_send_pkg(insert->client, package, NULL);
 
     free(package);
-    free(packer);
+    qp_free_packer(packer);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) siridb_free_insert);
 }
@@ -221,7 +215,7 @@ static int32_t assign_by_map(
 
     while (tp == QP_RAW)
     {
-        pool = siridb_pool_sn_len(
+        pool = siridb_pool_sn_raw(
                 siridb,
                 unpacker->qp_obj->via->raw,
                 unpacker->qp_obj->len);
@@ -238,7 +232,7 @@ static int32_t assign_by_map(
         if ((tp = qp_next_object(unpacker)) != QP_ARRAY2)
             return ERR_EXPECTING_AT_LEAST_ONE_POINT;
 
-        for (; (tp = qp_next_object(unpacker)) == QP_ARRAY2; count++)
+        for (; tp == QP_ARRAY2; count++, tp = qp_next_object(unpacker))
         {
             qp_add_array2(packer[pool]);
 

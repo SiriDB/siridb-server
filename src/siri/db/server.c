@@ -51,7 +51,7 @@ int siridb_load_servers(siridb_t * siridb)
     siridb->servers = new_servers();
 
     /* get servers file name */
-    siridb_get_fn(SIRIDB_SERVERS_FN)
+    siridb_get_fn(fn, SIRIDB_SERVERS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -190,6 +190,7 @@ static siridb_server_t * new_server(
 {
     siridb_server_t * server =
             (siridb_server_t *) malloc(sizeof(siridb_server_t));
+
     /* copy uuid */
     memcpy(server->uuid, uuid, 16);
 
@@ -250,46 +251,37 @@ static void update_server_name(siridb_server_t * server)
 
 static int save_servers(siridb_t * siridb)
 {
-    FILE * fp;
-    qp_packer_t * packer;
+    qp_fpacker_t * fpacker;
     siridb_servers_t * current = siridb->servers;
 
     /* get servers file name */
-    siridb_get_fn(SIRIDB_SERVERS_FN)
+    siridb_get_fn(fn, SIRIDB_SERVERS_FN)
 
-    if ((fp = fopen(fn, "w")) == NULL)
+    if ((fpacker = qp_open(fn, "w")) == NULL)
         return 1;
 
-    packer = qp_new_packer(8192);
-
     /* open a new array */
-    qp_array_open(packer);
+    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
     /* write the current schema */
-    qp_add_int8(packer, SIRIDB_SERVERS_SCHEMA);
+    qp_fadd_int8(fpacker, SIRIDB_SERVERS_SCHEMA);
 
     /* we can and should skip this if we have no users to save */
     if (current->server != NULL)
     {
         while (current != NULL)
         {
-            qp_add_array4(packer);
-            qp_add_raw(packer, (char *) &current->server->uuid[0], 16);
-            qp_add_string(packer, current->server->address);
-            qp_add_int32(packer, (int32_t) current->server->port);
-            qp_add_int32(packer, (int32_t) current->server->pool);
+            qp_fadd_type(fpacker, QP_ARRAY4);
+            qp_fadd_raw(fpacker, (char *) &current->server->uuid[0], 16);
+            qp_fadd_string(fpacker, current->server->address);
+            qp_fadd_int32(fpacker, (int32_t) current->server->port);
+            qp_fadd_int32(fpacker, (int32_t) current->server->pool);
             current = current->next;
         }
     }
 
-    /* write output to file */
-    fwrite(packer->buffer, packer->len, 1, fp);
-
     /* close file pointer */
-    fclose(fp);
-
-    /* free packer */
-    qp_free_packer(packer);
+    qp_close(fpacker);
 
     return 0;
 }

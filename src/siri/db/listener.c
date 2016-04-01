@@ -106,14 +106,9 @@ static void enter_list_users_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
-    qp_map_open(query->packer);
+    qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = NULL;
-
-//    query->data = (siridb_list_query_t *) malloc
-
-//    cleri_children_t * children =
-//                query->node_list->node->children->next->node->children;
 
     SIRIDB_NEXT_NODE
 }
@@ -123,7 +118,7 @@ static void enter_select_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
-    qp_map_open(query->packer);
+    qp_add_type(query->packer, QP_MAP_OPEN);
 
     SIRIDB_NEXT_NODE
 }
@@ -146,7 +141,7 @@ static void enter_timeit_stmt(uv_async_t * handle)
     query->timeit = qp_new_packer(512);
 
     qp_add_raw(query->timeit, "__timeit__", 10);
-    qp_array_open(query->timeit);
+    qp_add_type(query->timeit, QP_ARRAY_OPEN);
 
     SIRIDB_NEXT_NODE
 }
@@ -183,7 +178,7 @@ static void exit_create_user_stmt(uv_async_t * handle)
 
     assert(query->packer == NULL);
     query->packer = qp_new_packer(1024);
-    qp_map_open(query->packer);
+    qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
@@ -213,7 +208,7 @@ static void exit_drop_user_stmt(uv_async_t * handle)
 
     assert(query->packer == NULL);
     query->packer = qp_new_packer(1024);
-    qp_map_open(query->packer);
+    qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
@@ -235,7 +230,7 @@ static void exit_list_users_stmt(uv_async_t * handle)
     cleri_children_t * columns;
 
     qp_add_raw(query->packer, "columns", 7);
-    qp_array_open(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     if ((columns = (cleri_children_t *) query->data) == NULL)
     {
@@ -252,14 +247,14 @@ static void exit_list_users_stmt(uv_async_t * handle)
             columns = columns->next->next;
         }
     }
-    qp_array_close(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     qp_add_raw(query->packer, "users", 5);
-    qp_array_open(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     if (users->user != NULL) while (users != NULL)
     {
-        qp_array_open(query->packer);
+        qp_add_type(query->packer, QP_ARRAY_OPEN);
 
         if ((columns = (cleri_children_t *) query->data) == NULL)
         {
@@ -280,11 +275,11 @@ static void exit_list_users_stmt(uv_async_t * handle)
             }
         }
 
-        qp_array_close(query->packer);
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
         users = users->next;
     }
 
-    qp_array_close(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIDB_NEXT_NODE
 }
@@ -297,9 +292,9 @@ static void exit_show_stmt(uv_async_t * handle)
     siridb_props_cb prop_cb;
 
     query->packer = qp_new_packer(4096);
-    qp_map_open(query->packer);
+    qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "data", 4);
-    qp_array_open(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     who_am_i = ((sirinet_handle_t *) query->client->data)->user->username;
 
@@ -338,7 +333,7 @@ static void exit_show_stmt(uv_async_t * handle)
         }
     }
 
-    qp_array_close(query->packer);
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIDB_NEXT_NODE
 }
@@ -350,7 +345,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
     clock_gettime(CLOCK_REALTIME, &end);
 
-    qp_add_map2(query->timeit);
+    qp_add_type(query->timeit, QP_MAP2);
     qp_add_raw(query->timeit, "server", 6);
     qp_add_string(
             query->timeit,
@@ -365,7 +360,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
         /* lets give the new packer the exact size so we do not
          * need a realloc */
         query->packer = qp_new_packer(query->timeit->len + 1);
-        qp_map_open(query->packer);
+        qp_add_type(query->packer, QP_MAP_OPEN);
     }
 
     /* extend packer with timeit information */

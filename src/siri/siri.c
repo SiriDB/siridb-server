@@ -21,12 +21,15 @@
 #include <siri/db/listener.h>
 #include <siri/db/props.h>
 #include <siri/db/server.h>
+#include <siri/db/series.h>
+#include <siri/db/buffer.h>
 #include <strextra/strextra.h>
 #include <siri/cfg/cfg.h>
 #include <cfgparser/cfgparser.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <qpack/qpack.h>
+
 
 
 static void signal_handler(uv_signal_t * req, int signum);
@@ -70,6 +73,7 @@ static int siridb_load_databases(void)
     cfgparser_return_t rc;
     cfgparser_t * cfgparser = NULL;
     qp_unpacker_t * unpacker = NULL;
+    cfgparser_option_t * option = NULL;
     siridb_t * siridb;
     size_t len;
 
@@ -112,11 +116,13 @@ static int siridb_load_databases(void)
         if (!S_ISDIR(st.st_mode))
             continue;
 
+        /* read database.conf */
         snprintf(buffer,
                 SIRI_CFG_MAX_LEN_PATH,
                 "%s%s/database.conf",
                 siri_cfg.default_db_path,
                 dbpath->d_name);
+
         if (access(buffer, R_OK) == -1)
             continue;
 
@@ -138,13 +144,12 @@ static int siridb_load_databases(void)
                 siri_cfg.default_db_path,
                 dbpath->d_name);
 
-        cfgparser_free(cfgparser);
-
         if ((unpacker = qp_from_file_unpacker(buffer)) == NULL)
         {
             log_error("Could not read '%s'", buffer);
             closedir(db_container_path);
             qp_free_unpacker(unpacker);
+            cfgparser_free(cfgparser);
             return 1;
         }
 
@@ -157,6 +162,7 @@ static int siridb_load_databases(void)
             log_error("Could not read '%s': %s", buffer, err_msg);
             closedir(db_container_path);
             qp_free_unpacker(unpacker);
+            cfgparser_free(cfgparser);
             return 1;
         }
 
@@ -174,10 +180,29 @@ static int siridb_load_databases(void)
         memcpy(siridb->dbpath, buffer, len);
         siridb->dbpath[len] = 0;
 
+        /* read buffer_path from database.conf */
+        rc = cfgparser_get_option(
+                    &option,
+                    cfgparser,
+                    "buffer",
+                    "buffer_path");
+        if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING)
+        {
+            len = strlen(option->val->string) + 1;
+            siridb->buffer_path = (char *) malloc(len);
+            memcpy(siridb->buffer_path, option->val->string, len);
+        }
+        else
+            siridb->buffer_path = siridb->dbpath;
+
+        /* free cfgparser */
+        cfgparser_free(cfgparser);
+
         /* load users */
         if (siridb_load_users(siridb))
         {
             log_error("Could not read users for database '%s'", siridb->dbname);
+            closedir(db_container_path);
             return 1;
         }
 
@@ -185,6 +210,7 @@ static int siridb_load_databases(void)
         if (siridb_load_servers(siridb))
         {
             log_error("Could not read servers for database '%s'", siridb->dbname);
+            closedir(db_container_path);
             return 1;
         }
 
@@ -192,6 +218,23 @@ static int siridb_load_databases(void)
         if (siridb_load_series(siridb))
         {
             log_error("Could not read series for database '%s'", siridb->dbname);
+            closedir(db_container_path);
+            return 1;
+        }
+
+        /* load buffer */
+        if (siridb_load_buffer(siridb))
+        {
+            log_error("Could not read buffer for database '%s'", siridb->dbname);
+            closedir(db_container_path);
+            return 1;
+        }
+
+        /* open buffer */
+        if (siridb_open_buffer(siridb))
+        {
+            log_error("Could not open buffer for database '%s'", siridb->dbname);
+            closedir(db_container_path);
             return 1;
         }
 

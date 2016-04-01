@@ -160,14 +160,14 @@ static void on_auth_request(
     sirinet_msg_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_username = NULL;
-    qp_obj_t * qp_password = NULL;
-    qp_obj_t * qp_dbname = NULL;
+    qp_obj_t * qp_username = qp_new_object();
+    qp_obj_t * qp_password = qp_new_object();
+    qp_obj_t * qp_dbname = qp_new_object();
 
-    if (    qp_is_array(qp_next_object(unpacker)) &&
-            qp_copy_next_object(unpacker, &qp_username) == QP_RAW &&
-            qp_copy_next_object(unpacker, &qp_password) == QP_RAW &&
-            qp_copy_next_object(unpacker, &qp_dbname) == QP_RAW)
+    if (    qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, qp_username) == QP_RAW &&
+            qp_next(unpacker, qp_password) == QP_RAW &&
+            qp_next(unpacker, qp_dbname) == QP_RAW)
     {
         rc = siridb_auth_request(
                 client,
@@ -200,22 +200,24 @@ static void on_query(
 {
     CHECK_SIRIDB
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_query = NULL;
-    if (    qp_is_array(qp_next_object(unpacker)) &&
-                qp_copy_next_object(unpacker, &qp_query) == QP_RAW &&
-                qp_next_object(unpacker))
+    qp_obj_t * qp_query = qp_new_object();
+    qp_obj_t * qp_time_precision = qp_new_object();
+    if (    qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, qp_query) == QP_RAW &&
+            qp_next(unpacker, qp_time_precision))
     {
         siridb_async_query(
                 pkg->pid,
                 client,
                 qp_query->via->raw,
                 qp_query->len,
-                (unpacker->qp_obj->tp == QP_INT64) ?
-                        (siridb_time_t) unpacker->qp_obj->via->int64 :
+                (qp_time_precision->tp == QP_INT64) ?
+                        (siridb_time_t) qp_time_precision->via->int64 :
                         SIRIDB_TIME_DEFAULT,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
     qp_free_object(qp_query);
+    qp_free_object(qp_time_precision);
     qp_free_unpacker(unpacker);
 }
 

@@ -21,9 +21,9 @@
 
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
 
-#define siridb_get_fn(FILENAME)                             \
-    char fn[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
-    sprintf(fn, "%s%s", siridb->dbpath, FILENAME);
+#define siridb_get_fn(FN, FILENAME)                         \
+    char FN[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
+    sprintf(FN, "%s%s", siridb->dbpath, FILENAME);
 
 struct siridb_server_s;
 struct siridb_users_s;
@@ -37,6 +37,7 @@ typedef struct siridb_s
     uuid_t uuid;
     char * dbname;
     char * dbpath;
+    char * buffer_path;
     int time_precision;
     uint32_t start_ts;                  // in seconds, to calculate up-time.
     struct siridb_server_s * server;
@@ -47,6 +48,8 @@ typedef struct siridb_s
     uint32_t max_series_id;
     struct ct_node_s * series;
     struct imap32_s * series_map;
+    size_t buffer_size;
+    FILE * buffer_fp;
 } siridb_t;
 
 typedef struct siridb_list_s
