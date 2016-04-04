@@ -290,10 +290,13 @@ int siri_start(void)
 
 void siri_free(void)
 {
-    int rc;
-    rc = uv_loop_close(siri.loop);
-    if (rc) // could be UV_EBUSY in case handlers are not closed yet
-        log_error("Error occurred while closing the event loop: %d", rc);
+    if (siri.loop != NULL)
+    {
+        int rc;
+        rc = uv_loop_close(siri.loop);
+        if (rc) // could be UV_EBUSY in case handlers are not closed yet
+            log_error("Error occurred while closing the event loop: %d", rc);
+    }
     free(siri.loop);
     free(siri.grammar);
     siridb_free_list(siri.siridb_list);

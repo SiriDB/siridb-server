@@ -25,6 +25,7 @@
 #include <timeit/timeit.h>
 #include <imap32/imap32.h>
 #include <siri/db/pool.h>
+#include <siri/db/points.h>
 
 #define TEST_OK 0
 #define TEST_FAILED 1
@@ -48,9 +49,9 @@ static int test_end(int status)
     return status;
 }
 
-static int test_qpack1(void)
+static int test_qpack(void)
 {
-    test_start("Testing qpack (1)");
+    test_start("Testing qpack");
 
     qp_packer_t * packer = qp_new_packer(32);
     qp_map_open(packer);
@@ -78,9 +79,9 @@ static int test_qpack1(void)
 }
 
 
-static int test_cleri1(void)
+static int test_cleri(void)
 {
-    test_start("Testing cleri (1)");
+    test_start("Testing cleri");
     cleri_parse_result_t * pr;
     cleri_grammar_t * grammar = compile_grammar();
 
@@ -136,9 +137,9 @@ static int test_cleri1(void)
     return test_end(TEST_OK);
 }
 
-static int test_ctree1(void)
+static int test_ctree(void)
 {
-    test_start("Testing ctree (1)");
+    test_start("Testing ctree");
     ct_node_t * ct = ct_new();
     assert (ct_add(ct, "Iris", "is gewoon Iris") == CT_OK);
     assert (ct_add(ct, "Iris", "Iris?") == CT_EXISTS);
@@ -147,9 +148,9 @@ static int test_ctree1(void)
 
     return test_end(TEST_OK);
 }
-static int test_imap32_1(void)
+static int test_imap32(void)
 {
-    test_start("Testing imap32 (1)");
+    test_start("Testing imap32");
     imap32_t * imap = imap32_new();
 
     imap32_add(imap, 1, "Iriske");
@@ -162,9 +163,9 @@ static int test_imap32_1(void)
     return test_end(TEST_OK);
 }
 
-static int test_gen_pool_lookup_1(void)
+static int test_gen_pool_lookup(void)
 {
-    test_start("Testing test_gen_pool_lookup_1 (1)");
+    test_start("Testing test_gen_pool_lookup");
 
     siridb_lookup_t * lookup = siridb_gen_lookup(4);
     uint16_t match[30] = {
@@ -178,15 +179,43 @@ static int test_gen_pool_lookup_1(void)
     return test_end(TEST_OK);
 }
 
+static int test_points(void)
+{
+    test_start("Testing points");
+
+    siridb_points_t * points = siridb_new_points(5);
+    siridb_point_t * point;
+    qp_via_t val;
+    uint64_t timestamps[5] = {4, 6, 3, 5, 7};
+    int64_t values[5] = {1, 3, 0, 2, 4};
+
+    for (int i = 0; i < 5; i++)
+    {
+        val.int64 = values[i];
+        siridb_points_add_point(points, &timestamps[i], &val);
+    }
+
+    for (size_t i = 0; i < points->len; i++)
+    {
+        point = points->data + i;
+        assert (i == point->val.int64);
+    }
+
+    siridb_free_points(points);
+
+    return test_end(TEST_OK);
+}
+
 int run_tests(int flags)
 {
     srand(time(NULL));
     int rc = 0;
-    rc += test_qpack1();
-    rc += test_cleri1();
-    rc += test_ctree1();
-    rc += test_imap32_1();
-    rc += test_gen_pool_lookup_1();
+    rc += test_qpack();
+    rc += test_cleri();
+    rc += test_ctree();
+    rc += test_imap32();
+    rc += test_gen_pool_lookup();
+    rc += test_points();
 
     if (rc == 0)
         printf("\nSuccesfully performed all tests!\n\n");

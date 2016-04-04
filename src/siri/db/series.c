@@ -30,7 +30,21 @@ siridb_series_t * siridb_new_series(uint32_t id, uint8_t tp)
     series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
     series->id = id;
     series->tp = tp;
+    series->buffer = NULL;
     return series;
+}
+
+void siridb_series_add_point(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        uint64_t * ts,
+        qp_via_t * val)
+{
+    log_debug("Add point to series...");
+    if (series->buffer != NULL)
+    {
+        siridb_buffer_add_point(siridb, series, ts, val);
+    }
 }
 
 siridb_series_t * siridb_create_series(
@@ -92,6 +106,7 @@ uint8_t siridb_qp_map_tp(qp_types_t tp)
 void siridb_free_series(siridb_series_t * series)
 {
     log_debug("Free series ID : %d", series->id);
+    siridb_free_buffer(series->buffer);
     free(series);
 }
 

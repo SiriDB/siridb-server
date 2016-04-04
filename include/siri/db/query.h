@@ -23,10 +23,12 @@
 #include <qpack/qpack.h>
 #include <siri/db/time.h>
 #include <siri/db/node.h>
+#include <siri/db/series.h>
 #include <siri/net/protocol.h>
 
 struct cleri_parse_result_s;
 struct siridb_node_list_s;
+struct siridb_series_list_s;
 
 typedef enum siridb_err_tp
 {
@@ -56,6 +58,11 @@ typedef struct siridb_query_s
     struct timespec start;
 
 } siridb_query_t;
+
+typedef struct siridb_query_select_s
+{
+    struct siridb_series_list_s series;
+};
 
 void siridb_async_query(
         uint64_t pid,

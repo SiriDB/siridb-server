@@ -14,6 +14,7 @@
 #include <siri/siri.h>
 #include <siri/db/node.h>
 #include <siri/db/query.h>
+#include <siri/db/series.h>
 #include <siri/db/props.h>
 #include <siri/net/handle.h>
 #include <siri/net/protocol.h>
@@ -32,6 +33,7 @@ static void enter_create_user_stmt(uv_async_t * handle);
 static void enter_list_users_stmt(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
 static void enter_set_password_expr(uv_async_t * handle);
+static void enter_series_name(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
 static void enter_user_columns(uv_async_t * handle);
 
@@ -67,6 +69,7 @@ void siridb_init_listener(void)
     siridb_listen_enter[CLERI_GID_LIST_USERS_STMT] = enter_list_users_stmt;
     siridb_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
     siridb_listen_enter[CLERI_GID_SET_PASSWORD_EXPR] = enter_set_password_expr;
+    siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_user_columns;
 
@@ -131,6 +134,42 @@ static void enter_set_password_expr(uv_async_t * handle)
             query->node_list->node->children->next->next->node;
     assert(user->password == NULL);
     extract_string(&user->password, pw_node->str, pw_node->len);
+
+    SIRIDB_NEXT_NODE
+}
+
+static void enter_series_name(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    cleri_node_t * node = query->node_list->node;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_series_t * series;
+    uint16_t pool;
+    char * series_name;
+
+    /* extract series name */
+    extract_string(&series_name, node->str, node->len);
+
+    /* get pool for series name */
+    pool = siridb_pool_sn(siridb, series_name);
+
+    /* check if this series belongs to 'this' pool and if so get the series */
+    if (pool == siridb->server->pool &&
+            (series = ct_get(siridb->series, series_name)) == NULL)
+    {
+        /* the series does not exist */
+        snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot find series: '%s'", series_name);
+
+        /* free series_name and return with send_errror.. */
+        free(series_name);
+        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+    }
+
+    /* free series name since we do not need the name anymore */
+    free(series_name);
+
+    log_debug("Series id: '%d'", series->id);
 
     SIRIDB_NEXT_NODE
 }

@@ -13,10 +13,12 @@
 #include <qpack/qpack.h>
 #include <logger/logger.h>
 #include <stdio.h>
+#include <string.h>
 #include <siri/siri.h>
 #include <siri/net/protocol.h>
 #include <siri/net/handle.h>
 #include <siri/db/series.h>
+#include <siri/db/points.h>
 
 static int32_t assign_by_map(
         siridb_t * siridb,
@@ -155,15 +157,27 @@ static void send_points_to_pools(uv_async_t * handle)
 
                 if (ct_is_empty(*series))
                 {
-                    (*series) = siridb_create_series(
+                    *series = siridb_create_series(
                             siridb,
                             qp_series_name->via->raw,
                             siridb_qp_map_tp(qp_series_val->tp));
                 }
+
+                siridb_series_add_point(
+                        siridb,
+                        *series,
+                        (uint64_t *) &qp_series_ts->via->int64,
+                        qp_series_val->via);
+
                 while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
                 {
                     qp_next(unpacker, qp_series_ts); // ts
                     qp_next(unpacker, qp_series_val); // val
+                    siridb_series_add_point(
+                            siridb,
+                            *series,
+                            (uint64_t *) &qp_series_ts->via->int64,
+                            qp_series_val->via);
                 }
                 if (tp == QP_ARRAY_CLOSE)
                     tp = qp_next(unpacker, qp_series_name);
