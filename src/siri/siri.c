@@ -31,7 +31,6 @@
 #include <qpack/qpack.h>
 
 
-
 static void signal_handler(uv_signal_t * req, int signum);
 static int siridb_load_databases(void);
 static void walk_close_handlers(uv_handle_t * handle, void * arg);
@@ -39,7 +38,8 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg);
 siri_t siri = {
         .grammar=NULL,
         .loop=NULL,
-        .siridb_list=NULL
+        .siridb_list=NULL,
+        .max_open_files=0
 };
 
 void siri_setup_logger(void)

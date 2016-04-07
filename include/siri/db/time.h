@@ -29,3 +29,5 @@ typedef enum siridb_time_tp
 const char * siridb_time_short_map[SIRIDB_TIME_END];
 
 int siridb_int64_valid_ts(struct siridb_s * siridb, int64_t ts);
+
+uint32_t siridb_time_in_seconds(struct siridb_s * siridb, int64_t ts);

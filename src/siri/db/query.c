@@ -148,6 +148,20 @@ void siridb_send_error(
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
 }
 
+siridb_q_select_t * siridb_new_select_query(void)
+{
+    siridb_q_select_t * q_select =
+            (siridb_q_select_t *) malloc(sizeof(siridb_q_select_t));
+    q_select->ct_series = ct_new();
+    return q_select;
+}
+
+void siridb_free_select_query(siridb_q_select_t * q_select)
+{
+    ct_free(q_select->ct_series);
+    free(q_select);
+}
+
 static void siridb_send_invalid_query_error(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;

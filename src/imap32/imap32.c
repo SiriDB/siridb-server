@@ -19,6 +19,7 @@ imap32_t * imap32_new(void)
 {
     imap32_t * imap = (imap32_t *) malloc(sizeof(imap32_t));
     imap->size = 0;
+    imap->offset = 0;
     imap->grid = NULL;
     return imap;
 }
@@ -35,9 +36,10 @@ void imap32_free(imap32_t * imap)
 
         for (i = 0; i < 256; i++)
         {
-            if ((*grid)[i] == NULL)
+
+            if (grid->store[i] == NULL)
                 continue;
-            free((*grid)[i]);
+            free(grid->store[i]);
         }
     }
     free(imap->grid);
@@ -47,6 +49,22 @@ void imap32_free(imap32_t * imap)
 void imap32_add(imap32_t * imap, uint32_t id, void * data)
 {
     uint32_t key = id / 65536;
+
+    if (!imap->size)
+        imap->offset = key;
+    else if (key < imap->offset)
+    {
+        size_t temp = imap->size;
+        size_t diff = imap->offset - key;
+        imap->size += diff;
+        imap->grid = (im_grid_t *) realloc(
+                imap->grid, imap->size * sizeof(im_grid_t));
+        memmove(imap->grid + diff, imap->grid, temp * sizeof(im_grid_t));
+        memset(imap->grid, 0, diff * sizeof(im_grid_t));
+        imap->offset = key;
+    }
+
+    key -= imap->offset;
 
     if (key >= imap->size)
     {
@@ -59,14 +77,17 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
         memset(imap->grid + temp, 0, (imap->size- temp) * sizeof(im_grid_t));
     }
     im_grid_t * grid = imap->grid + key;
+
     id %= 65536;
     key = id / 256;
 
-    if ((*grid)[key] == NULL)
+    if (grid->store[key] == NULL)
+    {
+        grid->size++;
         // TODO: Same for calloc, 0 is not NULL
-        (*grid)[key] = (im_store_t *) calloc(1, sizeof(im_store_t));
-
-    im_store_t * store = (*grid)[key];
+        grid->store[key] = (im_store_t *) calloc(1, sizeof(im_store_t));
+    }
+    im_store_t * store = grid->store[key];
 
     id %= 256;
 
@@ -78,23 +99,25 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
 
 void * imap32_get(imap32_t * imap, uint32_t id)
 {
-    uint32_t key = id / 65536;
+    uint32_t key = id / 65536 - imap->offset;
 
     if (key >= imap->size)
         return NULL;
 
     im_grid_t * grid = imap->grid + key;
 
+
     id %= 65536;
     key = id / 256;
 
-    return ((*grid)[key] == NULL) ? NULL : (*grid)[key]->data[id % 256];
+    return (grid->store[key] == NULL) ?
+            NULL : grid->store[key]->data[id % 256];
 }
 
 void * imap32_pop(imap32_t * imap, uint32_t id)
 {
     void * data;
-    uint32_t key = id / 65536;
+    uint32_t key = id / 65536 - imap->offset;
 
     if (key >= imap->size)
         return NULL;
@@ -104,7 +127,7 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
     id %= 65536;
     key = id / 256;
 
-    im_store_t * store = (*grid)[key];
+    im_store_t * store = grid->store[key];
 
     if (store == NULL)
         return NULL;
@@ -120,8 +143,48 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
     if (--store->size)
         return data;
 
-    free((*grid)[key]);
-    (*grid)[key] = NULL;
+    free(grid->store[key]);
+    grid->store[key] = NULL;
+
+    if (--grid->size)
+        return data;
+
+    if (grid == imap->grid)
+    {
+        for (   key = 1;
+                key < imap->size && !(imap->grid + key)->size;
+                key++);
+        imap->size -= key;
+        if (imap->size)
+        {
+            memmove(imap->grid,
+                    imap->grid + key,
+                    imap->size * sizeof(im_grid_t));
+            imap->grid = (im_grid_t *) realloc(
+                            imap->grid, imap->size * sizeof(im_grid_t));
+            imap->offset += key;
+        }
+        else
+        {
+            free(imap->grid);
+            imap->offset = 0;
+            imap->grid = NULL;
+        }
+    }
+    else if (grid == imap->grid + imap->size - 1)
+    {
+        while (imap->size > 0 && !(imap->grid + (--imap->size))->size);
+        imap->size = key;
+        if (imap->size)
+            imap->grid = (im_grid_t *) realloc(
+                            imap->grid, imap->size * sizeof(im_grid_t));
+        else
+        {
+            free(imap->grid);
+            imap->offset = 0;
+            imap->grid = NULL;
+        }
+    }
 
     return data;
 }
@@ -136,7 +199,7 @@ void imap32_walk(imap32_t * imap, imap32_cb_t cb, void * args)
         grid = imap->grid + n;
         for (uint_fast8_t i = 255; i--;)
         {
-            if ((store = (*grid)[i]) == NULL)
+            if ((store = grid->store[i]) == NULL)
                 continue;
             for (uint_fast8_t j = 255; j--;)
             {

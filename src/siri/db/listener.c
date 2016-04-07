@@ -27,6 +27,7 @@
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 
+static void free_select_query(uv_handle_t * handle);
 static void free_user_object(uv_handle_t * handle);
 
 static void enter_create_user_stmt(uv_async_t * handle);
@@ -40,6 +41,7 @@ static void enter_user_columns(uv_async_t * handle);
 static void exit_create_user_stmt(uv_async_t * handle);
 static void exit_drop_user_stmt(uv_async_t * handle);
 static void exit_list_users_stmt(uv_async_t * handle);
+static void exit_select_stmt(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
@@ -76,15 +78,25 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
     siridb_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
     siridb_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
+    siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siridb_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siridb_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
+}
+
+static void free_select_query(uv_handle_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    siridb_free_select_query((siridb_q_select_t *) query->data);
+
+    /* normal free call */
+    siridb_free_query(handle);
 }
 
 static void free_user_object(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    log_debug("Free user object!");
     siridb_free_user((siridb_user_t *) query->data);
 
     /* normal free call */
@@ -119,6 +131,9 @@ static void enter_list_users_stmt(uv_async_t * handle)
 static void enter_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    query->data = (siridb_q_select_t *) siridb_new_select_query();
+    query->free_cb = (uv_close_cb) free_select_query;
 
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -166,10 +181,11 @@ static void enter_series_name(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
+    /* bind the series to the query and ignore CT_EXISTS */
+    ct_add(((siridb_q_series_t *) query->data)->ct_series, series_name, series);
+
     /* free series name since we do not need the name anymore */
     free(series_name);
-
-    log_debug("Series id: '%d'", series->id);
 
     SIRIDB_NEXT_NODE
 }
@@ -319,6 +335,35 @@ static void exit_list_users_stmt(uv_async_t * handle)
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    SIRIDB_NEXT_NODE
+}
+
+static void walk_series(
+        const char * series_name,
+        siridb_series_t * series,
+        qp_packer_t * packer)
+{
+    siridb_point_t * point;
+
+    qp_add_string(packer, series_name);
+    qp_add_type(packer, QP_ARRAY_OPEN);
+    for (size_t i = 0; i < series->buffer->points->len; i++)
+    {
+        qp_add_type(packer, QP_ARRAY2);
+        point = series->buffer->points->data + i;
+        qp_add_int64(packer, (int64_t) point->ts);
+        qp_add_int64(packer, point->val.int64);
+    }
+    qp_add_type(packer, QP_ARRAY_CLOSE);
+}
+
+static void exit_select_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    ct_walk(((siridb_q_series_t *) query->data)->ct_series,
+            (ct_cb_t) &walk_series, query->packer);
 
     SIRIDB_NEXT_NODE
 }

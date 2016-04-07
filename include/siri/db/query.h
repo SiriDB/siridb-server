@@ -16,6 +16,9 @@
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 
+#define SIRIDB_QUERY_SERIES \
+    ct_node_t * ct_series;
+
 #include <uv.h>
 #include <inttypes.h>
 #include <sys/time.h>
@@ -59,10 +62,15 @@ typedef struct siridb_query_s
 
 } siridb_query_t;
 
-typedef struct siridb_query_select_s
+typedef struct siridb_q_series_s
 {
-    struct siridb_series_list_s series;
-};
+    SIRIDB_QUERY_SERIES
+} siridb_q_series_t;
+
+typedef struct siridb_q_select_s
+{
+    SIRIDB_QUERY_SERIES
+} siridb_q_select_t;
 
 void siridb_async_query(
         uint64_t pid,
@@ -77,3 +85,6 @@ void siridb_send_query_result(uv_async_t * handle);
 void siridb_send_error(
         uv_async_t * handle,
         sirinet_msg_t err);
+
+siridb_q_select_t * siridb_new_select_query(void);
+void siridb_free_select_query(siridb_q_select_t * q_select);

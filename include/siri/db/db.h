@@ -54,20 +54,24 @@ struct imap32_s;
 typedef struct siridb_s
 {
     uuid_t uuid;
+    uint8_t time_precision;
+    uint16_t shard_mask_num;
+    uint16_t shard_mask_log;
+    size_t buffer_size;
+    uint32_t start_ts;                  // in seconds, to calculate up-time.
+    uint32_t max_series_id;
+    uint64_t duration_num;              // number duration in s, ms, us or ns
+    uint64_t duration_log;              // log duration in s, ms, us or ns
     char * dbname;
     char * dbpath;
     char * buffer_path;
-    int time_precision;
-    uint32_t start_ts;                  // in seconds, to calculate up-time.
     struct siridb_server_s * server;
     struct siridb_server_s * replica;
     struct siridb_users_s * users;
     struct siridb_servers_s * servers;
     struct siridb_pools_s * pools;
-    uint32_t max_series_id;
     struct ct_node_s * series;
     struct imap32_s * series_map;
-    size_t buffer_size;
     FILE * buffer_fp;
 } siridb_t;
 

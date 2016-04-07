@@ -38,8 +38,12 @@ void siridb_free_buffer(siridb_buffer_t * buffer);
 /* Waring: we must check if the new point fits inside the buffer before using
  * the 'siridb_buffer_add_point()' function.
  */
-void siridb_buffer_add_point(
-        siridb_t * siridb,
-        siridb_series_t * series,
+void siridb_buffer_write_point(
+        struct siridb_s * siridb,
+        struct siridb_series_s * series,
         uint64_t * ts,
         qp_via_t * val);
+
+void siridb_buffer_to_shards(
+        struct siridb_s * siridb,
+        struct siridb_series_s * series);

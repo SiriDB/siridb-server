@@ -21,7 +21,8 @@
 #define ALLOC_BUFFER                                                        \
 series->buffer = (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));       \
 series->buffer->points =                                                    \
-        siridb_new_points((siridb->buffer_size / sizeof(siridb_point_t)) - 1);
+        /* this buffer can hold 1 more point than actual on disk */         \
+        siridb_new_points(siridb->buffer_size / sizeof(siridb_point_t));
 
 
 void siridb_free_buffer(siridb_buffer_t * buffer)
@@ -33,15 +34,21 @@ void siridb_free_buffer(siridb_buffer_t * buffer)
     }
 }
 
-void siridb_buffer_add_point(
+void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
+{
+    uint64_t duration = SIRIDB_SERIES_ISNUM(series) ?
+            siridb->duration_num : siridb->duration_log;
+    uint64_t shard_start =
+            series->buffer->points->data[0].ts / duration * duration;
+    log_debug("Shard start: %ld, %d", shard_start, duration);
+}
+
+void siridb_buffer_write_point(
         siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val)
 {
-    /* add point in memory */
-    siridb_points_add_point(series->buffer->points, ts, val);
-
     /* go to the series position in buffer */
     fseek(siridb->buffer_fp,
             series->buffer->bf_offset + sizeof(uint32_t),

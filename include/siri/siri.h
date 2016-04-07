@@ -21,6 +21,7 @@ struct siridb_list_s;
 typedef struct siri_s
 {
     uv_loop_t * loop;
+    uint16_t max_open_files;
     struct cleri_grammar_s * grammar;
     struct siridb_list_s * siridb_list;
 } siri_t;

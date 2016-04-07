@@ -24,13 +24,26 @@
 
 static int save_series(siridb_t * siridb);
 
-siridb_series_t * siridb_new_series(uint32_t id, uint8_t tp)
+static siridb_series_t * siridb_new_series(
+        siridb_t * siridb,
+        uint32_t id,
+        uint8_t tp,
+        const char * sn)
 {
+    uint32_t n = 0;
     siridb_series_t * series;
     series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
     series->id = id;
     series->tp = tp;
     series->buffer = NULL;
+
+    /* get sum series name to calculate series mask (for sharding) */
+    for (; *sn; sn++)
+        n += *sn;
+
+    series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
+            siridb->shard_mask_log : siridb->shard_mask_num);
+
     return series;
 }
 
@@ -43,7 +56,18 @@ void siridb_series_add_point(
     log_debug("Add point to series...");
     if (series->buffer != NULL)
     {
-        siridb_buffer_add_point(siridb, series, ts, val);
+        /* add point in memory
+         * (memory can hold 1 more point than we can hold on disk)
+         */
+        siridb_points_add_point(series->buffer->points, ts, val);
+
+        if (series->buffer->points->len == series->buffer->points->size)
+        {
+            log_debug("Buffer is full, write to shards");
+            siridb_buffer_to_shards(siridb, series);
+        }
+        siridb_buffer_to_shards(siridb, series);
+        siridb_buffer_write_point(siridb, series, ts, val);
     }
 }
 
@@ -56,7 +80,8 @@ siridb_series_t * siridb_create_series(
     qp_fpacker_t * fpacker;
     size_t len = strlen(series_name);
 
-    series = siridb_new_series(++siridb->max_series_id, tp);
+    series = siridb_new_series(
+            siridb, ++siridb->max_series_id, tp, series_name);
 
     /* We only should add the series to series_map and assume the caller
      * takes responsibility adding the series to SiriDB -> series
@@ -147,8 +172,10 @@ int siridb_load_series(siridb_t * siridb)
             qp_next(unpacker, qp_series_tp) == QP_INT64)
     {
         series = siridb_new_series(
+                siridb,
                 (uint32_t) qp_series_id->via->int64,
-                (uint8_t) qp_series_tp->via->int64);
+                (uint8_t) qp_series_tp->via->int64,
+                qp_series_name->via->raw);
 
         /* update max_series_id */
         if (series->id > siridb->max_series_id)

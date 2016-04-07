@@ -19,10 +19,19 @@
 #include <siri/db/user.h>
 #include <uuid/uuid.h>
 #include <siri/db/series.h>
+#include <math.h>
 
 static siridb_t * siridb_new(void);
 static void siridb_free(siridb_t * siridb);
 static void siridb_add(siridb_list_t * siridb_list, siridb_t * siridb);
+
+#define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
+{                                           \
+    sprintf(err_msg, "error: " ERROR_MSG);  \
+    siridb_free(*siridb);                   \
+    qp_free_object(qp_obj);                 \
+    return 1;                               \
+}
 
 siridb_list_t * siridb_new_list(void)
 {
@@ -77,12 +86,7 @@ int siridb_add_from_unpacker(
     /* read uuid */
     if (qp_next(unpacker, qp_obj) != QP_RAW ||
             qp_obj->len != 16)
-    {
-        sprintf(err_msg, "error: cannot read uuid.");
-        siridb_free(*siridb);
-        qp_free_object(qp_obj);
-        return 1;
-    }
+        READ_DB_EXIT_WITH_ERROR("cannot read uuid.")
 
     /* copy uuid */
     memcpy(&(*siridb)->uuid, qp_obj->via->raw, qp_obj->len);
@@ -90,12 +94,7 @@ int siridb_add_from_unpacker(
     /* read database name */
     if (qp_next(unpacker, qp_obj) != QP_RAW ||
             qp_obj->len >= SIRIDB_MAX_DBNAME_LEN)
-    {
-        sprintf(err_msg, "error: cannot read database name.");
-        siridb_free(*siridb);
-        qp_free_object(qp_obj);
-        return 1;
-    }
+        READ_DB_EXIT_WITH_ERROR("cannot read database name.")
 
     /* alloc mem for database name */
     (*siridb)->dbname = (char *) malloc(qp_obj->len + 1);
@@ -110,27 +109,44 @@ int siridb_add_from_unpacker(
     if (qp_next(unpacker, qp_obj) != QP_INT64 ||
             qp_obj->via->int64 < SIRIDB_TIME_SECONDS ||
             qp_obj->via->int64 > SIRIDB_TIME_NANOSECONDS)
-    {
-        sprintf(err_msg, "error: cannot read time-precision.");
-        siridb_free(*siridb);
-        qp_free_object(qp_obj);
-        return 1;
-    }
+        READ_DB_EXIT_WITH_ERROR("cannot read time-precision.")
 
     /* bind time precision to SiriDB */
     (*siridb)->time_precision = (siridb_time_t) qp_obj->via->int64;
 
     /* read buffer size */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
-    {
-        sprintf(err_msg, "error: cannot buffer size.");
-        siridb_free(*siridb);
-        qp_free_object(qp_obj);
-        return 1;
-    }
+        READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
 
     /* bind buffer size to SiriDB */
     (*siridb)->buffer_size = (size_t) qp_obj->via->int64;
+
+    /* read number duration  */
+    if (qp_next(unpacker, qp_obj) != QP_INT64)
+        READ_DB_EXIT_WITH_ERROR("cannot read number duration.")
+
+    /* bind number duration to SiriDB */
+    (*siridb)->duration_num = (uint64_t) qp_obj->via->int64;
+
+    /* calculate 'shard_mask_num' based on number duration */
+    (*siridb)->shard_mask_num =
+            (uint16_t) sqrt((double) siridb_time_in_seconds(
+                    *siridb, (*siridb)->duration_num)) / 24;
+
+    /* read log duration  */
+    if (qp_next(unpacker, qp_obj) != QP_INT64)
+        READ_DB_EXIT_WITH_ERROR("cannot read log duration.")
+
+    /* bind log duration to SiriDB */
+    (*siridb)->duration_log = (uint64_t) qp_obj->via->int64;
+
+    /* calculate 'shard_mask_log' based on log duration */
+    (*siridb)->shard_mask_log =
+            (uint16_t) sqrt((double) siridb_time_in_seconds(
+                    *siridb, (*siridb)->duration_log)) / 24;
+
+    log_debug("Set number duration mask to %d", (*siridb)->shard_mask_num);
+    log_debug("Set log duration mask to %d", (*siridb)->shard_mask_log);
 
     /* add SiriDB to list */
     siridb_add(siridb_list, *siridb);

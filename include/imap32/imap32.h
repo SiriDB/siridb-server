@@ -19,11 +19,16 @@ typedef struct im_store_s
     void * data[256];
 } im_store_t;
 
-typedef im_store_t * im_grid_t[256];
+typedef struct im_grid_s
+{
+    size_t size;
+    im_store_t * store[256];
+} im_grid_t;
 
 typedef struct imap32_s
 {
     size_t size;
+    size_t offset;
     im_grid_t * grid;
 } imap32_t;
 
