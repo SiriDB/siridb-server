@@ -11,6 +11,7 @@
  */
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
+#include <siri/db/shard.h>
 #include <stdio.h>
 #include <sys/unistd.h>
 #include <logger/logger.h>
@@ -36,13 +37,38 @@ void siridb_free_buffer(siridb_buffer_t * buffer)
 
 void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 {
+    siridb_shard_t * shard;
     uint64_t duration = SIRIDB_SERIES_ISNUM(series) ?
             siridb->duration_num : siridb->duration_log;
-    uint64_t shard_start =
-            series->buffer->points->data[0].ts / duration * duration;
-    uint64_t shard_id = shard_start + series->mask;
 
-    log_debug("Shard start: %ld, %d", shard_start, duration);
+    uint64_t shard_start, shard_end, shard_id;
+    uint_fast32_t start, len;
+
+    for (len = 0; len < series->buffer->points->len;)
+    {
+        shard_start =
+                series->buffer->points->data[len].ts / duration * duration;
+        shard_end = shard_start + duration;
+        shard_id = shard_start + series->mask;
+
+        if ((shard = imap64_get(siridb->shards, shard_id)) == NULL)
+        {
+            log_debug("Create shard id %ld.", shard_id);
+            shard = siridb_create_shard(
+                    siridb,
+                    shard_id,
+                    duration,
+                    series->tp);
+        }
+
+        for (start = len; len < series->buffer->points->len &&
+            series->buffer->points->data[len].ts < shard_end; len++)
+        {
+
+        }
+
+        log_debug("Shard start: %ld, %d", shard_start, duration);
+    }
 
 }
 

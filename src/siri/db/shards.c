@@ -20,7 +20,7 @@
 #include <ctype.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/shard.h>
-
+#include <siri/siri.h>
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 
@@ -118,4 +118,10 @@ int siridb_load_shards(struct siridb_s * siridb)
     closedir(shards_dir);
 
     return 0;
+}
+
+FILE * siridb_open_shard(siridb_shard_t * shard)
+{
+//    siri.max_open_files
+    return NULL;
 }

@@ -16,8 +16,8 @@
 
 typedef struct siridb_point_s
 {
-    uint64_t ts;
     qp_via_t val;
+    uint64_t ts;
 } siridb_point_t;
 
 typedef struct siridb_points_s

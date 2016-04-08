@@ -48,7 +48,7 @@ void siridb_free_shard(siridb_shard_t * shard)
     free(shard);
 }
 
-int siridb_load_shard(struct siridb_s * siridb, uint64_t id)
+int siridb_load_shard(siridb_t * siridb, uint64_t id)
 {
     siridb_shard_t * shard;
     shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
@@ -80,7 +80,11 @@ int siridb_load_shard(struct siridb_s * siridb, uint64_t id)
     return 0;
 }
 
-int siridb_create_shard(struct siridb_s * siridb, uint64_t id, uint8_t tp)
+siridb_shard_t *  siridb_create_shard(
+        siridb_t * siridb,
+        uint64_t id,
+        uint64_t duration,
+        uint8_t tp)
 {
     siridb_shard_t * shard;
 
@@ -93,21 +97,35 @@ int siridb_create_shard(struct siridb_s * siridb, uint64_t id, uint8_t tp)
     if ((shard->fp = fopen(fn, "w")) == NULL)
     {
         free(shard);
+        perror("Error");
         log_critical("Cannot create shard file: '%s'", fn);
-        return -1;
+        return NULL;
     }
 
-    fwrite(((tp == SIRIDB_SERIES_TP_STRING) ?
-                    &siridb->duration_log : &siridb->duration_num),
-            sizeof(uint64_t), 1, shard->fp);
+    fwrite(&duration, sizeof(uint64_t), 1, shard->fp);
     fputc(SIRIDB_SHARD_SHEMA, shard->fp);
     fputc(tp, shard->fp);
     fputc(siridb->time_precision, shard->fp);
     fputc(shard->status, shard->fp);
 
     fclose(shard->fp);
+    shard->fp = NULL;
 
     imap64_add(siridb->shards, id, shard);
 
+    return shard;
+}
+
+int siridb_shard_write_points(
+        struct siridb_s * siridb,
+        siridb_shard_t * shard,
+        struct siridb_points_s * points,
+        uint32_t start,
+        uint32_t end)
+{
+    if (shard->fp == NULL)
+    {
+
+    }
     return 0;
 }

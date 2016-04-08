@@ -14,9 +14,11 @@
 #include <uv.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/db.h>
+#include <siri/filehandler.h>
 
 struct cleri_grammar_s;
 struct siridb_list_s;
+
 
 typedef struct siri_s
 {
@@ -24,6 +26,7 @@ typedef struct siri_s
     uint16_t max_open_files;
     struct cleri_grammar_s * grammar;
     struct siridb_list_s * siridb_list;
+    struct siri_fh_s * fh;
 } siri_t;
 
 
