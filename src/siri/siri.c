@@ -22,6 +22,7 @@
 #include <siri/db/props.h>
 #include <siri/db/server.h>
 #include <siri/db/series.h>
+#include <siri/db/shards.h>
 #include <siri/db/buffer.h>
 #include <strextra/strextra.h>
 #include <siri/cfg/cfg.h>
@@ -85,7 +86,7 @@ static int siridb_load_databases(void)
                 siri_cfg.default_db_path);
         if (mkdir(siri_cfg.default_db_path, 0700) == -1)
         {
-            log_error("Cannot create director '%s'.",
+            log_error("Cannot create directory '%s'.",
                     siri_cfg.default_db_path);
             return 1;
         }
@@ -100,7 +101,7 @@ static int siridb_load_databases(void)
 
     while((dbpath = readdir(db_container_path)) != NULL)
     {
-        struct stat st;
+        struct stat st = {0};
 
         if ((strlen(dbpath->d_name) == 1 &&
                     strcmp(dbpath->d_name, ".") == 0) ||
@@ -234,6 +235,14 @@ static int siridb_load_databases(void)
         if (siridb_open_buffer(siridb))
         {
             log_error("Could not open buffer for database '%s'", siridb->dbname);
+            closedir(db_container_path);
+            return 1;
+        }
+
+        /* load shards */
+        if (siridb_load_shards(siridb))
+        {
+            log_error("Could not read shards for database '%s'", siridb->dbname);
             closedir(db_container_path);
             return 1;
         }

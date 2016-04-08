@@ -19,6 +19,7 @@
 #include <siri/db/user.h>
 #include <uuid/uuid.h>
 #include <siri/db/series.h>
+#include <siri/db/shard.h>
 #include <math.h>
 
 static siridb_t * siridb_new(void);
@@ -193,6 +194,7 @@ static siridb_t * siridb_new(void)
     siridb->max_series_id = 0;
     siridb->series = ct_new();
     siridb->series_map = imap32_new();
+    siridb->shards = imap64_new();
     siridb->buffer_size = -1;
     siridb->buffer_fp = NULL; /* make sure this is NULL when file is closed */
     return siridb;
@@ -226,8 +228,14 @@ static void siridb_free(siridb_t * siridb)
         /* free series using imap32 */
         imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_free_series, NULL);
 
-        /* free imap32 */
+        /* free imap32 (series) */
         imap32_free(siridb->series_map);
+
+        /* free shards using imap64 */
+        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_free_shard, NULL);
+
+        /* free imap64 (shards) */
+        imap64_free(siridb->shards);
 
         if (siridb->buffer_fp != NULL)
             fclose(siridb->buffer_fp);

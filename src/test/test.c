@@ -24,6 +24,7 @@
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap32/imap32.h>
+#include <imap64/imap64.h>
 #include <siri/db/pool.h>
 #include <siri/db/points.h>
 
@@ -148,6 +149,7 @@ static int test_ctree(void)
 
     return test_end(TEST_OK);
 }
+
 static int test_imap32(void)
 {
     test_start("Testing imap32");
@@ -171,6 +173,31 @@ static int test_imap32(void)
     assert (strcmp(imap32_pop(imap, 123456), "Sasientje") == 0);
 
     imap32_free(imap);
+    return test_end(TEST_OK);
+}
+
+static int test_imap64(void)
+{
+    test_start("Testing imap64");
+    imap64_t * imap = imap64_new();
+
+    imap64_add(imap, 16, "Sasientje");
+    imap64_add(imap, 1676, "Juul");
+    imap64_add(imap, 0, "Iriske");
+    assert (imap->len == 3);
+    assert (strcmp(imap64_get(imap, 16), "Sasientje") == 0);
+    assert (strcmp(imap64_get(imap, 0), "Iriske") == 0);
+    assert (strcmp(imap64_pop(imap, 0), "Iriske") == 0);
+    assert (imap64_get(imap, 0) == NULL);
+    assert (strcmp(imap64_pop(imap, 16), "Sasientje") == 0);
+    assert (imap->len == 1);
+
+    imap64_add(imap, 451246163432574, "Sasientje");
+    imap64_add(imap, 23456, "Iriske");
+    assert (strcmp(imap64_pop(imap, 23456), "Iriske") == 0);
+    assert (strcmp(imap64_pop(imap, 451246163432574), "Sasientje") == 0);
+
+    imap64_free(imap);
     return test_end(TEST_OK);
 }
 
@@ -225,6 +252,7 @@ int run_tests(int flags)
     rc += test_cleri();
     rc += test_ctree();
     rc += test_imap32();
+    rc += test_imap64();
     rc += test_gen_pool_lookup();
     rc += test_points();
 

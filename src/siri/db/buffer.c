@@ -40,7 +40,10 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
             siridb->duration_num : siridb->duration_log;
     uint64_t shard_start =
             series->buffer->points->data[0].ts / duration * duration;
+    uint64_t shard_id = shard_start + series->mask;
+
     log_debug("Shard start: %ld, %d", shard_start, duration);
+
 }
 
 void siridb_buffer_write_point(
@@ -126,7 +129,7 @@ int siridb_load_buffer(siridb_t * siridb)
     siridb_get_fn(fn, SIRIDB_BUFFER_FN)
     siridb_get_fn(fn_temp, "__" SIRIDB_BUFFER_FN)
 
-    if (access(fn_temp, R_OK) != -1)
+    if (access(fn_temp, F_OK) != -1)
     {
         log_error(
                 "Temporary buffer file found: '%s'. "
@@ -134,7 +137,7 @@ int siridb_load_buffer(siridb_t * siridb)
         return 1;
     }
 
-    if (access(fn, R_OK) == -1)
+    if (access(fn, F_OK) == -1)
     {
         log_warning("Buffer file '%s' not found, create a new one.", fn);
         if ((fp = fopen(fn, "w")) == NULL)

@@ -18,6 +18,7 @@
 #include <siri/db/pool.h>
 #include <ctree/ctree.h>
 #include <imap32/imap32.h>
+#include <imap64/imap64.h>
 
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
 
@@ -50,6 +51,7 @@ struct siridb_servers_s;
 struct siridb_pools_s;
 struct ct_node_s;
 struct imap32_s;
+struct imap64_s;
 
 typedef struct siridb_s
 {
@@ -72,6 +74,7 @@ typedef struct siridb_s
     struct siridb_pools_s * pools;
     struct ct_node_s * series;
     struct imap32_s * series_map;
+    struct imap64_s * shards;
     FILE * buffer_fp;
 } siridb_t;
 

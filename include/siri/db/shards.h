@@ -10,3 +10,11 @@
  *
  */
 #pragma once
+
+#include <siri/db/db.h>
+
+#define SIRIDB_SHARDS_PATH "shards/"
+
+struct siridb_s;
+
+int siridb_load_shards(struct siridb_s * siridb);

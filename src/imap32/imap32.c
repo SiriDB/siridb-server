@@ -14,10 +14,12 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 imap32_t * imap32_new(void)
 {
     imap32_t * imap = (imap32_t *) malloc(sizeof(imap32_t));
+    imap->len = 0;
     imap->size = 0;
     imap->offset = 0;
     imap->grid = NULL;
@@ -49,6 +51,8 @@ void imap32_free(imap32_t * imap)
 void imap32_add(imap32_t * imap, uint32_t id, void * data)
 {
     uint32_t key = id / 65536;
+
+    assert (data != NULL);
 
     if (!imap->size)
         imap->offset = key;
@@ -92,7 +96,10 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
     id %= 256;
 
     if (store->data[id] == NULL)
+    {
         store->size++;
+        imap->len++;
+    }
 
     store->data[id] = data;
 }
@@ -105,7 +112,6 @@ void * imap32_get(imap32_t * imap, uint32_t id)
         return NULL;
 
     im_grid_t * grid = imap->grid + key;
-
 
     id %= 65536;
     key = id / 256;
@@ -137,6 +143,7 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
     if (store->data[id] == NULL)
         return NULL;
 
+    imap->len--;
     data = store->data[id];
     store->data[id] = NULL;
 

@@ -27,6 +27,7 @@ typedef struct im_grid_s
 
 typedef struct imap32_s
 {
+    size_t len;
     size_t size;
     size_t offset;
     im_grid_t * grid;
