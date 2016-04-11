@@ -35,6 +35,7 @@ static void prop_dbname(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_dbpath(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_libuv(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_log_level(siridb_t * siridb, qp_packer_t * packer, int map);
+static void prop_max_open_files(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_pool(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_server(siridb_t * siridb, qp_packer_t * packer, int map);
@@ -60,6 +61,7 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_DBNAME - KW_OFFSET] = prop_dbname;
     siridb_props[CLERI_GID_K_DBPATH - KW_OFFSET] = prop_dbpath;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] = prop_libuv;
+    siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] = prop_max_open_files;
     siridb_props[CLERI_GID_K_MEM_USAGE - KW_OFFSET] = prop_mem_usage;
     siridb_props[CLERI_GID_K_LOG_LEVEL - KW_OFFSET] = prop_log_level;
     siridb_props[CLERI_GID_K_POOL - KW_OFFSET] = prop_pool;
@@ -106,6 +108,12 @@ static void prop_log_level(siridb_t * siridb, qp_packer_t * packer, int map)
 {
     SIRIDB_PROP_MAP("log_level", 9)
     qp_add_string(packer, Logger.level_name);
+}
+
+static void prop_max_open_files(siridb_t * siridb, qp_packer_t * packer, int map)
+{
+    SIRIDB_PROP_MAP("max_open_files", 14)
+    qp_add_int32(packer, (int32_t) abs(siri_cfg.max_open_files));
 }
 
 static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map)
