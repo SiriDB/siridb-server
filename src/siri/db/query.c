@@ -32,7 +32,7 @@ void siridb_async_query(
         uv_handle_t * client,
         const char * q,
         size_t q_len,
-        siridb_time_t time_precision,
+        siridb_timep_t time_precision,
         int flags)
 {
     siridb_query_t * query;

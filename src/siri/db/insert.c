@@ -160,7 +160,7 @@ static void send_points_to_pools(uv_async_t * handle)
                     *series = siridb_create_series(
                             siridb,
                             qp_series_name->via->raw,
-                            siridb_qp_map_tp(qp_series_val->tp));
+                            SIRIDB_QP_MAP2_TP(qp_series_val->tp));
                 }
 
                 siridb_series_add_point(

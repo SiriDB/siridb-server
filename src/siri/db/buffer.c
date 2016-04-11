@@ -42,12 +42,12 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
             siridb->duration_num : siridb->duration_log;
 
     uint64_t shard_start, shard_end, shard_id;
-    uint_fast32_t start, len;
+    uint_fast32_t start, end;
 
-    for (len = 0; len < series->buffer->points->len;)
+    for (end = 0; end < series->buffer->points->len;)
     {
         shard_start =
-                series->buffer->points->data[len].ts / duration * duration;
+                series->buffer->points->data[end].ts / duration * duration;
         shard_end = shard_start + duration;
         shard_id = shard_start + series->mask;
 
@@ -61,10 +61,20 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                     series->tp);
         }
 
-        for (start = len; len < series->buffer->points->len &&
-            series->buffer->points->data[len].ts < shard_end; len++)
-        {
+        for (   start = end;
+                end < series->buffer->points->len &&
+                    series->buffer->points->data[end].ts < shard_end;
+                end++);
 
+        if (start != end)
+        {
+            siridb_shard_write_points(
+                    siridb,
+                    series,
+                    shard,
+                    series->buffer->points,
+                    start,
+                    end);
         }
 
         log_debug("Shard start: %ld, %d", shard_start, duration);

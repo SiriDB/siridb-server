@@ -112,22 +112,6 @@ siridb_series_t * siridb_create_series(
     return series;
 }
 
-uint8_t siridb_qp_map_tp(qp_types_t tp)
-{
-    switch (tp)
-    {
-    case QP_INT64:
-        return SIRIDB_SERIES_TP_INT;
-    case QP_DOUBLE:
-        return SIRIDB_SERIES_TP_DOUBLE;
-    case QP_RAW:
-        return SIRIDB_SERIES_TP_STRING;
-    default:
-        log_critical("No map found for %d", tp);
-        return 0;
-    }
-}
-
 void siridb_free_series(siridb_series_t * series)
 {
     log_debug("Free series ID : %d", series->id);

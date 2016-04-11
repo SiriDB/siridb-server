@@ -212,7 +212,7 @@ static void on_query(
                 qp_query->via->raw,
                 qp_query->len,
                 (qp_time_precision->tp == QP_INT64) ?
-                        (siridb_time_t) qp_time_precision->via->int64 :
+                        (siridb_timep_t) qp_time_precision->via->int64 :
                         SIRIDB_TIME_DEFAULT,
                 SIRIDB_QUERY_FLAG_MASTER);
     }

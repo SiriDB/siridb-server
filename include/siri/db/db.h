@@ -45,6 +45,7 @@
     /* finished schema check, free schema object */             \
     qp_free_object(qp_schema);
 
+struct siridb_time_s;
 struct siridb_server_s;
 struct siridb_users_s;
 struct siridb_servers_s;
@@ -56,7 +57,6 @@ struct imap64_s;
 typedef struct siridb_s
 {
     uuid_t uuid;
-    uint8_t time_precision;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
     size_t buffer_size;
@@ -67,6 +67,7 @@ typedef struct siridb_s
     char * dbname;
     char * dbpath;
     char * buffer_path;
+    struct siridb_time_s * time;
     struct siridb_server_s * server;
     struct siridb_server_s * replica;
     struct siridb_users_s * users;

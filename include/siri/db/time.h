@@ -13,6 +13,7 @@
 
 #include <inttypes.h>
 #include <siri/db/db.h>
+#include <stddef.h>
 
 struct siridb_s;
 
@@ -24,7 +25,16 @@ typedef enum siridb_time_tp
     SIRIDB_TIME_MICROSECONDS,
     SIRIDB_TIME_NANOSECONDS,
     SIRIDB_TIME_END
+} siridb_timep_t;
+
+typedef struct siridb_time_s
+{
+    siridb_timep_t precision;
+    uint32_t factor;
+    size_t ts_sz;
 } siridb_time_t;
+
+siridb_time_t * siridb_new_time(siridb_timep_t precision);
 
 const char * siridb_time_short_map[SIRIDB_TIME_END];
 

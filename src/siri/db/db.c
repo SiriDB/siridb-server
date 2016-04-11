@@ -113,7 +113,8 @@ int siridb_add_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read time-precision.")
 
     /* bind time precision to SiriDB */
-    (*siridb)->time_precision = (siridb_time_t) qp_obj->via->int64;
+    (*siridb)->time =
+            siridb_new_time((siridb_timep_t) qp_obj->via->int64);
 
     /* read buffer size */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
@@ -187,7 +188,7 @@ static siridb_t * siridb_new(void)
     siridb->dbname = NULL;
     siridb->dbpath = NULL;
     siridb->buffer_path = NULL;
-    siridb->time_precision = -1;
+    siridb->time = NULL;
     siridb->users = NULL;
     siridb->servers = NULL;
     siridb->pools = NULL;
@@ -206,13 +207,7 @@ static void siridb_free(siridb_t * siridb)
     {
         log_debug("Free database '%s'...", siridb->dbname);
 
-        free(siridb->dbname);
-
-        /* only free buffer path when not equal to db_path */
-        if (siridb->buffer_path != siridb->dbpath)
-            free(siridb->buffer_path);
-        free(siridb->dbpath);
-
+        /* free users */
         siridb_free_users(siridb->users);
 
         /* we do not need to free server and replica since they exist in
@@ -220,6 +215,7 @@ static void siridb_free(siridb_t * siridb)
          */
         siridb_free_servers(siridb->servers);
 
+        /* free pools */
         siridb_free_pools(siridb->pools);
 
         /* free c-tree lookup */
@@ -240,6 +236,13 @@ static void siridb_free(siridb_t * siridb)
         if (siridb->buffer_fp != NULL)
             fclose(siridb->buffer_fp);
 
+        /* only free buffer path when not equal to db_path */
+        if (siridb->buffer_path != siridb->dbpath)
+            free(siridb->buffer_path);
+        free(siridb->dbpath);
+
+        free(siridb->dbname);
+        free(siridb->time);
         free(siridb);
     }
 }

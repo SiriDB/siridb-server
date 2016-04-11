@@ -54,7 +54,7 @@ typedef struct siridb_query_s
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     qp_packer_t * packer;
     qp_packer_t * timeit;
-    siridb_time_t time_precision;
+    siridb_timep_t time_precision;
     uv_close_cb free_cb;
     struct cleri_parse_result_s * pr;
     struct siridb_node_list_s * node_list;
@@ -77,7 +77,7 @@ void siridb_async_query(
         uv_handle_t * client,
         const char * q,
         size_t q_len,
-        siridb_time_t time_precision,
+        siridb_timep_t time_precision,
         int flags);
 
 void siridb_free_query(uv_handle_t * handle);

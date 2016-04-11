@@ -25,6 +25,32 @@ struct siridb_buffer_s;
 
 #define SIRIDB_SERIES_ISNUM(SERIES) (SERIES->tp != SIRIDB_SERIES_TP_STRING)
 
+#define SIRIDB_QP_MAP2_TP(TP)                                               \
+    (TP == QP_INT64) ? SIRIDB_SERIES_TP_INT :                               \
+    (TP == QP_DOUBLE) ? SIRIDB_SERIES_TP_DOUBLE : SIRIDB_SERIES_TP_STRING
+
+typedef struct idx_num64_s
+{
+    uint64_t start_ts;
+    uint64_t end_ts;
+    struct siridb_shard_s * shard;
+    uint16_t len;
+} idx_num64_t;
+
+typedef struct idx_num32_s
+{
+    uint32_t start_ts;
+    uint32_t end_ts;
+    struct siridb_shard_s * shard;
+    uint16_t len;
+} idx_num32_t;
+
+typedef struct siridb_series_idx_s
+{
+    size_t len;
+    void * idx;
+} siridb_series_idx_t;
+
 typedef struct siridb_series_s
 {
     uint32_t id;
@@ -33,7 +59,7 @@ typedef struct siridb_series_s
     struct siridb_buffer_s * buffer;
 } siridb_series_t;
 
-uint8_t siridb_qp_map_tp(qp_types_t tp);
+
 
 void siridb_free_series(siridb_series_t * series);
 

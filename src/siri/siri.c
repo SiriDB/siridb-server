@@ -40,7 +40,7 @@ siri_t siri = {
         .grammar=NULL,
         .loop=NULL,
         .siridb_list=NULL,
-        .max_open_files=0
+        .fh=NULL
 };
 
 void siri_setup_logger(void)
@@ -274,6 +274,9 @@ int siri_start(void)
     /* create store for SiriDB instances */
     siri.siridb_list = siridb_new_list();
 
+    /* initialize file handler for shards */
+    siri.fh = siri_new_fh(siri_cfg.max_open_files);
+
     /* load databases */
     if ((rc = siridb_load_databases()))
         return rc; //something went wrong
@@ -308,6 +311,7 @@ void siri_free(void)
     }
     free(siri.loop);
     free(siri.grammar);
+    siri_free_fh(siri.fh);
     siridb_free_list(siri.siridb_list);
 }
 

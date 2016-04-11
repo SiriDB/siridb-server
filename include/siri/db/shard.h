@@ -13,16 +13,24 @@
 
 #include <siri/db/db.h>
 #include <siri/db/points.h>
+#include <siri/db/series.h>
+#include <siri/filehandler.h>
+
+#define SIRIDB_SHARD_HAS_OVERLAP 1
+#define SIRIDB_SHARD_MANUAL_OPTIMIZE 2
+#define SIRIDB_SHARD_HAS_NEW_VALUES 4
+#define SIRIDB_SHARD_HAS_REMOVED_SERIES 8
 
 struct siridb_s;
 struct siridb_points_s;
+struct siridb_series_s;
 
 typedef struct siridb_shard_s
 {
     uint64_t id;
     uint8_t tp; /* SIRIDB_SERIES_TP_INT, ...DOUBLE or ...STRING */
     uint8_t status;
-    FILE * fp;
+    siri_fp_t * fp;
 } siridb_shard_t;
 
 void siridb_free_shard(siridb_shard_t * shard);
@@ -34,10 +42,9 @@ siridb_shard_t * siridb_create_shard(
         uint64_t duration,
         uint8_t tp);
 
-
-
 int siridb_shard_write_points(
         struct siridb_s * siridb,
+        struct siridb_series_s * series,
         siridb_shard_t * shard,
         struct siridb_points_s * points,
         uint32_t start,
