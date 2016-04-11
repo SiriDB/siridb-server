@@ -52,7 +52,7 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath, SIRIDB_SHARDS_PATH, shard->id, ".sdb");
  */
 #define IDX_NUM64_SZ 22
 
-static int load_idx_num64(
+static int load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp);
@@ -63,7 +63,7 @@ void siridb_free_shard(siridb_shard_t * shard)
     free(shard);
 }
 
-static int load_idx_num64(
+static int load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp)
@@ -85,8 +85,9 @@ static int load_idx_num64(
                         shard->id);
             shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
         }
-        log_debug("Series ID: %d, start ts: %d, end ts: %d, len: %d",
-                *((uint32_t *) idx),
+        siridb_add_idx_num32(
+                series->index,
+                shard,
                 *((uint32_t *) (idx + 4)),
                 *((uint32_t *) (idx + 8)),
                 *((uint16_t *) (idx + 12)));
@@ -121,7 +122,7 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     }
     shard->tp = (uint8_t) header[HEADER_TP];
 
-    load_idx_num64(siridb, shard, fp);
+    load_idx_num32(siridb, shard, fp);
 
     fclose(fp);
 

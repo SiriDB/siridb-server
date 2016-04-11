@@ -36,6 +36,9 @@ static siridb_series_t * siridb_new_series(
     series->id = id;
     series->tp = tp;
     series->buffer = NULL;
+    series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
+    series->index->len = 0;
+    series->index->idx = NULL;
 
     /* get sum series name to calculate series mask (for sharding) */
     for (; *sn; sn++)
@@ -116,6 +119,8 @@ void siridb_free_series(siridb_series_t * series)
 {
     log_debug("Free series ID : %d", series->id);
     siridb_free_buffer(series->buffer);
+    free(series->index->idx);
+    free(series->index);
     free(series);
 }
 
@@ -225,4 +230,31 @@ static int save_series(siridb_t * siridb)
     qp_close(fpacker);
 
     return 0;
+}
+
+void siridb_add_idx_num32(
+        siridb_series_idx_t * index,
+        struct siridb_shard_s * shard,
+        uint32_t start_ts,
+        uint32_t end_ts,
+        uint16_t len)
+{
+    idx_num32_t * idx;
+    size_t i = index->len;
+    index->len++;
+
+    index->idx = (idx_num32_t *) realloc(
+            (idx_num32_t *) index->idx,
+            index->len * sizeof(idx_num32_t));
+
+    while (i-- && start_ts > ((idx_num32_t *) (index->idx))[i].start_ts)
+        ((idx_num32_t *) index->idx)[i + 1] = ((idx_num32_t *) index->idx)[i];
+
+    log_debug("Got i: %d", i);
+    idx = ((idx_num32_t *) (index->idx)) + i + 1;
+
+    idx->start_ts = start_ts;
+    idx->end_ts = end_ts;
+    idx->len = len;
+    idx->shard = shard;
 }
