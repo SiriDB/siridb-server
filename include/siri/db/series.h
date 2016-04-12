@@ -35,6 +35,7 @@ typedef struct idx_num32_s
     uint32_t start_ts;
     uint32_t end_ts;
     struct siridb_shard_s * shard;
+    uint32_t pos;
     uint16_t len;
 } idx_num32_t;
 
@@ -43,12 +44,14 @@ typedef struct idx_num64_s
     uint64_t start_ts;
     uint64_t end_ts;
     struct siridb_shard_s * shard;
+    uint32_t pos;
     uint16_t len;
 } idx_num64_t;
 
 typedef struct siridb_series_idx_s
 {
-    size_t len;
+    uint32_t len;
+    uint8_t has_overlap;
     void * idx;
 } siridb_series_idx_t;
 
@@ -66,6 +69,7 @@ void siridb_add_idx_num32(
         struct siridb_shard_s * shard,
         uint32_t start_ts,
         uint32_t end_ts,
+        uint32_t pos,
         uint16_t len);
 
 void siridb_add_idx_num64(
@@ -73,8 +77,8 @@ void siridb_add_idx_num64(
         struct siridb_shard_s * shard,
         uint64_t start_ts,
         uint64_t end_ts,
+        uint32_t pos,
         uint16_t len);
-
 
 void siridb_free_series(siridb_series_t * series);
 

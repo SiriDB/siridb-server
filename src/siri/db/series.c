@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <siri/db/shard.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_SERIES_SCHEMA 1
@@ -38,6 +39,7 @@ static siridb_series_t * siridb_new_series(
     series->buffer = NULL;
     series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
     series->index->len = 0;
+    series->index->has_overlap = 0;
     series->index->idx = NULL;
 
     /* get sum series name to calculate series mask (for sharding) */
@@ -68,9 +70,11 @@ void siridb_series_add_point(
         {
             log_debug("Buffer is full, write to shards");
             siridb_buffer_to_shards(siridb, series);
+            series->buffer->points->len = 0;
+            siridb_buffer_write_len(siridb, series);
         }
-        siridb_buffer_to_shards(siridb, series);
-        siridb_buffer_write_point(siridb, series, ts, val);
+        else
+            siridb_buffer_write_point(siridb, series, ts, val);
     }
 }
 
@@ -117,7 +121,6 @@ siridb_series_t * siridb_create_series(
 
 void siridb_free_series(siridb_series_t * series)
 {
-    log_debug("Free series ID : %d", series->id);
     siridb_free_buffer(series->buffer);
     free(series->index->idx);
     free(series->index);
@@ -237,24 +240,35 @@ void siridb_add_idx_num32(
         struct siridb_shard_s * shard,
         uint32_t start_ts,
         uint32_t end_ts,
+        uint32_t pos,
         uint16_t len)
 {
     idx_num32_t * idx;
-    size_t i = index->len;
+    uint32_t i = index->len;
     index->len++;
 
     index->idx = (idx_num32_t *) realloc(
             (idx_num32_t *) index->idx,
             index->len * sizeof(idx_num32_t));
 
-    while (i-- && start_ts > ((idx_num32_t *) (index->idx))[i].start_ts)
-        ((idx_num32_t *) index->idx)[i + 1] = ((idx_num32_t *) index->idx)[i];
+    for (; i && start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts; i--)
+        ((idx_num32_t *) index->idx)[i] =
+                ((idx_num32_t *) index->idx)[i - 1];
 
-    log_debug("Got i: %d", i);
-    idx = ((idx_num32_t *) (index->idx)) + i + 1;
+    idx = ((idx_num32_t *) (index->idx)) + i;
 
     idx->start_ts = start_ts;
     idx->end_ts = end_ts;
     idx->len = len;
     idx->shard = shard;
+    idx->pos = pos;
+
+    if (    (i > 0 &&
+            start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts) ||
+            (++i < index->len &&
+            end_ts > ((idx_num32_t *) (index->idx))[i].start_ts))
+    {
+        shard->status |= SIRIDB_SHARD_HAS_OVERLAP;
+        index->has_overlap = 1;
+    }
 }

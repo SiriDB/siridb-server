@@ -49,3 +49,6 @@ int siridb_shard_write_points(
         struct siridb_points_s * points,
         uint32_t start,
         uint32_t end);
+
+struct siridb_points_s * siridb_shard_get_points_num32(idx_num32_t * idx);
+struct siridb_points_s * siridb_shard_get_points_num64(idx_num64_t * idx);

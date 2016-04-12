@@ -17,10 +17,5 @@
 
 struct siridb_s;
 
-
-
-
 int siridb_load_shards(struct siridb_s * siridb);
 
-
-// FILE * siridb_open_shard(siridb_shard_t * shard);

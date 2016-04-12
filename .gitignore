@@ -33,6 +33,7 @@
 
 /Debug
 /Release
+/testdir
 
 # Eclipse
 /.settings

@@ -79,7 +79,19 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 
         log_debug("Shard start: %ld, %d", shard_start, duration);
     }
+}
 
+void siridb_buffer_write_len(
+        siridb_t * siridb,
+        siridb_series_t * series)
+{
+    /* go to the series position in buffer */
+    fseek(  siridb->buffer_fp,
+            series->buffer->bf_offset + sizeof(uint32_t),
+            SEEK_SET);
+
+    /* write new length */
+    fwrite(&series->buffer->points->len, sizeof(size_t), 1, siridb->buffer_fp);
 }
 
 void siridb_buffer_write_point(
@@ -88,13 +100,7 @@ void siridb_buffer_write_point(
         uint64_t * ts,
         qp_via_t * val)
 {
-    /* go to the series position in buffer */
-    fseek(siridb->buffer_fp,
-            series->buffer->bf_offset + sizeof(uint32_t),
-            SEEK_SET);
-
-    /* write new length */
-    fwrite(&series->buffer->points->len, sizeof(size_t), 1, siridb->buffer_fp);
+    siridb_buffer_write_len(siridb, series);
 
     /* jump to position where to write the new point */
     fseek(siridb->buffer_fp, 16 * (series->buffer->points->len - 1), SEEK_CUR);

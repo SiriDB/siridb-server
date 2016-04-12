@@ -70,6 +70,7 @@ static int load_idx_num32(
 {
     char idx[IDX_NUM32_SZ];
     siridb_series_t * series;
+    uint16_t len;
 
     while (fread(&idx, IDX_NUM32_SZ, 1, fp) == 1)
     {
@@ -85,13 +86,15 @@ static int load_idx_num32(
                         shard->id);
             shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
         }
+
         siridb_add_idx_num32(
                 series->index,
                 shard,
                 *((uint32_t *) (idx + 4)),
                 *((uint32_t *) (idx + 8)),
-                *((uint16_t *) (idx + 12)));
-        fseek(fp, *((uint16_t *) (idx + 12)) * 12, SEEK_CUR);
+                (uint32_t) ftell(fp),
+                (len = *((uint16_t *) (idx + 12))));
+        fseek(fp, len * 12, SEEK_CUR);
     }
     return 0;
 }
