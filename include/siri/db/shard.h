@@ -24,6 +24,8 @@
 struct siridb_s;
 struct siridb_points_s;
 struct siridb_series_s;
+struct idx_num32_s;
+struct idx_num64_s;
 
 typedef struct siridb_shard_s
 {
@@ -50,5 +52,11 @@ int siridb_shard_write_points(
         uint32_t start,
         uint32_t end);
 
-struct siridb_points_s * siridb_shard_get_points_num32(idx_num32_t * idx);
-struct siridb_points_s * siridb_shard_get_points_num64(idx_num64_t * idx);
+struct siridb_points_s * siridb_shard_get_points_num32(
+        struct siridb_s * siridb,
+        struct siridb_points_s * points,
+        struct idx_num32_s * idx,
+        uint8_t has_overlap);
+struct siridb_points_s * siridb_shard_get_points_num64(
+        struct siridb_s * siridb,
+        struct idx_num64_s * idx);

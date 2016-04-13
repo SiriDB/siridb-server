@@ -18,11 +18,13 @@
 #include <stdio.h>
 #include <siri/siri.h>
 #include <ctree/ctree.h>
+#include <string.h>
 
-#define GET_FN                                                              \
+#define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
 char fn[SIRI_CFG_MAX_LEN_PATH];                                             \
-sprintf(fn, "%s%s%ld%s", siridb->dbpath, SIRIDB_SHARDS_PATH, shard->id, ".sdb");
+sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
+            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -108,7 +110,7 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     FILE * fp;
 
     /* we are sure this fits since the max possible length is checked */
-    GET_FN
+    GET_FN(shard)
     if ((fp = fopen(fn, "r")) == NULL)
     {
         siridb_free_shard(shard);
@@ -149,7 +151,7 @@ siridb_shard_t *  siridb_create_shard(
     shard->status = 0;
     FILE * fp;
 
-    GET_FN
+    GET_FN(shard)
     if ((fp = fopen(fn, "w")) == NULL)
     {
         free(shard);
@@ -187,7 +189,7 @@ int siridb_shard_write_points(
 
     if (shard->fp->fp == NULL)
     {
-        GET_FN
+        GET_FN(shard)
         if (siri_fopen(siri.fh, shard->fp, fn, "r+"))
         {
             log_critical("Cannot open file '%s', skip writing points", fn);
@@ -217,3 +219,64 @@ int siridb_shard_write_points(
 
     return 0;
 }
+
+
+siridb_points_t * siridb_shard_get_points_num32(
+        siridb_t * siridb,
+        siridb_points_t * points,
+        idx_num32_t * idx,
+        uint8_t has_overlap)
+{
+    size_t end = points->len + idx->len;
+    char temp[idx->len * 12];
+    char * pt;
+
+    if (idx->shard->fp->fp == NULL)
+    {
+        GET_FN(idx->shard)
+        if (siri_fopen(siri.fh, idx->shard->fp, fn, "r+"))
+        {
+            log_critical("Cannot open file '%s', skip reading points", fn);
+            return NULL;
+        }
+    }
+
+    fseek(idx->shard->fp->fp, idx->pos, SEEK_SET);
+    if (fread(
+            temp,
+            12,
+            idx->len,
+            idx->shard->fp->fp) != idx->len)
+        return NULL;
+
+    if (    has_overlap &&
+            points->len &&
+            (idx->shard->status & SIRIDB_SHARD_HAS_OVERLAP))
+    {
+        uint64_t ts;
+        for (   pt = temp;
+                points->len < end;
+                pt += 12)
+        {
+            ts = *((uint32_t *) pt);
+            siridb_points_add_point(
+                    points,
+                    &ts,
+                    ((qp_via_t *) (pt + sizeof(uint32_t))));
+        }
+    }
+    else
+    {
+        for (   pt = temp;
+                points->len < end;
+                points->len++, pt += 12)
+        {
+            points->data[points->len].ts = *((uint32_t *) pt);
+            points->data[points->len].val = *((qp_via_t *) (pt + sizeof(uint32_t)));
+        }
+    }
+    return points;
+}
+
+
+
