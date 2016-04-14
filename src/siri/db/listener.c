@@ -349,13 +349,15 @@ static void walk_series(
     size_t len, i;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-
+    idx_num32_t * idx = (idx_num32_t *) series->index->idx;
+    uint64_t start_ts = 1450000080;
+    uint64_t end_ts = 1450000098;
     qp_add_string(query->packer, series_name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
     if (series->index->len)
     {
         for (len = 0, i = 0; i < series->index->len; i++)
-            len += ((idx_num32_t *) series->index->idx + i)->len;
+            len += (idx + i)->len;
 
         siridb_points_t * points = siridb_new_points(len);
 
@@ -363,7 +365,9 @@ static void walk_series(
             siridb_shard_get_points_num32(
                     siridb,
                     points,
-                    (idx_num32_t *) series->index->idx + i,
+                    idx + i,
+                    &start_ts,
+                    &end_ts,
                     series->index->has_overlap);
 
         for (i = 0; i < points->len; i++)

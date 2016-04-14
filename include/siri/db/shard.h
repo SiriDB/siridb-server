@@ -56,6 +56,8 @@ struct siridb_points_s * siridb_shard_get_points_num32(
         struct siridb_s * siridb,
         struct siridb_points_s * points,
         struct idx_num32_s * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
         uint8_t has_overlap);
 struct siridb_points_s * siridb_shard_get_points_num64(
         struct siridb_s * siridb,

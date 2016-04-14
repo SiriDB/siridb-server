@@ -19,6 +19,7 @@
 #include <siri/siri.h>
 #include <ctree/ctree.h>
 #include <string.h>
+#include <assert.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
@@ -225,11 +226,13 @@ siridb_points_t * siridb_shard_get_points_num32(
         siridb_t * siridb,
         siridb_points_t * points,
         idx_num32_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
         uint8_t has_overlap)
 {
-    size_t end = points->len + idx->len;
-    char temp[idx->len * 12];
-    char * pt;
+    size_t len = points->len + idx->len;
+    uint32_t temp[idx->len * 3];
+    uint32_t * pt;
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -249,30 +252,42 @@ siridb_points_t * siridb_shard_get_points_num32(
             idx->shard->fp->fp) != idx->len)
         return NULL;
 
+    /* set pointer to start */
+    pt = temp;
+
+    assert ((start_ts == NULL || idx->end_ts >= *start_ts) &&
+            (end_ts == NULL || idx->start_ts < *end_ts));
+
+    /* crop from start if needed */
+    if (start_ts != NULL)
+        for (; *pt < *start_ts; pt += 3, len--);
+
+    assert (points->len < len);
+
+    /* crop from end if needed */
+    if (end_ts != NULL)
+        for (   uint32_t * p = temp + 3 * (idx->len - 1);
+                *p >= *end_ts;
+                p -= 3, len--);
+
+    assert (points->len < len);
+
     if (    has_overlap &&
             points->len &&
             (idx->shard->status & SIRIDB_SHARD_HAS_OVERLAP))
     {
-        uint64_t ts;
-        for (   pt = temp;
-                points->len < end;
-                pt += 12)
+        for (uint64_t ts; points->len < len; pt += 3)
         {
-            ts = *((uint32_t *) pt);
-            siridb_points_add_point(
-                    points,
-                    &ts,
-                    ((qp_via_t *) (pt + sizeof(uint32_t))));
+            ts = *pt;
+            siridb_points_add_point(points, &ts, ((qp_via_t *) (pt + 1)));
         }
     }
     else
     {
-        for (   pt = temp;
-                points->len < end;
-                points->len++, pt += 12)
+        for (; points->len < len; points->len++, pt += 3)
         {
-            points->data[points->len].ts = *((uint32_t *) pt);
-            points->data[points->len].val = *((qp_via_t *) (pt + sizeof(uint32_t)));
+            points->data[points->len].ts = *pt;
+            points->data[points->len].val = *((qp_via_t *) (pt + 1));
         }
     }
     return points;

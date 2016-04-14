@@ -96,3 +96,4 @@ void siridb_series_add_point(
         qp_via_t * val);
 
 
+void siridb_series_get_points_num32(void);
