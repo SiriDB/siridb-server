@@ -95,7 +95,33 @@ static const char * motd_messages[] = {
         "--Stephen Hawking",
 
         "'Obvious' is the most dangerous word in mathematics.\n\n"
-        "--E. T. Bell"
+        "--E. T. Bell",
+
+        "Nobody ever figures out what life is all about, and it doesn't matter.\n"
+        "Explore the world.\n"
+        "Nearly everything is really interesting if you go into it deeply enough.\n\n"
+        "--Richard Feynman",
+
+        "Physics is like sex: sure, it may give some practical results, "
+        "but that's not why we do it.\n\n"
+        "--Richard Feynman",
+
+        "You have no responsibility to live up to what other people think "
+        "you ought to accomplish.\n"
+        "I have no responsibility to be like they expect me to be.\n"
+        "It's their mistake, not my failing.\n\n"
+        "--Richard Feynman",
+
+        "I learned very early the difference between knowing the name of "
+        "something and knowing something.\n\n"
+        "--Richard Feynman",
+
+        "Religion is a culture of faith; science is a culture of doubt."
+        "--Richard Feynman",
+
+        "I think it's much more interesting to live not knowing than to have "
+        "answers which might be wrong.\n\n"
+        "--Richard Feynman"
 
 };
 
