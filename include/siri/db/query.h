@@ -14,8 +14,6 @@
 #define SIRIDB_QUERY_FLAG_MASTER 1
 #define SIRIDB_QUERY_FLAG_REPL 2
 
-#define SIRIDB_MAX_SIZE_ERR_MSG 1024
-
 #define SIRIDB_QUERY_SERIES \
     ct_node_t * ct_series;
 
@@ -27,6 +25,7 @@
 #include <siri/db/time.h>
 #include <siri/db/node.h>
 #include <siri/db/series.h>
+#include <siri/db/db.h>
 #include <siri/net/protocol.h>
 
 struct cleri_parse_result_s;

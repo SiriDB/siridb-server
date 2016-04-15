@@ -346,29 +346,20 @@ static void walk_series(
         uv_async_t * handle)
 {
     siridb_point_t * point;
-    size_t len, i;
+    size_t i;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-    idx_num32_t * idx = (idx_num32_t *) series->index->idx;
     uint64_t start_ts = 1450000080;
     uint64_t end_ts = 1450000098;
     qp_add_string(query->packer, series_name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
     if (series->index->len)
     {
-        for (len = 0, i = 0; i < series->index->len; i++)
-            len += (idx + i)->len;
-
-        siridb_points_t * points = siridb_new_points(len);
-
-        for (i = 0; i < series->index->len; i++)
-            siridb_shard_get_points_num32(
-                    siridb,
-                    points,
-                    idx + i,
-                    &start_ts,
-                    &end_ts,
-                    series->index->has_overlap);
+        siridb_points_t * points = siridb_series_get_points_num32(
+                siridb,
+                series,
+                &start_ts,
+                &end_ts);
 
         for (i = 0; i < points->len; i++)
         {

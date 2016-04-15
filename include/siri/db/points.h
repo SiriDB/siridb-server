@@ -14,6 +14,10 @@
 #include <inttypes.h>
 #include <qpack/qpack.h>
 
+#define SIRIDB_POINTS_TP_INT 0
+#define SIRIDB_POINTS_TP_DOUBLE 1
+#define SIRIDB_POINTS_TP_STRING 2
+
 typedef struct siridb_point_s
 {
     uint64_t ts;
@@ -23,11 +27,11 @@ typedef struct siridb_point_s
 typedef struct siridb_points_s
 {
     size_t len;
-    size_t size;
+    uint8_t tp;
     siridb_point_t * data;
 } siridb_points_t;
 
-siridb_points_t * siridb_new_points(size_t size);
+siridb_points_t * siridb_new_points(size_t size, uint8_t tp);
 void siridb_free_points(siridb_points_t * points);
 void siridb_points_add_point(
         siridb_points_t * points,

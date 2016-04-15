@@ -24,6 +24,7 @@
 #include <siri/db/series.h>
 #include <siri/db/shards.h>
 #include <siri/db/buffer.h>
+#include <siri/db/aggregate.h>
 #include <strextra/strextra.h>
 #include <siri/cfg/cfg.h>
 #include <cfgparser/cfgparser.h>
@@ -267,6 +268,9 @@ int siri_start(void)
 
     /* initialize props (set props functions) */
     siridb_init_props();
+
+    /* initialize aggregation */
+    siridb_init_aggregates();
 
     /* load SiriDB grammar */
     siri.grammar = compile_grammar();

@@ -66,7 +66,7 @@ void siridb_series_add_point(
          */
         siridb_points_add_point(series->buffer->points, ts, val);
 
-        if (series->buffer->points->len == series->buffer->points->size)
+        if (series->buffer->points->len == siridb->buffer_len)
         {
             log_debug("Buffer is full, write to shards");
             siridb_buffer_to_shards(siridb, series);
@@ -271,4 +271,47 @@ void siridb_add_idx_num32(
         shard->status |= SIRIDB_SHARD_HAS_OVERLAP;
         index->has_overlap = 1;
     }
+}
+
+siridb_points_t * siridb_series_get_points_num32(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        uint64_t * start_ts,
+        uint64_t * end_ts)
+{
+    idx_num32_t * idx;
+    siridb_points_t * points;
+    size_t len;
+    uint_fast32_t i, size;
+    uint32_t indexes[series->index->len];
+
+    len = i = size = 0;
+
+    for (   idx = (idx_num32_t *) series->index->idx;
+            i < series->index->len;
+            i++, idx++)
+    {
+        if (    (start_ts == NULL || idx->end_ts >= *start_ts) &&
+                (end_ts == NULL || idx->start_ts < *end_ts))
+        {
+            len += idx->len;
+            indexes[size] = i;
+            size++;
+        }
+    }
+
+    points = siridb_new_points(len + series->buffer->points->len, series->tp);
+
+    for (i = 0; i < size; i++)
+    {
+        siridb_shard_get_points_num32(
+                siridb,
+                points,
+                (idx_num32_t *) series->index->idx + indexes[i],
+                start_ts,
+                end_ts,
+                series->index->has_overlap);
+    }
+
+    return points;
 }

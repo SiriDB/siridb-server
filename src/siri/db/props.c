@@ -13,6 +13,7 @@
 #include <logger/logger.h>
 #include <siri/version.h>
 #include <siri/cfg/cfg.h>
+#include <siri/grammar/grammar.h>
 #include <stdio.h>
 #include <uuid/uuid.h>
 #include <siri/db/time.h>
@@ -52,8 +53,7 @@ extern char * who_am_i;
 
 void siridb_init_props(void)
 {
-    uint_fast16_t i;
-    for (i = 0; i < KW_COUNT; i++)
+    for (uint_fast16_t i = 0; i < KW_COUNT; i++)
         siridb_props[i] = NULL;
 
     siridb_props[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] = prop_buffer_path;
@@ -71,7 +71,6 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_UUID - KW_OFFSET] = prop_uuid;
     siridb_props[CLERI_GID_K_VERSION - KW_OFFSET] = prop_version;
     siridb_props[CLERI_GID_K_WHO_AM_I - KW_OFFSET] = prop_who_am_i;
-
 }
 
 static void prop_buffer_path(siridb_t * siridb, qp_packer_t * packer, int map)

@@ -13,15 +13,17 @@
 
 #include <inttypes.h>
 #include <siri/db/db.h>
+#include <siri/db/points.h>
 #include <siri/db/buffer.h>
 #include <qpack/qpack.h>
 
 struct siridb_s;
 struct siridb_buffer_s;
+struct siridb_points_s;
 
-#define SIRIDB_SERIES_TP_INT 0
-#define SIRIDB_SERIES_TP_DOUBLE 1
-#define SIRIDB_SERIES_TP_STRING 2
+#define SIRIDB_SERIES_TP_INT SIRIDB_POINTS_TP_INT
+#define SIRIDB_SERIES_TP_DOUBLE SIRIDB_POINTS_TP_DOUBLE
+#define SIRIDB_SERIES_TP_STRING SIRIDB_POINTS_TP_STRING
 
 #define SIRIDB_SERIES_ISNUM(SERIES) (SERIES->tp != SIRIDB_SERIES_TP_STRING)
 
@@ -90,10 +92,13 @@ siridb_series_t * siridb_create_series(
         uint8_t tp);
 
 void siridb_series_add_point(
-        siridb_t * siridb,
+        struct siridb_s * siridb,
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
 
-
-void siridb_series_get_points_num32(void);
+struct siridb_points_s * siridb_series_get_points_num32(
+        struct siridb_s * siridb,
+        siridb_series_t * series,
+        uint64_t * start_ts,
+        uint64_t * end_ts);

@@ -20,6 +20,7 @@
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
 
+#define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
 
 #define siridb_get_fn(FN, FILENAME)                         \
@@ -60,6 +61,7 @@ typedef struct siridb_s
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
     size_t buffer_size;
+    size_t buffer_len;
     uint32_t start_ts;                  // in seconds, to calculate up-time.
     uint32_t max_series_id;
     uint64_t duration_num;              // number duration in s, ms, us or ns

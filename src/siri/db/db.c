@@ -120,8 +120,9 @@ int siridb_add_from_unpacker(
     if (qp_next(unpacker, qp_obj) != QP_INT64)
         READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
 
-    /* bind buffer size to SiriDB */
+    /* bind buffer size and len to SiriDB */
     (*siridb)->buffer_size = (size_t) qp_obj->via->int64;
+    (*siridb)->buffer_len = (*siridb)->buffer_size / sizeof(siridb_point_t);
 
     /* read number duration  */
     if (qp_next(unpacker, qp_obj) != QP_INT64)

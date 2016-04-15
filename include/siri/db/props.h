@@ -11,15 +11,12 @@
  */
 #pragma once
 
-#include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
 #include <siri/db/db.h>
 #include <qpack/qpack.h>
 
 struct siridb_s;
 struct qp_packer_s;
-
-#define KW_OFFSET CLERI_GID_K_ACCESS
-#define KW_COUNT CLERI_GID_K_WRITE + 1 - KW_OFFSET
 
 
 void siridb_init_props(void);

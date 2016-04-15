@@ -15,12 +15,12 @@
 #include <stdio.h>
 #include <assert.h>
 
-siridb_points_t * siridb_new_points(size_t size)
+siridb_points_t * siridb_new_points(size_t size, uint8_t tp)
 {
     siridb_points_t * points =
             (siridb_points_t *) malloc(sizeof(siridb_points_t));
     points->len = 0;
-    points->size = size;
+    points->tp = tp;
     points->data = (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
     return points;
 }
@@ -39,8 +39,6 @@ void siridb_points_add_point(
     size_t i;
     siridb_point_t * point;
 
-    assert (points->len < points->size);
-
     for (i = points->len; i-- > 0 && (points->data + i)->ts > *ts;)
         *(points->data + i + 1) = *(points->data + i);
 
@@ -51,4 +49,9 @@ void siridb_points_add_point(
     (*point).ts = *ts;
     (*point).val = *val;
 }
+
+//
+//siridb_points_t * siridb_merge_points(
+//        siridb_points_t * points,
+//        size_t len);
 

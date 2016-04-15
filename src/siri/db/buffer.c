@@ -21,9 +21,9 @@
 
 #define ALLOC_BUFFER                                                        \
 series->buffer = (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));       \
-series->buffer->points =                                                    \
+series->buffer->points = siridb_new_points(                                 \
         /* this buffer can hold 1 more point than actual on disk */         \
-        siridb_new_points(siridb->buffer_size / sizeof(siridb_point_t));
+        siridb->buffer_len, series->tp);
 
 
 void siridb_free_buffer(siridb_buffer_t * buffer)
