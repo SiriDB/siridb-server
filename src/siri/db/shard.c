@@ -20,10 +20,11 @@
 #include <ctree/ctree.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
-char fn[SIRI_CFG_MAX_LEN_PATH];                                             \
+char fn[PATH_MAX];                                             \
 sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
             SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
 
@@ -222,7 +223,7 @@ int siridb_shard_write_points(
 }
 
 
-siridb_points_t * siridb_shard_get_points_num32(
+int siridb_shard_get_points_num32(
         siridb_t * siridb,
         siridb_points_t * points,
         idx_num32_t * idx,
@@ -240,7 +241,7 @@ siridb_points_t * siridb_shard_get_points_num32(
         if (siri_fopen(siri.fh, idx->shard->fp, fn, "r+"))
         {
             log_critical("Cannot open file '%s', skip reading points", fn);
-            return NULL;
+            return -1;
         }
     }
 
@@ -250,8 +251,10 @@ siridb_points_t * siridb_shard_get_points_num32(
             12,
             idx->len,
             idx->shard->fp->fp) != idx->len)
-        return NULL;
-
+    {
+        log_critical("Cannot read from shard id: %ld", idx->shard->id);
+        return -1;
+    }
     /* set pointer to start */
     pt = temp;
 
@@ -290,7 +293,7 @@ siridb_points_t * siridb_shard_get_points_num32(
             points->data[points->len].val = *((qp_via_t *) (pt + 1));
         }
     }
-    return points;
+    return 0;
 }
 
 

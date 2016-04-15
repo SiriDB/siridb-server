@@ -99,7 +99,7 @@ static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)
     {
         strncpy(siri_cfg.default_db_path,
                 option->val->string,
-                SIRI_CFG_MAX_LEN_PATH - 1);
+                PATH_MAX - 1);
         len = strlen(siri_cfg.default_db_path);
 
         /* add trailing slash (/) if its not already there */
@@ -225,7 +225,7 @@ static void siri_cfg_read_address_port(
             }
         }
         if (    !strlen(address) ||
-                strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
+                strlen(address) >= PATH_MAX ||
                 !is_int(port)
                 )
             log_warning(

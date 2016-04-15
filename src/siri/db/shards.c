@@ -50,11 +50,11 @@ int siridb_load_shards(struct siridb_s * siridb)
     struct stat st = {0};
     struct dirent * shard_d;
     DIR * shards_dir;
-    char buffer[SIRI_CFG_MAX_LEN_PATH];
+    char buffer[PATH_MAX];
 
     siridb_get_fn(path, SIRIDB_SHARDS_PATH);
 
-    if (strlen(path) >= SIRI_CFG_MAX_LEN_PATH - SIRIDB_MAX_SHARD_FN_LEN - 1)
+    if (strlen(path) >= PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
     {
         log_error("Shard path too long: '%s'", path);
         return 1;
@@ -88,7 +88,7 @@ int siridb_load_shards(struct siridb_s * siridb)
 
         if (is_temp_shard_fn(shard_d->d_name))
         {
-            snprintf(buffer, SIRI_CFG_MAX_LEN_PATH, "%s%s",
+            snprintf(buffer, PATH_MAX, "%s%s",
                     path, shard_d->d_name);
 
             log_debug("Temporary shard found, we will remove file: '%s'",

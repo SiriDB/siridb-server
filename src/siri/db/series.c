@@ -22,6 +22,7 @@
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_SERIES_SCHEMA 1
+#define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 
 static int save_series(siridb_t * siridb);
 
@@ -281,8 +282,9 @@ siridb_points_t * siridb_series_get_points_num32(
 {
     idx_num32_t * idx;
     siridb_points_t * points;
-    size_t len;
-    uint_fast32_t i, size;
+    siridb_point_t * point;
+    size_t len, size;
+    uint_fast32_t i;
     uint32_t indexes[series->index->len];
 
     len = i = size = 0;
@@ -294,15 +296,16 @@ siridb_points_t * siridb_series_get_points_num32(
         if (    (start_ts == NULL || idx->end_ts >= *start_ts) &&
                 (end_ts == NULL || idx->start_ts < *end_ts))
         {
-            len += idx->len;
-            indexes[size] = i;
-            size++;
+            size += idx->len;
+            indexes[len] = i;
+            len++;
         }
     }
 
-    points = siridb_new_points(len + series->buffer->points->len, series->tp);
+    size += series->buffer->points->len;
+    points = siridb_new_points(size, series->tp);
 
-    for (i = 0; i < size; i++)
+    for (i = 0; i < len; i++)
     {
         siridb_shard_get_points_num32(
                 siridb,
@@ -312,6 +315,32 @@ siridb_points_t * siridb_series_get_points_num32(
                 end_ts,
                 series->index->has_overlap);
     }
+
+    /* create pointer to buffer and get current length */
+    point = series->buffer->points->data;
+    len = series->buffer->points->len;
+
+    /* crop start buffer if needed */
+    if (start_ts != NULL)
+        for (; len && point->ts < *start_ts; point++, len--);
+
+    /* crop end buffer if needed */
+    if (end_ts != NULL && len)
+        for (   siridb_point_t * p = point + len - 1;
+                len && p->ts >= *end_ts;
+                p--, len--);
+
+    /* add buffer points */
+    for (; len; point++, len--)
+        siridb_points_add_point(points, &point->ts, &point->val);
+
+    if (points->len < size)
+        /* shrink allocation size */
+        points->data = (siridb_point_t *)
+                realloc(points->data, points->len * sizeof(siridb_point_t));
+    else
+        /* size must be equal if not smaller */
+        assert (points->len == size);
 
     return points;
 }

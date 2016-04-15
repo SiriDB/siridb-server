@@ -346,40 +346,30 @@ static void walk_series(
         uv_async_t * handle)
 {
     siridb_point_t * point;
-    size_t i;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-    uint64_t start_ts = 1450000080;
-    uint64_t end_ts = 1450000098;
+    uint64_t start_ts = 1450000060;
+    uint64_t end_ts = 1450000080;
+
     qp_add_string(query->packer, series_name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
-    if (series->index->len)
-    {
-        siridb_points_t * points = siridb_series_get_points_num32(
-                siridb,
-                series,
-                &start_ts,
-                &end_ts);
 
-        for (i = 0; i < points->len; i++)
-        {
-            qp_add_type(query->packer, QP_ARRAY2);
-            point = points->data + i;
-            qp_add_int64(query->packer, (int64_t) point->ts);
-            qp_add_int64(query->packer, point->val.int64);
-        }
-        free(points);
-    }
-    else
+    siridb_points_t * points = siridb_series_get_points_num32(
+            ((sirinet_handle_t *) query->client->data)->siridb,
+            series,
+            &start_ts,
+            &end_ts);
+
+    point = points->data;
+
+    for (size_t i = 0; i < points->len; i++, point++)
     {
-        for (i = 0; i < series->buffer->points->len; i++)
-        {
-            qp_add_type(query->packer, QP_ARRAY2);
-            point = series->buffer->points->data + i;
-            qp_add_int64(query->packer, (int64_t) point->ts);
-            qp_add_int64(query->packer, point->val.int64);
-        }
+        qp_add_type(query->packer, QP_ARRAY2);
+        qp_add_int64(query->packer, (int64_t) point->ts);
+        qp_add_int64(query->packer, point->val.int64);
     }
+
+    siridb_free_points(points);
+
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 }
 

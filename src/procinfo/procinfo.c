@@ -15,9 +15,11 @@
  *
  */
 
-#include "stdlib.h"
-#include "stdio.h"
-#include "string.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <dirent.h>
+#include <unistd.h>
 
 static int parse_line(char * line);
 
@@ -57,6 +59,37 @@ int procinfo_total_physical_memory(void)
     }
     fclose(file);
     return result;
+}
+
+int procinfo_open_files(const char * path)
+{
+    int count = 0;
+    DIR * dirp;
+    struct dirent * entry;
+    size_t len = strlen(path);
+    char buffer[PATH_MAX];
+    char buf[PATH_MAX];
+
+    if ((dirp = opendir("/proc/self/fd")) == NULL)
+        return -1;
+
+    while ((entry = readdir(dirp)) != NULL)
+    {
+        if (entry->d_type == DT_REG || entry->d_type == DT_LNK)
+        {
+            snprintf(buffer, PATH_MAX, "/proc/self/fd/%s", entry->d_name);
+
+            if (realpath(buffer, buf) == NULL)
+                continue;
+
+            if (strncmp(path, buf, len) == 0)
+                count++;
+        }
+    }
+
+    closedir(dirp);
+
+    return count;
 }
 
 static int parse_line(char * line)

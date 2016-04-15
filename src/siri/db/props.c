@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <uv.h>
 #include <procinfo/procinfo.h>
+#include <string.h>
 
 #define SIRIDB_PROP_MAP(NAME, LEN)      \
 if (map)                                \
@@ -38,6 +39,7 @@ static void prop_libuv(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_log_level(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_max_open_files(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map);
+static void prop_open_files(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_pool(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_server(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_time_precision(
@@ -64,6 +66,7 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] = prop_max_open_files;
     siridb_props[CLERI_GID_K_MEM_USAGE - KW_OFFSET] = prop_mem_usage;
     siridb_props[CLERI_GID_K_LOG_LEVEL - KW_OFFSET] = prop_log_level;
+    siridb_props[CLERI_GID_K_OPEN_FILES - KW_OFFSET] = prop_open_files;
     siridb_props[CLERI_GID_K_POOL - KW_OFFSET] = prop_pool;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] = prop_server;
     siridb_props[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] = prop_time_precision;
@@ -119,6 +122,22 @@ static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map)
 {
     SIRIDB_PROP_MAP("mem_usage", 9)
     qp_add_int32(packer, (int32_t) (procinfo_total_physical_memory() / 1024));
+}
+
+static void prop_open_files(siridb_t * siridb, qp_packer_t * packer, int map)
+{
+    SIRIDB_PROP_MAP("open_files", 10)
+
+    int open_files = procinfo_open_files(siridb->dbpath);
+
+    if (    siridb->buffer_path != siridb->dbpath &&
+            strncmp(
+                siridb->dbpath,
+                siridb->buffer_path,
+                strlen(siridb->dbpath)))
+        open_files += procinfo_open_files(siridb->buffer_path);
+
+    qp_add_int16(packer, open_files);
 }
 
 static void prop_pool(siridb_t * siridb, qp_packer_t * packer, int map)

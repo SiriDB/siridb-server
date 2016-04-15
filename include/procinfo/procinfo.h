@@ -21,3 +21,6 @@ int procinfo_total_physical_memory(void);
 
 /* Total_Virtual_Memory returned in KB */
 int procinfo_total_virtual_memory(void);
+
+/* Total Open Files */
+int procinfo_open_files(const char * path);

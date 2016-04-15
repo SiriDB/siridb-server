@@ -71,7 +71,7 @@ static int siridb_load_databases(void)
     struct stat st = {0};
     DIR * db_container_path;
     struct dirent * dbpath;
-    char buffer[SIRI_CFG_MAX_LEN_PATH];
+    char buffer[PATH_MAX];
     cfgparser_return_t rc;
     cfgparser_t * cfgparser = NULL;
     qp_unpacker_t * unpacker = NULL;
@@ -120,7 +120,7 @@ static int siridb_load_databases(void)
 
         /* read database.conf */
         snprintf(buffer,
-                SIRI_CFG_MAX_LEN_PATH,
+                PATH_MAX,
                 "%s%s/database.conf",
                 siri_cfg.default_db_path,
                 dbpath->d_name);
@@ -141,7 +141,7 @@ static int siridb_load_databases(void)
         }
 
         snprintf(buffer,
-                SIRI_CFG_MAX_LEN_PATH,
+                PATH_MAX,
                 "%s%s/database.dat",
                 siri_cfg.default_db_path,
                 dbpath->d_name);
@@ -172,7 +172,7 @@ static int siridb_load_databases(void)
 
         /* set dbpath */
         snprintf(buffer,
-                SIRI_CFG_MAX_LEN_PATH,
+                PATH_MAX,
                 "%s%s/",
                 siri_cfg.default_db_path,
                 dbpath->d_name);
