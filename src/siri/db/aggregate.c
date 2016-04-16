@@ -11,6 +11,7 @@
  */
 #include <siri/db/aggregate.h>
 #include <siri/grammar/grammar.h>
+#include <siri/db/median.h>
 #include <assert.h>
 #include <logger/logger.h>
 
@@ -30,6 +31,24 @@ static int aggr_max(
         char * err_msg);
 
 static int aggr_mean(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
+
+static int aggr_median(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
+
+static int aggr_median_high(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
+
+static int aggr_median_low(
         siridb_point_t * point,
         siridb_points_t * points,
         siridb_aggr_t * aggr,
@@ -55,6 +74,9 @@ void siridb_init_aggregates(void)
     siridb_aggregates[CLERI_GID_K_COUNT - KW_OFFSET] = aggr_count;
     siridb_aggregates[CLERI_GID_K_MAX - KW_OFFSET] = aggr_max;
     siridb_aggregates[CLERI_GID_K_MEAN - KW_OFFSET] = aggr_mean;
+    siridb_aggregates[CLERI_GID_K_MEDIAN - KW_OFFSET] = aggr_median;
+    siridb_aggregates[CLERI_GID_K_MEDIAN_HIGH - KW_OFFSET] = aggr_median_high;
+    siridb_aggregates[CLERI_GID_K_MEDIAN_LOW - KW_OFFSET] = aggr_median_low;
     siridb_aggregates[CLERI_GID_K_MIN - KW_OFFSET] = aggr_min;
     siridb_aggregates[CLERI_GID_K_SUM - KW_OFFSET] = aggr_sum;
 
@@ -203,6 +225,70 @@ static int aggr_mean(
     }
 
     point->val.real = sum / points->len;
+
+    return 0;
+}
+
+static int aggr_median(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    assert (points->len);
+
+    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    {
+        sprintf(err_msg, "Cannot use median() on string type.");
+        return -1;
+    }
+
+    if (points->len % 2 == 1)
+    {
+        siridb_median_find_n(point, points, points->len / 2);
+        if (points->tp == SIRIDB_POINTS_TP_INT)
+            point->val.real = (double) point->val.int64;
+    }
+    else
+        siridb_median_real(point, points, 0.5);
+
+    return 0;
+}
+
+static int aggr_median_high(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    assert (points->len);
+
+    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    {
+        sprintf(err_msg, "Cannot use median_high() on string type.");
+        return -1;
+    }
+
+    siridb_median_find_n(point, points, points->len / 2);
+
+    return 0;
+}
+
+static int aggr_median_low(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    assert (points->len);
+
+    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    {
+        sprintf(err_msg, "Cannot use median_low() on string type.");
+        return -1;
+    }
+
+    siridb_median_find_n(point, points, (points->len - 1) / 2);
 
     return 0;
 }

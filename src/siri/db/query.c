@@ -320,6 +320,5 @@ static void siridb_walk(
     else
     {
         /* we can have nested integer and time expressions */
-        log_debug("Rule: %d", node->cl_obj->cl_obj->dummy->gid);
     }
 }
