@@ -268,7 +268,6 @@ static int test_aggr_count(void)
 {
     test_start("Testing aggregation count");
 
-
     siridb_aggr_t aggr;
     siridb_points_t * result;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
@@ -295,7 +294,6 @@ static int test_aggr_count(void)
 static int test_aggr_max(void)
 {
     test_start("Testing aggregation max");
-
 
     siridb_aggr_t aggr;
     siridb_points_t * result;
@@ -324,7 +322,6 @@ static int test_aggr_mean(void)
 {
     test_start("Testing aggregation mean");
 
-
     siridb_aggr_t aggr;
     siridb_points_t * result;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
@@ -348,10 +345,37 @@ static int test_aggr_mean(void)
     return test_end(TEST_OK);
 }
 
+static int test_aggr_median(void)
+{
+    test_start("Testing aggregation median");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN - KW_OFFSET];
+    aggr.group_by = 7;
+
+    result = siridb_aggregate(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 4);
+    assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
+    printf("TS: %ld, Real: %f\n", result->data->ts, result->data->val.real);
+    assert (result->data->ts == 7 && result->data->val.real == 6.0);
+    assert ((result->data + 4)->ts == 28 &&
+            (result->data + 4)->val.real == 4.5);
+
+    siridb_free_points(result);
+    siridb_free_points(points);
+
+    return test_end(TEST_OK);
+}
+
 static int test_aggr_min(void)
 {
     test_start("Testing aggregation min");
-
 
     siridb_aggr_t aggr;
     siridb_points_t * result;
@@ -419,6 +443,7 @@ int run_tests(int flags)
     rc += test_aggr_count();
     rc += test_aggr_max();
     rc += test_aggr_mean();
+    rc += test_aggr_median();
     rc += test_aggr_min();
     rc += test_aggr_sum();
 

@@ -13,6 +13,7 @@
 
 #include <siri/db/median.h>
 #include <siri/db/points.h>
+#include <stdbool.h>
 
 static double find_n_int64(
         int64_t * seq,
@@ -23,6 +24,24 @@ static double find_n_double(
         double * seq,
         uint64_t size,
         uint64_t n);
+
+static double find_median_real_int64(
+        int64_t * seq,
+        uint64_t size,
+        uint64_t n,
+        int64_t a,
+        int64_t b,
+        bool found_a,
+        bool found_b);
+
+static double find_median_real_double(
+        double * seq,
+        uint64_t size,
+        uint64_t n,
+        double a,
+        double b,
+        bool found_a,
+        bool found_b);
 
 void siridb_median_find_n(
         siridb_point_t * point,
@@ -90,6 +109,199 @@ void siridb_median_real(
         struct siridb_points_s * points,
         double percentage)
 {
+    uint64_t i, size_l, size_r, n;
+    bool found_a, found_b;
+
+    n = points->len * percentage;
+
+    size_l = size_r = 0;
+
+    if (points->tp == SIRIDB_POINTS_TP_INT)
+    {
+        int64_t pivot, v, a, b;
+        int64_t arr_l[points->len - 1];
+        int64_t arr_r[points->len - 1];
+        pivot = points->data->val.int64;
+        for (i = 1; i < points->len; i++)
+        {
+            v = points->data[i].val.int64;
+            if (v > pivot)
+            {
+                arr_r[size_r] = v;
+                size_r++;
+            }
+            else
+            {
+                arr_l[size_l] = v;
+                size_l++;
+            }
+        }
+        printf("Here...1\n");
+        if (size_l == n - 1)
+        {
+            a = pivot;
+            found_a = true;
+        }
+        else if (size_l == n)
+        {
+            b = pivot;
+            found_b = true;
+        }
+        printf("Here...2\n");
+        point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
+            find_median_real_int64(
+                    arr_l, size_l, n, a, b, found_a, found_b) :
+            find_median_real_int64(
+                    arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+    }
+    else
+    {
+        double pivot, v, a, b;
+        double arr_l[points->len - 1];
+        double arr_r[points->len - 1];
+        pivot = points->data->val.real;
+        for (i = 1; i < points->len; i++)
+        {
+            v = points->data[i].val.real;
+            if (v > pivot)
+            {
+                arr_r[size_r] = v;
+                size_r++;
+            }
+            else
+            {
+                arr_l[size_l] = v;
+                size_l++;
+            }
+        }
+        if (size_l == n - 1)
+        {
+            a = pivot;
+            found_a = true;
+        }
+        else if (size_l == n)
+        {
+            b = pivot;
+            found_b = true;
+        }
+        point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
+            find_median_real_double(
+                    arr_l, size_l, n, a, b, found_a, found_b) :
+            find_median_real_double(
+                    arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+    }
+    printf("Oke...\n");
+}
+
+static double find_median_real_int64(
+        int64_t * seq,
+        uint64_t size,
+        uint64_t n,
+        int64_t a,
+        int64_t b,
+        bool found_a,
+        bool found_b)
+{
+    uint64_t i, size_l, size_r;
+    size_l = size_r = 0;
+    int64_t pivot, v;
+    int64_t arr_l[size - 1];
+    int64_t arr_r[size - 1];
+    pivot = seq[0];
+    printf("Here...3\n");
+    for (i = 1; i < size; i++)
+    {
+        v = seq[i];
+        if (v > pivot)
+        {
+            arr_r[size_r] = v;
+            size_r++;
+        }
+        else
+        {
+            arr_l[size_l] = v;
+            size_l++;
+        }
+    }
+    printf("Here...4\n");
+
+    if (size_l == n - 1)
+    {
+        a = pivot;
+        found_a = true;
+    }
+    else if (size_l == n)
+    {
+        b = pivot;
+        found_b = true;
+    }
+    printf("Here...5\n");
+
+    if (found_a && found_b)
+    {
+        printf("A: %ld, B: %ld\n", a, b);
+        return (a + b) / 2.0;
+    }
+    printf("Here...6\n");
+
+    if ((!found_b && size_l > n) || size_l > n - 1)
+        return find_median_real_int64(arr_l, size_l, n, a, b, found_a, found_b);
+
+    printf("Here...7\n");
+
+    return find_median_real_int64(
+                arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+
+}
+
+static double find_median_real_double(
+        double * seq,
+        uint64_t size,
+        uint64_t n,
+        double a,
+        double b,
+        bool found_a,
+        bool found_b)
+{
+    uint64_t i, size_l, size_r;
+    size_l = size_r = 0;
+    double pivot, v;
+    double arr_l[size - 1];
+    double arr_r[size - 1];
+    pivot = seq[0];
+    for (i = 1; i < size; i++)
+    {
+        v = seq[i];
+        if (v > pivot)
+        {
+            arr_r[size_r] = v;
+            size_r++;
+        }
+        else
+        {
+            arr_l[size_l] = v;
+            size_l++;
+        }
+    }
+    if (size_l == n - 1)
+    {
+        a = pivot;
+        found_a = true;
+    }
+    else if (size_l == n)
+    {
+        b = pivot;
+        found_b = true;
+    }
+
+    if (found_a && found_b)
+        return (a + b) / 2.0;
+
+    if ((!found_b && size_l > n) || size_l > n - 1)
+        return find_median_real_double(arr_l, size_l, n, a, b, found_a, found_b);
+
+    return find_median_real_double(
+                arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
 
 }
 

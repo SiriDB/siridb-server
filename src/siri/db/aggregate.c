@@ -107,7 +107,8 @@ siridb_points_t * siridb_aggregate(
     /* create new points with max possible size after re-indexing */
     points = siridb_new_points(
             max_sz,
-            (aggr->cb == aggr_mean) ? SIRIDB_POINTS_TP_DOUBLE :
+            (aggr->cb == aggr_mean || aggr->cb == aggr_median) ?
+                    SIRIDB_POINTS_TP_DOUBLE :
             (aggr->cb == aggr_count) ? SIRIDB_POINTS_TP_INT : group.tp);
 
     goup_ts = GROUP_TS(source->data);
