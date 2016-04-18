@@ -348,7 +348,7 @@ static void walk_series(
     siridb_point_t * point;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     uint64_t start_ts = 1450000060;
-    uint64_t end_ts = 1450000080;
+//    uint64_t end_ts = 1450000080;
 
     qp_add_string(query->packer, series_name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -357,7 +357,7 @@ static void walk_series(
             ((sirinet_handle_t *) query->client->data)->siridb,
             series,
             &start_ts,
-            &end_ts);
+            NULL);
 
     point = points->data;
 

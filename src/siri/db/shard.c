@@ -202,13 +202,18 @@ int siridb_shard_write_points(
 
     fseek(fp, 0, SEEK_END);
     fwrite(&series->id, sizeof(uint32_t), 1, fp);
-    log_debug("Write: start ts %d, end ts %d, start %d, end %d",
-            points->data[start].ts,
-            points->data[end - 1].ts,
-            start, end);
     fwrite(&points->data[start].ts, siridb->time->ts_sz, 1, fp);
     fwrite(&points->data[end - 1].ts, siridb->time->ts_sz, 1, fp);
     fwrite(&len, sizeof(uint16_t), 1, fp);
+
+    /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
+    siridb_add_idx_num32(
+            series->index,
+            shard,
+            (uint32_t) points->data[start].ts,
+            (uint32_t) points->data[end - 1].ts,
+            (uint32_t) ftell(fp),
+            len);
 
     /* TODO: this works for both double and integer.
      * add size values for strings and write string using 'old' way

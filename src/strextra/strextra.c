@@ -153,6 +153,8 @@ void extract_string(char ** dest, const char * source, size_t len)
      * This function is used to extra a SiriDB string. These strings start
      * with " or with ' and we should replace double this character in the
      * string with a single one.
+     *
+     * TODO: This probably can go wrong with unicode.
      */
     size_t i = 0;
 

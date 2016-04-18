@@ -30,8 +30,8 @@
 #include <siri/db/points.h>
 #include <siri/db/aggregate.h>
 
-#define TEST_OK 0
-#define TEST_FAILED 1
+#define TEST_OK 1
+#define TEST_FAILED -1
 
 #define TEST_MSG_OK     "....OK"
 #define TEST_MSG_FAILED "FAILED"
@@ -49,6 +49,7 @@ static void test_start(char * test_name)
 static int test_end(int status)
 {
     printf("%s\n", (status == TEST_OK) ? TEST_MSG_OK : TEST_MSG_FAILED);
+    assert (status == TEST_OK);
     return status;
 }
 
@@ -362,10 +363,63 @@ static int test_aggr_median(void)
     assert (result != NULL);
     assert (result->len == 4);
     assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
-    printf("TS: %ld, Real: %f\n", result->data->ts, result->data->val.real);
-    assert (result->data->ts == 7 && result->data->val.real == 6.0);
-    assert ((result->data + 4)->ts == 28 &&
-            (result->data + 4)->val.real == 4.5);
+    assert (result->data->ts == 7 && result->data->val.real == 1.0);
+    assert ((result->data + 1)->ts == 14 &&
+            (result->data + 1)->val.real == 3.5);
+
+    siridb_free_points(result);
+    siridb_free_points(points);
+
+    return test_end(TEST_OK);
+}
+
+static int test_aggr_median_high(void)
+{
+    test_start("Testing aggregation median_high");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN_HIGH - KW_OFFSET];
+    aggr.group_by = 7;
+
+    result = siridb_aggregate(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 4);
+    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->data->ts == 7 && result->data->val.int64 == 1);
+    assert ((result->data + 1)->ts == 14 &&
+            (result->data + 1)->val.int64 == 4);
+
+    siridb_free_points(result);
+    siridb_free_points(points);
+
+    return test_end(TEST_OK);
+}
+
+static int test_aggr_median_low(void)
+{
+    test_start("Testing aggregation median_low");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN_LOW - KW_OFFSET];
+    aggr.group_by = 7;
+
+    result = siridb_aggregate(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 4);
+    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->data->ts == 7 && result->data->val.int64 == 1);
+    assert ((result->data + 1)->ts == 14 &&
+            (result->data + 1)->val.int64 == 3);
 
     siridb_free_points(result);
     siridb_free_points(points);
@@ -444,15 +498,14 @@ int run_tests(int flags)
     rc += test_aggr_max();
     rc += test_aggr_mean();
     rc += test_aggr_median();
+    rc += test_aggr_median_high();
+    rc += test_aggr_median_low();
     rc += test_aggr_min();
     rc += test_aggr_sum();
 
-    if (rc == 0)
-        printf("\nSuccesfully performed all tests in %.3f milliseconds!\n\n",
-                timeit_stop(&start));
-    else
-        printf("\nERROR, %d tests have failed!\n\n", rc);
+    printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
+            rc, timeit_stop(&start));
 
 //    exit(0);
-    return rc;
+    return 0;
 }

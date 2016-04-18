@@ -26,6 +26,19 @@ static int32_t assign_by_map(
         qp_packer_t * packer[],
         qp_obj_t * qp_obj);
 
+static int32_t assign_by_array(
+        siridb_t * siridb,
+        qp_unpacker_t * unpacker,
+        qp_packer_t * packer[],
+        qp_obj_t * qp_obj);
+
+static int read_points(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj,
+        int32_t * count);
+
 static void send_points_to_pools(uv_async_t * handle);
 
 static const char * err_msg[SIRIDB_INSERT_ERR_SIZE] = {
@@ -43,7 +56,9 @@ static const char * err_msg[SIRIDB_INSERT_ERR_SIZE] = {
         "Unsupported value received. (only integer, string and float values "
         "are supported).",
 
-        "Expecting a series to have at least one point."
+        "Expecting a series to have at least one point.",
+
+        "Expecting a map with name and points."
 };
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err)
@@ -62,20 +77,20 @@ int32_t siridb_insert_assign_pools(
 
     for (n = 0; n < siridb->pools->size; n++)
     {
+        /* These packers will be freed either in clserver in case of an error,
+         * or by siridb_free_insert(..) in case of success.
+         */
         packer[n] = qp_new_packer(QP_SUGGESTED_SIZE);
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
     tp = qp_next(unpacker, NULL);
 
-    if (qp_is_array(tp))
-    {
-        log_debug("Got an array...");
-        return 0;
-    }
-
     if (qp_is_map(tp))
         return assign_by_map(siridb, unpacker, packer, qp_obj);
+
+    if (qp_is_array(tp))
+        return assign_by_array(siridb, unpacker, packer, qp_obj);
 
     return ERR_EXPECTING_MAP_OR_ARRAY;
 }
@@ -285,4 +300,147 @@ static int32_t assign_by_map(
         return ERR_EXPECTING_SERIES_NAME;
 
     return count;
+}
+
+static int32_t assign_by_array(
+        siridb_t * siridb,
+        qp_unpacker_t * unpacker,
+        qp_packer_t * packer[],
+        qp_obj_t * qp_obj)
+{
+    qp_types_t tp;
+    uint16_t pool;
+    int32_t count = 0;
+    qp_packer_t * temp_packer = NULL;
+
+    while ((tp = qp_next(unpacker, qp_obj)) == QP_MAP2)
+    {
+        if (qp_next(unpacker, qp_obj) != QP_RAW)
+            return ERR_EXPECTING_NAME_AND_POINTS;
+
+        if (strncmp(qp_obj->via->raw, "points", qp_obj->len) == 0)
+        {
+            log_debug("Found and read points first...");
+            temp_packer = qp_new_packer(QP_SUGGESTED_SIZE);
+            if ((tp = read_points(
+                    siridb,
+                    temp_packer,
+                    unpacker,
+                    qp_obj,
+                    &count)) < 0)
+                return tp;
+
+            if (tp != QP_RAW)
+                return ERR_EXPECTING_NAME_AND_POINTS;
+        }
+
+        if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
+        {
+            log_debug("Found series name...");
+            if (qp_next(unpacker, qp_obj) != QP_RAW)
+                return ERR_EXPECTING_NAME_AND_POINTS;
+
+            pool = siridb_pool_sn_raw(
+                    siridb,
+                    qp_obj->via->raw,
+                    qp_obj->len);
+
+            qp_add_raw_term(packer[pool],
+                    qp_obj->via->raw,
+                    qp_obj->len);
+        }
+
+        if (temp_packer == NULL)
+        {
+            log_debug("Search for points...");
+            if (qp_next(unpacker, qp_obj) != QP_RAW ||
+                    strncmp(qp_obj->via->raw, "points", qp_obj->len))
+                return ERR_EXPECTING_NAME_AND_POINTS;
+
+            log_debug("Read points...");
+
+            if ((tp = read_points(
+                    siridb,
+                    packer[pool],
+                    unpacker,
+                    qp_obj,
+                    &count)) < 0)
+                return tp;
+        }
+        else
+        {
+            log_debug("Append points...");
+            qp_extend_packer(packer[pool], temp_packer);
+            qp_free_packer(temp_packer);
+            temp_packer = NULL;
+        }
+    }
+
+    log_debug("tp: %d", tp);
+
+    if (tp != QP_END && tp != QP_ARRAY_CLOSE)
+        return ERR_EXPECTING_SERIES_NAME;
+
+    return count;
+}
+
+
+static int read_points(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj,
+        int32_t * count)
+{
+    qp_types_t tp;
+
+    if (!qp_is_array(qp_next(unpacker, NULL)))
+                return ERR_EXPECTING_ARRAY;
+
+    qp_add_type(packer, QP_ARRAY_OPEN);
+
+    if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2)
+        return ERR_EXPECTING_AT_LEAST_ONE_POINT;
+
+    for (; tp == QP_ARRAY2; (*count)++, tp = qp_next(unpacker, qp_obj))
+    {
+        qp_add_type(packer, QP_ARRAY2);
+
+        if (qp_next(unpacker, qp_obj) != QP_INT64)
+            return ERR_EXPECTING_INTEGER_TS;
+
+        if (!siridb_int64_valid_ts(siridb, qp_obj->via->int64))
+            return ERR_TIMESTAMP_OUT_OF_RANGE;
+
+        qp_add_int64(packer, qp_obj->via->int64);
+
+        switch (qp_next(unpacker, qp_obj))
+        {
+        case QP_RAW:
+            qp_add_raw(packer,
+                    qp_obj->via->raw,
+                    qp_obj->len);
+            break;
+
+        case QP_INT64:
+            qp_add_int64(packer,
+                    qp_obj->via->int64);
+            break;
+
+        case QP_DOUBLE:
+            qp_add_double(packer,
+                    qp_obj->via->real);
+            break;
+
+        default:
+            return ERR_UNSUPPORTED_VALUE;
+        }
+    }
+
+    if (tp == QP_ARRAY_CLOSE)
+        tp = qp_next(unpacker, qp_obj);
+
+    qp_add_type(packer, QP_ARRAY_CLOSE);
+    log_debug("Return: %d", tp);
+    return tp;
 }
