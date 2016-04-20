@@ -37,3 +37,9 @@ uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts)
 {
     return ts / siridb->time->factor;
 }
+
+uint64_t siridb_time_now(siridb_t * siridb, struct timespec now)
+{
+    return now.tv_sec * siridb->time->factor +
+        now.tv_nsec * (siridb->time->factor / 1000000000);
+}

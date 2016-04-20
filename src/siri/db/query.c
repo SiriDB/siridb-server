@@ -20,12 +20,20 @@
 #include <siri/net/clserver.h>
 #include <cleri/olist.h>
 #include <motd/motd.h>
+#include <assert.h>
 
 static void siridb_parse_query(uv_async_t * handle);
 static void siridb_walk(
         cleri_node_t * node,
-        siridb_node_walker_t * walker);
+        siridb_node_walker_t * walker,
+        const uint64_t now);
 static void siridb_send_invalid_query_error(uv_async_t * handle);
+
+static void siridb_time_expr(
+        cleri_node_t * node,
+        siridb_node_walker_t * walker,
+        const uint64_t now,
+        char ** buff);
 
 void siridb_async_query(
         uint64_t pid,
@@ -266,12 +274,19 @@ static void siridb_parse_query(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_node_walker_t * walker = siridb_new_node_walker();
 
+    uint64_t now = siridb_time_now(
+            ((sirinet_handle_t *) query->client->data)->siridb,
+            query->start);
+
     query->pr = cleri_parse(siri.grammar, query->q);
 
     if (!query->pr->is_valid)
         return siridb_send_invalid_query_error(handle);
 
-    siridb_walk(query->pr->tree->children->node, walker);
+    siridb_walk(
+            query->pr->tree->children->node,
+            walker,
+            now);
 
     /* siridb_node_chain also free's the walker; we now only need to
      * cleanup the node list.
@@ -290,7 +305,8 @@ static void siridb_parse_query(uv_async_t * handle)
 
 static void siridb_walk(
         cleri_node_t * node,
-        siridb_node_walker_t * walker)
+        siridb_node_walker_t * walker,
+        const uint64_t now)
 {
     uint32_t gid;
     cleri_children_t * current;
@@ -313,12 +329,50 @@ static void siridb_walk(
         current = node->children;
         while (current != NULL && current->node != NULL)
         {
-            siridb_walk(current->node, walker);
+            siridb_walk(current->node, walker, now);
             current = current->next;
         }
     }
     else
     {
         /* we can have nested integer and time expressions */
+        if (node->cl_obj->cl_obj->rule->gid == CLERI_GID_TIME_EXPR)
+        {
+            char buffer[1024];
+            char * pt = buffer;
+            siridb_time_expr(node, walker, now, &pt);
+            *pt = 0;
+            log_debug("Buffer: '%s'", buffer);
+        }
+    }
+}
+
+static void siridb_time_expr(
+        cleri_node_t * node,
+        siridb_node_walker_t * walker,
+        const uint64_t now,
+        char ** buff)
+{
+    cleri_children_t * current;
+
+    switch (node->cl_obj->tp)
+    {
+    case CLERI_TP_TOKEN:
+    case CLERI_TP_TOKENS:
+        **buff = *node->str;
+        (*buff)++;
+        break;
+    case CLERI_TP_KEYWORD:
+        (*buff) += sprintf(*buff, "%ld", now);
+        break;
+    case CLERI_TP_REGEX:
+        break;
+    default:
+        current = node->children;
+        while (current != NULL && current->node != NULL)
+        {
+            siridb_time_expr(current->node, walker, now, buff);
+            current = current->next;
+        }
     }
 }

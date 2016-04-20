@@ -120,6 +120,5 @@ static cleri_node_t *  cleri_parse_regex(
     node = cleri_new_node(cl_obj, str, (size_t) sub_str_vec[1]);
     parent->len += node->len;
     cleri_children_add(parent->children, node);
-
     return node;
 }

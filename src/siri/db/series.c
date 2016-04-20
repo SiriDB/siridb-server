@@ -59,7 +59,6 @@ void siridb_series_add_point(
         uint64_t * ts,
         qp_via_t * val)
 {
-    log_debug("Add point to series...");
     if (series->buffer != NULL)
     {
         /* add point in memory
@@ -69,7 +68,6 @@ void siridb_series_add_point(
 
         if (series->buffer->points->len == siridb->buffer_len)
         {
-            log_debug("Buffer is full, write to shards");
             siridb_buffer_to_shards(siridb, series);
             series->buffer->points->len = 0;
             siridb_buffer_write_len(siridb, series);

@@ -69,6 +69,8 @@ typedef struct siridb_s
     char * dbname;
     char * dbpath;
     char * buffer_path;
+    char * index;
+    size_t index_size;
     struct siridb_time_s * time;
     struct siridb_server_s * server;
     struct siridb_server_s * replica;

@@ -227,7 +227,6 @@ int siridb_shard_write_points(
     return 0;
 }
 
-
 int siridb_shard_get_points_num32(
         siridb_t * siridb,
         siridb_points_t * points,

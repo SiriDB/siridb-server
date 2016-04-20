@@ -15,6 +15,7 @@
 #include <stddef.h>
 #include <cleri/object.h>
 #include <cleri/children.h>
+#include <inttypes.h>
 
 struct cleri_object_s;
 struct cleri_children_s;
@@ -24,6 +25,7 @@ typedef struct cleri_node_s
     struct cleri_object_s * cl_obj;
     const char * str;
     size_t len;
+    uint_fast8_t ref;
     struct cleri_children_s * children;
 } cleri_node_t;
 

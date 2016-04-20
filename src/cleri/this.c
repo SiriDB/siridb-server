@@ -43,23 +43,32 @@ static cleri_node_t * cleri_parse_this(
     cleri_rule_tested_t * tested;
     const char * str = parent->str + parent->len;
 
-    node = cleri_new_node(cl_obj, str, 0);
     if (cleri_init_rule_tested(&tested, rule->tested, str))
     {
+        node = cleri_new_node(cl_obj, str, 0);
         tested->node = cleri_walk(
                 pr,
                 node,
                 rule->root_obj,
                 rule,
                 CLERI_EXP_MODE_REQUIRED);
+
+        if (tested->node == NULL)
+        {
+            cleri_free_node(node);
+            return NULL;
+        }
+
     }
-    if (tested->node != NULL)
+    else
     {
-        parent->len += tested->node->len;
-        cleri_children_add(parent->children, node);
-        return node;
+        node = tested->node;
+        if (node == NULL)
+            return NULL;
+        node->ref++;
     }
 
-    cleri_free_node(node);
-    return NULL;
+    parent->len += tested->node->len;
+    cleri_children_add(parent->children, node);
+    return node;
 }

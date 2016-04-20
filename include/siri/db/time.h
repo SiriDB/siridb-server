@@ -14,8 +14,10 @@
 #include <inttypes.h>
 #include <siri/db/db.h>
 #include <stddef.h>
+#include <time.h>
 
 struct siridb_s;
+struct timespec;
 
 typedef enum siridb_time_tp
 {
@@ -41,3 +43,5 @@ const char * siridb_time_short_map[SIRIDB_TIME_END];
 int siridb_int64_valid_ts(struct siridb_s * siridb, int64_t ts);
 
 uint32_t siridb_time_in_seconds(struct siridb_s * siridb, int64_t ts);
+
+uint64_t siridb_time_now(struct siridb_s * siridb, struct timespec now);

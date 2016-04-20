@@ -50,8 +50,3 @@ void siridb_points_add_point(
     (*point).val = *val;
 }
 
-//
-//siridb_points_t * siridb_merge_points(
-//        siridb_points_t * points,
-//        size_t len);
-

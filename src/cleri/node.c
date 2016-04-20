@@ -31,6 +31,7 @@ cleri_node_t * cleri_new_node(
     cleri_node_t * node;
     node = (cleri_node_t *) malloc(sizeof(cleri_node_t));
     node->cl_obj = cl_obj;
+    node->ref = 1;
 
     node->str = str;
     node->len = len;
@@ -47,8 +48,9 @@ cleri_node_t * cleri_new_node(
 void cleri_free_node(cleri_node_t * node)
 {
     /* node can be NULL or this could be an CLERI_EMPTY_NODE */
-    if (node == NULL || node == CLERI_EMPTY_NODE)
+    if (node == NULL || node == CLERI_EMPTY_NODE || --node->ref)
         return;
+
     cleri_free_children(node->children);
     free(node);
 }
