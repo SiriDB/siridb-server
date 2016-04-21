@@ -140,7 +140,8 @@ cfgparser_section_t * cfgparser_section(
                 (cfgparser_section_t *) malloc(sizeof(cfgparser_section_t));
         cfgparser->sections->name =
                 (char *) malloc(sizeof(char) * (len + 1));
-        strncpy(cfgparser->sections->name, name, len);
+        memcpy(cfgparser->sections->name, name, len);
+        cfgparser->sections->name[len] = 0;
         cfgparser->sections->options = NULL;
         cfgparser->sections->next = NULL;
         return cfgparser->sections;
@@ -156,7 +157,8 @@ cfgparser_section_t * cfgparser_section(
     current->next =
             (cfgparser_section_t *) malloc(sizeof(cfgparser_section_t));
     current->next->name = (char *) malloc(sizeof(char) * (len + 1));
-    strncpy(current->next->name, name, len);
+    memcpy(current->next->name, name, len);
+    current->next->name[len] = 0;
     current->next->options = NULL;
     current->next->next = NULL;
 
@@ -178,8 +180,10 @@ cfgparser_option_t * cfgparser_string_option(
     val_u->string = (char *) malloc(sizeof(char) * (len_val + 1));
     def_u->string = (char *) malloc(sizeof(char) * (len_def + 1));
 
-    strncpy(val_u->string, val, len_val);
-    strncpy(def_u->string, def, len_def);
+    memcpy(val_u->string, val, len_val);
+    val_u->string[len_val] = 0;
+    memcpy(def_u->string, def, len_def);
+    def_u->string[len_def] = 0;
 
     return cfgparser_new_option(
             section,

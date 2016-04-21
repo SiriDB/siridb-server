@@ -1,3 +1,14 @@
+/*
+ * strextra.c - Extra String functions used by SiriDB
+ *
+ * author       : Jeroen van der Heijden
+ * email        : jeroen@transceptor.technology
+ * copyright    : 2016, Transceptor Technology
+ *
+ * changes
+ *  - initial version, 19-03-2016
+ *
+ */
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>

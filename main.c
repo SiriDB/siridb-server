@@ -41,6 +41,10 @@ int main(int argc, char * argv[])
     /* initialize random */
     srand(time(NULL));
 
+    /* set default timezone to UTC */
+    putenv("TZ=:UTC");
+    tzset();
+
     /* parse arguments first since this can exit the program */
     siri_args_parse(argc, argv);
 

@@ -29,6 +29,7 @@
 #include <siri/db/pool.h>
 #include <siri/db/points.h>
 #include <siri/db/aggregate.h>
+#include <iso8601/iso8601.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -482,6 +483,45 @@ static int test_aggr_sum(void)
     return test_end(TEST_OK);
 }
 
+static int test_iso8601(void)
+{
+    test_start("Testing iso8601");
+
+    iso8601_tz_t amsterdam = iso8601_tz("Europe/Amsterdam");
+    assert(amsterdam > 0);
+
+    iso8601_tz_t utc = iso8601_tz("UTC");
+    assert(utc > 0);
+
+    /* Some extra time zone test for case sensitivity etc. */
+    assert(iso8601_tz("NAIVE") == 0);
+    assert(iso8601_tz("europe/KIEV") > 0);
+    assert(iso8601_tz("Ams") < 0);
+
+    /* Test parsing a year with time-zone information */
+    assert(iso8601_parse_date("2013", amsterdam) == 1356994800);
+
+    /* Customer offset should be preferred over UTC */
+    assert(iso8601_parse_date("2013+01", utc) == 1356994800);
+
+    /* UTC should be preferred over given time-zone (Amsterdam) */
+    assert(iso8601_parse_date("2013Z", amsterdam) == 1356998400);
+
+    /* Test with minute precision */
+    assert(iso8601_parse_date("2013-02-06T13:01:12", utc) == 1360155672);
+
+    /* Test short written */
+    assert(iso8601_parse_date("2013-2-6 13:1:12", utc) == 1360155672);
+
+    /* Test summer time */
+    assert(iso8601_parse_date("2016-04-21", amsterdam) == 1461189600);
+
+    /* Test error */
+    assert(iso8601_parse_date("2016 04 21", amsterdam) == -1);
+
+    return test_end(TEST_OK);
+}
+
 int run_tests(int flags)
 {
     timeit_t start;
@@ -502,10 +542,10 @@ int run_tests(int flags)
     rc += test_aggr_median_low();
     rc += test_aggr_min();
     rc += test_aggr_sum();
+    rc += test_iso8601();
 
     printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
             rc, timeit_stop(&start));
 
-//    exit(0);
     return 0;
 }
