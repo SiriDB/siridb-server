@@ -202,18 +202,23 @@ static void on_query(
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
     qp_obj_t * qp_query = qp_new_object();
     qp_obj_t * qp_time_precision = qp_new_object();
+    siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
+
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_query) == QP_RAW &&
             qp_next(unpacker, qp_time_precision))
     {
+        if (qp_time_precision->tp == QP_INT64 &&
+                (tp = (siridb_timep_t) qp_time_precision->via->int64) !=
+                ((sirinet_handle_t *) client->data)->siridb->time->precision)
+            tp %= SIRIDB_TIME_END;
+
         siridb_async_query(
                 pkg->pid,
                 client,
                 qp_query->via->raw,
                 qp_query->len,
-                (qp_time_precision->tp == QP_INT64) ?
-                        (siridb_timep_t) qp_time_precision->via->int64 :
-                        SIRIDB_TIME_DEFAULT,
+                tp,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
     qp_free_object(qp_query);

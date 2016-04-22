@@ -42,6 +42,7 @@ static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_open_files(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_pool(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_server(siridb_t * siridb, qp_packer_t * packer, int map);
+static void prop_timezone(siridb_t * siridb, qp_packer_t * packer, int map);
 static void prop_time_precision(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -69,6 +70,7 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_OPEN_FILES - KW_OFFSET] = prop_open_files;
     siridb_props[CLERI_GID_K_POOL - KW_OFFSET] = prop_pool;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] = prop_server;
+    siridb_props[CLERI_GID_K_TIMEZONE - KW_OFFSET] = prop_timezone;
     siridb_props[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] = prop_time_precision;
     siridb_props[CLERI_GID_K_UPTIME - KW_OFFSET] = prop_uptime;
     siridb_props[CLERI_GID_K_UUID - KW_OFFSET] = prop_uuid;
@@ -150,6 +152,12 @@ static void prop_server(siridb_t * siridb, qp_packer_t * packer, int map)
 {
     SIRIDB_PROP_MAP("server", 6)
     qp_add_string(packer, siridb->server->name);
+}
+
+static void prop_timezone(siridb_t * siridb, qp_packer_t * packer, int map)
+{
+    SIRIDB_PROP_MAP("timezone", 8)
+    qp_add_string(packer, iso8601_tzname(siridb->tz));
 }
 
 static void prop_time_precision(

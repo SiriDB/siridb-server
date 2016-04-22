@@ -1,6 +1,9 @@
 /*
  * iso8601.c - Library to parse ISO 8601 dates
  *
+ * Note: time-zones are found be tzset() in either /usr/lib/zoneinfo/ or
+ *       /usr/share/zoneinfo/
+ *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
  * copyright    : 2016, Transceptor Technology
@@ -456,8 +459,8 @@ static const char * tz_common[] = {
         "TZ=:UTC"
 };
 
-#define TZ_LEN (sizeof (tz_common) / sizeof (const char *))
-#define TZ_UTC TZ_LEN - 1
+#define TZ_LEN 433
+#define TZ_UTC 432
 
 /* Use this offset because names start with TZ=: */
 #define TZ_NAME_OFFSET 4
@@ -547,6 +550,11 @@ iso8601_tz_t iso8601_tz(const char * tzname)
     return -1;
 }
 
+const char * iso8601_tzname(iso8601_tz_t tz)
+{
+    return (tz) ? tz_common[tz] + TZ_NAME_OFFSET : "NAIVE";
+}
+
 int64_t iso8601_parse_date(const char * str, iso8601_tz_t tz)
 {
     size_t len;
@@ -625,32 +633,43 @@ static int64_t get_ts(
     struct tm tm;
     time_t ts;
 
+    /* must be a valid timezone */
     assert (tz >= 0 && tz < TZ_LEN);
+
+    /* timezone must be 0 (UTC) */
+    assert (timezone == 0);
 
     memset(&tm, 0, sizeof(struct tm));
 
+    /* month day should default to 1, not 0 */
     if (!tm.tm_mday)
         tm.tm_mday = 1;
 
     if (strptime(str, fmt, &tm) == NULL)
+        /* parsing date string failed */
         return -1;
 
     ts = mktime(&tm);
 
+    /* in case of UTO or a custom offset we can simple return */
     if (tz == TZ_UTC || offset)
         return ts + offset;
 
+    /* set custom timezone */
     putenv((char *) tz_common[tz]);
     tzset();
 
+    /* localize the timestamp so we get the correct offset including
+     * daylight saving time.
+     */
     memset(&tm, 0, sizeof(struct tm));
-
     localtime_r(&ts, &tm);
 
-    ts -= tm.tm_gmtoff;
-
+    /* set environment back to UTC */
     putenv("TZ=:UTC");
     tzset();
+
+    ts -= tm.tm_gmtoff;
 
     return ts;
 }

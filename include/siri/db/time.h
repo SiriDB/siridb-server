@@ -45,3 +45,5 @@ int siridb_int64_valid_ts(struct siridb_s * siridb, int64_t ts);
 uint32_t siridb_time_in_seconds(struct siridb_s * siridb, int64_t ts);
 
 uint64_t siridb_time_now(struct siridb_s * siridb, struct timespec now);
+
+uint64_t siridb_time_parse(const char * str, size_t len);

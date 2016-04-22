@@ -25,6 +25,7 @@
 #include <siri/db/user.h>
 #include <strextra/strextra.h>
 #include <assert.h>
+#include <math.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 
@@ -39,6 +40,10 @@ static void enter_series_name(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
 static void enter_user_columns(uv_async_t * handle);
 
+static void exit_after_expr(uv_async_t * handle);
+static void exit_before_expr(uv_async_t * handle);
+static void exit_between_expr(uv_async_t * handle);
+static void exit_calc_stmt(uv_async_t * handle);
 static void exit_create_user_stmt(uv_async_t * handle);
 static void exit_drop_user_stmt(uv_async_t * handle);
 static void exit_list_users_stmt(uv_async_t * handle);
@@ -76,6 +81,10 @@ void siridb_init_listener(void)
     siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_user_columns;
 
+    siridb_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
+    siridb_listen_exit[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
+    siridb_listen_exit[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
+    siridb_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
     siridb_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
     siridb_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
     siridb_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
@@ -149,7 +158,11 @@ static void enter_set_password_expr(uv_async_t * handle)
     cleri_node_t * pw_node =
             query->node_list->node->children->next->next->node;
     assert(user->password == NULL);
-    extract_string(&user->password, pw_node->str, pw_node->len);
+    /* we need at most len - 1 characters since the begin and end will
+     * be stripped off, but we do need to set a NULL.
+     */
+    user->password = (char *) malloc(pw_node->len - 1);
+    extract_string(user->password, pw_node->str, pw_node->len);
 
     SIRIDB_NEXT_NODE
 }
@@ -161,10 +174,10 @@ static void enter_series_name(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
     siridb_series_t * series;
     uint16_t pool;
-    char * series_name;
+    char series_name[node->len - 1];
 
     /* extract series name */
-    extract_string(&series_name, node->str, node->len);
+    extract_string(series_name, node->str, node->len);
 
     /* get pool for series name */
     pool = siridb_pool_sn(siridb, series_name);
@@ -178,15 +191,11 @@ static void enter_series_name(uv_async_t * handle)
                 "Cannot find series: '%s'", series_name);
 
         /* free series_name and return with send_errror.. */
-        free(series_name);
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
     /* bind the series to the query and ignore CT_EXISTS */
     ct_add(((siridb_q_series_t *) query->data)->ct_series, series_name, series);
-
-    /* free series name since we do not need the name anymore */
-    free(series_name);
 
     SIRIDB_NEXT_NODE
 }
@@ -212,6 +221,60 @@ static void enter_user_columns(uv_async_t * handle)
     SIRIDB_NEXT_NODE
 }
 
+static void exit_after_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    ((siridb_q_select_t *) query->data)->start_ts =
+            (uint64_t *) &query->node_list->node->children->next->node->result;
+
+    SIRIDB_NEXT_NODE
+}
+
+static void exit_before_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    ((siridb_q_select_t *) query->data)->end_ts =
+            (uint64_t *) &query->node_list->node->children->next->node->result;
+
+    SIRIDB_NEXT_NODE
+}
+
+static void exit_between_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    ((siridb_q_select_t *) query->data)->start_ts = (uint64_t *)
+            &query->node_list->node->children->next->node->result;
+
+    ((siridb_q_select_t *) query->data)->end_ts = (uint64_t *)
+            &query->node_list->node->children->next->next->next->node->result;
+
+    SIRIDB_NEXT_NODE
+}
+
+static void exit_calc_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    cleri_node_t * calc_node = query->node_list->node->children->node;
+
+    query->packer = qp_new_packer(64);
+    qp_add_type(query->packer, QP_MAP_OPEN);
+    qp_add_raw(query->packer, "calc", 4);
+
+    if (query->time_precision == SIRIDB_TIME_DEFAULT)
+        qp_add_int64(query->packer, calc_node->result);
+    else
+    {
+        double factor =
+                pow(1000.0, query->time_precision - siridb->time->precision);
+        qp_add_int64(query->packer, (int64_t) (calc_node->result * factor));
+    }
+
+    SIRIDB_NEXT_NODE
+}
+
 static void exit_create_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -221,7 +284,8 @@ static void exit_create_user_stmt(uv_async_t * handle)
             query->node_list->node->children->next->node;
 
     assert(user->username == NULL);
-    extract_string(&user->username, user_node->str, user_node->len);
+    user->username = (char *) malloc(user_node->len - 1);
+    extract_string(user->username, user_node->str, user_node->len);
 
     if (siridb_add_user(
             ((sirinet_handle_t *) query->client->data)->siridb,
@@ -245,22 +309,18 @@ static void exit_create_user_stmt(uv_async_t * handle)
 static void exit_drop_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    char * username;
     cleri_node_t * user_node =
             query->node_list->node->children->next->node;
+    char username[user_node->len - 1];
 
     /* we need to free user-name */
-    extract_string(&username, user_node->str, user_node->len);
+    extract_string(username, user_node->str, user_node->len);
 
     if (siridb_drop_user(
             ((sirinet_handle_t *) query->client->data)->siridb,
             username,
             query->err_msg))
-    {
-        /* free user name */
-        free(username);
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
-    }
 
     assert(query->packer == NULL);
     query->packer = qp_new_packer(1024);
@@ -269,9 +329,6 @@ static void exit_drop_user_stmt(uv_async_t * handle)
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
             "User '%s' is dropped successfully.", username);
-
-    /* free user name */
-    free(username);
 
     SIRIDB_NEXT_NODE
 }
@@ -347,8 +404,7 @@ static void walk_series(
 {
     siridb_point_t * point;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    uint64_t start_ts = 1450000060;
-//    uint64_t end_ts = 1450000080;
+    siridb_q_select_t * q_select = (siridb_q_select_t *) query->data;
 
     qp_add_string(query->packer, series_name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -356,8 +412,8 @@ static void walk_series(
     siridb_points_t * points = siridb_series_get_points_num32(
             ((sirinet_handle_t *) query->client->data)->siridb,
             series,
-            &start_ts,
-            NULL);
+            q_select->start_ts,
+            q_select->end_ts);
 
     point = points->data;
 

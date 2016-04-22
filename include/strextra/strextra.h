@@ -28,7 +28,7 @@ bool is_float(const char * str);
 bool is_graph(const char * str);
 
 /* important: 'dest' needs to be freed */
-void extract_string(char ** dest, const char * source, size_t len);
+void extract_string(char * dest, const char * source, size_t len);
 
 /* Not used yet */
 void add_spaces(char *dest, int num_of_spaces);

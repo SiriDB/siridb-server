@@ -13,11 +13,14 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 
-siridb_node_walker_t * siridb_new_node_walker(void)
+siridb_node_walker_t * siridb_new_node_walker(
+        siridb_t * siridb,
+        const uint64_t now)
 {
     siridb_node_walker_t * walker;
     walker = (siridb_node_walker_t *) malloc(sizeof(siridb_node_walker_t));
-
+    walker->siridb = siridb;
+    walker->now = now;
     walker->enter_nodes = NULL;
     walker->exit_nodes = NULL;
     return walker;

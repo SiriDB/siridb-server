@@ -20,40 +20,21 @@ static int64_t expr_factor(const char ** expression);
 static int64_t expr_term(const char ** expression);
 static int64_t expr_expression(const char ** expression);
 
+static int expr_err = 0;
 
-int64_t expr_parser(const char * expr, size_t len)
+int expr_parse(int64_t * result, const char * expr)
 {
-    int64_t result;
-    char * pt;
-    char expression[len + 1];
-
-    /* remove spaces */
-    for (pt = expression; len; len--, expr++)
-    {
-        if (isspace(*expr))
-            continue;
-        *pt = *expr;
-        pt++;
-    }
-    /* write terminator */
-    *pt = 0;
-
-    /* reset pointer to start */
-    pt = expression;
-
-    /* get expression result */
-    result = expr_expression((const char **) &pt);
-
-    return result;
+    expr_err = 0;
+    *result = expr_expression(&expr);
+    return (expr_err) ? expr_err : 0;
 }
 
 static int64_t expr_number(const char ** expression)
 {
     int result = *(*expression)++ - '0';
     while (**expression >= '0' && **expression <= '9')
-    {
         result = 10 * result + *(*expression)++ - '0';
-    }
+
     return result;
 }
 
@@ -78,17 +59,34 @@ static int64_t expr_factor(const char ** expression)
 
 static int64_t expr_term(const char ** expression)
 {
-    int result = expr_factor(expression);
+    int64_t result = expr_factor(expression);
     int i = 1;
     while (i)
         switch (*(*expression)++)
         {
         case '*':
-            result *= expr_factor(expression); break;
+            result *= expr_factor(expression);
+            break;
         case '%':
-            result %= expr_factor(expression); break;
+            {
+                int64_t temp = expr_factor(expression);
+                result %= (temp) ?
+                        temp : (expr_err = EXPR_MODULO_BY_ZERO);
+            }
+            break;
         case '/':
-            result /= expr_factor(expression); break;
+            {
+                int64_t temp = expr_factor(expression);
+                result /= (temp) ?
+                        temp : (expr_err = EXPR_DIVISION_BY_ZERO);
+            }
+            break;
+        case '+':
+            result += expr_factor(expression);
+            break;
+        case '-':
+            result -= expr_factor(expression);
+            break;
         default:
             i = 0;
         }

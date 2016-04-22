@@ -69,6 +69,8 @@ typedef struct siridb_q_series_s
 typedef struct siridb_q_select_s
 {
     SIRIDB_QUERY_SERIES
+    uint64_t * start_ts;
+    uint64_t * end_ts;
 } siridb_q_select_t;
 
 void siridb_async_query(

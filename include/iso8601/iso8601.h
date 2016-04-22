@@ -13,13 +13,16 @@
 
 #include <inttypes.h>
 
-typedef int iso8601_tz_t;
+typedef int16_t iso8601_tz_t;
 
 /* Returns a time-zone identifier from a given name or a negative value
  * in case of an error or when the time-zone is not found.
  * Examples of tzname are: Europe/Amsterdam, UTC etc.
  */
 iso8601_tz_t iso8601_tz(const char * tzname);
+
+/* Returns the name for a given timezone */
+const char * iso8601_tzname(iso8601_tz_t tz);
 
 /* Returns a time-stamp in seconds for a given date or a negative value in
  * case or an error. Time-zone information can be parsed but is also allowed

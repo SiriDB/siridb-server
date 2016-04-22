@@ -26,6 +26,7 @@ typedef struct cleri_node_s
     const char * str;
     size_t len;
     uint_fast8_t ref;
+    int64_t result;
     struct cleri_children_s * children;
 } cleri_node_t;
 

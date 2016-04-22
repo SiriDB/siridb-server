@@ -151,6 +151,20 @@ int siridb_add_from_unpacker(
     log_debug("Set number duration mask to %d", (*siridb)->shard_mask_num);
     log_debug("Set log duration mask to %d", (*siridb)->shard_mask_log);
 
+    /* read timezone */
+    if (qp_next(unpacker, qp_obj) != QP_RAW)
+        READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
+
+    /* bind timezone to SiriDB */
+    char tzname[qp_obj->len + 1];
+    memcpy(tzname, qp_obj->via->raw, qp_obj->len);
+    tzname[qp_obj->len] = 0;
+    if (((*siridb)->tz = iso8601_tz(tzname)) < 0)
+    {
+        log_critical("Unknown timezone found: '%s'.", tzname);
+        READ_DB_EXIT_WITH_ERROR("cannot read timezone.");
+    }
+
     /* add SiriDB to list */
     siridb_add(siridb_list, *siridb);
 
@@ -198,6 +212,7 @@ static siridb_t * siridb_new(void)
     siridb->series_map = imap32_new();
     siridb->shards = imap64_new();
     siridb->buffer_size = -1;
+    siridb->tz = -1;
     siridb->buffer_fp = NULL; /* make sure this is NULL when file is closed */
     return siridb;
 }

@@ -158,7 +158,7 @@ bool is_graph(const char * str)
     return true;
 }
 
-void extract_string(char ** dest, const char * source, size_t len)
+void extract_string(char * dest, const char * source, size_t len)
 {
     /*
      * This function is used to extra a SiriDB string. These strings start
@@ -169,16 +169,11 @@ void extract_string(char ** dest, const char * source, size_t len)
      */
     size_t i = 0;
 
-    /* we need at most len - 1 characters since the begin and end will
-     * be stripped off, but we do need to set a NULL.
-     */
-    *dest = (char *) malloc(--len);
-
     /* take the first character, this is " or ' */
     char chr = *source;
 
-    /* we need to loop till len-2 so take off one more */
-    for (--len; i < len; i++)
+    /* we need to loop till len-2 so take 2 */
+    for (len -= 2; i < len; i++)
     {
         source++;
         if (*source == chr)
@@ -187,11 +182,11 @@ void extract_string(char ** dest, const char * source, size_t len)
             source++;
             len--;
         }
-        (*dest)[i] = *source;
+        dest[i] = *source;
     }
 
     /* set final 0 */
-    (*dest)[i] = 0;
+    dest[i] = 0;
 }
 
 

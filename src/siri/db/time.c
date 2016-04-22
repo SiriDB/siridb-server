@@ -11,6 +11,7 @@
  */
 #include <siri/db/time.h>
 #include <xmath/xmath.h>
+#include <assert.h>
 
 const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
@@ -25,6 +26,28 @@ siridb_time_t * siridb_new_time(siridb_timep_t precision)
     return time;
 }
 
+uint64_t siridb_time_parse(const char * str, size_t len)
+{
+    uint64_t ts = atoll(str);
+    switch (str[len - 1])
+    {
+    case 's':
+        return ts;
+    case 'm':
+        return ts * 60;
+    case 'h':
+        return ts * 3600;
+    case 'd':
+        return ts * 86400;
+    case 'w':
+        return ts * 604800;
+    }
+
+    /* we should never get at this point */
+    assert (0);
+
+    return 0;
+}
 
 int siridb_int64_valid_ts(siridb_t * siridb, int64_t ts)
 {

@@ -19,6 +19,7 @@
 #include <ctree/ctree.h>
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
+#include <iso8601/iso8601.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
@@ -58,6 +59,7 @@ struct imap64_s;
 typedef struct siridb_s
 {
     uuid_t uuid;
+    iso8601_tz_t tz;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
     size_t buffer_size;

@@ -519,6 +519,8 @@ static int test_iso8601(void)
     /* Test error */
     assert(iso8601_parse_date("2016 04 21", amsterdam) == -1);
 
+    assert(iso8601_parse_date("2013-12-31", utc) == 1388448000);
+
     return test_end(TEST_OK);
 }
 

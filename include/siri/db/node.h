@@ -10,8 +10,13 @@
  *
  */
 #pragma once
+
 #include <cleri/node.h>
+#include <siri/db/db.h>
 #include <uv.h>
+
+struct siridb_s;
+struct cleri_node_s;
 
 typedef struct siridb_node_list_s
 {
@@ -22,11 +27,15 @@ typedef struct siridb_node_list_s
 
 typedef struct siridb_node_walker_s
 {
+    struct siridb_s * siridb;
+    uint64_t now;
     siridb_node_list_t * enter_nodes;
     siridb_node_list_t * exit_nodes;
 } siridb_node_walker_t;
 
-siridb_node_walker_t * siridb_new_node_walker(void);
+siridb_node_walker_t * siridb_new_node_walker(
+        struct siridb_s * siridb,
+        const uint64_t now);
 
 /* this free's the walker and returns a combined enter/exit siridb_node_t */
 siridb_node_list_t * siridb_node_chain(siridb_node_walker_t * walker);
