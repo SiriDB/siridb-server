@@ -31,8 +31,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <qpack/qpack.h>
+#include <assert.h>
 
-
+static void close_handlers(void);
 static void signal_handler(uv_signal_t * req, int signum);
 static int siridb_load_databases(void);
 static void walk_close_handlers(uv_handle_t * handle, void * arg);
@@ -295,8 +296,10 @@ int siri_start(void)
 
     /* initialize the client server */
     if ((rc = sirinet_clserver_init(siri.loop)))
+    {
+        close_handlers();
         return rc; // something went wrong
-
+    }
     /* start the event loop */
     uv_run(siri.loop, UV_RUN_DEFAULT);
 
@@ -310,7 +313,7 @@ void siri_free(void)
     {
         int rc;
         rc = uv_loop_close(siri.loop);
-        if (rc) // could be UV_EBUSY in case handlers are not closed yet
+        if (rc) // could be UV_EBUSY (-16) in case handlers are not closed yet
             log_error("Error occurred while closing the event loop: %d", rc);
     }
     free(siri.loop);
@@ -319,16 +322,21 @@ void siri_free(void)
     siridb_free_list(siri.siridb_list);
 }
 
-static void signal_handler(uv_signal_t * req, int signum)
+static void close_handlers(void)
 {
-    log_debug("You pressed CTRL+C, let's stop the event loop..");
-    uv_stop(siri.loop);
-
     /* close open handlers */
     uv_walk(siri.loop, walk_close_handlers, NULL);
 
     /* run the loop once more so call-backs on uv_close() can run */
     uv_run(siri.loop, UV_RUN_DEFAULT);
+}
+
+static void signal_handler(uv_signal_t * req, int signum)
+{
+    log_debug("You pressed CTRL+C, let's stop the event loop..");
+    uv_stop(siri.loop);
+
+    close_handlers();
 }
 
 static void walk_close_handlers(uv_handle_t * handle, void * arg)
@@ -346,5 +354,6 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
         break;
     default:
         log_error("Oh oh, we need to implement type %d", handle->type);
+        assert(0);
     }
 }

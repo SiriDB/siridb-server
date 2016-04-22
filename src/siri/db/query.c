@@ -310,6 +310,9 @@ static void siridb_parse_query(uv_async_t * handle)
         case EXPR_TIME_OUT_OF_RANGE:
             sprintf(query->err_msg, "Time expression out-of-range.");
             break;
+        case EXPR_INVALID_DATE_STRING:
+            sprintf(query->err_msg, "Invalid date string.");
+            break;
         default:
             /* Unknown error */
             assert(0);
@@ -447,13 +450,21 @@ static int siridb_time_expr(
         /* this is a string (single or double quoted) */
         {
             char datestr[node->len - 1];
+
+            /* extract date string */
             extract_string(datestr, node->str, node->len);
+
+            /* get timestamp from date string */
+            int64_t ts = iso8601_parse_date(datestr, 432);
+
+            if (ts < 0)
+                return EXPR_INVALID_DATE_STRING;
+
             *size -= snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
                     "%ld",
-                    iso8601_parse_date(datestr, 432) *
-                        walker->siridb->time->factor);
+                    ts * walker->siridb->time->factor);
         }
         return (*size) ? 0 : EXPR_TOO_LONG;
 

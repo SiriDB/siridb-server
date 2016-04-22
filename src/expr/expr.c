@@ -60,32 +60,24 @@ static int64_t expr_factor(const char ** expression)
 static int64_t expr_term(const char ** expression)
 {
     int64_t result = expr_factor(expression);
-    int i = 1;
-    while (i)
-        switch (*(*expression)++)
+    int64_t temp;
+
+    for (int i = 1; i;)
+        switch (*(*expression))
         {
         case '*':
+            (*expression)++;
             result *= expr_factor(expression);
             break;
         case '%':
-            {
-                int64_t temp = expr_factor(expression);
-                result %= (temp) ?
-                        temp : (expr_err = EXPR_MODULO_BY_ZERO);
-            }
+            (*expression)++;
+            result %= ((temp = expr_factor(expression))) ?
+                    temp : (expr_err = EXPR_MODULO_BY_ZERO);
             break;
         case '/':
-            {
-                int64_t temp = expr_factor(expression);
-                result /= (temp) ?
-                        temp : (expr_err = EXPR_DIVISION_BY_ZERO);
-            }
-            break;
-        case '+':
-            result += expr_factor(expression);
-            break;
-        case '-':
-            result -= expr_factor(expression);
+            (*expression)++;
+            result /= ((temp = expr_factor(expression))) ?
+                    temp : (expr_err = EXPR_DIVISION_BY_ZERO);
             break;
         default:
             i = 0;
@@ -96,10 +88,14 @@ static int64_t expr_term(const char ** expression)
 static int64_t expr_expression(const char ** expression)
 {
     int64_t result = expr_term(expression);
+//    printf("Char: %c\n", **expression);
     while (**expression == '+' || **expression == '-')
+    {
+//        printf("Here...\n");
         if (*(*expression)++ == '+')
             result += expr_term(expression);
         else
             result -= expr_term(expression);
+    }
     return result;
 }
