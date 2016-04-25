@@ -185,6 +185,7 @@ int siridb_load_buffer(siridb_t * siridb)
             log_critical("Cannot create buffer file '%s'.", fn);
             return 1;
         }
+        fclose(fp);
         return 0;
     }
 
