@@ -204,6 +204,9 @@ static int test_imap64(void)
     test_start("Testing imap64");
     imap64_t * imap = imap64_new();
 
+//    imap64_add(imap, 1458777612, "A");
+//    imap64_add(imap, 1461196812, "B");
+
     imap64_add(imap, 16, "Sasientje");
     imap64_add(imap, 1676, "Juul");
     imap64_add(imap, 0, "Iriske");

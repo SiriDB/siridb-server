@@ -52,6 +52,8 @@ int siridb_load_shards(struct siridb_s * siridb)
     DIR * shards_dir;
     char buffer[PATH_MAX];
 
+    log_info("Loading shards.");
+
     siridb_get_fn(path, SIRIDB_SHARDS_PATH);
 
     if (strlen(path) >= PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)

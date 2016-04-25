@@ -111,6 +111,8 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     shard->id = id;
     FILE * fp;
 
+    log_debug("Loading shard %ld.", id);
+
     /* we are sure this fits since the max possible length is checked */
     GET_FN(shard)
     if ((fp = fopen(fn, "r")) == NULL)
@@ -130,11 +132,9 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     shard->tp = (uint8_t) header[HEADER_TP];
 
     load_idx_num32(siridb, shard, fp);
-
     fclose(fp);
 
     imap64_add(siridb->shards, id, shard);
-
     return 0;
 }
 

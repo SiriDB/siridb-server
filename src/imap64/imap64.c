@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <logger/logger.h>
 
 static imap64_node_t * pv_new_node(void);
 static void pv_free_node(imap64_node_t * node);
@@ -72,6 +73,8 @@ void imap64_add(imap64_t * imap, uint64_t id, void * data)
 
     if (imap->node[key] == NULL)
         node = imap->node[key] = pv_new_node();
+    else
+        node = imap->node[key];
 
     if (id < IMAP64_NODE_SZ)
     {
@@ -225,6 +228,8 @@ static void pv_add(
         node->size++;
         node = node->node[key] = pv_new_node();
     }
+    else
+        node = node->node[key];
 
     if (id < IMAP64_NODE_SZ)
     {
