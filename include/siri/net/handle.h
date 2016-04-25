@@ -38,6 +38,8 @@ typedef struct sirinet_handle_s
     struct siridb_s * siridb;
     struct siridb_user_s * user;  /* can be NULL for back-end */
     on_data_t on_data;
+    char * buf;
+    size_t len;
 } sirinet_handle_t;
 
 void sirinet_handle_alloc_buffer(

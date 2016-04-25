@@ -21,8 +21,13 @@ void sirinet_handle_alloc_buffer(
         size_t suggested_size,
         uv_buf_t * buf)
 {
-    buf->base = (char *) malloc(suggested_size);
-    buf->len = suggested_size;
+    sirinet_handle_t * sn_handle = (sirinet_handle_t *) handle->data;
+    if (!sn_handle->len)
+    {
+        buf->base = (char *) malloc(suggested_size);
+        buf->len = suggested_size;
+    }
+
 }
 
 void sirinet_handle_on_data(
@@ -30,28 +35,95 @@ void sirinet_handle_on_data(
         ssize_t nread,
         const uv_buf_t * buf)
 {
+
     if (nread < 0)
     {
         if (nread != UV_EOF)
             log_error("Read error: %s", uv_err_name(nread));
-        log_debug("Free client...");
         uv_close((uv_handle_t *) client, sirinet_free_client);
+        free(buf->base); /* was prefixed with if (buf->base)... */
+
+        return;
     }
-    else if (nread >= SN_PKG_HEADER_SIZE)
+
+    sirinet_handle_t * sn_handle = (sirinet_handle_t *) client->data;
+    size_t total_sz;
+    sirinet_pkg_t * pkg;
+
+    if (sn_handle->buf == NULL)
     {
-        (*((sirinet_handle_t *) client->data)->on_data)(
-                (uv_handle_t *) client,
-                (sirinet_pkg_t *) buf->base);
+        if (nread >= SN_PKG_HEADER_SIZE)
+        {
+            pkg = (sirinet_pkg_t *) buf->base;
+            total_sz = pkg->len + SN_PKG_HEADER_SIZE;
+            if (nread == total_sz)
+            {
+                (*sn_handle->on_data)((uv_handle_t *) client, pkg);
+                free(buf->base);
+                return;
+            }
+            /* I assume this can never be larger but I'm not totally sure.
+             * TODO : make sure this behavior is like I expect it is.
+             */
+            assert (nread < total_sz);
+        }
+        else
+            total_sz = buf->len;
+
+        if (buf->len < total_sz)
+            buf->base = (char *) realloc(buf->base, total_sz);
+
+        sn_handle->buf = buf->base;
+        sn_handle->len = nread;
+        buf->base += nread;
+        buf->len = total_sz - nread;
+    }
+    else
+    {
+        sn_handle->len += nread;
+        buf->len -= nread;
+
+        if (sn_handle->len < SN_PKG_HEADER_SIZE)
+        {
+            buf->base += nread;
+            return;
+        }
+
+        pkg = (sirinet_pkg_t *) sn_handle->buf;
+
+        if (sn_handle->lenpkg->len + SN_PKG_HEADER_SIZE)
+
+    }
+
+
+    if (nread >= SN_PKG_HEADER_SIZE)
+    {
+
+        sirinet_pkg_t * pkg = (sirinet_pkg_t *) buf->base;
+        log_debug("on_data, handle the following: pid: %d, len: %d, tp: %d",
+                    pkg->pid, pkg->len, pkg->tp);
+        if (nread >= ((sirinet_pkg_t *) buf->base)->len)
+        {
+            (*((sirinet_handle_t *) client->data)->on_data)(
+                    (uv_handle_t *) client,
+                    (sirinet_pkg_t *) buf->base);
+
+        }
+        else
+        {
+            log_debug("nread: %ld, buf: %zd", nread, buf->len);
+        }
     }
     else if (nread > 0)
     {
+        sn_handle->buf = buf->base;
         log_debug("Hmm, lets see what to do now...", nread);
     } else if (nread == 0)
     {
         log_debug("Ok, now I got 0 nread...");
     }
 
-    free(buf->base); /* was prefixed with if (buf->base)... */
+
 }
 
 void sirinet_send_pkg(
