@@ -168,7 +168,7 @@ static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser)
     {
         log_info(
                 "Increasing soft-limit from %d to %d since we want "
-                "to use only %d%% from the soft-limit for shard files.",
+                "to use only %d%% from the soft-limit for shard files",
                 (uint64_t) rlim.rlim_cur,
                 min_limit,
                 (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100));

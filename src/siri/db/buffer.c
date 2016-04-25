@@ -164,7 +164,7 @@ int siridb_load_buffer(siridb_t * siridb)
     long int offset = 0;
     siridb_series_t * series;
 
-    log_info("Read and cleanup buffer.");
+    log_info("Read and cleanup buffer");
 
     siridb_get_fn(fn, SIRIDB_BUFFER_FN)
     siridb_get_fn(fn_temp, "__" SIRIDB_BUFFER_FN)

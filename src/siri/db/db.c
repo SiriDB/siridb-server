@@ -221,7 +221,7 @@ static void siridb_free(siridb_t * siridb)
 {
     if (siridb != NULL)
     {
-        log_debug("Free database '%s'...", siridb->dbname);
+        log_debug("Free database '%s'", siridb->dbname);
 
         /* free users */
         siridb_free_users(siridb->users);
