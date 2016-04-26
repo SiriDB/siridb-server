@@ -115,6 +115,8 @@ static void on_new_connection(
             (sirinet_handle_t *) malloc(sizeof(sirinet_handle_t));
     ((sirinet_handle_t *) client->data)->on_data = &on_data;
     ((sirinet_handle_t *) client->data)->siridb = NULL;
+    ((sirinet_handle_t *) client->data)->buf = NULL;
+    ((sirinet_handle_t *) client->data)->len = 0;
     uv_tcp_init(loop, client);
 
     if (uv_accept(server, (uv_stream_t*) client) == 0)

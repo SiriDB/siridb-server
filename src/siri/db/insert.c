@@ -84,7 +84,7 @@ int32_t siridb_insert_assign_pools(
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
-    qp_print(unpacker->pt, unpacker->end - unpacker->pt);
+//    qp_print(unpacker->pt, unpacker->end - unpacker->pt);
 
     tp = qp_next(unpacker, NULL);
 
@@ -106,7 +106,8 @@ void siridb_insert_points(
 {
     siridb_insert_t * insert;
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
-    insert = (siridb_insert_t *) malloc(sizeof(siridb_insert_t) + packer_size * sizeof(qp_packer_t *));
+    insert = (siridb_insert_t *) malloc(
+            sizeof(siridb_insert_t) + packer_size * sizeof(qp_packer_t *));
     insert->pid = pid;
     insert->client = client;
     insert->size = size;
@@ -273,8 +274,9 @@ static int32_t assign_by_array(
     uint16_t pool;
     int32_t count = 0;
     qp_packer_t * temp_packer = NULL;
+    tp = qp_next(unpacker, qp_obj);
 
-    while ((tp = qp_next(unpacker, qp_obj)) == QP_MAP2)
+    while (tp == QP_MAP2)
     {
         if (qp_next(unpacker, qp_obj) != QP_RAW)
             return ERR_EXPECTING_NAME_AND_POINTS;
@@ -328,6 +330,7 @@ static int32_t assign_by_array(
             qp_extend_packer(packer[pool], temp_packer);
             qp_free_packer(temp_packer);
             temp_packer = NULL;
+            tp = qp_next(unpacker, qp_obj);
         }
     }
 

@@ -13,6 +13,7 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 static void sirinet_handle_write_cb(uv_write_t * req, int status);
 
@@ -22,12 +23,20 @@ void sirinet_handle_alloc_buffer(
         uv_buf_t * buf)
 {
     sirinet_handle_t * sn_handle = (sirinet_handle_t *) handle->data;
-    if (!sn_handle->len)
+
+    if (sn_handle->buf == NULL)
     {
         buf->base = (char *) malloc(suggested_size);
         buf->len = suggested_size;
     }
+    else
+    {
+        if (sn_handle->len > SN_PKG_HEADER_SIZE)
+            suggested_size = ((sirinet_pkg_t *) sn_handle->buf)->len + SN_PKG_HEADER_SIZE;
 
+        buf->base = sn_handle->buf + sn_handle->len;
+        buf->len = suggested_size - sn_handle->len;
+    }
 }
 
 void sirinet_handle_on_data(
@@ -35,27 +44,31 @@ void sirinet_handle_on_data(
         ssize_t nread,
         const uv_buf_t * buf)
 {
+    sirinet_handle_t * sn_handle = (sirinet_handle_t *) client->data;
+    sirinet_pkg_t * pkg;
 
     if (nread < 0)
     {
         if (nread != UV_EOF)
             log_error("Read error: %s", uv_err_name(nread));
+
         uv_close((uv_handle_t *) client, sirinet_free_client);
-        free(buf->base); /* was prefixed with if (buf->base)... */
+
+        if (sn_handle->buf == NULL)
+            free(buf->base);
+        else
+            free(sn_handle->buf);
 
         return;
     }
-
-    sirinet_handle_t * sn_handle = (sirinet_handle_t *) client->data;
-    size_t total_sz;
-    sirinet_pkg_t * pkg;
 
     if (sn_handle->buf == NULL)
     {
         if (nread >= SN_PKG_HEADER_SIZE)
         {
             pkg = (sirinet_pkg_t *) buf->base;
-            total_sz = pkg->len + SN_PKG_HEADER_SIZE;
+            size_t total_sz = pkg->len + SN_PKG_HEADER_SIZE;
+
             if (nread == total_sz)
             {
                 (*sn_handle->on_data)((uv_handle_t *) client, pkg);
@@ -65,65 +78,59 @@ void sirinet_handle_on_data(
             /* I assume this can never be larger but I'm not totally sure.
              * TODO : make sure this behavior is like I expect it is.
              */
-            assert (nread < total_sz);
+            if (nread > total_sz)
+            {
+                log_error(
+                        "Got more bytes than expected, "
+                        "ignore package (pid: %d, len: %d, tp: %d)",
+                        pkg->pid, pkg->len, pkg->tp);
+                free(buf->base);
+                return;
+            }
+
+            sn_handle->buf = (buf->len < total_sz) ?
+                (char *) realloc(buf->base, total_sz) : buf->base;
+
         }
         else
-            total_sz = buf->len;
+            sn_handle->buf = buf->base;
 
-        if (buf->len < total_sz)
-            buf->base = (char *) realloc(buf->base, total_sz);
-
-        sn_handle->buf = buf->base;
         sn_handle->len = nread;
-        buf->base += nread;
-        buf->len = total_sz - nread;
+
+        return;
     }
-    else
+
+    if (sn_handle->len < SN_PKG_HEADER_SIZE)
     {
         sn_handle->len += nread;
-        buf->len -= nread;
 
         if (sn_handle->len < SN_PKG_HEADER_SIZE)
-        {
-            buf->base += nread;
             return;
-        }
 
-        pkg = (sirinet_pkg_t *) sn_handle->buf;
+        size_t total_sz =
+                ((sirinet_pkg_t *) sn_handle->buf)->len + SN_PKG_HEADER_SIZE;
 
-        if (sn_handle->lenpkg->len + SN_PKG_HEADER_SIZE)
-
+        if (buf->len < total_sz)
+            sn_handle->buf = (char *) realloc(sn_handle->buf, total_sz);
     }
+    else
+        sn_handle->len += nread;
 
+    pkg = (sirinet_pkg_t *) sn_handle->buf;
 
-    if (nread >= SN_PKG_HEADER_SIZE)
-    {
+    if (sn_handle->len < pkg->len + SN_PKG_HEADER_SIZE)
+        return;
 
-        sirinet_pkg_t * pkg = (sirinet_pkg_t *) buf->base;
-        log_debug("on_data, handle the following: pid: %d, len: %d, tp: %d",
-                    pkg->pid, pkg->len, pkg->tp);
-        if (nread >= ((sirinet_pkg_t *) buf->base)->len)
-        {
-            (*((sirinet_handle_t *) client->data)->on_data)(
-                    (uv_handle_t *) client,
-                    (sirinet_pkg_t *) buf->base);
+    if (sn_handle->len == pkg->len + SN_PKG_HEADER_SIZE)
+        (*sn_handle->on_data)((uv_handle_t *) client, pkg);
+    else
+        log_error(
+                "Got more bytes than expected, "
+                "ignore package (pid: %d, len: %d, tp: %d)",
+                pkg->pid, pkg->len, pkg->tp);
 
-        }
-        else
-        {
-            log_debug("nread: %ld, buf: %zd", nread, buf->len);
-        }
-    }
-    else if (nread > 0)
-    {
-        sn_handle->buf = buf->base;
-        log_debug("Hmm, lets see what to do now...", nread);
-    } else if (nread == 0)
-    {
-        log_debug("Ok, now I got 0 nread...");
-    }
-
-
+    free(sn_handle->buf);
+    sn_handle->buf = NULL;
 }
 
 void sirinet_send_pkg(
