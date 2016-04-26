@@ -46,7 +46,7 @@ void siridb_points_add_point(
 
     point = points->data + i + 1;
 
-    (*point).ts = *ts;
-    (*point).val = *val;
+    point->ts = *ts;
+    point->val = *val;
 }
 

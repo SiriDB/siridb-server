@@ -213,6 +213,8 @@ static void send_points_to_pools(uv_async_t * handle)
     qp_add_raw(packer, "success_msg", 11);
     qp_add_fmt(packer, "Inserted %zd point(s) successfully.", insert->size);
 
+    log_info("Inserted %zd point(s) successfully.", insert->size);
+
     package = sirinet_new_pkg(
             insert->pid,
             packer->len,

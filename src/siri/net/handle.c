@@ -75,9 +75,7 @@ void sirinet_handle_on_data(
                 free(buf->base);
                 return;
             }
-            /* I assume this can never be larger but I'm not totally sure.
-             * TODO : make sure this behavior is like I expect it is.
-             */
+
             if (nread > total_sz)
             {
                 log_error(

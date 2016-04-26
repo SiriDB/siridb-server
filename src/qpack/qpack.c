@@ -285,9 +285,9 @@ void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len)
     len++;
     QP_PREPARE_RAW
 
-    memcpy(packer->buffer + packer->len, raw, len-1);
+    memcpy(packer->buffer + packer->len, raw, len - 1);
     packer->len += len;
-    packer->buffer[packer->len] = 0;
+    packer->buffer[packer->len - 1] = 0;
 }
 
 void qp_add_string(qp_packer_t * packer, const char * str)
