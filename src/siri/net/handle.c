@@ -54,10 +54,7 @@ void sirinet_handle_on_data(
 
         uv_close((uv_handle_t *) client, sirinet_free_client);
 
-        if (sn_handle->buf == NULL)
-            free(buf->base);
-        else
-            free(sn_handle->buf);
+        free((sn_handle->buf == NULL) ? buf->base : sn_handle->buf);
 
         return;
     }

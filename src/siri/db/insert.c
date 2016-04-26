@@ -291,17 +291,20 @@ static int32_t assign_by_array(
                     temp_packer,
                     unpacker,
                     qp_obj,
-                    &count)) < 0)
-                return tp;
-
-            if (tp != QP_RAW)
-                return ERR_EXPECTING_NAME_AND_POINTS;
+                    &count)) < 0 || tp != QP_RAW)
+            {
+                qp_free_packer(temp_packer);
+                return (tp < 0) ? tp : ERR_EXPECTING_NAME_AND_POINTS;
+            }
         }
 
         if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
         {
             if (qp_next(unpacker, qp_obj) != QP_RAW)
+            {
+                qp_free_packer(temp_packer);
                 return ERR_EXPECTING_NAME_AND_POINTS;
+            }
 
             pool = siridb_pool_sn_raw(
                     siridb,

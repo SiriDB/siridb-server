@@ -4,6 +4,8 @@
  * Note: time-zones are found be tzset() in either /usr/lib/zoneinfo/ or
  *       /usr/share/zoneinfo/
  *
+ *       (This library is Linux only)
+ *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
  * copyright    : 2016, Transceptor Technology
