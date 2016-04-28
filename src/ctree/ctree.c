@@ -20,6 +20,7 @@
 #define CT_BUFFER_ALLOC_SIZE 256
 
 static ct_node_t * new_node(const char * key, void * data);
+static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args);
 static int pv_add(ct_node_t * node, const char * key, void * data);
 static void * pv_get(ct_node_t * node, const char * key);
 static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
@@ -28,6 +29,7 @@ static void pv_dec_node(ct_node_t * node);
 static void pv_merge_node(ct_node_t * node);
 static void pv_walk(
         ct_node_t * node,
+        size_t * pn,
         size_t len,
         size_t buffer_sz,
         char * buffer,
@@ -114,20 +116,31 @@ void * ct_pop(ct_node_t * node, const char * key)
 
 void ct_walk(ct_node_t * node, ct_cb_t cb, void * args)
 {
+    walk(node, NULL, cb, args);
+}
+
+void ct_walkn(ct_node_t * node, size_t n, ct_cb_t cb, void * args)
+{
+    walk(node, &n, cb, args);
+}
+
+static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args)
+{
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
     ct_node_t * nd;
     char * buffer = (char *) malloc(buffer_sz);
-    for (*buffer = 255; (*buffer)--;)
+    for (*buffer = 255; (pn == NULL || *pn) && (*buffer)--;)
     {
         if ((nd = (*node->nodes)[(uint_fast8_t) *buffer]) == NULL)
             continue;
-        pv_walk(nd, len, buffer_sz, buffer, cb, args);
+        pv_walk(nd, pn, len, buffer_sz, buffer, cb, args);
     }
 }
 
 static void pv_walk(
         ct_node_t * node,
+        size_t * pn,
         size_t len,
         size_t buffer_sz,
         char * buffer,
@@ -148,18 +161,21 @@ static void pv_walk(
     memcpy(buffer + len, node->key, sz + 1);
 
     if (node->data != NULL)
+    {
         (*cb)(buffer, node->data, args);
-
+        if (pn != NULL)
+            (*pn)--;
+    }
     if (node->nodes != NULL)
     {
         len += sz + 1;
         pt = buffer + len - 1;
 
-        for (*pt = 255; (*pt)--;)
+        for (*pt = 255; (pn == NULL || *pn) && (*pt)--;)
         {
             if ((nd = (*node->nodes)[(uint_fast8_t) *pt]) == NULL)
                 continue;
-            pv_walk(nd, len, buffer_sz, buffer, cb, args);
+            pv_walk(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
 }

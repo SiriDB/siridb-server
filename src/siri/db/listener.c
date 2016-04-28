@@ -431,14 +431,25 @@ static void walk_series(
             q_select->end_ts);
 
     point = points->data;
-
-    for (size_t i = 0; i < points->len; i++, point++)
+    switch (points->tp)
     {
-        qp_add_type(query->packer, QP_ARRAY2);
-        qp_add_int64(query->packer, (int64_t) point->ts);
-        qp_add_int64(query->packer, point->val.int64);
+    case SIRIDB_POINTS_TP_INT:
+        for (size_t i = 0; i < points->len; i++, point++)
+        {
+            qp_add_type(query->packer, QP_ARRAY2);
+            qp_add_int64(query->packer, (int64_t) point->ts);
+            qp_add_int64(query->packer, point->val.int64);
+        }
+        break;
+    case SIRIDB_POINTS_TP_DOUBLE:
+        for (size_t i = 0; i < points->len; i++, point++)
+        {
+            qp_add_type(query->packer, QP_ARRAY2);
+            qp_add_int64(query->packer, (int64_t) point->ts);
+            qp_add_double(query->packer, point->val.real);
+        }
+        break;
     }
-
     siridb_free_points(points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);

@@ -12,6 +12,7 @@
 #pragma once
 
 #include <inttypes.h>
+#include <stddef.h>
 
 struct node;
 struct ct_node_s;
@@ -67,3 +68,4 @@ void * ct_get(ct_node_t * node, const char * key);
 void * ct_pop(ct_node_t * node, const char * key);
 
 void ct_walk(ct_node_t * node, ct_cb_t cb, void * args);
+void ct_walkn(ct_node_t * node, size_t n, ct_cb_t cb, void * args);

@@ -30,7 +30,8 @@ static int32_t assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
-        qp_obj_t * qp_obj);
+        qp_obj_t * qp_obj,
+        qp_packer_t * tmp_packer);
 
 static int read_points(
         siridb_t * siridb,
@@ -92,8 +93,13 @@ int32_t siridb_insert_assign_pools(
         return assign_by_map(siridb, unpacker, packer, qp_obj);
 
     if (qp_is_array(tp))
-        return assign_by_array(siridb, unpacker, packer, qp_obj);
-
+    {
+        qp_packer_t * tmp_packer = qp_new_packer(QP_SUGGESTED_SIZE);
+        int32_t rc =
+                assign_by_array(siridb, unpacker, packer, qp_obj, tmp_packer);
+        qp_free_packer(tmp_packer);
+        return rc;
+    }
     return ERR_EXPECTING_MAP_OR_ARRAY;
 }
 
@@ -270,12 +276,12 @@ static int32_t assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
-        qp_obj_t * qp_obj)
+        qp_obj_t * qp_obj,
+        qp_packer_t * tmp_packer)
 {
     qp_types_t tp;
     uint16_t pool;
     int32_t count = 0;
-    qp_packer_t * temp_packer = NULL;
     tp = qp_next(unpacker, qp_obj);
 
     while (tp == QP_MAP2)
@@ -285,26 +291,19 @@ static int32_t assign_by_array(
 
         if (strncmp(qp_obj->via->raw, "points", qp_obj->len) == 0)
         {
-            temp_packer = qp_new_packer(QP_SUGGESTED_SIZE);
             if ((tp = read_points(
                     siridb,
-                    temp_packer,
+                    tmp_packer,
                     unpacker,
                     qp_obj,
                     &count)) < 0 || tp != QP_RAW)
-            {
-                qp_free_packer(temp_packer);
                 return (tp < 0) ? tp : ERR_EXPECTING_NAME_AND_POINTS;
-            }
         }
 
         if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
         {
             if (qp_next(unpacker, qp_obj) != QP_RAW)
-            {
-                qp_free_packer(temp_packer);
                 return ERR_EXPECTING_NAME_AND_POINTS;
-            }
 
             pool = siridb_pool_sn_raw(
                     siridb,
@@ -316,7 +315,13 @@ static int32_t assign_by_array(
                     qp_obj->len);
         }
 
-        if (temp_packer == NULL)
+        if (tmp_packer->len)
+        {
+            qp_extend_packer(packer[pool], tmp_packer);
+            tmp_packer->len = 0;
+            tp = qp_next(unpacker, qp_obj);
+        }
+        else
         {
             if (qp_next(unpacker, qp_obj) != QP_RAW ||
                     strncmp(qp_obj->via->raw, "points", qp_obj->len))
@@ -329,13 +334,6 @@ static int32_t assign_by_array(
                     qp_obj,
                     &count)) < 0)
                 return tp;
-        }
-        else
-        {
-            qp_extend_packer(packer[pool], temp_packer);
-            qp_free_packer(temp_packer);
-            temp_packer = NULL;
-            tp = qp_next(unpacker, qp_obj);
         }
     }
 
