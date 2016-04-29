@@ -50,19 +50,12 @@ cleri_object_t * cleri_tokens(
             (cleri_tokens_t *) malloc(sizeof(cleri_tokens_t));
     cl_object->cl_obj->tokens->gid = gid;
 
-    len = strlen(tokens) + 1;
 
     /* copy the sting twice, first one we set spaces to 0...*/
-    cl_object->cl_obj->tokens->tokens =
-            (char *) malloc(sizeof(char) * len);
-    memset(cl_object->cl_obj->tokens->tokens, 0, len);
-    memcpy(cl_object->cl_obj->tokens->tokens, tokens, (len - 1));
+    cl_object->cl_obj->tokens->tokens = strdup(tokens);
 
     /* ...and this one we keep for showing the original */
-    cl_object->cl_obj->tokens->spaced =
-            (char *) malloc(sizeof(char) * len);
-    memset(cl_object->cl_obj->tokens->spaced, 0, len);
-    memcpy(cl_object->cl_obj->tokens->spaced, tokens, (len - 1));
+    cl_object->cl_obj->tokens->spaced = strdup(tokens);
 
     cl_object->cl_obj->tokens->tlist =
             (cleri_tlist_t *) malloc(sizeof(cleri_tlist_t));
