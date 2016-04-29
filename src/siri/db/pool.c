@@ -124,11 +124,11 @@ static void make_pools(
         uint_fast16_t num_pools,
         siridb_lookup_t * lookup)
 {
-    uint_fast16_t i;
-    uint_fast16_t m;
     if (n == num_pools)
         return;
 
+    uint_fast16_t i;
+    uint_fast16_t m;
     uint_fast16_t counters[n];
     for (i = 0; i < n; i++)
         counters[i] = i;

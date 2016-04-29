@@ -20,8 +20,6 @@
 #include <siri/db/series.h>
 #include <siri/db/points.h>
 
-extern int ct_is_empty(void * data);
-
 static int32_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
@@ -120,8 +118,7 @@ void siridb_insert_points(
     insert->client = client;
     insert->size = size;
     insert->packer_size = packer_size;
-    for (size_t n = 0; n < insert->packer_size; n++)
-        insert->packer[n] = packer[n];
+    memcpy(insert->packer, packer, sizeof(qp_packer_t *) * packer_size);
 
     uv_async_init(siri.loop, handle, (uv_async_cb) send_points_to_pools);
     handle->data = (void *) insert;

@@ -136,7 +136,7 @@ static void on_data(
         uv_handle_t * client,
         const sirinet_pkg_t * pkg)
 {
-    log_debug("on_data, handle the following: pid: %d, len: %d, tp: %d",
+    log_debug("Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
     switch (pkg->tp)
     {

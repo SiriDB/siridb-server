@@ -67,8 +67,7 @@ else                                                                        \
 
 void siridb_init_listener(void)
 {
-    uint_fast16_t i;
-    for (i = 0; i < CLERI_END; i++)
+    for (uint_fast16_t i = 0; i < CLERI_END; i++)
     {
         siridb_listen_enter[i] = NULL;
         siridb_listen_exit[i] = NULL;

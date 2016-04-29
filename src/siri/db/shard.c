@@ -265,9 +265,6 @@ int siridb_shard_get_points_num32(
     /* set pointer to start */
     pt = temp;
 
-    assert ((start_ts == NULL || idx->end_ts >= *start_ts) &&
-            (end_ts == NULL || idx->start_ts < *end_ts));
-
     /* crop from start if needed */
     if (start_ts != NULL)
         for (; *pt < *start_ts; pt += 3, len--);
@@ -279,8 +276,6 @@ int siridb_shard_get_points_num32(
         for (   uint32_t * p = temp + 3 * (idx->len - 1);
                 *p >= *end_ts;
                 p -= 3, len--);
-
-    assert (points->len < len);
 
     if (    has_overlap &&
             points->len &&

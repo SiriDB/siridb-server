@@ -91,10 +91,8 @@ int siridb_add_user(
         siridb_user_t * user,
         char * err_msg)
 {
-    int i;
     char salt[] = "$1$........$";
     char * encrypted;
-    size_t len;
 
     if (strlen(user->password) < SIRIDB_MIN_PASSWORD_LEN)
     {
@@ -150,15 +148,12 @@ int siridb_add_user(
     }
 
     /* encrypt the users password */
-    for (i = 3, len=strlen(SEED_CHARS); i < 11; i++)
+    for (size_t i = 3, len=strlen(SEED_CHARS); i < 11; i++)
         salt[i] = SEED_CHARS[rand() % len];
     encrypted = crypt(user->password, salt);
 
     /* replace user password with encrypted password */
-    len = strlen(encrypted);
-    user->password = (char *) realloc(user->password, len + 1);
-    memcpy(user->password, encrypted, len);
-    user->password[len] = 0;
+    user->password = strdup(encrypted);
 
     /* add the user to the users */
     append_user(siridb, user);
@@ -208,11 +203,8 @@ int siridb_load_users(siridb_t * siridb)
     {
         /* we do not have a user access file, lets create the first user */
         user = siridb_new_user();
-        user->username = (char *) malloc(5);
-        memcpy(user->username, "iris", 5);
-
-        user->password = (char *) malloc(5);
-        memcpy(user->password, "siri", 5);
+        user->username = strdup("iris");
+        user->password = strdup("siri");
 
         user->access_bit = 0;
         if (siridb_add_user(siridb, user, err_msg))
@@ -241,13 +233,8 @@ int siridb_load_users(siridb_t * siridb)
     {
         user = siridb_new_user();
 
-        user->username = (char *) malloc(username->len + 1);
-        memcpy(user->username, username->via->raw, username->len);
-        user->username[username->len] = 0;
-
-        user->password = (char *) malloc(password->len + 1);
-        memcpy(user->password, password->via->raw, password->len);
-        user->password[password->len] = 0;
+        user->username = strndup(username->via->raw, username->len);
+        user->password = strndup(password->via->raw, password->len);
 
         user->access_bit = (uint32_t) access_bit->via->int64;
         append_user(siridb, user);
@@ -308,18 +295,15 @@ int siridb_drop_user(
 static siridb_user_t * get_user(siridb_t * siridb, const char * username)
 {
     siridb_users_t * current;
-    size_t len;
 
     current = siridb->users;
+
     if (current->user == NULL)
         return NULL;
 
-    len = strlen(username);
-
     for (; current != NULL; current = current->next)
     {
-        if (strlen(current->user->username) == len &&
-                strcmp(current->user->username, username) == 0)
+        if (strcmp(current->user->username, username) == 0)
             return current->user;
     }
     return NULL;
@@ -332,7 +316,6 @@ static siridb_user_t * siridb_pop_user(
     siridb_users_t * current;
     siridb_users_t * prev = NULL;
     siridb_user_t * user;
-    size_t len;
 
     current = siridb->users;
 
@@ -340,12 +323,10 @@ static siridb_user_t * siridb_pop_user(
     if (current->user == NULL)
         return NULL;
 
-    len = strlen(username);
 
     for (; current != NULL; prev = current, current = current->next)
     {
-        if (strlen(current->user->username) == len &&
-                strcmp(current->user->username, username) == 0)
+        if (strcmp(current->user->username, username) == 0)
         {
             if (prev == NULL)
                 siridb->users = (current->next != NULL) ?

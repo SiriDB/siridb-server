@@ -63,6 +63,12 @@ void ct_free(ct_node_t * node)
     free(node);
 }
 
+inline int ct_is_empty(void * data)
+{
+    return data == CT_EMPTY;
+}
+
+
 void ** ct_get_sure(ct_node_t * node, const char * key)
 {
     ct_node_t ** nd;

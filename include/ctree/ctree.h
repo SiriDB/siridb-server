@@ -47,10 +47,7 @@ ct_node_t * ct_new(void);
 void ct_free(ct_node_t * node);
 
 /* can be used to check if get_sure has set an CT_EMPTY */
-inline int ct_is_empty(void * data)
-{
-    return data == CT_EMPTY;
-}
+extern int ct_is_empty(void * data);
 
 /* gets a value or set an CT_EMPTY if the key is not there. the address
  * is returned and can be used to set a new value.

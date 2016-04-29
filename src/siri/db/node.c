@@ -31,22 +31,26 @@ void siridb_append_enter_node(
         cleri_node_t * node,
         uv_async_cb cb)
 {
-    siridb_node_list_t * current = walker->enter_nodes;
-    if (current == NULL)
+    siridb_node_list_t ** parent;
+
+    if (walker->enter_nodes == NULL)
     {
-        walker->enter_nodes =
-                (siridb_node_list_t *) malloc(sizeof(siridb_node_list_t));
-        walker->enter_nodes->node = node;
-        walker->enter_nodes->cb = cb;
-        walker->enter_nodes->next = NULL;
-        return;
+        parent = &walker->enter_nodes;
     }
-    while (current->next != NULL)
-        current = current->next;
-    current->next = (siridb_node_list_t *) malloc(sizeof(siridb_node_list_t));
-    current->next->node = node;
-    current->next->cb = cb;
-    current->next->next = NULL;
+    else
+    {
+        siridb_node_list_t * current = walker->enter_nodes;
+
+        while (current->next != NULL)
+            current = current->next;
+
+        parent = &current->next;
+    }
+
+    (*parent) = (siridb_node_list_t *) malloc(sizeof(siridb_node_list_t));
+    (*parent)->node = node;
+    (*parent)->cb = cb;
+    (*parent)->next = NULL;
 }
 
 void siridb_insert_exit_node(
@@ -91,13 +95,6 @@ siridb_node_list_t * siridb_node_chain(siridb_node_walker_t * walker)
 
 void siridb_node_next(siridb_node_list_t ** node_list)
 {
-#ifdef DEBUG
-    if (*node_list == NULL)
-    {
-        log_debug("Got here at least once to much!");
-        return;
-    }
-#endif
     siridb_node_list_t * next = (*node_list)->next;
     free(*node_list);
     *node_list = next;

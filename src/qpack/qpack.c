@@ -172,12 +172,12 @@ void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source)
     packer->len += source->len;
 }
 
-int qp_is_array(qp_types_t tp)
+inline int qp_is_array(qp_types_t tp)
 {
     return tp == QP_ARRAY_OPEN || (tp >= QP_ARRAY0 && tp <= QP_ARRAY5);
 }
 
-int qp_is_map(qp_types_t tp)
+inline int qp_is_map(qp_types_t tp)
 {
     return tp == QP_MAP_OPEN || (tp >= QP_MAP0 && tp <= QP_MAP5);
 }
@@ -287,12 +287,14 @@ void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
     packer->len += len;
 }
 
-void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len)
+void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
 {
-    len++;
+    /* add one because 0 (terminator) should be included with the length */
+    size_t len = len_raw + 1;
     QP_PREPARE_RAW
 
-    memcpy(packer->buffer + packer->len, raw, len - 1);
+    /* now take 1 because we want to copy one less than the new len */
+    memcpy(packer->buffer + packer->len, raw, len_raw);
     packer->len += len;
     packer->buffer[packer->len - 1] = 0;
 }

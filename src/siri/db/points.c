@@ -39,8 +39,9 @@ void siridb_points_add_point(
     size_t i;
     siridb_point_t * point;
 
-    for (i = points->len; i-- > 0 && (points->data + i)->ts > *ts;)
-        *(points->data + i + 1) = *(points->data + i);
+    for (   i = points->len;
+            i-- > 0 && (points->data + i)->ts > *ts;
+            *(points->data + i + 1) = *(points->data + i));
 
     points->len++;
 

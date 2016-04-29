@@ -78,7 +78,6 @@ static int siridb_load_databases(void)
     qp_unpacker_t * unpacker = NULL;
     cfgparser_option_t * option = NULL;
     siridb_t * siridb;
-    size_t len;
 
     char err_msg[512];
 
@@ -178,10 +177,7 @@ static int siridb_load_databases(void)
                 siri_cfg.default_db_path,
                 dbpath->d_name);
 
-        len = strlen(buffer);
-        siridb->dbpath = (char *) malloc(len + 1);
-        memcpy(siridb->dbpath, buffer, len);
-        siridb->dbpath[len] = 0;
+        siridb->dbpath = strdup(buffer);
 
         /* read buffer_path from database.conf */
         rc = cfgparser_get_option(
@@ -189,14 +185,11 @@ static int siridb_load_databases(void)
                     cfgparser,
                     "buffer",
                     "buffer_path");
-        if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING)
-        {
-            len = strlen(option->val->string) + 1;
-            siridb->buffer_path = (char *) malloc(len);
-            memcpy(siridb->buffer_path, option->val->string, len);
-        }
-        else
-            siridb->buffer_path = siridb->dbpath;
+
+        siridb->buffer_path = (
+                rc == CFGPARSER_SUCCESS &&
+                option->tp == CFGPARSER_TP_STRING) ?
+                        strdup(option->val->string) : siridb->dbpath;
 
         /* free cfgparser */
         cfgparser_free(cfgparser);

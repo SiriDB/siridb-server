@@ -135,8 +135,8 @@ qp_types_t qp_next_object(qp_unpacker_t * unpacker);
 void qp_print(const char * pt, size_t len);
 
 /* qp test functions */
-int qp_is_array(qp_types_t tp);
-int qp_is_map(qp_types_t tp);
+extern int qp_is_array(qp_types_t tp);
+extern int qp_is_map(qp_types_t tp);
 
 /* add functions */
 void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
