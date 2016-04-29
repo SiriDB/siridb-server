@@ -103,10 +103,17 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn)
 
     unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
     unpacker->source = (char *) malloc(size);
-    fread(unpacker->source, 1, size, fp);
-
-    unpacker->pt = unpacker->source;
-    unpacker->end = unpacker->source + size;
+    if (fread(unpacker->source, size, 1, fp) == 1)
+    {
+        unpacker->pt = unpacker->source;
+        unpacker->end = unpacker->source + size;
+    }
+    else
+    {
+        log_error("Could not read '%s'", fn);
+        qp_free_unpacker(unpacker);
+        unpacker = NULL;
+    }
 
     fclose(fp);
 

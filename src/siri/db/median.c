@@ -121,6 +121,7 @@ void siridb_median_real(
         int64_t pivot, v, a, b;
         int64_t arr_l[points->len - 1];
         int64_t arr_r[points->len - 1];
+        a = b = 0;
         pivot = points->data->val.int64;
         for (i = 1; i < points->len; i++)
         {
@@ -159,6 +160,7 @@ void siridb_median_real(
         double pivot, v, a, b;
         double arr_l[points->len - 1];
         double arr_r[points->len - 1];
+        a = b = 0.0;
         pivot = points->data->val.real;
         for (i = 1; i < points->len; i++)
         {

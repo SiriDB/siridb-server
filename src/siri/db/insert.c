@@ -20,6 +20,8 @@
 #include <siri/db/series.h>
 #include <siri/db/points.h>
 
+extern int ct_is_empty(void * data);
+
 static int32_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
@@ -313,6 +315,10 @@ static int32_t assign_by_array(
             qp_add_raw_term(packer[pool],
                     qp_obj->via->raw,
                     qp_obj->len);
+        }
+        else
+        {
+            return ERR_EXPECTING_NAME_AND_POINTS;
         }
 
         if (tmp_packer->len)

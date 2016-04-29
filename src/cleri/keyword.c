@@ -13,7 +13,6 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strextra/strextra.h>
 
 static void cleri_free_keyword(
         cleri_grammar_t * grammar,
@@ -68,7 +67,7 @@ static cleri_node_t * cleri_parse_keyword(
            strncmp(cl_obj->cl_obj->keyword->keyword, str, match_len) == 0 ||
            (
                cl_obj->cl_obj->keyword->ign_case &&
-               strincmp(cl_obj->cl_obj->keyword->keyword, str, match_len) == 0
+               strncasecmp(cl_obj->cl_obj->keyword->keyword, str, match_len) == 0
            )
        ))
     {

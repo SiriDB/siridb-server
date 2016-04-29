@@ -78,7 +78,10 @@ static int load_idx_num32(
 
     while (fread(&idx, IDX_NUM32_SZ, 1, fp) == 1)
     {
-        series = imap32_get(siridb->series_map, *((uint32_t *) idx));
+        char * pt = idx;
+
+        series = imap32_get(siridb->series_map, *((uint32_t *) pt));
+
         if (series == NULL)
         {
             if (!(shard->status & SIRIDB_SHARD_HAS_REMOVED_SERIES))
@@ -86,7 +89,7 @@ static int load_idx_num32(
                         "At least Series ID %d is found in shard %d but does "
                         "not exist anymore. We will remove the series on the "
                         "next optimize cycle.",
-                        *((uint32_t *) idx),
+                        *((uint32_t *) pt),
                         shard->id);
             shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
         }

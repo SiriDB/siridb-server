@@ -16,7 +16,6 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strextra/strextra.h>
 
 static void cleri_free_token(
         cleri_grammar_t * grammar,
@@ -61,10 +60,10 @@ static cleri_node_t * cleri_parse_token(
 {
     cleri_node_t * node = NULL;
     const char * str = parent->str + parent->len;
-    if ((cl_obj->cl_obj->token->len == 1 &&
-            *cl_obj->cl_obj->token->token == *str) ||
-            (cl_obj->cl_obj->token->len > 1 &&
-                    starts_with(str, cl_obj->cl_obj->token->token)))
+    if (strncmp(
+            cl_obj->cl_obj->token->token,
+            str,
+            cl_obj->cl_obj->token->len) == 0)
     {
         node = cleri_new_node(cl_obj, str, cl_obj->cl_obj->token->len);
         parent->len += node->len;

@@ -63,11 +63,6 @@ void ct_free(ct_node_t * node)
     free(node);
 }
 
-int ct_is_empty(void * data)
-{
-    return data == CT_EMPTY;
-}
-
 void ** ct_get_sure(ct_node_t * node, const char * key)
 {
     ct_node_t ** nd;
@@ -494,12 +489,9 @@ static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 
 static ct_node_t * new_node(const char * key, void * data)
 {
-    size_t size = strlen(key) + 1;
     ct_node_t * node = (ct_node_t *) malloc(sizeof(ct_node_t));
 
-    node->key = (char *) malloc(size);
-    memcpy(node->key, key, size);
-
+    node->key = strdup(key);
     node->data = data;
     node->size = 0;
     node->nodes = NULL;

@@ -360,7 +360,7 @@ static uint16_t get_argument(
         if (current->argument->shortcut)
         {
             sprintf(buffer, "-%c", current->argument->shortcut);
-            if (match(argument, buffer))
+            if (strncmp(argument, buffer, strlen(argument)) == 0)
             {
                 nfound++;
                 *target = current;
@@ -368,7 +368,7 @@ static uint16_t get_argument(
             }
         }
         sprintf(buffer, "--%s", current->argument->name);
-        if (match(argument, buffer))
+        if (strncmp(argument, buffer, strlen(argument)) == 0)
         {
             nfound++;
             *target = current;

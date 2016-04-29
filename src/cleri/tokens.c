@@ -16,7 +16,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <strextra/strextra.h>
 
 static void cleri_free_tokens(
         cleri_grammar_t * grammar,
@@ -126,8 +125,7 @@ static cleri_node_t * cleri_parse_tokens(
     /* we can trust that at least one token is in the list */
     for (; tlist != NULL; tlist = tlist->next)
     {
-        if ((tlist->len == 1 && *tlist->token == *str) ||
-            (tlist->len > 1 && starts_with(str, tlist->token)))
+        if (strncmp(tlist->token, str, tlist->len) == 0)
         {
             node = cleri_new_node(cl_obj, str, tlist->len);
             parent->len += node->len;

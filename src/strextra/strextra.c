@@ -15,12 +15,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void add_spaces(char *dest, int num_of_spaces)
-{
-    size_t len = strlen(dest);
-    memset(dest + len, ' ', num_of_spaces );
-    dest[len + num_of_spaces] = '\0';
-}
 
 void lower_case(char * sptr)
 {
@@ -38,22 +32,6 @@ void replace_char(char * sptr, char orig, char repl)
 {
     for (; *sptr != '\0'; sptr++)
         if (*sptr == orig) *sptr = repl;
-}
-
-bool starts_with(const char * str, const char * prefix)
-{
-    size_t len_str = strlen(str);
-    size_t len_prefix = strlen(prefix);
-    return len_str < len_prefix ?
-            false : strncmp(prefix, str, len_prefix) == 0;
-}
-
-bool match(const char * str, const char * prefix)
-{
-    size_t len_str = strlen(str);
-    size_t len_prefix = strlen(prefix);
-    size_t min = (len_prefix < len_str) ? len_prefix : len_str;
-    return strncmp(prefix, str, min) == 0;
 }
 
 void trim(char ** str, char chr)
@@ -89,17 +67,6 @@ bool is_empty(const char * str)
         if (!isspace(*test))
             return false;
     return true;
-}
-
-int strincmp(const char * stra, const char * strb, size_t len)
-{
-    const char * a = stra;
-    const char * b = strb;
-    int ret;
-    for (; len--; a++, b++)
-        if ((ret = tolower(*a) - tolower(*b)))
-            return ret;
-    return 0;
 }
 
 bool is_int(const char * str)

@@ -185,19 +185,23 @@ static void enter_series_name(uv_async_t * handle)
     pool = siridb_pool_sn(siridb, series_name);
 
     /* check if this series belongs to 'this' pool and if so get the series */
-    if (pool == siridb->server->pool &&
-            (series = ct_get(siridb->series, series_name)) == NULL)
+    if (pool == siridb->server->pool)
     {
-        /* the series does not exist */
-        snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
-                "Cannot find series: '%s'", series_name);
+        if ((series = ct_get(siridb->series, series_name)) == NULL)
+        {
+            /* the series does not exist */
+            snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Cannot find series: '%s'", series_name);
 
-        /* free series_name and return with send_errror.. */
-        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+            /* free series_name and return with send_errror.. */
+            return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+        }
+
+        /* bind the series to the query and ignore CT_EXISTS */
+        ct_add(((siridb_q_series_t *) query->data)->ct_series,
+                series_name,
+                series);
     }
-
-    /* bind the series to the query and ignore CT_EXISTS */
-    ct_add(((siridb_q_series_t *) query->data)->ct_series, series_name, series);
 
     SIRIDB_NEXT_NODE
 }

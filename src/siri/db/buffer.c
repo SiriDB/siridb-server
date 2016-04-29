@@ -208,8 +208,9 @@ int siridb_load_buffer(siridb_t * siridb)
         {
 
             pt = buffer + i * siridb->buffer_size;
+
             series = (siridb_series_t *)
-                    imap32_get(siridb->series_map, (uint32_t) *pt);
+                    imap32_get(siridb->series_map, *((uint32_t *) pt));
 
             if (series == NULL)
                 continue;
