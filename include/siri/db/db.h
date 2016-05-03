@@ -47,14 +47,14 @@
     /* finished schema check, free schema object */             \
     qp_free_object(qp_schema);
 
-struct siridb_time_s;
-struct siridb_server_s;
-struct siridb_users_s;
-struct siridb_servers_s;
-struct siridb_pools_s;
-struct ct_node_s;
-struct imap32_s;
-struct imap64_s;
+typedef struct siridb_time_s siridb_time_t;
+typedef struct siridb_server_s siridb_server_t;
+typedef struct siridb_users_s siridb_users_t;
+typedef struct siridb_servers_s siridb_servers_t;
+typedef struct siridb_pools_s siridb_pools_t;
+typedef struct ct_node_s ct_node_t;
+typedef struct imap32_s imap32_t;
+typedef struct imap64_s imap64_t;
 
 typedef struct siridb_s
 {
@@ -73,15 +73,15 @@ typedef struct siridb_s
     char * buffer_path;
     char * index;
     size_t index_size;
-    struct siridb_time_s * time;
-    struct siridb_server_s * server;
-    struct siridb_server_s * replica;
-    struct siridb_users_s * users;
-    struct siridb_servers_s * servers;
-    struct siridb_pools_s * pools;
-    struct ct_node_s * series;
-    struct imap32_s * series_map;
-    struct imap64_s * shards;
+    siridb_time_t * time;
+    siridb_server_t * server;
+    siridb_server_t * replica;
+    siridb_users_t * users;
+    siridb_servers_t * servers;
+    siridb_pools_t * pools;
+    ct_node_t * series;
+    imap32_t * series_map;
+    imap64_t * shards;
     FILE * buffer_fp;
 } siridb_t;
 

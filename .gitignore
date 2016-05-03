@@ -39,3 +39,10 @@
 /.settings
 .cproject
 .project
+
+# Code:blocks
+bin/
+siridbc.cbp
+siridbc.depend
+siridbc.layout
+

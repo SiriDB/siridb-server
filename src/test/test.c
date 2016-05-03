@@ -10,27 +10,28 @@
  *
  */
 #include <test/test.h>
-#include <qpack/qpack.h>
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include <motd/motd.h>
 #include <time.h>
-#include <stdlib.h>
-#include <cleri/parser.h>
-#include <siri/grammar/grammar.h>
-#include <siri/grammar/gramp.h>
-#include <cleri/grammar.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <qpack/qpack.h>
+#include <motd/motd.h>
+#include <cleri/parser.h>
+#include <cleri/grammar.h>
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
-#include <siri/db/pool.h>
-#include <siri/db/points.h>
-#include <siri/db/aggregate.h>
 #include <iso8601/iso8601.h>
 #include <expr/expr.h>
+#include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
+#include <siri/db/aggregate.h>
+#include <siri/db/db.h>
+#include <siri/db/pool.h>
+#include <siri/db/points.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -78,17 +79,17 @@ static int test_qpack(void)
     test_start("Testing qpack");
 
     qp_packer_t * packer = qp_new_packer(32);
-    qp_map_open(packer);
+    qp_add_type(packer, QP_MAP_OPEN);
     qp_add_raw(packer, "data", 4);
-    qp_array_open(packer);
+    qp_add_type(packer, QP_ARRAY_OPEN);
 
-    qp_add_map2(packer);
+    qp_add_type(packer, QP_MAP2);
     qp_add_raw(packer, "name", 4);
     qp_add_raw(packer, "time_precision", 14);
     qp_add_raw(packer, "value", 5);
     qp_add_raw(packer, "s", 1);
 
-    qp_add_map2(packer);
+    qp_add_type(packer, QP_MAP2);
     qp_add_raw(packer, "name", 4);
     qp_add_raw(packer, "version", 7);
     qp_add_raw(packer, "value", 5);

@@ -15,39 +15,39 @@
 #include <siri/db/series.h>
 #include <siri/db/points.h>
 
-struct siridb_s;
-struct siridb_series_s;
-struct siridb_points_s;
+typedef struct siridb_s siridb_t;
+typedef struct siridb_series_s siridb_series_t;
+typedef struct siridb_points_s siridb_points_t;
 
 typedef struct siridb_buffer_s
 {
     long int bf_offset;
-    struct siridb_points_s * points;
+    siridb_points_t * points;
 } siridb_buffer_t;
 
 int siridb_buffer_new_series(
-        struct siridb_s * siridb,
-        struct siridb_series_s * series);
+        siridb_t * siridb,
+        siridb_series_t * series);
 
-int siridb_open_buffer(struct siridb_s * siridb);
+int siridb_open_buffer(siridb_t * siridb);
 
-int siridb_load_buffer(struct siridb_s * siridb);
+int siridb_load_buffer(siridb_t * siridb);
 
 void siridb_free_buffer(siridb_buffer_t * buffer);
 
 void siridb_buffer_write_len(
-        struct siridb_s * siridb,
-        struct siridb_series_s * series);
+        siridb_t * siridb,
+        siridb_series_t * series);
 
 /* Waring: we must check if the new point fits inside the buffer before using
- * the 'siridb_buffer_add_point()' function.
+ * the 'siridb_buffer_write_point()' function.
  */
 void siridb_buffer_write_point(
-        struct siridb_s * siridb,
-        struct siridb_series_s * series,
+        siridb_t * siridb,
+        siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
 
 void siridb_buffer_to_shards(
-        struct siridb_s * siridb,
-        struct siridb_series_s * series);
+        siridb_t * siridb,
+        siridb_series_t * series);

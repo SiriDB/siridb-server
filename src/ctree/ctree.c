@@ -36,8 +36,8 @@ static void pv_walk(
         ct_cb_t cb,
         void * args);
 
-ct_empty_t ct_empty = {};
-ct_empty_t * CT_EMPTY = &ct_empty;
+static char dummy = '\0';
+char * CT_EMPTY = &dummy;
 
 ct_node_t * ct_new(void)
 {

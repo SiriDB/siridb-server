@@ -17,11 +17,6 @@
 
 #define QP_SUGGESTED_SIZE 65536
 
-#define QP_OPEN_ARRAY 252
-#define QP_CLOSE_ARRAY 253
-#define QP_OPEN_MAP 254
-#define QP_CLOSE_MAP 255
-
 typedef enum
 {
     /*
@@ -123,7 +118,7 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn);
 
 void qp_free_unpacker(qp_unpacker_t * unpacker);
 
-/* its fine to reuse the same object without calling free in between.
+/* Its fine to reuse the same object without calling free in between.
  * (qp_obj may also be NULL)
  */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
@@ -134,45 +129,41 @@ qp_types_t qp_next_object(qp_unpacker_t * unpacker);
 
 void qp_print(const char * pt, size_t len);
 
-/* qp test functions */
+/* Shortcut to print a packer object */
+#define qp_print_packer(packer) \
+    qp_print(packer->buffer, packer->len)
+
+/* Shortcut to print an unpacker object */
+#define qp_print_unpacker(unpacker) \
+    qp_print(unpacker->source, unpacker->end - unpacker->source)
+
+/* Test functions */
 extern int qp_is_array(qp_types_t tp);
 extern int qp_is_map(qp_types_t tp);
 
-/* add functions */
+/* Adds a raw string to the packer fixed to len chars */
 void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
+
+/* Adds a raw string to the packer and appends a terminator (0) so the written
+ * length is len + 1 */
 void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
+
+/* Adds a 0 terminated string to the packer but note that the terminator itself
+ * will NOT be written. (Use qp_add_string_term() instead if you want the
+ * destination to be 0 terminated */
 void qp_add_string(qp_packer_t * packer, const char * str);
+
+/* Like qp_add_string() but includes the 0 terminator. */
 void qp_add_string_term(qp_packer_t * packer, const char * str);
+
 void qp_add_double(qp_packer_t * packer, double real);
 void qp_add_int8(qp_packer_t * packer, int8_t integer);
 void qp_add_int16(qp_packer_t * packer, int16_t integer);
 void qp_add_int32(qp_packer_t * packer, int32_t integer);
 void qp_add_int64(qp_packer_t * packer, int64_t integer);
-void qp_add_array0(qp_packer_t * packer);
-void qp_add_array1(qp_packer_t * packer);
-void qp_add_array2(qp_packer_t * packer);
-void qp_add_array3(qp_packer_t * packer);
-void qp_add_array4(qp_packer_t * packer);
-void qp_add_array5(qp_packer_t * packer);
-void qp_add_map0(qp_packer_t * packer);
-void qp_add_map1(qp_packer_t * packer);
-void qp_add_map2(qp_packer_t * packer);
-void qp_add_map3(qp_packer_t * packer);
-void qp_add_map4(qp_packer_t * packer);
-void qp_add_map5(qp_packer_t * packer);
 void qp_add_true(qp_packer_t * packer);
 void qp_add_false(qp_packer_t * packer);
 void qp_add_null(qp_packer_t * packer);
-
-/* also *add* functions but somewhat special */
-void qp_array_open(qp_packer_t * packer);
-void qp_map_open(qp_packer_t * packer);
-
-/* its not need to close an array or map but you might need it
- * to tell qp that one is closed.
- */
-void qp_array_close(qp_packer_t * packer);
-void qp_map_close(qp_packer_t * packer);
 
 void qp_add_type(qp_packer_t * packer, qp_types_t tp);
 

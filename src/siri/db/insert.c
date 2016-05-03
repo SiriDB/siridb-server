@@ -214,7 +214,7 @@ static void send_points_to_pools(uv_async_t * handle)
     qp_free_object(qp_series_val);
 
     packer = qp_new_packer(1024);
-    qp_map_open(packer);
+    qp_add_type(packer, QP_MAP_OPEN);
     qp_add_raw(packer, "success_msg", 11);
     qp_add_fmt(packer, "Inserted %zd point(s) successfully.", insert->size);
 

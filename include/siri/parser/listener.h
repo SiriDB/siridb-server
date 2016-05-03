@@ -14,15 +14,7 @@
 #include <uv.h>
 #include <siri/grammar/grammar.h>
 
+uv_async_cb siriparser_listen_enter[CLERI_END];
+uv_async_cb siriparser_listen_exit[CLERI_END];
 
-uv_async_cb siridb_listen_enter[CLERI_END];
-uv_async_cb siridb_listen_exit[CLERI_END];
-
-void siridb_init_listener(void);
-
-
-typedef struct siridb_list_query_s
-{
-    cleri_children_t * columns;
-
-} siridb_list_query_t;
+void siriparser_init_listener(void);

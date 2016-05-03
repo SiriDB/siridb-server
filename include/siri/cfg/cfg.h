@@ -18,4 +18,4 @@ typedef struct siri_cfg_s
 void siri_cfg_init(void);
 
 
-siri_cfg_t siri_cfg;
+extern siri_cfg_t siri_cfg;

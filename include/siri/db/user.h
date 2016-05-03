@@ -15,7 +15,7 @@
 #include <inttypes.h>
 #include <siri/db/db.h>
 
-struct siridb_s;
+typedef struct siridb_s siridb_t;
 
 typedef struct siridb_user_s
 {
@@ -35,21 +35,21 @@ void siridb_free_users(siridb_users_t * users);
 siridb_user_t * siridb_new_user(void);
 
 int siridb_add_user(
-        struct siridb_s * siridb,
+        siridb_t * siridb,
         siridb_user_t * user,
         char * err_msg);
 
-int siridb_load_users(struct siridb_s * siridb);
+int siridb_load_users(siridb_t * siridb);
 
 void siridb_free_user(siridb_user_t * user);
 
 int siridb_drop_user(
-        struct siridb_s * siridb,
+        siridb_t * siridb,
         const char * username,
         char * err_msg);
 
 siridb_user_t * siridb_get_user(
-        struct siridb_s * siridb,
+        siridb_t * siridb,
         const char * username,
         const char * password);
 

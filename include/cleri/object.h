@@ -28,22 +28,22 @@
 #include <cleri/rule.h>
 #include <cleri/this.h>
 
-struct cleri_object_s;
-struct cleri_grammar_s;
-struct cleri_keyword_s;
-struct cleri_sequence_s;
-struct cleri_optional_s;
-struct cleri_choice_s;
-struct cleri_regex_s;
-struct cleri_list_s;
-struct cleri_repeat_s;
-struct cleri_token_s;
-struct cleri_tokens_s;
-struct cleri_prio_s;
-struct cleri_node_s;
-struct cleri_rule_s;
-struct cleri_rule_store_s;
-struct cleri_parse_result_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_grammar_s cleri_grammar_t;
+typedef struct cleri_keyword_s cleri_keyword_t;
+typedef struct cleri_sequence_s cleri_sequence_t;
+typedef struct cleri_optional_s cleri_optional_t;
+typedef struct cleri_choice_s cleri_choice_t;
+typedef struct cleri_regex_s cleri_regex_t;
+typedef struct cleri_list_s cleri_list_t;
+typedef struct cleri_repeat_s cleri_repeat_t;
+typedef struct cleri_token_s cleri_token_t;
+typedef struct cleri_tokens_s cleri_tokens_t;
+typedef struct cleri_prio_s cleri_prio_t;
+typedef struct cleri_rule_s cleri_rule_t;
+typedef struct cleri_rule_store_s cleri_rule_store_t;
+typedef struct cleri_node_s cleri_node_t;
+typedef struct cleri_parse_result_s cleri_parse_result_t;
 
 typedef enum {
     CLERI_TP_SEQUENCE,
@@ -69,29 +69,29 @@ typedef struct cleri_dummy_s
 
 typedef union
 {
-    struct cleri_keyword_s * keyword;
-    struct cleri_sequence_s * sequence;
-    struct cleri_optional_s * optional;
-    struct cleri_choice_s * choice;
-    struct cleri_regex_s * regex;
-    struct cleri_list_s * list;
-    struct cleri_repeat_s * repeat;
-    struct cleri_token_s * token;
-    struct cleri_tokens_s * tokens;
-    struct cleri_prio_s * prio;
-    struct cleri_rule_s * rule;
-    struct cleri_dummy_s * dummy; /* place holder so we can easy get a gid */
+    cleri_keyword_t * keyword;
+    cleri_sequence_t * sequence;
+    cleri_optional_t * optional;
+    cleri_choice_t * choice;
+    cleri_regex_t * regex;
+    cleri_list_t * list;
+    cleri_repeat_t * repeat;
+    cleri_token_t * token;
+    cleri_tokens_t * tokens;
+    cleri_prio_t * prio;
+    cleri_rule_t * rule;
+    cleri_dummy_t * dummy; /* place holder so we can easy get a gid */
 } cleri_object_u;
 
 typedef void (*cleri_free_object_t)(
-        struct cleri_grammar_s *,
-        struct cleri_object_s *);
+        cleri_grammar_t *,
+        cleri_object_t *);
 
-typedef struct cleri_node_s * (*cleri_parse_object_t)(
-        struct cleri_parse_result_s *,
-        struct cleri_node_s *,
-        struct cleri_object_s *,
-        struct cleri_rule_store_s *);
+typedef cleri_node_t * (*cleri_parse_object_t)(
+        cleri_parse_result_t *,
+        cleri_node_t *,
+        cleri_object_t *,
+        cleri_rule_store_t *);
 
 typedef struct cleri_object_s
 {
@@ -107,7 +107,7 @@ cleri_object_t * cleri_new_object(
         cleri_parse_object_t parse_object);
 
 void cleri_free_object(
-        struct cleri_grammar_s * grammar,
+        cleri_grammar_t * grammar,
         cleri_object_t * cl_object);
 
 cleri_object_t * CLERI_END_OF_STATEMENT;

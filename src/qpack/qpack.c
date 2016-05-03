@@ -359,27 +359,10 @@ void qp_add_int64(qp_packer_t * packer, int64_t integer)
     memcpy(packer->buffer + packer->len, &integer, 8);
     packer->len += 8;
 }
-void qp_add_array0(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY0)
-void qp_add_array1(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY1)
-void qp_add_array2(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY2)
-void qp_add_array3(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY3)
-void qp_add_array4(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY4)
-void qp_add_array5(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY5)
-void qp_add_map0(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP0)
-void qp_add_map1(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP1)
-void qp_add_map2(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP2)
-void qp_add_map3(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP3)
-void qp_add_map4(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP4)
-void qp_add_map5(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP5)
+
 void qp_add_true(qp_packer_t * packer) QP_PLAIN_OBJ(QP_TRUE)
 void qp_add_false(qp_packer_t * packer) QP_PLAIN_OBJ(QP_FALSE)
 void qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
-
-void qp_array_open(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY_OPEN)
-void qp_map_open(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP_OPEN)
-
-void qp_array_close(qp_packer_t * packer) QP_PLAIN_OBJ(QP_ARRAY_CLOSE)
-void qp_map_close(qp_packer_t * packer) QP_PLAIN_OBJ(QP_MAP_CLOSE)
 
 void qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
@@ -390,7 +373,9 @@ void qp_add_type(qp_packer_t * packer, qp_types_t tp)
 
 void qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 {
+#ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
+#endif
     fputc(tp, fpacker);
 }
 

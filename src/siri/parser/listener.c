@@ -9,7 +9,9 @@
  *  - initial version, 10-03-2016
  *
  */
-#include <siri/db/listener.h>
+#include <siri/parser/listener.h>
+#include <siri/parser/walkers.h>
+#include <siri/parser/queries.h>
 #include <logger/logger.h>
 #include <siri/siri.h>
 #include <siri/db/node.h>
@@ -29,7 +31,6 @@
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 
-static void free_select_query(uv_handle_t * handle);
 static void free_user_object(uv_handle_t * handle);
 
 static void enter_create_user_stmt(uv_async_t * handle);
@@ -52,7 +53,7 @@ static void exit_select_stmt(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
-#define SIRIDB_NEXT_NODE                                                    \
+#define SIRIPARSER_NEXT_NODE                                                    \
 siridb_node_next(&query->node_list);                                        \
 if (query->node_list == NULL)                                               \
     siridb_send_query_result(handle);                                       \
@@ -65,44 +66,38 @@ else                                                                        \
     uv_close((uv_handle_t *) handle, (uv_close_cb) sirinet_free_async);     \
 }
 
-void siridb_init_listener(void)
+void siriparser_init_listener(void)
 {
     for (uint_fast16_t i = 0; i < CLERI_END; i++)
     {
-        siridb_listen_enter[i] = NULL;
-        siridb_listen_exit[i] = NULL;
+        siriparser_listen_enter[i] = NULL;
+        siriparser_listen_exit[i] = NULL;
     }
 
-    siridb_listen_enter[CLERI_GID_CREATE_USER_STMT] = enter_create_user_stmt;
-    siridb_listen_enter[CLERI_GID_LIST_USERS_STMT] = enter_list_users_stmt;
-    siridb_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
-    siridb_listen_enter[CLERI_GID_SET_PASSWORD_EXPR] = enter_set_password_expr;
-    siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
-    siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
-    siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_user_columns;
+    siriparser_listen_enter[CLERI_GID_CREATE_USER_STMT] = enter_create_user_stmt;
+    siriparser_listen_enter[CLERI_GID_LIST_USERS_STMT] = enter_list_users_stmt;
+    siriparser_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
+    siriparser_listen_enter[CLERI_GID_SET_PASSWORD_EXPR] = enter_set_password_expr;
+    siriparser_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
+    siriparser_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
+    siriparser_listen_enter[CLERI_GID_USER_COLUMNS] = enter_user_columns;
 
-    siridb_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
-    siridb_listen_exit[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
-    siridb_listen_exit[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
-    siridb_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
-    siridb_listen_exit[CLERI_GID_COUNT_SERIES_STMT] = exit_count_series_stmt;
-    siridb_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
-    siridb_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
-    siridb_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
-    siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
-    siridb_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
-    siridb_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
+    siriparser_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
+    siriparser_listen_exit[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
+    siriparser_listen_exit[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
+    siriparser_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
+    siriparser_listen_exit[CLERI_GID_COUNT_SERIES_STMT] = exit_count_series_stmt;
+    siriparser_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
+    siriparser_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
+    siriparser_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
+    siriparser_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
+    siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
+    siriparser_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
 }
 
-static void free_select_query(uv_handle_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    siridb_free_select_query((siridb_q_select_t *) query->data);
-
-    /* normal free call */
-    siridb_free_query(handle);
-}
+/******************************************************************************
+ * Free functions
+ *****************************************************************************/
 
 static void free_user_object(uv_handle_t * handle)
 {
@@ -114,17 +109,19 @@ static void free_user_object(uv_handle_t * handle)
     siridb_free_query(handle);
 }
 
+/******************************************************************************
+ * Enter functions
+ *****************************************************************************/
+
 static void enter_create_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    /* bind user object to data */
+    /* bind user object to data and set correct free call */
     query->data = (siridb_user_t *) siridb_new_user();
-
-    /* when binding data, we must set a specific free call */
     query->free_cb = (uv_close_cb) free_user_object;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_list_users_stmt(uv_async_t * handle)
@@ -134,22 +131,23 @@ static void enter_list_users_stmt(uv_async_t * handle)
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
-    query->data = NULL;
+    query->data = (query_list_t *) query_list_new();
+    query->free_cb = (uv_close_cb) query_list_free;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    query->data = (siridb_q_select_t *) siridb_new_select_query();
-    query->free_cb = (uv_close_cb) free_select_query;
+    query->data = (query_select_t *) query_select_new();
+    query->free_cb = (uv_close_cb) query_select_free;
 
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_set_password_expr(uv_async_t * handle)
@@ -165,7 +163,7 @@ static void enter_set_password_expr(uv_async_t * handle)
     user->password = (char *) malloc(pw_node->len - 1);
     extract_string(user->password, pw_node->str, pw_node->len);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_series_name(uv_async_t * handle)
@@ -197,12 +195,12 @@ static void enter_series_name(uv_async_t * handle)
         }
 
         /* bind the series to the query and ignore CT_EXISTS */
-        ct_add(((siridb_q_series_t *) query->data)->ct_series,
+        ct_add(((query_wrapper_series_t *) query->data)->ct_series,
                 series_name,
                 series);
     }
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_timeit_stmt(uv_async_t * handle)
@@ -213,7 +211,7 @@ static void enter_timeit_stmt(uv_async_t * handle)
     qp_add_raw(query->timeit, "__timeit__", 10);
     qp_add_type(query->timeit, QP_ARRAY_OPEN);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_user_columns(uv_async_t * handle)
@@ -223,39 +221,43 @@ static void enter_user_columns(uv_async_t * handle)
     query->data = (cleri_children_t *)
             query->node_list->node->children;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
+
+/******************************************************************************
+ * Exit functions
+ *****************************************************************************/
 
 static void exit_after_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    ((siridb_q_select_t *) query->data)->start_ts =
+    ((query_select_t *) query->data)->start_ts =
             (uint64_t *) &query->node_list->node->children->next->node->result;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_before_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((siridb_q_select_t *) query->data)->end_ts =
+    ((query_select_t *) query->data)->end_ts =
             (uint64_t *) &query->node_list->node->children->next->node->result;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_between_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((siridb_q_select_t *) query->data)->start_ts = (uint64_t *)
+    ((query_select_t *) query->data)->start_ts = (uint64_t *)
             &query->node_list->node->children->next->node->result;
 
-    ((siridb_q_select_t *) query->data)->end_ts = (uint64_t *)
+    ((query_select_t *) query->data)->end_ts = (uint64_t *)
             &query->node_list->node->children->next->next->next->node->result;
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_calc_stmt(uv_async_t * handle)
@@ -277,7 +279,7 @@ static void exit_calc_stmt(uv_async_t * handle)
         qp_add_int64(query->packer, (int64_t) (calc_node->result * factor));
     }
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_count_series_stmt(uv_async_t * handle)
@@ -290,7 +292,7 @@ static void exit_count_series_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "series", 6);
     qp_add_int64(query->packer, siridb->series_map->len);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_create_user_stmt(uv_async_t * handle)
@@ -321,7 +323,7 @@ static void exit_create_user_stmt(uv_async_t * handle)
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
             "User '%s' is created successfully.", user->username);
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_drop_user_stmt(uv_async_t * handle)
@@ -348,7 +350,7 @@ static void exit_drop_user_stmt(uv_async_t * handle)
     qp_add_fmt(query->packer,
             "User '%s' is dropped successfully.", username);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_list_users_stmt(uv_async_t * handle)
@@ -412,60 +414,17 @@ static void exit_list_users_stmt(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIDB_NEXT_NODE
-}
-
-static void walk_series(
-        const char * series_name,
-        siridb_series_t * series,
-        uv_async_t * handle)
-{
-    siridb_point_t * point;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_q_select_t * q_select = (siridb_q_select_t *) query->data;
-
-    qp_add_string(query->packer, series_name);
-    qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-    siridb_points_t * points = siridb_series_get_points_num32(
-            ((sirinet_handle_t *) query->client->data)->siridb,
-            series,
-            q_select->start_ts,
-            q_select->end_ts);
-
-    point = points->data;
-    switch (points->tp)
-    {
-    case SIRIDB_POINTS_TP_INT:
-        for (size_t i = 0; i < points->len; i++, point++)
-        {
-            qp_add_type(query->packer, QP_ARRAY2);
-            qp_add_int64(query->packer, (int64_t) point->ts);
-            qp_add_int64(query->packer, point->val.int64);
-        }
-        break;
-    case SIRIDB_POINTS_TP_DOUBLE:
-        for (size_t i = 0; i < points->len; i++, point++)
-        {
-            qp_add_type(query->packer, QP_ARRAY2);
-            qp_add_int64(query->packer, (int64_t) point->ts);
-            qp_add_double(query->packer, point->val.real);
-        }
-        break;
-    }
-    siridb_free_points(points);
-
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ct_walk(((siridb_q_series_t *) query->data)->ct_series,
-            (ct_cb_t) &walk_series, handle);
+    ct_walk(((query_wrapper_series_t *) query->data)->ct_series,
+            (ct_cb_t) &walk_series_select, handle);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_show_stmt(uv_async_t * handle)
@@ -519,7 +478,7 @@ static void exit_show_stmt(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_timeit_stmt(uv_async_t * handle)
@@ -550,5 +509,5 @@ static void exit_timeit_stmt(uv_async_t * handle)
     /* extend packer with timeit information */
     qp_extend_packer(query->packer, query->timeit);
 
-    SIRIDB_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }

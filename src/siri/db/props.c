@@ -25,7 +25,7 @@
 #define SIRIDB_PROP_MAP(NAME, LEN)      \
 if (map)                                \
 {                                       \
-    qp_add_map2(packer);                \
+    qp_add_type(packer, QP_MAP2);       \
     qp_add_raw(packer, "name", 4);      \
     qp_add_raw(packer, NAME, LEN);      \
     qp_add_raw(packer, "value", 5);     \

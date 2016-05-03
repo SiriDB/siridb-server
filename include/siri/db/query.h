@@ -14,8 +14,6 @@
 #define SIRIDB_QUERY_FLAG_MASTER 1
 #define SIRIDB_QUERY_FLAG_REPL 2
 
-#define SIRIDB_QUERY_SERIES \
-    ct_node_t * ct_series;
 
 #include <uv.h>
 #include <inttypes.h>
@@ -28,9 +26,8 @@
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
 
-struct cleri_parse_result_s;
-struct siridb_node_list_s;
-struct siridb_series_list_s;
+typedef struct cleri_parse_result_s cleri_parse_result_t;
+typedef struct siridb_node_list_s siridb_node_list_t;
 
 typedef enum siridb_err_tp
 {
@@ -55,23 +52,11 @@ typedef struct siridb_query_s
     qp_packer_t * timeit;
     siridb_timep_t time_precision;
     uv_close_cb free_cb;
-    struct cleri_parse_result_s * pr;
-    struct siridb_node_list_s * node_list;
+    cleri_parse_result_t * pr;
+    siridb_node_list_t * node_list;
     struct timespec start;
 
 } siridb_query_t;
-
-typedef struct siridb_q_series_s
-{
-    SIRIDB_QUERY_SERIES
-} siridb_q_series_t;
-
-typedef struct siridb_q_select_s
-{
-    SIRIDB_QUERY_SERIES
-    uint64_t * start_ts;
-    uint64_t * end_ts;
-} siridb_q_select_t;
 
 void siridb_async_query(
         uint64_t pid,
@@ -87,5 +72,4 @@ void siridb_send_error(
         uv_async_t * handle,
         sirinet_msg_t err);
 
-siridb_q_select_t * siridb_new_select_query(void);
-void siridb_free_select_query(siridb_q_select_t * q_select);
+

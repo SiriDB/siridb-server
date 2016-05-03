@@ -15,7 +15,6 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
-
 #define SIRIDB_INSERT_ERR_SIZE 8
 
 typedef enum
@@ -31,10 +30,10 @@ typedef enum
 
 } siridb_insert_err_t;
 
-struct siridb_s;
-struct qp_unpacker_s;
-struct qp_packer_s;
-struct qp_obj_s;
+typedef struct siridb_s siridb_t;
+typedef struct qp_unpacker_s qp_unpacker_t;
+typedef struct qp_packer_s qp_packer_t;
+typedef struct qp_obj_s qp_obj_t;
 
 typedef struct siridb_insert_s
 {
@@ -42,14 +41,14 @@ typedef struct siridb_insert_s
     uv_handle_t * client;
     size_t size;        /* number of points */
     uint16_t packer_size; /* number of packers (one for each pool) */
-    struct qp_packer_s * packer[];
+    qp_packer_t * packer[];
 } siridb_insert_t;
 
 int32_t siridb_insert_assign_pools(
-        struct siridb_s * siridb,
-        struct qp_unpacker_s * unpacker,
-        struct qp_obj_s * qp_obj,
-        struct qp_packer_s * packer[]);
+        siridb_t * siridb,
+        qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj,
+        qp_packer_t * packer[]);
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err);
 
@@ -58,4 +57,4 @@ void siridb_insert_points(
         uv_handle_t * client,
         size_t size,
         uint16_t packer_size,
-        struct qp_packer_s * packer[]);
+        qp_packer_t * packer[]);

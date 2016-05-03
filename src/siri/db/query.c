@@ -13,7 +13,7 @@
 #include <logger/logger.h>
 #include <siri/siri.h>
 #include <sys/time.h>
-#include <siri/db/listener.h>
+#include <siri/parser/listener.h>
 #include <siri/db/node.h>
 #include <siri/db/time.h>
 #include <siri/net/handle.h>
@@ -159,24 +159,6 @@ void siridb_send_error(
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
 }
 
-siridb_q_select_t * siridb_new_select_query(void)
-{
-    siridb_q_select_t * q_select =
-            (siridb_q_select_t *) malloc(sizeof(siridb_q_select_t));
-    q_select->ct_series = ct_new();
-
-    /* we point to the node result so we do not need to free */
-    q_select->start_ts = NULL;
-    q_select->end_ts = NULL;
-    return q_select;
-}
-
-void siridb_free_select_query(siridb_q_select_t * q_select)
-{
-    ct_free(q_select->ct_series);
-    free(q_select);
-}
-
 static void siridb_send_invalid_query_error(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -268,7 +250,7 @@ static void siridb_send_motd(uv_async_t * handle)
     const char * msg;
 
     query->packer = qp_new_packer(512);
-    qp_add_map1(query->packer);
+    qp_add_type(query->packer, QP_MAP1);
     qp_add_raw(query->packer, "motd", 4);
     msg = motd_get_random_msg();
     qp_add_raw(query->packer, msg, strlen(msg));
@@ -347,9 +329,9 @@ static int siridb_walk(
 
     if ((gid = node->cl_obj->cl_obj->dummy->gid))
     {
-        if ((func = siridb_listen_enter[gid]) != NULL)
+        if ((func = siriparser_listen_enter[gid]) != NULL)
             siridb_append_enter_node(walker, node, func);
-        if ((func = siridb_listen_exit[gid]) != NULL)
+        if ((func = siriparser_listen_exit[gid]) != NULL)
             siridb_insert_exit_node(walker, node, func);
     }
 
@@ -487,3 +469,5 @@ static int siridb_time_expr(
     }
     return 0;
 }
+
+

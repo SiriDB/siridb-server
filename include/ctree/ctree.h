@@ -14,9 +14,6 @@
 #include <inttypes.h>
 #include <stddef.h>
 
-struct node;
-struct ct_node_s;
-
 enum
 {
     CT_CRITICAL=-2,
@@ -24,9 +21,10 @@ enum
     CT_OK
 };
 
-typedef struct ct_empty_s {} ct_empty_t;
-
-ct_empty_t * CT_EMPTY;
+/* ct_get_sure() will set a pointer to CT_EMPTY and returns the address so
+ * it can be used for custom data. We do not use NULL since we take NULL as if
+ * the node does not exist. */
+extern char * CT_EMPTY;
 
 typedef struct ct_node_s * ct_nodes_t[256];
 
@@ -50,14 +48,12 @@ void ct_free(ct_node_t * node);
 extern int ct_is_empty(void * data);
 
 /* gets a value or set an CT_EMPTY if the key is not there. the address
- * is returned and can be used to set a new value.
- */
+ * is returned and can be used to set a new value. */
 void ** ct_get_sure(ct_node_t * node, const char * key);
 
-/* add a new key/value. return CT_EXISTS if the key if the key already
+/* add a new key/value. return CT_EXISTS if the key already
  * exists and CT_OK if not. when the key exists the value will not
- * be overwritten.
- */
+ * be overwritten. */
 int ct_add(ct_node_t * node, const char * key, void * data);
 
 /* return the value or NULL if the key does not exist. */

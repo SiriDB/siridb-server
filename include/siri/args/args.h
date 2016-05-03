@@ -26,4 +26,4 @@ typedef struct siri_args_s
 void siri_args_parse(int argc, char *argv[]);
 
 /* here we keep the arguments result */
-siri_args_t siri_args;
+extern siri_args_t siri_args;

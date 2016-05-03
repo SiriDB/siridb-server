@@ -18,7 +18,7 @@
 #include <siri/args/args.h>
 #include <siri/net/clserver.h>
 #include <siri/net/handle.h>
-#include <siri/db/listener.h>
+#include <siri/parser/listener.h>
 #include <siri/db/props.h>
 #include <siri/db/server.h>
 #include <siri/db/series.h>
@@ -258,7 +258,7 @@ int siri_start(void)
     uv_signal_t sig;
 
     /* initialize listener (set enter and exit functions) */
-    siridb_init_listener();
+    siriparser_init_listener();
 
     /* initialize props (set props functions) */
     siridb_init_props();
