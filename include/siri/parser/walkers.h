@@ -16,7 +16,7 @@
 
 struct siridb_series_s;
 
-void walk_series_select(
+void walk_select(
         const char * series_name,
         struct siridb_series_s * series,
         uv_async_t * handle);

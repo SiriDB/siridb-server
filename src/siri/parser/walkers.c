@@ -15,7 +15,7 @@
 #include <siri/net/handle.h>
 
 
-void walk_series_select(
+void walk_select(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle)

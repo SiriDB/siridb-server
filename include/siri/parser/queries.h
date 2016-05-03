@@ -35,6 +35,12 @@ typedef struct query_list_s
     SIRIPARSER_QUERY_LIST
 } query_list_t;
 
+typedef struct query_list_series_s
+{
+    SIRIPARSER_QUERY_SERIES
+    SIRIPARSER_QUERY_LIST
+} query_list_series_t;
+
 typedef struct query_select_s
 {
     SIRIPARSER_QUERY_SERIES
@@ -47,3 +53,6 @@ void query_select_free(uv_handle_t * handle);
 
 query_list_t * query_list_new(void);
 void query_list_free(uv_handle_t * handle);
+
+query_list_series_t * query_list_series_new(void);
+void query_list_series_free(uv_handle_t * handle);
