@@ -25,15 +25,7 @@
 #define SIRIDB_MIN_USER_LEN 2
 #define SIRIDB_MAX_USER_LEN 60
 
-#define SIRIDB_MIN_PASSWORD_LEN 4
-#define SIRIDB_MAX_PASSWORD_LEN 128
-
 #define SIRIDB_USER_ACCESS_SCHEMA 1
-
-#define SEED_CHARS "./0123456789" \
-    "abcdefghijklmnopqrstuvwxyz"  \
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 #define SIRIDB_USER_ACCESS_FN "useraccess.dat"
 
 /* do not forget to run 'siridb_free_user()' on the returned user */
@@ -138,31 +130,6 @@ int siridb_users_add_user(
         siridb_user_t * user,
         char * err_msg)
 {
-    char salt[] = "$1$........$";
-    char * encrypted;
-
-    if (strlen(user->password) < SIRIDB_MIN_PASSWORD_LEN)
-    {
-        sprintf(err_msg, "Password should be at least %d characters.",
-                SIRIDB_MIN_PASSWORD_LEN);
-        return 1;
-    }
-
-    if (strlen(user->password) > SIRIDB_MAX_PASSWORD_LEN)
-    {
-        sprintf(err_msg, "Password should be at most %d characters.",
-                SIRIDB_MAX_PASSWORD_LEN);
-        return 1;
-    }
-
-    if (!strx_is_graph(user->password))
-    {
-        sprintf(err_msg,
-                "Password contains illegal characters. (only graphical "
-                "characters are allowed, no spaces, tabs etc.)");
-        return 1;
-    }
-
     if (strlen(user->username) < SIRIDB_MIN_USER_LEN)
     {
         sprintf(err_msg, "User name should be at least %d characters.",
@@ -194,13 +161,7 @@ int siridb_users_add_user(
         return 1;
     }
 
-    /* encrypt the users password */
-    for (size_t i = 3, len=strlen(SEED_CHARS); i < 11; i++)
-        salt[i] = SEED_CHARS[rand() % len];
-    encrypted = crypt(user->password, salt);
 
-    /* replace user password with encrypted password */
-    user->password = strdup(encrypted);
 
     /* add the user to the users */
     append_user(siridb, user);
@@ -228,6 +189,9 @@ siridb_user_t * siridb_users_get_user(
 
     if ((user = get_user(siridb, username)) == NULL)
         return NULL;
+
+    if (password == NULL)
+        return user;
 
     pw = crypt(password, user->password);
 
@@ -336,7 +300,7 @@ static int save_users(siridb_t * siridb)
     qp_fpacker_t * fpacker;
     siridb_users_t * current = siridb->users;
 
-    /* get user access fine name */
+    /* get user access file name */
     siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)

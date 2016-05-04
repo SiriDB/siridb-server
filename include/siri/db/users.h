@@ -35,6 +35,11 @@ int siridb_users_drop_user(
         const char * username,
         char * err_msg);
 
+/*
+ * Returns NULL when the user is not found of when the given password is
+ * incorrect. When *password is NULL the password will NOT be checked and
+ * the user will be returned when found.
+ */
 siridb_user_t * siridb_users_get_user(
         siridb_t * siridb,
         const char * username,

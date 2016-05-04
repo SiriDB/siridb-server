@@ -34,7 +34,10 @@
 
 static void free_user_object(uv_handle_t * handle);
 
+static void enter_access_expr(uv_async_t * handle);
 static void enter_create_user_stmt(uv_async_t * handle);
+static void enter_grant_stmt(uv_async_t * handle);
+static void enter_grant_user_stmt(uv_async_t * handle);
 static void enter_list_series_stmt(uv_async_t * handle);
 static void enter_list_users_stmt(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
@@ -55,7 +58,7 @@ static void exit_select_stmt(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
-#define SIRIPARSER_NEXT_NODE                                                    \
+#define SIRIPARSER_NEXT_NODE                                                \
 siridb_node_next(&query->node_list);                                        \
 if (query->node_list == NULL)                                               \
     siridb_send_query_result(handle);                                       \
@@ -76,7 +79,10 @@ void siriparser_init_listener(void)
         siriparser_listen_exit[i] = NULL;
     }
 
+    siriparser_listen_enter[CLERI_GID_ACCESS_EXPR] = enter_access_expr;
     siriparser_listen_enter[CLERI_GID_CREATE_USER_STMT] = enter_create_user_stmt;
+    siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
+    siriparser_listen_enter[CLERI_GID_GRANT_USER_STMT] = enter_grant_user_stmt;
     siriparser_listen_enter[CLERI_GID_LIST_SERIES_STMT] = enter_list_series_stmt;
     siriparser_listen_enter[CLERI_GID_LIST_USERS_STMT] = enter_list_users_stmt;
     siriparser_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
@@ -116,6 +122,16 @@ static void free_user_object(uv_handle_t * handle)
  * Enter functions
  *****************************************************************************/
 
+static void enter_access_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /* bind ACCESS_EXPR children to query */
+    query->data = (cleri_children_t *) query->node_list->node->children;
+
+    SIRIPARSER_NEXT_NODE
+}
+
 static void enter_create_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -123,6 +139,24 @@ static void enter_create_user_stmt(uv_async_t * handle)
     /* bind user object to data and set correct free call */
     query->data = (siridb_user_t *) siridb_user_new();
     query->free_cb = (uv_close_cb) free_user_object;
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_grant_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    // TODO: check for access rights
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_grant_user_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
 
     SIRIPARSER_NEXT_NODE
 }

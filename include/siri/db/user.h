@@ -27,3 +27,7 @@ typedef struct siridb_user_s
 siridb_user_t * siridb_user_new(void);
 void siridb_user_free(siridb_user_t * user);
 void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop);
+int siridb_user_set_password(
+        siridb_user_t * user,
+        const char * password,
+        char * err_msg);

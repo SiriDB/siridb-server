@@ -294,7 +294,7 @@ m2=1</panel_attributes>
       <x>1422</x>
       <y>414</y>
       <w>279</w>
-      <h>126</h>
+      <h>144</h>
     </coordinates>
     <panel_attributes>siridb_user_t
 --
@@ -304,7 +304,8 @@ access_bit: uint32_t
 --
 siridb_user_new(): *siridb_user_t
 siridb_user_free(): void
-siridb_user_prop(): void</panel_attributes>
+siridb_user_prop(): void
+siridb_user_set_password(): int</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
