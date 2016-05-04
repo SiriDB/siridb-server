@@ -16,7 +16,7 @@
  *  http://stackoverflow.com/questions/101439/the-most-efficient-way-to-
  *      implement-an-integer-based-power-function-powint-int
  */
-uint32_t ipow(int base, int exp)
+uint32_t xmath_ipow(int base, int exp)
 {
     uint32_t result = 1;
     while (exp)

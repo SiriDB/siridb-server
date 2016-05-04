@@ -13,4 +13,4 @@
 
 #include <inttypes.h>
 
-uint32_t ipow(int base, int exp);
+uint32_t xmath_ipow(int base, int exp);

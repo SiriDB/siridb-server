@@ -26,32 +26,17 @@
 
 static int save_series(siridb_t * siridb);
 
-static siridb_series_t * siridb_new_series(
+static void pack_series(
+        const char * key,
+        siridb_series_t * series,
+        qp_fpacker_t * fpacker);
+
+static siridb_series_t * new_series(
         siridb_t * siridb,
         uint32_t id,
         uint8_t tp,
-        const char * sn)
-{
-    uint32_t n = 0;
-    siridb_series_t * series;
-    series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
-    series->id = id;
-    series->tp = tp;
-    series->buffer = NULL;
-    series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
-    series->index->len = 0;
-    series->index->has_overlap = 0;
-    series->index->idx = NULL;
+        const char * sn);
 
-    /* get sum series name to calculate series mask (for sharding) */
-    for (; *sn; sn++)
-        n += *sn;
-
-    series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
-            siridb->shard_mask_log : siridb->shard_mask_num);
-
-    return series;
-}
 
 void siridb_series_add_point(
         siridb_t * siridb,
@@ -77,7 +62,7 @@ void siridb_series_add_point(
     }
 }
 
-siridb_series_t * siridb_create_series(
+siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
         uint8_t tp)
@@ -86,7 +71,7 @@ siridb_series_t * siridb_create_series(
     qp_fpacker_t * fpacker;
     size_t len = strlen(series_name);
 
-    series = siridb_new_series(
+    series = new_series(
             siridb, ++siridb->max_series_id, tp, series_name);
 
     /* We only should add the series to series_map and assume the caller
@@ -118,7 +103,7 @@ siridb_series_t * siridb_create_series(
     return series;
 }
 
-void siridb_free_series(siridb_series_t * series)
+void siridb_series_free(siridb_series_t * series)
 {
     siridb_free_buffer(series->buffer);
     free(series->index->idx);
@@ -126,7 +111,7 @@ void siridb_free_series(siridb_series_t * series)
     free(series);
 }
 
-int siridb_load_series(siridb_t * siridb)
+int siridb_series_load(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
     qp_obj_t * qp_series_name;
@@ -162,7 +147,7 @@ int siridb_load_series(siridb_t * siridb)
             qp_next(unpacker, qp_series_id) == QP_INT64 &&
             qp_next(unpacker, qp_series_tp) == QP_INT64)
     {
-        series = siridb_new_series(
+        series = new_series(
                 siridb,
                 (uint32_t) qp_series_id->via->int64,
                 (uint8_t) qp_series_tp->via->int64,
@@ -199,42 +184,7 @@ int siridb_load_series(siridb_t * siridb)
     return 0;
 }
 
-static void pack_series(
-        const char * key,
-        siridb_series_t * series,
-        qp_fpacker_t * fpacker)
-{
-    qp_fadd_type(fpacker, QP_ARRAY3);
-    qp_fadd_raw(fpacker, key, strlen(key) + 1);
-    qp_fadd_int32(fpacker, (int32_t) series->id);
-    qp_fadd_int8(fpacker, (int8_t) series->tp);
-}
-
-static int save_series(siridb_t * siridb)
-{
-    qp_fpacker_t * fpacker;
-
-    /* macro get series file name */
-    siridb_get_fn(fn, SIRIDB_SERIES_FN)
-
-    if ((fpacker = qp_open(fn, "w")) == NULL)
-        return 1;
-
-    /* open a new array */
-    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
-
-    /* write the current schema */
-    qp_fadd_int8(fpacker, SIRIDB_SERIES_SCHEMA);
-
-    ct_walk(siridb->series, (ct_cb_t) &pack_series, fpacker);
-
-    /* close file pointer */
-    qp_close(fpacker);
-
-    return 0;
-}
-
-void siridb_add_idx_num32(
+void siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
         struct siridb_shard_s * shard,
         uint32_t start_ts,
@@ -341,4 +291,66 @@ siridb_points_t * siridb_series_get_points_num32(
         assert (points->len == size);
 
     return points;
+}
+
+static siridb_series_t * new_series(
+        siridb_t * siridb,
+        uint32_t id,
+        uint8_t tp,
+        const char * sn)
+{
+    uint32_t n = 0;
+    siridb_series_t * series;
+    series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
+    series->id = id;
+    series->tp = tp;
+    series->buffer = NULL;
+    series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
+    series->index->len = 0;
+    series->index->has_overlap = 0;
+    series->index->idx = NULL;
+
+    /* get sum series name to calculate series mask (for sharding) */
+    for (; *sn; sn++)
+        n += *sn;
+
+    series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
+            siridb->shard_mask_log : siridb->shard_mask_num);
+
+    return series;
+}
+
+static void pack_series(
+        const char * key,
+        siridb_series_t * series,
+        qp_fpacker_t * fpacker)
+{
+    qp_fadd_type(fpacker, QP_ARRAY3);
+    qp_fadd_raw(fpacker, key, strlen(key) + 1);
+    qp_fadd_int32(fpacker, (int32_t) series->id);
+    qp_fadd_int8(fpacker, (int8_t) series->tp);
+}
+
+static int save_series(siridb_t * siridb)
+{
+    qp_fpacker_t * fpacker;
+
+    /* macro get series file name */
+    siridb_get_fn(fn, SIRIDB_SERIES_FN)
+
+    if ((fpacker = qp_open(fn, "w")) == NULL)
+        return 1;
+
+    /* open a new array */
+    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
+
+    /* write the current schema */
+    qp_fadd_int8(fpacker, SIRIDB_SERIES_SCHEMA);
+
+    ct_walk(siridb->series, (ct_cb_t) &pack_series, fpacker);
+
+    /* close file pointer */
+    qp_close(fpacker);
+
+    return 0;
 }

@@ -20,11 +20,13 @@
 #include <siri/net/handle.h>
 #include <siri/parser/listener.h>
 #include <siri/db/props.h>
+#include <siri/db/users.h>
 #include <siri/db/server.h>
 #include <siri/db/series.h>
 #include <siri/db/shards.h>
 #include <siri/db/buffer.h>
 #include <siri/db/aggregate.h>
+#include <siri/db/pools.h>
 #include <strextra/strextra.h>
 #include <siri/cfg/cfg.h>
 #include <cfgparser/cfgparser.h>
@@ -54,7 +56,7 @@ void siri_setup_logger(void)
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
         strcpy(lname, LOGGER_LEVEL_NAMES[n]);
-        lower_case(lname);
+        strx_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri_args.log_level, lname) == 0)
         {
             logger_init(stdout, (n + 1) * 10);
@@ -195,7 +197,7 @@ static int siridb_load_databases(void)
         cfgparser_free(cfgparser);
 
         /* load users */
-        if (siridb_load_users(siridb))
+        if (siridb_users_load(siridb))
         {
             log_error("Could not read users for database '%s'", siridb->dbname);
             closedir(db_container_path);
@@ -211,7 +213,7 @@ static int siridb_load_databases(void)
         }
 
         /* load series */
-        if (siridb_load_series(siridb))
+        if (siridb_series_load(siridb))
         {
             log_error("Could not read series for database '%s'", siridb->dbname);
             closedir(db_container_path);
@@ -243,7 +245,7 @@ static int siridb_load_databases(void)
         }
 
         /* generate pools */
-        siridb_gen_pools(siridb);
+        siridb_pools_gen(siridb);
 
         siridb->start_ts = (uint32_t) time(NULL);
     }
@@ -270,10 +272,10 @@ int siri_start(void)
     siri.grammar = compile_grammar();
 
     /* create store for SiriDB instances */
-    siri.siridb_list = siridb_new_list();
+    siri.siridb_list = siridb_list_new();
 
     /* initialize file handler for shards */
-    siri.fh = siri_new_fh(siri_cfg.max_open_files);
+    siri.fh = siri_fh_new(siri_cfg.max_open_files);
 
     /* load databases */
     if ((rc = siridb_load_databases()))
@@ -311,8 +313,8 @@ void siri_free(void)
     }
     free(siri.loop);
     free(siri.grammar);
-    siri_free_fh(siri.fh);
-    siridb_free_list(siri.siridb_list);
+    siri_fh_free(siri.fh);
+    siridb_list_free(siri.siridb_list);
 }
 
 static void close_handlers(void)

@@ -241,8 +241,8 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
             strcpy(uname, current->argument->name);
-            replace_char(uname, '-', '_');
-            upper_case(uname);
+            strx_replace_char(uname, '-', '_');
+            strx_upper_case(uname);
             if (current->argument->shortcut)
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[-%c %s] ",
@@ -310,8 +310,8 @@ static void print_help(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
             strcpy(uname, current->argument->name);
-            replace_char(uname, '-', '_');
-            upper_case(uname);
+            strx_replace_char(uname, '-', '_');
+            strx_upper_case(uname);
             if (current->argument->shortcut)
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         " -%c %s,",

@@ -30,7 +30,7 @@
 #include <siri/grammar/gramp.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/db.h>
-#include <siri/db/pool.h>
+#include <siri/db/pools.h>
 #include <siri/db/points.h>
 
 #define TEST_OK 1
@@ -229,7 +229,7 @@ static int test_gen_pool_lookup(void)
 {
     test_start("Testing test_gen_pool_lookup");
 
-    siridb_lookup_t * lookup = siridb_gen_lookup(4);
+    siridb_lookup_t * lookup = siridb_pools_gen_lookup(4);
     uint16_t match[30] = {
             0, 1, 0, 2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0,
             2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0, 2, 3, 1};

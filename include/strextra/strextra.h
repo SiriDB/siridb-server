@@ -13,16 +13,16 @@
 
 #include <stdbool.h>
 
-void upper_case(char * sptr);
-void lower_case(char * sptr);
-void replace_char(char * sptr, char orig, char repl);
+void strx_upper_case(char * sptr);
+void strx_lower_case(char * sptr);
+void strx_replace_char(char * sptr, char orig, char repl);
 
 /* do not use trim when the char is created with *alloc */
-void trim(char ** str, char chr);
-bool is_empty(const char * str);
-bool is_int(const char * str);
-bool is_float(const char * str);
-bool is_graph(const char * str);
+void strx_trim(char ** str, char chr);
+bool strx_is_empty(const char * str);
+bool strx_is_int(const char * str);
+bool strx_is_float(const char * str);
+bool strx_is_graph(const char * str);
 
 /* important: 'dest' needs to be freed */
-void extract_string(char * dest, const char * source, size_t len);
+void strx_extract_string(char * dest, const char * source, size_t len);

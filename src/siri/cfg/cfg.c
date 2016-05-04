@@ -226,7 +226,7 @@ static void siri_cfg_read_address_port(
         }
         if (    !strlen(address) ||
                 strlen(address) >= PATH_MAX ||
-                !is_int(port)
+                !strx_is_int(port)
                 )
             log_warning(
                     "Error reading '[siridb]%s' in '%s': "

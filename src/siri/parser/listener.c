@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <qpack/qpack.h>
 #include <siri/db/user.h>
+#include <siri/db/users.h>
 #include <strextra/strextra.h>
 #include <assert.h>
 #include <math.h>
@@ -105,7 +106,7 @@ static void free_user_object(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_free_user((siridb_user_t *) query->data);
+    siridb_user_free((siridb_user_t *) query->data);
 
     /* normal free call */
     siridb_free_query(handle);
@@ -120,7 +121,7 @@ static void enter_create_user_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     /* bind user object to data and set correct free call */
-    query->data = (siridb_user_t *) siridb_new_user();
+    query->data = (siridb_user_t *) siridb_user_new();
     query->free_cb = (uv_close_cb) free_user_object;
 
     SIRIPARSER_NEXT_NODE
@@ -176,7 +177,7 @@ static void enter_set_password_expr(uv_async_t * handle)
      * be stripped off, but we do need to set a NULL.
      */
     user->password = (char *) malloc(pw_node->len - 1);
-    extract_string(user->password, pw_node->str, pw_node->len);
+    strx_extract_string(user->password, pw_node->str, pw_node->len);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -191,7 +192,7 @@ static void enter_series_name(uv_async_t * handle)
     char series_name[node->len - 1];
 
     /* extract series name */
-    extract_string(series_name, node->str, node->len);
+    strx_extract_string(series_name, node->str, node->len);
 
     /* get pool for series name */
     pool = siridb_pool_sn(siridb, series_name);
@@ -320,9 +321,9 @@ static void exit_create_user_stmt(uv_async_t * handle)
 
     assert(user->username == NULL);
     user->username = (char *) malloc(user_node->len - 1);
-    extract_string(user->username, user_node->str, user_node->len);
+    strx_extract_string(user->username, user_node->str, user_node->len);
 
-    if (siridb_add_user(
+    if (siridb_users_add_user(
             ((sirinet_handle_t *) query->client->data)->siridb,
             user,
             query->err_msg))
@@ -349,9 +350,9 @@ static void exit_drop_user_stmt(uv_async_t * handle)
     char username[user_node->len - 1];
 
     /* we need to free user-name */
-    extract_string(username, user_node->str, user_node->len);
+    strx_extract_string(username, user_node->str, user_node->len);
 
-    if (siridb_drop_user(
+    if (siridb_users_drop_user(
             ((sirinet_handle_t *) query->client->data)->siridb,
             username,
             query->err_msg))
@@ -407,14 +408,14 @@ static void exit_list_users_stmt(uv_async_t * handle)
         /* reset columns */
         if ((columns = ((query_list_t *) query->data)->columms) == NULL)
         {
-            siridb_prop_user(users->user, query->packer, CLERI_GID_K_USER);
-            siridb_prop_user(users->user, query->packer, CLERI_GID_K_ACCESS);
+            siridb_user_prop(users->user, query->packer, CLERI_GID_K_USER);
+            siridb_user_prop(users->user, query->packer, CLERI_GID_K_ACCESS);
         }
         else
         {
             while (1)
             {
-                siridb_prop_user(
+                siridb_user_prop(
                         users->user,
                         query->packer,
                         columns->node->children->node->cl_obj->cl_obj->dummy->gid);

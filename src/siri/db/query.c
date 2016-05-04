@@ -434,7 +434,7 @@ static int siridb_time_expr(
             char datestr[node->len - 1];
 
             /* extract date string */
-            extract_string(datestr, node->str, node->len);
+            strx_extract_string(datestr, node->str, node->len);
 
             /* get timestamp from date string */
             int64_t ts = iso8601_parse_date(datestr, 432);

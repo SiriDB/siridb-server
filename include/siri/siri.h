@@ -16,16 +16,16 @@
 #include <siri/db/db.h>
 #include <siri/filehandler.h>
 
-struct cleri_grammar_s;
-struct siridb_list_s;
-
+typedef struct cleri_grammar_s cleri_grammar_t;
+typedef struct siridb_list_s siridb_list_t;
+typedef struct siri_fh_s siri_fh_t;
 
 typedef struct siri_s
 {
     uv_loop_t * loop;
-    struct cleri_grammar_s * grammar;
-    struct siridb_list_s * siridb_list;
-    struct siri_fh_s * fh;
+    cleri_grammar_t * grammar;
+    siridb_list_t * siridb_list;
+    siri_fh_t * fh;
 } siri_t;
 
 

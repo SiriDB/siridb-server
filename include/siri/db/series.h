@@ -17,9 +17,10 @@
 #include <siri/db/buffer.h>
 #include <qpack/qpack.h>
 
-struct siridb_s;
-struct siridb_buffer_s;
-struct siridb_points_s;
+typedef struct siridb_s siridb_t;
+typedef struct siridb_buffer_s siridb_buffer_t;
+typedef struct siridb_points_s siridb_points_t;
+typedef struct siridb_shard_s siridb_shard_t;
 
 #define SIRIDB_SERIES_TP_INT SIRIDB_POINTS_TP_INT
 #define SIRIDB_SERIES_TP_DOUBLE SIRIDB_POINTS_TP_DOUBLE
@@ -36,7 +37,7 @@ typedef struct idx_num32_s
 {
     uint32_t start_ts;
     uint32_t end_ts;
-    struct siridb_shard_s * shard;
+    siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
 } idx_num32_t;
@@ -45,7 +46,7 @@ typedef struct idx_num64_s
 {
     uint64_t start_ts;
     uint64_t end_ts;
-    struct siridb_shard_s * shard;
+    siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
 } idx_num64_t;
@@ -62,43 +63,43 @@ typedef struct siridb_series_s
     uint32_t id;
     uint8_t tp;
     uint16_t mask;
-    struct siridb_buffer_s * buffer;
+    siridb_buffer_t * buffer;
     siridb_series_idx_t * index;
 } siridb_series_t;
 
-void siridb_add_idx_num32(
+int siridb_series_load(siridb_t * siridb);
+
+siridb_series_t * siridb_series_new(
+        siridb_t * siridb,
+        const char * series_name,
+        uint8_t tp);
+
+void siridb_series_free(siridb_series_t * series);
+
+void siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
-        struct siridb_shard_s * shard,
+        siridb_shard_t * shard,
         uint32_t start_ts,
         uint32_t end_ts,
         uint32_t pos,
         uint16_t len);
 
-void siridb_add_idx_num64(
+void siridb_series_add_idx_num64(
         siridb_series_idx_t * index,
-        struct siridb_shard_s * shard,
+        siridb_shard_t * shard,
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
         uint16_t len);
 
-void siridb_free_series(siridb_series_t * series);
-
-int siridb_load_series(struct siridb_s * siridb);
-
-siridb_series_t * siridb_create_series(
-        struct siridb_s * siridb,
-        const char * series_name,
-        uint8_t tp);
-
 void siridb_series_add_point(
-        struct siridb_s * siridb,
+        siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
 
-struct siridb_points_s * siridb_series_get_points_num32(
-        struct siridb_s * siridb,
+siridb_points_t * siridb_series_get_points_num32(
+        siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * start_ts,
         uint64_t * end_ts);

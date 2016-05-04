@@ -61,56 +61,17 @@ static int load_idx_num32(
         siridb_shard_t * shard,
         FILE * fp);
 
-void siridb_free_shard(siridb_shard_t * shard)
+void siridb_shard_free(siridb_shard_t * shard)
 {
-    siri_decref_fp(shard->fp);
+    siri_fp_decref(shard->fp);
     free(shard);
 }
 
-static int load_idx_num32(
-        siridb_t * siridb,
-        siridb_shard_t * shard,
-        FILE * fp)
-{
-    char idx[IDX_NUM32_SZ];
-    siridb_series_t * series;
-    uint16_t len;
-
-    while (fread(&idx, IDX_NUM32_SZ, 1, fp) == 1)
-    {
-        char * pt = idx;
-
-        series = imap32_get(siridb->series_map, *((uint32_t *) pt));
-
-        if (series == NULL)
-        {
-            if (!(shard->status & SIRIDB_SHARD_HAS_REMOVED_SERIES))
-                log_debug(
-                        "At least Series ID %d is found in shard %d but does "
-                        "not exist anymore. We will remove the series on the "
-                        "next optimize cycle.",
-                        *((uint32_t *) pt),
-                        shard->id);
-            shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
-        }
-
-        siridb_add_idx_num32(
-                series->index,
-                shard,
-                *((uint32_t *) (idx + 4)),
-                *((uint32_t *) (idx + 8)),
-                (uint32_t) ftell(fp),
-                (len = *((uint16_t *) (idx + 12))));
-        fseek(fp, len * 12, SEEK_CUR);
-    }
-    return 0;
-}
-
-int siridb_load_shard(siridb_t * siridb, uint64_t id)
+int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
     siridb_shard_t * shard;
     shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
-    shard->fp = siri_new_fp();
+    shard->fp = siri_fp_new();
     shard->id = id;
     FILE * fp;
 
@@ -120,7 +81,7 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     GET_FN(shard)
     if ((fp = fopen(fn, "r")) == NULL)
     {
-        siridb_free_shard(shard);
+        siridb_shard_free(shard);
         log_error("Cannot open file for reading: '%s'", fn);
         return -1;
     }
@@ -128,7 +89,7 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     char header[HEADER_SIZE];
     if (fread(&header, HEADER_SIZE, 1, fp) != 1)
     {
-        siridb_free_shard(shard);
+        siridb_shard_free(shard);
         log_critical("Missing header in shard file: '%s'", fn);
         return -1;
     }
@@ -141,7 +102,7 @@ int siridb_load_shard(siridb_t * siridb, uint64_t id)
     return 0;
 }
 
-siridb_shard_t *  siridb_create_shard(
+siridb_shard_t *  siridb_shard_create(
         siridb_t * siridb,
         uint64_t id,
         uint64_t duration,
@@ -150,7 +111,7 @@ siridb_shard_t *  siridb_create_shard(
     siridb_shard_t * shard;
 
     shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
-    shard->fp = siri_new_fp();
+    shard->fp = siri_fp_new();
     shard->id = id;
     shard->tp = tp;
     shard->status = 0;
@@ -210,7 +171,7 @@ int siridb_shard_write_points(
     fwrite(&len, sizeof(uint16_t), 1, fp);
 
     /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
-    siridb_add_idx_num32(
+    siridb_series_add_idx_num32(
             series->index,
             shard,
             (uint32_t) points->data[start].ts,
@@ -298,5 +259,43 @@ int siridb_shard_get_points_num32(
     return 0;
 }
 
+static int load_idx_num32(
+        siridb_t * siridb,
+        siridb_shard_t * shard,
+        FILE * fp)
+{
+    char idx[IDX_NUM32_SZ];
+    siridb_series_t * series;
+    uint16_t len;
+
+    while (fread(&idx, IDX_NUM32_SZ, 1, fp) == 1)
+    {
+        char * pt = idx;
+
+        series = imap32_get(siridb->series_map, *((uint32_t *) pt));
+
+        if (series == NULL)
+        {
+            if (!(shard->status & SIRIDB_SHARD_HAS_REMOVED_SERIES))
+                log_debug(
+                        "At least Series ID %d is found in shard %d but does "
+                        "not exist anymore. We will remove the series on the "
+                        "next optimize cycle.",
+                        *((uint32_t *) pt),
+                        shard->id);
+            shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
+        }
+
+        siridb_series_add_idx_num32(
+                series->index,
+                shard,
+                *((uint32_t *) (idx + 4)),
+                *((uint32_t *) (idx + 8)),
+                (uint32_t) ftell(fp),
+                (len = *((uint16_t *) (idx + 12))));
+        fseek(fp, len * 12, SEEK_CUR);
+    }
+    return 0;
+}
 
 

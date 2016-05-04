@@ -180,7 +180,7 @@ static void send_points_to_pools(uv_async_t * handle)
 
                 if (ct_is_empty(*series))
                 {
-                    *series = siridb_create_series(
+                    *series = siridb_series_new(
                             siridb,
                             qp_series_name->via->raw,
                             SIRIDB_QP_MAP2_TP(qp_series_val->tp));

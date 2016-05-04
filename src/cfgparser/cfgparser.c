@@ -49,15 +49,15 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
         pt = line;
 
         /* trims all whitespace */
-        trim(&pt, 0);
+        strx_trim(&pt, 0);
 
         if (*pt == '#' || *pt == 0)
             continue;
 
         if (*pt == '[' && pt[strlen(pt) - 1] == ']')
         {
-            trim(&pt, '[');
-            trim(&pt, ']');
+            strx_trim(&pt, '[');
+            strx_trim(&pt, ']');
             section = cfgparser_section(cfgparser, pt);
             continue;
         }
@@ -88,9 +88,9 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
         }
 
 
-        if (is_int(pt))
+        if (strx_is_int(pt))
             option = cfgparser_integer_option(section, name, atoi(pt), 0);
-        else if (is_float(pt))
+        else if (strx_is_float(pt))
         {
             sscanf(pt, "%lf", &d);
             option = cfgparser_real_option(section, name, d, 0.0f);

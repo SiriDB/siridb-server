@@ -14,7 +14,7 @@
 #include <siri/db/db.h>
 #include <siri/siri.h>
 #include <siri/net/protocol.h>
-
+#include <siri/db/users.h>
 #include <siri/net/handle.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,7 +43,7 @@ sirinet_msg_t siridb_auth_request(
     if ((siridb = siridb_get(siri.siridb_list, dbname)) == NULL)
         return SN_MSG_UNKNOWN_DATABASE;
 
-    if ((user = siridb_get_user(siridb, username, password)) == NULL)
+    if ((user = siridb_users_get_user(siridb, username, password)) == NULL)
         return SN_MSG_INVALID_CREDENTIALS;
 
     ((sirinet_handle_t *) client->data)->siridb = siridb;

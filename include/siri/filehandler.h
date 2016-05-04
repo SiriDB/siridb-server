@@ -11,14 +11,8 @@
  */
 #pragma once
 
-#include <stdio.h>
 #include <inttypes.h>
-
-typedef struct siri_fp_s
-{
-    FILE * fp;
-    uint8_t ref;
-} siri_fp_t;
+#include <siri/filepointer.h>
 
 typedef struct siri_fh_s
 {
@@ -27,12 +21,9 @@ typedef struct siri_fh_s
     siri_fp_t ** fpointers;
 } siri_fh_t;
 
-siri_fh_t * siri_new_fh(uint16_t size);
-void siri_free_fh(siri_fh_t * fh);
+siri_fh_t * siri_fh_new(uint16_t size);
 
-siri_fp_t * siri_new_fp(void);
-/* closes the file pointer, decrement reference counter and free if needed */
-void siri_decref_fp(siri_fp_t * fp);
+void siri_fh_free(siri_fh_t * fh);
 
 int siri_fopen(
         siri_fh_t * fh,

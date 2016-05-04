@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <siri/db/time.h>
-#include <siri/db/user.h>
+#include <siri/db/users.h>
 #include <uuid/uuid.h>
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
@@ -34,7 +34,7 @@ static void siridb_add(siridb_list_t * siridb_list, siridb_t * siridb);
     return 1;                               \
 }
 
-siridb_list_t * siridb_new_list(void)
+siridb_list_t * siridb_list_new(void)
 {
     siridb_list_t * siridb_list;
     siridb_list = (siridb_list_t *) malloc(sizeof(siridb_list_t));
@@ -44,7 +44,7 @@ siridb_list_t * siridb_new_list(void)
     return siridb_list;
 }
 
-void siridb_free_list(siridb_list_t * siridb_list)
+void siridb_list_free(siridb_list_t * siridb_list)
 {
     siridb_list_t * next;
     while (siridb_list != NULL)
@@ -224,7 +224,7 @@ static void siridb_free(siridb_t * siridb)
         log_debug("Free database '%s'", siridb->dbname);
 
         /* free users */
-        siridb_free_users(siridb->users);
+        siridb_users_free(siridb->users);
 
         /* we do not need to free server and replica since they exist in
          * this list and therefore will be freed.
@@ -232,19 +232,19 @@ static void siridb_free(siridb_t * siridb)
         siridb_free_servers(siridb->servers);
 
         /* free pools */
-        siridb_free_pools(siridb->pools);
+        siridb_pools_free(siridb->pools);
 
         /* free c-tree lookup */
         ct_free(siridb->series);
 
         /* free series using imap32 */
-        imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_free_series, NULL);
+        imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_series_free, NULL);
 
         /* free imap32 (series) */
         imap32_free(siridb->series_map);
 
         /* free shards using imap64 */
-        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_free_shard, NULL);
+        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_free, NULL);
 
         /* free imap64 (shards) */
         imap64_free(siridb->shards);

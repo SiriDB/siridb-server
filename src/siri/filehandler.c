@@ -14,7 +14,7 @@
 #include <logger/logger.h>
 
 
-siri_fh_t * siri_new_fh(uint16_t size)
+siri_fh_t * siri_fh_new(uint16_t size)
 {
     siri_fh_t * fh = (siri_fh_t *) malloc(sizeof(siri_fh_t));
     fh->size = size;
@@ -23,7 +23,7 @@ siri_fh_t * siri_new_fh(uint16_t size)
     return fh;
 }
 
-void siri_free_fh(siri_fh_t * fh)
+void siri_fh_free(siri_fh_t * fh)
 {
     if (fh == NULL)
         return;
@@ -35,29 +35,10 @@ void siri_free_fh(siri_fh_t * fh)
 
         if (*fp == NULL)
             break;
-        siri_decref_fp(*fp);
+        siri_fp_decref(*fp);
     }
     free(fh->fpointers);
     free(fh);
-}
-
-siri_fp_t * siri_new_fp(void)
-{
-    siri_fp_t * fp = (siri_fp_t *) malloc(sizeof(siri_fp_t));
-    fp->fp = NULL;
-    fp->ref = 1;
-    return fp;
-}
-
-void siri_decref_fp(siri_fp_t * fp)
-{
-    if (fp->fp != NULL)
-    {
-        fclose(fp->fp);
-        fp->fp = NULL;
-    }
-    if (!--fp->ref)
-        free(fp);
 }
 
 int siri_fopen(
@@ -70,7 +51,7 @@ int siri_fopen(
 
     /* close and possible free file pointer at next position */
     if (*dest)
-        siri_decref_fp(*dest);
+        siri_fp_decref(*dest);
 
     /* assign file pointer */
     *dest = fp;

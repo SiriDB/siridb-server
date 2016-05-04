@@ -15,7 +15,7 @@
 #include <siri/db/user.h>
 #include <qpack/qpack.h>
 #include <siri/db/server.h>
-#include <siri/db/pool.h>
+#include <siri/db/pools.h>
 #include <ctree/ctree.h>
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
@@ -92,8 +92,8 @@ typedef struct siridb_list_s
 } siridb_list_t;
 
 
-siridb_list_t * siridb_new_list(void);
-void siridb_free_list(siridb_list_t * siridb_list);
+siridb_list_t * siridb_list_new(void);
+void siridb_list_free(siridb_list_t * siridb_list);
 
 
 int siridb_add_from_unpacker(

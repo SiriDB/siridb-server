@@ -42,7 +42,7 @@ cleri_parse_result_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
 
     /* process the parse result */
     end = pr->tree->str + pr->tree->len;
-    at_end = is_empty(end);
+    at_end = strx_is_empty(end);
     pr->is_valid = rnode != NULL && at_end;
     pr->pos = (pr->is_valid) ? pr->tree->len : pr->expecting->str - pr->str;
 

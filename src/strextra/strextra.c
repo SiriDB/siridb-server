@@ -16,25 +16,25 @@
 #include <stdio.h>
 
 
-void lower_case(char * sptr)
+void strx_lower_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
         *sptr = tolower( (unsigned char) * sptr);
 }
 
-void upper_case(char * sptr)
+void strx_upper_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
         *sptr = toupper( (unsigned char) * sptr);
 }
 
-void replace_char(char * sptr, char orig, char repl)
+void strx_replace_char(char * sptr, char orig, char repl)
 {
     for (; *sptr != '\0'; sptr++)
         if (*sptr == orig) *sptr = repl;
 }
 
-void trim(char ** str, char chr)
+void strx_trim(char ** str, char chr)
 {
     /*
      * trim: when chr is 0 we will trim whitespace,
@@ -60,7 +60,7 @@ void trim(char ** str, char chr)
     *(end + 1) = 0;
 }
 
-bool is_empty(const char * str)
+bool strx_is_empty(const char * str)
 {
     const char * test = str;
     for (; *test; test++)
@@ -69,7 +69,7 @@ bool is_empty(const char * str)
     return true;
 }
 
-bool is_int(const char * str)
+bool strx_is_int(const char * str)
 {
    // Handle negative numbers.
    if (*str == '-')
@@ -91,7 +91,7 @@ bool is_int(const char * str)
    return true;
 }
 
-bool is_float(const char * str)
+bool strx_is_float(const char * str)
 {
    // Handle negative numbers.
    if (*str == '-')
@@ -117,7 +117,7 @@ bool is_float(const char * str)
    return dots == 1;
 }
 
-bool is_graph(const char * str)
+bool strx_is_graph(const char * str)
 {
     for (; *str; str++)
         if (!isgraph(*str))
@@ -125,7 +125,7 @@ bool is_graph(const char * str)
     return true;
 }
 
-void extract_string(char * dest, const char * source, size_t len)
+void strx_extract_string(char * dest, const char * source, size_t len)
 {
     /*
      * This function is used to extra a SiriDB string. These strings start

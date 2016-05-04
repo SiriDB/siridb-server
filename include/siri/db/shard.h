@@ -35,14 +35,15 @@ typedef struct siridb_shard_s
     siri_fp_t * fp;
 } siridb_shard_t;
 
-void siridb_free_shard(siridb_shard_t * shard);
-
-int siridb_load_shard(struct siridb_s * siridb, uint64_t id);
-siridb_shard_t * siridb_create_shard(
+siridb_shard_t * siridb_shard_create(
         struct siridb_s * siridb,
         uint64_t id,
         uint64_t duration,
         uint8_t tp);
+
+int siridb_shard_load(struct siridb_s * siridb, uint64_t id);
+
+void siridb_shard_free(siridb_shard_t * shard);
 
 int siridb_shard_write_points(
         struct siridb_s * siridb,

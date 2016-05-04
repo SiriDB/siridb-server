@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="14.2">
+  <zoom_level>9</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>684</x>
+      <y>414</y>
+      <w>207</w>
+      <h>432</h>
+    </coordinates>
+    <panel_attributes>siridb_t
+--
+uuid: uuid_t
+tz: iso8601_tz_t
+shard_mask_num: uint16_t
+shard_mask_log: uint16_t
+buffer_size: size_t
+buffer_len: size_t
+start_ts: uint32_t
+max_series_id: uint32_t
+duration_num: uint64_t
+duration_log: uint64_t
+dbname: *char
+dbpath: *char
+buffer_path: *char
+index: *char
+index_size: size_t
+time: *siridb_time_t
+server: *siridb_server_t
+replica: *siridb_server_t
+users: *siridb_users_t
+servers: *siridb_servers_t
+pools: *siridb_pools_t
+series: *ct_node_t
+series_map: *imap32_t
+shards: *imap64_t
+buffer_fp: *FILE
+--
+siridb_new(): *siridb_t
+siridb_free(): void
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>414</y>
+      <w>207</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>siri_t
+--
+loop: *uv_loop_t
+grammar: *cleri_grammar_t
+siridb_list: *siridb_list_t
+fh: *siri_fh_t
+--
+siri_start(): int
+siri_free(): void
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>198</x>
+      <y>477</y>
+      <w>153</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>288</x>
+      <y>378</y>
+      <w>99</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=0..*
+group=1</panel_attributes>
+    <additional_attributes>90.0;40.0;90.0;10.0;10.0;10.0;10.0;70.0;50.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>333</x>
+      <y>414</y>
+      <w>207</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>siridb_list_t
+--
+siridb: *siridb_t 
+next: *siridb_list_t 
+--
+siridb_list_new(): *siridb_list_t
+siridb_list_free(): void
+siridb_get(): *siridb_t
+group=1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>531</x>
+      <y>477</y>
+      <w>171</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>612</y>
+      <w>207</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>siri_fh_t
+--
+size: uint16_t
+idx: uint16_t
+fpointers: **siri_fp_t
+--
+siri_fh_new(): *siri_fh_t
+siri_fh_free(): void
+siri_fopen(): int
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>873</y>
+      <w>207</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>siri_fp_t
+--
+fp: *FILE
+ref: uint8_t
+--
+siri_fp_new(): *siri_fp_t
+siri_fp_decref(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>99</x>
+      <y>531</y>
+      <w>27</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-&gt;
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>99</x>
+      <y>729</y>
+      <w>63</w>
+      <h>162</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-&gt;
+m1=1
+m2=0..size</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;160.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>306</x>
+      <y>612</y>
+      <w>261</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>siridb_shard_t
+--
+id: uint64_t
+tp: uint8_t
+status: uint8_t
+fp: *siri_fp_t
+--
+siridb_shard_create(): *siridb_shard_t
+siridb_shard_load(): int
+siridb_shard_free(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>558</x>
+      <y>630</y>
+      <w>144</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>140.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>198</x>
+      <y>747</y>
+      <w>180</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>180.0;10.0;180.0;170.0;10.0;170.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>198</x>
+      <y>621</y>
+      <w>126</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+siri_fopen</panel_attributes>
+    <additional_attributes>10.0;20.0;120.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1017</x>
+      <y>414</y>
+      <w>279</w>
+      <h>144</h>
+    </coordinates>
+    <panel_attributes>siridb_users_t
+--
+user: *siridb_user_t
+next: *siridb_users_t 
+--
+siridb_users_load(): *siridb_users_t
+siridb_users_free(): void
+siridb_users_add_user(): int
+siridb_users_drop_user(): int
+siridb_users_get_user(): *siridb_user_t
+group=2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>972</x>
+      <y>378</y>
+      <w>99</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m2=0..*
+group=2</panel_attributes>
+    <additional_attributes>90.0;40.0;90.0;10.0;10.0;10.0;10.0;70.0;50.0;70.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>882</x>
+      <y>477</y>
+      <w>153</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1422</x>
+      <y>414</y>
+      <w>279</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>siridb_user_t
+--
+username: *char
+password: *char
+access_bit: uint32_t
+--
+siridb_user_new(): *siridb_user_t
+siridb_user_free(): void
+siridb_user_prop(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1287</x>
+      <y>477</y>
+      <w>153</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1017</x>
+      <y>621</y>
+      <w>369</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>siridb_series_t
+--
+id: uint32_t
+tp: uint8_t
+mask: uint16_t
+buffer: *siridb_buffer_t
+index: *siridb_series_idx_t
+--
+siridb_series_load(): int
+siridb_series_new(): *siridb_series_t
+siridb_series_free(): void
+siridb_series_add_idx_num32(): void
+siridb_series_add_idx_num64(): void
+siridb_series_add_point(): void
+siridb_series_get_points_num32(): *siridb_points_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>882</x>
+      <y>648</y>
+      <w>153</w>
+      <h>36</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates>
+      <x>126</x>
+      <y>765</y>
+      <w>225</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>both siri_fh_t and siridb_shard_t 
+can hold a reference to siri_fp_t,
+the last decref will actually
+destroy the object.
+bg=light_gray</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1017</x>
+      <y>909</y>
+      <w>369</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>siridb_series_idx_t
+--
+len: uint32_t
+has_overlap: uint8_t
+idx: *void
+--
+Methods are provided by siridb_series_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1179</x>
+      <y>828</y>
+      <w>27</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1215</x>
+      <y>1080</y>
+      <w>279</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>idx_num64_t
+--
+start_ts: uint64_t
+end_ts: uint64_t
+shard: *siridb_shard_t
+pos: uint32_t
+len: uint16_t
+--
+Methods are provided by siridb_series_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1278</x>
+      <y>999</y>
+      <w>63</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..len</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>909</x>
+      <y>1080</y>
+      <w>279</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>idx_num32_t
+--
+start_ts: uint32_t
+end_ts: uint32_t
+shard: *siridb_shard_t
+pos: uint32_t
+len: uint16_t
+--
+Methods are provided by siridb_series_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1098</x>
+      <y>999</y>
+      <w>63</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..len</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>486</x>
+      <y>747</y>
+      <w>639</w>
+      <h>522</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>690.0;510.0;690.0;560.0;10.0;560.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>450</x>
+      <y>747</y>
+      <w>864</w>
+      <h>549</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>940.0;510.0;940.0;590.0;10.0;590.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates>
+      <x>783</x>
+      <y>1008</y>
+      <w>225</w>
+      <h>63</h>
+    </coordinates>
+    <panel_attributes>idx can be used with either 
+idx_num32_t or idx_num64_t,
+not both.
+
+bg=light_gray</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>576</x>
+      <y>180</y>
+      <w>315</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>siridb_pools_t
+--
+size: uint16_t
+lookup: *siridb_lookup_t
+pool: *siridb_pool_t
+--
+siridb_pools_gen(): void
+siridb_pools_free(): void
+-siridb_pools_gen_lookup(): *siridb_lookup_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>747</x>
+      <y>297</y>
+      <w>27</w>
+      <h>135</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;130.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>576</x>
+      <y>0</y>
+      <w>315</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>siridb_pool_t
+--
+size: uint16_t
+server: *siridb_server_t[2]
+--
+siridb_pool_sn(): uint16_t
+siridb_pool_sn_raw(): uint16_t</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>747</x>
+      <y>90</y>
+      <w>63</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..size</panel_attributes>
+    <additional_attributes>10.0;100.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>

@@ -108,7 +108,7 @@ int siridb_load_shards(struct siridb_s * siridb)
             continue;
 
         /* we are sure this fits since the filename is checked */
-        if (siridb_load_shard(siridb, (uint64_t) atoll(shard_d->d_name)))
+        if (siridb_shard_load(siridb, (uint64_t) atoll(shard_d->d_name)))
         {
             log_error("Error while loading shard: '%s'", shard_d->d_name);
             closedir(shards_dir);

@@ -53,7 +53,7 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 
         if ((shard = imap64_get(siridb->shards, shard_id)) == NULL)
         {
-            shard = siridb_create_shard(
+            shard = siridb_shard_create(
                     siridb,
                     shard_id,
                     duration,

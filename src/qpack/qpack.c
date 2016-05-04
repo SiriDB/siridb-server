@@ -506,7 +506,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
                     (tp == QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
                                   (size_t) *((uint64_t *) unpacker->pt);
 
-        unpacker->pt += ipow(2, -QP_RAW8 + tp);
+        unpacker->pt += xmath_ipow(2, -QP_RAW8 + tp);
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_RAW;
@@ -530,7 +530,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
                     (tp == QP_INT32) ? (int64_t) *((int32_t *) unpacker->pt):
                                   (int64_t) *((int64_t *) unpacker->pt);
         }
-        unpacker->pt += ipow(2, -QP_INT8 + tp);
+        unpacker->pt += xmath_ipow(2, -QP_INT8 + tp);
         return QP_INT64;
     }
 
