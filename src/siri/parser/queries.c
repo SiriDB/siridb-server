@@ -12,6 +12,7 @@ query_select_t * query_select_new(void)
     q_select->ct_series = ct_new();
 
     /* we point to the node result so we do not need to free */
+    q_select->where_node = NULL;
     q_select->start_ts = NULL;
     q_select->end_ts = NULL;
     return q_select;
@@ -21,22 +22,22 @@ query_list_t * query_list_new(void)
 {
     query_list_t * q_list =
             (query_list_t *) malloc(sizeof(query_list_t));
+    q_list->ct_series = NULL;
+    q_list->where_node = NULL;
     q_list->columms = NULL;
     q_list->limit = 0;
 
     return q_list;
 }
 
-query_list_series_t * query_list_series_new(void)
+query_list_t * query_count_new(void)
 {
-    query_list_series_t * q_list_series =
-            (query_list_series_t *) malloc(sizeof(query_list_series_t));
+    query_list_t * q_count =
+            (query_count_t *) malloc(sizeof(query_list_t));
+    q_count->ct_series = NULL;
+    q_count->where_node = NULL;
 
-    q_list_series->ct_series = ct_new();
-    q_list_series->columms = NULL;
-    q_list_series->limit = 0;
-
-    return q_list_series;
+    return q_count;
 }
 
 void query_select_free(uv_handle_t * handle)
@@ -56,20 +57,27 @@ void query_list_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    free((query_list_t *) query->data);
+    query_list_t * q_list = (query_list_t *) query->data;
+
+    if (q_list->ct_series != NULL)
+        ct_free(q_list->ct_series);
+
+    free(q_list);
 
     /* normal free call */
     siridb_free_query(handle);
 }
 
-void query_list_series_free(uv_handle_t * handle)
+void query_count_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    query_list_series_t * q_list_series = (query_list_series_t *) query->data;
+    query_list_t * q_count = (query_count_t *) query->data;
 
-    ct_free(q_list_series->ct_series);
-    free(q_list_series);
+    if (q_count->ct_series != NULL)
+        ct_free(q_count->ct_series);
+
+    free(q_count);
 
     /* normal free call */
     siridb_free_query(handle);

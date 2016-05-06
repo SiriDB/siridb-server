@@ -39,8 +39,6 @@ static siridb_user_t * get_user(
 
 static void append_user(siridb_t * siridb, siridb_user_t * user);
 
-static int save_users(siridb_t * siridb);
-
 static siridb_users_t * new_users(void);
 
 int siridb_users_load(siridb_t * siridb)
@@ -166,12 +164,13 @@ int siridb_users_add_user(
     /* add the user to the users */
     append_user(siridb, user);
 
-    if (save_users(siridb))
+    if (siridb_users_save(siridb))
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Could not save user '%s' to file.",
                 user->username);
+        log_critical(err_msg);
         pop_user(siridb, user->username);
         return 1;
     }
@@ -217,8 +216,44 @@ int siridb_users_drop_user(
     /* free user object */
     siridb_user_free(user);
 
-    if (save_users(siridb))
-        log_critical("Could not save users!");
+    if (siridb_users_save(siridb))
+        log_critical("Could not write users to file!");
+
+    return 0;
+}
+
+int siridb_users_save(siridb_t * siridb)
+{
+    qp_fpacker_t * fpacker;
+    siridb_users_t * current = siridb->users;
+
+    /* get user access file name */
+    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
+
+    if ((fpacker = qp_open(fn, "w")) == NULL)
+        return 1;
+
+    /* open a new array */
+    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
+
+    /* write the current schema */
+    qp_fadd_int8(fpacker, SIRIDB_USER_ACCESS_SCHEMA);
+
+    /* we can and should skip this if we have no users to save */
+    if (current->user != NULL)
+    {
+        while (current != NULL)
+        {
+            qp_fadd_type(fpacker, QP_ARRAY3);
+            qp_fadd_string(fpacker, current->user->username);
+            qp_fadd_string(fpacker, current->user->password);
+            qp_fadd_int32(fpacker, (int32_t) current->user->access_bit);
+            current = current->next;
+        }
+    }
+
+    /* close file pointer */
+    qp_close(fpacker);
 
     return 0;
 }
@@ -293,42 +328,6 @@ static void append_user(siridb_t * siridb, siridb_user_t * user)
     current->next = (siridb_users_t *) malloc(sizeof(siridb_users_t));
     current->next->user = user;
     current->next->next = NULL;
-}
-
-static int save_users(siridb_t * siridb)
-{
-    qp_fpacker_t * fpacker;
-    siridb_users_t * current = siridb->users;
-
-    /* get user access file name */
-    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
-
-    if ((fpacker = qp_open(fn, "w")) == NULL)
-        return 1;
-
-    /* open a new array */
-    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
-
-    /* write the current schema */
-    qp_fadd_int8(fpacker, SIRIDB_USER_ACCESS_SCHEMA);
-
-    /* we can and should skip this if we have no users to save */
-    if (current->user != NULL)
-    {
-        while (current != NULL)
-        {
-            qp_fadd_type(fpacker, QP_ARRAY3);
-            qp_fadd_string(fpacker, current->user->username);
-            qp_fadd_string(fpacker, current->user->password);
-            qp_fadd_int32(fpacker, (int32_t) current->user->access_bit);
-            current = current->next;
-        }
-    }
-
-    /* close file pointer */
-    qp_close(fpacker);
-
-    return 0;
 }
 
 static siridb_users_t * new_users(void)

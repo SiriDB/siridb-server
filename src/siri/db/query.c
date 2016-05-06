@@ -53,9 +53,10 @@ void siridb_async_query(
     /* set start time */
     clock_gettime(CLOCK_REALTIME, &query->start);
 
-    /* bind pid and client so we can send back the result */
+    /* bind pid, client and flags so we can send back the result */
     query->pid = pid;
     query->client = client;
+    query->flags = flags;
 
     /* bind time precision (this can never be equal to the SiriDB precision) */
     query->time_precision = time_precision;

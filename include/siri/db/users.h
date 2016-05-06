@@ -45,3 +45,4 @@ siridb_user_t * siridb_users_get_user(
         const char * username,
         const char * password);
 
+int siridb_users_save(siridb_t * siridb);

@@ -34,3 +34,5 @@ uint16_t siridb_pool_sn_raw(
         siridb_t * siridb,
         const char * sn,
         size_t len);
+
+void siridb_pool_prop(siridb_pool_t * pool, qp_packer_t * packer, int prop);

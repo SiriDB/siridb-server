@@ -14,6 +14,7 @@
 #include <qpack/qpack.h>
 #include <inttypes.h>
 #include <siri/db/db.h>
+#include <siri/db/access.h>
 
 typedef struct siridb_s siridb_t;
 
@@ -21,7 +22,7 @@ typedef struct siridb_user_s
 {
     char * username;
     char * password; /* keeps an encrypted password */
-    uint32_t access_bit;
+    siridb_access_t access_bit;
 } siridb_user_t;
 
 siridb_user_t * siridb_user_new(void);
@@ -30,4 +31,9 @@ void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop);
 int siridb_user_set_password(
         siridb_user_t * user,
         const char * password,
+        char * err_msg);
+
+int siridb_user_check_access(
+        siridb_user_t * user,
+        siridb_access_t access_bit,
         char * err_msg);

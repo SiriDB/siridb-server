@@ -55,6 +55,7 @@ typedef struct siridb_query_s
     cleri_parse_result_t * pr;
     siridb_node_list_t * node_list;
     struct timespec start;
+    int flags;
 
 } siridb_query_t;
 

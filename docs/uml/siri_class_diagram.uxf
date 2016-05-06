@@ -4,7 +4,7 @@
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>684</x>
+      <x>720</x>
       <y>414</y>
       <w>207</w>
       <h>432</h>
@@ -45,7 +45,7 @@ siridb_free(): void
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>0</x>
+      <x>36</x>
       <y>414</y>
       <w>207</w>
       <h>126</h>
@@ -65,7 +65,7 @@ siri_free(): void
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>198</x>
+      <x>234</x>
       <y>477</y>
       <w>153</w>
       <h>36</h>
@@ -78,7 +78,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>288</x>
+      <x>324</x>
       <y>378</y>
       <w>99</w>
       <h>90</h>
@@ -91,7 +91,7 @@ group=1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>333</x>
+      <x>369</x>
       <y>414</y>
       <w>207</w>
       <h>108</h>
@@ -110,7 +110,7 @@ group=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>531</x>
+      <x>567</x>
       <y>477</y>
       <w>171</w>
       <h>36</h>
@@ -123,7 +123,7 @@ m2=0..*</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>0</x>
+      <x>36</x>
       <y>612</y>
       <w>207</w>
       <h>126</h>
@@ -143,7 +143,7 @@ siri_fopen(): int
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>0</x>
+      <x>36</x>
       <y>873</y>
       <w>207</w>
       <h>99</h>
@@ -160,7 +160,7 @@ siri_fp_decref(): void</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>99</x>
+      <x>135</x>
       <y>531</y>
       <w>27</w>
       <h>99</h>
@@ -173,7 +173,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>99</x>
+      <x>135</x>
       <y>729</y>
       <w>63</w>
       <h>162</h>
@@ -186,7 +186,7 @@ m2=0..size</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>306</x>
+      <x>342</x>
       <y>612</y>
       <w>261</w>
       <h>144</h>
@@ -206,7 +206,7 @@ siridb_shard_free(): void</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>558</x>
+      <x>594</x>
       <y>630</y>
       <w>144</w>
       <h>36</h>
@@ -219,7 +219,7 @@ m2=0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>198</x>
+      <x>234</x>
       <y>747</y>
       <w>180</w>
       <h>180</h>
@@ -232,7 +232,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>198</x>
+      <x>234</x>
       <y>621</y>
       <w>126</w>
       <h>36</h>
@@ -244,10 +244,10 @@ siri_fopen</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1017</x>
+      <x>1053</x>
       <y>414</y>
       <w>279</w>
-      <h>144</h>
+      <h>153</h>
     </coordinates>
     <panel_attributes>siridb_users_t
 --
@@ -259,13 +259,14 @@ siridb_users_free(): void
 siridb_users_add_user(): int
 siridb_users_drop_user(): int
 siridb_users_get_user(): *siridb_user_t
+siridb_users_save(): int
 group=2</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>972</x>
+      <x>1008</x>
       <y>378</y>
       <w>99</w>
       <h>90</h>
@@ -278,7 +279,7 @@ group=2</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>882</x>
+      <x>918</x>
       <y>477</y>
       <w>153</w>
       <h>36</h>
@@ -291,7 +292,7 @@ m2=1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1422</x>
+      <x>1458</x>
       <y>414</y>
       <w>279</w>
       <h>144</h>
@@ -300,18 +301,19 @@ m2=1</panel_attributes>
 --
 username: *char
 password: *char
-access_bit: uint32_t
+access_bit: siridb_access_t
 --
 siridb_user_new(): *siridb_user_t
 siridb_user_free(): void
 siridb_user_prop(): void
-siridb_user_set_password(): int</panel_attributes>
+siridb_user_set_password(): int
+siridb_user_check_access(): int</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1287</x>
+      <x>1323</x>
       <y>477</y>
       <w>153</w>
       <h>36</h>
@@ -324,7 +326,7 @@ m2=0..*</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1017</x>
+      <x>1053</x>
       <y>621</y>
       <w>369</w>
       <h>216</h>
@@ -349,7 +351,7 @@ siridb_series_get_points_num32(): *siridb_points_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>882</x>
+      <x>918</x>
       <y>648</y>
       <w>153</w>
       <h>36</h>
@@ -362,7 +364,7 @@ m2=0..*</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>126</x>
+      <x>162</x>
       <y>765</y>
       <w>225</w>
       <h>72</h>
@@ -377,7 +379,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1017</x>
+      <x>1053</x>
       <y>909</y>
       <w>369</w>
       <h>99</h>
@@ -394,7 +396,7 @@ Methods are provided by siridb_series_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1179</x>
+      <x>1215</x>
       <y>828</y>
       <w>27</w>
       <h>99</h>
@@ -407,7 +409,7 @@ m2=1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1215</x>
+      <x>1251</x>
       <y>1080</y>
       <w>279</w>
       <h>126</h>
@@ -426,7 +428,7 @@ Methods are provided by siridb_series_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1278</x>
+      <x>1314</x>
       <y>999</y>
       <w>63</w>
       <h>99</h>
@@ -439,7 +441,7 @@ m2=0..len</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>909</x>
+      <x>945</x>
       <y>1080</y>
       <w>279</w>
       <h>126</h>
@@ -458,7 +460,7 @@ Methods are provided by siridb_series_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1098</x>
+      <x>1134</x>
       <y>999</y>
       <w>63</w>
       <h>99</h>
@@ -471,7 +473,7 @@ m2=0..len</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>486</x>
+      <x>522</x>
       <y>747</y>
       <w>639</w>
       <h>522</h>
@@ -484,7 +486,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>450</x>
+      <x>486</x>
       <y>747</y>
       <w>864</w>
       <h>549</h>
@@ -497,7 +499,7 @@ m2=1</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>783</x>
+      <x>819</x>
       <y>1008</y>
       <w>225</w>
       <h>63</h>
@@ -512,7 +514,7 @@ bg=light_gray</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>576</x>
+      <x>612</x>
       <y>180</y>
       <w>315</w>
       <h>126</h>
@@ -531,7 +533,7 @@ siridb_pools_free(): void
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>747</x>
+      <x>783</x>
       <y>297</y>
       <w>27</w>
       <h>135</h>
@@ -544,7 +546,7 @@ m2=1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>576</x>
+      <x>612</x>
       <y>0</y>
       <w>315</w>
       <h>99</h>
@@ -561,7 +563,7 @@ siridb_pool_sn_raw(): uint16_t</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>747</x>
+      <x>783</x>
       <y>90</y>
       <w>63</w>
       <h>108</h>

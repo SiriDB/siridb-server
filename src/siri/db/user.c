@@ -12,8 +12,11 @@
 
 #include <siri/db/user.h>
 #include <crypt.h>
+#include <string.h>
 #include <siri/grammar/grammar.h>
 #include <strextra/strextra.h>
+#include <siri/db/access.h>
+#include <siri/db/db.h>
 
 #define SIRIDB_MIN_PASSWORD_LEN 4
 #define SIRIDB_MAX_PASSWORD_LEN 128
@@ -49,7 +52,11 @@ void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop)
         qp_add_string(packer, user->username);
         break;
     case CLERI_GID_K_ACCESS:
-        qp_add_string(packer, "dummy");
+        {
+            char buffer[SIRIDB_ACCESS_STR_MAX];
+            siridb_access_to_str(buffer, user->access_bit);
+            qp_add_string(packer, buffer);
+        }
         break;
     }
 }
@@ -90,6 +97,26 @@ int siridb_user_set_password(
 
     /* replace user password with encrypted password */
     user->password = strdup(encrypted);
+
+    return 0;
+}
+
+int siridb_user_check_access(
+        siridb_user_t * user,
+        siridb_access_t access_bit,
+        char * err_msg)
+{
+    if (user->access_bit & access_bit)
+        return 1;
+
+    char buffer[SIRIDB_ACCESS_STR_MAX];
+    siridb_access_to_str(buffer, access_bit);
+    snprintf(
+            err_msg,
+            SIRIDB_MAX_SIZE_ERR_MSG,
+            "Access denied. User '%s' has no '%s' privileges.",
+            user->username,
+            buffer);
 
     return 0;
 }

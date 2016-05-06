@@ -32,6 +32,7 @@
 #include <siri/db/db.h>
 #include <siri/db/pools.h>
 #include <siri/db/points.h>
+#include <siri/db/access.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -549,6 +550,40 @@ static int test_expr(void)
     return test_end(TEST_OK);
 }
 
+static int test_access(void)
+{
+    test_start("Testing access");
+    char buffer[SIRIDB_ACCESS_STR_MAX];
+    siridb_access_t access_bit = 0;
+
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "no access") == 0);
+
+    access_bit |= SIRIDB_ACCESS_SHOW;
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "show") == 0);
+
+    access_bit |= SIRIDB_ACCESS_SELECT;
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "select and show") == 0);
+
+    access_bit |= SIRIDB_ACCESS_LIST;
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "select, show and list") == 0);
+
+    access_bit |= SIRIDB_ACCESS_PROFILE_WRITE;
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "write") == 0);
+
+    access_bit ^= (access_bit & SIRIDB_ACCESS_INSERT);
+    siridb_access_to_str(buffer, access_bit);
+    assert (strcmp(buffer, "read and create") == 0);
+
+    assert (siridb_access_from_strn("read", 4) == (SIRIDB_ACCESS_PROFILE_READ));
+    assert (siridb_access_from_strn("list", 4) == SIRIDB_ACCESS_LIST);
+
+    return test_end(TEST_OK);
+}
 int run_tests(int flags)
 {
     timeit_t start;
@@ -571,10 +606,10 @@ int run_tests(int flags)
     rc += test_aggr_sum();
     rc += test_iso8601();
     rc += test_expr();
+    rc += test_access();
 
     printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
             rc, timeit_stop(&start));
 
-//    exit(0);
     return 0;
 }
