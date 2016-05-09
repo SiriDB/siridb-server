@@ -19,10 +19,16 @@ siri_cfg_t siri_cfg = {
         .listen_client_port=9000,
         .listen_backend_address="localhost",
         .listen_backend_port=9010,
+        .optimize_interval=900,
+        .heartbeat_interval=3,
         .default_db_path="/var/lib/siridb/",
         .max_open_files=MAX_OPEN_FILES_LIMIT
 };
 
+static void siri_cfg_read_interval(
+        cfgparser_t * cfgparser,
+        const char * option_name,
+        uint16_t * interval);
 static void siri_cfg_read_address_port(
         cfgparser_t * cfgparser,
         const char * option_name,
@@ -63,10 +69,60 @@ void siri_cfg_init(void)
             siri_cfg.listen_backend_address,
             &siri_cfg.listen_backend_port);
 
+    siri_cfg_read_interval(
+            cfgparser,
+            "optimize_interval",
+            &siri_cfg.optimize_interval);
+
+    siri_cfg_read_interval(
+            cfgparser,
+            "heartbeat_interval",
+            &siri_cfg.heartbeat_interval);
+
     siri_cfg_read_default_db_path(cfgparser);
     siri_cfg_read_max_open_files(cfgparser);
 
     cfgparser_free(cfgparser);
+}
+
+static void siri_cfg_read_interval(
+        cfgparser_t * cfgparser,
+        const char * option_name,
+        uint16_t * interval)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "siridb",
+                option_name);
+    if (rc != CFGPARSER_SUCCESS)
+        log_warning(
+                "Error reading '[siridb]%s' in '%s': %s. "
+                "Using default value: '%s'",
+                option_name,
+                siri_args.config,
+                cfgparser_errmsg(rc),
+                *interval);
+    else if (option->tp != CFGPARSER_TP_INTEGER)
+        log_warning(
+                "Error reading '[siridb]%s' in '%s': %s. "
+                "Using default value: '%s:%d'",
+                "default_db_path",
+                siri_args.config,
+                "error: expecting an integer value",
+                siri_cfg.default_db_path);
+    else if (option->val->integer < 1 || option->val->integer > 65535)
+        log_warning(
+                "Error reading '[siridb]%s' in '%s': "
+                "error: port should be between 1 and 65535, got '%d'. "
+                "Using default value: '%d'",
+                option_name,
+                siri_args.config,
+                option->val->integer,
+                *interval);
+    *interval = option->val->integer;
 }
 
 static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)

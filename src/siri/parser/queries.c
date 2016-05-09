@@ -9,9 +9,8 @@ query_select_t * query_select_new(void)
 {
     query_select_t * q_select =
             (query_select_t *) malloc(sizeof(query_select_t));
-    q_select->ct_series = ct_new();
 
-    /* we point to the node result so we do not need to free */
+    q_select->ct_series = NULL;
     q_select->where_node = NULL;
     q_select->start_ts = NULL;
     q_select->end_ts = NULL;
@@ -30,10 +29,10 @@ query_list_t * query_list_new(void)
     return q_list;
 }
 
-query_list_t * query_count_new(void)
+query_count_t * query_count_new(void)
 {
-    query_list_t * q_count =
-            (query_count_t *) malloc(sizeof(query_list_t));
+    query_count_t * q_count =
+            (query_count_t *) malloc(sizeof(query_count_t));
     q_count->ct_series = NULL;
     q_count->where_node = NULL;
 
@@ -46,7 +45,9 @@ void query_select_free(uv_handle_t * handle)
 
     query_select_t * q_select = (query_select_t *) query->data;
 
-    ct_free(q_select->ct_series);
+    if (q_select->ct_series != NULL)
+        ct_free(q_select->ct_series);
+
     free(q_select);
 
     /* normal free call */
@@ -72,7 +73,7 @@ void query_count_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    query_list_t * q_count = (query_count_t *) query->data;
+    query_count_t * q_count = (query_count_t *) query->data;
 
     if (q_count->ct_series != NULL)
         ct_free(q_count->ct_series);

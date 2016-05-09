@@ -15,6 +15,7 @@
 #include <siri/grammar/grammar.h>
 #include <siri/db/db.h>
 #include <siri/filehandler.h>
+#include <stdbool.h>
 
 typedef struct cleri_grammar_s cleri_grammar_t;
 typedef struct siridb_list_s siridb_list_t;
@@ -26,6 +27,7 @@ typedef struct siri_s
     cleri_grammar_t * grammar;
     siridb_list_t * siridb_list;
     siri_fh_t * fh;
+
 } siri_t;
 
 

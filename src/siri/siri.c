@@ -39,12 +39,14 @@ static void close_handlers(void);
 static void signal_handler(uv_signal_t * req, int signum);
 static int siridb_load_databases(void);
 static void walk_close_handlers(uv_handle_t * handle, void * arg);
+static void optimize_cb(uv_timer_t * handle);
 
 siri_t siri = {
         .grammar=NULL,
         .loop=NULL,
         .siridb_list=NULL,
-        .fh=NULL
+        .fh=NULL,
+        .optimize_running=false
 };
 
 void siri_setup_logger(void)
@@ -285,6 +287,14 @@ int siri_start(void)
     siri.loop = malloc(sizeof(uv_loop_t));
     uv_loop_init(siri.loop);
 
+    /* start optimize task */
+    uv_timer_init(siri.loop, &siri.optimize_timer);
+    uv_timer_start(
+            &siri.optimize_timer,
+            optimize_cb,
+            siri_cfg.optimize_interval * 1000,
+            siri_cfg.optimize_interval * 1000);
+
     /* bind signal to the event loop */
     uv_signal_init(siri.loop, &sig);
     uv_signal_start(&sig, signal_handler, SIGINT);
@@ -304,6 +314,8 @@ int siri_start(void)
 
 void siri_free(void)
 {
+    uv_timer_stop(&siri.optimize_timer);
+
     if (siri.loop != NULL)
     {
         int rc;
@@ -311,10 +323,39 @@ void siri_free(void)
         if (rc) // could be UV_EBUSY (-16) in case handlers are not closed yet
             log_error("Error occurred while closing the event loop: %d", rc);
     }
+
     free(siri.loop);
     free(siri.grammar);
     siri_fh_free(siri.fh);
     siridb_list_free(siri.siridb_list);
+}
+
+static void test_work(uv_work_t * req)
+{
+    int tracklen = *((int *) req->data);
+    while (tracklen)
+    {
+        tracklen--;
+        log_debug("sleeping...");
+        sleep(3);
+    }
+    log_debug("Done sleeping!!!");
+}
+
+static void test_finish(uv_work_t * req, int status)
+{
+    log_debug("Finished! (%d)", *(int *) req->data);
+}
+
+static void optimize_cb(uv_timer_t * handle)
+{
+//    siridb_list_t * current = siri.siridb_list;
+    log_debug("in optimize cb...");
+    if (siri.optimize_running)
+    log_debug("acquired lock...");
+    req.data = (void *) &l;
+    uv_queue_work(siri.loop, &req, test_work, test_finish);
+    log_debug("released lock...");
 }
 
 static void close_handlers(void)

@@ -11,6 +11,8 @@ typedef struct siri_cfg_s
     uint16_t listen_client_port;
     char listen_backend_address[SIRI_CFG_MAX_LEN_ADDRESS];
     uint16_t listen_backend_port;
+    uint16_t optimize_interval;
+    uint16_t heartbeat_interval;
     char default_db_path[PATH_MAX];
     uint16_t max_open_files;
 } siri_cfg_t;

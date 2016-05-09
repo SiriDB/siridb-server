@@ -39,7 +39,6 @@ typedef struct query_wrapper_columns_s
     W2_COLUMNS
 } query_wrapper_columns_t;
 
-
 typedef struct query_list_s
 {
     W0_CT_SERIES
