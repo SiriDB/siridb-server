@@ -15,7 +15,7 @@
 #include <uuid/uuid.h> /* install: apt-get install uuid-dev */
 #include <unistd.h>
 #include <assert.h>
-#include <siri/cfg/cfg.h>
+#include <siri/siri.h>
 #include <string.h>
 #include <qpack/qpack.h>
 
@@ -60,9 +60,9 @@ int siridb_load_servers(siridb_t * siridb)
 
         server = new_server(
                 (char *) siridb->uuid,
-                siri_cfg.listen_backend_address,
-                strlen(siri_cfg.listen_backend_address),
-                siri_cfg.listen_backend_port,
+                siri.cfg->listen_backend_address,
+                strlen(siri.cfg->listen_backend_address),
+                siri.cfg->listen_backend_port,
                 0);
 
         append_server(siridb, server);

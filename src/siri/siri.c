@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <logger/logger.h>
-#include <siri/args/args.h>
 #include <siri/net/clserver.h>
 #include <siri/net/handle.h>
 #include <siri/parser/listener.h>
@@ -39,27 +38,28 @@ static void close_handlers(void);
 static void signal_handler(uv_signal_t * req, int signum);
 static int siridb_load_databases(void);
 static void walk_close_handlers(uv_handle_t * handle, void * arg);
-static void optimize_cb(uv_timer_t * handle);
 
 siri_t siri = {
         .grammar=NULL,
         .loop=NULL,
         .siridb_list=NULL,
         .fh=NULL,
-        .optimize_running=false
+        .optimize=NULL,
+        .cfg=NULL,
+        .args=NULL
 };
 
 void siri_setup_logger(void)
 {
     int n;
     char lname[255];
-    size_t len = strlen(siri_args.log_level);
+    size_t len = strlen(siri.args->log_level);
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
         strcpy(lname, LOGGER_LEVEL_NAMES[n]);
         strx_lower_case(lname);
-        if (strlen(lname) == len && strcmp(siri_args.log_level, lname) == 0)
+        if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
             logger_init(stdout, (n + 1) * 10);
             return;
@@ -85,22 +85,22 @@ static int siridb_load_databases(void)
 
     char err_msg[512];
 
-    if (stat(siri_cfg.default_db_path, &st) == -1)
+    if (stat(siri.cfg->default_db_path, &st) == -1)
     {
         log_warning("Database directory not found, creating directory '%s'.",
-                siri_cfg.default_db_path);
-        if (mkdir(siri_cfg.default_db_path, 0700) == -1)
+                siri.cfg->default_db_path);
+        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
         {
             log_error("Cannot create directory '%s'.",
-                    siri_cfg.default_db_path);
+                    siri.cfg->default_db_path);
             return 1;
         }
     }
 
-    if ((db_container_path = opendir(siri_cfg.default_db_path)) == NULL)
+    if ((db_container_path = opendir(siri.cfg->default_db_path)) == NULL)
     {
         log_error("Cannot open database directory '%s'.",
-                siri_cfg.default_db_path);
+                siri.cfg->default_db_path);
         return 1;
     }
 
@@ -126,7 +126,7 @@ static int siridb_load_databases(void)
         snprintf(buffer,
                 PATH_MAX,
                 "%s%s/database.conf",
-                siri_cfg.default_db_path,
+                siri.cfg->default_db_path,
                 dbpath->d_name);
 
         if (access(buffer, R_OK) == -1)
@@ -147,7 +147,7 @@ static int siridb_load_databases(void)
         snprintf(buffer,
                 PATH_MAX,
                 "%s%s/database.dat",
-                siri_cfg.default_db_path,
+                siri.cfg->default_db_path,
                 dbpath->d_name);
 
         if ((unpacker = qp_from_file_unpacker(buffer)) == NULL)
@@ -178,7 +178,7 @@ static int siridb_load_databases(void)
         snprintf(buffer,
                 PATH_MAX,
                 "%s%s/",
-                siri_cfg.default_db_path,
+                siri.cfg->default_db_path,
                 dbpath->d_name);
 
         siridb->dbpath = strdup(buffer);
@@ -277,7 +277,7 @@ int siri_start(void)
     siri.siridb_list = siridb_list_new();
 
     /* initialize file handler for shards */
-    siri.fh = siri_fh_new(siri_cfg.max_open_files);
+    siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
     /* load databases */
     if ((rc = siridb_load_databases()))
@@ -287,20 +287,15 @@ int siri_start(void)
     siri.loop = malloc(sizeof(uv_loop_t));
     uv_loop_init(siri.loop);
 
-    /* start optimize task */
-    uv_timer_init(siri.loop, &siri.optimize_timer);
-    uv_timer_start(
-            &siri.optimize_timer,
-            optimize_cb,
-            siri_cfg.optimize_interval * 1000,
-            siri_cfg.optimize_interval * 1000);
+    /* initialize optimize task (bind siri.optimize) */
+    siri_optimize_init(&siri);
 
     /* bind signal to the event loop */
     uv_signal_init(siri.loop, &sig);
     uv_signal_start(&sig, signal_handler, SIGINT);
 
     /* initialize the client server */
-    if ((rc = sirinet_clserver_init(siri.loop)))
+    if ((rc = sirinet_clserver_init(&siri)))
     {
         close_handlers();
         return rc; // something went wrong
@@ -314,48 +309,19 @@ int siri_start(void)
 
 void siri_free(void)
 {
-    uv_timer_stop(&siri.optimize_timer);
-
     if (siri.loop != NULL)
     {
         int rc;
         rc = uv_loop_close(siri.loop);
         if (rc) // could be UV_EBUSY (-16) in case handlers are not closed yet
             log_error("Error occurred while closing the event loop: %d", rc);
+
     }
 
     free(siri.loop);
     free(siri.grammar);
     siri_fh_free(siri.fh);
     siridb_list_free(siri.siridb_list);
-}
-
-static void test_work(uv_work_t * req)
-{
-    int tracklen = *((int *) req->data);
-    while (tracklen)
-    {
-        tracklen--;
-        log_debug("sleeping...");
-        sleep(3);
-    }
-    log_debug("Done sleeping!!!");
-}
-
-static void test_finish(uv_work_t * req, int status)
-{
-    log_debug("Finished! (%d)", *(int *) req->data);
-}
-
-static void optimize_cb(uv_timer_t * handle)
-{
-//    siridb_list_t * current = siri.siridb_list;
-    log_debug("in optimize cb...");
-    if (siri.optimize_running)
-    log_debug("acquired lock...");
-    req.data = (void *) &l;
-    uv_queue_work(siri.loop, &req, test_work, test_finish);
-    log_debug("released lock...");
 }
 
 static void close_handlers(void)
@@ -370,6 +336,10 @@ static void close_handlers(void)
 static void signal_handler(uv_signal_t * req, int signum)
 {
     log_debug("You pressed CTRL+C, let's stop the event loop..");
+
+    /* destroy optimize task */
+    siri_optimize_destroy();
+
     uv_stop(siri.loop);
 
     close_handlers();
@@ -387,6 +357,10 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
          * clients use data and should be freed.
          */
         uv_close(handle, (handle->data == NULL) ? NULL : sirinet_free_client);
+        break;
+    case UV_TIMER:
+        uv_timer_stop((uv_timer_t *) handle);
+        uv_close(handle, NULL);
         break;
     default:
         log_error("Oh oh, we need to implement type %d", handle->type);

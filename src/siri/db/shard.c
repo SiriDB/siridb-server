@@ -11,7 +11,6 @@
  */
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
-#include <siri/cfg/cfg.h>
 #include <imap64/imap64.h>
 #include <siri/db/series.h>
 #include <logger/logger.h>

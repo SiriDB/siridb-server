@@ -12,8 +12,11 @@
 #pragma once
 
 #include <uv.h>
+#include <siri/siri.h>
 
-int sirinet_clserver_init(uv_loop_t * uv_loop);
+typedef struct siri_s siri_t;
+
+int sirinet_clserver_init(siri_t * siri);
 
 
 

@@ -18,7 +18,6 @@
 #include <dirent.h>
 #include <string.h>
 #include <ctype.h>
-#include <siri/cfg/cfg.h>
 #include <siri/db/shard.h>
 #include <siri/siri.h>
 

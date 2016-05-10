@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
-#include <siri/args/args.h>
 #include <cfgparser/cfgparser.h>
 #include <logger/logger.h>
 #include <strextra/strextra.h>
@@ -14,7 +13,7 @@
 #define MAX_OPEN_FILES_LIMIT 32768
 #define MIN_OPEN_FILES_LIMIT 3
 
-siri_cfg_t siri_cfg = {
+static siri_cfg_t siri_cfg = {
         .listen_client_address="localhost",
         .listen_client_port=9000,
         .listen_backend_address="localhost",
@@ -37,13 +36,13 @@ static void siri_cfg_read_address_port(
 static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser);
 static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser);
 
-void siri_cfg_init(void)
+void siri_cfg_init(siri_t * siri)
 {
     /* Read the application configuration file. */
     cfgparser_t * cfgparser = cfgparser_new();
     cfgparser_return_t rc;
-
-    rc = cfgparser_read(cfgparser, siri_args.config);
+    siri->cfg = &siri_cfg;
+    rc = cfgparser_read(cfgparser, siri->args->config);
     if (rc != CFGPARSER_SUCCESS)
     {
         /* we could choose to continue with defaults but this is probably
@@ -51,7 +50,7 @@ void siri_cfg_init(void)
          */
         fprintf(stderr,
                 "Could not read '%s': %s\n",
-                siri_args.config,
+                siri->args->config,
                 cfgparser_errmsg(rc));
         cfgparser_free(cfgparser);
         exit(EXIT_FAILURE);
@@ -102,7 +101,7 @@ static void siri_cfg_read_interval(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s'",
                 option_name,
-                siri_args.config,
+                siri.args->config,
                 cfgparser_errmsg(rc),
                 *interval);
     else if (option->tp != CFGPARSER_TP_INTEGER)
@@ -110,7 +109,7 @@ static void siri_cfg_read_interval(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
                 "default_db_path",
-                siri_args.config,
+                siri.args->config,
                 "error: expecting an integer value",
                 siri_cfg.default_db_path);
     else if (option->val->integer < 1 || option->val->integer > 65535)
@@ -119,7 +118,7 @@ static void siri_cfg_read_interval(
                 "error: port should be between 1 and 65535, got '%d'. "
                 "Using default value: '%d'",
                 option_name,
-                siri_args.config,
+                siri.args->config,
                 option->val->integer,
                 *interval);
     *interval = option->val->integer;
@@ -140,7 +139,7 @@ static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s'",
                 "default_db_path",
-                siri_args.config,
+                siri.args->config,
                 cfgparser_errmsg(rc),
                 siri_cfg.default_db_path);
     else if (option->tp != CFGPARSER_TP_STRING)
@@ -148,7 +147,7 @@ static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
                 "default_db_path",
-                siri_args.config,
+                siri.args->config,
                 "error: expecting a string value",
                 siri_cfg.default_db_path);
     else
@@ -256,7 +255,7 @@ static void siri_cfg_read_address_port(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
                 option_name,
-                siri_args.config,
+                siri.args->config,
                 cfgparser_errmsg(rc),
                 address_pt,
                 *port_pt);
@@ -265,7 +264,7 @@ static void siri_cfg_read_address_port(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
                 option_name,
-                siri_args.config,
+                siri.args->config,
                 "error: expecting a string value",
                 address_pt,
                 *port_pt);
@@ -289,7 +288,7 @@ static void siri_cfg_read_address_port(
                     "error: got an unexpected value '%s:%s'. "
                     "Using default value: '%s:%d'",
                     option_name,
-                    siri_args.config,
+                    siri.args->config,
                     address,
                     port,
                     address_pt,
@@ -309,7 +308,7 @@ static void siri_cfg_read_address_port(
                         "error: port should be between 1 and 65535, got '%d'. "
                         "Using default value: '%d'",
                         option_name,
-                        siri_args.config,
+                        siri.args->config,
                         test_port,
                         *port_pt);
             else

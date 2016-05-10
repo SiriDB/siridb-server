@@ -15,9 +15,9 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/cfg/cfg.h>
 #include <msgpack.h>
 #include <stdbool.h>
+#include <siri/siri.h>
 #include <siri/net/handle.h>
 #include <siri/db/auth.h>
 #include <siri/db/query.h>
@@ -63,7 +63,7 @@ static void on_ping(
         uv_handle_t * client,
         const sirinet_pkg_t * pkg);
 
-int sirinet_clserver_init(uv_loop_t * uv_loop)
+int sirinet_clserver_init(siri_t * siri)
 {
     int rc;
 
@@ -74,13 +74,13 @@ int sirinet_clserver_init(uv_loop_t * uv_loop)
     }
 
     /* bind loop to the given loop */
-    loop = uv_loop;
+    loop = siri->loop;
 
     uv_tcp_init(loop, &client_server);
 
     uv_ip4_addr(
-            siri_cfg.listen_client_address,
-            siri_cfg.listen_client_port,
+            siri->cfg->listen_client_address,
+            siri->cfg->listen_client_port,
             &client_addr);
 
     /* make sure data is set to NULL so we later on can check this value. */

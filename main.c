@@ -15,8 +15,8 @@
 #include <time.h>
 #include <logger/logger.h>
 #include <siri/args/args.h>
-#include <siri/cfg/cfg.h>
 #include <siri/siri.h>
+#include <siri/version.h>
 
 #ifdef DEBUG
 #include <test/test.h>
@@ -46,7 +46,7 @@ int main(int argc, char * argv[])
     tzset();
 
     /* parse arguments first since this can exit the program */
-    siri_args_parse(argc, argv);
+    siri_args_parse(&siri, argc, argv);
 
     /* setup logger, this must be done before logging the first line */
     siri_setup_logger();
@@ -58,8 +58,11 @@ int main(int argc, char * argv[])
         exit(1);
     #endif
 
+    /* start server */
+    log_info("Starting SiriDB Server (version: %s)", SDB_VERSION);
+
     /* read siridb main application configuration */
-    siri_cfg_init();
+    siri_cfg_init(&siri);
 
     /* start SiriDB. (this start the event loop etc.) */
     rc = siri_start();

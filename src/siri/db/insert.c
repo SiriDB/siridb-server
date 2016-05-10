@@ -85,8 +85,6 @@ int32_t siridb_insert_assign_pools(
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
-//    qp_print(unpacker->pt, unpacker->end - unpacker->pt);
-
     tp = qp_next(unpacker, NULL);
 
     if (qp_is_map(tp))
@@ -345,7 +343,6 @@ static int32_t assign_by_array(
 
     return count;
 }
-
 
 static int read_points(
         siridb_t * siridb,

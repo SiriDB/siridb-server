@@ -2,6 +2,9 @@
 
 #include <inttypes.h>
 #include <argparse/argparse.h>
+#include <siri/siri.h>
+
+typedef struct siri_s siri_t;
 
 typedef struct siri_args_s
 {
@@ -23,7 +26,4 @@ typedef struct siri_args_s
 } siri_args_t;
 
 /* arguments are configured and parsed here */
-void siri_args_parse(int argc, char *argv[]);
-
-/* here we keep the arguments result */
-extern siri_args_t siri_args;
+void siri_args_parse(siri_t * siri, int argc, char *argv[]);

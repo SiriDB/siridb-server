@@ -9,7 +9,7 @@
 #define DEFAULT_LOG_FILE_NUM_BACKUPS 6
 #define DEFAULT_LOG_LEVEL "debug"
 
-siri_args_t siri_args = {
+static siri_args_t siri_args = {
         .version=0,
         .debug=0,
         .noroot=0,
@@ -21,8 +21,10 @@ siri_args_t siri_args = {
         .log_file_num_backups=0,
 };
 
-void siri_args_parse(int argc, char *argv[])
+void siri_args_parse(siri_t * siri, int argc, char *argv[])
 {
+    siri->args = &siri_args;
+
     argparse_parser_t parser;
     argparse_init(&parser);
 

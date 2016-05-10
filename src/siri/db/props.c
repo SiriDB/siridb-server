@@ -12,7 +12,6 @@
 #include <siri/db/props.h>
 #include <logger/logger.h>
 #include <siri/version.h>
-#include <siri/cfg/cfg.h>
 #include <siri/grammar/grammar.h>
 #include <stdio.h>
 #include <uuid/uuid.h>
@@ -21,6 +20,7 @@
 #include <uv.h>
 #include <procinfo/procinfo.h>
 #include <string.h>
+#include <siri/siri.h>
 
 #define SIRIDB_PROP_MAP(NAME, LEN)      \
 if (map)                                \
@@ -117,7 +117,7 @@ static void prop_log_level(siridb_t * siridb, qp_packer_t * packer, int map)
 static void prop_max_open_files(siridb_t * siridb, qp_packer_t * packer, int map)
 {
     SIRIDB_PROP_MAP("max_open_files", 14)
-    qp_add_int32(packer, (int32_t) abs(siri_cfg.max_open_files));
+    qp_add_int32(packer, (int32_t) abs(siri.cfg->max_open_files));
 }
 
 static void prop_mem_usage(siridb_t * siridb, qp_packer_t * packer, int map)
