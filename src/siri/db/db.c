@@ -214,6 +214,8 @@ static siridb_t * siridb_new(void)
     siridb->buffer_size = -1;
     siridb->tz = -1;
     siridb->buffer_fp = NULL; /* make sure this is NULL when file is closed */
+    uv_mutex_init(&siridb->series_mutex);
+    uv_mutex_init(&siridb->shards_mutex);
     return siridb;
 }
 
@@ -256,6 +258,8 @@ static void siridb_free(siridb_t * siridb)
 
         free(siridb->dbname);
         free(siridb->time);
+        uv_mutex_destroy(&siridb->series_mutex);
+        uv_mutex_destroy(&siridb->shards_mutex);
         free(siridb);
     }
 }

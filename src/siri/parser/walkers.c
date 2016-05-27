@@ -63,9 +63,10 @@ void walk_drop_shard(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
 
     siridb_series_remove_shard_num32(
-            ((sirinet_handle_t *) query->client->data)->siridb,
+            siridb,
             series,
-            (siridb_shard_t *) query->data);
+            (siridb_shard_t *) ((query_drop_t *) query->data)->data);
 }

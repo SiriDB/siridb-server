@@ -53,6 +53,13 @@ typedef struct query_count_s
     W1_WHERE_NODE
 } query_count_t;
 
+typedef struct query_drop_s
+{
+    W0_CT_SERIES
+    W1_WHERE_NODE
+    void * data; // data will not be freed, make sure to use it correct.
+} query_drop_t;
+
 typedef struct query_select_s
 {
     W0_CT_SERIES
@@ -71,3 +78,6 @@ void query_list_free(uv_handle_t * handle);
 
 query_count_t * query_count_new(void);
 void query_count_free(uv_handle_t * handle);
+
+query_drop_t * query_drop_new(void);
+void query_drop_free(uv_handle_t * handle);

@@ -5,6 +5,17 @@
 #include <siri/db/query.h>
 #include <logger/logger.h>
 
+#define FREE(q_type)                                                          \
+{                                                                             \
+    siridb_query_t * query = (siridb_query_t *) handle->data;                 \
+    q_type * q = (q_type *) query->data;                                      \
+    if (q->ct_series != NULL)                                                 \
+        ct_free_cb(q->ct_series, (ct_free_cb_t) &siridb_series_decref);       \
+    free(q);                                                                  \
+    /* normal free call */                                                    \
+    siridb_free_query(handle);                                                \
+}
+
 query_select_t * query_select_new(void)
 {
     query_select_t * q_select =
@@ -39,47 +50,25 @@ query_count_t * query_count_new(void)
     return q_count;
 }
 
-void query_select_free(uv_handle_t * handle)
+query_drop_t * query_drop_new(void)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_drop_t * q_drop =
+            (query_drop_t *) malloc(sizeof(query_drop_t));
+    q_drop->ct_series = NULL;
+    q_drop->where_node = NULL;
+    q_drop->data = NULL; // will not be freed
 
-    query_select_t * q_select = (query_select_t *) query->data;
-
-    if (q_select->ct_series != NULL)
-        ct_free_cb(q_select->ct_series, &siridb_series_decref);
-
-    free(q_select);
-
-    /* normal free call */
-    siridb_free_query(handle);
+    return q_drop;
 }
+
+void query_select_free(uv_handle_t * handle)
+    FREE(query_select_t)
 
 void query_list_free(uv_handle_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    query_list_t * q_list = (query_list_t *) query->data;
-
-    if (q_list->ct_series != NULL)
-        ct_free_cb(q_list->ct_series, &siridb_series_decref);
-
-    free(q_list);
-
-    /* normal free call */
-    siridb_free_query(handle);
-}
+    FREE(query_list_t)
 
 void query_count_free(uv_handle_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    FREE(query_count_t)
 
-    query_count_t * q_count = (query_count_t *) query->data;
-
-    if (q_count->ct_series != NULL)
-        ct_free_cb(q_count->ct_series, &siridb_series_decref);
-
-    free(q_count);
-
-    /* normal free call */
-    siridb_free_query(handle);
-}
+void query_drop_free(uv_handle_t * handle)
+    FREE(query_drop_t)

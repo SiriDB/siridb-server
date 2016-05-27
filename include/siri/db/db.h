@@ -20,6 +20,7 @@
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
 #include <iso8601/iso8601.h>
+#include <uv.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
@@ -79,8 +80,10 @@ typedef struct siridb_s
     siridb_users_t * users;
     siridb_servers_t * servers;
     siridb_pools_t * pools;
-    ct_node_t * series;
+    ct_t * series;
     imap32_t * series_map;
+    uv_mutex_t series_mutex;
+    uv_mutex_t shards_mutex;
     imap64_t * shards;
     FILE * buffer_fp;
 } siridb_t;

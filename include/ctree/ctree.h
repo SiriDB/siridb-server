@@ -13,6 +13,7 @@
 
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdio.h>
 
 enum
 {
@@ -36,37 +37,43 @@ typedef struct ct_node_s
     ct_nodes_t * nodes;
 } ct_node_t;
 
+typedef struct ct_s
+{
+    ssize_t len;
+    ct_nodes_t * nodes;
+} ct_t;
+
 typedef void (*ct_cb_t)(const char * key, void * data, void * args);
 typedef void (*ct_free_cb_t)(void * data);
 
 /* create a new compact binary tree */
-ct_node_t * ct_new(void);
+ct_t * ct_new(void);
 
 /* call ct_free when finished using ct */
-void ct_free(ct_node_t * node);
+void ct_free(ct_t * ct);
 
 /* the callback will be called before freeing the node. this can be used
  * to perform some action on the data when freeing the c-tree. */
-void ct_free_cb(ct_node_t * node, ct_free_cb_t cb);
+void ct_free_cb(ct_t * ct, ct_free_cb_t cb);
 
 /* can be used to check if get_sure has set an CT_EMPTY */
 extern int ct_is_empty(void * data);
 
 /* gets a value or set an CT_EMPTY if the key is not there. the address
  * is returned and can be used to set a new value. */
-void ** ct_get_sure(ct_node_t * node, const char * key);
+void ** ct_get_sure(ct_t * ct, const char * key);
 
 /* add a new key/value. return CT_EXISTS if the key already
  * exists and CT_OK if not. when the key exists the value will not
  * be overwritten. */
-int ct_add(ct_node_t * node, const char * key, void * data);
+int ct_add(ct_t * ct, const char * key, void * data);
 
 /* return the value or NULL if the key does not exist. */
-void * ct_get(ct_node_t * node, const char * key);
+void * ct_get(ct_t * node, const char * key);
 
 /* remove a key/value and return the value. NULL will be returned if
  * the key did not exist. */
-void * ct_pop(ct_node_t * node, const char * key);
+void * ct_pop(ct_t * ct, const char * key);
 
-void ct_walk(ct_node_t * node, ct_cb_t cb, void * args);
-void ct_walkn(ct_node_t * node, size_t n, ct_cb_t cb, void * args);
+void ct_walk(ct_t * ct, ct_cb_t cb, void * args);
+void ct_walkn(ct_t * ct, size_t n, ct_cb_t cb, void * args);

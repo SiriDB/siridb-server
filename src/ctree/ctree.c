@@ -17,12 +17,17 @@
 #include <assert.h>
 #include <logger/logger.h>
 
+
+
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUFFER_ALLOC_SIZE 256
 
 static ct_node_t * new_node(const char * key, void * data);
-static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args);
-static int CT_add(ct_node_t * node, const char * key, void * data);
+static void walk(ct_t * ct, size_t * pn, ct_cb_t cb, void * args);
+static int CT_add(
+        ct_node_t * node,
+        const char * key,
+        void * data);
 static void * CT_get(ct_node_t * node, const char * key);
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void ** CT_get_sure(ct_node_t * node, const char * key);
@@ -37,57 +42,59 @@ static void CT_walk(
         ct_cb_t cb,
         void * args);
 
+static void CT_free(ct_node_t * node);
+static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb);
+
+
 static char dummy = '\0';
 char * CT_EMPTY = &dummy;
 
-ct_node_t * ct_new(void)
+ct_t * ct_new(void)
 {
-    ct_node_t * node = (ct_node_t *) malloc(sizeof(ct_node_t));
-    node->data = NULL;
-    node->key = NULL;
-    node->size = 0;
-    node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-    return node;
+    ct_t * ct = (ct_t *) malloc(sizeof(ct_t));
+    ct->len = 0;
+    ct->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+    return ct;
 }
 
-void ct_free(ct_node_t * node)
+void ct_free(ct_t * ct)
 {
-    if (node->nodes != NULL)
+    if (ct->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
-            if ((*node->nodes)[i] != NULL)
-                ct_free((*node->nodes)[i]);
-        free(node->nodes);
+            if ((*ct->nodes)[i] != NULL)
+                CT_free((*ct->nodes)[i]);
+        free(ct->nodes);
     }
-    free(node->key);
-    free(node);
+    free(ct);
 }
 
-void ct_free_cb(ct_node_t * node, ct_free_cb_t cb)
+
+
+void ct_free_cb(ct_t * ct, ct_free_cb_t cb)
 {
-    if (node->nodes != NULL)
+    if (ct->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
-            if ((*node->nodes)[i] != NULL)
-                ct_free_cb((*node->nodes)[i], cb);
-        free(node->nodes);
+            if ((*ct->nodes)[i] != NULL)
+                CT_free_cb((*ct->nodes)[i], cb);
+        free(ct->nodes);
     }
-    if (node->data != NULL)
-        cb(node->data);
-    free(node->key);
-    free(node);
+    free(ct);
 }
+
+
 
 inline int ct_is_empty(void * data)
 {
     return data == CT_EMPTY;
 }
 
-void ** ct_get_sure(ct_node_t * node, const char * key)
+void ** ct_get_sure(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
 
-    nd = &(*node->nodes)[(uint_fast8_t) *key];
+    nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
         return CT_get_sure(*nd, key + 1);
@@ -97,49 +104,63 @@ void ** ct_get_sure(ct_node_t * node, const char * key)
     return &(*nd)->data;
 }
 
-int ct_add(ct_node_t * node, const char * key, void * data)
+int ct_add(ct_t * ct, const char * key, void * data)
 {
+    int rc;
     ct_node_t ** nd;
 
-    nd = &(*node->nodes)[(uint_fast8_t) *key];
+    nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
-        return CT_add(*nd, key + 1, data);
+    {
+        rc = CT_add(*nd, key + 1, data);
+    }
+    else
+    {
+        *nd = new_node(key + 1, data);
+    }
 
-    *nd = new_node(key + 1, data);
+    if (rc == CT_OK)
+        ct->len++;
 
     return CT_OK;
 }
 
-void * ct_get(ct_node_t * node, const char * key)
+void * ct_get(ct_t * ct, const char * key)
 {
     ct_node_t * nd;
 
-    nd = (*node->nodes)[(uint_fast8_t) *key];
+    nd = (*ct->nodes)[(uint_fast8_t) *key];
 
     return (nd == NULL) ? NULL : CT_get(nd, key + 1);
 }
 
-void * ct_pop(ct_node_t * node, const char * key)
+void * ct_pop(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
+    void * data;
 
-    nd = &(*node->nodes)[(uint_fast8_t) *key];
+    nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
-    return (*nd == NULL) ? NULL : CT_pop(NULL, nd, key + 1);
+    data = (*nd == NULL) ? NULL : CT_pop(NULL, nd, key + 1);
+
+    if (data != NULL)
+        ct->len--;
+
+    return data;
 }
 
-void ct_walk(ct_node_t * node, ct_cb_t cb, void * args)
+void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
 {
-    walk(node, NULL, cb, args);
+    walk(ct, NULL, cb, args);
 }
 
-void ct_walkn(ct_node_t * node, size_t n, ct_cb_t cb, void * args)
+void ct_walkn(ct_t * ct, size_t n, ct_cb_t cb, void * args)
 {
-    walk(node, &n, cb, args);
+    walk(ct, &n, cb, args);
 }
 
-static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args)
+static void walk(ct_t * ct, size_t * pn, ct_cb_t cb, void * args)
 {
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
@@ -147,7 +168,7 @@ static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args)
     char * buffer = (char *) malloc(buffer_sz);
     for (*buffer = 255; (pn == NULL || *pn) && (*buffer)--;)
     {
-        if ((nd = (*node->nodes)[(uint_fast8_t) *buffer]) == NULL)
+        if ((nd = (*ct->nodes)[(uint_fast8_t) *buffer]) == NULL)
             continue;
         CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
     }
@@ -195,7 +216,10 @@ static void CT_walk(
     }
 }
 
-static int CT_add(ct_node_t * node, const char * key, void * data)
+static int CT_add(
+        ct_node_t * node,
+        const char * key,
+        void * data)
 {
     char * pt = node->key;
 
@@ -468,7 +492,7 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                 if ((*nd)->size == 0)
                 {
                     /* no child nodes, lets clean up this node */
-                    ct_free(node);
+                    CT_free(node);
 
                     /* make sure to set the node to NULL so the parent
                      * can do its cleanup correctly */
@@ -517,4 +541,32 @@ static ct_node_t * new_node(const char * key, void * data)
     node->nodes = NULL;
 
     return node;
+}
+
+static void CT_free(ct_node_t * node)
+{
+    if (node->nodes != NULL)
+    {
+        for (uint_fast16_t i = 256; i--;)
+            if ((*node->nodes)[i] != NULL)
+                CT_free((*node->nodes)[i]);
+        free(node->nodes);
+    }
+    free(node->key);
+    free(node);
+}
+
+static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb)
+{
+    if (node->nodes != NULL)
+    {
+        for (uint_fast16_t i = 256; i--;)
+            if ((*node->nodes)[i] != NULL)
+                CT_free_cb((*node->nodes)[i], cb);
+        free(node->nodes);
+    }
+    if (node->data != NULL)
+        cb(node->data);
+    free(node->key);
+    free(node);
 }

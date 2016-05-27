@@ -59,6 +59,7 @@ static void exit_between_expr(uv_async_t * handle);
 static void exit_calc_stmt(uv_async_t * handle);
 static void exit_count_series_stmt(uv_async_t * handle);
 static void exit_create_user_stmt(uv_async_t * handle);
+static void exit_drop_series_stmt(uv_async_t * handle);
 static void exit_drop_shard_stmt(uv_async_t * handle);
 static void exit_drop_user_stmt(uv_async_t * handle);
 static void exit_grant_user_stmt(uv_async_t * handle);
@@ -124,6 +125,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
     siriparser_listen_exit[CLERI_GID_COUNT_SERIES_STMT] = exit_count_series_stmt;
     siriparser_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
+    siriparser_listen_exit[CLERI_GID_DROP_SERIES_STMT] = exit_drop_series_stmt;
     siriparser_listen_exit[CLERI_GID_DROP_SHARD_STMT] = exit_drop_shard_stmt;
     siriparser_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
     siriparser_listen_exit[CLERI_GID_GRANT_USER_STMT] = exit_grant_user_stmt;
@@ -216,6 +218,12 @@ static void enter_create_user_stmt(uv_async_t * handle)
 static void enter_drop_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    query->packer = qp_new_packer(1024);
+    qp_add_type(query->packer, QP_MAP_OPEN);
+
+    query->data = query_drop_new();
+    query->free_cb = (uv_close_cb) query_drop_free;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
     SIRIPARSER_NEXT_NODE
@@ -540,6 +548,19 @@ static void exit_create_user_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
+static void exit_drop_series_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
+
+    uv_mutex_lock(&siridb->series_mutex);
+
+    uv_mutex_unlock(&siridb->series_mutex);
+
+    SIRIPARSER_NEXT_NODE
+}
+
 static void exit_drop_shard_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -553,7 +574,11 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
 
     int64_t shard_id = atoll(shard_id_node->str);
 
+    uv_mutex_lock(&siridb->shards_mutex);
+
     siridb_shard_t * shard = imap64_pop(siridb->shards, shard_id);
+
+    uv_mutex_unlock(&siridb->shards_mutex);
 
     if (shard == NULL)
     {
@@ -564,12 +589,17 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
     }
     else
     {
-        query->data = shard;
+        ((query_drop_t *) query->data)->data = shard;
+
+        /* We need a series mutex here since we depend on the series index */
+        uv_mutex_lock(&siridb->series_mutex);
 
         imap32_walk(
                 siridb->series_map,
                 (imap32_cb_t) walk_drop_shard,
                 (void *) handle);
+
+        uv_mutex_unlock(&siridb->series_mutex);
 
         shard->status |= SIRIDB_SHARD_WILL_BE_REMOVED;
 
@@ -595,9 +625,6 @@ static void exit_drop_user_stmt(uv_async_t * handle)
             username,
             query->err_msg))
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
-
-    query->packer = qp_new_packer(1024);
-    qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
@@ -722,9 +749,14 @@ static void exit_revoke_user_stmt(uv_async_t * handle)
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
+    uv_mutex_lock(&siridb->series_mutex);
 
     ct_walk(((query_select_t *) query->data)->ct_series,
             (ct_cb_t) &walk_select, handle);
+
+    uv_mutex_unlock(&siridb->series_mutex);
 
     SIRIPARSER_NEXT_NODE
 }
