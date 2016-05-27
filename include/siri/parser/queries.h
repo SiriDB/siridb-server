@@ -16,7 +16,7 @@
 #include <cleri/parser.h>
 #include <ctree/ctree.h>
 
-#define W0_CT_SERIES ct_node_t * ct_series;
+#define W0_CT_SERIES ct_t * ct_series;
 #define W1_WHERE_NODE cleri_node_t * where_node;
 #define W2_COLUMNS cleri_children_t * columms;
 
