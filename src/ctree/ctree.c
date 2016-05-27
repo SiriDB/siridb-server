@@ -15,19 +15,20 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <logger/logger.h>
 
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUFFER_ALLOC_SIZE 256
 
 static ct_node_t * new_node(const char * key, void * data);
 static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args);
-static int pv_add(ct_node_t * node, const char * key, void * data);
-static void * pv_get(ct_node_t * node, const char * key);
-static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
-static void ** pv_get_sure(ct_node_t * node, const char * key);
-static void pv_dec_node(ct_node_t * node);
-static void pv_merge_node(ct_node_t * node);
-static void pv_walk(
+static int CT_add(ct_node_t * node, const char * key, void * data);
+static void * CT_get(ct_node_t * node, const char * key);
+static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
+static void ** CT_get_sure(ct_node_t * node, const char * key);
+static void CT_dec_node(ct_node_t * node);
+static void CT_merge_node(ct_node_t * node);
+static void CT_walk(
         ct_node_t * node,
         size_t * pn,
         size_t len,
@@ -51,14 +52,28 @@ ct_node_t * ct_new(void)
 
 void ct_free(ct_node_t * node)
 {
-    int i = 255;
     if (node->nodes != NULL)
     {
-        while (i--)
+        for (uint_fast16_t i = 256; i--;)
             if ((*node->nodes)[i] != NULL)
                 ct_free((*node->nodes)[i]);
+        free(node->nodes);
     }
-    free(node->nodes);
+    free(node->key);
+    free(node);
+}
+
+void ct_free_cb(ct_node_t * node, ct_free_cb_t cb)
+{
+    if (node->nodes != NULL)
+    {
+        for (uint_fast16_t i = 256; i--;)
+            if ((*node->nodes)[i] != NULL)
+                ct_free_cb((*node->nodes)[i], cb);
+        free(node->nodes);
+    }
+    if (node->data != NULL)
+        cb(node->data);
     free(node->key);
     free(node);
 }
@@ -68,7 +83,6 @@ inline int ct_is_empty(void * data)
     return data == CT_EMPTY;
 }
 
-
 void ** ct_get_sure(ct_node_t * node, const char * key)
 {
     ct_node_t ** nd;
@@ -76,7 +90,7 @@ void ** ct_get_sure(ct_node_t * node, const char * key)
     nd = &(*node->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
-        return pv_get_sure(*nd, key + 1);
+        return CT_get_sure(*nd, key + 1);
 
     *nd = new_node(key + 1, CT_EMPTY);
 
@@ -90,7 +104,7 @@ int ct_add(ct_node_t * node, const char * key, void * data)
     nd = &(*node->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
-        return pv_add(*nd, key + 1, data);
+        return CT_add(*nd, key + 1, data);
 
     *nd = new_node(key + 1, data);
 
@@ -103,7 +117,7 @@ void * ct_get(ct_node_t * node, const char * key)
 
     nd = (*node->nodes)[(uint_fast8_t) *key];
 
-    return (nd == NULL) ? NULL : pv_get(nd, key + 1);
+    return (nd == NULL) ? NULL : CT_get(nd, key + 1);
 }
 
 void * ct_pop(ct_node_t * node, const char * key)
@@ -112,7 +126,7 @@ void * ct_pop(ct_node_t * node, const char * key)
 
     nd = &(*node->nodes)[(uint_fast8_t) *key];
 
-    return (*nd == NULL) ? NULL : pv_pop(NULL, nd, key + 1);
+    return (*nd == NULL) ? NULL : CT_pop(NULL, nd, key + 1);
 }
 
 void ct_walk(ct_node_t * node, ct_cb_t cb, void * args)
@@ -135,11 +149,11 @@ static void walk(ct_node_t * node, size_t * pn, ct_cb_t cb, void * args)
     {
         if ((nd = (*node->nodes)[(uint_fast8_t) *buffer]) == NULL)
             continue;
-        pv_walk(nd, pn, len, buffer_sz, buffer, cb, args);
+        CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
     }
 }
 
-static void pv_walk(
+static void CT_walk(
         ct_node_t * node,
         size_t * pn,
         size_t len,
@@ -176,12 +190,12 @@ static void pv_walk(
         {
             if ((nd = (*node->nodes)[(uint_fast8_t) *pt]) == NULL)
                 continue;
-            pv_walk(nd, pn, len, buffer_sz, buffer, cb, args);
+            CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
 }
 
-static int pv_add(ct_node_t * node, const char * key, void * data)
+static int CT_add(ct_node_t * node, const char * key, void * data)
 {
     char * pt = node->key;
 
@@ -214,7 +228,7 @@ static int pv_add(ct_node_t * node, const char * key, void * data)
             ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
 
             if (*nd != NULL)
-                return pv_add(*nd, key + 1, data);
+                return CT_add(*nd, key + 1, data);
 
             node->size++;
             *nd = new_node(key + 1, data);
@@ -270,7 +284,7 @@ static int pv_add(ct_node_t * node, const char * key, void * data)
     return CT_CRITICAL;
 }
 
-static void * pv_get(ct_node_t * node, const char * key)
+static void * CT_get(ct_node_t * node, const char * key)
 {
     char * pt = node->key;
 
@@ -286,7 +300,7 @@ static void * pv_get(ct_node_t * node, const char * key)
 
             ct_node_t * nd = (*node->nodes)[(uint_fast8_t) *key];
 
-            return (nd == NULL) ? NULL : pv_get(nd, key + 1);
+            return (nd == NULL) ? NULL : CT_get(nd, key + 1);
         }
         if (*key != *pt)
             return NULL;
@@ -296,7 +310,7 @@ static void * pv_get(ct_node_t * node, const char * key)
     return NULL;
 }
 
-static void ** pv_get_sure(ct_node_t * node, const char * key)
+static void ** CT_get_sure(ct_node_t * node, const char * key)
 {
     char * pt = node->key;
 
@@ -323,7 +337,7 @@ static void ** pv_get_sure(ct_node_t * node, const char * key)
             ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
 
             if (*nd != NULL)
-                return pv_get_sure(*nd, key + 1);
+                return CT_get_sure(*nd, key + 1);
 
             node->size++;
 
@@ -372,7 +386,7 @@ static void ** pv_get_sure(ct_node_t * node, const char * key)
     return NULL;
 }
 
-static void pv_merge_node(ct_node_t * node)
+static void CT_merge_node(ct_node_t * node)
 {
     /* this function should only be called when 1 node is left and the
      * node itself has no data
@@ -417,7 +431,7 @@ static void pv_merge_node(ct_node_t * node)
     free(child_node);
 }
 
-static void pv_dec_node(ct_node_t * node)
+static void CT_dec_node(ct_node_t * node)
 {
     if (node == NULL)
         /* this is the root node */
@@ -435,11 +449,11 @@ static void pv_dec_node(ct_node_t * node)
     }
     else if (node->size == 1 && node->data == NULL)
     {
-        pv_merge_node(node);
+        CT_merge_node(node);
     }
 }
 
-static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
+static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 {
     char * pt = (*nd)->key;
     ct_node_t * node = *nd;
@@ -461,7 +475,7 @@ static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                     *nd = NULL;
 
                     /* size of parent should be minus one */
-                    pv_dec_node(parent);
+                    CT_dec_node(parent);
 
                     return data;
                 }
@@ -471,7 +485,7 @@ static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                 if (node->size == 1)
                     /* we have only one child, we can merge this
                      * child with this one */
-                    pv_merge_node(*nd);
+                    CT_merge_node(*nd);
 
                 return data;
             }
@@ -482,7 +496,7 @@ static void * pv_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 
             ct_node_t ** next = &(*node->nodes)[(uint_fast8_t) *key];
 
-            return (*next == NULL) ? NULL : pv_pop(node, next, key + 1);
+            return (*next == NULL) ? NULL : CT_pop(node, next, key + 1);
         }
         if (*key != *pt)
             /* nothing to pop */

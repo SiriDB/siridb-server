@@ -20,3 +20,7 @@ void walk_select(
         const char * series_name,
         struct siridb_series_s * series,
         uv_async_t * handle);
+
+void walk_drop_shard(
+        siridb_series_t * series,
+        uv_async_t * handle);

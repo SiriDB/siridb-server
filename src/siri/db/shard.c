@@ -20,10 +20,11 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include <unistd.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
-char fn[PATH_MAX];                                             \
+shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                                                          \
 sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
             SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
 
@@ -40,6 +41,7 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
 
 #define HEADER_SCHEMA 8
 #define HEADER_TP 9
+#define HEADER_STATUS 11
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint32_t)  START_TS
@@ -60,10 +62,18 @@ static int load_idx_num32(
         siridb_shard_t * shard,
         FILE * fp);
 
-void siridb_shard_free(siridb_shard_t * shard)
+static void shard_free(siridb_shard_t * shard);
+
+static void init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
-    siri_fp_decref(shard->fp);
-    free(shard);
+    char fn[PATH_MAX];
+    sprintf(fn,
+            "%s%s%ld%s",
+            siridb->dbpath,
+            SIRIDB_SHARDS_PATH,
+            shard->id,
+            ".sdb");
+    shard->fn = strdup(fn);
 }
 
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
@@ -72,27 +82,28 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
     shard->fp = siri_fp_new();
     shard->id = id;
+    shard->ref = 1;
+    init_fn(siridb, shard);
     FILE * fp;
 
     log_debug("Loading shard %ld", id);
 
-    /* we are sure this fits since the max possible length is checked */
-    GET_FN(shard)
-    if ((fp = fopen(fn, "r")) == NULL)
+    if ((fp = fopen(shard->fn, "r")) == NULL)
     {
-        siridb_shard_free(shard);
-        log_error("Cannot open file for reading: '%s'", fn);
+        siridb_shard_decref(shard);
+        log_error("Cannot open file for reading: '%s'", shard->fn);
         return -1;
     }
 
     char header[HEADER_SIZE];
     if (fread(&header, HEADER_SIZE, 1, fp) != 1)
     {
-        siridb_shard_free(shard);
-        log_critical("Missing header in shard file: '%s'", fn);
+        siridb_shard_decref(shard);
+        log_critical("Missing header in shard file: '%s'", shard->fn);
         return -1;
     }
     shard->tp = (uint8_t) header[HEADER_TP];
+    shard->status = (uint8_t) header[HEADER_STATUS];
 
     load_idx_num32(siridb, shard, fp);
     fclose(fp);
@@ -116,12 +127,11 @@ siridb_shard_t *  siridb_shard_create(
     shard->status = 0;
     FILE * fp;
 
-    GET_FN(shard)
-    if ((fp = fopen(fn, "w")) == NULL)
+    if ((fp = fopen(shard->fn, "w")) == NULL)
     {
         free(shard);
         perror("Error");
-        log_critical("Cannot create shard file: '%s'", fn);
+        log_critical("Cannot create shard file: '%s'", shard->fn);
         return NULL;
     }
 
@@ -136,7 +146,7 @@ siridb_shard_t *  siridb_shard_create(
     imap64_add(siridb->shards, id, shard);
 
     /* this is not critical at this point */
-    siri_fopen(siri.fh, shard->fp, fn, "r+");
+    siri_fopen(siri.fh, shard->fp, shard->fn, "r+");
 
     return shard;
 }
@@ -154,10 +164,11 @@ int siridb_shard_write_points(
 
     if (shard->fp->fp == NULL)
     {
-        GET_FN(shard)
-        if (siri_fopen(siri.fh, shard->fp, fn, "r+"))
+        if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
         {
-            log_critical("Cannot open file '%s', skip writing points", fn);
+            log_critical(
+                    "Cannot open file '%s', skip writing points",
+                    shard->fn);
             return -1;
         }
     }
@@ -191,7 +202,6 @@ int siridb_shard_write_points(
 }
 
 int siridb_shard_get_points_num32(
-        siridb_t * siridb,
         siridb_points_t * points,
         idx_num32_t * idx,
         uint64_t * start_ts,
@@ -204,10 +214,11 @@ int siridb_shard_get_points_num32(
 
     if (idx->shard->fp->fp == NULL)
     {
-        GET_FN(idx->shard)
-        if (siri_fopen(siri.fh, idx->shard->fp, fn, "r+"))
+        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
         {
-            log_critical("Cannot open file '%s', skip reading points", fn);
+            log_critical(
+                    "Cannot open file '%s', skip reading points",
+                    idx->shard->fn);
             return -1;
         }
     }
@@ -228,8 +239,6 @@ int siridb_shard_get_points_num32(
     /* crop from start if needed */
     if (start_ts != NULL)
         for (; *pt < *start_ts; pt += 3, len--);
-
-    assert (points->len < len);
 
     /* crop from end if needed */
     if (end_ts != NULL)
@@ -256,6 +265,74 @@ int siridb_shard_get_points_num32(
         }
     }
     return 0;
+}
+
+void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
+{
+    if (    siri.optimize->status == SIRI_OPTIMIZE_CANCELLED ||
+            (shard->status & (SIRIDB_SHARD_OK | SIRIDB_SHARD_WILL_BE_REMOVED)))
+        return;
+    siridb_shard_incref(shard);
+    log_info("Start optimizing shard id %ld (%d)", shard->id, shard->status);
+
+    sleep(1);
+    log_info("Finished optimizing shard id %ld", shard->id);
+    siridb_shard_decref(shard);
+}
+
+void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard)
+{
+    if (shard->fp->fp == NULL)
+    {
+        if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
+        {
+            log_critical(
+                    "Cannot open file '%s', skip writing status",
+                    shard->fn);
+            return;
+        }
+    }
+    fseek(shard->fp->fp, HEADER_STATUS, SEEK_SET);
+    fputc(shard->status, shard->fp->fp);
+}
+
+inline void siridb_shard_incref(siridb_shard_t * shard)
+{
+    shard->ref++;
+}
+
+inline void siridb_shard_decref(siridb_shard_t * shard)
+{
+    if (!--shard->ref)
+        shard_free(shard);
+}
+
+static void shard_free(siridb_shard_t * shard)
+{
+    log_debug("FREE SHARD!");
+
+    /* this will close the file, even when other references exist */
+    siri_fp_decref(shard->fp);
+
+    /* check if we need to remove the shard file */
+    if (shard->status & SIRIDB_SHARD_WILL_BE_REMOVED)
+    {
+        int rc;
+        rc = remove(shard->fn);
+        if (rc == 0)
+        {
+            log_debug("Shard file removed: %s", shard->fn);
+        }
+        else
+        {
+            log_critical(
+                    "Cannot remove shard file: %s (error code: %d)",
+                    shard->fn,
+                    rc);
+        }
+    }
+    free(shard->fn);
+    free(shard);
 }
 
 static int load_idx_num32(

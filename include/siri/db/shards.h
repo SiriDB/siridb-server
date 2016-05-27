@@ -15,7 +15,13 @@
 
 #define SIRIDB_SHARDS_PATH "shards/"
 
-struct siridb_s;
+typedef struct siridb_s siridb_t;
 
-int siridb_load_shards(struct siridb_s * siridb);
+typedef struct siridb_shards_s
+{
 
+} siridb_shards_t;
+
+int siridb_shards_load(siridb_t * siridb);
+
+void siridb_shards_destroy(siridb_shards_t * shards);

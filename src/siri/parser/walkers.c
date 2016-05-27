@@ -13,6 +13,7 @@
 #include <siri/parser/queries.h>
 #include <siri/db/query.h>
 #include <siri/net/handle.h>
+#include <siri/db/series.h>
 
 
 void walk_select(
@@ -28,7 +29,6 @@ void walk_select(
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     siridb_points_t * points = siridb_series_get_points_num32(
-            ((sirinet_handle_t *) query->client->data)->siridb,
             series,
             q_select->start_ts,
             q_select->end_ts);
@@ -56,4 +56,16 @@ void walk_select(
     siridb_free_points(points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
+}
+
+void walk_drop_shard(
+        siridb_series_t * series,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    siridb_series_remove_shard_num32(
+            ((sirinet_handle_t *) query->client->data)->siridb,
+            series,
+            (siridb_shard_t *) query->data);
 }

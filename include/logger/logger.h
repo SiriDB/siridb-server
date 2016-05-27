@@ -36,4 +36,4 @@ void log_warning(char * fmt, ...);
 void log_error(char * fmt, ...);
 void log_critical(char * fmt, ...);
 
-logger_t Logger;
+extern logger_t Logger;

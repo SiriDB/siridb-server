@@ -16,55 +16,63 @@
 #include <siri/db/series.h>
 #include <siri/filehandler.h>
 
-#define SIRIDB_SHARD_HAS_OVERLAP 1
-#define SIRIDB_SHARD_MANUAL_OPTIMIZE 2
+#define SIRIDB_SHARD_OK 0
+#define SIRIDB_SHARD_MANUAL_OPTIMIZE 1
+#define SIRIDB_SHARD_HAS_OVERLAP 2
 #define SIRIDB_SHARD_HAS_NEW_VALUES 4
 #define SIRIDB_SHARD_HAS_REMOVED_SERIES 8
+#define SIRIDB_SHARD_WILL_BE_REMOVED 16
+#define SIRIDB_SHARD_WILL_BE_REPLACED 32
 
-struct siridb_s;
-struct siridb_points_s;
-struct siridb_series_s;
-struct idx_num32_s;
-struct idx_num64_s;
+typedef struct siridb_s siridb_t;
+typedef struct siridb_points_s siridb_points_t;
+typedef struct siridb_series_s siridb_series_t;
+typedef struct idx_num32_s idx_num32_t;
+typedef struct idx_num64_s idx_num64_t;
 
 typedef struct siridb_shard_s
 {
     uint64_t id;
     uint8_t tp; /* SIRIDB_SERIES_TP_INT, ...DOUBLE or ...STRING */
     uint8_t status;
+    uint8_t ref;
     siri_fp_t * fp;
+    char * fn;
 } siridb_shard_t;
 
 siridb_shard_t * siridb_shard_create(
-        struct siridb_s * siridb,
+        siridb_t * siridb,
         uint64_t id,
         uint64_t duration,
         uint8_t tp);
 
-int siridb_shard_load(struct siridb_s * siridb, uint64_t id);
+int siridb_shard_load(siridb_t * siridb, uint64_t id);
 
-void siridb_shard_free(siridb_shard_t * shard);
+void siridb_shard_incref(siridb_shard_t * shard);
+void siridb_shard_decref(siridb_shard_t * shard);
 
 int siridb_shard_write_points(
-        struct siridb_s * siridb,
-        struct siridb_series_s * series,
+        siridb_t * siridb,
+        siridb_series_t * series,
         siridb_shard_t * shard,
-        struct siridb_points_s * points,
+        siridb_points_t * points,
         uint32_t start,
         uint32_t end);
 
 int siridb_shard_get_points_num32(
-        struct siridb_s * siridb,
-        struct siridb_points_s * points,
-        struct idx_num32_s * idx,
+        siridb_points_t * points,
+        idx_num32_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
 
 int siridb_shard_get_points_num64(
-        struct siridb_s * siridb,
-        struct siridb_points_s * points,
-        struct idx_num64_s * idx,
+        siridb_t * siridb,
+        siridb_points_t * points,
+        idx_num64_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
+
+void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
+void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard);

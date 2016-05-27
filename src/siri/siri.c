@@ -39,6 +39,9 @@ static void signal_handler(uv_signal_t * req, int signum);
 static int siridb_load_databases(void);
 static void walk_close_handlers(uv_handle_t * handle, void * arg);
 
+#define N_SIGNALS 3
+static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV};
+
 siri_t siri = {
         .grammar=NULL,
         .loop=NULL,
@@ -48,6 +51,7 @@ siri_t siri = {
         .cfg=NULL,
         .args=NULL
 };
+
 
 void siri_setup_logger(void)
 {
@@ -239,7 +243,7 @@ static int siridb_load_databases(void)
         }
 
         /* load shards */
-        if (siridb_load_shards(siridb))
+        if (siridb_shards_load(siridb))
         {
             log_error("Could not read shards for database '%s'", siridb->dbname);
             closedir(db_container_path);
@@ -259,7 +263,7 @@ static int siridb_load_databases(void)
 int siri_start(void)
 {
     int rc;
-    uv_signal_t sig;
+    uv_signal_t sig[N_SIGNALS];
 
     /* initialize listener (set enter and exit functions) */
     siriparser_init_listener();
@@ -290,9 +294,12 @@ int siri_start(void)
     /* initialize optimize task (bind siri.optimize) */
     siri_optimize_init(&siri);
 
-    /* bind signal to the event loop */
-    uv_signal_init(siri.loop, &sig);
-    uv_signal_start(&sig, signal_handler, SIGINT);
+    /* bind signals to the event loop */
+    for (int i = 0; i < N_SIGNALS; i++)
+    {
+        uv_signal_init(siri.loop, &sig[i]);
+        uv_signal_start(&sig[i], signal_handler, signals[i]);
+    }
 
     /* initialize the client server */
     if ((rc = sirinet_clserver_init(&siri)))
@@ -335,10 +342,10 @@ static void close_handlers(void)
 
 static void signal_handler(uv_signal_t * req, int signum)
 {
-    log_debug("You pressed CTRL+C, let's stop the event loop..");
+    log_debug("Asked SiriDB Server to stop (%d)", signum);
 
-    /* destroy optimize task */
-    siri_optimize_destroy();
+    /* cancel optimize task */
+    siri_optimize_cancel();
 
     uv_stop(siri.loop);
 

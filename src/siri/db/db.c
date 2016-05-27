@@ -234,17 +234,14 @@ static void siridb_free(siridb_t * siridb)
         /* free pools */
         siridb_pools_free(siridb->pools);
 
-        /* free c-tree lookup */
-        ct_free(siridb->series);
-
-        /* free series using imap32 */
-        imap32_walk(siridb->series_map, (imap32_cb_t) &siridb_series_free, NULL);
-
         /* free imap32 (series) */
         imap32_free(siridb->series_map);
 
+        /* free c-tree lookup and series */
+        ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
+
         /* free shards using imap64 */
-        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_free, NULL);
+        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
 
         /* free imap64 (shards) */
         imap64_free(siridb->shards);

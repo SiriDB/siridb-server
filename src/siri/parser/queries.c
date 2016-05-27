@@ -46,7 +46,7 @@ void query_select_free(uv_handle_t * handle)
     query_select_t * q_select = (query_select_t *) query->data;
 
     if (q_select->ct_series != NULL)
-        ct_free(q_select->ct_series);
+        ct_free_cb(q_select->ct_series, &siridb_series_decref);
 
     free(q_select);
 
@@ -61,7 +61,7 @@ void query_list_free(uv_handle_t * handle)
     query_list_t * q_list = (query_list_t *) query->data;
 
     if (q_list->ct_series != NULL)
-        ct_free(q_list->ct_series);
+        ct_free_cb(q_list->ct_series, &siridb_series_decref);
 
     free(q_list);
 
@@ -76,7 +76,7 @@ void query_count_free(uv_handle_t * handle)
     query_count_t * q_count = (query_count_t *) query->data;
 
     if (q_count->ct_series != NULL)
-        ct_free(q_count->ct_series);
+        ct_free_cb(q_count->ct_series, &siridb_series_decref);
 
     free(q_count);
 

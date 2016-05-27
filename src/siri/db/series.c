@@ -25,6 +25,7 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 
 static int save_series(siridb_t * siridb);
+static void series_free(siridb_series_t * series);
 
 static void pack_series(
         const char * key,
@@ -103,13 +104,7 @@ siridb_series_t * siridb_series_new(
     return series;
 }
 
-void siridb_series_free(siridb_series_t * series)
-{
-    siridb_free_buffer(series->buffer);
-    free(series->index->idx);
-    free(series->index);
-    free(series);
-}
+
 
 int siridb_series_load(siridb_t * siridb)
 {
@@ -222,8 +217,43 @@ void siridb_series_add_idx_num32(
     }
 }
 
-siridb_points_t * siridb_series_get_points_num32(
+void siridb_series_remove_shard_num32(
         siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard)
+{
+    if (shard->id % siridb->duration_num != series->mask)
+        return;
+
+    idx_num32_t * idx;
+    uint_fast32_t i, offset;
+
+    i = offset = 0;
+
+    for (   idx = (idx_num32_t *) series->index->idx;
+            i < series->index->len;
+            i++, idx++)
+    {
+        if (idx->shard == shard)
+        {
+            offset++;
+        }
+        else if (offset)
+        {
+            ((idx_num32_t *) series->index->idx)[i - offset] =
+                    ((idx_num32_t *) series->index->idx)[i];
+        }
+    }
+    if (offset)
+    {
+        series->index->len -= offset;
+        series->index->idx = (idx_num32_t *) realloc(
+                    (idx_num32_t *) series->index->idx,
+                    series->index->len * sizeof(idx_num32_t));
+    }
+}
+
+siridb_points_t * siridb_series_get_points_num32(
         siridb_series_t * series,
         uint64_t * start_ts,
         uint64_t * end_ts)
@@ -256,7 +286,6 @@ siridb_points_t * siridb_series_get_points_num32(
     for (i = 0; i < len; i++)
     {
         siridb_shard_get_points_num32(
-                siridb,
                 points,
                 (idx_num32_t *) series->index->idx + indexes[i],
                 start_ts,
@@ -286,11 +315,35 @@ siridb_points_t * siridb_series_get_points_num32(
         /* shrink allocation size */
         points->data = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+#ifdef DEBUG
     else
         /* size must be equal if not smaller */
         assert (points->len == size);
+#endif
 
     return points;
+}
+
+inline void siridb_series_incref(siridb_series_t * series)
+{
+    series->ref++;
+}
+
+void siridb_series_decref(siridb_series_t * series)
+{
+    if (!--series->ref)
+    {
+        series_free(series);
+    }
+}
+
+static void series_free(siridb_series_t * series)
+{
+    log_debug("Free series!");
+    siridb_free_buffer(series->buffer);
+    free(series->index->idx);
+    free(series->index);
+    free(series);
 }
 
 static siridb_series_t * new_series(
@@ -304,6 +357,7 @@ static siridb_series_t * new_series(
     series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
     series->id = id;
     series->tp = tp;
+    series->ref = 1;
     series->buffer = NULL;
     series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
     series->index->len = 0;

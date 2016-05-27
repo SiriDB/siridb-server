@@ -77,6 +77,7 @@ static cleri_node_t * cleri_parse_keyword(
     }
     else
     {
+        /* Update expecting */
         cleri_expecting_update(pr->expecting, cl_obj, str);
     }
     return node;

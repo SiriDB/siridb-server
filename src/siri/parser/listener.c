@@ -38,6 +38,7 @@ static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_user_stmt(uv_async_t * handle);
 static void enter_count_stmt(uv_async_t * handle);
 static void enter_create_user_stmt(uv_async_t * handle);
+static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_stmt(uv_async_t * handle);
 static void enter_grant_user_stmt(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
@@ -58,6 +59,7 @@ static void exit_between_expr(uv_async_t * handle);
 static void exit_calc_stmt(uv_async_t * handle);
 static void exit_count_series_stmt(uv_async_t * handle);
 static void exit_create_user_stmt(uv_async_t * handle);
+static void exit_drop_shard_stmt(uv_async_t * handle);
 static void exit_drop_user_stmt(uv_async_t * handle);
 static void exit_grant_user_stmt(uv_async_t * handle);
 static void exit_list_users_stmt(uv_async_t * handle);
@@ -100,6 +102,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_ALTER_USER_STMT] = enter_alter_user_stmt;
     siriparser_listen_enter[CLERI_GID_COUNT_STMT] = enter_count_stmt;
     siriparser_listen_enter[CLERI_GID_CREATE_USER_STMT] = enter_create_user_stmt;
+    siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_USER_STMT] = enter_grant_user_stmt;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
@@ -121,6 +124,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
     siriparser_listen_exit[CLERI_GID_COUNT_SERIES_STMT] = exit_count_series_stmt;
     siriparser_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
+    siriparser_listen_exit[CLERI_GID_DROP_SHARD_STMT] = exit_drop_shard_stmt;
     siriparser_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
     siriparser_listen_exit[CLERI_GID_GRANT_USER_STMT] = exit_grant_user_stmt;
     siriparser_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
@@ -206,6 +210,14 @@ static void enter_create_user_stmt(uv_async_t * handle)
     query->data = siridb_user_new();
     query->free_cb = (uv_close_cb) free_user_object;
 
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_drop_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
     SIRIPARSER_NEXT_NODE
 }
 
@@ -351,10 +363,13 @@ static void enter_series_name(uv_async_t * handle)
             return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
         }
 
-        /* bind the series to the query and ignore CT_EXISTS */
-        ct_add(((query_wrapper_ct_series_t *) query->data)->ct_series,
+        /* bind the series to the query, increment ref count if successful */
+        if (ct_add(((query_wrapper_ct_series_t *) query->data)->ct_series,
                 series_name,
-                series);
+                series) == CT_OK)
+        {
+            siridb_series_incref(series);
+        }
     }
 
     SIRIPARSER_NEXT_NODE
@@ -363,8 +378,6 @@ static void enter_series_name(uv_async_t * handle)
 static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    log_debug("enter series match");
 
     ((query_wrapper_ct_series_t *) query->data)->ct_series = ct_new();
 
@@ -524,6 +537,45 @@ static void exit_create_user_stmt(uv_async_t * handle)
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
             "User '%s' is created successfully.", user->username);
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_drop_shard_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    cleri_node_t * shard_id_node =
+                query->node_list->node->children->next->node;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
+    query->packer = qp_new_packer(1024);
+    qp_add_type(query->packer, QP_MAP_OPEN);
+
+    int64_t shard_id = atoll(shard_id_node->str);
+
+    siridb_shard_t * shard = imap64_pop(siridb->shards, shard_id);
+
+    if (shard == NULL)
+    {
+        log_debug(
+                "Cannot find shard '%ld' on server '%s'",
+                shard_id,
+                siridb->server->name);
+    }
+    else
+    {
+        query->data = shard;
+
+        imap32_walk(
+                siridb->series_map,
+                (imap32_cb_t) walk_drop_shard,
+                (void *) handle);
+
+        shard->status |= SIRIDB_SHARD_WILL_BE_REMOVED;
+
+        siridb_shard_decref(shard);
+    }
+
     SIRIPARSER_NEXT_NODE
 }
 

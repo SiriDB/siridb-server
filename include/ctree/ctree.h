@@ -37,12 +37,17 @@ typedef struct ct_node_s
 } ct_node_t;
 
 typedef void (*ct_cb_t)(const char * key, void * data, void * args);
+typedef void (*ct_free_cb_t)(void * data);
 
 /* create a new compact binary tree */
 ct_node_t * ct_new(void);
 
 /* call ct_free when finished using ct */
 void ct_free(ct_node_t * node);
+
+/* the callback will be called before freeing the node. this can be used
+ * to perform some action on the data when freeing the c-tree. */
+void ct_free_cb(ct_node_t * node, ct_free_cb_t cb);
 
 /* can be used to check if get_sure has set an CT_EMPTY */
 extern int ct_is_empty(void * data);

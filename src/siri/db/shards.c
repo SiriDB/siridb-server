@@ -44,7 +44,7 @@ static bool is_temp_shard_fn(const char * fn)
     return is_shard_fn(fn);
 }
 
-int siridb_load_shards(struct siridb_s * siridb)
+int siridb_shards_load(struct siridb_s * siridb)
 {
     struct stat st = {0};
     struct dirent * shard_d;
@@ -121,8 +121,3 @@ int siridb_load_shards(struct siridb_s * siridb)
     return 0;
 }
 
-FILE * siridb_open_shard(siridb_shard_t * shard)
-{
-//    siri.max_open_files
-    return NULL;
-}

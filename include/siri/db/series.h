@@ -61,10 +61,11 @@ typedef struct siridb_series_idx_s
 typedef struct siridb_series_s
 {
     uint32_t id;
-    uint8_t tp;
+    uint16_t ref;
     uint16_t mask;
     siridb_buffer_t * buffer;
     siridb_series_idx_t * index;
+    uint8_t tp;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
@@ -74,7 +75,8 @@ siridb_series_t * siridb_series_new(
         const char * series_name,
         uint8_t tp);
 
-void siridb_series_free(siridb_series_t * series);
+void siridb_series_incref(siridb_series_t * series);
+void siridb_series_decref(siridb_series_t * series);
 
 void siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
@@ -99,7 +101,11 @@ void siridb_series_add_point(
         qp_via_t * val);
 
 siridb_points_t * siridb_series_get_points_num32(
-        siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * start_ts,
         uint64_t * end_ts);
+
+void siridb_series_remove_shard_num32(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard);
