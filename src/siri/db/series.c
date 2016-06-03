@@ -562,7 +562,7 @@ static int update_max_series_id(siridb_t * siridb)
      */
     int rc = 0;
     FILE * fp;
-    uint32_t max_series_id;
+    uint32_t max_series_id = 0;
 
     SIRIDB_GET_FN(fn, SIRIDB_MAX_SERIES_ID_FN)
 
@@ -589,21 +589,28 @@ static int update_max_series_id(siridb_t * siridb)
         fclose(fp);
     }
 
-    if ((fp = fopen(fn, "w")) == NULL)
+    /* we only need to write max_series_id in case the one in the file is
+     * smaller or does not exist and max_series_id is larger than zero.
+     */
+    if (max_series_id < siridb->max_series_id)
     {
-        log_critical("Cannot open file '%s' for writing", fn);
-        return -1;
+        if ((fp = fopen(fn, "w")) == NULL)
+        {
+            log_critical("Cannot open file '%s' for writing", fn);
+            return -1;
+        }
+
+        log_debug("Write max series id (%ld)", siridb->max_series_id);
+
+        if (fwrite(&siridb->max_series_id, sizeof(uint32_t), 1, fp) != 1)
+        {
+            log_critical("Cannot write max_series_id to file '%s'", fn);
+            rc = -1;
+        }
+
+        fclose(fp);
     }
 
-    log_debug("Write max series id (%ld)", siridb->max_series_id);
-
-    if (fwrite(&siridb->max_series_id, sizeof(uint32_t), 1, fp) != 1)
-    {
-        log_critical("Cannot write max_series_id to file '%s'", fn);
-        rc = -1;
-    }
-
-    fclose(fp);
     return rc;
 }
 
