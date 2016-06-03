@@ -22,6 +22,7 @@
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
+#define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
 #define SIRIDB_SERIES_SCHEMA 1
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
@@ -32,6 +33,7 @@ static int load_series(siridb_t * siridb, imap32_t * dropped);
 static int read_dropped(siridb_t * siridb, imap32_t * dropped);
 static int open_new_dropped_file(siridb_t * siridb);
 static int open_store(siridb_t * siridb);
+static int update_max_series_id(siridb_t * siridb);
 
 static void pack_series(
         const char * key,
@@ -118,6 +120,9 @@ int siridb_series_load(siridb_t * siridb)
         rc = load_series(siridb, dropped);
 
     imap32_free(dropped);
+
+    if (!rc)
+        rc = update_max_series_id(siridb);
 
     if (!rc)
         rc = open_new_dropped_file(siridb);
@@ -467,6 +472,11 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
             qp_next(unpacker, qp_series_tp) == QP_INT64)
     {
         series_id = (uint32_t) qp_series_id->via->int64;
+
+        /* update max_series_id */
+        if (series_id > siridb->max_series_id)
+            siridb->max_series_id = series_id;
+
         if (imap32_get(dropped, series_id) == NULL)
         {
             series = new_series(
@@ -474,10 +484,6 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
                     series_id,
                     (uint8_t) qp_series_tp->via->int64,
                     qp_series_name->via->raw);
-
-            /* update max_series_id */
-            if (series->id > siridb->max_series_id)
-                siridb->max_series_id = series->id;
 
             /* add series to c-tree */
             ct_add(siridb->series, qp_series_name->via->raw, series);
@@ -538,5 +544,66 @@ static int open_store(siridb_t * siridb)
     }
 
     return 0;
+}
+
+static int update_max_series_id(siridb_t * siridb)
+{
+    /* When series are dropped, the store still has this series so when
+     * SiriDB starts the next time we will include this dropped series by
+     * counting the max_series_id. A second restart could be a problem if
+     * not all shards are optimized because now the store does not have the
+     * last removed series and therefore the max_series_id could be set to
+     * a value for which shards still have data. Creating a new series and
+     * another SiriDB restart before the optimize has finished could lead
+     * to problems.
+     *
+     * Saving max_series_id at startup solves this issue because it will
+     * include the dropped series.
+     */
+    int rc = 0;
+    FILE * fp;
+    uint32_t max_series_id;
+
+    SIRIDB_GET_FN(fn, SIRIDB_MAX_SERIES_ID_FN)
+
+    if (access(fn, R_OK) == 0)
+    {
+        if ((fp = fopen(fn, "r")) == NULL)
+        {
+            log_critical("Cannot open file '%s' for reading", fn);
+            return -1;
+        }
+
+        if (fread(&max_series_id, sizeof(uint32_t), 1, fp) != 1)
+        {
+            log_critical("Cannot read max_series_id from '%s'", fn);
+            fclose(fp);
+            return -1;
+        }
+
+        if (max_series_id > siridb->max_series_id)
+        {
+            siridb->max_series_id = max_series_id;
+        }
+
+        fclose(fp);
+    }
+
+    if ((fp = fopen(fn, "w")) == NULL)
+    {
+        log_critical("Cannot open file '%s' for writing", fn);
+        return -1;
+    }
+
+    log_debug("Write max series id (%ld)", siridb->max_series_id);
+
+    if (fwrite(&siridb->max_series_id, sizeof(uint32_t), 1, fp) != 1)
+    {
+        log_critical("Cannot write max_series_id to file '%s'", fn);
+        rc = -1;
+    }
+
+    fclose(fp);
+    return rc;
 }
 
