@@ -25,7 +25,7 @@
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
 
-#define siridb_get_fn(FN, FILENAME)                         \
+#define SIRIDB_GET_FN(FN, FILENAME)                         \
     char FN[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
     sprintf(FN, "%s%s", siridb->dbpath, FILENAME);
 
@@ -86,6 +86,8 @@ typedef struct siridb_s
     uv_mutex_t shards_mutex;
     imap64_t * shards;
     FILE * buffer_fp;
+    FILE * dropped_fp;
+    qp_fpacker_t * store;
 } siridb_t;
 
 typedef struct siridb_list_s

@@ -213,7 +213,12 @@ static siridb_t * siridb_new(void)
     siridb->shards = imap64_new();
     siridb->buffer_size = -1;
     siridb->tz = -1;
-    siridb->buffer_fp = NULL; /* make sure this is NULL when file is closed */
+
+    /* make file pointers are NULL when file is closed */
+    siridb->buffer_fp = NULL;
+    siridb->dropped_fp = NULL;
+    siridb->store = NULL;
+
     uv_mutex_init(&siridb->series_mutex);
     uv_mutex_init(&siridb->shards_mutex);
     return siridb;
@@ -250,6 +255,12 @@ static void siridb_free(siridb_t * siridb)
 
         if (siridb->buffer_fp != NULL)
             fclose(siridb->buffer_fp);
+
+        if (siridb->dropped_fp != NULL)
+            fclose(siridb->dropped_fp);
+
+        if (siridb->store != NULL)
+            qp_close(siridb->store);
 
         /* only free buffer path when not equal to db_path */
         if (siridb->buffer_path != siridb->dbpath)

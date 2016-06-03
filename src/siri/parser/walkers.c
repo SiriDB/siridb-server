@@ -14,7 +14,7 @@
 #include <siri/db/query.h>
 #include <siri/net/handle.h>
 #include <siri/db/series.h>
-
+#include <logger/logger.h>
 
 void walk_select(
         const char * series_name,
@@ -69,4 +69,31 @@ void walk_drop_shard(
             siridb,
             series,
             (siridb_shard_t *) ((query_drop_t *) query->data)->data);
+}
+
+void walk_drop_series(
+        const char * series_name,
+        siridb_series_t * series,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
+    /* we are sure the file pointer is at the end of file */
+    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+    {
+        log_critical("Cannot write %d to dropped cache file.", series->id);
+    };
+
+    /* flush dropped file change to disk */
+    fflush(siridb->dropped_fp);
+
+    /* remove series from map */
+    imap32_pop(siridb->series_map, series->id);
+
+    /* remove series from tree */
+    ct_pop(siridb->series, series_name);
+
+    /* decrement reference to series */
+    siridb_series_decref(series);
 }

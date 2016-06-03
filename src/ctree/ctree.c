@@ -17,8 +17,6 @@
 #include <assert.h>
 #include <logger/logger.h>
 
-
-
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUFFER_ALLOC_SIZE 256
 
@@ -45,7 +43,6 @@ static void CT_walk(
 static void CT_free(ct_node_t * node);
 static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb);
 
-
 static char dummy = '\0';
 char * CT_EMPTY = &dummy;
 
@@ -69,8 +66,6 @@ void ct_free(ct_t * ct)
     free(ct);
 }
 
-
-
 void ct_free_cb(ct_t * ct, ct_free_cb_t cb)
 {
     if (ct->nodes != NULL)
@@ -82,8 +77,6 @@ void ct_free_cb(ct_t * ct, ct_free_cb_t cb)
     }
     free(ct);
 }
-
-
 
 inline int ct_is_empty(void * data)
 {
@@ -118,12 +111,13 @@ int ct_add(ct_t * ct, const char * key, void * data)
     else
     {
         *nd = new_node(key + 1, data);
+        rc = CT_OK;
     }
 
     if (rc == CT_OK)
         ct->len++;
 
-    return CT_OK;
+    return rc;
 }
 
 void * ct_get(ct_t * ct, const char * key)

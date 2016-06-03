@@ -58,6 +58,7 @@ typedef struct query_drop_s
     W0_CT_SERIES
     W1_WHERE_NODE
     void * data; // data will not be freed, make sure to use it correct.
+    ssize_t n;  // keep a counter for number of drops.
 } query_drop_t;
 
 typedef struct query_select_s

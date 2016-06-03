@@ -29,7 +29,7 @@ int siridb_buffer_new_series(
         siridb_t * siridb,
         siridb_series_t * series);
 
-int siridb_open_buffer(siridb_t * siridb);
+int siridb_buffer_open(siridb_t * siridb);
 
 int siridb_load_buffer(siridb_t * siridb);
 

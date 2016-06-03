@@ -101,18 +101,26 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn)
     size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
-    unpacker->source = (char *) malloc(size);
-    if (fread(unpacker->source, size, 1, fp) == 1)
+    if (size == -1)
     {
-        unpacker->pt = unpacker->source;
-        unpacker->end = unpacker->source + size;
+        log_error("Cannot not read size of file '%s'", fn);
+        unpacker = NULL;
     }
     else
     {
-        log_error("Could not read '%s'", fn);
-        qp_free_unpacker(unpacker);
-        unpacker = NULL;
+        unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
+        unpacker->source = (char *) malloc(size);
+        if (fread(unpacker->source, size, 1, fp) == 1)
+        {
+            unpacker->pt = unpacker->source;
+            unpacker->end = unpacker->source + size;
+        }
+        else
+        {
+            log_error("Cannot not read from file '%s'", fn);
+            qp_free_unpacker(unpacker);
+            unpacker = NULL;
+        }
     }
 
     fclose(fp);
@@ -371,15 +379,15 @@ void qp_add_type(qp_packer_t * packer, qp_types_t tp)
     packer->buffer[packer->len++] = tp;
 }
 
-void qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
+int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 {
 #ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
-    fputc(tp, fpacker);
+    return (fputc(tp, fpacker) == tp) ? 0 : -1;
 }
 
-void qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
+int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
 {
     if (len < 100)
         fputc(128 + len, fpacker);
@@ -403,43 +411,42 @@ void qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
         fputc(QP_RAW64, fpacker);
         fwrite(&len, sizeof(uint64_t), 1, fpacker);
     }
-    fwrite(raw, len, 1, fpacker);
+    return (fwrite(raw, len, 1, fpacker) == 1) ? 0 : -1;
 }
 
-void qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
+int qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
 {
-    qp_fadd_raw(fpacker, str, strlen(str));
+    return qp_fadd_raw(fpacker, str, strlen(str));
 }
 
-void qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
+int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
 {
     if (integer >= 0 && integer < 64)
-        fputc(integer, fpacker);
-    else if (integer > -64 && integer < 0)
-        fputc(63 - integer, fpacker);
-    else
-    {
-        fputc(QP_INT8, fpacker);
-        fputc(integer, fpacker);
-    }
+        return (fputc(integer, fpacker) != EOF) ? 0 : -1;
+
+    if (integer > -64 && integer < 0)
+        return (fputc(63 - integer, fpacker) != EOF) ? 0 : -1;
+
+    return (fputc(QP_INT8, fpacker) != EOF && fputc(integer, fpacker) != EOF)
+            ? 0 : -1;
 }
 
-void qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
+int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
 {
-    fputc(QP_INT16, fpacker);
-    fwrite(&integer, sizeof(int16_t), 1, fpacker);
+    return (fputc(QP_INT16, fpacker) != EOF &&
+            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : -1;
 }
 
-void qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
+int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
 {
-    fputc(QP_INT32, fpacker);
-    fwrite(&integer, sizeof(int32_t), 1, fpacker);
+    return (fputc(QP_INT32, fpacker) != EOF &&
+            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : -1;
 }
 
-void qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
+int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 {
-    fputc(QP_INT64, fpacker);
-    fwrite(&integer, sizeof(int64_t), 1, fpacker);
+    return (fputc(QP_INT64, fpacker) != EOF &&
+            fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : -1;
 }
 
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)

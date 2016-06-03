@@ -166,7 +166,8 @@ static int test_cleri(void)
 static int test_ctree(void)
 {
     test_start("Testing ctree");
-    ct_node_t * ct = ct_new();
+    ct_t * ct = ct_new();
+
     assert (ct_add(ct, "Iris", "is gewoon Iris") == CT_OK);
     assert (ct_add(ct, "Iris", "Iris?") == CT_EXISTS);
 

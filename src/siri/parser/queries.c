@@ -57,7 +57,7 @@ query_drop_t * query_drop_new(void)
     q_drop->ct_series = NULL;
     q_drop->where_node = NULL;
     q_drop->data = NULL; // will not be freed
-
+    q_drop->n = 0;
     return q_drop;
 }
 

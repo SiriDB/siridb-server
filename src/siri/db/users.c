@@ -57,7 +57,7 @@ int siridb_users_load(siridb_t * siridb)
     siridb->users = new_users();
 
     /* get user access file name */
-    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -228,7 +228,7 @@ int siridb_users_save(siridb_t * siridb)
     siridb_users_t * current = siridb->users;
 
     /* get user access file name */
-    siridb_get_fn(fn, SIRIDB_USER_ACCESS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
         return 1;

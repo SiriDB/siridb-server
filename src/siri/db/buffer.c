@@ -140,9 +140,9 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
     return 0;
 }
 
-int siridb_open_buffer(siridb_t * siridb)
+int siridb_buffer_open(siridb_t * siridb)
 {
-    siridb_get_fn(fn, SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
 
     if ((siridb->buffer_fp = fopen(fn, "r+")) == NULL)
     {
@@ -166,8 +166,8 @@ int siridb_load_buffer(siridb_t * siridb)
 
     log_info("Read and cleanup buffer");
 
-    siridb_get_fn(fn, SIRIDB_BUFFER_FN)
-    siridb_get_fn(fn_temp, "__" SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn_temp, "__" SIRIDB_BUFFER_FN)
 
     if (access(fn_temp, F_OK) != -1)
     {

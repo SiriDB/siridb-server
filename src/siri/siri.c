@@ -235,7 +235,7 @@ static int siridb_load_databases(void)
         }
 
         /* open buffer */
-        if (siridb_open_buffer(siridb))
+        if (siridb_buffer_open(siridb))
         {
             log_error("Could not open buffer for database '%s'", siridb->dbname);
             closedir(db_container_path);

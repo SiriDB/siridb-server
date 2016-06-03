@@ -21,11 +21,16 @@
 #include <siri/db/shard.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
+#define SIRIDB_DROPPED_FN ".dropped.dat"
 #define SIRIDB_SERIES_SCHEMA 1
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
+#define DROPPED_DUMMY 1
 
 static int save_series(siridb_t * siridb);
 static void series_free(siridb_series_t * series);
+static int load_series(siridb_t * siridb, imap32_t * dropped);
+static int read_dropped(siridb_t * siridb, imap32_t * dropped);
+static int open_store(siridb_t * siridb);
 
 static void pack_series(
         const char * key,
@@ -63,13 +68,25 @@ void siridb_series_add_point(
     }
 }
 
+static int open_new_dropped_file(siridb_t * siridb)
+{
+    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
+
+    if ((siridb->dropped_fp = fopen(fn, "w")) == NULL)
+    {
+        log_critical("Cannot open '%s' for writing", fn);
+        return 1;
+    }
+
+    return 0;
+}
+
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
         uint8_t tp)
 {
     siridb_series_t * series;
-    qp_fpacker_t * fpacker;
     size_t len = strlen(series_name);
 
     series = new_series(
@@ -80,103 +97,47 @@ siridb_series_t * siridb_series_new(
      */
     imap32_add(siridb->series_map, series->id, series);
 
-    siridb_get_fn(fn, SIRIDB_SERIES_FN);
-
     /* create a buffer for series (except string series) */
-    if (tp != SIRIDB_SERIES_TP_STRING &&
+    if (
+            tp != SIRIDB_SERIES_TP_STRING &&
             siridb_buffer_new_series(siridb, series))
-        log_critical("Could not create buffer for series '%s'.", series_name);
-
-    if ((fpacker = qp_open(fn, "a")) == NULL)
     {
-        log_critical("Could not write series '%s' to disk.", series_name);
-        return series;
+        log_critical("Could not create buffer for series '%s'.", series_name);
     }
 
-    qp_fadd_type(fpacker, QP_ARRAY3);
-    qp_fadd_raw(fpacker, series_name, len + 1);
-    qp_fadd_int32(fpacker, (int32_t) series->id);
-    qp_fadd_int8(fpacker, (int8_t) series->tp);
-
-    /* close file packer */
-    qp_close(fpacker);
+    if (
+            qp_fadd_type(siridb->store, QP_ARRAY3) ||
+            qp_fadd_raw(siridb->store, series_name, len + 1) ||
+            qp_fadd_int32(siridb->store, (int32_t) series->id) ||
+            qp_fadd_int8(siridb->store, (int8_t) series->tp))
+    {
+        log_critical("Cannot write series '%s' to store.", series_name);
+    }
 
     return series;
 }
 
-
-
 int siridb_series_load(siridb_t * siridb)
 {
-    qp_unpacker_t * unpacker;
-    qp_obj_t * qp_series_name;
-    qp_obj_t * qp_series_id;
-    qp_obj_t * qp_series_tp;
-    siridb_series_t * series;
-    qp_types_t tp;
+    int rc;
+    imap32_t * dropped;
 
-    /* we should not have any users at this moment */
-    assert(siridb->max_series_id == 0);
+    dropped = imap32_new();
 
-    /* get series file name */
-    siridb_get_fn(fn, SIRIDB_SERIES_FN);
+    rc = read_dropped(siridb, dropped);
 
-    if (access(fn, R_OK) == -1)
-    {
-        // missing series file, create an empty file and return
-        return save_series(siridb);
-    }
+    if (!rc)
+        rc = load_series(siridb, dropped);
 
-    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
-        return 1;
+    imap32_free(dropped);
 
-    /* unpacker will be freed in case macro fails */
-    siridb_schema_check(SIRIDB_SERIES_SCHEMA)
+    if (!rc)
+        rc = open_new_dropped_file(siridb);
 
-    qp_series_name = qp_new_object();
-    qp_series_id = qp_new_object();
-    qp_series_tp = qp_new_object();
+    if (!rc)
+        rc = open_store(siridb);
 
-    while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
-            qp_next(unpacker, qp_series_name) == QP_RAW &&
-            qp_next(unpacker, qp_series_id) == QP_INT64 &&
-            qp_next(unpacker, qp_series_tp) == QP_INT64)
-    {
-        series = new_series(
-                siridb,
-                (uint32_t) qp_series_id->via->int64,
-                (uint8_t) qp_series_tp->via->int64,
-                qp_series_name->via->raw);
-
-        /* update max_series_id */
-        if (series->id > siridb->max_series_id)
-            siridb->max_series_id = series->id;
-
-        /* add series to c-tree */
-        ct_add(siridb->series, qp_series_name->via->raw, series);
-
-        /* add series to imap32 */
-        imap32_add(siridb->series_map, series->id, series);
-    }
-
-    /* save last object, should be QP_END */
-    tp = qp_next(unpacker, NULL);
-
-    /* free objects */
-    qp_free_object(qp_series_name);
-    qp_free_object(qp_series_id);
-    qp_free_object(qp_series_tp);
-
-    /* free unpacker */
-    qp_free_unpacker(unpacker);
-
-    if (tp != QP_END)
-    {
-        log_critical("Expected end of file '%s'", fn);
-        return 1;
-    }
-
-    return 0;
+    return rc;
 }
 
 void siridb_series_add_idx_num32(
@@ -390,10 +351,13 @@ static int save_series(siridb_t * siridb)
     qp_fpacker_t * fpacker;
 
     /* macro get series file name */
-    siridb_get_fn(fn, SIRIDB_SERIES_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
+    {
+        log_critical("Cannot open file '%s' for writing", fn);
         return 1;
+    }
 
     /* open a new array */
     qp_fadd_type(fpacker, QP_ARRAY_OPEN);
@@ -408,3 +372,166 @@ static int save_series(siridb_t * siridb)
 
     return 0;
 }
+
+static int read_dropped(siridb_t * siridb, imap32_t * dropped)
+{
+    char * buffer;
+    char * pt;
+    long int size;
+    int rc = 0;
+    FILE * fp;
+
+    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
+
+    if (access(fn, R_OK) == -1)
+    {
+        /* no drop file, we have nothing to do */
+        return 0;
+    }
+
+    if ((fp = fopen(fn, "r")) == NULL)
+    {
+        log_critical("Cannot open '%s' for reading", fn);
+        return -1;
+    }
+
+    /* get file size */
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (size == -1)
+    {
+        log_critical("Cannot read size of file '%s'", fn);
+        rc = -1;
+    }
+    else if (size)
+    {
+
+        buffer = (char *) malloc(size);
+
+        if (fread(buffer, size, 1, fp) == 1)
+        {
+            char * end = buffer + size;
+            for (   pt = buffer;
+                    pt < end;
+                    pt += sizeof(uint32_t))
+            {
+                imap32_add(
+                        dropped,
+                        (uint32_t) *((uint32_t *) pt),
+                        (int *) DROPPED_DUMMY);
+            }
+        }
+        else
+        {
+            log_critical("Cannot read %ld bytes from file '%s'", size, fn);
+            rc = -1;
+        }
+
+        free(buffer);
+    }
+
+    fclose(fp);
+
+    return rc;
+}
+
+static int load_series(siridb_t * siridb, imap32_t * dropped)
+{
+    qp_unpacker_t * unpacker;
+    qp_obj_t * qp_series_name;
+    qp_obj_t * qp_series_id;
+    qp_obj_t * qp_series_tp;
+    siridb_series_t * series;
+    qp_types_t tp;
+    uint32_t series_id;
+
+    /* we should not have any users at this moment */
+    assert(siridb->max_series_id == 0);
+
+    /* get series file name */
+    SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
+
+    if (access(fn, R_OK) == -1)
+    {
+        // missing series file, create an empty file and return
+        return save_series(siridb);
+    }
+
+    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
+        return 1;
+
+    /* unpacker will be freed in case macro fails */
+    siridb_schema_check(SIRIDB_SERIES_SCHEMA)
+
+    qp_series_name = qp_new_object();
+    qp_series_id = qp_new_object();
+    qp_series_tp = qp_new_object();
+
+    while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
+            qp_next(unpacker, qp_series_name) == QP_RAW &&
+            qp_next(unpacker, qp_series_id) == QP_INT64 &&
+            qp_next(unpacker, qp_series_tp) == QP_INT64)
+    {
+        series_id = (uint32_t) qp_series_id->via->int64;
+        if (imap32_get(dropped, series_id) == NULL)
+        {
+            series = new_series(
+                    siridb,
+                    series_id,
+                    (uint8_t) qp_series_tp->via->int64,
+                    qp_series_name->via->raw);
+
+            /* update max_series_id */
+            if (series->id > siridb->max_series_id)
+                siridb->max_series_id = series->id;
+
+            /* add series to c-tree */
+            ct_add(siridb->series, qp_series_name->via->raw, series);
+
+            /* add series to imap32 */
+            imap32_add(siridb->series_map, series->id, series);
+        }
+    }
+
+    /* save last object, should be QP_END */
+    tp = qp_next(unpacker, NULL);
+
+    /* free objects */
+    qp_free_object(qp_series_name);
+    qp_free_object(qp_series_id);
+    qp_free_object(qp_series_tp);
+
+    /* free unpacker */
+    qp_free_unpacker(unpacker);
+
+    if (tp != QP_END)
+    {
+        log_critical("Expected end of file '%s'", fn);
+        return 1;
+    }
+
+    if (save_series(siridb))
+    {
+        log_critical("Cannot write series index to disk");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int open_store(siridb_t * siridb)
+{
+    /* macro get series file name */
+    SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
+
+    if ((siridb->store = qp_open(fn, "a")) == NULL)
+    {
+        log_critical("Cannot open file '%s' for appending", fn);
+        return 1;
+    }
+
+    return 0;
+}
+

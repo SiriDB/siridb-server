@@ -51,7 +51,7 @@ int siridb_load_servers(siridb_t * siridb)
     siridb->servers = new_servers();
 
     /* get servers file name */
-    siridb_get_fn(fn, SIRIDB_SERVERS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
 
     if (access(fn, R_OK) == -1)
     {
@@ -254,7 +254,7 @@ static int save_servers(siridb_t * siridb)
     siridb_servers_t * current = siridb->servers;
 
     /* get servers file name */
-    siridb_get_fn(fn, SIRIDB_SERVERS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
         return 1;

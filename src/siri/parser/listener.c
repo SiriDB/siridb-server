@@ -552,9 +552,13 @@ static void exit_drop_series_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
     uv_mutex_lock(&siridb->series_mutex);
+
+    ct_walk(q_drop->ct_series,
+            (ct_cb_t) &walk_drop_series, handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -568,9 +572,6 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
     cleri_node_t * shard_id_node =
                 query->node_list->node->children->next->node;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-
-    query->packer = qp_new_packer(1024);
-    qp_add_type(query->packer, QP_MAP_OPEN);
 
     int64_t shard_id = atoll(shard_id_node->str);
 
@@ -604,7 +605,16 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
         shard->status |= SIRIDB_SHARD_WILL_BE_REMOVED;
 
         siridb_shard_decref(shard);
+
     }
+
+    /* we send back a successful message even when the shard was not found
+     * because it might be dropped on another server so at least the shard
+     * is gone.
+     */
+    QP_ADD_SUCCESS
+    qp_add_fmt(query->packer,
+            "Shard '%ld' is dropped successfully.", shard_id);
 
     SIRIPARSER_NEXT_NODE
 }

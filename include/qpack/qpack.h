@@ -172,10 +172,10 @@ void qp_add_type(qp_packer_t * packer, qp_types_t tp);
  */
 void qp_add_fmt(qp_packer_t * packer, const char * fmt, ...);
 
-void qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
-void qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);
-void qp_fadd_string(qp_fpacker_t * fpacker, const char * str);
-void qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
-void qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
-void qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer);
-void qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
+int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
+int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);
+int qp_fadd_string(qp_fpacker_t * fpacker, const char * str);
+int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
+int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
+int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer);
+int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
