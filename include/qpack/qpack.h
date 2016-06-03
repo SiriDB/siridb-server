@@ -103,6 +103,7 @@ typedef struct qp_packer_s
 typedef FILE qp_fpacker_t;
 #define qp_open fopen
 #define qp_close fclose
+#define qp_flush fflush
 
 qp_packer_t * qp_new_packer(size_t alloc_size);
 qp_obj_t * qp_new_object(void);

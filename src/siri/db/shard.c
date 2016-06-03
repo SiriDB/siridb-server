@@ -126,6 +126,7 @@ siridb_shard_t *  siridb_shard_create(
     shard->tp = tp;
     shard->status = 0;
     FILE * fp;
+    init_fn(siridb, shard);
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
@@ -361,14 +362,16 @@ static int load_idx_num32(
                         shard->id);
             shard->status |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
         }
-
-        siridb_series_add_idx_num32(
-                series->index,
-                shard,
-                *((uint32_t *) (idx + 4)),
-                *((uint32_t *) (idx + 8)),
-                (uint32_t) ftell(fp),
-                (len = *((uint16_t *) (idx + 12))));
+        else
+        {
+            siridb_series_add_idx_num32(
+                    series->index,
+                    shard,
+                    *((uint32_t *) (idx + 4)),
+                    *((uint32_t *) (idx + 8)),
+                    (uint32_t) ftell(fp),
+                    (len = *((uint16_t *) (idx + 12))));
+        }
         fseek(fp, len * 12, SEEK_CUR);
     }
     return 0;

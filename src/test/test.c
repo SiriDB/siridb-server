@@ -168,8 +168,27 @@ static int test_ctree(void)
     test_start("Testing ctree");
     ct_t * ct = ct_new();
 
+    // first add should be successful
     assert (ct_add(ct, "Iris", "is gewoon Iris") == CT_OK);
+
+    // key exists
     assert (ct_add(ct, "Iris", "Iris?") == CT_EXISTS);
+
+    // get_sure should return the corrent result
+    assert (strcmp(*ct_get_sure(ct, "Iris"), "is gewoon Iris") == 0);
+
+    // get_sure with new key should create a CT_EMPTY
+    assert (ct_is_empty(*ct_get_sure(ct, "Sasha")));
+
+    // len should be 2 by now
+    assert (ct->len == 2);
+
+    assert (ct_get(ct, "Dummy") == NULL);
+    assert (strcmp(ct_get(ct, "Iris"), "is gewoon Iris") == 0);
+    assert (strcmp(ct_pop(ct, "Iris"), "is gewoon Iris") == 0);
+    assert (ct_pop(ct, "Sasha") == CT_EMPTY);
+
+    assert (ct->len == 0);
 
     ct_free(ct);
 

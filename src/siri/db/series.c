@@ -21,7 +21,7 @@
 #include <siri/db/shard.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
-#define SIRIDB_DROPPED_FN ".dropped.dat"
+#define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_SERIES_SCHEMA 1
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
@@ -30,6 +30,7 @@ static int save_series(siridb_t * siridb);
 static void series_free(siridb_series_t * series);
 static int load_series(siridb_t * siridb, imap32_t * dropped);
 static int read_dropped(siridb_t * siridb, imap32_t * dropped);
+static int open_new_dropped_file(siridb_t * siridb);
 static int open_store(siridb_t * siridb);
 
 static void pack_series(
@@ -68,19 +69,6 @@ void siridb_series_add_point(
     }
 }
 
-static int open_new_dropped_file(siridb_t * siridb)
-{
-    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
-
-    if ((siridb->dropped_fp = fopen(fn, "w")) == NULL)
-    {
-        log_critical("Cannot open '%s' for writing", fn);
-        return 1;
-    }
-
-    return 0;
-}
-
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
@@ -109,11 +97,11 @@ siridb_series_t * siridb_series_new(
             qp_fadd_type(siridb->store, QP_ARRAY3) ||
             qp_fadd_raw(siridb->store, series_name, len + 1) ||
             qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-            qp_fadd_int8(siridb->store, (int8_t) series->tp))
+            qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+            qp_flush(siridb->store))
     {
         log_critical("Cannot write series '%s' to store.", series_name);
     }
-
     return series;
 }
 
@@ -350,6 +338,8 @@ static int save_series(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
 
+    log_debug("Cleanup series file");
+
     /* macro get series file name */
     SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
 
@@ -380,6 +370,8 @@ static int read_dropped(siridb_t * siridb, imap32_t * dropped)
     long int size;
     int rc = 0;
     FILE * fp;
+
+    log_debug("Read dropped series");
 
     SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
 
@@ -521,6 +513,19 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
     return 0;
 }
 
+static int open_new_dropped_file(siridb_t * siridb)
+{
+    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
+
+    if ((siridb->dropped_fp = fopen(fn, "w")) == NULL)
+    {
+        log_critical("Cannot open '%s' for writing", fn);
+        return 1;
+    }
+
+    return 0;
+}
+
 static int open_store(siridb_t * siridb)
 {
     /* macro get series file name */
@@ -529,7 +534,7 @@ static int open_store(siridb_t * siridb)
     if ((siridb->store = qp_open(fn, "a")) == NULL)
     {
         log_critical("Cannot open file '%s' for appending", fn);
-        return 1;
+        return -1;
     }
 
     return 0;

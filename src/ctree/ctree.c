@@ -86,15 +86,24 @@ inline int ct_is_empty(void * data)
 void ** ct_get_sure(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
+    void ** data;
 
     nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
-        return CT_get_sure(*nd, key + 1);
+    {
+        data = CT_get_sure(*nd, key + 1);
+        if (*data == CT_EMPTY)
+            ct->len++;
+    }
+    else
+    {
+        *nd = new_node(key + 1, CT_EMPTY);
+        data = &(*nd)->data;
+        ct->len++;
+    }
 
-    *nd = new_node(key + 1, CT_EMPTY);
-
-    return &(*nd)->data;
+    return data;
 }
 
 int ct_add(ct_t * ct, const char * key, void * data)
@@ -107,15 +116,14 @@ int ct_add(ct_t * ct, const char * key, void * data)
     if (*nd != NULL)
     {
         rc = CT_add(*nd, key + 1, data);
-    }
+        if (rc == CT_OK)
+            ct->len++;    }
     else
     {
         *nd = new_node(key + 1, data);
+        ct->len++;
         rc = CT_OK;
     }
-
-    if (rc == CT_OK)
-        ct->len++;
 
     return rc;
 }
@@ -136,10 +144,16 @@ void * ct_pop(ct_t * ct, const char * key)
 
     nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
-    data = (*nd == NULL) ? NULL : CT_pop(NULL, nd, key + 1);
-
-    if (data != NULL)
-        ct->len--;
+    if (*nd == NULL)
+    {
+        data = NULL;
+    }
+    else
+    {
+        data = CT_pop(NULL, nd, key + 1);
+        if (data != NULL)
+            ct->len--;
+    }
 
     return data;
 }

@@ -562,6 +562,10 @@ static void exit_drop_series_stmt(uv_async_t * handle)
 
     uv_mutex_unlock(&siridb->series_mutex);
 
+    QP_ADD_SUCCESS
+    qp_add_fmt(query->packer,
+            "Successfully dropped %ld series.", q_drop->ct_series->len);
+
     SIRIPARSER_NEXT_NODE
 }
 
