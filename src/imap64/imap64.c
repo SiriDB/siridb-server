@@ -187,6 +187,7 @@ void imap64_walk(imap64_t * imap, imap64_cb_t cb, void * args)
     }
 }
 
+
 static imap64_node_t * IMAP64_new_node(void)
 {
     imap64_node_t * node = (imap64_node_t *) calloc(1, sizeof(imap64_node_t));

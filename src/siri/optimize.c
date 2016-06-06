@@ -21,9 +21,11 @@
 
 static siri_optimize_t optimize;
 
-static void work(uv_work_t * work);
-static void work_finish(uv_work_t * work, int status);
-static void optimize_cb(uv_timer_t * handle);
+static void OPTIMIZE_work(uv_work_t * work);
+static void OPTIMIZE_work_finish(uv_work_t * work, int status);
+static void OPTIMIZE_cb(uv_timer_t * handle);
+static void OPTIMIZE_create_llist(siridb_shard_t * shard, llist_t * llist);
+static void OPTIMIZE_destroy_llist(siridb_shard_t * shard, void * args);
 
 void siri_optimize_init(siri_t * siri)
 {
@@ -35,7 +37,7 @@ void siri_optimize_init(siri_t * siri)
     siri->optimize = &optimize;
     optimize.status = SIRI_OPTIMIZE_PENDING;
     uv_timer_init(siri->loop, &optimize.timer);
-    uv_timer_start(&optimize.timer, optimize_cb, timeout, timeout);
+    uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
 }
 
 void siri_optimize_cancel(void)
@@ -49,23 +51,37 @@ void siri_optimize_cancel(void)
     uv_cancel((uv_req_t *) &optimize.work);
 }
 
-static void work(uv_work_t * work)
+static void OPTIMIZE_work(uv_work_t * work)
 {
     /*
      * Optimize Thread
      */
 
     siridb_list_t * current = siri.siridb_list;
+    llist_t * llshards;
 
     log_info("Start optimize task");
 
+    /* TODO: copy siridb_list with a mutex */
     for (; current != NULL; current = current->next)
     {
         log_debug("Start optimizing database '%s'", current->siridb->dbname);
+        llshards = llist_new();
+
+        uv_mutex_lock(&current->siridb->shards_mutex);
+
         imap64_walk(
                 current->siridb->shards,
-                (imap64_cb_t) &siridb_shard_optimize,
-                (void *) current->siridb);
+                (imap64_cb_t) &OPTIMIZE_create_llist,
+                (void *) llshards);
+
+        uv_mutex_unlock(&current->siridb->shards_mutex);
+
+        llist_free_cb(
+                llshards,
+                OPTIMIZE_destroy_llist,
+                NULL);
+
         if (optimize.status == SIRI_OPTIMIZE_CANCELLED)
         {
             log_info("Optimize task is cancelled.");
@@ -75,7 +91,7 @@ static void work(uv_work_t * work)
     }
 }
 
-static void work_finish(uv_work_t * work, int status)
+static void OPTIMIZE_work_finish(uv_work_t * work, int status)
 {
     /*
      * Main Thread
@@ -96,7 +112,7 @@ static void work_finish(uv_work_t * work, int status)
         optimize.status = SIRI_OPTIMIZE_PENDING;
 }
 
-static void optimize_cb(uv_timer_t * handle)
+static void OPTIMIZE_cb(uv_timer_t * handle)
 {
     /*
      * Main Thread
@@ -114,7 +130,20 @@ static void optimize_cb(uv_timer_t * handle)
     /* set start time */
     clock_gettime(CLOCK_REALTIME, &optimize.start);
 
-    uv_queue_work(siri.loop, &optimize.work, work, work_finish);
+    uv_queue_work(
+            siri.loop,
+            &optimize.work,
+            OPTIMIZE_work,
+            OPTIMIZE_work_finish);
 }
 
+static void OPTIMIZE_create_llist(siridb_shard_t * shard, llist_t * llist)
+{
+    siridb_shard_incref(shard);
+    llist_append(llist, shard);
+}
 
+static void OPTIMIZE_destroy_llist(siridb_shard_t * shard, void * args)
+{
+    siridb_shard_decref(shard);
+}

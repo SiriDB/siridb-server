@@ -10,4 +10,55 @@
  *
  */
 
+#include <stddef.h>
+
+static llist_node_t * LLIST_node_new(void);
+
+llist_t * llist_new(void)
+{
+    llist_t * llist;
+    llist = (llist_t *) malloc(sizeof(llist_t));
+    llist->len = 0;
+    llist->first = NULL;
+    llist->last = NULL;
+    return llist;
+}
+
+void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
+{
+    llist_node_t * node = llist->first;
+    llist_node_t * next;
+
+    while (node != NULL)
+    {
+        cb(node->data, args);
+        next = node->next;
+        free(node);
+        node = next;
+    }
+    free(llist);
+}
+
+void llist_append(llist_t * llist, void * data)
+{
+    if (llist->last == NULL)
+    {
+        llist->last = LLIST_node_new(data);
+        llist->first = llist->last;
+    }
+    else
+    {
+        llist->last->next = LLIST_node_new(data);
+        llist->last = llist->last->next;
+    }
+}
+
+static llist_node_t * LLIST_node_new(void * data)
+{
+    llist_node_t * llist_node;
+    llist_node = (llist_node_t *) malloc(sizeof(llist_node_t));
+    llist_node->data = data;
+    llist_node->next = NULL;
+    return llist_node;
+}
 

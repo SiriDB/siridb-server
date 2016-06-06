@@ -276,9 +276,11 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     siridb_shard_incref(shard);
     log_info("Start optimizing shard id %ld (%d)", shard->id, shard->status);
 
-    sleep(1);
     log_info("Finished optimizing shard id %ld", shard->id);
     siridb_shard_decref(shard);
+
+    sleep(1);
+
 }
 
 void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard)
