@@ -30,6 +30,8 @@ typedef struct siridb_series_s siridb_series_t;
 typedef struct idx_num32_s idx_num32_t;
 typedef struct idx_num64_s idx_num64_t;
 
+typedef struct siridb_shard_s siridb_shard_t;
+
 typedef struct siridb_shard_s
 {
     uint64_t id;
@@ -38,13 +40,15 @@ typedef struct siridb_shard_s
     uint8_t ref;
     siri_fp_t * fp;
     char * fn;
+    siridb_shard_t * replacing;
 } siridb_shard_t;
 
 siridb_shard_t * siridb_shard_create(
         siridb_t * siridb,
         uint64_t id,
         uint64_t duration,
-        uint8_t tp);
+        uint8_t tp,
+        siridb_shard_t * replacing);
 
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 

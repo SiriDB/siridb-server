@@ -19,7 +19,7 @@ typedef struct llist_node_s
 
 typedef struct llist_s
 {
-    size_t len;
+    ssize_t len;
     llist_node_t * first;
     llist_node_t * last;
 } llist_t;

@@ -57,20 +57,21 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
  */
 #define IDX_NUM64_SZ 22
 
-static int load_idx_num32(
+static int SHARD_load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp);
 
-static void shard_free(siridb_shard_t * shard);
+static void SHARD_free(siridb_shard_t * shard);
 
 static void init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
     char fn[PATH_MAX];
     sprintf(fn,
-            "%s%s%ld%s",
+            "%s%s%s%ld%s",
             siridb->dbpath,
             SIRIDB_SHARDS_PATH,
+            (shard->replacing == NULL) ? "" : "__",
             shard->id,
             ".sdb");
     shard->fn = strdup(fn);
@@ -83,6 +84,8 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard->fp = siri_fp_new();
     shard->id = id;
     shard->ref = 1;
+    shard->status = SIRIDB_SHARD_OK;
+    shard->replacing = NULL;
     init_fn(siridb, shard);
     FILE * fp;
 
@@ -105,7 +108,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard->tp = (uint8_t) header[HEADER_TP];
     shard->status = (uint8_t) header[HEADER_STATUS];
 
-    load_idx_num32(siridb, shard, fp);
+    SHARD_load_idx_num32(siridb, shard, fp);
     fclose(fp);
 
     imap64_add(siridb->shards, id, shard);
@@ -116,22 +119,24 @@ siridb_shard_t *  siridb_shard_create(
         siridb_t * siridb,
         uint64_t id,
         uint64_t duration,
-        uint8_t tp)
+        uint8_t tp,
+        siridb_shard_t * replacing)
 {
     siridb_shard_t * shard;
 
     shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
     shard->fp = siri_fp_new();
     shard->id = id;
+    shard->ref = 1;
+    shard->status = SIRIDB_SHARD_OK;
     shard->tp = tp;
-    shard->status = 0;
+    shard->replacing = replacing;
     FILE * fp;
     init_fn(siridb, shard);
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
-        free(shard);
-        perror("Error");
+        siridb_shard_decref(shard);
         log_critical("Cannot create shard file: '%s'", shard->fn);
         return NULL;
     }
@@ -273,11 +278,63 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     if (    siri.optimize->status == SIRI_OPTIMIZE_CANCELLED ||
             (shard->status & (SIRIDB_SHARD_OK | SIRIDB_SHARD_WILL_BE_REMOVED)))
         return;
-    siridb_shard_incref(shard);
+
+    siridb_shard_t * new_shard = NULL;
+
+    uint64_t duration = (shard->tp == SIRIDB_POINTS_TP_STRING) ?
+            siridb->duration_log : siridb->duration_num;
+
     log_info("Start optimizing shard id %ld (%d)", shard->id, shard->status);
 
-    log_info("Finished optimizing shard id %ld", shard->id);
-    siridb_shard_decref(shard);
+    uv_mutex_lock(siridb->shards_mutex);
+
+    if ((siridb_shard_t *) imap64_pop(siridb->shards, shard->id) == shard)
+    {
+        if ((new_shard = siridb_shard_create(
+            siridb,
+            shard->id,
+            duration,
+            shard->tp,
+            shard)) == NULL)
+        {
+            log_critical(
+                    "Cannot create shard id '%ld' for optimizing.",
+                    shard->id);
+        }
+        else
+        {
+            siridb_shard_incref(new_shard);
+        }
+    }
+    else
+    {
+        log_warning(
+                "Skip optimizing shard id '%ld' since the shard has changed "
+                "since building the optimize shard list.", shard->id);
+    }
+
+    uv_mutex_unlock(siridb->shards_mutex);
+
+    if (new_shard == NULL)
+        return;
+
+    /* at this point the references should be as following (unless dropped):
+     *  shard->ref (2)
+     *      - linked list
+     *      - new_shard->replacing
+     *  new_shard->ref (2)
+     *      - siridb->shards
+     *      - this method
+     */
+
+    assert (shard->ref == 2);
+    assert (new_shard->ref == 2);
+
+
+
+    log_info("Finished optimizing shard id %ld", new_shard->id);
+
+    siridb_shard_decref(new_shard);
 
     sleep(1);
 
@@ -307,12 +364,18 @@ inline void siridb_shard_incref(siridb_shard_t * shard)
 inline void siridb_shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
-        shard_free(shard);
+        SHARD_free(shard);
 }
 
-static void shard_free(siridb_shard_t * shard)
+static void SHARD_free(siridb_shard_t * shard)
 {
     log_debug("FREE SHARD!");
+
+    if (shard->replacing != NULL)
+    {
+        /* in case shard->replacing is set we also need to free this shard */
+        siridb_shard_decref(shard->replacing);
+    }
 
     /* this will close the file, even when other references exist */
     siri_fp_decref(shard->fp);
@@ -338,7 +401,7 @@ static void shard_free(siridb_shard_t * shard)
     free(shard);
 }
 
-static int load_idx_num32(
+static int SHARD_load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp)

@@ -58,7 +58,8 @@ static void OPTIMIZE_work(uv_work_t * work)
      */
 
     siridb_list_t * current = siri.siridb_list;
-    llist_t * llshards;
+    slist_t * slshards;
+    siridb_shard_t ** shards;
 
     log_info("Start optimize task");
 
@@ -66,21 +67,24 @@ static void OPTIMIZE_work(uv_work_t * work)
     for (; current != NULL; current = current->next)
     {
         log_debug("Start optimizing database '%s'", current->siridb->dbname);
-        llshards = llist_new();
 
         uv_mutex_lock(&current->siridb->shards_mutex);
+
+        slshards = slist_new(&current->siridb->shards->len);
 
         imap64_walk(
                 current->siridb->shards,
                 (imap64_cb_t) &OPTIMIZE_create_llist,
-                (void *) llshards);
+                (void *) slshards);
 
         uv_mutex_unlock(&current->siridb->shards_mutex);
 
-        llist_free_cb(
-                llshards,
-                OPTIMIZE_destroy_llist,
-                NULL);
+        for (ssize_t i = 0; i < slshards->len; i++)
+        {
+            siridb_shard_decref((siridb_shard_t *) slshards->data[i]);
+        }
+
+        slist_free(slshards);
 
         if (optimize.status == SIRI_OPTIMIZE_CANCELLED)
         {
@@ -137,10 +141,10 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
             OPTIMIZE_work_finish);
 }
 
-static void OPTIMIZE_create_llist(siridb_shard_t * shard, llist_t * llist)
+static void OPTIMIZE_create_llist(siridb_shard_t * shard, slist_t * slist)
 {
     siridb_shard_incref(shard);
-    llist_append(llist, shard);
+    slist_append(slist, shard);
 }
 
 static void OPTIMIZE_destroy_llist(siridb_shard_t * shard, void * args)
