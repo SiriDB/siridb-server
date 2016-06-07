@@ -159,6 +159,9 @@ static void send_points_to_pools(uv_async_t * handle)
     {
         if (n == pool)
         {
+            uv_mutex_lock(&siridb->series_mutex);
+            uv_mutex_lock(&siridb->shards_mutex);
+
             qp_unpacker_t * unpacker = qp_new_unpacker(
                     insert->packer[n]->buffer,
                     insert->packer[n]->len);
@@ -166,7 +169,6 @@ static void send_points_to_pools(uv_async_t * handle)
             tp = qp_next(unpacker, qp_series_name); // first series or end
             while (tp == QP_RAW)
             {
-
                 series = (siridb_series_t **) ct_get_sure(
                         siridb->series,
                         qp_series_name->via->raw);
@@ -204,6 +206,9 @@ static void send_points_to_pools(uv_async_t * handle)
                     tp = qp_next(unpacker, qp_series_name);
             }
             qp_free_unpacker(unpacker);
+
+            uv_mutex_unlock(&siridb->series_mutex);
+            uv_mutex_unlock(&siridb->shards_mutex);
         }
     }
 

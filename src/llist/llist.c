@@ -11,8 +11,10 @@
  */
 
 #include <stddef.h>
+#include <llist/llist.h>
+#include <stdlib.h>
 
-static llist_node_t * LLIST_node_new(void);
+static llist_node_t * LLIST_node_new(void * data);
 
 llist_t * llist_new(void)
 {

@@ -51,7 +51,6 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
         shard_end = shard_start + duration;
         shard_id = shard_start + series->mask;
 
-        uv_mutex_lock(siridb->shards_mutex);
         if ((shard = imap64_get(siridb->shards, shard_id)) == NULL)
         {
             shard = siridb_shard_create(
@@ -61,7 +60,6 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                     series->tp,
                     NULL);
         }
-        uv_mutex_unlock(siridb->shards_mutex);
 
         for (   start = end;
                 end < series->buffer->points->len &&

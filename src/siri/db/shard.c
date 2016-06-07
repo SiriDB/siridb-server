@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <unistd.h>
+#include <slist/slist.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
@@ -63,6 +64,7 @@ static int SHARD_load_idx_num32(
         FILE * fp);
 
 static void SHARD_free(siridb_shard_t * shard);
+static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
 
 static void init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
@@ -286,7 +288,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     log_info("Start optimizing shard id %ld (%d)", shard->id, shard->status);
 
-    uv_mutex_lock(siridb->shards_mutex);
+    uv_mutex_lock(&siridb->shards_mutex);
 
     if ((siridb_shard_t *) imap64_pop(siridb->shards, shard->id) == shard)
     {
@@ -313,9 +315,12 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
                 "since building the optimize shard list.", shard->id);
     }
 
-    uv_mutex_unlock(siridb->shards_mutex);
+    uv_mutex_unlock(&siridb->shards_mutex);
 
     if (new_shard == NULL)
+        /* creating the new shard has failed, we exit here so the mutex is
+         * closed.
+         */
         return;
 
     /* at this point the references should be as following (unless dropped):
@@ -330,7 +335,23 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     assert (shard->ref == 2);
     assert (new_shard->ref == 2);
 
+    uv_mutex_lock(&siridb->series_mutex);
 
+    slist_t * slist = slist_new(siridb->series_map->len);
+
+    imap32_walk(
+            siridb->series_map,
+            (imap32_cb_t) &SHARD_create_slist,
+            (void *) slist);
+
+    uv_mutex_unlock(&siridb->series_mutex);
+
+    for (ssize_t i = 0; i < slist->len; i++)
+    {
+        siridb_series_t * series = slist->data[i];
+    }
+
+    slist_free(slist);
 
     log_info("Finished optimizing shard id %ld", new_shard->id);
 
@@ -442,4 +463,9 @@ static int SHARD_load_idx_num32(
     return 0;
 }
 
+static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
+{
+    siridb_series_incref(series);
+    slist_append(slist, series);
+}
 

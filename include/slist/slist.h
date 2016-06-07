@@ -11,11 +11,14 @@
  */
 #pragma once
 
+#include <stdio.h>
+#include <stddef.h>
+
 typedef struct slist_s
 {
     ssize_t size;
     ssize_t len;
-    void * data;
+    void * data[];
 } slist_t;
 
 slist_t * slist_new(ssize_t size);

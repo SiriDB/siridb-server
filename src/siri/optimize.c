@@ -18,14 +18,14 @@
 #include <logger/logger.h>
 #include <siri/db/shard.h>
 #include <unistd.h>
+#include <slist/slist.h>
 
 static siri_optimize_t optimize;
 
 static void OPTIMIZE_work(uv_work_t * work);
 static void OPTIMIZE_work_finish(uv_work_t * work, int status);
 static void OPTIMIZE_cb(uv_timer_t * handle);
-static void OPTIMIZE_create_llist(siridb_shard_t * shard, llist_t * llist);
-static void OPTIMIZE_destroy_llist(siridb_shard_t * shard, void * args);
+static void OPTIMIZE_create_slist(siridb_shard_t * shard, slist_t * slist);
 
 void siri_optimize_init(siri_t * siri)
 {
@@ -59,7 +59,7 @@ static void OPTIMIZE_work(uv_work_t * work)
 
     siridb_list_t * current = siri.siridb_list;
     slist_t * slshards;
-    siridb_shard_t ** shards;
+    siridb_shard_t * shard;
 
     log_info("Start optimize task");
 
@@ -70,18 +70,22 @@ static void OPTIMIZE_work(uv_work_t * work)
 
         uv_mutex_lock(&current->siridb->shards_mutex);
 
-        slshards = slist_new(&current->siridb->shards->len);
+        slshards = slist_new(current->siridb->shards->len);
 
         imap64_walk(
                 current->siridb->shards,
-                (imap64_cb_t) &OPTIMIZE_create_llist,
+                (imap64_cb_t) &OPTIMIZE_create_slist,
                 (void *) slshards);
 
         uv_mutex_unlock(&current->siridb->shards_mutex);
 
         for (ssize_t i = 0; i < slshards->len; i++)
         {
-            siridb_shard_decref((siridb_shard_t *) slshards->data[i]);
+            shard = (siridb_shard_t *) slshards->data[i];
+            siridb_shard_optimize(shard, current->siridb);
+
+            /* decrement ref for the shard which was incremented earlier */
+            siridb_shard_decref(shard);
         }
 
         slist_free(slshards);
@@ -141,13 +145,9 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
             OPTIMIZE_work_finish);
 }
 
-static void OPTIMIZE_create_llist(siridb_shard_t * shard, slist_t * slist)
+static void OPTIMIZE_create_slist(siridb_shard_t * shard, slist_t * slist)
 {
     siridb_shard_incref(shard);
     slist_append(slist, shard);
 }
 
-static void OPTIMIZE_destroy_llist(siridb_shard_t * shard, void * args)
-{
-    siridb_shard_decref(shard);
-}

@@ -10,11 +10,12 @@
  *
  */
 #pragma once
+#include <stdio.h>
 
 typedef struct llist_node_s
 {
     void * data;
-    struct llist_node_s next;
+    struct llist_node_s * next;
 } llist_node_t;
 
 typedef struct llist_s
