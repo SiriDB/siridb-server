@@ -317,19 +317,20 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (new_shard == NULL)
         /* creating the new shard has failed, we exit here so the mutex is
-         * closed.
+         * is unlocked.
          */
         return;
 
     /* at this point the references should be as following (unless dropped):
      *  shard->ref (2)
-     *      - linked list
+     *      - simple list
      *      - new_shard->replacing
      *  new_shard->ref (2)
      *      - siridb->shards
      *      - this method
      */
 
+    usleep(10000);
     uv_mutex_lock(&siridb->series_mutex);
 
     slist_t * slist = slist_new(siridb->series_map->len);
@@ -340,6 +341,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             (void *) slist);
 
     uv_mutex_unlock(&siridb->series_mutex);
+    usleep(10000);
 
     for (size_t i = 0; i < slist->len; i++)
     {
@@ -374,7 +376,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     uv_mutex_lock(&siridb->series_mutex);
     /* this will close the file but does not free the shard yet since we still
-     * have a reverence in the linked list.
+     * have a reference to the simple list.
      */
     siridb_shard_decref(new_shard->replacing);
 

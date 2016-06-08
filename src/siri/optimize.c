@@ -78,6 +78,7 @@ static void OPTIMIZE_work(uv_work_t * work)
                 (void *) slshards);
 
         uv_mutex_unlock(&current->siridb->shards_mutex);
+        usleep(10000);
 
         for (size_t i = 0; i < slshards->len; i++)
         {
