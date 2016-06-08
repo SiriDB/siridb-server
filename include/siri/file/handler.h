@@ -12,7 +12,7 @@
 #pragma once
 
 #include <inttypes.h>
-#include <siri/filepointer.h>
+#include <siri/file/pointer.h>
 
 typedef struct siri_fh_s
 {

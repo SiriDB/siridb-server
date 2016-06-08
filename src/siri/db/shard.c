@@ -22,6 +22,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <slist/slist.h>
+#include <siri/file/pointer.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
@@ -159,7 +160,7 @@ siridb_shard_t *  siridb_shard_create(
     return shard;
 }
 
-int siridb_shard_write_points(
+long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard,
@@ -169,6 +170,8 @@ int siridb_shard_write_points(
 {
     FILE * fp;
     uint16_t len = end - start;
+    uint_fast32_t i;
+    long int pos;
 
     if (shard->fp->fp == NULL)
     {
@@ -188,25 +191,18 @@ int siridb_shard_write_points(
     fwrite(&points->data[end - 1].ts, siridb->time->ts_sz, 1, fp);
     fwrite(&len, sizeof(uint16_t), 1, fp);
 
-    /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
-    siridb_series_add_idx_num32(
-            series->index,
-            shard,
-            (uint32_t) points->data[start].ts,
-            (uint32_t) points->data[end - 1].ts,
-            (uint32_t) ftell(fp),
-            len);
+    pos = ftell(fp);
 
     /* TODO: this works for both double and integer.
-     * add size values for strings and write string using 'old' way
+     * Add size values for strings and write string using 'old' way
      */
-    for (; start < end; start++)
+    for (i = start; i < end; i++)
     {
-        fwrite(&points->data[start].ts, siridb->time->ts_sz, 1, fp);
-        fwrite(&points->data[start].val, 8, 1, fp);
+        fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp);
+        fwrite(&points->data[i].val, 8, 1, fp);
     }
 
-    return 0;
+    return pos;
 }
 
 int siridb_shard_get_points_num32(
@@ -278,13 +274,15 @@ int siridb_shard_get_points_num32(
 void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     if (    siri.optimize->status == SIRI_OPTIMIZE_CANCELLED ||
-            (shard->status & (SIRIDB_SHARD_OK | SIRIDB_SHARD_WILL_BE_REMOVED)))
+            shard->status == SIRIDB_SHARD_OK ||
+            (shard->status & SIRIDB_SHARD_WILL_BE_REMOVED))
         return;
 
     siridb_shard_t * new_shard = NULL;
 
     uint64_t duration = (shard->tp == SIRIDB_POINTS_TP_STRING) ?
             siridb->duration_log : siridb->duration_num;
+    siridb_series_t * series;
 
     log_info("Start optimizing shard id %ld (%d)", shard->id, shard->status);
 
@@ -332,9 +330,6 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
      *      - this method
      */
 
-    assert (shard->ref == 2);
-    assert (new_shard->ref == 2);
-
     uv_mutex_lock(&siridb->series_mutex);
 
     slist_t * slist = slist_new(siridb->series_map->len);
@@ -346,19 +341,66 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     uv_mutex_unlock(&siridb->series_mutex);
 
-    for (ssize_t i = 0; i < slist->len; i++)
+    for (size_t i = 0; i < slist->len; i++)
     {
-        siridb_series_t * series = slist->data[i];
+        while (siri.optimize->status == SIRI_OPTIMIZE_PAUSED)
+        {
+            log_info("Optimize task is paused, wait for 30 seconds...");
+            sleep(30);
+        }
+
+        series = slist->data[i];
+
+        /* TODO: get correct function based on shard and time precision */
+
+        if (    siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
+                shard->id % siridb->duration_num == series->mask)
+        {
+            uv_mutex_lock(&siridb->series_mutex);
+
+            siridb_series_optimize_shard_num32(siridb, series, new_shard);
+
+            uv_mutex_unlock(&siridb->series_mutex);
+
+            usleep(10000);
+        }
+
+        siridb_series_decref(series);
     }
 
     slist_free(slist);
+
+    usleep(10000);
+
+    uv_mutex_lock(&siridb->series_mutex);
+    /* this will close the file but does not free the shard yet since we still
+     * have a reverence in the linked list.
+     */
+    siridb_shard_decref(new_shard->replacing);
+
+    /* make sure the temporary shard file is also closed */
+    siri_fp_close(new_shard->fp);
+
+    /* remove the old shard file */
+    unlink(new_shard->replacing->fn);
+
+    /* rename the temporary shard file to the correct shard filename */
+    rename(new_shard->fn, new_shard->replacing->fn);
+
+    /* free the original allocated memory and set the correct filename */
+    free(new_shard->fn);
+    new_shard->fn = strdup(new_shard->replacing->fn);
+
+    /* set replacing shard to NULL */
+    new_shard->replacing = NULL;
+
+    uv_mutex_unlock(&siridb->series_mutex);
 
     log_info("Finished optimizing shard id %ld", new_shard->id);
 
     siridb_shard_decref(new_shard);
 
     sleep(1);
-
 }
 
 void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard)

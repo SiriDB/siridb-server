@@ -21,7 +21,7 @@
 
 #define ALLOC_BUFFER                                                        \
 series->buffer = (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));       \
-series->buffer->points = siridb_new_points(                                 \
+series->buffer->points = siridb_points_new(                                 \
         /* this buffer can hold 1 more point than actual on disk */         \
         siridb->buffer_len, series->tp);
 
@@ -30,7 +30,7 @@ void siridb_free_buffer(siridb_buffer_t * buffer)
 {
     if (buffer != NULL)
     {
-        siridb_free_points(buffer->points);
+        siridb_points_free(buffer->points);
         free(buffer);
     }
 }
@@ -43,6 +43,7 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end;
+    long int pos;
 
     for (end = 0; end < series->buffer->points->len;)
     {
@@ -68,13 +69,28 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 
         if (start != end)
         {
-            siridb_shard_write_points(
+            if ((pos = siridb_shard_write_points(
                     siridb,
                     series,
                     shard,
                     series->buffer->points,
                     start,
-                    end);
+                    end)) < 0)
+            {
+                log_critical(
+                        "Could not write points to shard id '%ld", shard->id);
+            }
+            else
+            {
+                /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
+                siridb_series_add_idx_num32(
+                        series->index,
+                        shard,
+                        series->buffer->points->data[start].ts,
+                        series->buffer->points->data[end - 1].ts,
+                        pos,
+                        end - start);
+            }
         }
 
     }

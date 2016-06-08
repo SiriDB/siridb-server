@@ -109,3 +109,8 @@ void siridb_series_remove_shard_num32(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);
+
+void siridb_series_optimize_shard_num32(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard);

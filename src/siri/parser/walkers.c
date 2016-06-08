@@ -53,7 +53,7 @@ void walk_select(
         }
         break;
     }
-    siridb_free_points(points);
+    siridb_points_free(points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 }

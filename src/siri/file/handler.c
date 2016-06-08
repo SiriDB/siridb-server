@@ -9,7 +9,7 @@
  *  - initial version, 08-04-2016
  *
  */
-#include <siri/filehandler.h>
+#include <siri/file/handler.h>
 #include <stdlib.h>
 #include <logger/logger.h>
 
@@ -35,6 +35,7 @@ void siri_fh_free(siri_fh_t * fh)
 
         if (*fp == NULL)
             break;
+        log_debug("Decref file handler as pos %d", i);
         siri_fp_decref(*fp);
     }
     free(fh->fpointers);
@@ -70,4 +71,5 @@ int siri_fopen(
 
     return 0;
 }
+
 

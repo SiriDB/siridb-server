@@ -14,7 +14,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-slist_t * slist_new(ssize_t size)
+slist_t * slist_new(size_t size)
 {
     slist_t * slist = (slist_t *)
             malloc(sizeof(slist_t) + sizeof(void *) * size);

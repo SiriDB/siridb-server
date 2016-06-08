@@ -14,7 +14,7 @@
 #include <uv.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/db.h>
-#include <siri/filehandler.h>
+#include <siri/file/handler.h>
 #include <stdbool.h>
 #include <siri/optimize.h>
 #include <siri/cfg/cfg.h>

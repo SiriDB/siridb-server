@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <string.h>
 #include <siri/db/shard.h>
+#include <siri/siri.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -235,7 +236,7 @@ siridb_points_t * siridb_series_get_points_num32(
     }
 
     size += series->buffer->points->len;
-    points = siridb_new_points(size, series->tp);
+    points = siridb_points_new(size, series->tp);
 
     for (i = 0; i < len; i++)
     {
@@ -289,6 +290,122 @@ void siridb_series_decref(siridb_series_t * series)
     {
         series_free(series);
     }
+}
+
+void siridb_series_optimize_shard_num32(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard)
+{
+#ifdef DEBUG
+    assert (shard->id % siridb->duration_num == series->mask);
+#endif
+
+    idx_num32_t * idx;
+    uint_fast32_t i, start, end, max_ts;
+    size_t size;
+    siridb_points_t * points;
+
+    max_ts = (shard->id + siridb->duration_num) - series->mask;
+
+    end = i = size = 0;
+
+    for (   idx = (idx_num32_t *) series->index->idx;
+            i < series->index->len && idx->start_ts < max_ts;
+            i++, idx++)
+    {
+        if (idx->shard == shard->replacing)
+        {
+            if (!end)
+                end = start = i;
+            size += idx->len;
+            end++;
+        }
+    }
+
+    if (!end)
+        return;
+
+    long int pos;
+    uint16_t chunk_sz;
+    uint_fast32_t num_chunks, pstart, pend;
+
+    points = siridb_points_new(size, series->tp);
+
+    for (i = start; i < end; i++)
+    {
+        siridb_shard_get_points_num32(
+                points,
+                (idx_num32_t *) series->index->idx + i,
+                NULL,
+                NULL,
+                series->index->has_overlap);
+    }
+
+    num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
+    chunk_sz = size / num_chunks + (size % num_chunks);
+
+    for (pstart = 0; pstart < size; pstart += chunk_sz)
+    {
+        pend = pstart + chunk_sz;
+        if (pend > size)
+            pend = size;
+
+        if ((pos = siridb_shard_write_points(
+                siridb,
+                series,
+                shard,
+                points,
+                pstart,
+                pend)) < 0)
+        {
+            log_critical("Cannot write points to shard id '%ld'", shard->id);
+        }
+        else
+        {
+            idx = (idx_num32_t *) series->index->idx + start;
+            idx->shard = shard;
+            idx->start_ts = (uint32_t) points->data[pstart].ts;
+            idx->end_ts = (uint32_t) points->data[pend - 1].ts;
+            idx->len = pend - pstart;
+            idx->pos = pos;
+            log_debug("Wrote index, len: %ld, pos: %ld, s_ts: %ld, e_ts: %ld",
+                    idx->len, idx->pos, idx->start_ts, idx->end_ts);
+        }
+        start++;
+    }
+
+    siridb_points_free(points);
+
+    if (start < end)
+    {
+        log_debug("We can crop the current index length");
+
+        /* save the difference in variable i */
+        i = end - start;
+
+        /* new length is current length minus difference */
+        series->index->len -= i;
+
+        log_debug("Start: %ld, Len: %ld", start, series->index->len);
+
+        for (; start < series->index->len; start++)
+        {
+            ((idx_num32_t *) series->index->idx)[start] =
+                    ((idx_num32_t *) series->index->idx)[start + i];
+        }
+
+        /* shrink memory to the new size */
+        series->index->idx = (idx_num32_t *) realloc(
+                (idx_num32_t *) series->index->idx,
+                series->index->len * sizeof(idx_num32_t));
+    }
+#ifdef DEBUG
+    else
+        /* start must be equal to end if not smaller */
+        assert (start == end);
+#endif
+
 }
 
 static void series_free(siridb_series_t * series)
@@ -613,4 +730,6 @@ static int update_max_series_id(siridb_t * siridb)
 
     return rc;
 }
+
+
 

@@ -10,8 +10,14 @@
 
 /* do not use more than x percent for the max limit for open sharding files */
 #define RLIMIT_PERC_FOR_SHARDING 0.5
+
 #define MAX_OPEN_FILES_LIMIT 32768
 #define MIN_OPEN_FILES_LIMIT 3
+#define DEFAULT_OPEN_FILES_LIMIT MAX_OPEN_FILES_LIMIT
+
+#define MIN_CHUNK_POINTS 10
+#define MAX_CHUNK_POINTS 65535
+#define DEFAULT_CHUNK_POINTS 800
 
 static siri_cfg_t siri_cfg = {
         .listen_client_address="localhost",
@@ -21,20 +27,22 @@ static siri_cfg_t siri_cfg = {
         .optimize_interval=900,
         .heartbeat_interval=3,
         .default_db_path="/var/lib/siridb/",
-        .max_open_files=MAX_OPEN_FILES_LIMIT
+        .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
+        .max_chunk_points=DEFAULT_CHUNK_POINTS
 };
 
-static void siri_cfg_read_interval(
+static void SIRI_CFG_read_interval(
         cfgparser_t * cfgparser,
         const char * option_name,
         uint16_t * interval);
-static void siri_cfg_read_address_port(
+static void SIRI_CFG_read_address_port(
         cfgparser_t * cfgparser,
         const char * option_name,
         char * address_pt,
         uint16_t * port_pt);
-static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser);
-static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_max_chunk_points(cfgparser_t * cfgparser);
 
 void siri_cfg_init(siri_t * siri)
 {
@@ -56,35 +64,36 @@ void siri_cfg_init(siri_t * siri)
         exit(EXIT_FAILURE);
     }
 
-    siri_cfg_read_address_port(
+    SIRI_CFG_read_address_port(
             cfgparser,
             "listen_client",
             siri_cfg.listen_client_address,
             &siri_cfg.listen_client_port);
 
-    siri_cfg_read_address_port(
+    SIRI_CFG_read_address_port(
             cfgparser,
             "listen_backend",
             siri_cfg.listen_backend_address,
             &siri_cfg.listen_backend_port);
 
-    siri_cfg_read_interval(
+    SIRI_CFG_read_interval(
             cfgparser,
             "optimize_interval",
             &siri_cfg.optimize_interval);
 
-    siri_cfg_read_interval(
+    SIRI_CFG_read_interval(
             cfgparser,
             "heartbeat_interval",
             &siri_cfg.heartbeat_interval);
 
-    siri_cfg_read_default_db_path(cfgparser);
-    siri_cfg_read_max_open_files(cfgparser);
+    SIRI_CFG_read_default_db_path(cfgparser);
+    SIRI_CFG_read_max_open_files(cfgparser);
+    SIRI_CFG_read_max_chunk_points(cfgparser);
 
     cfgparser_free(cfgparser);
 }
 
-static void siri_cfg_read_interval(
+static void SIRI_CFG_read_interval(
         cfgparser_t * cfgparser,
         const char * option_name,
         uint16_t * interval)
@@ -124,7 +133,7 @@ static void siri_cfg_read_interval(
     *interval = option->val->integer;
 }
 
-static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)
+static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
 {
     cfgparser_option_t * option;
     cfgparser_return_t rc;
@@ -166,7 +175,7 @@ static void siri_cfg_read_default_db_path(cfgparser_t * cfgparser)
     }
 }
 
-static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser)
+static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
 {
     cfgparser_option_t * option;
     cfgparser_return_t rc;
@@ -174,11 +183,11 @@ static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser)
     rc = cfgparser_get_option(
                 &option,
                 cfgparser,
-                "siridb",
+                "sharding",
                 "max_open_files");
     if (rc != CFGPARSER_SUCCESS || option->tp != CFGPARSER_TP_INTEGER)
         log_info(
-                "Using default value for max_open_files: %d",
+                "Using default value for [sharding]max_open_files: %d",
                 siri_cfg.max_open_files);
     else
         siri_cfg.max_open_files = (uint16_t) option->val->integer;
@@ -188,10 +197,10 @@ static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser)
     {
         log_warning(
                 "Value max_open_files must be a value between %d and %d "
-                "bur we found %d. Using default value instead: %d",
+                "but we found %d. Using default value instead: %d",
                 MIN_OPEN_FILES_LIMIT, MAX_OPEN_FILES_LIMIT,
-                siri_cfg.max_open_files, MAX_OPEN_FILES_LIMIT);
-        siri_cfg.max_open_files = MAX_OPEN_FILES_LIMIT;
+                siri_cfg.max_open_files, DEFAULT_OPEN_FILES_LIMIT);
+        siri_cfg.max_open_files = DEFAULT_OPEN_FILES_LIMIT;
     }
 
     getrlimit(RLIMIT_NOFILE, &rlim);
@@ -233,7 +242,36 @@ static void siri_cfg_read_max_open_files(cfgparser_t * cfgparser)
     }
 }
 
-static void siri_cfg_read_address_port(
+static void SIRI_CFG_read_max_chunk_points(cfgparser_t * cfgparser)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "sharding",
+                "max_chunk_points");
+    if (rc != CFGPARSER_SUCCESS || option->tp != CFGPARSER_TP_INTEGER)
+        log_info(
+                "Using default value for [sharding]max_chunk_points: %d",
+                siri_cfg.max_chunk_points);
+    else
+        siri_cfg.max_chunk_points = (uint16_t) option->val->integer;
+
+    if (siri_cfg.max_chunk_points < MIN_CHUNK_POINTS ||
+            siri_cfg.max_chunk_points > MAX_CHUNK_POINTS)
+    {
+        log_warning(
+                "Value max_chunk_points must be a value between %d and %d "
+                "but we found %d. Using default value instead: %d",
+                MIN_CHUNK_POINTS, MAX_CHUNK_POINTS,
+                siri_cfg.max_chunk_points, DEFAULT_CHUNK_POINTS);
+        siri_cfg.max_chunk_points = DEFAULT_CHUNK_POINTS;
+    }
+
+}
+
+static void SIRI_CFG_read_address_port(
         cfgparser_t * cfgparser,
         const char * option_name,
         char * address_pt,

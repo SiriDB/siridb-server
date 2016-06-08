@@ -14,7 +14,7 @@
 #include <siri/db/db.h>
 #include <siri/db/points.h>
 #include <siri/db/series.h>
-#include <siri/filehandler.h>
+#include <siri/file/handler.h>
 
 #define SIRIDB_SHARD_OK 0
 #define SIRIDB_SHARD_MANUAL_OPTIMIZE 1
@@ -55,7 +55,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_incref(siridb_shard_t * shard);
 void siridb_shard_decref(siridb_shard_t * shard);
 
-int siridb_shard_write_points(
+long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard,

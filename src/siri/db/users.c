@@ -64,15 +64,17 @@ int siridb_users_load(siridb_t * siridb)
         /* we do not have a user access file, lets create the first user */
         user = siridb_user_new();
         user->username = strdup("iris");
-        user->password = strdup("siri");
+        user->access_bit = SIRIDB_ACCESS_PROFILE_FULL;
 
-        user->access_bit = 0;
-        if (siridb_users_add_user(siridb, user, err_msg))
+        if (    siridb_user_set_password(user, "siri", err_msg) ||
+                siridb_users_add_user(siridb, user, err_msg))
         {
             log_error("%s", err_msg);
             free(user);
-            return 1;
+            return -1;
         }
+        log_debug("password: %s", user->password);
+
         return 0;
     }
 

@@ -59,7 +59,7 @@ static int test_end(int status)
 
 static siridb_points_t * prepare_points(void)
 {
-    siridb_points_t * points = siridb_new_points(10, SIRIDB_POINTS_TP_INT);
+    siridb_points_t * points = siridb_points_new(10, SIRIDB_POINTS_TP_INT);
     uint64_t timestamps[10] =   {3, 6, 7, 10, 11, 13, 14, 15, 25, 27};
     int64_t values[10] =        {1, 3, 0, 2,  4,  8,  3,  5,  6,  3};
     qp_via_t val;
@@ -266,7 +266,7 @@ static int test_points(void)
 {
     test_start("Testing points");
 
-    siridb_points_t * points = siridb_new_points(5, SIRIDB_POINTS_TP_INT);
+    siridb_points_t * points = siridb_points_new(5, SIRIDB_POINTS_TP_INT);
     siridb_point_t * point;
     qp_via_t val;
     uint64_t timestamps[5] = {4, 6, 3, 5, 7};
@@ -284,7 +284,7 @@ static int test_points(void)
         assert (i == point->val.int64);
     }
 
-    siridb_free_points(points);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -310,8 +310,8 @@ static int test_aggr_count(void)
     assert ((result->data + 3)->ts == 30 &&
             (result->data + 3)->val.int64 == 2);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -337,8 +337,8 @@ static int test_aggr_max(void)
     assert ((result->data + 2)->ts == 30 &&
             (result->data + 2)->val.int64 == 6);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -364,8 +364,8 @@ static int test_aggr_mean(void)
     assert ((result->data + 4)->ts == 28 &&
             (result->data + 4)->val.real == 4.5);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -391,8 +391,8 @@ static int test_aggr_median(void)
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.real == 3.5);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -418,8 +418,8 @@ static int test_aggr_median_high(void)
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.int64 == 4);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -445,8 +445,8 @@ static int test_aggr_median_low(void)
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.int64 == 3);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -472,8 +472,8 @@ static int test_aggr_min(void)
     assert ((result->data + 5)->ts == 14 &&
             (result->data + 5)->val.int64 == 3);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }
@@ -500,8 +500,8 @@ static int test_aggr_sum(void)
     assert ((result->data + 2)->ts == 15 &&
             (result->data + 2)->val.int64 == 20);
 
-    siridb_free_points(result);
-    siridb_free_points(points);
+    siridb_points_free(result);
+    siridb_points_free(points);
 
     return test_end(TEST_OK);
 }

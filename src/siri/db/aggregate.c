@@ -105,7 +105,7 @@ siridb_points_t * siridb_aggregate(
         max_sz = source->len;
 
     /* create new points with max possible size after re-indexing */
-    points = siridb_new_points(
+    points = siridb_points_new(
             max_sz,
             (aggr->cb == aggr_mean || aggr->cb == aggr_median) ?
                     SIRIDB_POINTS_TP_DOUBLE :
@@ -123,7 +123,7 @@ siridb_points_t * siridb_aggregate(
             point->ts = goup_ts;
             if (aggr->cb(point, &group, aggr, err_msg))
             {
-                siridb_free_points(points);
+                siridb_points_free(points);
                 return NULL;
             }
             points->len++;
@@ -138,7 +138,7 @@ siridb_points_t * siridb_aggregate(
     point->ts = goup_ts;
     if (aggr->cb(point, &group, aggr, err_msg))
     {
-        siridb_free_points(points);
+        siridb_points_free(points);
         return NULL;
     }
     points->len++;

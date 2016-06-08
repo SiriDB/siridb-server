@@ -31,12 +31,12 @@ typedef struct siridb_points_s
     siridb_point_t * data;
 } siridb_points_t;
 
-siridb_points_t * siridb_new_points(size_t size, uint8_t tp);
-void siridb_free_points(siridb_points_t * points);
+siridb_points_t * siridb_points_new(size_t size, uint8_t tp);
+void siridb_points_free(siridb_points_t * points);
 void siridb_points_add_point(
         siridb_points_t * points,
         uint64_t * ts,
         qp_via_t * val);
 
-siridb_points_t * siridb_extend_points(siridb_points_t * points[], size_t len);
-siridb_points_t * siridb_merge_points(siridb_points_t * points[], size_t len);
+siridb_points_t * siridb_points_extend(siridb_points_t * points[], size_t len);
+siridb_points_t * siridb_points_merge(siridb_points_t * points[], size_t len);

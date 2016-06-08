@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-siridb_points_t * siridb_new_points(size_t size, uint8_t tp)
+siridb_points_t * siridb_points_new(size_t size, uint8_t tp)
 {
     siridb_points_t * points =
             (siridb_points_t *) malloc(sizeof(siridb_points_t));
@@ -25,7 +25,7 @@ siridb_points_t * siridb_new_points(size_t size, uint8_t tp)
     return points;
 }
 
-void siridb_free_points(siridb_points_t * points)
+void siridb_points_free(siridb_points_t * points)
 {
     free(points->data);
     free(points);

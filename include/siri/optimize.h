@@ -17,6 +17,7 @@
 #define SIRI_OPTIMIZE_PENDING 0
 #define SIRI_OPTIMIZE_RUNNING 1
 #define SIRI_OPTIMIZE_CANCELLED 2
+#define SIRI_OPTIMIZE_PAUSED 3
 
 typedef struct siri_s siri_t;
 

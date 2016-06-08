@@ -10,10 +10,13 @@
  *
  */
 
-#include <siri/filepointer.h>
+#include <siri/file/pointer.h>
 #include <stdlib.h>
 #include <logger/logger.h>
 
+#define FCLOSE      \
+    fclose(fp->fp); \
+    fp->fp = NULL;
 
 siri_fp_t * siri_fp_new(void)
 {
@@ -27,9 +30,17 @@ void siri_fp_decref(siri_fp_t * fp)
 {
     if (fp->fp != NULL)
     {
-        fclose(fp->fp);
-        fp->fp = NULL;
+        FCLOSE
     }
     if (!--fp->ref)
+    {
+        log_debug("Free File Pointer");
         free(fp);
+    }
+
+}
+
+void siri_fp_close(siri_fp_t * fp)
+{
+    FCLOSE
 }

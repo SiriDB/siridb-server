@@ -18,6 +18,7 @@ typedef struct siri_cfg_s
     uint16_t heartbeat_interval;
     char default_db_path[PATH_MAX];
     uint16_t max_open_files;
+    uint16_t max_chunk_points;
 } siri_cfg_t;
 
 void siri_cfg_init(siri_t * siri);
