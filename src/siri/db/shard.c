@@ -397,7 +397,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     free(new_shard->fn);
     new_shard->fn = strdup(new_shard->replacing->fn);
 
-    /* set replacing shard to NULL */
+    /* set replacing shard to NULL, reference is decremented earlier. */
     new_shard->replacing = NULL;
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -439,8 +439,6 @@ inline void siridb_shard_decref(siridb_shard_t * shard)
 
 static void SHARD_free(siridb_shard_t * shard)
 {
-    log_debug("FREE SHARD!");
-
     if (shard->replacing != NULL)
     {
         /* in case shard->replacing is set we also need to free this shard */
@@ -454,7 +452,7 @@ static void SHARD_free(siridb_shard_t * shard)
     if (shard->status & SIRIDB_SHARD_WILL_BE_REMOVED)
     {
         int rc;
-        rc = remove(shard->fn);
+        rc = unlink(shard->fn);
         if (rc == 0)
         {
             log_debug("Shard file removed: %s", shard->fn);

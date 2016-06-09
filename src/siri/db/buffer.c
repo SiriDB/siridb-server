@@ -16,6 +16,7 @@
 #include <sys/unistd.h>
 #include <logger/logger.h>
 #include <string.h>
+#include <siri/siri.h>
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
@@ -42,7 +43,9 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
             siridb->duration_num : siridb->duration_log;
 
     uint64_t shard_start, shard_end, shard_id;
-    uint_fast32_t start, end;
+    uint_fast32_t start, end, num_chunks, pstart, pend;
+    uint16_t chunk_sz;
+    size_t size;
     long int pos;
 
     for (end = 0; end < series->buffer->points->len;)
@@ -69,36 +72,48 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 
         if (start != end)
         {
-            if ((pos = siridb_shard_write_points(
-                    siridb,
-                    series,
-                    shard,
-                    series->buffer->points,
-                    start,
-                    end)) < 0)
+            size = end - start;
+
+            num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
+            chunk_sz = size / num_chunks + (size % num_chunks != 0);
+
+            for (pstart = start; pstart < end; pstart += chunk_sz)
             {
-                log_critical(
-                        "Could not write points to shard id '%ld", shard->id);
-            }
-            else
-            {
-                /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
-                siridb_series_add_idx_num32(
-                        series->index,
+                pend = pstart + chunk_sz;
+                if (pend > end)
+                    pend = end;
+
+                if ((pos = siridb_shard_write_points(
+                        siridb,
+                        series,
                         shard,
-                        series->buffer->points->data[start].ts,
-                        series->buffer->points->data[end - 1].ts,
-                        pos,
-                        end - start);
-                if (shard->replacing != NULL)
+                        series->buffer->points,
+                        pstart,
+                        pend)) < 0)
                 {
-                    siridb_shard_write_points(
-                           siridb,
-                           series,
-                           shard->replacing,
-                           series->buffer->points,
-                           start,
-                           end);
+                    log_critical(
+                            "Could not write points to shard id '%ld", shard->id);
+                }
+                else
+                {
+                    /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
+                    siridb_series_add_idx_num32(
+                            series->index,
+                            shard,
+                            series->buffer->points->data[pstart].ts,
+                            series->buffer->points->data[pend - 1].ts,
+                            pos,
+                            pend - pstart);
+                    if (shard->replacing != NULL)
+                    {
+                        siridb_shard_write_points(
+                               siridb,
+                               series,
+                               shard->replacing,
+                               series->buffer->points,
+                               pstart,
+                               pend);
+                    }
                 }
             }
         }

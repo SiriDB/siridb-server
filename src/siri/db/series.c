@@ -28,20 +28,20 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-static int save_series(siridb_t * siridb);
-static void series_free(siridb_series_t * series);
-static int load_series(siridb_t * siridb, imap32_t * dropped);
-static int read_dropped(siridb_t * siridb, imap32_t * dropped);
-static int open_new_dropped_file(siridb_t * siridb);
-static int open_store(siridb_t * siridb);
-static int update_max_series_id(siridb_t * siridb);
+static int SERIES_save(siridb_t * siridb);
+static void SERIES_free(siridb_series_t * series);
+static int SERIES_load(siridb_t * siridb, imap32_t * dropped);
+static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped);
+static int SERIES_open_new_dropped_file(siridb_t * siridb);
+static int SERIES_open_store(siridb_t * siridb);
+static int SERIES_update_max_id(siridb_t * siridb);
 
-static void pack_series(
+static void SERIES_pack(
         const char * key,
         siridb_series_t * series,
         qp_fpacker_t * fpacker);
 
-static siridb_series_t * new_series(
+static siridb_series_t * SERIES_new(
         siridb_t * siridb,
         uint32_t id,
         uint8_t tp,
@@ -80,7 +80,7 @@ siridb_series_t * siridb_series_new(
     siridb_series_t * series;
     size_t len = strlen(series_name);
 
-    series = new_series(
+    series = SERIES_new(
             siridb, ++siridb->max_series_id, tp, series_name);
 
     /* We only should add the series to series_map and assume the caller
@@ -115,21 +115,21 @@ int siridb_series_load(siridb_t * siridb)
 
     dropped = imap32_new();
 
-    rc = read_dropped(siridb, dropped);
+    rc = SERIES_read_dropped(siridb, dropped);
 
     if (!rc)
-        rc = load_series(siridb, dropped);
+        rc = SERIES_load(siridb, dropped);
 
     imap32_free(dropped);
 
     if (!rc)
-        rc = update_max_series_id(siridb);
+        rc = SERIES_update_max_id(siridb);
 
     if (!rc)
-        rc = open_new_dropped_file(siridb);
+        rc = SERIES_open_new_dropped_file(siridb);
 
     if (!rc)
-        rc = open_store(siridb);
+        rc = SERIES_open_store(siridb);
 
     return rc;
 }
@@ -246,6 +246,8 @@ siridb_points_t * siridb_series_get_points_num32(
     uint_fast32_t i;
     uint32_t indexes[series->index->len];
 
+    log_debug("Index length: %d", series->index->len);
+
     len = i = size = 0;
 
     for (   idx = (idx_num32_t *) series->index->idx;
@@ -314,7 +316,7 @@ void siridb_series_decref(siridb_series_t * series)
 {
     if (!--series->ref)
     {
-        series_free(series);
+        SERIES_free(series);
     }
 }
 
@@ -369,7 +371,7 @@ void siridb_series_optimize_shard_num32(
     }
 
     num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
-    chunk_sz = size / num_chunks + (size % num_chunks);
+    chunk_sz = size / num_chunks + (size % num_chunks != 0);
 
     for (pstart = 0; pstart < size; pstart += chunk_sz)
     {
@@ -428,7 +430,7 @@ void siridb_series_optimize_shard_num32(
 
 }
 
-static void series_free(siridb_series_t * series)
+static void SERIES_free(siridb_series_t * series)
 {
 //    log_debug("Free series!");
     siridb_free_buffer(series->buffer);
@@ -437,7 +439,7 @@ static void series_free(siridb_series_t * series)
     free(series);
 }
 
-static siridb_series_t * new_series(
+static siridb_series_t * SERIES_new(
         siridb_t * siridb,
         uint32_t id,
         uint8_t tp,
@@ -465,7 +467,7 @@ static siridb_series_t * new_series(
     return series;
 }
 
-static void pack_series(
+static void SERIES_pack(
         const char * key,
         siridb_series_t * series,
         qp_fpacker_t * fpacker)
@@ -476,7 +478,7 @@ static void pack_series(
     qp_fadd_int8(fpacker, (int8_t) series->tp);
 }
 
-static int save_series(siridb_t * siridb)
+static int SERIES_save(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
 
@@ -497,7 +499,7 @@ static int save_series(siridb_t * siridb)
     /* write the current schema */
     qp_fadd_int8(fpacker, SIRIDB_SERIES_SCHEMA);
 
-    ct_walk(siridb->series, (ct_cb_t) &pack_series, fpacker);
+    ct_walk(siridb->series, (ct_cb_t) &SERIES_pack, fpacker);
 
     /* close file pointer */
     qp_close(fpacker);
@@ -505,7 +507,7 @@ static int save_series(siridb_t * siridb)
     return 0;
 }
 
-static int read_dropped(siridb_t * siridb, imap32_t * dropped)
+static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
 {
     char * buffer;
     char * pt;
@@ -571,7 +573,7 @@ static int read_dropped(siridb_t * siridb, imap32_t * dropped)
     return rc;
 }
 
-static int load_series(siridb_t * siridb, imap32_t * dropped)
+static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
 {
     qp_unpacker_t * unpacker;
     qp_obj_t * qp_series_name;
@@ -590,7 +592,7 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
     if (access(fn, R_OK) == -1)
     {
         // missing series file, create an empty file and return
-        return save_series(siridb);
+        return SERIES_save(siridb);
     }
 
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
@@ -616,7 +618,7 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
 
         if (imap32_get(dropped, series_id) == NULL)
         {
-            series = new_series(
+            series = SERIES_new(
                     siridb,
                     series_id,
                     (uint8_t) qp_series_tp->via->int64,
@@ -647,7 +649,7 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
         return 1;
     }
 
-    if (save_series(siridb))
+    if (SERIES_save(siridb))
     {
         log_critical("Cannot write series index to disk");
         return -1;
@@ -656,7 +658,7 @@ static int load_series(siridb_t * siridb, imap32_t * dropped)
     return 0;
 }
 
-static int open_new_dropped_file(siridb_t * siridb)
+static int SERIES_open_new_dropped_file(siridb_t * siridb)
 {
     SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
 
@@ -669,7 +671,7 @@ static int open_new_dropped_file(siridb_t * siridb)
     return 0;
 }
 
-static int open_store(siridb_t * siridb)
+static int SERIES_open_store(siridb_t * siridb)
 {
     /* macro get series file name */
     SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
@@ -683,7 +685,7 @@ static int open_store(siridb_t * siridb)
     return 0;
 }
 
-static int update_max_series_id(siridb_t * siridb)
+static int SERIES_update_max_id(siridb_t * siridb)
 {
     /* When series are dropped, the store still has this series so when
      * SiriDB starts the next time we will include this dropped series by
