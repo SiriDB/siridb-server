@@ -31,6 +31,7 @@
 #include <math.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
+#define DEFAULT_ALLOC_COLUMNS 8
 
 static void free_user_object(uv_handle_t * handle);
 
@@ -294,6 +295,9 @@ static void enter_list_stmt(uv_async_t * handle)
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
+    qp_add_raw(query->packer, "columns", 7);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+
     query->data = query_list_new();
     query->free_cb = (uv_close_cb) query_list_free;
 
@@ -439,9 +443,24 @@ static void enter_where_xxx_stmt(uv_async_t * handle)
 static void enter_xxx_columns(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    cleri_children_t * columns = query->node_list->node->children;
+    query_list_t * qlist = (query_list_t *) query->data;
 
-    ((query_wrapper_columns_t *) query->data)->columms =
-            query->node_list->node->children;
+    qlist->columns = slist_new(DEFAULT_ALLOC_COLUMNS);
+
+    while (1)
+    {
+        qp_add_raw(query->packer, columns->node->str, columns->node->len);
+
+        slist_append_save(
+                &qlist->columns,
+                &columns->node->children->node->cl_obj->cl_obj->dummy->gid);
+
+        if (columns->next == NULL)
+            break;
+
+        columns = columns->next->next;
+    }
 
     SIRIPARSER_NEXT_NODE
 }
@@ -740,26 +759,15 @@ static void exit_list_users_stmt(uv_async_t * handle)
     siridb_users_t * users =
             ((sirinet_handle_t *) query->client->data)->siridb->users;
 
-    cleri_children_t * columns;
+    slist_t * columns = ((query_list_t *) query->data)->columns;
+    size_t i;
 
-    qp_add_raw(query->packer, "columns", 7);
-    qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-    if ((columns = ((query_list_t *) query->data)->columms) == NULL)
+    if (columns == NULL)
     {
         qp_add_raw(query->packer, "user", 4);
         qp_add_raw(query->packer, "access", 6);
     }
-    else
-    {
-        while (1)
-        {
-            qp_add_raw(query->packer, columns->node->str, columns->node->len);
-            if (columns->next == NULL)
-                break;
-            columns = columns->next->next;
-        }
-    }
+
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     qp_add_raw(query->packer, "users", 5);
@@ -769,23 +777,19 @@ static void exit_list_users_stmt(uv_async_t * handle)
     {
         qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-        /* reset columns */
-        if ((columns = ((query_list_t *) query->data)->columms) == NULL)
+        if (columns == NULL)
         {
             siridb_user_prop(users->user, query->packer, CLERI_GID_K_USER);
             siridb_user_prop(users->user, query->packer, CLERI_GID_K_ACCESS);
         }
         else
         {
-            while (1)
+            for (i = 0; i < columns->len; i++)
             {
                 siridb_user_prop(
                         users->user,
                         query->packer,
-                        columns->node->children->node->cl_obj->cl_obj->dummy->gid);
-                if (columns->next == NULL)
-                    break;
-                columns = columns->next->next;
+                        *((uint32_t *) columns->data[i]));
             }
         }
 

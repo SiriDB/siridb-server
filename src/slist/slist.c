@@ -13,6 +13,7 @@
 #include <slist/slist.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <logger/logger.h>
 
 slist_t * slist_new(size_t size)
 {
@@ -34,4 +35,16 @@ void slist_append(slist_t * slist, void * data)
     slist->len++;
 }
 
+void slist_append_save(slist_t ** slist, void * data)
+{
+    if ((*slist)->len == (*slist)->size)
+    {
+        (*slist)->size++;
+        *slist = realloc(
+                *slist,
+                sizeof(slist_t) + sizeof(void *) * (*slist)->size);
+    }
+    (*slist)->data[(*slist)->len] = data;
+    (*slist)->len++;
+}
 

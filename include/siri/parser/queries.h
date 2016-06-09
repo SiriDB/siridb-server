@@ -15,10 +15,10 @@
 #include <inttypes.h>
 #include <cleri/parser.h>
 #include <ctree/ctree.h>
+#include <slist/slist.h>
 
 #define W0_CT_SERIES ct_t * ct_series;
 #define W1_WHERE_NODE cleri_node_t * where_node;
-#define W2_COLUMNS cleri_children_t * columms;
 
 /* wrappers */
 typedef struct query_wrapper_ct_series_s
@@ -32,18 +32,11 @@ typedef struct query_wrapper_where_node_s
     W1_WHERE_NODE
 } query_wrapper_where_node_t;
 
-typedef struct query_wrapper_columns_s
-{
-    void * pad0;
-    void * pad1;
-    W2_COLUMNS
-} query_wrapper_columns_t;
-
 typedef struct query_list_s
 {
     W0_CT_SERIES
     W1_WHERE_NODE
-    W2_COLUMNS
+    slist_t * columns;
     size_t limit;
 } query_list_t;
 

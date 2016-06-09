@@ -36,7 +36,7 @@ query_list_t * query_list_new(void)
             (query_list_t *) malloc(sizeof(query_list_t));
     q_list->ct_series = NULL;
     q_list->where_node = NULL;
-    q_list->columms = NULL;
+    q_list->columns = NULL;
     q_list->limit = DEFAULT_LIST_LIMIT;
 
     return q_list;
@@ -67,7 +67,22 @@ void query_select_free(uv_handle_t * handle)
     FREE(query_select_t)
 
 void query_list_free(uv_handle_t * handle)
-    FREE(query_list_t)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_list_t * qlist = (query_list_t *) query->data;
+
+    if (qlist->ct_series != NULL)
+        ct_free_cb(qlist->ct_series, (ct_free_cb_t) &siridb_series_decref);
+
+    if (qlist->columns != NULL)
+        slist_free(qlist->columns);
+
+    free(qlist);
+
+    /* normal free call */
+    siridb_free_query(handle);
+}
+
 
 void query_count_free(uv_handle_t * handle)
     FREE(query_count_t)
