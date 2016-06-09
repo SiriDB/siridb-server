@@ -482,7 +482,6 @@ static int test_aggr_sum(void)
 {
     test_start("Testing aggregation sum");
 
-
     siridb_aggr_t aggr;
     siridb_points_t * result;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];

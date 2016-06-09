@@ -246,8 +246,6 @@ siridb_points_t * siridb_series_get_points_num32(
     uint_fast32_t i;
     uint32_t indexes[series->index->len];
 
-    log_debug("Index length: %d", series->index->len);
-
     len = i = size = 0;
 
     for (   idx = (idx_num32_t *) series->index->idx;
@@ -345,14 +343,19 @@ void siridb_series_optimize_shard_num32(
         if (idx->shard == shard->replacing)
         {
             if (!end)
+            {
                 end = start = i;
+            }
             size += idx->len;
             end++;
         }
     }
 
     if (!end)
+    {
+        /* no data for this series is found in the shard */
         return;
+    }
 
     long int pos;
     uint16_t chunk_sz;

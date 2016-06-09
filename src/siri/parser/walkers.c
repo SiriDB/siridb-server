@@ -15,6 +15,8 @@
 #include <siri/net/handle.h>
 #include <siri/db/series.h>
 #include <logger/logger.h>
+#include <siri/grammar/gramp.h>
+#include <siri/db/aggregate.h>
 
 void walk_select(
         const char * series_name,
@@ -32,6 +34,14 @@ void walk_select(
             series,
             q_select->start_ts,
             q_select->end_ts);
+
+    /*
+    siridb_aggr_t aggr;
+    siridb_points_t * aggr_points;
+    aggr.cb = siridb_aggregates[CLERI_GID_K_COUNT - KW_OFFSET];
+    aggr.group_by = 20;
+    aggr_points = siridb_aggregate(points, &aggr, query->err_msg);
+    */
 
     point = points->data;
     switch (points->tp)
@@ -54,6 +64,7 @@ void walk_select(
         break;
     }
     siridb_points_free(points);
+//    siridb_points_free(aggr_points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 }

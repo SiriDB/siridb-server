@@ -87,7 +87,9 @@ siridb_points_t * siridb_aggregate(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (source->len);
+#endif
 
     siridb_point_t * point;
     siridb_points_t * points;
@@ -138,6 +140,7 @@ siridb_points_t * siridb_aggregate(
     point->ts = goup_ts;
     if (aggr->cb(point, &group, aggr, err_msg))
     {
+        /* error occurred, return NULL */
         siridb_points_free(points);
         return NULL;
     }
@@ -147,9 +150,11 @@ siridb_points_t * siridb_aggregate(
         /* shrink points allocation */
         points->data = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+#ifdef DEBUG
     else
         /* if not smaller it must be equal */
         assert (points->len == max_sz);
+#endif
 
     return points;
 }
@@ -170,7 +175,9 @@ static int aggr_max(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
@@ -204,7 +211,9 @@ static int aggr_mean(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     double sum = 0.0;
 
@@ -236,7 +245,9 @@ static int aggr_median(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
@@ -262,7 +273,9 @@ static int aggr_median_high(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
@@ -281,7 +294,9 @@ static int aggr_median_low(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
@@ -300,7 +315,9 @@ static int aggr_min(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
@@ -334,7 +351,9 @@ static int aggr_sum(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+#ifdef DEBUG
     assert (points->len);
+#endif
 
     if (points->tp == SIRIDB_POINTS_TP_STRING)
     {
