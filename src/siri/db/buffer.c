@@ -90,6 +90,16 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                         series->buffer->points->data[end - 1].ts,
                         pos,
                         end - start);
+                if (shard->replacing != NULL)
+                {
+                    siridb_shard_write_points(
+                           siridb,
+                           series,
+                           shard->replacing,
+                           series->buffer->points,
+                           start,
+                           end);
+                }
             }
         }
 

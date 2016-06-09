@@ -87,7 +87,6 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard->fp = siri_fp_new();
     shard->id = id;
     shard->ref = 1;
-    shard->status = SIRIDB_SHARD_OK;
     shard->replacing = NULL;
     init_fn(siridb, shard);
     FILE * fp;
@@ -109,9 +108,12 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
     shard->tp = (uint8_t) header[HEADER_TP];
-    shard->status = (uint8_t) header[HEADER_STATUS];
+    shard->status = (uint8_t) header[HEADER_STATUS] | SIRIDB_SHARD_IS_LOADING;
 
     SHARD_load_idx_num32(siridb, shard, fp);
+
+    shard->status ^= SIRIDB_SHARD_IS_LOADING & shard->status;
+
     fclose(fp);
 
     imap64_add(siridb->shards, id, shard);
@@ -165,8 +167,8 @@ long int siridb_shard_write_points(
         siridb_series_t * series,
         siridb_shard_t * shard,
         siridb_points_t * points,
-        uint32_t start,
-        uint32_t end)
+        uint_fast32_t start,
+        uint_fast32_t end)
 {
     FILE * fp;
     uint16_t len = end - start;
@@ -201,6 +203,8 @@ long int siridb_shard_write_points(
         fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp);
         fwrite(&points->data[i].val, 8, 1, fp);
     }
+
+    fflush(fp);
 
     return pos;
 }
@@ -405,7 +409,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     sleep(1);
 }
 
-void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard)
+void siridb_shard_write_status(siridb_shard_t * shard)
 {
     if (shard->fp->fp == NULL)
     {
@@ -419,6 +423,7 @@ void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard)
     }
     fseek(shard->fp->fp, HEADER_STATUS, SEEK_SET);
     fputc(shard->status, shard->fp->fp);
+    fflush(shard->fp->fp);
 }
 
 inline void siridb_shard_incref(siridb_shard_t * shard)

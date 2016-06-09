@@ -35,7 +35,6 @@ void siri_fh_free(siri_fh_t * fh)
 
         if (*fp == NULL)
             break;
-        log_debug("Decref file handler as pos %d", i);
         siri_fp_decref(*fp);
     }
     free(fh->fpointers);

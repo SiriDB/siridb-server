@@ -76,6 +76,11 @@ void walk_drop_series(
         siridb_series_t * series,
         uv_async_t * handle)
 {
+    /* Do not forget to flush the dropped file.
+     *  using: fflush(siridb->dropped_fp);
+     * We do not flush here since we want this function to be as fast as
+     * possible.
+     */
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
 
@@ -84,9 +89,6 @@ void walk_drop_series(
     {
         log_critical("Cannot write %d to dropped cache file.", series->id);
     };
-
-    /* flush dropped file change to disk */
-    fflush(siridb->dropped_fp);
 
     /* remove series from map */
     imap32_pop(siridb->series_map, series->id);

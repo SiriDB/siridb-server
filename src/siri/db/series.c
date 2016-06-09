@@ -136,12 +136,18 @@ int siridb_series_load(siridb_t * siridb)
 
 void siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
-        struct siridb_shard_s * shard,
+        siridb_shard_t * shard,
         uint32_t start_ts,
         uint32_t end_ts,
         uint32_t pos,
         uint16_t len)
 {
+    /* This function should only be called when new values are added.
+     * For example, during optimization we do not use this function for
+     * replacing indexes. This way we can also set the HAS_NEW_VALUES
+     * correctly.
+     */
+
     idx_num32_t * idx;
     uint32_t i = index->len;
     index->len++;
@@ -156,12 +162,32 @@ void siridb_series_add_idx_num32(
 
     idx = ((idx_num32_t *) (index->idx)) + i;
 
+    /* Check here for new values since we now can compare the current
+     * idx->shard with shard. We only set NEW_VALUES when we already have
+     * data for this series in the shard and when not loading and not set
+     * already. (NEW_VALUES is used for optimize detection and there is
+     * nothing to optimize if this is the fist data for this series inside
+     * the shard.
+     */
+    if (    ((shard->status &
+                (SIRIDB_SHARD_HAS_NEW_VALUES |
+                        SIRIDB_SHARD_IS_LOADING)) == 0) &&
+            ((i > 0 && ((idx_num32_t *) (index->idx))[i - 1].shard == shard) ||
+            (i < index->len - 1 && idx->shard == shard)))
+    {
+        shard->status |= SIRIDB_SHARD_HAS_NEW_VALUES;
+        siridb_shard_write_status(shard);
+    }
+
     idx->start_ts = start_ts;
     idx->end_ts = end_ts;
     idx->len = len;
     idx->shard = shard;
     idx->pos = pos;
 
+    /* We do not have to save an overlap since it will be detected again when
+     * reading the shard at startup.
+     */
     if (    (i > 0 &&
             start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts) ||
             (++i < index->len &&
@@ -369,8 +395,6 @@ void siridb_series_optimize_shard_num32(
             idx->end_ts = (uint32_t) points->data[pend - 1].ts;
             idx->len = pend - pstart;
             idx->pos = pos;
-            log_debug("Wrote index, len: %ld, pos: %ld, s_ts: %ld, e_ts: %ld",
-                    idx->len, idx->pos, idx->start_ts, idx->end_ts);
         }
         start++;
     }
@@ -379,15 +403,11 @@ void siridb_series_optimize_shard_num32(
 
     if (start < end)
     {
-        log_debug("We can crop the current index length");
-
         /* save the difference in variable i */
         i = end - start;
 
         /* new length is current length minus difference */
         series->index->len -= i;
-
-        log_debug("Start: %ld, Len: %ld", start, series->index->len);
 
         for (; start < series->index->len; start++)
         {
@@ -410,7 +430,7 @@ void siridb_series_optimize_shard_num32(
 
 static void series_free(siridb_series_t * series)
 {
-    log_debug("Free series!");
+//    log_debug("Free series!");
     siridb_free_buffer(series->buffer);
     free(series->index->idx);
     free(series->index);

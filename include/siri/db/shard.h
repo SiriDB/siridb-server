@@ -23,6 +23,7 @@
 #define SIRIDB_SHARD_HAS_REMOVED_SERIES 8
 #define SIRIDB_SHARD_WILL_BE_REMOVED 16
 #define SIRIDB_SHARD_WILL_BE_REPLACED 32
+#define SIRIDB_SHARD_IS_LOADING 64
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_points_s siridb_points_t;
@@ -60,8 +61,8 @@ long int siridb_shard_write_points(
         siridb_series_t * series,
         siridb_shard_t * shard,
         siridb_points_t * points,
-        uint32_t start,
-        uint32_t end);
+        uint_fast32_t start,
+        uint_fast32_t end);
 
 int siridb_shard_get_points_num32(
         siridb_points_t * points,
@@ -79,4 +80,4 @@ int siridb_shard_get_points_num64(
         uint8_t has_overlap);
 
 void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
-void siridb_shard_write_status(siridb_t * siridb, siridb_shard_t * shard);
+void siridb_shard_write_status(siridb_shard_t * shard);

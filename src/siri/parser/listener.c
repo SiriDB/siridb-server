@@ -562,6 +562,9 @@ static void exit_drop_series_stmt(uv_async_t * handle)
 
     uv_mutex_unlock(&siridb->series_mutex);
 
+    /* flush dropped file change to disk */
+    fflush(siridb->dropped_fp);
+
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
             "Successfully dropped %ld series.", q_drop->ct_series->len);

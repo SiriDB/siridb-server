@@ -34,7 +34,6 @@ void siri_fp_decref(siri_fp_t * fp)
     }
     if (!--fp->ref)
     {
-        log_debug("Free File Pointer");
         free(fp);
     }
 
