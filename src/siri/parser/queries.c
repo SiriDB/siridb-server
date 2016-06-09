@@ -5,6 +5,8 @@
 #include <siri/db/query.h>
 #include <logger/logger.h>
 
+#define DEFAULT_LIST_LIMIT 1000
+
 #define FREE(q_type)                                                          \
 {                                                                             \
     siridb_query_t * query = (siridb_query_t *) handle->data;                 \
@@ -35,7 +37,7 @@ query_list_t * query_list_new(void)
     q_list->ct_series = NULL;
     q_list->where_node = NULL;
     q_list->columms = NULL;
-    q_list->limit = 0;
+    q_list->limit = DEFAULT_LIST_LIMIT;
 
     return q_list;
 }

@@ -41,6 +41,7 @@ static void enter_create_user_stmt(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_stmt(uv_async_t * handle);
 static void enter_grant_user_stmt(uv_async_t * handle);
+static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
 static void enter_revoke_stmt(uv_async_t * handle);
 static void enter_revoke_user_stmt(uv_async_t * handle);
@@ -63,6 +64,7 @@ static void exit_drop_series_stmt(uv_async_t * handle);
 static void exit_drop_shard_stmt(uv_async_t * handle);
 static void exit_drop_user_stmt(uv_async_t * handle);
 static void exit_grant_user_stmt(uv_async_t * handle);
+static void exit_list_series_stmt(uv_async_t * handle);
 static void exit_list_users_stmt(uv_async_t * handle);
 static void exit_revoke_user_stmt(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
@@ -106,6 +108,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_USER_STMT] = enter_grant_user_stmt;
+    siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
     siriparser_listen_enter[CLERI_GID_REVOKE_STMT] = enter_revoke_stmt;
     siriparser_listen_enter[CLERI_GID_REVOKE_USER_STMT] = enter_revoke_user_stmt;
@@ -130,6 +133,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_DROP_USER_STMT] = exit_drop_user_stmt;
     siriparser_listen_exit[CLERI_GID_GRANT_USER_STMT] = exit_grant_user_stmt;
     siriparser_listen_exit[CLERI_GID_LIST_USERS_STMT] = exit_list_users_stmt;
+    siriparser_listen_exit[CLERI_GID_LIST_SERIES_STMT] = exit_list_series_stmt;
     siriparser_listen_exit[CLERI_GID_REVOKE_USER_STMT] = exit_revoke_user_stmt;
     siriparser_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
@@ -258,6 +262,25 @@ static void enter_grant_user_stmt(uv_async_t * handle)
             siridb_access_from_children((cleri_children_t *) query->data);
 
     query->data = user;
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_limit_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_list_t * qlist = (query_list_t *) query->data;
+    int64_t limit = query->node_list->node->children->next->node->result;
+
+    if (limit <= 0)
+    {
+        snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
+                "Limit must be a value larger than zero but received: '%ld'",
+                limit);
+        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+    }
+
+    qlist->limit = limit;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -670,6 +693,42 @@ static void exit_grant_user_stmt(uv_async_t * handle)
     qp_add_fmt(query->packer,
             "Successfully granted permissions to user '%s'.",
             ((siridb_user_t *) query->data)->username);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_list_series_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    query_list_t * qlist = (query_list_t *) query->data;
+
+    qp_add_raw(query->packer, "columns", 7);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+    qp_add_raw(query->packer, "name", 4);
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    qp_add_raw(query->packer, "series", 6);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+    /* We only need the mutex for sure when accessing some properties for the
+     * series and when accessing the main series tree although this tree will
+     * not be changed by the optimize thread.
+     */
+    uv_mutex_lock(&siridb->series_mutex);
+
+    ct_walkn(
+            (qlist->ct_series == NULL) ? siridb->series : qlist->ct_series,
+            qlist->limit,
+            (ct_cb_t) &walk_list_series,
+            handle);
+
+    uv_mutex_unlock(&siridb->series_mutex);
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE
 }

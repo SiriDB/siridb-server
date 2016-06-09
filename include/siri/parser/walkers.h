@@ -14,18 +14,27 @@
 #include <uv.h>
 #include <siri/db/series.h>
 
-struct siridb_series_s;
+typedef struct siridb_series_s siridb_series_t;
 
-void walk_select(
+void walk_drop_series(
         const char * series_name,
-        struct siridb_series_s * series,
+        siridb_series_t * series,
         uv_async_t * handle);
 
 void walk_drop_shard(
         siridb_series_t * series,
         uv_async_t * handle);
 
-void walk_drop_series(
+void walk_list_series(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle);
+
+void walk_select(
+        const char * series_name,
+        siridb_series_t * series,
+        uv_async_t * handle);
+
+
+
+

@@ -27,12 +27,18 @@
 #include <expr/expr.h>
 
 static void siridb_parse_query(uv_async_t * handle);
-static int siridb_walk(
+static int QUERY_walk(
         cleri_node_t * node,
         siridb_node_walker_t * walker);
 static void siridb_send_invalid_query_error(uv_async_t * handle);
 
-static int siridb_time_expr(
+static int QUERY_time_expr(
+        cleri_node_t * node,
+        siridb_node_walker_t * walker,
+        char * buf,
+        size_t * size);
+
+static int QUERY_int_expr(
         cleri_node_t * node,
         siridb_node_walker_t * walker,
         char * buf,
@@ -273,7 +279,7 @@ static void siridb_parse_query(uv_async_t * handle)
     if (!query->pr->is_valid)
         return siridb_send_invalid_query_error(handle);
 
-    if ((rc = siridb_walk(
+    if ((rc = QUERY_walk(
             query->pr->tree->children->node,
             walker)))
     {
@@ -319,7 +325,7 @@ static void siridb_parse_query(uv_async_t * handle)
     uv_close((uv_handle_t *) handle, (uv_close_cb) sirinet_free_async);
 }
 
-static int siridb_walk(
+static int QUERY_walk(
         cleri_node_t * node,
         siridb_node_walker_t * walker)
 {
@@ -345,20 +351,20 @@ static int siridb_walk(
         current = node->children;
         while (current != NULL && current->node != NULL)
         {
-            if ((rc = siridb_walk(current->node, walker)))
+            if ((rc = QUERY_walk(current->node, walker)))
                 return rc;
             current = current->next;
         }
     }
     else
     {
+        char buffer[EXPR_MAX_SIZE];
+        size_t size = EXPR_MAX_SIZE;
+
         /* we can have nested integer and time expressions */
         if (node->cl_obj->cl_obj->rule->gid == CLERI_GID_TIME_EXPR)
         {
-            char buffer[EXPR_MAX_SIZE];
-            size_t size = EXPR_MAX_SIZE;
-
-            if ((rc = siridb_time_expr(
+            if ((rc = QUERY_time_expr(
                     node,
                     walker,
                     buffer,
@@ -376,11 +382,30 @@ static int siridb_walk(
             if (!siridb_int64_valid_ts(walker->siridb, node->result))
                 return EXPR_TIME_OUT_OF_RANGE;
         }
+        else
+        {
+#ifdef DEBUG
+            assert (node->cl_obj->cl_obj->rule->gid == CLERI_GID_INT_EXPR);
+#endif
+            if ((rc = QUERY_int_expr(
+                    node,
+                    walker,
+                    buffer,
+                    &size)))
+                return rc;
+
+            /* terminate buffer */
+            buffer[EXPR_MAX_SIZE - size] = 0;
+
+            /* evaluate the expression */
+            if ((rc = expr_parse(&node->result, buffer)))
+                return rc;
+        }
     }
     return 0;
 }
 
-static int siridb_time_expr(
+static int QUERY_time_expr(
         cleri_node_t * node,
         siridb_node_walker_t * walker,
         char * buf,
@@ -458,7 +483,7 @@ static int siridb_time_expr(
             current = node->children;
             while (current != NULL && current->node != NULL)
             {
-                if ((rc = siridb_time_expr(
+                if ((rc = QUERY_time_expr(
                         current->node,
                         walker,
                         buf,
@@ -471,4 +496,47 @@ static int siridb_time_expr(
     return 0;
 }
 
+static int QUERY_int_expr(
+        cleri_node_t * node,
+        siridb_node_walker_t * walker,
+        char * buf,
+        size_t * size)
+{
+    cleri_children_t * current;
+
+    switch (node->cl_obj->tp)
+    {
+    case CLERI_TP_TOKEN:
+    case CLERI_TP_TOKENS:
+        /* tokens like + - ( etc. */
+        *(buf + EXPR_MAX_SIZE - *size) = *node->str;
+        return (--(*size)) ? 0 : EXPR_TOO_LONG;
+
+    case CLERI_TP_REGEX:
+        /* this is an integer */
+        if (node->len >= *size)
+            return EXPR_TOO_LONG;
+        memcpy(buf + EXPR_MAX_SIZE - *size, node->str, node->len);
+        *size -= node->len;
+        return 0;
+
+    default:
+        /* anything else, probably THIS or a sequence */
+        {
+            int rc;
+            current = node->children;
+            while (current != NULL && current->node != NULL)
+            {
+                if ((rc = QUERY_int_expr(
+                        current->node,
+                        walker,
+                        buf,
+                        size)))
+                    return rc;
+                current = current->next;
+            }
+        }
+    }
+    return 0;
+}
 

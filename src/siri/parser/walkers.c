@@ -18,6 +18,59 @@
 #include <siri/grammar/gramp.h>
 #include <siri/db/aggregate.h>
 
+void walk_drop_series(
+        const char * series_name,
+        siridb_series_t * series,
+        uv_async_t * handle)
+{
+    /* Do not forget to flush the dropped file.
+     *  using: fflush(siridb->dropped_fp);
+     * We do not flush here since we want this function to be as fast as
+     * possible.
+     */
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
+    /* we are sure the file pointer is at the end of file */
+    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+    {
+        log_critical("Cannot write %d to dropped cache file.", series->id);
+    };
+
+    /* remove series from map */
+    imap32_pop(siridb->series_map, series->id);
+
+    /* remove series from tree */
+    ct_pop(siridb->series, series_name);
+
+    /* decrement reference to series */
+    siridb_series_decref(series);
+}
+
+void walk_drop_shard(
+        siridb_series_t * series,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+
+    siridb_series_remove_shard_num32(
+            siridb,
+            series,
+            (siridb_shard_t *) ((query_drop_t *) query->data)->data);
+}
+
+void walk_list_series(
+        const char * series_name,
+        siridb_series_t * series,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+    qp_add_string(query->packer, series_name);
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+}
+
 void walk_select(
         const char * series_name,
         siridb_series_t * series,
@@ -67,46 +120,4 @@ void walk_select(
 //    siridb_points_free(aggr_points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
-}
-
-void walk_drop_shard(
-        siridb_series_t * series,
-        uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-
-    siridb_series_remove_shard_num32(
-            siridb,
-            series,
-            (siridb_shard_t *) ((query_drop_t *) query->data)->data);
-}
-
-void walk_drop_series(
-        const char * series_name,
-        siridb_series_t * series,
-        uv_async_t * handle)
-{
-    /* Do not forget to flush the dropped file.
-     *  using: fflush(siridb->dropped_fp);
-     * We do not flush here since we want this function to be as fast as
-     * possible.
-     */
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-
-    /* we are sure the file pointer is at the end of file */
-    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
-    {
-        log_critical("Cannot write %d to dropped cache file.", series->id);
-    };
-
-    /* remove series from map */
-    imap32_pop(siridb->series_map, series->id);
-
-    /* remove series from tree */
-    ct_pop(siridb->series, series_name);
-
-    /* decrement reference to series */
-    siridb_series_decref(series);
 }
