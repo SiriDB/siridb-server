@@ -54,6 +54,8 @@ typedef struct query_drop_s
     ssize_t n;  // keep a counter for number of drops.
 } query_drop_t;
 
+/* TODO: probably we need to add ct_results or something to store the results
+ */
 typedef struct query_select_s
 {
     W0_CT_SERIES
@@ -61,7 +63,6 @@ typedef struct query_select_s
     uint64_t * start_ts;
     uint64_t * end_ts;
 } query_select_t;
-
 
 
 query_select_t * query_select_new(void);

@@ -179,6 +179,11 @@ int walk_select(
     aggr_points = siridb_aggregate(points, &aggr, query->err_msg);
     */
 
+    /*
+     * the best solution seems to be creating another tree containing a llist
+     * with points where each points represents a result for one aggregation.
+     */
+
     point = points->data;
     switch (points->tp)
     {
