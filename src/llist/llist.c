@@ -43,6 +43,7 @@ void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
 
 void llist_append(llist_t * llist, void * data)
 {
+    llist->len++;
     if (llist->last == NULL)
     {
         llist->last = LLIST_node_new(data);
@@ -52,6 +53,29 @@ void llist_append(llist_t * llist, void * data)
     {
         llist->last->next = LLIST_node_new(data);
         llist->last = llist->last->next;
+    }
+}
+
+void llist_walk(llist_t * llist, llist_cb_t cb, void * args)
+{
+    llist_node_t * node = llist->first;
+    while (node != NULL)
+    {
+        cb(node->data, args);
+        node = node->next;
+    }
+}
+
+void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args)
+{
+    llist_node_t * node = llist->first;
+    while (node != NULL && n)
+    {
+        if (cb(node->data, args))
+        {
+            n--;
+        }
+        node = node->next;
     }
 }
 

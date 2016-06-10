@@ -20,6 +20,7 @@
 #include <uuid/uuid.h>
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
+#include <siri/db/servers.h>
 #include <math.h>
 
 static siridb_t * siridb_new(void);
@@ -236,7 +237,7 @@ static void siridb_free(siridb_t * siridb)
         /* we do not need to free server and replica since they exist in
          * this list and therefore will be freed.
          */
-        siridb_free_servers(siridb->servers);
+        siridb_servers_free(siridb);
 
         /* free pools */
         siridb_pools_free(siridb->pools);

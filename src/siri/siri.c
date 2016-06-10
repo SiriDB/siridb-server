@@ -20,7 +20,7 @@
 #include <siri/parser/listener.h>
 #include <siri/db/props.h>
 #include <siri/db/users.h>
-#include <siri/db/server.h>
+#include <siri/db/servers.h>
 #include <siri/db/series.h>
 #include <siri/db/shards.h>
 #include <siri/db/buffer.h>
@@ -178,6 +178,8 @@ static int siridb_load_databases(void)
 
         qp_free_unpacker(unpacker);
 
+        log_info("Start loading database: '%s'", siridb->dbname);
+
         /* set dbpath */
         snprintf(buffer,
                 PATH_MAX,
@@ -211,7 +213,7 @@ static int siridb_load_databases(void)
         }
 
         /* load servers */
-        if (siridb_load_servers(siridb))
+        if (siridb_servers_load(siridb))
         {
             log_error("Could not read servers for database '%s'", siridb->dbname);
             closedir(db_container_path);
@@ -261,6 +263,8 @@ static int siridb_load_databases(void)
                 NULL);
 
         siridb->start_ts = (uint32_t) time(NULL);
+
+        log_info("Finished loading database: '%s'", siridb->dbname);
     }
     closedir(db_container_path);
 

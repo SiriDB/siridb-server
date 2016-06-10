@@ -12,9 +12,7 @@
 #pragma once
 
 #include <uuid/uuid.h>
-#include <siri/db/db.h>
-
-struct siridb_s;
+#include <stdint.h>
 
 typedef struct siridb_server_s
 {
@@ -25,14 +23,14 @@ typedef struct siridb_server_s
     uint16_t pool;
 } siridb_server_t;
 
-typedef struct siridb_servers_s
-{
-    siridb_server_t * server;
-    struct siridb_servers_s * next;
-} siridb_servers_t;
+siridb_server_t * siridb_server_new(
+        const char * uuid,
+        const char * address,
+        size_t address_len,
+        uint16_t port,
+        uint16_t pool);
 
-int siridb_load_servers(struct siridb_s * siridb);
-void siridb_free_servers(siridb_servers_t * servers);
+void siridb_server_free(siridb_server_t * server);
 
 /*
  * returns < 0 if the uuid from server A is less than uuid from server B.

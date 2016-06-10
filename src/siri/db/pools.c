@@ -15,11 +15,15 @@
 #include <assert.h>
 #include <string.h>
 #include <logger/logger.h>
+#include <llist/llist.h>
 
-static void make_pools(
+static void POOLS_make(
         uint_fast16_t n,
         uint_fast16_t num_pools,
         siridb_lookup_t * lookup);
+
+static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
+static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
 void siridb_pools_gen(siridb_t * siridb)
 {
@@ -28,16 +32,12 @@ void siridb_pools_gen(siridb_t * siridb)
     siridb->pools = (siridb_pools_t *) malloc(sizeof(siridb_pools_t));
     uint16_t max_pool = 0;
     uint16_t n;
-    siridb_servers_t * servers;
-    siridb_pool_t * pool;
 
     /* we must have at least one server */
-    assert(siridb->servers->server != NULL);
+    assert (siridb->servers->len > 0);
 
     /* get max_pool (this can be used to get the number of pools) */
-    for (servers = siridb->servers; servers != NULL; servers = servers->next)
-        if (servers->server->pool > max_pool)
-            max_pool = servers->server->pool;
+    llist_walk(siridb->servers, (llist_cb_t) POOLS_max_pool, &max_pool);
 
     /* set number of pools */
     siridb->pools->size = max_pool + 1;
@@ -50,32 +50,7 @@ void siridb_pools_gen(siridb_t * siridb)
     for (n = 0; n < siridb->pools->size; n++)
         siridb->pools->pool[n].size = 0;
 
-    for (servers = siridb->servers; servers != NULL; servers = servers->next)
-    {
-        pool = siridb->pools->pool + servers->server->pool;
-        pool->size++;
-        if (pool->size == 1)
-        {
-            /* this is the first server found for this pool */
-            pool->server[0] = servers->server;
-        }
-        else
-        {
-            /* we can only have 1 or 2 servers per pool */
-            assert (pool->size == 2);
-
-            /* add the server to the pool, ordered by UUID */
-            if (siridb_server_cmp(pool->server[0], servers->server) < 0)
-                pool->server[1] = servers->server;
-            else
-            {
-                assert(siridb_server_cmp(
-                        pool->server[0], servers->server) > 0);
-                pool->server[1] = pool->server[0];
-                pool->server[0] = servers->server;
-            }
-        }
-    }
+    llist_walk(siridb->servers, (llist_cb_t) POOLS_arrange, siridb);
 
     /* generate pool lookup for series */
     siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->size);
@@ -94,11 +69,11 @@ siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
 {
     siridb_lookup_t * lookup =
             (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
-    make_pools(1, num_pools, lookup);
+    POOLS_make(1, num_pools, lookup);
     return lookup;
 }
 
-static void make_pools(
+static void POOLS_make(
         uint_fast16_t n,
         uint_fast16_t num_pools,
         siridb_lookup_t * lookup)
@@ -119,5 +94,42 @@ static void make_pools(
         if (counters[(*lookup)[i]] % m == 0)
             (*lookup)[i] = n;
     }
-    make_pools(m, num_pools, lookup);
+    POOLS_make(m, num_pools, lookup);
+}
+
+static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
+{
+    if (server->pool > *max_pool)
+        *max_pool = server->pool;
+}
+
+static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
+{
+    siridb_pool_t * pool;
+    pool = siridb->pools->pool + server->pool;
+    pool->size++;
+    if (pool->size == 1)
+    {
+        /* this is the first server found for this pool */
+        pool->server[0] = server;
+    }
+    else
+    {
+#ifdef DEBUG
+        /* we can only have 1 or 2 servers per pool */
+        assert (pool->size == 2);
+#endif
+        /* add the server to the pool, ordered by UUID */
+        if (siridb_server_cmp(pool->server[0], server) < 0)
+            pool->server[1] = server;
+        else
+        {
+#ifdef DEBUG
+            assert(siridb_server_cmp(
+                    pool->server[0], server) > 0);
+#endif
+            pool->server[1] = pool->server[0];
+            pool->server[0] = server;
+        }
+    }
 }

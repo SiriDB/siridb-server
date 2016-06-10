@@ -112,6 +112,48 @@ int walk_list_series(
     return 1; // true
 }
 
+int walk_list_servers(
+        siridb_server_t * server,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    slist_t * props = ((query_list_t *) query->data)->props;
+//    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    size_t i;
+
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+    for (i = 0; i < props->len; i++)
+    {
+        switch(*((uint32_t *) props->data[i]))
+        {
+        case CLERI_GID_K_NAME:
+            qp_add_string(query->packer, server->name);
+            break;
+        case CLERI_GID_K_ADDRESS:
+            qp_add_string(query->packer, server->address);
+            break;
+        case CLERI_GID_K_PORT:
+            qp_add_int32(query->packer, server->port);
+            break;
+        case CLERI_GID_K_POOL:
+            qp_add_int16(query->packer, server->pool);
+            break;
+        case CLERI_GID_K_UUID:
+            {
+                char uuid[37];
+                uuid_unparse_lower(server->uuid, uuid);
+                qp_add_string(query->packer, uuid);
+            }
+            break;
+        }
+    }
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    return 1;
+}
+
 int walk_select(
         const char * series_name,
         siridb_series_t * series,

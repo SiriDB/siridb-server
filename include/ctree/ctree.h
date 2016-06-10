@@ -39,7 +39,7 @@ typedef struct ct_node_s
 
 typedef struct ct_s
 {
-    ssize_t len;
+    size_t len;
     ct_nodes_t * nodes;
 } ct_t;
 

@@ -30,6 +30,10 @@ int walk_list_series(
         siridb_series_t * series,
         uv_async_t * handle);
 
+int walk_list_servers(
+        siridb_server_t * server,
+        uv_async_t * handle);
+
 int walk_select(
         const char * series_name,
         siridb_series_t * series,

@@ -20,6 +20,8 @@
 #include <imap32/imap32.h>
 #include <imap64/imap64.h>
 #include <iso8601/iso8601.h>
+#include <llist/llist.h>
+#include <string.h>
 #include <uv.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
@@ -51,7 +53,6 @@
 typedef struct siridb_time_s siridb_time_t;
 typedef struct siridb_server_s siridb_server_t;
 typedef struct siridb_users_s siridb_users_t;
-typedef struct siridb_servers_s siridb_servers_t;
 typedef struct siridb_pools_s siridb_pools_t;
 typedef struct ct_node_s ct_node_t;
 typedef struct imap32_s imap32_t;
@@ -78,7 +79,7 @@ typedef struct siridb_s
     siridb_server_t * server;
     siridb_server_t * replica;
     siridb_users_t * users;
-    siridb_servers_t * servers;
+    llist_t * servers;
     siridb_pools_t * pools;
     ct_t * series;
     imap32_t * series_map;

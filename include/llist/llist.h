@@ -25,7 +25,7 @@ typedef struct llist_s
     llist_node_t * last;
 } llist_t;
 
-typedef void (*llist_cb_t)(void * data, void * args);
+typedef int (*llist_cb_t)(void * data, void * args);
 
 /* create a new llist */
 llist_t * llist_new(void);
@@ -39,3 +39,8 @@ void llist_append(llist_t * llist, void * data);
 /* insert data at the beginning */
 void llist_insert(llist_t * llist, void * data);
 
+/* walk the list */
+void llist_walk(llist_t * llist, llist_cb_t cb, void * args);
+
+/* walk the list with limit */
+void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args);
