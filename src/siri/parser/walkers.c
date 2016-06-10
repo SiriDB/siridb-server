@@ -17,8 +17,9 @@
 #include <logger/logger.h>
 #include <siri/grammar/gramp.h>
 #include <siri/db/aggregate.h>
+#include <siri/db/shard.h>
 
-void walk_drop_series(
+int walk_drop_series(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle)
@@ -45,6 +46,8 @@ void walk_drop_series(
 
     /* decrement reference to series */
     siridb_series_decref(series);
+
+    return 0;
 }
 
 void walk_drop_shard(
@@ -53,25 +56,63 @@ void walk_drop_shard(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_shard_t * shard =
+            (siridb_shard_t *) ((query_drop_t *) query->data)->data;
 
-    siridb_series_remove_shard_num32(
-            siridb,
-            series,
-            (siridb_shard_t *) ((query_drop_t *) query->data)->data);
+    if (shard->id % siridb->duration_num == series->mask)
+    {
+        siridb_series_remove_shard_num32(siridb, series, shard);
+    }
 }
 
-void walk_list_series(
+int walk_list_series(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    slist_t * props = ((query_list_t *) query->data)->props;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    size_t i;
+
+//    if (series->tp != SIRIDB_SERIES_TP_INT)
+//    {
+//        return 0; // false
+//    }
+
     qp_add_type(query->packer, QP_ARRAY_OPEN);
-    qp_add_string(query->packer, series_name);
+
+    for (i = 0; i < props->len; i++)
+    {
+        switch(*((uint32_t *) props->data[i]))
+        {
+        case CLERI_GID_K_NAME:
+            qp_add_string(query->packer, series_name);
+            break;
+        case CLERI_GID_K_LENGTH:
+            qp_add_int32(query->packer, series->length);
+            break;
+        case CLERI_GID_K_TYPE:
+            qp_add_string(query->packer, series_type_map[series->tp]);
+            break;
+        case CLERI_GID_K_POOL:
+            qp_add_int16(query->packer, siridb->server->pool);
+            break;
+        case CLERI_GID_K_START:
+            qp_add_int64(query->packer, series->start);
+            break;
+        case CLERI_GID_K_END:
+            qp_add_int64(query->packer, series->end);
+            break;
+        }
+    }
+
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    return 1; // true
 }
 
-void walk_select(
+int walk_select(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle)
@@ -120,4 +161,6 @@ void walk_select(
 //    siridb_points_free(aggr_points);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    return 0;
 }

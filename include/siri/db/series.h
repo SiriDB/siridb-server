@@ -32,6 +32,7 @@ typedef struct siridb_shard_s siridb_shard_t;
     (TP == QP_INT64) ? SIRIDB_SERIES_TP_INT :                               \
     (TP == QP_DOUBLE) ? SIRIDB_SERIES_TP_DOUBLE : SIRIDB_SERIES_TP_STRING
 
+extern const char series_type_map[3][8];
 
 typedef struct idx_num32_s
 {
@@ -63,8 +64,11 @@ typedef struct siridb_series_s
     uint32_t id;
     uint16_t ref;
     uint16_t mask;
+    uint64_t start;
+    uint64_t end;
     siridb_buffer_t * buffer;
     siridb_series_idx_t * index;
+    uint32_t length;
     uint8_t tp;
 } siridb_series_t;
 
@@ -114,3 +118,6 @@ void siridb_series_optimize_shard_num32(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);
+
+void siridb_series_update_props(siridb_series_t * series, void * args);
+

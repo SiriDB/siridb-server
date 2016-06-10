@@ -43,7 +43,7 @@ typedef struct ct_s
     ct_nodes_t * nodes;
 } ct_t;
 
-typedef void (*ct_cb_t)(const char * key, void * data, void * args);
+typedef int (*ct_cb_t)(const char * key, void * data, void * args);
 typedef void (*ct_free_cb_t)(void * data);
 
 /* create a new compact binary tree */

@@ -206,9 +206,10 @@ static void CT_walk(
 
     if (node->data != NULL)
     {
-        (*cb)(buffer, node->data, args);
-        if (pn != NULL)
+        if ((*cb)(buffer, node->data, args) && pn != NULL)
+        {
             (*pn)--;
+        }
     }
     if (node->nodes != NULL)
     {

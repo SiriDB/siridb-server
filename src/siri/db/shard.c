@@ -504,6 +504,7 @@ static int SHARD_load_idx_num32(
                     *((uint32_t *) (idx + 8)),
                     (uint32_t) ftell(fp),
                     (len = *((uint16_t *) (idx + 12))));
+            series->length += len;
         }
         fseek(fp, len * 12, SEEK_CUR);
     }

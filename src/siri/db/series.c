@@ -35,8 +35,10 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped);
 static int SERIES_open_new_dropped_file(siridb_t * siridb);
 static int SERIES_open_store(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
+static void SERIES_update_start_num32(siridb_series_t * series);
+static void SERIES_update_end_num32(siridb_series_t * series);
 
-static void SERIES_pack(
+static int SERIES_pack(
         const char * key,
         siridb_series_t * series,
         qp_fpacker_t * fpacker);
@@ -47,6 +49,11 @@ static siridb_series_t * SERIES_new(
         uint8_t tp,
         const char * sn);
 
+const char series_type_map[3][8] = {
+        "integer",
+        "float",
+        "string"
+};
 
 void siridb_series_add_point(
         siridb_t * siridb,
@@ -54,6 +61,15 @@ void siridb_series_add_point(
         uint64_t * ts,
         qp_via_t * val)
 {
+    series->length++;
+    if (*ts < series->start)
+    {
+        series->start = *ts;
+    }
+    if (*ts > series->end)
+    {
+        series->end = *ts;
+    }
     if (series->buffer != NULL)
     {
         /* add point in memory
@@ -203,8 +219,9 @@ void siridb_series_remove_shard_num32(
         siridb_series_t * series,
         siridb_shard_t * shard)
 {
-    if (shard->id % siridb->duration_num != series->mask)
-        return;
+#ifdef DEBUG
+    assert (shard->id % siridb->duration_num == series->mask);
+#endif
 
     idx_num32_t * idx;
     uint_fast32_t i, offset;
@@ -218,6 +235,7 @@ void siridb_series_remove_shard_num32(
         if (idx->shard == shard)
         {
             offset++;
+            series->length -= idx->len;
         }
         else if (offset)
         {
@@ -231,7 +249,23 @@ void siridb_series_remove_shard_num32(
         series->index->idx = (idx_num32_t *) realloc(
                     (idx_num32_t *) series->index->idx,
                     series->index->len * sizeof(idx_num32_t));
+        uint64_t start = shard->id - series->mask;
+        uint64_t end = start + siridb->duration_num;
+        if (series->start >= start && series->start < end)
+        {
+            SERIES_update_start_num32(series);
+        }
+        if (series->end < end && series->end > start)
+        {
+            SERIES_update_end_num32(series);
+        }
     }
+}
+
+void siridb_series_update_props(siridb_series_t * series, void * args)
+{
+    SERIES_update_start_num32(series);
+    SERIES_update_end_num32(series);
 }
 
 siridb_points_t * siridb_series_get_points_num32(
@@ -454,6 +488,9 @@ static siridb_series_t * SERIES_new(
     series->id = id;
     series->tp = tp;
     series->ref = 1;
+    series->length = 0;
+    series->start = -1;
+    series->end = 0;
     series->buffer = NULL;
     series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
     series->index->len = 0;
@@ -470,7 +507,7 @@ static siridb_series_t * SERIES_new(
     return series;
 }
 
-static void SERIES_pack(
+static int SERIES_pack(
         const char * key,
         siridb_series_t * series,
         qp_fpacker_t * fpacker)
@@ -479,6 +516,7 @@ static void SERIES_pack(
     qp_fadd_raw(fpacker, key, strlen(key) + 1);
     qp_fadd_int32(fpacker, (int32_t) series->id);
     qp_fadd_int8(fpacker, (int8_t) series->tp);
+    return 0;
 }
 
 static int SERIES_save(siridb_t * siridb)
@@ -756,5 +794,51 @@ static int SERIES_update_max_id(siridb_t * siridb)
     return rc;
 }
 
+static void SERIES_update_start_num32(siridb_series_t * series)
+{
+    series->start = (series->index->len) ?
+            ((idx_num32_t *) series->index->idx)->start_ts : -1;
 
+    if (series->buffer->points->len)
+    {
+        siridb_point_t * point = series->buffer->points->data;
+        if (point->ts < series->start)
+        {
+            series->start = point->ts;
+        }
+    }
+}
+
+static void SERIES_update_end_num32(siridb_series_t * series)
+{
+    if (series->index->len)
+    {
+        uint32_t start = 0;
+        idx_num32_t * idx;
+        for (uint_fast32_t i = series->index->len; i--;)
+        {
+            idx = (idx_num32_t *) series->index->idx + i;
+
+            if (idx->end_ts < start)
+                break;
+
+            start = idx->start_ts;
+            if (idx->end_ts > series->end)
+                series->end = idx->end_ts;
+        }
+    }
+    else
+    {
+        series->end = 0;
+    }
+    if (series->buffer->points->len)
+    {
+        siridb_point_t * point = series->buffer->points->data +
+                series->buffer->points->len - 1;
+        if (point->ts > series->end)
+        {
+            series->end = point->ts;
+        }
+    }
+}
 

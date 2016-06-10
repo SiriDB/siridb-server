@@ -36,7 +36,7 @@ typedef struct query_list_s
 {
     W0_CT_SERIES
     W1_WHERE_NODE
-    slist_t * columns;
+    slist_t * props;
     size_t limit;
 } query_list_t;
 

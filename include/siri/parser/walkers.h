@@ -16,7 +16,7 @@
 
 typedef struct siridb_series_s siridb_series_t;
 
-void walk_drop_series(
+int walk_drop_series(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle);
@@ -25,12 +25,12 @@ void walk_drop_shard(
         siridb_series_t * series,
         uv_async_t * handle);
 
-void walk_list_series(
+int walk_list_series(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle);
 
-void walk_select(
+int walk_select(
         const char * series_name,
         siridb_series_t * series,
         uv_async_t * handle);

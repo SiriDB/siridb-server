@@ -36,7 +36,7 @@ query_list_t * query_list_new(void)
             (query_list_t *) malloc(sizeof(query_list_t));
     q_list->ct_series = NULL;
     q_list->where_node = NULL;
-    q_list->columns = NULL;
+    q_list->props = NULL;
     q_list->limit = DEFAULT_LIST_LIMIT;
 
     return q_list;
@@ -74,8 +74,8 @@ void query_list_free(uv_handle_t * handle)
     if (qlist->ct_series != NULL)
         ct_free_cb(qlist->ct_series, (ct_free_cb_t) &siridb_series_decref);
 
-    if (qlist->columns != NULL)
-        slist_free(qlist->columns);
+    if (qlist->props != NULL)
+        slist_free(qlist->props);
 
     free(qlist);
 

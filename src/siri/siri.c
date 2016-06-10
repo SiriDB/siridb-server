@@ -253,6 +253,13 @@ static int siridb_load_databases(void)
         /* generate pools */
         siridb_pools_gen(siridb);
 
+        /* update series props */
+        log_info("Updating series properties");
+        imap32_walk(
+                siridb->series_map,
+                (imap32_cb_t) siridb_series_update_props,
+                NULL);
+
         siridb->start_ts = (uint32_t) time(NULL);
     }
     closedir(db_container_path);

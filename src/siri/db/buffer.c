@@ -275,6 +275,9 @@ int siridb_load_buffer(siridb_t * siridb)
 
             offset += siridb->buffer_size;
 
+            /* increment series->length which is 0 at this time */
+            series->length += series->buffer->points->len;
+
             /* write to output file and check if write was successful */
             if ((fwrite(buffer + i * siridb->buffer_size,
                     siridb->buffer_size, 1, fp_temp) != 1))
