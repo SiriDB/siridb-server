@@ -380,6 +380,9 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
         uv_timer_stop((uv_timer_t *) handle);
         uv_close(handle, NULL);
         break;
+    case UV_ASYNC:
+        uv_close(handle, (uv_close_cb) sirinet_free_async);
+        break;
     default:
         log_error("Oh oh, we need to implement type %d", handle->type);
         assert(0);

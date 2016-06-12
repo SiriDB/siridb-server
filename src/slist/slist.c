@@ -17,6 +17,9 @@
 
 slist_t * slist_new(size_t size)
 {
+    /* sizeof(slist_t) is 16 bytes, only for len and size and data[] is
+     * excluded.
+     */
     slist_t * slist = (slist_t *)
             malloc(sizeof(slist_t) + sizeof(void *) * size);
     slist->size = size;

@@ -897,6 +897,8 @@ static void exit_list_users_stmt(uv_async_t * handle)
     slist_t * props = ((query_list_t *) query->data)->props;
     size_t i;
 
+    log_debug("%p %p %p %p", props, props->data, &props->data[0], &props->data[1]);
+
     if (props == NULL)
     {
         qp_add_raw(query->packer, "user", 4);

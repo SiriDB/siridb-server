@@ -98,7 +98,6 @@ int siridb_servers_load(siridb_t * siridb)
                 (uint16_t) qp_pool->via->int64);
 
         /* append the server to the list */
-        log_debug("ADD server!!!");
         llist_append(siridb->servers, server);
 
         /* if this is me, bind server to siridb */

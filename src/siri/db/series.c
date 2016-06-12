@@ -20,6 +20,7 @@
 #include <string.h>
 #include <siri/db/shard.h>
 #include <siri/siri.h>
+#include <siri/db/condition.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -38,6 +39,8 @@ static int SERIES_update_max_id(siridb_t * siridb);
 static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
 
+
+
 static int SERIES_pack(
         const char * key,
         siridb_series_t * series,
@@ -54,6 +57,24 @@ const char series_type_map[3][8] = {
         "float",
         "string"
 };
+
+int siridb_series_validator(
+        siridb_series_t * series,
+        siridb_condition_t * condition)
+{
+    switch (condition->prop)
+    {
+    case CLERI_GID_K_LENGTH:
+        return siridb_condition_int_cmp(
+                condition->operator,
+                series->length,
+                condition->val.int64);
+    }
+    /* we should never get here */
+    assert (0);
+
+    return -1;
+}
 
 void siridb_series_add_point(
         siridb_t * siridb,
@@ -841,4 +862,5 @@ static void SERIES_update_end_num32(siridb_series_t * series)
         }
     }
 }
+
 
