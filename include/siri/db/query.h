@@ -13,7 +13,7 @@
 
 #define SIRIDB_QUERY_FLAG_MASTER 1
 #define SIRIDB_QUERY_FLAG_REPL 2
-
+#define SIRIDB_QUERY_FLAG_REBUILD 4
 
 #include <uv.h>
 #include <inttypes.h>
@@ -21,7 +21,7 @@
 #include <cleri/parser.h>
 #include <qpack/qpack.h>
 #include <siri/db/time.h>
-#include <siri/db/node.h>
+#include <siri/db/nodes.h>
 #include <siri/db/series.h>
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
@@ -53,7 +53,7 @@ typedef struct siridb_query_s
     siridb_timep_t time_precision;
     uv_close_cb free_cb;
     cleri_parse_result_t * pr;
-    siridb_node_list_t * node_list;
+    siridb_nodes_t * nodes;
     struct timespec start;
     int flags;
 

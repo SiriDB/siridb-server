@@ -20,7 +20,7 @@
 #include <string.h>
 #include <siri/db/shard.h>
 #include <siri/siri.h>
-#include <siri/db/condition.h>
+#include <cexpr/cexpr.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -58,17 +58,14 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-int siridb_series_validator(
+int siridb_series_cexpr_cb(
         siridb_series_t * series,
-        siridb_condition_t * condition)
+        cexpr_condition_t * cond)
 {
-    switch (condition->prop)
+    switch (cond->prop)
     {
     case CLERI_GID_K_LENGTH:
-        return siridb_condition_int_cmp(
-                condition->operator,
-                series->length,
-                condition->val.int64);
+        return cexpr_icmp(cond->operator, series->length, cond->val.int64);
     }
     /* we should never get here */
     assert (0);

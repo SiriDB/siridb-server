@@ -55,7 +55,7 @@ static cleri_node_t * cleri_parse_optional(
     cleri_node_t * node;
     cleri_node_t * rnode;
 
-    node = cleri_new_node(cl_obj, parent->str + parent->len, 0);
+    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     rnode = cleri_walk(
             pr,
             node,
@@ -68,6 +68,6 @@ static cleri_node_t * cleri_parse_optional(
         cleri_children_add(parent->children, node);
         return node;
     }
-    cleri_free_node(node);
+    cleri_node_free(node);
     return CLERI_EMPTY_NODE;
 }

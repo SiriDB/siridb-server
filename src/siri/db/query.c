@@ -14,7 +14,6 @@
 #include <siri/siri.h>
 #include <sys/time.h>
 #include <siri/parser/listener.h>
-#include <siri/db/node.h>
 #include <siri/db/time.h>
 #include <siri/net/handle.h>
 #include <string.h>
@@ -25,24 +24,33 @@
 #include <strextra/strextra.h>
 #include <iso8601/iso8601.h>
 #include <expr/expr.h>
+#include <siri/db/nodes.h>
+
+#define QUERY_TOO_LONG -1
+#define QUERY_MAX_LENGTH 8192
 
 static void siridb_parse_query(uv_async_t * handle);
 static int QUERY_walk(
         cleri_node_t * node,
-        siridb_node_walker_t * walker);
+        siridb_walker_t * walker);
 static void siridb_send_invalid_query_error(uv_async_t * handle);
 
 static int QUERY_time_expr(
         cleri_node_t * node,
-        siridb_node_walker_t * walker,
+        siridb_walker_t * walker,
         char * buf,
         size_t * size);
 
 static int QUERY_int_expr(
         cleri_node_t * node,
-        siridb_node_walker_t * walker,
         char * buf,
         size_t * size);
+
+static int QUERY_rebuild(
+        cleri_node_t * node,
+        char * buf,
+        size_t * size,
+        const size_t max_size);
 
 void siridb_async_query(
         uint64_t pid,
@@ -84,7 +92,7 @@ void siridb_async_query(
     /* make sure all *other* pointers are set to NULL */
     query->data = NULL;
     query->pr = NULL;
-    query->node_list = NULL;
+    query->nodes = NULL;
 
     /* send next call */
     uv_async_init(siri.loop, handle, (uv_async_cb) siridb_parse_query);
@@ -104,7 +112,7 @@ void siridb_free_query(uv_handle_t * handle)
     qp_free_packer(query->timeit);
 
     /* free node list */
-    siridb_free_node_list(query->node_list);
+    siridb_nodes_free(query->nodes);
 
     /* free query result */
     cleri_free_parse_result(query->pr);
@@ -270,14 +278,18 @@ static void siridb_parse_query(uv_async_t * handle)
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
-    siridb_node_walker_t * walker = siridb_new_node_walker(
+    siridb_walker_t * walker = siridb_walker_new(
             siridb,
-            siridb_time_now(siridb, query->start));
+            siridb_time_now(siridb, query->start),
+            &query->flags);
 
     query->pr = cleri_parse(siri.grammar, query->q);
 
     if (!query->pr->is_valid)
+    {
+        siridb_walker_free(walker);
         return siridb_send_invalid_query_error(handle);
+    }
 
     if ((rc = QUERY_walk(
             query->pr->tree->children->node,
@@ -306,20 +318,41 @@ static void siridb_parse_query(uv_async_t * handle)
             /* Unknown error */
             assert(0);
         }
+        siridb_walker_free(walker);
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
+    if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
+    {
+        size_t max_size = query->pr->tree->len + 200; /* reserve 200 extra chars */
+        char buffer[max_size];
+        size_t size = max_size;
 
+        if (QUERY_rebuild(
+                query->pr->tree->children->node,
+                buffer,
+                &size,
+                max_size))
+        {
+            log_debug("Hmmm.. failed");
+        }
+        else
+        {
+            /* terminate buffer */
+            buffer[max_size - size] = 0;
+//            log_debug("New query: %s", buffer);
+        }
+    }
     /* siridb_node_chain also free's the walker; we now only need to
      * cleanup the node list.
      */
-    query->node_list = siridb_node_chain(walker);
+    query->nodes = siridb_nodes_chain(walker);
 
-    if (query->node_list == NULL)
+    if (query->nodes == NULL)
         return siridb_send_motd(handle);
 
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));
-    uv_async_init(siri.loop, forward, (uv_async_cb) query->node_list->cb);
+    uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
     forward->data = (void *) handle->data;
     uv_async_send(forward);
     uv_close((uv_handle_t *) handle, (uv_close_cb) sirinet_free_async);
@@ -327,91 +360,105 @@ static void siridb_parse_query(uv_async_t * handle)
 
 static int QUERY_walk(
         cleri_node_t * node,
-        siridb_node_walker_t * walker)
+        siridb_walker_t * walker)
 {
     int rc;
     uint32_t gid;
     cleri_children_t * current;
     uv_async_cb func;
 
-    if ((gid = node->cl_obj->cl_obj->dummy->gid))
+    gid = node->cl_obj->cl_obj->dummy->gid;
+
+    /*
+     * When GID is 0 this means CLERI_NONE
+     */
+    if (gid != CLERI_NONE)
     {
         if ((func = siriparser_listen_enter[gid]) != NULL)
-            siridb_append_enter_node(walker, node, func);
+            siridb_walker_append(walker, node, func);
         if ((func = siriparser_listen_exit[gid]) != NULL)
-            siridb_insert_exit_node(walker, node, func);
+            siridb_walker_insert(walker, node, func);
     }
 
-    /* we should not simple walk rules, better do something else..
-     * (simply walk the rules would break because THIS has no
-     *  cl_obj->cl_obj)
-     */
-    if (node->cl_obj->tp != CLERI_TP_RULE)
-    {
-        current = node->children;
-        while (current != NULL && current->node != NULL)
-        {
-            if ((rc = QUERY_walk(current->node, walker)))
-                return rc;
-            current = current->next;
-        }
-    }
-    else
+
+    if (gid == CLERI_GID_TIME_EXPR)
     {
         char buffer[EXPR_MAX_SIZE];
         size_t size = EXPR_MAX_SIZE;
 
         /* we can have nested integer and time expressions */
-        if (node->cl_obj->cl_obj->rule->gid == CLERI_GID_TIME_EXPR)
+        if ((rc = QUERY_time_expr(
+                node->children->node,
+                walker,
+                buffer,
+                &size)))
         {
-            if ((rc = QUERY_time_expr(
-                    node,
-                    walker,
-                    buffer,
-                    &size)))
-                return rc;
-
-            /* terminate buffer */
-            buffer[EXPR_MAX_SIZE - size] = 0;
-
-            /* evaluate the expression */
-            if ((rc = expr_parse(&node->result, buffer)))
-                return rc;
-
-            /* check if timestamp is valid */
-            if (!siridb_int64_valid_ts(walker->siridb, node->result))
-                return EXPR_TIME_OUT_OF_RANGE;
+            return rc;
         }
-        else
+
+        /* terminate buffer */
+        buffer[EXPR_MAX_SIZE - size] = 0;
+
+        /* evaluate the expression */
+        if ((rc = expr_parse(&node->result, buffer)))
         {
-#ifdef DEBUG
-            assert (node->cl_obj->cl_obj->rule->gid == CLERI_GID_INT_EXPR);
-#endif
-            if ((rc = QUERY_int_expr(
-                    node,
-                    walker,
-                    buffer,
-                    &size)))
-                return rc;
+            return rc;
+        }
 
-            /* terminate buffer */
-            buffer[EXPR_MAX_SIZE - size] = 0;
+        /* check if timestamp is valid */
+        if (!siridb_int64_valid_ts(walker->siridb, node->result))
+        {
+            return EXPR_TIME_OUT_OF_RANGE;
+        }
 
-            /* evaluate the expression */
-            if ((rc = expr_parse(&node->result, buffer)))
+    }
+    else if (gid == CLERI_GID_INT_EXPR)
+    {
+        char buffer[EXPR_MAX_SIZE];
+        size_t size = EXPR_MAX_SIZE;
+
+        if ((rc = QUERY_int_expr(
+                node->children->node,
+                buffer,
+                &size)))
+            return rc;
+
+        /* terminate buffer */
+        buffer[EXPR_MAX_SIZE - size] = 0;
+
+        /* evaluate the expression */
+        if ((rc = expr_parse(&node->result, buffer)))
+            return rc;
+    }
+    else
+    {
+        current = node->children;
+        while (current != NULL && current->node != NULL)
+        {
+            /*
+             * We should not simple walk because THIS has no
+             * cl_obj->cl_obj and THIS is save to skip.
+             */
+            while (current->node->cl_obj->tp == CLERI_TP_THIS)
+            {
+                current = current->node->children;
+            }
+            if ((rc = QUERY_walk(current->node, walker)))
                 return rc;
+            current = current->next;
         }
     }
+
     return 0;
 }
 
 static int QUERY_time_expr(
         cleri_node_t * node,
-        siridb_node_walker_t * walker,
+        siridb_walker_t * walker,
         char * buf,
         size_t * size)
 {
-    cleri_children_t * current;
+    int n;
 
     switch (node->cl_obj->tp)
     {
@@ -423,12 +470,18 @@ static int QUERY_time_expr(
 
     case CLERI_TP_KEYWORD:
         /* this is now */
-        *size -= snprintf(
+        n = snprintf(
                 buf + EXPR_MAX_SIZE - *size,
                 *size,
-                "%ld",
+                "%lu",
                 walker->now);
-        return (*size) ? 0 : EXPR_TOO_LONG;
+        if (n >= *size)
+        {
+            return EXPR_TOO_LONG;
+        }
+        *walker->flags |= SIRIDB_QUERY_FLAG_REBUILD;
+        *size -= n;
+        return 0;
 
     case CLERI_TP_REGEX:
         /* can be an integer or time string like 2d or something */
@@ -442,13 +495,18 @@ static int QUERY_time_expr(
             return 0;
 
         case CLERI_GID_R_TIME_STR:
-            *size -= snprintf(
+            n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%ld",
+                    "%lu",
                     siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
-            return (*size) ? 0 : EXPR_TOO_LONG;
+            if (n >= *size)
+            {
+                return EXPR_TOO_LONG;
+            }
+            *size -= n;
+            return 0;
         }
         /* we should never get here */
         assert (0);
@@ -468,18 +526,27 @@ static int QUERY_time_expr(
             if (ts < 0)
                 return EXPR_INVALID_DATE_STRING;
 
-            *size -= snprintf(
+            n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
                     "%ld",
                     ts * walker->siridb->time->factor);
+
+            if (n >= *size)
+            {
+                return EXPR_TOO_LONG;
+            }
+            *walker->flags |= SIRIDB_QUERY_FLAG_REBUILD;
+            *size -= n;
         }
-        return (*size) ? 0 : EXPR_TOO_LONG;
+        return 0;
 
     default:
         /* anything else, probably THIS or a sequence */
         {
             int rc;
+            cleri_children_t * current;
+
             current = node->children;
             while (current != NULL && current->node != NULL)
             {
@@ -498,12 +565,9 @@ static int QUERY_time_expr(
 
 static int QUERY_int_expr(
         cleri_node_t * node,
-        siridb_node_walker_t * walker,
         char * buf,
         size_t * size)
 {
-    cleri_children_t * current;
-
     switch (node->cl_obj->tp)
     {
     case CLERI_TP_TOKEN:
@@ -524,12 +588,13 @@ static int QUERY_int_expr(
         /* anything else, probably THIS or a sequence */
         {
             int rc;
+            cleri_children_t * current;
+
             current = node->children;
             while (current != NULL && current->node != NULL)
             {
                 if ((rc = QUERY_int_expr(
                         current->node,
-                        walker,
                         buf,
                         size)))
                     return rc;
@@ -540,3 +605,67 @@ static int QUERY_int_expr(
     return 0;
 }
 
+static int QUERY_rebuild(
+        cleri_node_t * node,
+        char * buf,
+        size_t * size,
+        const size_t max_size)
+{
+    switch (node->cl_obj->tp)
+    {
+    case CLERI_TP_TOKEN:
+    case CLERI_TP_TOKENS:
+    case CLERI_TP_REGEX:
+    case CLERI_TP_KEYWORD:
+        if (node->len >= *size)
+        {
+            return QUERY_TOO_LONG;
+        }
+        memcpy(buf + max_size - *size, node->str, node->len);
+        *size -= node->len;
+
+        *(buf + max_size - *size) = ' ';
+        return (--(*size)) ? 0 : QUERY_TOO_LONG;
+
+    case CLERI_TP_RULE:
+        switch (node->cl_obj->cl_obj->dummy->gid)
+        {
+        case CLERI_GID_INT_EXPR:
+        case CLERI_GID_TIME_EXPR:
+            {
+                int n;
+                n = snprintf(
+                        buf + max_size - *size,
+                        *size,
+                        "%ld ",
+                        node->result);
+                if (n >= *size)
+                {
+                    return QUERY_TOO_LONG;
+                }
+                *size -= n;
+            }
+            return 0;
+        }
+    /* no break */
+    default:
+        {
+            int rc;
+            cleri_children_t * current;
+
+            current = node->children;
+            while (current != NULL && current->node != NULL)
+            {
+                if ((rc = QUERY_rebuild(
+                        current->node,
+                        buf,
+                        size,
+                        max_size)))
+                    return rc;
+                current = current->next;
+            }
+
+        }
+    }
+    return 0;
+}

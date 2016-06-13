@@ -23,7 +23,7 @@ static cleri_node_t Cleri_empty_node = {
 
 cleri_node_t * CLERI_EMPTY_NODE = &Cleri_empty_node;
 
-cleri_node_t * cleri_new_node(
+cleri_node_t * cleri_node_new(
         cleri_object_t * cl_obj,
         const char * str,
         size_t len)
@@ -45,7 +45,7 @@ cleri_node_t * cleri_new_node(
     return node;
 }
 
-void cleri_free_node(cleri_node_t * node)
+void cleri_node_free(cleri_node_t * node)
 {
     /* node can be NULL or this could be an CLERI_EMPTY_NODE */
     if (node == NULL || node == CLERI_EMPTY_NODE || --node->ref)

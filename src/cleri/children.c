@@ -44,7 +44,7 @@ void cleri_free_children(cleri_children_t * children)
     while (children != NULL)
     {
         next = children->next;
-        cleri_free_node(children->node);
+        cleri_node_free(children->node);
         free(children);
         children = next;
     }
@@ -55,7 +55,7 @@ void cleri_empty_children(cleri_children_t * children)
     cleri_children_t * current;
 
     /* clean root node and set to NULL */
-    cleri_free_node(children->node);
+    cleri_node_free(children->node);
     children->node = NULL;
 
     /* set root next to NULL */
@@ -66,7 +66,7 @@ void cleri_empty_children(cleri_children_t * children)
     while (current != NULL)
     {
         children = current->next;
-        cleri_free_node(current->node);
+        cleri_node_free(current->node);
         free(current);
         current = children;
     }

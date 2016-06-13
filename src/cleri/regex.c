@@ -117,7 +117,7 @@ static cleri_node_t *  cleri_parse_regex(
     /* since each regex pattern should start with ^ we now sub_str_vec[0]
      * should be 0. sub_str_vec[1] contains the end position in the sting
      */
-    node = cleri_new_node(cl_obj, str, (size_t) sub_str_vec[1]);
+    node = cleri_node_new(cl_obj, str, (size_t) sub_str_vec[1]);
     parent->len += node->len;
     cleri_children_add(parent->children, node);
     return node;

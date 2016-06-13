@@ -31,10 +31,10 @@ typedef struct cleri_node_s
 } cleri_node_t;
 
 
-cleri_node_t * cleri_new_node(
+cleri_node_t * cleri_node_new(
         struct cleri_object_s * cl_obj,
         const char * str,
         size_t len);
-void cleri_free_node(cleri_node_t * node);
+void cleri_node_free(cleri_node_t * node);
 
 cleri_node_t * CLERI_EMPTY_NODE;

@@ -76,7 +76,7 @@ static cleri_node_t *  cleri_parse_list(
     cleri_node_t * rnode;
     size_t i = 0;
     size_t j = 0;
-    node = cleri_new_node(cl_obj, parent->str + parent->len, 0);
+    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     while (1)
     {
 
@@ -103,7 +103,7 @@ static cleri_node_t *  cleri_parse_list(
             (cl_obj->cl_obj->list->max && i > cl_obj->cl_obj->list->max) ||
             ((cl_obj->cl_obj->list->opt_closing == 0) && i && i == j))
     {
-        cleri_free_node(node);
+        cleri_node_free(node);
         return NULL;
     }
     parent->len += node->len;

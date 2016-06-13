@@ -71,7 +71,7 @@ static cleri_node_t * cleri_parse_sequence(
     cleri_node_t * rnode;
 
     olist = cl_obj->cl_obj->sequence->olist;
-    node = cleri_new_node(cl_obj, parent->str + parent->len, 0);
+    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
 
     while (olist != NULL)
     {
@@ -83,7 +83,7 @@ static cleri_node_t * cleri_parse_sequence(
                 CLERI_EXP_MODE_REQUIRED);
         if (rnode == NULL)
         {
-            cleri_free_node(node);
+            cleri_node_free(node);
             return NULL;
         }
         olist = olist->next;

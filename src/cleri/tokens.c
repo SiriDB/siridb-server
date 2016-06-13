@@ -120,7 +120,7 @@ static cleri_node_t * cleri_parse_tokens(
     {
         if (strncmp(tlist->token, str, tlist->len) == 0)
         {
-            node = cleri_new_node(cl_obj, str, tlist->len);
+            node = cleri_node_new(cl_obj, str, tlist->len);
             parent->len += node->len;
             cleri_children_add(parent->children, node);
             return node;

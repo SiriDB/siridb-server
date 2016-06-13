@@ -71,7 +71,7 @@ static cleri_node_t * cleri_parse_keyword(
            )
        ))
     {
-        node = cleri_new_node(cl_obj, str, match_len);
+        node = cleri_node_new(cl_obj, str, match_len);
         parent->len += node->len;
         cleri_children_add(parent->children, node);
     }

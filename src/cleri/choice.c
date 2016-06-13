@@ -101,7 +101,7 @@ static cleri_node_t * parse_most_greedy(
     olist = cl_obj->cl_obj->choice->olist;
     while (olist != NULL)
     {
-        node = cleri_new_node(cl_obj, str, 0);
+        node = cleri_node_new(cl_obj, str, 0);
         rnode = cleri_walk(
                 pr,
                 node,
@@ -110,11 +110,11 @@ static cleri_node_t * parse_most_greedy(
                 CLERI_EXP_MODE_REQUIRED);
         if (rnode != NULL && (mg_node == NULL || node->len > mg_node->len))
         {
-            cleri_free_node(mg_node);
+            cleri_node_free(mg_node);
             mg_node = node;
         }
         else
-            cleri_free_node(node);
+            cleri_node_free(node);
         olist = olist->next;
     }
     if (mg_node != NULL)
@@ -136,7 +136,7 @@ static cleri_node_t * parse_first_match(
     cleri_node_t * rnode;
 
     olist = cl_obj->cl_obj->sequence->olist;
-    node = cleri_new_node(cl_obj, parent->str + parent->len, 0);
+    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     while (olist != NULL)
     {
         rnode = cleri_walk(
@@ -153,6 +153,6 @@ static cleri_node_t * parse_first_match(
         }
         olist = olist->next;
     }
-    cleri_free_node(node);
+    cleri_node_free(node);
     return NULL;
 }

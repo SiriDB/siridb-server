@@ -81,7 +81,7 @@ static cleri_node_t *  cleri_parse_prio(
 
     while (olist != NULL)
     {
-        node = cleri_new_node(cl_obj, str, 0);
+        node = cleri_node_new(cl_obj, str, 0);
         rnode = cleri_walk(
                 pr,
                 node,
@@ -91,11 +91,11 @@ static cleri_node_t *  cleri_parse_prio(
         if (rnode != NULL &&
                 (tested->node == NULL || node->len > tested->node->len))
         {
-            cleri_free_node(tested->node);
+            cleri_node_free(tested->node);
             tested->node = node;
         }
         else
-            cleri_free_node(node);
+            cleri_node_free(node);
         olist = olist->next;
     }
     if (tested->node != NULL)

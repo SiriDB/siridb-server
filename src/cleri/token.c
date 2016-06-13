@@ -65,7 +65,7 @@ static cleri_node_t * cleri_parse_token(
             str,
             cl_obj->cl_obj->token->len) == 0)
     {
-        node = cleri_new_node(cl_obj, str, cl_obj->cl_obj->token->len);
+        node = cleri_node_new(cl_obj, str, cl_obj->cl_obj->token->len);
         parent->len += node->len;
         cleri_children_add(parent->children, node);
     }

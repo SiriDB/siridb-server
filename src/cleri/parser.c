@@ -26,7 +26,7 @@ cleri_parse_result_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
     /* prepare parsing */
     pr = (cleri_parse_result_t *) malloc(sizeof(cleri_parse_result_t));
     pr->str = str;
-    pr->tree = cleri_new_node(NULL, str, 0);
+    pr->tree = cleri_node_new(NULL, str, 0);
     pr->kwcache = cleri_new_kwcache();
     pr->expecting = cleri_new_expecting(str);
     pr->re_keywords = grammar->re_keywords;
@@ -66,7 +66,7 @@ cleri_parse_result_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
 
 void cleri_free_parse_result(cleri_parse_result_t * pr)
 {
-    cleri_free_node(pr->tree);
+    cleri_node_free(pr->tree);
     cleri_free_expecting(pr->expecting);
     cleri_free_kwcache(pr->kwcache);
     free(pr);

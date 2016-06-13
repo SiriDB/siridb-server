@@ -45,7 +45,7 @@ static cleri_node_t * cleri_parse_this(
 
     if (cleri_init_rule_tested(&tested, rule->tested, str))
     {
-        node = cleri_new_node(cl_obj, str, 0);
+        node = cleri_node_new(cl_obj, str, 0);
         tested->node = cleri_walk(
                 pr,
                 node,
@@ -55,7 +55,7 @@ static cleri_node_t * cleri_parse_this(
 
         if (tested->node == NULL)
         {
-            cleri_free_node(node);
+            cleri_node_free(node);
             return NULL;
         }
 
