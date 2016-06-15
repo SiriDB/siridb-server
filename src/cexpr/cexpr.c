@@ -113,17 +113,24 @@ int cexpr_icmp(cexpr_operator_t operator, int64_t a, int64_t b)
 
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
 {
+    /* should return either 1 or 0. (true or false) */
+
     switch (cexpr->operator)
     {
     case CEXPR_AND:
-        return  (cexpr->tp_a == VIA_NULL || ((cexpr->tp_a == VIA_CEXPR) ?
+#ifdef DEBUG
+        /* tp_a cannot be VIA_NULL, but tp_b can */
+        assert (cexpr->tp_a != VIA_NULL);
+#endif
+        return  ((cexpr->tp_a == VIA_CEXPR) ?
                     cexpr_run(cexpr->via_a.cexpr, cb, obj) :
-                    cb(obj, cexpr->via_a.cond))) &&
+                    cb(obj, cexpr->via_a.cond)) &&
                 (cexpr->tp_b == VIA_NULL || ((cexpr->tp_b == VIA_CEXPR) ?
                     cexpr_run(cexpr->via_b.cexpr, cb, obj) :
                     cb(obj, cexpr->via_b.cond)));
     case CEXPR_OR:
 #ifdef DEBUG
+        /* both tp_a and tp_b can NEVER be VIA_NULL */
         assert (cexpr->tp_a != VIA_NULL && cexpr->tp_b != VIA_NULL);
 #endif
         return  ((cexpr->tp_a == VIA_CEXPR) ?
@@ -133,10 +140,10 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
                     cexpr_run(cexpr->via_b.cexpr, cb, obj) :
                     cb(obj, cexpr->via_b.cond));
     default:
-        /* operator must be either AND or OR */
+        log_critical("operator must be AND or OR, got: %d", cexpr->operator);
         assert (0);
     }
-    return -1;
+    return -1; /* this should NEVER happen */
 }
 
 void cexpr_free(cexpr_t * cexpr)
