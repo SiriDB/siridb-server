@@ -136,7 +136,9 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
     siriparser_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siriparser_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
+    siriparser_listen_enter[CLERI_GID_WHERE_POOL_STMT] = enter_where_xxx_stmt;
     siriparser_listen_enter[CLERI_GID_WHERE_SERIES_STMT] = enter_where_xxx_stmt;
+    siriparser_listen_enter[CLERI_GID_WHERE_USER_STMT] = enter_where_xxx_stmt;
 
 
     siriparser_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
@@ -454,20 +456,18 @@ static void enter_timeit_stmt(uv_async_t * handle)
 static void enter_where_xxx_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    cexpr_t * cexpr =
+            cexpr_from_node(query->nodes->node->children->next->node);
 
-//    log_debug("in listener...");
-//    ((query_wrapper_where_node_t *) query->data)->where_node =
-//            query->nodes->node->children->next->next->node;
-//
-    cexpr_t * cexpr = cexpr_from_node(
-            query->nodes->node->children->next->node);
     if (cexpr == NULL)
     {
-        log_debug("Max curly dept reached.");
+        sprintf(query->err_msg, "Max curly depth reached in where expression!");
+        log_critical(query->err_msg);
+        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
     else
     {
-        cexpr_free(cexpr);
+        ((query_wrapper_where_node_t *) query->data)->where_expr = cexpr;
     }
 
     SIRIPARSER_NEXT_NODE
@@ -909,8 +909,6 @@ static void exit_list_users_stmt(uv_async_t * handle)
 
     slist_t * props = ((query_list_t *) query->data)->props;
     size_t i;
-
-    log_debug("%p %p %p %p", props, props->data, &props->data[0], &props->data[1]);
 
     if (props == NULL)
     {

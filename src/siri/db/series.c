@@ -65,7 +65,7 @@ int siridb_series_cexpr_cb(
     switch (cond->prop)
     {
     case CLERI_GID_K_LENGTH:
-        return cexpr_icmp(cond->operator, series->length, cond->val.int64);
+        return cexpr_icmp(cond->operator, series->length, cond->int64);
     }
     /* we should never get here */
     assert (0);

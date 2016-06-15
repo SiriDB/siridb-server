@@ -16,9 +16,10 @@
 #include <cleri/parser.h>
 #include <ctree/ctree.h>
 #include <slist/slist.h>
+#include <cexpr/cexpr.h>
 
 #define W0_CT_SERIES ct_t * ct_series;
-#define W1_WHERE_NODE cleri_node_t * where_node;
+#define W1_WHERE_EXPR cexpr_t * where_expr;
 
 /* wrappers */
 typedef struct query_wrapper_ct_series_s
@@ -29,13 +30,13 @@ typedef struct query_wrapper_ct_series_s
 typedef struct query_wrapper_where_node_s
 {
     void * pad0;
-    W1_WHERE_NODE
+    W1_WHERE_EXPR
 } query_wrapper_where_node_t;
 
 typedef struct query_list_s
 {
     W0_CT_SERIES
-    W1_WHERE_NODE
+    W1_WHERE_EXPR
     slist_t * props;
     size_t limit;
 } query_list_t;
@@ -43,13 +44,13 @@ typedef struct query_list_s
 typedef struct query_count_s
 {
     W0_CT_SERIES
-    W1_WHERE_NODE
+    W1_WHERE_EXPR
 } query_count_t;
 
 typedef struct query_drop_s
 {
     W0_CT_SERIES
-    W1_WHERE_NODE
+    W1_WHERE_EXPR
     void * data; // data will not be freed, make sure to use it correct.
     ssize_t n;  // keep a counter for number of drops.
 } query_drop_t;
@@ -59,7 +60,7 @@ typedef struct query_drop_s
 typedef struct query_select_s
 {
     W0_CT_SERIES
-    W1_WHERE_NODE
+    W1_WHERE_EXPR
     uint64_t * start_ts;
     uint64_t * end_ts;
 } query_select_t;

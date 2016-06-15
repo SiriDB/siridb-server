@@ -24,6 +24,8 @@ typedef enum cexpr_operator
     CEXPR_LT,   // less than
     CEXPR_GE,   // greater than or equal to
     CEXPR_LE,   // less than or equal to
+    CEXPR_IN,   // contains (string)
+    CEXPR_NI,   // not contains (string)
     CEXPR_AND,
     CEXPR_OR,
 } cexpr_operator_t;
@@ -32,7 +34,8 @@ typedef struct cexpr_condition_s
 {
     uint32_t prop;
     cexpr_operator_t operator;
-    qp_via_t val;
+    int64_t int64;
+    char * str;
 } cexpr_condition_t;
 
 typedef int (*cexpr_cb_t)(void * obj, cexpr_condition_t * cond);

@@ -13,8 +13,9 @@
     q_type * q = (q_type *) query->data;                                      \
     if (q->ct_series != NULL)                                                 \
         ct_free_cb(q->ct_series, (ct_free_cb_t) &siridb_series_decref);       \
+    if (q->where_expr != NULL)                                                \
+        cexpr_free(q->where_expr);                                            \
     free(q);                                                                  \
-    /* normal free call */                                                    \
     siridb_free_query(handle);                                                \
 }
 
@@ -24,7 +25,7 @@ query_select_t * query_select_new(void)
             (query_select_t *) malloc(sizeof(query_select_t));
 
     q_select->ct_series = NULL;
-    q_select->where_node = NULL;
+    q_select->where_expr = NULL;
     q_select->start_ts = NULL;
     q_select->end_ts = NULL;
     return q_select;
@@ -35,7 +36,7 @@ query_list_t * query_list_new(void)
     query_list_t * q_list =
             (query_list_t *) malloc(sizeof(query_list_t));
     q_list->ct_series = NULL;
-    q_list->where_node = NULL;
+    q_list->where_expr = NULL;
     q_list->props = NULL;
     q_list->limit = DEFAULT_LIST_LIMIT;
 
@@ -47,7 +48,7 @@ query_count_t * query_count_new(void)
     query_count_t * q_count =
             (query_count_t *) malloc(sizeof(query_count_t));
     q_count->ct_series = NULL;
-    q_count->where_node = NULL;
+    q_count->where_expr = NULL;
 
     return q_count;
 }
@@ -57,7 +58,7 @@ query_drop_t * query_drop_new(void)
     query_drop_t * q_drop =
             (query_drop_t *) malloc(sizeof(query_drop_t));
     q_drop->ct_series = NULL;
-    q_drop->where_node = NULL;
+    q_drop->where_expr = NULL;
     q_drop->data = NULL; // will not be freed
     q_drop->n = 0;
     return q_drop;
@@ -76,6 +77,9 @@ void query_list_free(uv_handle_t * handle)
 
     if (qlist->props != NULL)
         slist_free(qlist->props);
+
+    if (qlist->where_expr != NULL)
+        cexpr_free(qlist->where_expr);
 
     free(qlist);
 
