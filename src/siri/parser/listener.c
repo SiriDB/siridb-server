@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <math.h>
 #include <siri/db/nodes.h>
+#include <cexpr/cexpr.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
@@ -135,7 +136,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
     siriparser_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siriparser_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
-    siriparser_listen_enter[CLERI_GID_WHERE_USER_STMT] = enter_where_xxx_stmt;
+    siriparser_listen_enter[CLERI_GID_WHERE_SERIES_STMT] = enter_where_xxx_stmt;
 
 
     siriparser_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
@@ -454,8 +455,20 @@ static void enter_where_xxx_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((query_wrapper_where_node_t *) query->data)->where_node =
-            query->nodes->node->children->next->next->node;
+//    log_debug("in listener...");
+//    ((query_wrapper_where_node_t *) query->data)->where_node =
+//            query->nodes->node->children->next->next->node;
+//
+    cexpr_t * cexpr = cexpr_from_node(
+            query->nodes->node->children->next->node);
+    if (cexpr == NULL)
+    {
+        log_debug("Max curly dept reached.");
+    }
+    else
+    {
+        cexpr_free(cexpr);
+    }
 
     SIRIPARSER_NEXT_NODE
 }

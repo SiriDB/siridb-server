@@ -12,6 +12,9 @@
 #pragma once
 #include <inttypes.h>
 #include <qpack/qpack.h>
+#include <cleri/node.h>
+
+#define CEXPR_MAX_CURLY_DEPT 10
 
 typedef enum cexpr_operator
 {
@@ -36,10 +39,16 @@ typedef int (*cexpr_cb_t)(void * obj, cexpr_condition_t * cond);
 
 typedef struct cexpr_s cexpr_t;
 
+typedef struct cexpr_list_s
+{
+    size_t len;
+    cexpr_t * cexpr[CEXPR_MAX_CURLY_DEPT];
+} cexpr_list_t;
+
 typedef union cexpr_via_u
 {
     cexpr_condition_t * cond;
-    cexpr_t * expr;
+    cexpr_t * cexpr;
 } cexpr_via_t;
 
 typedef struct cexpr_s
@@ -51,5 +60,7 @@ typedef struct cexpr_s
     cexpr_via_t via_b;
 } cexpr_t;
 
+cexpr_t * cexpr_from_node(cleri_node_t * node);
 int cexpr_icmp(cexpr_operator_t operator, int64_t a, int64_t b);
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj);
+void cexpr_free(cexpr_t * cexpr);
