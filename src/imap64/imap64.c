@@ -58,7 +58,9 @@ void imap64_add(imap64_t * imap, uint64_t id, void * data)
     uint_fast8_t key;
     imap64_node_t * node;
 
+#ifdef DEBUG
     assert (data != NULL);
+#endif
 
     if (!id)
     {

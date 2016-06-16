@@ -52,7 +52,9 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
 {
     uint32_t key = id / 65536;
 
+#ifdef DEBUG
     assert (data != NULL);
+#endif
 
     if (!imap->size)
         imap->offset = key;

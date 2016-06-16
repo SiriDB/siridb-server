@@ -87,8 +87,10 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     return cexpr;
 }
 
-
-int cexpr_icmp(cexpr_operator_t operator, int64_t a, int64_t b)
+int cexpr_int_cmp(
+        const cexpr_operator_t operator,
+        const int64_t a,
+        const int64_t b)
 {
     switch (operator)
     {
@@ -105,9 +107,47 @@ int cexpr_icmp(cexpr_operator_t operator, int64_t a, int64_t b)
     case CEXPR_LE:
         return a <= b;
     default:
-        log_critical("Got an unexpected operator (integer type): %d", operator);
+        log_critical("Got an unexpected operator (int type): %d", operator);
         assert (0);
     }
+    /* we should NEVER get here */
+    return -1;
+}
+
+int cexpr_str_cmp(
+        const cexpr_operator_t operator,
+        const char * a,
+        const char * b)
+{
+    /* both a and b MUST be terminated strings */
+
+#ifdef DEBUG
+    assert (a != NULL && b != NULL);
+#endif
+
+    switch (operator)
+    {
+    case CEXPR_EQ:
+        return strcmp(a, b) == 0;
+    case CEXPR_NE:
+        return strcmp(a, b) != 0;
+    case CEXPR_GT:
+        return strcmp(a, b) > 0;
+    case CEXPR_LT:
+        return strcmp(a, b) < 0;
+    case CEXPR_GE:
+        return strcmp(a, b) >= 0;
+    case CEXPR_LE:
+        return strcmp(a, b) <= 0;
+    case CEXPR_IN:
+        return strstr(a, b) != NULL;
+    case CEXPR_NI:
+        return strstr(a, b) == NULL;
+    default:
+        log_critical("Got an unexpected operator (string type): %d", operator);
+        assert (0);
+    }
+    /* we should NEVER get here */
     return -1;
 }
 

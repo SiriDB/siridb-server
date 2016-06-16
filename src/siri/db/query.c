@@ -315,7 +315,7 @@ static void siridb_parse_query(uv_async_t * handle)
             sprintf(query->err_msg, "Invalid date string.");
             break;
         default:
-            /* Unknown error */
+            log_critical("Unknown Return Code received: %d", rc);
             assert(0);
         }
         siridb_walker_free(walker);
@@ -508,7 +508,9 @@ static int QUERY_time_expr(
             *size -= n;
             return 0;
         }
-        /* we should never get here */
+        log_critical(
+                "Unexpected object in time expression received: %d",
+                node->cl_obj->tp);
         assert (0);
         break;
 

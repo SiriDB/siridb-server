@@ -221,6 +221,10 @@ static void enter_count_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_COUNT)
 
+#ifdef DEBUG
+    assert (query->packer == NULL);
+#endif
+
     query->packer = qp_new_packer(256);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -246,6 +250,10 @@ static void enter_create_user_stmt(uv_async_t * handle)
 static void enter_drop_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+#ifdef DEBUG
+    assert (query->packer == NULL);
+#endif
 
     query->packer = qp_new_packer(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -315,6 +323,10 @@ static void enter_list_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_LIST)
 
+#ifdef DEBUG
+    assert (query->packer == NULL);
+#endif
+
     query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -367,6 +379,10 @@ static void enter_select_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_SELECT)
+
+#ifdef DEBUG
+    assert (query->packer == NULL && query->data == NULL);
+#endif
 
     query->data = query_select_new();
     query->free_cb = (uv_close_cb) query_select_free;
@@ -619,7 +635,12 @@ static void exit_create_user_stmt(uv_async_t * handle)
     cleri_node_t * user_node =
             query->nodes->node->children->next->node;
 
+#ifdef DEBUG
+    /* both username and packer should be NULL at this point */
     assert(user->username == NULL);
+    assert(query->packer == NULL);
+#endif
+
     user->username = (char *) malloc(user_node->len - 1);
     strx_extract_string(user->username, user_node->str, user_node->len);
 
@@ -632,7 +653,6 @@ static void exit_create_user_stmt(uv_async_t * handle)
     /* success, we do not need to free the user anymore */
     query->free_cb = (uv_close_cb) siridb_free_query;
 
-    assert(query->packer == NULL);
     query->packer = qp_new_packer(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -755,7 +775,9 @@ static void exit_grant_user_stmt(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
+#ifdef DEBUG
     assert (query->packer == NULL);
+#endif
 
     query->packer = qp_new_packer(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -975,7 +997,9 @@ static void exit_revoke_user_stmt(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
+#ifdef DEBUG
     assert (query->packer == NULL);
+#endif
 
     query->packer = qp_new_packer(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -1012,6 +1036,10 @@ static void exit_show_stmt(uv_async_t * handle)
     cleri_children_t * children =
             query->nodes->node->children->next->node->children;
     siridb_props_cb prop_cb;
+
+#ifdef DEBUG
+    assert (query->packer == NULL);
+#endif
 
     query->packer = qp_new_packer(4096);
     qp_add_type(query->packer, QP_MAP_OPEN);

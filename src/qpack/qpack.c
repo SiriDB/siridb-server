@@ -374,7 +374,10 @@ void qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
 
 void qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
+#ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
+#endif
+
     QP_RESIZE(1)
     packer->buffer[packer->len++] = tp;
 }
@@ -384,6 +387,7 @@ int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 #ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
+
     return (fputc(tp, fpacker) == tp) ? 0 : -1;
 }
 

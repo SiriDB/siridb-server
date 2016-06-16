@@ -20,7 +20,6 @@
 #include <string.h>
 #include <siri/db/shard.h>
 #include <siri/siri.h>
-#include <cexpr/cexpr.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -58,18 +57,26 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-int siridb_series_cexpr_cb(
-        siridb_series_t * series,
-        cexpr_condition_t * cond)
+int siridb_series_cexpr_cb(series_walker_t * wseries, cexpr_condition_t * cond)
 {
     switch (cond->prop)
     {
     case CLERI_GID_K_LENGTH:
-        return cexpr_icmp(cond->operator, series->length, cond->int64);
+        return cexpr_int_cmp(cond->operator, wseries->series->length, cond->int64);
+    case CLERI_GID_K_START:
+        return cexpr_int_cmp(cond->operator, wseries->series->start, cond->int64);
+    case CLERI_GID_K_END:
+        return cexpr_int_cmp(cond->operator, wseries->series->end, cond->int64);
+    case CLERI_GID_K_POOL:
+        return cexpr_int_cmp(cond->operator, wseries->pool, cond->int64);
+    case CLERI_GID_K_TYPE:
+        return cexpr_int_cmp(cond->operator, wseries->series->tp, cond->int64);
+    case CLERI_GID_K_NAME:
+        return cexpr_str_cmp(cond->operator, wseries->series_name, cond->str);
     }
-    /* we should never get here */
+    /* we must NEVER get here */
+    log_critical("Unexpected series property received: %d", cond->prop);
     assert (0);
-
     return -1;
 }
 
@@ -642,7 +649,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     qp_types_t tp;
     uint32_t series_id;
 
-    /* we should not have any users at this moment */
+    /* we should not have any series at this moment */
     assert(siridb->max_series_id == 0);
 
     /* get series file name */

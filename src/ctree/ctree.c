@@ -424,7 +424,9 @@ static void CT_merge_node(ct_node_t * node)
     /* this function should only be called when 1 node is left and the
      * node itself has no data
      */
+#ifdef DEBUG
     assert(node->size == 1 && node->data == NULL);
+#endif
 
     int i;
     size_t len_key = strlen(node->key);

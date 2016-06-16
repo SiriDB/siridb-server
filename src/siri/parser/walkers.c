@@ -65,6 +65,7 @@ void walk_drop_shard(
     }
 }
 
+
 int walk_list_series(
         const char * series_name,
         siridb_series_t * series,
@@ -73,12 +74,22 @@ int walk_list_series(
     siridb_query_t * query = (siridb_query_t *) handle->data;
     slist_t * props = ((query_list_t *) query->data)->props;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
 
-//    if (series->tp != SIRIDB_SERIES_TP_INT)
-//    {
-//        return 0; // false
-//    }
+    series_walker_t wseries = {
+        .series_name=series_name,
+        .series=series,
+        .pool=siridb->server->pool
+    };
+
+    if (where_expr != NULL && !cexpr_run(
+            where_expr,
+            (cexpr_cb_t) siridb_series_cexpr_cb,
+            &wseries))
+    {
+        return 0; // false
+    }
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 

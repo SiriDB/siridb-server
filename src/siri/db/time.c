@@ -12,6 +12,7 @@
 #include <siri/db/time.h>
 #include <xmath/xmath.h>
 #include <assert.h>
+#include <logger/logger.h>
 
 const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
@@ -42,17 +43,18 @@ uint64_t siridb_time_parse(const char * str, size_t len)
     case 'w':
         return ts * 604800;
     }
-
-    /* we should never get at this point */
+    /* we should NEVER get here */
+    log_critical("Unexpected time char received: '%c'", str[len - 1]);
     assert (0);
-
     return 0;
 }
 
 int siridb_int64_valid_ts(siridb_t * siridb, int64_t ts)
 {
     if (siridb->time->precision == SIRIDB_TIME_SECONDS)
+    {
         return ts >= 0 && ts < 4294967296;
+    }
     return ts >= 0;
 }
 

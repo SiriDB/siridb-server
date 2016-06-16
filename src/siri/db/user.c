@@ -125,13 +125,17 @@ int siridb_user_check_access(
 
 int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
 {
+    /* str is not used for user */
+
     switch (cond->prop)
     {
     case CLERI_GID_K_ACCESS:
-        return cexpr_icmp(cond->operator, user->access_bit, cond->int64);
+        return cexpr_int_cmp(cond->operator, user->access_bit, cond->int64);
+    case CLERI_GID_K_USER:
+        return cexpr_str_cmp(cond->operator, user->username, cond->str);
     }
 
-    /* this should NEVER happen */
+    /* this must NEVER happen */
     log_critical("Unknown user property received: %d", cond->prop);
     assert (0);
     return -1;

@@ -74,7 +74,9 @@ static void SERVER_update_name(siridb_server_t * server)
     size_t len = 2;
     uint16_t i = server->port;
 
+#ifdef DEBUG
     assert(server->port > 0);
+#endif
 
     /* append 'string' length for server->port */
     for (; i; i /= 10, len++);

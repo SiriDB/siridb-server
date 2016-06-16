@@ -16,6 +16,7 @@
 #include <siri/db/points.h>
 #include <siri/db/buffer.h>
 #include <qpack/qpack.h>
+#include <cexpr/cexpr.h>
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_buffer_s siridb_buffer_t;
@@ -72,6 +73,13 @@ typedef struct siridb_series_s
     uint8_t tp;
 } siridb_series_t;
 
+typedef struct series_walker_s
+{
+    const char * series_name;
+    const uint16_t pool;
+    siridb_series_t * series;
+} series_walker_t;
+
 int siridb_series_load(siridb_t * siridb);
 
 siridb_series_t * siridb_series_new(
@@ -121,3 +129,4 @@ void siridb_series_optimize_shard_num32(
 
 void siridb_series_update_props(siridb_series_t * series, void * args);
 
+int siridb_series_cexpr_cb(series_walker_t * wseries, cexpr_condition_t * cond);
