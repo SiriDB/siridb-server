@@ -797,7 +797,10 @@ static void exit_list_pools_stmt(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
     siridb_pool_t * pool;
-    uint_fast16_t pid, prop, n;
+    siridb_pool_walker_t wpool;
+    uint_fast16_t prop, n;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+    cexpr_cb_t cb = (cexpr_cb_t) siridb_pool_cexpr_cb;
 
     if (qlist->props == NULL)
     {
@@ -815,30 +818,38 @@ static void exit_list_pools_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "pools", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    for (   pid = 0, n = 0;
-            pid < siridb->pools->size && n < qlist->limit;
-            pid++)
+    for (   wpool.pid = 0, n = 0;
+            wpool.pid < siridb->pools->size && n < qlist->limit;
+            wpool.pid++)
     {
-        qp_add_type(query->packer, QP_ARRAY_OPEN);
+        pool = siridb->pools->pool + wpool.pid;
 
-        pool = siridb->pools->pool + pid;
-        for (prop = 0; prop < qlist->props->len; prop++)
+        wpool.servers = pool->size;
+        wpool.series = siridb->series->len;
+
+        if (where_expr == NULL || cexpr_run(where_expr, cb, &wpool))
         {
-            switch(*((uint32_t *) qlist->props->data[prop]))
-            {
-            case CLERI_GID_K_POOL:
-                qp_add_int16(query->packer, pid);
-                break;
-            case CLERI_GID_K_SERVERS:
-                qp_add_int16(query->packer, pool->size);
-                break;
-            case CLERI_GID_K_SERIES:
-                qp_add_int64(query->packer, siridb->series->len);
-                break;
-            }
-        }
+            qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+            for (prop = 0; prop < qlist->props->len; prop++)
+            {
+                switch(*((uint32_t *) qlist->props->data[prop]))
+                {
+                case CLERI_GID_K_POOL:
+                    qp_add_int16(query->packer, wpool.pid);
+                    break;
+                case CLERI_GID_K_SERVERS:
+                    qp_add_int16(query->packer, wpool.servers);
+                    break;
+                case CLERI_GID_K_SERIES:
+                    qp_add_int64(query->packer, wpool.series);
+                    break;
+                }
+            }
+
+            qp_add_type(query->packer, QP_ARRAY_CLOSE);
+            n++;
+        }
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);

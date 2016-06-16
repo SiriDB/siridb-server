@@ -15,7 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <logger/logger.h>
-
+#include <siri/grammar/grammar.h>
+#include <assert.h>
 
 uint16_t siridb_pool_sn(
         siridb_t * siridb,
@@ -36,4 +37,21 @@ uint16_t siridb_pool_sn_raw(
     while (len--)
         n += sn[len];
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
+}
+
+int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_POOL:
+        return cexpr_int_cmp(cond->operator, wpool->pid, cond->int64);
+    case CLERI_GID_K_SERVERS:
+        return cexpr_int_cmp(cond->operator, wpool->servers, cond->int64);
+    case CLERI_GID_K_SERIES:
+        return cexpr_int_cmp(cond->operator, wpool->series, cond->int64);
+    }
+    /* we must NEVER get here */
+    log_critical("Unexpected pool property received: %d", cond->prop);
+    assert (0);
+    return -1;
 }

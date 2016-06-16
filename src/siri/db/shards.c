@@ -47,9 +47,9 @@ static bool is_temp_shard_fn(const char * fn)
 int siridb_shards_load(struct siridb_s * siridb)
 {
     struct stat st = {0};
-    struct dirent * shard_d;
-    DIR * shards_dir;
+    struct dirent ** shard_list;
     char buffer[PATH_MAX];
+    int n, total, rc = 0;
 
     log_info("Loading shards");
 
@@ -58,7 +58,7 @@ int siridb_shards_load(struct siridb_s * siridb)
     if (strlen(path) >= PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
     {
         log_error("Shard path too long: '%s'", path);
-        return 1;
+        return -1;
     }
 
     if (stat(path, &st) == -1)
@@ -69,55 +69,56 @@ int siridb_shards_load(struct siridb_s * siridb)
         if (mkdir(path, 0700) == -1)
         {
             log_error("Cannot create directory '%s'.", path);
-            return 1;
+            return -1;
         }
     }
 
-    if ((shards_dir = opendir(path)) == NULL)
+    total = scandir(path, &shard_list, NULL, alphasort);
+
+    if (total < 0)
     {
-        log_error("Cannot open shards directory '%s'.", path);
-        return 1;
+        log_error("Cannot read shards directory '%s'.", path);
+        return -1;
     }
 
-    while((shard_d = readdir(shards_dir)) != NULL)
+    for (n = 0; n < total; n++)
     {
-        if (fstatat(dirfd(shards_dir), shard_d->d_name, &st, 0) < 0)
-            continue;
-
-        if (S_ISDIR(st.st_mode))
-            continue;
-
-        if (is_temp_shard_fn(shard_d->d_name))
+        if (is_temp_shard_fn(shard_list[n]->d_name))
         {
             snprintf(buffer, PATH_MAX, "%s%s",
-                    path, shard_d->d_name);
+                   path, shard_list[n]->d_name);
 
             log_debug("Temporary shard found, we will remove file: '%s'",
-                    buffer);
+                   buffer);
 
             if (unlink(buffer))
             {
                 log_error("Could not remove temporary file: '%s'", buffer);
-                closedir(shards_dir);
-                return 1;
+                rc = -1;
+                break;
             }
         }
 
-        if (!is_shard_fn(shard_d->d_name))
-            continue;
-
-        /* we are sure this fits since the filename is checked */
-        if (siridb_shard_load(siridb, (uint64_t) atoll(shard_d->d_name)))
+        if (!is_shard_fn(shard_list[n]->d_name))
         {
-            log_error("Error while loading shard: '%s'", shard_d->d_name);
-            closedir(shards_dir);
-            return 1;
+            continue;
         }
 
+        /* we are sure this fits since the filename is checked */
+        if (siridb_shard_load(siridb, (uint64_t) atoll(shard_list[n]->d_name)))
+        {
+           log_error("Error while loading shard: '%s'", shard_list[n]->d_name);
+           rc = -1;
+           break;
+        }
     }
 
-    closedir(shards_dir);
+    while (total--)
+    {
+        free(shard_list[total]);
+    }
+    free(shard_list);
 
-    return 0;
+    return rc;
 }
 

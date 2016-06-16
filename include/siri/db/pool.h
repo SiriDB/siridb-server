@@ -14,15 +14,25 @@
 #include <siri/db/server.h>
 #include <siri/db/db.h>
 #include <inttypes.h>
+#include <cexpr/cexpr.h>
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_server_s siridb_server_t;
+typedef struct cexpr_condition_s cexpr_condition_t;
 
 typedef struct siridb_pool_s
 {
     uint16_t size;
     siridb_server_t * server[2];
 } siridb_pool_t;
+
+typedef struct siridb_pool_walker_s
+{
+    uint_fast16_t pid;
+    uint_fast8_t servers;
+    size_t series;
+} siridb_pool_walker_t;
+
 
 /* lookup by 0 terminated string */
 uint16_t siridb_pool_sn(
@@ -35,4 +45,4 @@ uint16_t siridb_pool_sn_raw(
         const char * sn,
         size_t len);
 
-void siridb_pool_prop(siridb_pool_t * pool, qp_packer_t * packer, int prop);
+int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond);
