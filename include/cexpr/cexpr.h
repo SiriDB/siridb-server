@@ -14,7 +14,7 @@
 #include <qpack/qpack.h>
 #include <cleri/node.h>
 
-#define CEXPR_MAX_CURLY_DEPTH 5
+#define CEXPR_MAX_CURLY_DEPTH 6
 
 typedef enum cexpr_operator
 {
