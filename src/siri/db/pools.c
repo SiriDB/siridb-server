@@ -33,8 +33,10 @@ void siridb_pools_gen(siridb_t * siridb)
     uint16_t max_pool = 0;
     uint16_t n;
 
+#ifdef DEBUG
     /* we must have at least one server */
     assert (siridb->servers->len > 0);
+#endif
 
     /* get max_pool (this can be used to get the number of pools) */
     llist_walk(siridb->servers, (llist_cb_t) POOLS_max_pool, &max_pool);
