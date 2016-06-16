@@ -17,6 +17,8 @@
 #include <strextra/strextra.h>
 #include <siri/db/access.h>
 #include <siri/db/db.h>
+#include <assert.h>
+#include <logger/logger.h>
 
 #define SIRIDB_MIN_PASSWORD_LEN 4
 #define SIRIDB_MAX_PASSWORD_LEN 128
@@ -119,4 +121,18 @@ int siridb_user_check_access(
             buffer);
 
     return 0;
+}
+
+int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_ACCESS:
+        return cexpr_icmp(cond->operator, user->access_bit, cond->int64);
+    }
+
+    /* this should NEVER happen */
+    log_critical("Unknown user property received: %d", cond->prop);
+    assert (0);
+    return -1;
 }

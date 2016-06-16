@@ -908,6 +908,9 @@ static void exit_list_users_stmt(uv_async_t * handle)
             ((sirinet_handle_t *) query->client->data)->siridb->users;
 
     slist_t * props = ((query_list_t *) query->data)->props;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+    cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
+
     size_t i;
 
     if (props == NULL)
@@ -921,30 +924,41 @@ static void exit_list_users_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "users", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    if (users->user != NULL) while (users != NULL)
+    if (users->user != NULL)
     {
-        qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-        if (props == NULL)
+        while (users != NULL)
         {
-            siridb_user_prop(users->user, query->packer, CLERI_GID_K_USER);
-            siridb_user_prop(users->user, query->packer, CLERI_GID_K_ACCESS);
-        }
-        else
-        {
-            for (i = 0; i < props->len; i++)
+            if (where_expr == NULL || cexpr_run(where_expr, cb, users->user))
             {
-                siridb_user_prop(
-                        users->user,
-                        query->packer,
-                        *((uint32_t *) props->data[i]));
+                qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+                if (props == NULL)
+                {
+                    siridb_user_prop(
+                            users->user,
+                            query->packer,
+                            CLERI_GID_K_USER);
+                    siridb_user_prop(
+                            users->user,
+                            query->packer,
+                            CLERI_GID_K_ACCESS);
+                }
+                else
+                {
+                    for (i = 0; i < props->len; i++)
+                    {
+                        siridb_user_prop(
+                                users->user,
+                                query->packer,
+                                *((uint32_t *) props->data[i]));
+                    }
+                }
+
+                qp_add_type(query->packer, QP_ARRAY_CLOSE);
             }
+            users = users->next;
         }
-
-        qp_add_type(query->packer, QP_ARRAY_CLOSE);
-        users = users->next;
     }
-
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE

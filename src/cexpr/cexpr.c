@@ -40,9 +40,9 @@ static cexpr_condition_t * CEXPR_condition_new(void);
 static void CEXPR_condition_free(cexpr_condition_t * cond);
 static void CEXPR_push_condition(cexpr_t * cexpr, cexpr_condition_t * cond);
 static cexpr_t * CEXPR_push_and(cexpr_t * cexpr);
-static cexpr_t * CEXPR_push_or(cexpr_t * cexpr);
+static cexpr_t * CEXPR_push_or(cexpr_t * cexpr, cexpr_list_t * list);
 static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list);
-static cexpr_t * CEXPR_close_curly(cexpr_t * cexpr, cexpr_list_t * list);
+static cexpr_t * CEXPR_close_curly(cexpr_list_t * list);
 
 static cexpr_t * CEXPR_walk_node(
         cleri_node_t * node,
@@ -64,7 +64,7 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     /* by simply wrapping the expression between curly brackets we make sure
      * we start validating at the correct start.
      */
-    CEXPR_open_curly(cexpr, &list);
+    cexpr = CEXPR_open_curly(cexpr, &list);
 
     /* build the expression */
     cexpr = CEXPR_walk_node(node, cexpr, &list, &condition, &expecting);
@@ -73,7 +73,7 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     if (cexpr != NULL)
     {
         /* successful */
-        cexpr = CEXPR_close_curly(cexpr, &list);
+        cexpr = CEXPR_close_curly(&list);
 #ifdef DEBUG
         assert (list.len == 0 && condition == NULL);
 #endif
@@ -148,7 +148,6 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
 
 void cexpr_free(cexpr_t * cexpr)
 {
-    log_debug("Free expression!");
     switch (cexpr->tp_a)
     {
     case VIA_CEXPR: cexpr_free(cexpr->via_a.cexpr); break;
@@ -253,16 +252,56 @@ static cexpr_t * CEXPR_walk_node(
             /* for some keywords we can do some work to speed up checks */
             switch (node->cl_obj->cl_obj->keyword->gid)
             {
+            /* map boolean types */
             case CLERI_GID_K_TRUE:
                 (*condition)->int64 = 1; break;
             case CLERI_GID_K_FALSE:
                 (*condition)->int64 = 0; break;
+
+            /* map series types */
             case CLERI_GID_K_INTEGER:
                 (*condition)->int64 = SIRIDB_SERIES_TP_INT; break;
             case CLERI_GID_K_FLOAT:
                 (*condition)->int64 = SIRIDB_SERIES_TP_DOUBLE; break;
             case CLERI_GID_K_STRING:
                 (*condition)->int64 = SIRIDB_SERIES_TP_STRING; break;
+
+            /* map access types */
+            case CLERI_GID_K_SHOW:
+                (*condition)->int64 = SIRIDB_ACCESS_SHOW; break;
+            case CLERI_GID_K_COUNT:
+                (*condition)->int64 = SIRIDB_ACCESS_COUNT; break;
+            case CLERI_GID_K_LIST:
+                (*condition)->int64 = SIRIDB_ACCESS_LIST; break;
+            case CLERI_GID_K_SELECT:
+                (*condition)->int64 = SIRIDB_ACCESS_SELECT; break;
+            case CLERI_GID_K_INSERT:
+                (*condition)->int64 = SIRIDB_ACCESS_INSERT; break;
+            case CLERI_GID_K_CREATE:
+                (*condition)->int64 = SIRIDB_ACCESS_CREATE; break;
+            case CLERI_GID_K_ALTER:
+                (*condition)->int64 = SIRIDB_ACCESS_ALTER; break;
+            case CLERI_GID_K_DROP:
+                (*condition)->int64 = SIRIDB_ACCESS_DROP; break;
+            case CLERI_GID_K_PAUSE:
+                (*condition)->int64 = SIRIDB_ACCESS_PAUSE; break;
+            case CLERI_GID_K_CONTINUE:
+                (*condition)->int64 = SIRIDB_ACCESS_CONTINUE; break;
+            case CLERI_GID_K_GRANT:
+                (*condition)->int64 = SIRIDB_ACCESS_GRANT; break;
+            case CLERI_GID_K_REVOKE:
+                (*condition)->int64 = SIRIDB_ACCESS_REVOKE; break;
+
+            /* map access profiles */
+            case CLERI_GID_K_READ:
+                (*condition)->int64 = SIRIDB_ACCESS_PROFILE_READ; break;
+            case CLERI_GID_K_WRITE:
+                (*condition)->int64 = SIRIDB_ACCESS_PROFILE_WRITE; break;
+            case CLERI_GID_K_MODIFY:
+                (*condition)->int64 = SIRIDB_ACCESS_PROFILE_MODIFY; break;
+            case CLERI_GID_K_FULL:
+                (*condition)->int64 = SIRIDB_ACCESS_PROFILE_FULL; break;
+
             default:
                 (*condition)->int64 = node->cl_obj->cl_obj->keyword->gid;
             }
@@ -285,7 +324,7 @@ static cexpr_t * CEXPR_walk_node(
                 cexpr = CEXPR_push_and(cexpr);
                 break;
             case CLERI_GID_K_OR:
-                cexpr = CEXPR_push_or(cexpr);
+                cexpr = CEXPR_push_or(cexpr, list);
                 break;
             default:
                 log_critical(
@@ -298,7 +337,7 @@ static cexpr_t * CEXPR_walk_node(
             return cexpr;
 
         case CLERI_TP_TOKEN:
-            return CEXPR_close_curly(cexpr, list);
+            return CEXPR_close_curly(list);
 
         default:
             log_critical(
@@ -351,7 +390,6 @@ static cexpr_condition_t * CEXPR_condition_new(void)
 
 static void CEXPR_condition_free(cexpr_condition_t * cond)
 {
-    log_debug("Free condition!");
     free(cond->str);
     free(cond);
 }
@@ -370,16 +408,25 @@ static cexpr_t * CEXPR_push_and(cexpr_t * cexpr)
     return new_cexpr;
 }
 
-static cexpr_t * CEXPR_push_or(cexpr_t * cexpr)
+static cexpr_t * CEXPR_push_or(cexpr_t * cexpr, cexpr_list_t * list)
 {
     if (cexpr->tp_b == VIA_NULL)
     {
+        /* this can happen only at the first condition */
+        cexpr->operator = CEXPR_OR;
         return cexpr;
     }
+    size_t selected = list->len - 1;
+    cexpr = list->cexpr[selected];
+
     cexpr_t * new_cexpr = CEXPR_new();
+
     new_cexpr->operator = CEXPR_OR;
     new_cexpr->tp_a = VIA_CEXPR;
     new_cexpr->via_a.cexpr = cexpr;
+
+    list->cexpr[selected] = new_cexpr;
+
     return new_cexpr;
 }
 
@@ -432,7 +479,7 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
     return new_cexpr;
 }
 
-static cexpr_t * CEXPR_close_curly(cexpr_t * cexpr, cexpr_list_t * list)
+static cexpr_t * CEXPR_close_curly(cexpr_list_t * list)
 {
 #ifdef DEBUG
     assert (list->len > 0);

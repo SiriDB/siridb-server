@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <siri/db/db.h>
 #include <siri/db/access.h>
+#include <cexpr/cexpr.h>
 
 typedef struct siridb_s siridb_t;
 
@@ -37,3 +38,5 @@ int siridb_user_check_access(
         siridb_user_t * user,
         siridb_access_t access_bit,
         char * err_msg);
+
+int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond);
