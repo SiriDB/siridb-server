@@ -14,7 +14,7 @@
 #include <qpack/qpack.h>
 #include <cleri/node.h>
 
-#define CEXPR_MAX_CURLY_DEPT 10
+#define CEXPR_MAX_CURLY_DEPTH 5
 
 typedef enum cexpr_operator
 {
@@ -45,7 +45,7 @@ typedef struct cexpr_s cexpr_t;
 typedef struct cexpr_list_s
 {
     size_t len;
-    cexpr_t * cexpr[CEXPR_MAX_CURLY_DEPT];
+    cexpr_t * cexpr[CEXPR_MAX_CURLY_DEPTH];
 } cexpr_list_t;
 
 typedef union cexpr_via_u

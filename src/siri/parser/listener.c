@@ -477,7 +477,7 @@ static void enter_where_xxx_stmt(uv_async_t * handle)
 
     if (cexpr == NULL)
     {
-        sprintf(query->err_msg, "Max curly depth reached in where expression!");
+        sprintf(query->err_msg, "Max depth reached in 'where' expression!");
         log_critical(query->err_msg);
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }

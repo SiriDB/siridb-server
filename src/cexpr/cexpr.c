@@ -81,6 +81,7 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     else if (condition != NULL)
     {
         /* CEXPR_MAX_CURLY_DEPT, logging is done by the listener */
+        cexpr_free(list.cexpr[0]);
         CEXPR_condition_free(condition);
     }
 
@@ -229,7 +230,9 @@ static cexpr_t * CEXPR_walk_node(
             /* this is probably a CHOICE */
             break;
         }
+        /* its fine to get here, not all cases are captured */
         break;
+
     case EXPECTING_OPERATOR:
         switch (node->cl_obj->tp)
         {
@@ -266,9 +269,11 @@ static cexpr_t * CEXPR_walk_node(
         default:
             log_critical(
                     "Got an unexpected operator type: %d", node->cl_obj->tp);
-            assert (0);
         }
+        /* we must NEVER get here */
+        assert (0);
         break;
+
     case EXPECTING_VAL:
         switch (node->cl_obj->tp)
         {
@@ -351,6 +356,7 @@ static cexpr_t * CEXPR_walk_node(
                     "Got an unexpected value type: %d", node->cl_obj->tp);
             assert (0);
         }
+        /* we allow to get here, not all cases return */
         break;
 
     case EXPECTING_NEXT:
@@ -383,8 +389,9 @@ static cexpr_t * CEXPR_walk_node(
             log_critical(
                     "Only and/or/closing curly are expected. got type: %d",
                     node->cl_obj->tp);
-            assert (0);
         }
+        /* we must NEVER get here */
+        assert (0);
         break;
     }
 
@@ -489,10 +496,9 @@ static void CEXPR_push_condition(cexpr_t * cexpr, cexpr_condition_t * cond)
 
 static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
 {
-    if (list->len == CEXPR_MAX_CURLY_DEPT)
+    if (list->len == CEXPR_MAX_CURLY_DEPTH)
     {
         /* max expression depth reached */
-        cexpr_free(cexpr);
         return NULL;
     }
 

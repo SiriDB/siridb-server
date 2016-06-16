@@ -109,7 +109,9 @@ void siridb_series_add_point(
             siridb_buffer_write_len(siridb, series);
         }
         else
+        {
             siridb_buffer_write_point(siridb, series, ts, val);
+        }
     }
 }
 
