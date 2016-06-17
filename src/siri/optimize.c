@@ -57,33 +57,48 @@ static void OPTIMIZE_work(uv_work_t * work)
      * Optimize Thread
      */
 
-    siridb_list_t * current = siri.siridb_list;
+    slist_t * slsiridb;
     slist_t * slshards;
+    siridb_t * siridb;
     siridb_shard_t * shard;
 
     log_info("Start optimize task");
 
-    /* TODO: copy siridb_list with a mutex */
-    for (; current != NULL; current = current->next)
+    uv_mutex_lock(&siri.siridb_mutex);
+
+    slsiridb = llist2slist(siri.siridb_list);
+
+    for (size_t i = 0; i < slsiridb->len; i++)
     {
-        log_debug("Start optimizing database '%s'", current->siridb->dbname);
+        siridb = (siridb_t *) slsiridb->data[i];
+        siridb_incref(siridb);
+    }
 
-        uv_mutex_lock(&current->siridb->shards_mutex);
+    uv_mutex_unlock(&siri.siridb_mutex);
 
-        slshards = slist_new(current->siridb->shards->len);
+    for (size_t i = 0; i < slsiridb->len; i++)
+    {
+        siridb = (siridb_t *) slsiridb->data[i];
+
+        log_debug("Start optimizing database '%s'", siridb->dbname);
+
+        uv_mutex_lock(&siridb->shards_mutex);
+
+        slshards = slist_new(siridb->shards->len);
 
         imap64_walk(
-                current->siridb->shards,
+                siridb->shards,
                 (imap64_cb_t) &OPTIMIZE_create_slist,
                 (void *) slshards);
 
-        uv_mutex_unlock(&current->siridb->shards_mutex);
-        usleep(10000);
+        uv_mutex_unlock(&siridb->shards_mutex);
+
+        sleep(1);
 
         for (size_t i = 0; i < slshards->len; i++)
         {
             shard = (siridb_shard_t *) slshards->data[i];
-            siridb_shard_optimize(shard, current->siridb);
+            siridb_shard_optimize(shard, siridb);
 
             /* decrement ref for the shard which was incremented earlier */
             siridb_shard_decref(shard);
@@ -94,9 +109,14 @@ static void OPTIMIZE_work(uv_work_t * work)
         if (optimize.status == SIRI_OPTIMIZE_CANCELLED)
         {
             log_info("Optimize task is cancelled.");
-            return;
+            break;
         }
-        log_debug("Finished optimizing database '%s'", current->siridb->dbname);
+        log_debug("Finished optimizing database '%s'", siridb->dbname);
+    }
+
+    for (size_t i = 0; i < slsiridb->len; i++)
+    {
+        siridb_decref(siridb);
     }
 }
 

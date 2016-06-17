@@ -23,42 +23,18 @@
 #include <siri/db/servers.h>
 #include <math.h>
 
-static siridb_t * siridb_new(void);
-static void siridb_free(siridb_t * siridb);
-static void siridb_add(siridb_list_t * siridb_list, siridb_t * siridb);
+static siridb_t * SIRIDB_new(void);
+static void SIRIDB_free(siridb_t * siridb);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
 {                                           \
     sprintf(err_msg, "error: " ERROR_MSG);  \
-    siridb_free(*siridb);                   \
+    SIRIDB_free(*siridb);                   \
     qp_free_object(qp_obj);                 \
     return 1;                               \
 }
 
-siridb_list_t * siridb_list_new(void)
-{
-    siridb_list_t * siridb_list;
-    siridb_list = (siridb_list_t *) malloc(sizeof(siridb_list_t));
-    siridb_list->siridb = NULL;
-    siridb_list->next = NULL;
-
-    return siridb_list;
-}
-
-void siridb_list_free(siridb_list_t * siridb_list)
-{
-    siridb_list_t * next;
-    while (siridb_list != NULL)
-    {
-        next = siridb_list->next;
-        siridb_free(siridb_list->siridb);
-        free(siridb_list);
-        siridb_list = next;
-    }
-}
-
-int siridb_add_from_unpacker(
-        siridb_list_t * siridb_list,
+int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,
         char * err_msg)
@@ -83,7 +59,7 @@ int siridb_add_from_unpacker(
     }
 
     /* create a new SiriDB structure */
-    *siridb = siridb_new();
+    *siridb = SIRIDB_new();
 
     /* read uuid */
     if (qp_next(unpacker, qp_obj) != QP_RAW ||
@@ -166,43 +142,56 @@ int siridb_add_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read timezone.");
     }
 
-    /* add SiriDB to list */
-    siridb_add(siridb_list, *siridb);
-
     /* free qp_object */
     qp_free_object(qp_obj);
 
     return 0;
 }
 
-siridb_t * siridb_get(siridb_list_t * siridb_list, const char * dbname)
+siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 {
-    siridb_list_t * current = siridb_list;
-    size_t len = strlen(dbname);
-    const char * chk;
+    llist_node_t * node = siridb_list->first;
+    siridb_t * siridb;
 
-    if (current->siridb == NULL)
-        return NULL;
-
-    while (current != NULL)
+    while (node != NULL)
     {
-        chk = current->siridb->dbname;
-
-        if (strlen(chk) == len && strncmp(chk, dbname, len) == 0)
-            return current->siridb;
-
-        current = current->next;
+        siridb = (siridb_t *) node->data;
+        if (strcmp(siridb->dbname, dbname) == 0)
+        {
+            return siridb;
+        }
+        node = node->next;
     }
 
     return NULL;
 }
 
-static siridb_t * siridb_new(void)
+void siridb_free_cb(siridb_t * siridb, void * args)
+{
+    siridb_decref(siridb);
+}
+
+inline void siridb_incref(siridb_t * siridb)
+{
+    siridb->ref++;
+
+}
+
+void siridb_decref(siridb_t * siridb)
+{
+    if (!--siridb->ref)
+    {
+        SIRIDB_free(siridb);
+    }
+}
+
+static siridb_t * SIRIDB_new(void)
 {
     siridb_t * siridb;
     siridb = (siridb_t *) malloc(sizeof(siridb_t));
     siridb->dbname = NULL;
     siridb->dbpath = NULL;
+    siridb->ref = 0;
     siridb->buffer_path = NULL;
     siridb->time = NULL;
     siridb->users = NULL;
@@ -227,72 +216,59 @@ static siridb_t * siridb_new(void)
     return siridb;
 }
 
-static void siridb_free(siridb_t * siridb)
+static void SIRIDB_free(siridb_t * siridb)
 {
-    if (siridb != NULL)
+    if (siridb == NULL)
     {
-        log_debug("Free database '%s'", siridb->dbname);
-
-        /* free users */
-        siridb_users_free(siridb->users);
-
-        /* we do not need to free server and replica since they exist in
-         * this list and therefore will be freed.
-         */
-        siridb_servers_free(siridb);
-
-        /* free pools */
-        siridb_pools_free(siridb->pools);
-
-        /* free imap32 (series) */
-        imap32_free(siridb->series_map);
-
-        /* free c-tree lookup and series */
-        ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
-
-        /* free shards using imap64 */
-        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
-
-        /* free imap64 (shards) */
-        imap64_free(siridb->shards);
-
-        if (siridb->buffer_fp != NULL)
-            fclose(siridb->buffer_fp);
-
-        if (siridb->dropped_fp != NULL)
-            fclose(siridb->dropped_fp);
-
-        if (siridb->store != NULL)
-            qp_close(siridb->store);
-
-        /* only free buffer path when not equal to db_path */
-        if (siridb->buffer_path != siridb->dbpath)
-            free(siridb->buffer_path);
-        free(siridb->dbpath);
-
-        free(siridb->dbname);
-        free(siridb->time);
-
-        uv_mutex_destroy(&siridb->series_mutex);
-        uv_mutex_destroy(&siridb->shards_mutex);
-        uv_mutex_destroy(&siridb->servers_mutex);
-
-        free(siridb);
-    }
-}
-
-static void siridb_add(siridb_list_t * siridb_list, siridb_t * siridb)
-{
-    if (siridb_list->siridb == NULL)
-    {
-        siridb_list->siridb = siridb;
         return;
     }
+    log_debug("Free database '%s'", siridb->dbname);
 
-    while (siridb_list->next != NULL)
-        siridb_list = siridb_list->next;
+    /* free users */
+    siridb_users_free(siridb->users);
 
-    siridb_list->next = (siridb_list_t *) malloc(sizeof(siridb_list_t));
-    siridb_list->next->siridb = siridb;
-    siridb_list->next->next = NULL;
+    /* we do not need to free server and replica since they exist in
+     * this list and therefore will be freed.
+     */
+    siridb_servers_free(siridb);
+
+    /* free pools */
+    siridb_pools_free(siridb->pools);
+
+    /* free imap32 (series) */
+    imap32_free(siridb->series_map);
+
+    /* free c-tree lookup and series */
+    ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
+
+    /* free shards using imap64 */
+    imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
+
+    /* free imap64 (shards) */
+    imap64_free(siridb->shards);
+
+    if (siridb->buffer_fp != NULL)
+        fclose(siridb->buffer_fp);
+
+    if (siridb->dropped_fp != NULL)
+        fclose(siridb->dropped_fp);
+
+    if (siridb->store != NULL)
+        qp_close(siridb->store);
+
+    /* only free buffer path when not equal to db_path */
+    if (siridb->buffer_path != siridb->dbpath)
+        free(siridb->buffer_path);
+    free(siridb->dbpath);
+
+    free(siridb->dbname);
+    free(siridb->time);
+
+    uv_mutex_destroy(&siridb->series_mutex);
+    uv_mutex_destroy(&siridb->shards_mutex);
+    uv_mutex_destroy(&siridb->servers_mutex);
+
+    free(siridb);
 }
+
+

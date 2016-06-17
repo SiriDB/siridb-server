@@ -64,6 +64,7 @@ typedef struct siridb_s
     iso8601_tz_t tz;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
+    uint8_t ref;
     size_t buffer_size;
     size_t buffer_len;
     uint32_t start_ts;                  // in seconds, to calculate up-time.
@@ -92,21 +93,13 @@ typedef struct siridb_s
     qp_fpacker_t * store;
 } siridb_t;
 
-typedef struct siridb_list_s
-{
-    siridb_t * siridb;
-    struct siridb_list_s * next;
-} siridb_list_t;
 
-
-siridb_list_t * siridb_list_new(void);
-void siridb_list_free(siridb_list_t * siridb_list);
-
-
-int siridb_add_from_unpacker(
-        siridb_list_t * siridb_list,
+int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,
         char * err_msg);
 
-siridb_t * siridb_get(siridb_list_t * siridb_list, const char * dbname);
+siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
+void siridb_free_cb(siridb_t * siridb, void * args);
+void siridb_incref(siridb_t * siridb);
+void siridb_decref(siridb_t * siridb);

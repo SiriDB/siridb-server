@@ -61,6 +61,9 @@ int main(int argc, char * argv[])
     /* start server */
     log_info("Starting SiriDB Server (version: %s)", SDB_VERSION);
 
+    /* initialize SiriDB mutex (used for the siridb_list) */
+    uv_mutex_init(&siri.siridb_mutex);
+
     /* read siridb main application configuration */
     siri_cfg_init(&siri);
 
@@ -69,6 +72,9 @@ int main(int argc, char * argv[])
 
     /* free siridb */
     siri_free();
+
+    /* destroy SiriDB mutex */
+    uv_mutex_destroy(&siri.siridb_mutex);
 
     log_info("Bye!\n");
 

@@ -345,10 +345,12 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     uv_mutex_unlock(&siridb->shards_mutex);
 
     if (new_shard == NULL)
+    {
         /* creating the new shard has failed, we exit here so the mutex is
          * is unlocked.
          */
         return;
+    }
 
     /* at this point the references should be as following (unless dropped):
      *  shard->ref (2)
@@ -359,7 +361,8 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
      *      - this method
      */
 
-    usleep(10000);
+    sleep(1);
+
     uv_mutex_lock(&siridb->series_mutex);
 
     slist_t * slist = slist_new(siridb->series_map->len);
@@ -370,10 +373,12 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             (void *) slist);
 
     uv_mutex_unlock(&siridb->series_mutex);
-    usleep(10000);
+
+    sleep(1);
 
     for (size_t i = 0; i < slist->len; i++)
     {
+        /* its possible that another database is paused, but we wait anyway */
         while (siri.optimize->status == SIRI_OPTIMIZE_PAUSED)
         {
             log_info("Optimize task is paused, wait for 30 seconds...");
@@ -401,7 +406,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     slist_free(slist);
 
-    usleep(10000);
+    sleep(1);
 
     uv_mutex_lock(&siridb->series_mutex);
     /* this will close the file but does not free the shard yet since we still

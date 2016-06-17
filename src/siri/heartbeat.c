@@ -56,20 +56,34 @@ static void HEARTBEAT_work(uv_work_t * work)
      * Heart-beat Thread
      */
 
-    siridb_list_t * current = siri.siridb_list;
+    slist_t * slsiridb;
     slist_t * slservers;
+    siridb_t * siridb;
     siridb_server_t * server;
 
-    log_info("Start heart-beat task");
+    log_debug("Start heart-beat task");
 
-    /* TODO: copy siridb_list with a mutex */
-    for (; current != NULL; current = current->next)
+    uv_mutex_lock(&siri.siridb_mutex);
+
+    slsiridb = llist2slist(siri.siridb_list);
+
+    for (size_t i = 0; i < slsiridb->len; i++)
     {
-        log_debug("Start heart-beat for database '%s'", current->siridb->dbname);
+        siridb = (siridb_t *) slsiridb->data[i];
+        siridb_incref(siridb);
+    }
 
-        uv_mutex_lock(&current->siridb->servers_mutex);
+    uv_mutex_unlock(&siri.siridb_mutex);
 
-        slservers = llist2slist(current->siridb->servers);
+    for (size_t i = 0; i < slsiridb->len; i++)
+    {
+        siridb = (siridb_t *) slsiridb->data[i];
+
+        log_debug("Start heart-beat for database '%s'", siridb->dbname);
+
+        uv_mutex_lock(&siridb->servers_mutex);
+
+        slservers = llist2slist(siridb->servers);
 
         for (size_t i = 0; i < slservers->len; i++)
         {
@@ -77,13 +91,18 @@ static void HEARTBEAT_work(uv_work_t * work)
             siridb_server_incref(server);
         }
 
-        uv_mutex_unlock(&current->siridb->servers_mutex);
+        uv_mutex_unlock(&siridb->servers_mutex);
 
-        usleep(10000);
+        sleep(1);
 
         for (size_t i = 0; i < slservers->len; i++)
         {
             server = (siridb_server_t *) slservers->data[i];
+
+            if (server == siridb->server)
+            {
+                log_debug("This is me :-)");
+            }
 
             /* decrement ref for the server which was incremented earlier */
             siridb_server_decref(server);
@@ -94,9 +113,15 @@ static void HEARTBEAT_work(uv_work_t * work)
         if (heartbeat.status == SIRI_HEARTBEAT_CANCELLED)
         {
             log_info("Heart-beat task is cancelled.");
-            return;
+            break;
         }
-        log_debug("Finished heart-beat task for database '%s'", current->siridb->dbname);
+        log_debug("Finished heart-beat task for database '%s'", siridb->dbname);
+
+    }
+
+    for (size_t i = 0; i < slsiridb->len; i++)
+    {
+        siridb_decref(siridb);
     }
 }
 

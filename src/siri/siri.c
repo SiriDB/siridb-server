@@ -61,12 +61,12 @@ void siri_setup_logger(void)
     size_t len = strlen(siri.args->log_level);
 
 #ifndef DEBUG
+    /* force colors while debugging... */
     if (siri.args->log_colorized)
 #endif
     {
         Logger.flags |= LOGGER_FLAG_COLORED;
     }
-
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
@@ -172,8 +172,7 @@ static int siridb_load_databases(void)
             return 1;
         }
 
-        if (siridb_add_from_unpacker(
-                siri.siridb_list,
+        if (siridb_from_unpacker(
                 unpacker,
                 &siridb,
                 err_msg))
@@ -184,6 +183,10 @@ static int siridb_load_databases(void)
             cfgparser_free(cfgparser);
             return 1;
         }
+
+        /* append SiriDB to siridb_list and increment reference count */
+        llist_append(siri.siridb_list, siridb);
+        siridb_incref(siridb);
 
         qp_free_unpacker(unpacker);
 
@@ -298,7 +301,7 @@ int siri_start(void)
     siri.grammar = compile_grammar();
 
     /* create store for SiriDB instances */
-    siri.siridb_list = siridb_list_new();
+    siri.siridb_list = llist_new();
 
     /* initialize file handler for shards */
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
@@ -313,6 +316,9 @@ int siri_start(void)
 
     /* initialize optimize task (bind siri.optimize) */
     siri_optimize_init(&siri);
+
+    /* initialize heart-beat task (bind siri.heartbeat) */
+    siri_heartbeat_init(&siri);
 
     /* bind signals to the event loop */
     for (int i = 0; i < N_SIGNALS; i++)
@@ -348,7 +354,7 @@ void siri_free(void)
     free(siri.loop);
     free(siri.grammar);
     siri_fh_free(siri.fh);
-    siridb_list_free(siri.siridb_list);
+    llist_free_cb(siri.siridb_list, (llist_cb_t) siridb_free_cb, NULL);
 }
 
 static void close_handlers(void)
