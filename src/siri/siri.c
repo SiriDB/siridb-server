@@ -60,10 +60,13 @@ void siri_setup_logger(void)
     char lname[255];
     size_t len = strlen(siri.args->log_level);
 
+#ifndef DEBUG
     if (siri.args->log_colorized)
+#endif
     {
         Logger.flags |= LOGGER_FLAG_COLORED;
     }
+
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
