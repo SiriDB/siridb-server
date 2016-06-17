@@ -29,17 +29,17 @@
 #define SIRIDB_USER_ACCESS_FN "useraccess.dat"
 
 /* do not forget to run 'siridb_free_user()' on the returned user */
-static siridb_user_t * pop_user(
+static siridb_user_t * USERS_pop(
         siridb_t * siridb,
         const char * username);
 
-static siridb_user_t * get_user(
+static siridb_user_t * USERS_get(
         struct siridb_s * siridb,
         const char * username);
 
-static void append_user(siridb_t * siridb, siridb_user_t * user);
+static void USERS_append(siridb_t * siridb, siridb_user_t * user);
 
-static siridb_users_t * new_users(void);
+static siridb_users_t * USERS_new(void);
 
 int siridb_users_load(siridb_t * siridb)
 {
@@ -54,7 +54,7 @@ int siridb_users_load(siridb_t * siridb)
     assert(siridb->users == NULL);
 
     /* create a new user list */
-    siridb->users = new_users();
+    siridb->users = USERS_new();
 
     /* get user access file name */
     SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
@@ -99,7 +99,7 @@ int siridb_users_load(siridb_t * siridb)
         user->password = strndup(password->via->raw, password->len);
 
         user->access_bit = (uint32_t) access_bit->via->int64;
-        append_user(siridb, user);
+        USERS_append(siridb, user);
     }
 
     /* free objects */
@@ -152,7 +152,7 @@ int siridb_users_add_user(
         return 1;
     }
 
-    if (get_user(siridb, user->username) != NULL)
+    if (USERS_get(siridb, user->username) != NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
@@ -161,10 +161,8 @@ int siridb_users_add_user(
         return 1;
     }
 
-
-
     /* add the user to the users */
-    append_user(siridb, user);
+    USERS_append(siridb, user);
 
     if (siridb_users_save(siridb))
     {
@@ -173,7 +171,7 @@ int siridb_users_add_user(
                 "Could not save user '%s' to file.",
                 user->username);
         log_critical(err_msg);
-        pop_user(siridb, user->username);
+        USERS_pop(siridb, user->username);
         return 1;
     }
 
@@ -188,7 +186,7 @@ siridb_user_t * siridb_users_get_user(
     siridb_user_t * user;
     char * pw;
 
-    if ((user = get_user(siridb, username)) == NULL)
+    if ((user = USERS_get(siridb, username)) == NULL)
         return NULL;
 
     if (password == NULL)
@@ -206,7 +204,7 @@ int siridb_users_drop_user(
 {
     siridb_user_t * user;
 
-    if ((user = pop_user(siridb, username)) == NULL)
+    if ((user = USERS_pop(siridb, username)) == NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
@@ -219,7 +217,9 @@ int siridb_users_drop_user(
     siridb_user_free(user);
 
     if (siridb_users_save(siridb))
+    {
         log_critical("Could not write users to file!");
+    }
 
     return 0;
 }
@@ -233,7 +233,9 @@ int siridb_users_save(siridb_t * siridb)
     SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
+    {
         return 1;
+    }
 
     /* open a new array */
     qp_fadd_type(fpacker, QP_ARRAY_OPEN);
@@ -260,14 +262,16 @@ int siridb_users_save(siridb_t * siridb)
     return 0;
 }
 
-static siridb_user_t * get_user(siridb_t * siridb, const char * username)
+static siridb_user_t * USERS_get(siridb_t * siridb, const char * username)
 {
     siridb_users_t * current;
 
     current = siridb->users;
 
     if (current->user == NULL)
+    {
         return NULL;
+    }
 
     for (; current != NULL; current = current->next)
     {
@@ -277,7 +281,7 @@ static siridb_user_t * get_user(siridb_t * siridb, const char * username)
     return NULL;
 }
 
-static siridb_user_t * pop_user(
+static siridb_user_t * USERS_pop(
         siridb_t * siridb,
         const char * username)
 {
@@ -289,8 +293,9 @@ static siridb_user_t * pop_user(
 
     /* we do not have any user so nothing to delete */
     if (current->user == NULL)
+    {
         return NULL;
-
+    }
 
     for (; current != NULL; prev = current, current = current->next)
     {
@@ -298,7 +303,7 @@ static siridb_user_t * pop_user(
         {
             if (prev == NULL)
                 siridb->users = (current->next != NULL) ?
-                        current->next : new_users();
+                        current->next : USERS_new();
             else
                 prev->next = current->next;
 
@@ -314,7 +319,7 @@ static siridb_user_t * pop_user(
 /* we do not check here if the user already exists, so be sure this
  * is done before appending the user.
  */
-static void append_user(siridb_t * siridb, siridb_user_t * user)
+static void USERS_append(siridb_t * siridb, siridb_user_t * user)
 {
     siridb_users_t * current = siridb->users;
 
@@ -325,14 +330,16 @@ static void append_user(siridb_t * siridb, siridb_user_t * user)
     }
 
     while (current->next != NULL)
+    {
         current = current->next;
+    }
 
     current->next = (siridb_users_t *) malloc(sizeof(siridb_users_t));
     current->next->user = user;
     current->next->next = NULL;
 }
 
-static siridb_users_t * new_users(void)
+static siridb_users_t * USERS_new(void)
 {
     siridb_users_t * users =
             (siridb_users_t *) malloc(sizeof(siridb_users_t));

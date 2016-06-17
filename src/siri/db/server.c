@@ -19,6 +19,7 @@
 #define SIRIDB_SERVERS_SCHEMA 1
 
 static void SERVER_update_name(siridb_server_t * server);
+static void SERVER_free(siridb_server_t * server);
 
 siridb_server_t * siridb_server_new(
         const char * uuid,
@@ -43,6 +44,8 @@ siridb_server_t * siridb_server_new(
 
     server->port = port;
     server->pool = pool;
+    server->flags = 0;
+    server->ref = 0;
 
     /* sets address:port to name property */
     SERVER_update_name(server);
@@ -50,12 +53,7 @@ siridb_server_t * siridb_server_new(
     return server;
 }
 
-void siridb_server_free(siridb_server_t * server)
-{
-    free(server->name);
-    free(server->address);
-    free(server);
-}
+
 
 int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
 {
@@ -66,6 +64,27 @@ int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
         else if (sa->uuid[i] > sb->uuid[i])
             return i + 1;
     return 0;
+}
+
+inline void siridb_server_incref(siridb_server_t * server)
+{
+    server->ref++;
+}
+
+void siridb_server_decref(siridb_server_t * server)
+{
+    if (!--server->ref)
+    {
+        SERVER_free(server);
+    }
+}
+
+static void SERVER_free(siridb_server_t * server)
+{
+    log_debug("FREE Server");
+    free(server->name);
+    free(server->address);
+    free(server);
 }
 
 static void SERVER_update_name(siridb_server_t * server)

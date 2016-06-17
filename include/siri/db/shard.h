@@ -24,6 +24,7 @@
 #define SIRIDB_SHARD_WILL_BE_REMOVED 16
 #define SIRIDB_SHARD_WILL_BE_REPLACED 32
 #define SIRIDB_SHARD_IS_LOADING 64
+#define SIRIDB_SHARD_IS_CORRUPT 128
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_points_s siridb_points_t;
@@ -37,7 +38,7 @@ typedef struct siridb_shard_s
 {
     uint64_t id;
     uint8_t tp; /* SIRIDB_SERIES_TP_INT, ...DOUBLE or ...STRING */
-    uint8_t status;
+    uint8_t flags;
     uint8_t ref;
     siri_fp_t * fp;
     char * fn;

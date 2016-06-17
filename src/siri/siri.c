@@ -48,6 +48,7 @@ siri_t siri = {
         .siridb_list=NULL,
         .fh=NULL,
         .optimize=NULL,
+        .heartbeat=NULL,
         .cfg=NULL,
         .args=NULL
 };
@@ -58,6 +59,11 @@ void siri_setup_logger(void)
     int n;
     char lname[255];
     size_t len = strlen(siri.args->log_level);
+
+    if (siri.args->log_colorized)
+    {
+        Logger.flags |= LOGGER_FLAG_COLORED;
+    }
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
@@ -357,6 +363,9 @@ static void signal_handler(uv_signal_t * req, int signum)
 
     /* cancel optimize task */
     siri_optimize_cancel();
+
+    /* cancel heart-beat task */
+    siri_heartbeat_cancel();
 
     uv_stop(siri.loop);
 

@@ -77,6 +77,7 @@ int siridb_shards_load(struct siridb_s * siridb)
 
     if (total < 0)
     {
+        /* no need to free shard_list when total < 0 */
         log_error("Cannot read shards directory '%s'.", path);
         return -1;
     }

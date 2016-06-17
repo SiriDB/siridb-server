@@ -60,6 +60,7 @@ int siridb_servers_load(siridb_t * siridb)
                 0);
 
         llist_append(siridb->servers, server);
+        siridb_server_incref(server);
 
         siridb->server = server;
 
@@ -99,6 +100,7 @@ int siridb_servers_load(siridb_t * siridb)
 
         /* append the server to the list */
         llist_append(siridb->servers, server);
+        siridb_server_incref(server);
 
         /* if this is me, bind server to siridb */
         if (strncmp((char *) server->uuid, (char *) siridb->uuid, 16) == 0)
@@ -139,7 +141,7 @@ void siridb_servers_free(siridb_t * siridb)
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args)
 {
-    siridb_server_free(server);
+    siridb_server_decref(server);
 }
 
 static void SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)

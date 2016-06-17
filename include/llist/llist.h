@@ -11,6 +11,9 @@
  */
 #pragma once
 #include <stdio.h>
+#include <slist/slist.h>
+
+typedef struct slist_s slist_t;
 
 typedef struct llist_node_s
 {
@@ -44,3 +47,6 @@ void llist_walk(llist_t * llist, llist_cb_t cb, void * args);
 
 /* walk the list with limit */
 void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args);
+
+/* copy the linked list to a simple list */
+slist_t * llist2slist(llist_t * llist);

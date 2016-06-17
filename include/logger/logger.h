@@ -19,11 +19,14 @@
 
 #define LOGGER_NUM_LEVELS 5
 
+#define LOGGER_FLAG_COLORED 1
+
 typedef struct logger_s
 {
     struct _IO_FILE * ostream;
     int level;
     const char * level_name;
+    int flags;
 } logger_t;
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS];

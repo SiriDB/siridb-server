@@ -63,6 +63,7 @@ static void exit_calc_stmt(uv_async_t * handle);
 static void exit_count_pools_stmt(uv_async_t * handle);
 static void exit_count_series_stmt(uv_async_t * handle);
 static void exit_count_servers_stmt(uv_async_t * handle);
+static void exit_count_users_stmt(uv_async_t * handle);
 static void exit_create_user_stmt(uv_async_t * handle);
 static void exit_drop_series_stmt(uv_async_t * handle);
 static void exit_drop_shard_stmt(uv_async_t * handle);
@@ -149,6 +150,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_COUNT_POOLS_STMT] = exit_count_pools_stmt;
     siriparser_listen_exit[CLERI_GID_COUNT_SERIES_STMT] = exit_count_series_stmt;
     siriparser_listen_exit[CLERI_GID_COUNT_SERVERS_STMT] = exit_count_servers_stmt;
+    siriparser_listen_exit[CLERI_GID_COUNT_USERS_STMT] = exit_count_users_stmt;
     siriparser_listen_exit[CLERI_GID_CREATE_USER_STMT] = exit_create_user_stmt;
     siriparser_listen_exit[CLERI_GID_DROP_SERIES_STMT] = exit_drop_series_stmt;
     siriparser_listen_exit[CLERI_GID_DROP_SHARD_STMT] = exit_drop_shard_stmt;
@@ -598,10 +600,27 @@ static void exit_count_pools_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
 
     qp_add_raw(query->packer, "pools", 5);
-    qp_add_int64(query->packer, siridb->pools->size);
 
+    if (where_expr == NULL)
+    {
+        qp_add_int64(query->packer, siridb->pools->size);
+    }
+    else
+    {
+        int n = 0;
+        siridb_pool_walker_t wpool;
+        cexpr_cb_t cb = (cexpr_cb_t) siridb_pool_cexpr_cb;
+        for (wpool.pid = 0; wpool.pid < siridb->pools->size; wpool.pid++)
+        {
+            wpool.servers = siridb->pools->pool[wpool.pid].size;
+            wpool.series = siridb->series->len;
+            n += cexpr_run(where_expr, cb, &wpool);
+        }
+        qp_add_int64(query->packer, n);
+    }
     SIRIPARSER_NEXT_NODE
 }
 
@@ -623,6 +642,34 @@ static void exit_count_servers_stmt(uv_async_t * handle)
 
     qp_add_raw(query->packer, "servers", 7);
     qp_add_int64(query->packer, siridb->servers->len);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_count_users_stmt(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_users_t * users = siridb->users;
+    cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
+    cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
+    int n = 0;
+
+    qp_add_raw(query->packer, "users", 5);
+
+    if (users->user != NULL)
+    {
+        while (users != NULL)
+        {
+            if (where_expr == NULL || cexpr_run(where_expr, cb, users->user))
+            {
+                n++;
+            }
+            users = users->next;
+        }
+    }
+
+    qp_add_int64(query->packer, n);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -723,7 +770,7 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        shard->status |= SIRIDB_SHARD_WILL_BE_REMOVED;
+        shard->flags |= SIRIDB_SHARD_WILL_BE_REMOVED;
 
         siridb_shard_decref(shard);
 
@@ -922,11 +969,15 @@ static void exit_list_servers_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "servers", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
+    uv_mutex_lock(&siridb->servers_mutex);
+
     llist_walkn(
             siridb->servers,
             qlist->limit,
             (llist_cb_t) walk_list_servers,
             handle);
+
+    uv_mutex_unlock(&siridb->servers_mutex);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 

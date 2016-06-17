@@ -79,6 +79,22 @@ void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args)
     }
 }
 
+slist_t * llist2slist(llist_t * llist)
+{
+    slist_t * slist = slist_new(llist->len);
+    llist_node_t * node = llist->first;
+    size_t n;
+
+    for  (n = 0; node != NULL; n++, node = node->next)
+    {
+        slist->data[n] = node->data;
+    }
+
+    slist->len = n;
+
+    return slist;
+}
+
 static llist_node_t * LLIST_node_new(void * data)
 {
     llist_node_t * llist_node;

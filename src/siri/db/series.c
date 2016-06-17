@@ -123,8 +123,9 @@ siridb_series_t * siridb_series_new(
     siridb_series_t * series;
     size_t len = strlen(series_name);
 
-    series = SERIES_new(
-            siridb, ++siridb->max_series_id, tp, series_name);
+    siridb->max_series_id++;
+
+    series = SERIES_new(siridb, siridb->max_series_id, tp, series_name);
 
     /* We only should add the series to series_map and assume the caller
      * takes responsibility adding the series to SiriDB -> series
@@ -212,13 +213,13 @@ void siridb_series_add_idx_num32(
      * nothing to optimize if this is the fist data for this series inside
      * the shard.
      */
-    if (    ((shard->status &
+    if (    ((shard->flags &
                 (SIRIDB_SHARD_HAS_NEW_VALUES |
                         SIRIDB_SHARD_IS_LOADING)) == 0) &&
             ((i > 0 && ((idx_num32_t *) (index->idx))[i - 1].shard == shard) ||
             (i < index->len - 1 && idx->shard == shard)))
     {
-        shard->status |= SIRIDB_SHARD_HAS_NEW_VALUES;
+        shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
         siridb_shard_write_status(shard);
     }
 
@@ -236,7 +237,7 @@ void siridb_series_add_idx_num32(
             (++i < index->len &&
             end_ts > ((idx_num32_t *) (index->idx))[i].start_ts))
     {
-        shard->status |= SIRIDB_SHARD_HAS_OVERLAP;
+        shard->flags |= SIRIDB_SHARD_HAS_OVERLAP;
         index->has_overlap = 1;
     }
 }
@@ -333,6 +334,7 @@ siridb_points_t * siridb_series_get_points_num32(
                 start_ts,
                 end_ts,
                 series->index->has_overlap);
+        /* errors can be ignored here */
     }
 
     /* create pointer to buffer and get current length */
@@ -426,12 +428,16 @@ void siridb_series_optimize_shard_num32(
 
     for (i = start; i < end; i++)
     {
-        siridb_shard_get_points_num32(
+        if (siridb_shard_get_points_num32(
                 points,
                 (idx_num32_t *) series->index->idx + i,
                 NULL,
                 NULL,
-                series->index->has_overlap);
+                series->index->has_overlap))
+        {
+            idx = (idx_num32_t *) series->index->idx + i;
+            size -= idx->len;
+        }
     }
 
     num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
