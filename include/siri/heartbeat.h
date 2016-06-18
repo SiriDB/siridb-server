@@ -1,5 +1,5 @@
 /*
- * heartbeat.c - Heart-beat task SiriDB.
+ * heartbeat.h - Heart-beat task SiriDB.
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology

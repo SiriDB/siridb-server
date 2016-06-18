@@ -174,7 +174,6 @@ void siridb_free_cb(siridb_t * siridb, void * args)
 inline void siridb_incref(siridb_t * siridb)
 {
     siridb->ref++;
-
 }
 
 void siridb_decref(siridb_t * siridb)
@@ -248,17 +247,25 @@ static void SIRIDB_free(siridb_t * siridb)
     imap64_free(siridb->shards);
 
     if (siridb->buffer_fp != NULL)
+    {
         fclose(siridb->buffer_fp);
+    }
 
     if (siridb->dropped_fp != NULL)
+    {
         fclose(siridb->dropped_fp);
+    }
 
     if (siridb->store != NULL)
+    {
         qp_close(siridb->store);
+    }
 
     /* only free buffer path when not equal to db_path */
     if (siridb->buffer_path != siridb->dbpath)
+    {
         free(siridb->buffer_path);
+    }
     free(siridb->dbpath);
 
     free(siridb->dbname);

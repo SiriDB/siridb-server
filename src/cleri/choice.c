@@ -11,6 +11,7 @@
  *
  */
 #include <cleri/choice.h>
+#include <cleri/node.h>
 #include <logger/logger.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -114,7 +115,9 @@ static cleri_node_t * parse_most_greedy(
             mg_node = node;
         }
         else
+        {
             cleri_node_free(node);
+        }
         olist = olist->next;
     }
     if (mg_node != NULL)

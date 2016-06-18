@@ -25,6 +25,7 @@
 #include <iso8601/iso8601.h>
 #include <expr/expr.h>
 #include <siri/db/nodes.h>
+#include <siri/net/pkg.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -143,12 +144,12 @@ void siridb_send_query_result(uv_async_t * handle)
     }
 #endif
     sirinet_pkg_t * package;
-    package = sirinet_new_pkg(
+    package = sirinet_pkg_new(
             query->pid,
             query->packer->len,
             SN_MSG_RESULT,
             query->packer->buffer);
-    sirinet_send_pkg(query->client, package, NULL);
+    sirinet_pkg_send(query->client, package, NULL);
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
@@ -162,13 +163,13 @@ void siridb_send_error(
     sirinet_pkg_t * package;
     size_t len = strlen(query->err_msg);
 
-    package = sirinet_new_pkg(
+    package = sirinet_pkg_new(
             query->pid,
             len,
             err,  // usually this is SN_MSG_QUERY_ERROR
             query->err_msg);
 
-    sirinet_send_pkg(query->client, package, NULL);
+    sirinet_pkg_send(query->client, package, NULL);
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);

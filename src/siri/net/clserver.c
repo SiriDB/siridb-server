@@ -29,8 +29,8 @@
 if (((sirinet_handle_t *) client->data)->siridb == NULL)                    \
 {                                                                           \
     sirinet_pkg_t * package;                                                \
-    package = sirinet_new_pkg(pkg->pid, 0, SN_MSG_NOT_AUTHENTICATED, NULL); \
-    sirinet_send_pkg(client, package, NULL);                                \
+    package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_NOT_AUTHENTICATED, NULL); \
+    sirinet_pkg_send(client, package, NULL);                                \
     free(package);                                                          \
     return;                                                                 \
 }
@@ -93,7 +93,8 @@ int sirinet_clserver_init(siri_t * siri)
             DEFAULT_BACKLOG,
             on_new_connection);
 
-    if (rc) {
+    if (rc)
+    {
         log_error("error listening client server: %s", uv_strerror(rc));
         return 1;
     }
@@ -177,15 +178,19 @@ static void on_auth_request(
                 qp_password,
                 qp_dbname);
         if (rc == SN_MSG_UNKNOWN_DATABASE)
-            package = sirinet_new_pkg(
+        {
+            package = sirinet_pkg_new(
                     pkg->pid,
                     qp_dbname->len,
                     rc,
                     qp_dbname->via->raw);
+        }
         else
-            package = sirinet_new_pkg(pkg->pid, 0, rc, NULL);
+        {
+            package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
+        }
 
-        sirinet_send_pkg(client, package, NULL);
+        sirinet_pkg_send(client, package, NULL);
         free(package);
     }
     else
@@ -213,7 +218,9 @@ static void on_query(
         if (qp_time_precision->tp == QP_INT64 &&
                 (tp = (siridb_timep_t) qp_time_precision->via->int64) !=
                 ((sirinet_handle_t *) client->data)->siridb->time->precision)
+        {
             tp %= SIRIDB_TIME_END;
+        }
 
         siridb_async_query(
                 pkg->pid,
@@ -249,16 +256,18 @@ static void on_insert(
         err_msg = siridb_insert_err_msg(rc);
 
         /* create and send package */
-        sirinet_pkg_t * package = sirinet_new_pkg(
+        sirinet_pkg_t * package = sirinet_pkg_new(
                 pkg->pid, strlen(err_msg), SN_MSG_INSERT_ERROR, err_msg);
-        sirinet_send_pkg(client, package, NULL);
+        sirinet_pkg_send(client, package, NULL);
 
         /* free package*/
         free(package);
 
         /* free packer */
         for (size_t n = 0; n < siridb->pools->size; n++)
+        {
             qp_free_packer(packer[n]);
+        }
 
     }
     else
@@ -283,7 +292,7 @@ static void on_ping(
         const sirinet_pkg_t * pkg)
 {
     sirinet_pkg_t * package;
-    package = sirinet_new_pkg(pkg->pid, 0, SN_MSG_ACK, NULL);
-    sirinet_send_pkg(client, package, NULL);
+    package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_ACK, NULL);
+    sirinet_pkg_send(client, package, NULL);
     free(package);
 }

@@ -13,31 +13,18 @@
 
 #include <uv.h>
 #include <siri/db/db.h>
+#include <siri/net/pkg.h>
 
-#define SN_PKG_HEADER_SIZE 14
+typedef struct siridb_s siridb_t;
+typedef struct siridb_user_s siridb_user_t;
 
-struct siridb_s;
-
-enum {
-    SN_HANDLE_SUCCESS,
-    SN_HANDLE_ERR_MSGPACK_ERROR,
-};
-
-typedef struct sirinet_pkg_s
-{
-    uint64_t pid;
-    uint32_t len;
-    uint16_t tp;
-    char data[];
-} sirinet_pkg_t;
-
-typedef void (* on_data_t)(uv_handle_t * client, const sirinet_pkg_t * pkg);
+typedef void (* on_data_cb)(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 typedef struct sirinet_handle_s
 {
-    struct siridb_s * siridb;
-    struct siridb_user_s * user;  /* can be NULL for back-end */
-    on_data_t on_data;
+    siridb_t * siridb;
+    siridb_user_t * user;  /* can be NULL for back-end */
+    on_data_cb on_data;
     char * buf;
     size_t len;
 } sirinet_handle_t;
@@ -52,18 +39,6 @@ void sirinet_handle_on_data(
         ssize_t nread,
         const uv_buf_t * buf);
 
-/* do not forget to run free(pkg) when using sirinet_new_pkg */
-sirinet_pkg_t * sirinet_new_pkg(
-        uint64_t pid,
-        uint32_t len,
-        uint16_t tp,
-        const char * data);
-
-void sirinet_send_pkg(
-        uv_handle_t * client,
-        sirinet_pkg_t * pkg,
-        uv_write_cb cb);
 
 void sirinet_free_client(uv_handle_t * client);
-
 void sirinet_free_async(uv_handle_t * handle);
