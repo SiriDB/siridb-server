@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <qpack/qpack.h>
 #include <assert.h>
+#include <siri/net/bclient.h>
+
 
 static void close_handlers(void);
 static void signal_handler(uv_signal_t * req, int signum);

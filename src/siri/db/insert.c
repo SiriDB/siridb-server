@@ -228,7 +228,7 @@ static void send_points_to_pools(uv_async_t * handle)
             packer->len,
             SN_MSG_RESULT,
             packer->buffer);
-    sirinet_pkg_send(insert->client, package, NULL);
+    sirinet_pkg_send((uv_stream_t *) insert->client, package, NULL);
 
     free(package);
     qp_free_packer(packer);

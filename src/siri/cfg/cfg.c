@@ -105,32 +105,42 @@ static void SIRI_CFG_read_interval(
                 cfgparser,
                 "siridb",
                 option_name);
+
     if (rc != CFGPARSER_SUCCESS)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
-                "Using default value: '%s'",
+                "Using default value: '%u'",
                 option_name,
                 siri.args->config,
                 cfgparser_errmsg(rc),
                 *interval);
+    }
     else if (option->tp != CFGPARSER_TP_INTEGER)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
-                "Using default value: '%s:%d'",
-                "default_db_path",
+                "Using default value: '%u'",
+                option_name,
                 siri.args->config,
                 "error: expecting an integer value",
-                siri_cfg.default_db_path);
+                *interval);
+    }
     else if (option->val->integer < 1 || option->val->integer > 65535)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': "
                 "error: port should be between 1 and 65535, got '%d'. "
-                "Using default value: '%d'",
+                "Using default value: '%u'",
                 option_name,
                 siri.args->config,
                 option->val->integer,
                 *interval);
-    *interval = option->val->integer;
+    }
+    else
+    {
+        *interval = option->val->integer;
+    }
 }
 
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
@@ -186,11 +196,15 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
                 "sharding",
                 "max_open_files");
     if (rc != CFGPARSER_SUCCESS || option->tp != CFGPARSER_TP_INTEGER)
+    {
         log_info(
                 "Using default value for [sharding]max_open_files: %d",
                 siri_cfg.max_open_files);
+    }
     else
+    {
         siri_cfg.max_open_files = (uint16_t) option->val->integer;
+    }
 
     if (siri_cfg.max_open_files < MIN_OPEN_FILES_LIMIT ||
             siri_cfg.max_open_files > MAX_OPEN_FILES_LIMIT)
@@ -238,7 +252,9 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
                 (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100));
         rlim.rlim_cur = min_limit;
         if (setrlimit(RLIMIT_NOFILE, &rlim))
+        {
             log_critical("Could not set the soft-limit to %d", min_limit);
+        }
     }
 }
 
@@ -252,11 +268,14 @@ static void SIRI_CFG_read_max_chunk_points(cfgparser_t * cfgparser)
                 "sharding",
                 "max_chunk_points");
     if (rc != CFGPARSER_SUCCESS || option->tp != CFGPARSER_TP_INTEGER)
-        log_info(
+    {    log_info(
                 "Using default value for [sharding]max_chunk_points: %d",
                 siri_cfg.max_chunk_points);
+    }
     else
+    {
         siri_cfg.max_chunk_points = (uint16_t) option->val->integer;
+    }
 
     if (siri_cfg.max_chunk_points < MIN_CHUNK_POINTS ||
             siri_cfg.max_chunk_points > MAX_CHUNK_POINTS)
@@ -289,6 +308,7 @@ static void SIRI_CFG_read_address_port(
                 "siridb",
                 option_name);
     if (rc != CFGPARSER_SUCCESS)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
@@ -297,7 +317,9 @@ static void SIRI_CFG_read_address_port(
                 cfgparser_errmsg(rc),
                 address_pt,
                 *port_pt);
+    }
     else if (option->tp != CFGPARSER_TP_STRING)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
@@ -306,6 +328,7 @@ static void SIRI_CFG_read_address_port(
                 "error: expecting a string value",
                 address_pt,
                 *port_pt);
+    }
     else
     {
         for (port = address = option->val->string; *port; port++)
@@ -321,6 +344,7 @@ static void SIRI_CFG_read_address_port(
                 strlen(address) >= PATH_MAX ||
                 !strx_is_int(port)
                 )
+        {
             log_warning(
                     "Error reading '[siridb]%s' in '%s': "
                     "error: got an unexpected value '%s:%s'. "
@@ -331,6 +355,7 @@ static void SIRI_CFG_read_address_port(
                     port,
                     address_pt,
                     *port_pt);
+        }
         else
         {
             if (*address == '*')
@@ -341,6 +366,7 @@ static void SIRI_CFG_read_address_port(
             test_port = atoi(port);
 
             if (test_port < 1 || test_port > 65535)
+            {
                 log_warning(
                         "Error reading '[siridb]%s' in '%s': "
                         "error: port should be between 1 and 65535, got '%d'. "
@@ -349,8 +375,11 @@ static void SIRI_CFG_read_address_port(
                         siri.args->config,
                         test_port,
                         *port_pt);
+            }
             else
+            {
                 *port_pt = test_port;
+            }
 
             log_debug("Read '%s' from config: %s:%d",
                     option_name,

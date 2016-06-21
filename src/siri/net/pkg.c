@@ -11,6 +11,9 @@
  */
 #include <siri/net/pkg.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <logger/logger.h>
 
 static void PKG_write_cb(uv_write_t * req, int status);
 
@@ -37,7 +40,7 @@ sirinet_pkg_t * sirinet_pkg_new(
 }
 
 void sirinet_pkg_send(
-        uv_handle_t * client,
+        uv_stream_t * client,
         sirinet_pkg_t * pkg,
         uv_write_cb cb)
 {
@@ -50,16 +53,14 @@ void sirinet_pkg_send(
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
             SN_PKG_HEADER_SIZE + pkg->len);
-    uv_write(req,
-            (uv_stream_t *) client,
-            &wrbuf,
-            1,
-            *cb);
+    uv_write(req, client, &wrbuf, 1, *cb);
 }
 
 static void PKG_write_cb(uv_write_t * req, int status)
 {
     if (status)
+    {
         log_error("Write error %s", uv_strerror(status));
+    }
     free(req);
 }

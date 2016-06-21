@@ -47,23 +47,18 @@ siridb_server_t * siridb_server_new(
     server->flags = 0;
     server->ref = 0;
 
+    /* we set the back-end client later because we don't need one for self */
+    server->bclient = NULL;
+
     /* sets address:port to name property */
     SERVER_update_name(server);
 
     return server;
 }
 
-
-
-int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
+inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
 {
-    int i = 0;
-    for (i = 0; i < 16; i++)
-        if (sa->uuid[i] < sb->uuid[i])
-            return -(i + 1);
-        else if (sa->uuid[i] > sb->uuid[i])
-            return i + 1;
-    return 0;
+    return uuid_compare(sa->uuid, sa->uuid);
 }
 
 inline void siridb_server_incref(siridb_server_t * server)
@@ -82,6 +77,10 @@ void siridb_server_decref(siridb_server_t * server)
 static void SERVER_free(siridb_server_t * server)
 {
     log_debug("FREE Server");
+    if (server->bclient != NULL)
+    {
+        sirinet_bclient_free(server->bclient);
+    }
     free(server->name);
     free(server->address);
     free(server);

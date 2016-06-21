@@ -73,7 +73,6 @@ int siridb_users_load(siridb_t * siridb)
             free(user);
             return -1;
         }
-        log_debug("password: %s", user->password);
 
         return 0;
     }
@@ -187,10 +186,14 @@ siridb_user_t * siridb_users_get_user(
     char * pw;
 
     if ((user = USERS_get(siridb, username)) == NULL)
+    {
         return NULL;
+    }
 
     if (password == NULL)
+    {
         return user;
+    }
 
     pw = crypt(password, user->password);
 
@@ -276,7 +279,9 @@ static siridb_user_t * USERS_get(siridb_t * siridb, const char * username)
     for (; current != NULL; current = current->next)
     {
         if (strcmp(current->user->username, username) == 0)
+        {
             return current->user;
+        }
     }
     return NULL;
 }
@@ -302,10 +307,14 @@ static siridb_user_t * USERS_pop(
         if (strcmp(current->user->username, username) == 0)
         {
             if (prev == NULL)
+            {
                 siridb->users = (current->next != NULL) ?
                         current->next : USERS_new();
+            }
             else
+            {
                 prev->next = current->next;
+            }
 
             user = current->user;
             free(current);

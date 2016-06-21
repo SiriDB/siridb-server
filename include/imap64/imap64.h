@@ -12,6 +12,7 @@
 #pragma once
 
 #include <inttypes.h>
+#include <stddef.h>
 
 #define IMAP64_NODE_SZ 16
 

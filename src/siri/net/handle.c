@@ -54,9 +54,15 @@ void sirinet_handle_on_data(
             log_error("Read error: %s", uv_err_name(nread));
         }
 
-        uv_close((uv_handle_t *) client, sirinet_free_client);
+        /* the buffer must be destroyed too
+         * (sirinet_free_client will free sn_handle->buf if needed)
+         */
+        if (sn_handle->buf == NULL)
+        {
+            free(buf->base);
+        }
 
-        free((sn_handle->buf == NULL) ? buf->base : sn_handle->buf);
+        uv_close((uv_handle_t *) client, sirinet_free_client);
 
         return;
     }
@@ -144,10 +150,28 @@ void sirinet_handle_on_data(
     sn_handle->buf = NULL;
 }
 
+sirinet_handle_t * sirinet_handle_new(on_data_cb cb)
+{
+    sirinet_handle_t * sn_handle =
+            (sirinet_handle_t *) malloc(sizeof(sirinet_handle_t));
+    sn_handle->buf = NULL;
+    sn_handle->origin = NULL;
+    sn_handle->len = 0;
+    sn_handle->siridb = NULL;
+    sn_handle->on_data = cb;
+    return sn_handle;
+}
+
+void sirinew_handle_free(sirinet_handle_t * sn_handle)
+{
+    free(sn_handle->buf);
+    free(sn_handle);
+}
+
 void sirinet_free_client(uv_handle_t * client)
 {
     log_debug("Free client...");
-    free((sirinet_handle_t *) client->data);
+    sirinew_handle_free(client->data);
     free((uv_tcp_t *) client);
 }
 

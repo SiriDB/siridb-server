@@ -22,12 +22,15 @@ typedef void (* on_data_cb)(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 typedef struct sirinet_handle_s
 {
-    siridb_t * siridb;
-    siridb_user_t * user;  /* can be NULL for back-end */
     on_data_cb on_data;
+    siridb_t * siridb;
+    void * origin;  /* can be a user, server or NULL */
     char * buf;
     size_t len;
 } sirinet_handle_t;
+
+sirinet_handle_t * sirinet_handle_new(on_data_cb cb);
+void sirinew_handle_free(sirinet_handle_t * sn_handle);
 
 void sirinet_handle_alloc_buffer(
         uv_handle_t * handle,

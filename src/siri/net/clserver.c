@@ -39,29 +39,12 @@ static uv_loop_t * loop = NULL;
 static struct sockaddr_in client_addr;
 static uv_tcp_t client_server;
 
-static void on_data(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg);
-
-static void on_new_connection(
-        uv_stream_t * server,
-        int status);
-
-static void on_auth_request(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg);
-
-static void on_query(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg);
-
-static void on_insert(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg);
-
-static void on_ping(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg);
+static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_new_connection(uv_stream_t * server, int status);
+static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 int sirinet_clserver_init(siri_t * siri)
 {
@@ -69,7 +52,7 @@ int sirinet_clserver_init(siri_t * siri)
 
     if (loop != NULL)
     {
-        log_critical("The client server is already initialized!");
+        log_critical("Client server is already initialized!");
         return 1;
     }
 
@@ -95,29 +78,23 @@ int sirinet_clserver_init(siri_t * siri)
 
     if (rc)
     {
-        log_error("error listening client server: %s", uv_strerror(rc));
+        log_error("Error listening client server: %s", uv_strerror(rc));
         return 1;
     }
     return 0;
 }
 
-static void on_new_connection(
-        uv_stream_t * server,
-        int status)
+static void on_new_connection(uv_stream_t * server, int status)
 {
-    log_debug("Got a new connection request.");
+    log_debug("Got a client connection request.");
     if (status < 0)
     {
-        log_error("New connection error: %s", uv_strerror(status));
+        log_error("Client connection error: %s", uv_strerror(status));
         return;
     }
     uv_tcp_t * client = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
-    client->data =
-            (sirinet_handle_t *) malloc(sizeof(sirinet_handle_t));
-    ((sirinet_handle_t *) client->data)->on_data = &on_data;
-    ((sirinet_handle_t *) client->data)->siridb = NULL;
-    ((sirinet_handle_t *) client->data)->buf = NULL;
-    ((sirinet_handle_t *) client->data)->len = 0;
+    client->data = sirinet_handle_new(&on_data);
+
     uv_tcp_init(loop, client);
 
     if (uv_accept(server, (uv_stream_t*) client) == 0)
@@ -133,11 +110,9 @@ static void on_new_connection(
     }
 }
 
-static void on_data(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg)
+static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
-    log_debug("Got data (pid: %d, len: %d, tp: %d)",
+    log_debug("[Client server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
     switch (pkg->tp)
     {
@@ -156,9 +131,7 @@ static void on_data(
     }
 }
 
-static void on_auth_request(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg)
+static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_msg_t rc;
     sirinet_pkg_t * package;
@@ -194,16 +167,16 @@ static void on_auth_request(
         free(package);
     }
     else
+    {
         log_error("Invalid authentication request received.");
+    }
     qp_free_object(qp_username);
     qp_free_object(qp_password);
     qp_free_object(qp_dbname);
     qp_free_unpacker(unpacker);
 }
 
-static void on_query(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg)
+static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
@@ -235,9 +208,7 @@ static void on_query(
     qp_free_unpacker(unpacker);
 }
 
-static void on_insert(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg)
+static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
@@ -287,9 +258,7 @@ static void on_insert(
     qp_free_unpacker(unpacker);
 }
 
-static void on_ping(
-        uv_handle_t * client,
-        const sirinet_pkg_t * pkg)
+static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_pkg_t * package;
     package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_ACK, NULL);

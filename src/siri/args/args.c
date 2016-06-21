@@ -36,11 +36,7 @@ void siri_args_parse(siri_t * siri, int argc, char *argv[])
             ARGPARSE_STORE_STRING,                      /* action           */
             0,                                          /* default int32_t  */
             NULL,                                       /* value pt_int32_t */
-#ifdef DEBUG
-            "/home/joente/workspace/siridbc/testdir/siridb.conf",
-#else
             "/etc/siridb/siridb.conf",                  /* default string   */
-#endif
             siri_args.config,                           /* value string     */
             NULL                                        /* choices          */
     };

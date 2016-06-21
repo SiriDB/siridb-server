@@ -47,7 +47,7 @@ sirinet_msg_t siridb_auth_request(
         return SN_MSG_INVALID_CREDENTIALS;
 
     ((sirinet_handle_t *) client->data)->siridb = siridb;
-    ((sirinet_handle_t *) client->data)->user = user;
+    ((sirinet_handle_t *) client->data)->origin = user;
 
     return SN_MSG_AUTH_SUCCESS;
 }

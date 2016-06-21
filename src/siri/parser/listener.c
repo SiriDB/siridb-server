@@ -103,7 +103,7 @@ else                                                                        \
 #define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
 if (    (query->flags & SIRIDB_QUERY_FLAG_MASTER) &&                        \
         !siridb_user_check_access(                                          \
-            ((sirinet_handle_t *) query->client->data)->user,               \
+            ((sirinet_handle_t *) query->client->data)->origin,             \
             ACCESS_BIT,                                                     \
             query->err_msg))                                                \
     return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
@@ -1108,7 +1108,8 @@ static void exit_show_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    who_am_i = ((sirinet_handle_t *) query->client->data)->user->username;
+    siridb_user_t * user = ((sirinet_handle_t *) query->client->data)->origin;
+    who_am_i = user->username;
 
     if (children->node == NULL)
     {

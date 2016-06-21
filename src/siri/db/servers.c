@@ -102,9 +102,15 @@ int siridb_servers_load(siridb_t * siridb)
         llist_append(siridb->servers, server);
         siridb_server_incref(server);
 
-        /* if this is me, bind server to siridb */
-        if (strncmp((char *) server->uuid, (char *) siridb->uuid, 16) == 0)
+        /* if this is me, bind server to siridb or else create a client */
+        if (uuid_compare(server->uuid, siridb->uuid) == 0)
+        {
             siridb->server = server;
+        }
+        else
+        {
+            server->bclient = sirinet_bclient_new();
+        }
     }
 
     /* save last object, should be QP_END */
