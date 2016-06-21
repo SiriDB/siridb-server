@@ -15,7 +15,6 @@
 #include <sys/time.h>
 #include <siri/parser/listener.h>
 #include <siri/db/time.h>
-#include <siri/net/handle.h>
 #include <string.h>
 #include <siri/net/clserver.h>
 #include <cleri/olist.h>
@@ -26,6 +25,7 @@
 #include <expr/expr.h>
 #include <siri/db/nodes.h>
 #include <siri/net/pkg.h>
+#include <siri/net/socket.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -356,7 +356,7 @@ static void siridb_parse_query(uv_async_t * handle)
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
     forward->data = (void *) handle->data;
     uv_async_send(forward);
-    uv_close((uv_handle_t *) handle, (uv_close_cb) sirinet_free_async);
+    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 }
 
 static int QUERY_walk(

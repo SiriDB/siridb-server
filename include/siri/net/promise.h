@@ -12,6 +12,7 @@
  */
 #pragma once
 
+#include <siri/net/pkg.h>
 
 typedef void (* sirinet_promise_cb)(
         uv_handle_t * client,

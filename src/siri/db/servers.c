@@ -15,7 +15,6 @@
 #include <siri/siri.h>
 #include <qpack/qpack.h>
 #include <logger/logger.h>
-#include <uuid/uuid.h> /* install: apt-get install uuid-dev */
 #include <unistd.h>
 #include <assert.h>
 
@@ -143,6 +142,23 @@ int siridb_servers_load(siridb_t * siridb)
 void siridb_servers_free(siridb_t * siridb)
 {
     llist_free_cb(siridb->servers, (llist_cb_t) SERVERS_walk_free, NULL);
+}
+
+siridb_server_t * siridb_servers_get_server(siridb_t * siridb, uuid_t uuid)
+{
+    llist_node_t * node = siridb->servers->first;
+    siridb_server_t * server;
+
+    while (node != NULL)
+    {
+        server = node->data;
+        if (uuid_compare(server->uuid, uuid) == 0)
+        {
+            return server;
+        }
+        node = node->next;
+    }
+    return NULL;
 }
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args)

@@ -16,9 +16,9 @@
 #include <string.h>
 #include <siri/siri.h>
 #include <siri/net/protocol.h>
-#include <siri/net/handle.h>
 #include <siri/db/series.h>
 #include <siri/db/points.h>
+#include <siri/net/socket.h>
 
 static int32_t assign_by_map(
         siridb_t * siridb,

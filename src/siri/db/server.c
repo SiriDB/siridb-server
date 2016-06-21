@@ -12,10 +12,10 @@
 #include <siri/db/server.h>
 #include <logger/logger.h>
 #include <siri/db/query.h>
-#include <siri/net/handle.h>
 #include <siri/net/promise.h>
 #include <siri/siri.h>
 #include <assert.h>
+#include <siri/net/socket.h>
 #include <string.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
@@ -80,7 +80,9 @@ void siridb_server_decref(siridb_server_t * server)
 
 static void SERVER_on_connect(uv_connect_t * req, int status)
 {
-    siridb_server_t * server = ((sirinet_socket_t *)req->handle->data)->origin;
+    sirinet_socket_t * ssocket = req->handle->data;
+    siridb_server_t * server = ssocket->origin;
+
     if (status == 0)
     {
         log_debug("Connection made to back-end server: '%s'", server->name);
@@ -91,8 +93,15 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_on_data);
 
         sirinet_pkg_t * package;
-        package = sirinet_pkg_new(1, 0, 1, NULL);
+        qp_packer_t * packer = qp_new_packer(1024);
+        qp_add_type(packer, QP_ARRAY_OPEN);
+        qp_add_raw(packer, (const char *) server->uuid, 16);
+        qp_add_string(packer, ssocket->siridb->dbname);
+
+        package = sirinet_pkg_new(2, packer->len, BP_AUTH_REQUEST, packer->buffer);
         sirinet_pkg_send(req->handle, package, NULL);
+
+        qp_free_packer(packer);
         free(package);
     }
     else
@@ -136,6 +145,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
     sirinet_socket_t * ssocket = server->socket->data;
     ssocket->origin = server;
     ssocket->siridb = siridb;
+    siridb_server_incref(server);
 
     uv_tcp_init(siri.loop, server->socket);
 
@@ -164,7 +174,7 @@ static void SERVER_free(siridb_server_t * server)
 
 static void SERVER_update_name(siridb_server_t * server)
 {
-    /* start len with 2, on for : and one for 0 terminator */
+    /* start len with 2, one for : and one for 0 terminator */
     size_t len = 2;
     uint16_t i = server->port;
 

@@ -14,13 +14,16 @@
 #include <siri/net/bserver.h>
 #include <stdlib.h>
 #include <logger/logger.h>
-#include <siri/net/handle.h>
 #include <siri/net/pkg.h>
+#include <siri/net/socket.h>
+#include <siri/net/protocol.h>
+#include <siri/db/auth.h>
 
 #define DEFAULT_BACKLOG 128
 
 static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -95,8 +98,42 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     log_debug("[Back-end server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
+
+    switch ((bp_client_t) pkg->tp)
+    {
+    case BP_AUTH_REQUEST:
+        on_auth_request(client, pkg);
+        break;
+    }
+
+}
+
+static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
+{
+    sirinet_msg_t rc;
     sirinet_pkg_t * package;
-    package = sirinet_pkg_new(pkg->pid, 0, 25, NULL);
-    sirinet_pkg_send((uv_stream_t *) client, package, NULL);
-    free(package);
+    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
+    qp_obj_t * qp_uuid = qp_new_object();
+    qp_obj_t * qp_dbname = qp_new_object();
+
+    if (    qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, qp_uuid) == QP_RAW &&
+            qp_next(unpacker, qp_dbname) == QP_RAW)
+    {
+        rc = siridb_auth_server_request(
+                client,
+                qp_uuid,
+                qp_dbname);
+        log_warning("Auth request result: %d", rc);
+        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
+        sirinet_pkg_send((uv_stream_t *) client, package, NULL);
+        free(package);
+    }
+    else
+    {
+        log_error("Invalid back-end authentication request received.");
+    }
+    qp_free_object(qp_uuid);
+    qp_free_object(qp_dbname);
+    qp_free_unpacker(unpacker);
 }

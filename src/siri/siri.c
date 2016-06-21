@@ -17,7 +17,6 @@
 #include <logger/logger.h>
 #include <siri/net/clserver.h>
 #include <siri/net/bserver.h>
-#include <siri/net/handle.h>
 #include <siri/parser/listener.h>
 #include <siri/db/props.h>
 #include <siri/db/users.h>
@@ -34,6 +33,7 @@
 #include <unistd.h>
 #include <qpack/qpack.h>
 #include <assert.h>
+#include <siri/net/socket.h>
 
 
 static void close_handlers(void);
@@ -409,7 +409,7 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
         uv_close(handle, NULL);
         break;
     case UV_ASYNC:
-        uv_close(handle, (uv_close_cb) sirinet_free_async);
+        uv_close(handle, (uv_close_cb) free);
         break;
     default:
         log_error("Oh oh, we need to implement type %d", handle->type);

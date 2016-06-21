@@ -15,13 +15,15 @@
 #include <msgpack.h>
 #include <siri/net/clserver.h>
 #include <qpack/qpack.h>
+#include <siri/net/protocol.h>
 
-enum sirinet_msg_tp;
-
-enum sirinet_msg_tp siridb_auth_request(
+sirinet_msg_t siridb_auth_user_request(
         uv_handle_t * client,
         qp_obj_t * qp_username,
         qp_obj_t * qp_password,
         qp_obj_t * qp_dbname);
 
-
+bp_server_t siridb_auth_server_request(
+        uv_handle_t * client,
+        qp_obj_t * qp_uuid,
+        qp_obj_t * qp_dbname);

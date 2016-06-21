@@ -27,22 +27,28 @@
     "abcdefghijklmnopqrstuvwxyz"  \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+static void USER_free(siridb_user_t * user);
+
 siridb_user_t * siridb_user_new(void)
 {
     siridb_user_t * user = (siridb_user_t *) malloc(sizeof(siridb_user_t));
     user->access_bit = 0;
     user->password = NULL;
     user->username = NULL;
+    user->ref = 0;
     return user;
 }
 
-void siridb_user_free(siridb_user_t * user)
+inline void siridb_user_incref(siridb_user_t * user)
 {
-    if (user != NULL)
+    user->ref++;
+}
+
+void siridb_user_decref(siridb_user_t * user)
+{
+    if (!--user->ref)
     {
-        free(user->username);
-        free(user->password);
-        free(user);
+        USER_free(user);
     }
 }
 
@@ -139,4 +145,12 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
     log_critical("Unknown user property received: %d", cond->prop);
     assert (0);
     return -1;
+}
+
+static void USER_free(siridb_user_t * user)
+{
+    log_debug("FREE USER: %s", user->username);
+    free(user->username);
+    free(user->password);
+    free(user);
 }

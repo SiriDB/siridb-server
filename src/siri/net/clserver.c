@@ -18,11 +18,11 @@
 #include <msgpack.h>
 #include <stdbool.h>
 #include <siri/siri.h>
-#include <siri/net/handle.h>
 #include <siri/db/auth.h>
 #include <siri/db/query.h>
 #include <qpack/qpack.h>
 #include <siri/db/insert.h>
+#include <siri/net/socket.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB                                                        \
@@ -114,6 +114,7 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     log_debug("[Client server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
+
     switch (pkg->tp)
     {
     case SN_MSG_AUTH_REQUEST:
@@ -145,7 +146,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
             qp_next(unpacker, qp_password) == QP_RAW &&
             qp_next(unpacker, qp_dbname) == QP_RAW)
     {
-        rc = siridb_auth_request(
+        rc = siridb_auth_user_request(
                 client,
                 qp_username,
                 qp_password,
@@ -168,7 +169,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
     }
     else
     {
-        log_error("Invalid authentication request received.");
+        log_error("Invalid client authentication request received.");
     }
     qp_free_object(qp_username);
     qp_free_object(qp_password);

@@ -12,12 +12,12 @@
 #include <siri/parser/walkers.h>
 #include <siri/parser/queries.h>
 #include <siri/db/query.h>
-#include <siri/net/handle.h>
 #include <siri/db/series.h>
 #include <logger/logger.h>
 #include <siri/grammar/gramp.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/shard.h>
+#include <siri/net/socket.h>
 
 int walk_drop_series(
         const char * series_name,

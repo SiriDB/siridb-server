@@ -9,11 +9,11 @@
  *  - initial version, 09-03-2016
  *
  */
-#include <siri/net/handle.h>
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <siri/net/socket.h>
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb);
 
@@ -49,8 +49,6 @@ void sirinet_socket_on_data(
     sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
     sirinet_pkg_t * pkg;
 
-    log_debug("LEN: %d", ssocket->len);
-
     if (nread < 0)
     {
         if (nread != UV_EOF)
@@ -80,7 +78,6 @@ void sirinet_socket_on_data(
 
             if (nread == total_sz)
             {
-                log_debug("NREAD: %d, TOTAL: %d", nread, total_sz);
                 (*ssocket->on_data)((uv_handle_t *) client, pkg);
                 free(buf->base);
                 return;
@@ -141,7 +138,6 @@ void sirinet_socket_on_data(
 
     if (ssocket->len == pkg->len + SN_PKG_HEADER_SIZE)
     {
-        log_debug("Len: %d, Pkg Len: %d", ssocket->len, pkg->len);
         (*ssocket->on_data)((uv_handle_t *) client, pkg);
     }
     else
@@ -167,15 +163,34 @@ void sirinet_socket_free(uv_tcp_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
     log_debug("Free socket (type: %d)", ssocket->tp);
+
+    switch (ssocket->tp)
+    {
+    case SOCKET_CLIENT:
+        if (ssocket->origin != NULL)
+        {
+            siridb_user_decref(ssocket->origin);
+        }
+        break;
+    case SOCKET_BACKEND:
+        if (ssocket->origin != NULL)
+        {
+            siridb_server_decref(ssocket->origin);
+        }
+        break;
+    case SOCKET_SERVER:
+        {
+            siridb_server_t * server = ssocket->origin;
+            server->socket = NULL;
+            siridb_server_decref(server);
+        }
+    }
     free(ssocket->buf);
     free(ssocket);
     free(client);
 }
 
-inline void sirinet_free_async(uv_handle_t * handle)
-{
-    free((uv_async_t *) handle);
-}
+
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb)
 {

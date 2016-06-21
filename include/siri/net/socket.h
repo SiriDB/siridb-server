@@ -1,5 +1,5 @@
 /*
- * handle.h - Handle TCP request.
+ * socket.h - Handle TCP request.
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -15,9 +15,12 @@
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
 
-#define SOCKET_CLIENT 0
-#define SOCKET_BACKEND 1
-#define SOCKET_SERVER 2
+typedef enum sirinet_socket_tp
+{
+    SOCKET_CLIENT,
+    SOCKET_BACKEND,
+    SOCKET_SERVER
+} sirinet_socket_tp_t;
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_user_s siridb_user_t;
@@ -26,7 +29,7 @@ typedef void (* on_data_cb)(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 typedef struct sirinet_socket_s
 {
-    int tp;
+    sirinet_socket_tp_t tp;
     on_data_cb on_data;
     siridb_t * siridb;
     void * origin;  /* can be a user, server or NULL */
@@ -47,4 +50,3 @@ void sirinet_socket_on_data(
         ssize_t nread,
         const uv_buf_t * buf);
 
-void sirinet_free_async(uv_handle_t * handle);

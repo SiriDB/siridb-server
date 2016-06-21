@@ -63,6 +63,7 @@ int siridb_users_load(siridb_t * siridb)
     {
         /* we do not have a user access file, lets create the first user */
         user = siridb_user_new();
+        siridb_user_incref(user);
         user->username = strdup("iris");
         user->access_bit = SIRIDB_ACCESS_PROFILE_FULL;
 
@@ -70,7 +71,7 @@ int siridb_users_load(siridb_t * siridb)
                 siridb_users_add_user(siridb, user, err_msg))
         {
             log_error("%s", err_msg);
-            free(user);
+            siridb_user_decref(user);
             return -1;
         }
 
@@ -93,11 +94,13 @@ int siridb_users_load(siridb_t * siridb)
             qp_next(unpacker, access_bit) == QP_INT64)
     {
         user = siridb_user_new();
+        siridb_user_incref(user);
 
         user->username = strndup(username->via->raw, username->len);
         user->password = strndup(password->via->raw, password->len);
 
         user->access_bit = (uint32_t) access_bit->via->int64;
+
         USERS_append(siridb, user);
     }
 
@@ -118,7 +121,10 @@ void siridb_users_free(siridb_users_t * users)
     while (users != NULL)
     {
         next = users->next;
-        siridb_user_free(users->user);
+        if (users->user != NULL)
+        {
+            siridb_user_decref(users->user);
+        }
         free(users);
         users = next;
     }
@@ -216,8 +222,8 @@ int siridb_users_drop_user(
         return 1;
     }
 
-    /* free user object */
-    siridb_user_free(user);
+    /* decrement reference for user object */
+    siridb_user_decref(user);
 
     if (siridb_users_save(siridb))
     {

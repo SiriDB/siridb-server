@@ -18,7 +18,6 @@
 #include <siri/db/series.h>
 #include <siri/db/props.h>
 #include <siri/db/shard.h>
-#include <siri/net/handle.h>
 #include <siri/net/protocol.h>
 #include <inttypes.h>
 #include <sys/time.h>
@@ -30,11 +29,12 @@
 #include <math.h>
 #include <siri/db/nodes.h>
 #include <cexpr/cexpr.h>
+#include <siri/net/socket.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
 
-static void free_user_object(uv_handle_t * handle);
+static void decref_user_object(uv_handle_t * handle);
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_user_stmt(uv_async_t * handle);
@@ -87,6 +87,15 @@ static uint32_t GID_K_SERVERS = CLERI_GID_K_SERVERS;
 static uint32_t GID_K_SERIES = CLERI_GID_K_SERIES;
 
 
+/* TODO: check if uv_close_cb can be used with free or do we need a correct
+ * casting like the following:
+ *
+ *  inline void sirinet_free_async(uv_handle_t * handle)
+ *  {
+ *      free((uv_async_t *) handle);
+ *  }
+ */
+
 #define SIRIPARSER_NEXT_NODE                                                \
 siridb_nodes_next(&query->nodes);                                           \
 if (query->nodes == NULL)                                                   \
@@ -97,7 +106,7 @@ else                                                                        \
     forward->data = (void *) handle->data;                                  \
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);      \
     uv_async_send(forward);                                                 \
-    uv_close((uv_handle_t *) handle, (uv_close_cb) sirinet_free_async);     \
+    uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
 }
 
 #define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
@@ -170,11 +179,11 @@ void siriparser_init_listener(void)
  * Free functions
  *****************************************************************************/
 
-static void free_user_object(uv_handle_t * handle)
+static void decref_user_object(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_user_free((siridb_user_t *) query->data);
+    siridb_user_decref((siridb_user_t *) query->data);
 
     /* normal free call */
     siridb_free_query(handle);
@@ -203,16 +212,21 @@ static void enter_alter_user_stmt(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
+    siridb_user_t * user;
 
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((query->data = siridb_users_get_user(siridb, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
+
+    query->data = user;
+    siridb_user_incref(user);
+    query->free_cb = (uv_close_cb) decref_user_object;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -244,7 +258,9 @@ static void enter_create_user_stmt(uv_async_t * handle)
 
     /* bind user object to data and set correct free call */
     query->data = siridb_user_new();
-    query->free_cb = (uv_close_cb) free_user_object;
+    siridb_user_incref(query->data);
+
+    query->free_cb = (uv_close_cb) decref_user_object;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -296,6 +312,8 @@ static void enter_grant_user_stmt(uv_async_t * handle)
             siridb_access_from_children((cleri_children_t *) query->data);
 
     query->data = user;
+    siridb_user_incref(user);
+    query->free_cb = (uv_close_cb) decref_user_object;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -369,9 +387,10 @@ static void enter_revoke_user_stmt(uv_async_t * handle)
     user->access_bit ^= (
             user->access_bit &
             siridb_access_from_children((cleri_children_t *) query->data));
-    log_debug("New access: %d", user->access_bit);
 
     query->data = user;
+    siridb_user_incref(user);
+    query->free_cb = (uv_close_cb) decref_user_object;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -802,8 +821,9 @@ static void exit_drop_user_stmt(uv_async_t * handle)
             ((sirinet_socket_t *) query->client->data)->siridb,
             username,
             query->err_msg))
+    {
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
-
+    }
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
             "User '%s' is dropped successfully.", username);

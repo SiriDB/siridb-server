@@ -11,7 +11,8 @@
  */
 #pragma once
 
-typedef enum sirinet_msg_tp {
+typedef enum sirinet_msg_tp
+{
     SN_MSG_AUTH_REQUEST,                    // (user, password, dbname)
     SN_MSG_INVALID_CREDENTIALS,             // Empty
     SN_MSG_AUTH_SUCCESS,                    // Empty
@@ -39,3 +40,18 @@ typedef enum sirinet_msg_tp {
     SN_MSG_PING,                            // Empty
     SN_MSG_ACK,                             // Empty
 } sirinet_msg_t;
+
+
+typedef enum sirinet_backend_protocol_client_tp
+{
+    BP_AUTH_REQUEST,                        // (uuid, dbname)
+} bp_client_t;
+
+typedef enum sirinet_backend_protocol_server_tp
+{
+    BP_AUTH_SUCCESS,                        // Empty
+    BP_AUTH_ERROR_UNKNOWN_UUID,             // Empty
+    BP_AUTH_ERROR_UNKNOWN_DBNAME,           // Empty
+    BP_AUTH_ERROR_INVALID_UUID,             // Empty
+} bp_server_t;
+

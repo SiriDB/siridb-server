@@ -21,7 +21,6 @@
 #define SERVER_FLAG_PAUSED 2
 #define SERVER_FLAG_SYNCHRONIZING 4
 
-
 typedef struct siridb_s siridb_t;
 
 typedef struct siridb_server_s
