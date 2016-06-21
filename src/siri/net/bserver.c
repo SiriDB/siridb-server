@@ -13,9 +13,9 @@
 
 #include <siri/net/bserver.h>
 #include <stdlib.h>
-#include <siri/siri.h>
 #include <logger/logger.h>
 #include <siri/net/handle.h>
+#include <siri/net/pkg.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -32,7 +32,7 @@ int sirinet_bserver_init(siri_t * siri)
 
     if (loop != NULL)
     {
-        log_critical("Client server is already initialized!");
+        log_critical("Back-end server is already initialized!");
         return 1;
     }
 
@@ -43,7 +43,7 @@ int sirinet_bserver_init(siri_t * siri)
 
     uv_ip4_addr(
             siri->cfg->listen_backend_address,
-            siri->cfg->listen_client_port,
+            siri->cfg->listen_backend_port,
             &server_addr);
 
     /* make sure data is set to NULL so we later on can check this value. */
@@ -58,7 +58,7 @@ int sirinet_bserver_init(siri_t * siri)
 
     if (rc)
     {
-        log_error("Error listening client server: %s", uv_strerror(rc));
+        log_error("Error listening back-end server: %s", uv_strerror(rc));
         return 1;
     }
     return 0;
@@ -66,27 +66,28 @@ int sirinet_bserver_init(siri_t * siri)
 
 static void on_new_connection(uv_stream_t * server, int status)
 {
-    log_debug("Got a server connection request.");
+    log_debug("Received a back-end server connection request.");
+
     if (status < 0)
     {
-        log_error("Server connection error: %s", uv_strerror(status));
+        log_error("Back-end server connection error: %s", uv_strerror(status));
         return;
     }
-    uv_tcp_t * client = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
-    client->data = sirinet_handle_new(&on_data);
+
+    uv_tcp_t * client = sirinet_socket_new(SOCKET_BACKEND, &on_data);
 
     uv_tcp_init(loop, client);
 
-    if (uv_accept(server, (uv_stream_t*) client) == 0)
+    if (uv_accept(server, (uv_stream_t *) client) == 0)
     {
         uv_read_start(
                 (uv_stream_t *) client,
-                sirinet_handle_alloc_buffer,
-                sirinet_handle_on_data);
+                sirinet_socket_alloc_buffer,
+                sirinet_socket_on_data);
     }
     else
     {
-        uv_close((uv_handle_t *) client, sirinet_free_client);
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
     }
 }
 
@@ -94,8 +95,8 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     log_debug("[Back-end server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
-    switch (pkg->tp)
-    {
-
-    }
+    sirinet_pkg_t * package;
+    package = sirinet_pkg_new(pkg->pid, 0, 25, NULL);
+    sirinet_pkg_send((uv_stream_t *) client, package, NULL);
+    free(package);
 }

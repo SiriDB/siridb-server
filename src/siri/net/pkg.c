@@ -60,7 +60,7 @@ static void PKG_write_cb(uv_write_t * req, int status)
 {
     if (status)
     {
-        log_error("Write error %s", uv_strerror(status));
+        log_error("Socket write error: %s", uv_strerror(status));
     }
     free(req);
 }

@@ -109,7 +109,7 @@ int siridb_servers_load(siridb_t * siridb)
         }
         else
         {
-            server->bclient = sirinet_bclient_new();
+            server->promises = imap64_new();
         }
     }
 

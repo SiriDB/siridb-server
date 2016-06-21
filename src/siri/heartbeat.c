@@ -103,6 +103,10 @@ static void HEARTBEAT_work(uv_work_t * work)
             {
                 log_debug("This is me :-)");
             }
+            else
+            {
+                siridb_server_connect(siridb, server);
+            }
 
             /* decrement ref for the server which was incremented earlier */
             siridb_server_decref(server);

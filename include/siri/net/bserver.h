@@ -11,3 +11,7 @@
  *
  */
 #pragma once
+
+#include <siri/siri.h>
+
+int sirinet_bserver_init(siri_t * siri);

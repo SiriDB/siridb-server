@@ -30,7 +30,7 @@ int walk_drop_series(
      * possible.
      */
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     /* we are sure the file pointer is at the end of file */
     if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
@@ -55,7 +55,7 @@ void walk_drop_shard(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb_shard_t * shard =
             (siridb_shard_t *) ((query_drop_t *) query->data)->data;
 
@@ -73,7 +73,7 @@ int walk_list_series(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     slist_t * props = ((query_list_t *) query->data)->props;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
 
@@ -129,7 +129,7 @@ int walk_list_servers(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     slist_t * props = ((query_list_t *) query->data)->props;
-//    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+//    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     size_t i;
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);

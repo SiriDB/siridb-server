@@ -16,6 +16,7 @@
 #include <time.h>
 #include <logger/logger.h>
 #include <siri/net/clserver.h>
+#include <siri/net/bserver.h>
 #include <siri/net/handle.h>
 #include <siri/parser/listener.h>
 #include <siri/db/props.h>
@@ -33,7 +34,6 @@
 #include <unistd.h>
 #include <qpack/qpack.h>
 #include <assert.h>
-#include <siri/net/bclient.h>
 
 
 static void close_handlers(void);
@@ -316,17 +316,18 @@ int siri_start(void)
     siri.loop = malloc(sizeof(uv_loop_t));
     uv_loop_init(siri.loop);
 
-    /* initialize optimize task (bind siri.optimize) */
-    siri_optimize_init(&siri);
-
-    /* initialize heart-beat task (bind siri.heartbeat) */
-    siri_heartbeat_init(&siri);
-
     /* bind signals to the event loop */
     for (int i = 0; i < N_SIGNALS; i++)
     {
         uv_signal_init(siri.loop, &sig[i]);
         uv_signal_start(&sig[i], signal_handler, signals[i]);
+    }
+
+    /* initialize the back-end server */
+    if ((rc = sirinet_bserver_init(&siri)))
+    {
+        close_handlers();
+        return rc; // something went wrong
     }
 
     /* initialize the client server */
@@ -335,6 +336,12 @@ int siri_start(void)
         close_handlers();
         return rc; // something went wrong
     }
+    /* initialize optimize task (bind siri.optimize) */
+    siri_optimize_init(&siri);
+
+    /* initialize heart-beat task (bind siri.heartbeat) */
+    siri_heartbeat_init(&siri);
+
     /* start the event loop */
     uv_run(siri.loop, UV_RUN_DEFAULT);
 
@@ -394,7 +401,8 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
         /* TCP server has data set to NULL but
          * clients use data and should be freed.
          */
-        uv_close(handle, (handle->data == NULL) ? NULL : sirinet_free_client);
+        uv_close(handle, (handle->data == NULL) ?
+                NULL : (uv_close_cb) sirinet_socket_free);
         break;
     case UV_TIMER:
         uv_timer_stop((uv_timer_t *) handle);

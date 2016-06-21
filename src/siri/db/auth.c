@@ -46,8 +46,8 @@ sirinet_msg_t siridb_auth_request(
     if ((user = siridb_users_get_user(siridb, username, password)) == NULL)
         return SN_MSG_INVALID_CREDENTIALS;
 
-    ((sirinet_handle_t *) client->data)->siridb = siridb;
-    ((sirinet_handle_t *) client->data)->origin = user;
+    ((sirinet_socket_t *) client->data)->siridb = siridb;
+    ((sirinet_socket_t *) client->data)->origin = user;
 
     return SN_MSG_AUTH_SUCCESS;
 }

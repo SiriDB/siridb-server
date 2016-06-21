@@ -103,7 +103,7 @@ else                                                                        \
 #define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
 if (    (query->flags & SIRIDB_QUERY_FLAG_MASTER) &&                        \
         !siridb_user_check_access(                                          \
-            ((sirinet_handle_t *) query->client->data)->origin,             \
+            ((sirinet_socket_t *) query->client->data)->origin,             \
             ACCESS_BIT,                                                     \
             query->err_msg))                                                \
     return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
@@ -200,7 +200,7 @@ static void enter_alter_user_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_ALTER)
 
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
 
@@ -278,7 +278,7 @@ static void enter_grant_stmt(uv_async_t * handle)
 static void enter_grant_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
@@ -352,7 +352,7 @@ static void enter_revoke_stmt(uv_async_t * handle)
 static void enter_revoke_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
@@ -415,7 +415,7 @@ static void enter_series_name(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     cleri_node_t * node = query->nodes->node;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb_series_t * series;
     uint16_t pool;
     char series_name[node->len - 1];
@@ -533,7 +533,7 @@ static void exit_alter_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (siridb_users_save(((sirinet_handle_t *) query->client->data)->siridb))
+    if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
         sprintf(query->err_msg, "Could not write users to file!");
         log_critical(query->err_msg);
@@ -577,7 +577,7 @@ static void exit_between_expr(uv_async_t * handle)
 static void exit_calc_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * calc_node = query->nodes->node->children->node;
 
     query->packer = qp_new_packer(64);
@@ -599,7 +599,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 static void exit_count_pools_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
 
     qp_add_raw(query->packer, "pools", 5);
@@ -627,7 +627,7 @@ static void exit_count_pools_stmt(uv_async_t * handle)
 static void exit_count_series_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     qp_add_raw(query->packer, "series", 6);
     qp_add_int64(query->packer, siridb->series_map->len);
@@ -638,7 +638,7 @@ static void exit_count_series_stmt(uv_async_t * handle)
 static void exit_count_servers_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     qp_add_raw(query->packer, "servers", 7);
     qp_add_int64(query->packer, siridb->servers->len);
@@ -649,7 +649,7 @@ static void exit_count_servers_stmt(uv_async_t * handle)
 static void exit_count_users_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb_users_t * users = siridb->users;
     cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
@@ -692,7 +692,7 @@ static void exit_create_user_stmt(uv_async_t * handle)
     strx_extract_string(user->username, user_node->str, user_node->len);
 
     if (siridb_users_add_user(
-            ((sirinet_handle_t *) query->client->data)->siridb,
+            ((sirinet_socket_t *) query->client->data)->siridb,
             user,
             query->err_msg))
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
@@ -712,7 +712,7 @@ static void exit_create_user_stmt(uv_async_t * handle)
 static void exit_drop_series_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
@@ -739,7 +739,7 @@ static void exit_drop_shard_stmt(uv_async_t * handle)
 
     cleri_node_t * shard_id_node =
                 query->nodes->node->children->next->node;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     int64_t shard_id = atoll(shard_id_node->str);
 
@@ -799,7 +799,7 @@ static void exit_drop_user_stmt(uv_async_t * handle)
     strx_extract_string(username, user_node->str, user_node->len);
 
     if (siridb_users_drop_user(
-            ((sirinet_handle_t *) query->client->data)->siridb,
+            ((sirinet_socket_t *) query->client->data)->siridb,
             username,
             query->err_msg))
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
@@ -815,7 +815,7 @@ static void exit_grant_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (siridb_users_save(((sirinet_handle_t *) query->client->data)->siridb))
+    if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
         sprintf(query->err_msg, "Could not write users to file!");
         log_critical(query->err_msg);
@@ -841,7 +841,7 @@ static void exit_list_pools_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
     siridb_pool_t * pool;
     siridb_pool_walker_t wpool;
@@ -908,7 +908,7 @@ static void exit_list_series_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
 
     if (qlist->props == NULL)
@@ -946,7 +946,7 @@ static void exit_list_servers_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
 
     if (qlist->props == NULL)
@@ -989,7 +989,7 @@ static void exit_list_users_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     siridb_users_t * users =
-            ((sirinet_handle_t *) query->client->data)->siridb->users;
+            ((sirinet_socket_t *) query->client->data)->siridb->users;
 
     slist_t * props = ((query_list_t *) query->data)->props;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
@@ -1052,7 +1052,7 @@ static void exit_revoke_user_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (siridb_users_save(((sirinet_handle_t *) query->client->data)->siridb))
+    if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
         sprintf(query->err_msg, "Could not write users to file!");
         log_critical(query->err_msg);
@@ -1077,7 +1077,7 @@ static void exit_revoke_user_stmt(uv_async_t * handle)
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     uv_mutex_lock(&siridb->series_mutex);
 
@@ -1108,7 +1108,7 @@ static void exit_show_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    siridb_user_t * user = ((sirinet_handle_t *) query->client->data)->origin;
+    siridb_user_t * user = ((sirinet_socket_t *) query->client->data)->origin;
     who_am_i = user->username;
 
     if (children->node == NULL)
@@ -1120,7 +1120,7 @@ static void exit_show_stmt(uv_async_t * handle)
         {
             if ((prop_cb = siridb_props[i]) == NULL)
                 continue;
-            prop_cb(((sirinet_handle_t *) query->client->data)->siridb,
+            prop_cb(((sirinet_socket_t *) query->client->data)->siridb,
                     query->packer, 1);
         }
     }
@@ -1135,7 +1135,7 @@ static void exit_show_stmt(uv_async_t * handle)
                                         gid - KW_OFFSET]) == NULL)
                 log_debug("not implemented");
             else
-                prop_cb(((sirinet_handle_t *) query->client->data)->siridb,
+                prop_cb(((sirinet_socket_t *) query->client->data)->siridb,
                         query->packer, 1);
 
             if (children->next == NULL)
@@ -1162,7 +1162,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
     qp_add_raw(query->timeit, "server", 6);
     qp_add_string(
             query->timeit,
-            ((sirinet_handle_t *) query->client->data)->siridb->server->name);
+            ((sirinet_socket_t *) query->client->data)->siridb->server->name);
     qp_add_raw(query->timeit, "time", 4);
     qp_add_double(query->timeit,
             (double) (end.tv_sec - query->start.tv_sec) +

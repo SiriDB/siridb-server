@@ -1,5 +1,5 @@
 /*
- * handle.c - Handle TCP request.
+ * socket.c - Handle TCP request.
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -15,37 +15,41 @@
 #include <string.h>
 #include <assert.h>
 
-void sirinet_handle_alloc_buffer(
+static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb);
+
+void sirinet_socket_alloc_buffer(
         uv_handle_t * handle,
         size_t suggested_size,
         uv_buf_t * buf)
 {
-    sirinet_handle_t * sn_handle = (sirinet_handle_t *) handle->data;
+    sirinet_socket_t * ssocket = (sirinet_socket_t *) handle->data;
 
-    if (sn_handle->buf == NULL)
+    if (ssocket->buf == NULL)
     {
         buf->base = (char *) malloc(suggested_size);
         buf->len = suggested_size;
     }
     else
     {
-        if (sn_handle->len > SN_PKG_HEADER_SIZE)
+        if (ssocket->len > SN_PKG_HEADER_SIZE)
         {
-            suggested_size = ((sirinet_pkg_t *) sn_handle->buf)->len + SN_PKG_HEADER_SIZE;
+            suggested_size = ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
         }
 
-        buf->base = sn_handle->buf + sn_handle->len;
-        buf->len = suggested_size - sn_handle->len;
+        buf->base = ssocket->buf + ssocket->len;
+        buf->len = suggested_size - ssocket->len;
     }
 }
 
-void sirinet_handle_on_data(
+void sirinet_socket_on_data(
         uv_stream_t * client,
         ssize_t nread,
         const uv_buf_t * buf)
 {
-    sirinet_handle_t * sn_handle = (sirinet_handle_t *) client->data;
+    sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
     sirinet_pkg_t * pkg;
+
+    log_debug("LEN: %d", ssocket->len);
 
     if (nread < 0)
     {
@@ -55,19 +59,19 @@ void sirinet_handle_on_data(
         }
 
         /* the buffer must be destroyed too
-         * (sirinet_free_client will free sn_handle->buf if needed)
+         * (sirinet_free_client will free ssocket->buf if needed)
          */
-        if (sn_handle->buf == NULL)
+        if (ssocket->buf == NULL)
         {
             free(buf->base);
         }
 
-        uv_close((uv_handle_t *) client, sirinet_free_client);
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
 
         return;
     }
 
-    if (sn_handle->buf == NULL)
+    if (ssocket->buf == NULL)
     {
         if (nread >= SN_PKG_HEADER_SIZE)
         {
@@ -76,7 +80,8 @@ void sirinet_handle_on_data(
 
             if (nread == total_sz)
             {
-                (*sn_handle->on_data)((uv_handle_t *) client, pkg);
+                log_debug("NREAD: %d, TOTAL: %d", nread, total_sz);
+                (*ssocket->on_data)((uv_handle_t *) client, pkg);
                 free(buf->base);
                 return;
             }
@@ -91,52 +96,53 @@ void sirinet_handle_on_data(
                 return;
             }
 
-            sn_handle->buf = (buf->len < total_sz) ?
+            ssocket->buf = (buf->len < total_sz) ?
                 (char *) realloc(buf->base, total_sz) : buf->base;
 
         }
         else
         {
-            sn_handle->buf = buf->base;
+            ssocket->buf = buf->base;
         }
 
-        sn_handle->len = nread;
+        ssocket->len = nread;
 
         return;
     }
 
-    if (sn_handle->len < SN_PKG_HEADER_SIZE)
+    if (ssocket->len < SN_PKG_HEADER_SIZE)
     {
-        sn_handle->len += nread;
+        ssocket->len += nread;
 
-        if (sn_handle->len < SN_PKG_HEADER_SIZE)
+        if (ssocket->len < SN_PKG_HEADER_SIZE)
         {
             return;
         }
 
         size_t total_sz =
-                ((sirinet_pkg_t *) sn_handle->buf)->len + SN_PKG_HEADER_SIZE;
+                ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
 
         if (buf->len < total_sz)
         {
-            sn_handle->buf = (char *) realloc(sn_handle->buf, total_sz);
+            ssocket->buf = (char *) realloc(ssocket->buf, total_sz);
         }
     }
     else
     {
-        sn_handle->len += nread;
+        ssocket->len += nread;
     }
 
-    pkg = (sirinet_pkg_t *) sn_handle->buf;
+    pkg = (sirinet_pkg_t *) ssocket->buf;
 
-    if (sn_handle->len < pkg->len + SN_PKG_HEADER_SIZE)
+    if (ssocket->len < pkg->len + SN_PKG_HEADER_SIZE)
     {
         return;
     }
 
-    if (sn_handle->len == pkg->len + SN_PKG_HEADER_SIZE)
+    if (ssocket->len == pkg->len + SN_PKG_HEADER_SIZE)
     {
-        (*sn_handle->on_data)((uv_handle_t *) client, pkg);
+        log_debug("Len: %d, Pkg Len: %d", ssocket->len, pkg->len);
+        (*ssocket->on_data)((uv_handle_t *) client, pkg);
     }
     else
     {
@@ -146,39 +152,44 @@ void sirinet_handle_on_data(
                 pkg->pid, pkg->len, pkg->tp);
     }
 
-    free(sn_handle->buf);
-    sn_handle->buf = NULL;
+    free(ssocket->buf);
+    ssocket->buf = NULL;
 }
 
-sirinet_handle_t * sirinet_handle_new(on_data_cb cb)
+uv_tcp_t * sirinet_socket_new(int tp, on_data_cb cb)
 {
-    sirinet_handle_t * sn_handle =
-            (sirinet_handle_t *) malloc(sizeof(sirinet_handle_t));
-    sn_handle->buf = NULL;
-    sn_handle->origin = NULL;
-    sn_handle->len = 0;
-    sn_handle->siridb = NULL;
-    sn_handle->on_data = cb;
-    return sn_handle;
+    uv_tcp_t * socket = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
+    socket->data = SOCKET_new(tp, cb);
+    return socket;
 }
 
-void sirinew_handle_free(sirinet_handle_t * sn_handle)
+void sirinet_socket_free(uv_tcp_t * client)
 {
-    free(sn_handle->buf);
-    free(sn_handle);
+    sirinet_socket_t * ssocket = client->data;
+    log_debug("Free socket (type: %d)", ssocket->tp);
+    free(ssocket->buf);
+    free(ssocket);
+    free(client);
 }
 
-void sirinet_free_client(uv_handle_t * client)
-{
-    log_debug("Free client...");
-    sirinew_handle_free(client->data);
-    free((uv_tcp_t *) client);
-}
-
-void sirinet_free_async(uv_handle_t * handle)
+inline void sirinet_free_async(uv_handle_t * handle)
 {
     free((uv_async_t *) handle);
 }
 
+static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb)
+{
+    sirinet_socket_t * ssocket =
+            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
+
+    ssocket->tp = tp;
+    ssocket->on_data = cb;
+    ssocket->buf = NULL;
+    ssocket->len = 0;
+    ssocket->origin = NULL;
+    ssocket->siridb = NULL;
+
+    return ssocket;
+}
 
 

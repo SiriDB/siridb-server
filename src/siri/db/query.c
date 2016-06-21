@@ -278,7 +278,7 @@ static void siridb_parse_query(uv_async_t * handle)
 {
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_handle_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb_walker_t * walker = siridb_walker_new(
             siridb,
             siridb_time_now(siridb, query->start),

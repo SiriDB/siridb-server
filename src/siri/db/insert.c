@@ -147,7 +147,7 @@ static void send_points_to_pools(uv_async_t * handle)
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
     qp_types_t tp;
     siridb_series_t ** series;
-    siridb_t * siridb = ((sirinet_handle_t *) insert->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
     qp_obj_t * qp_series_name = qp_new_object();
     qp_obj_t * qp_series_ts = qp_new_object();
