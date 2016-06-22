@@ -33,6 +33,7 @@
 #include <siri/db/pools.h>
 #include <siri/db/points.h>
 #include <siri/db/access.h>
+#include <siri/version.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -603,6 +604,27 @@ static int test_access(void)
 
     return test_end(TEST_OK);
 }
+
+static int test_version(void)
+{
+    test_start("Testing version");
+
+    assert (siri_version_cmp("1.0.0", "2.0.0") < 0);
+    assert (siri_version_cmp("2.0.0", "1.0.0") > 0);
+    assert (siri_version_cmp("2.2.0", "2.32.0") < 0);
+    assert (siri_version_cmp("2.32.0", "2.2.0") > 0);
+    assert (siri_version_cmp("2.0.5", "2.0.22") < 0);
+    assert (siri_version_cmp("2.0.22", "2.0.5") > 0);
+    assert (siri_version_cmp("2.0", "2.0.0") < 0);
+    assert (siri_version_cmp("2.0.2", "2.0") > 0);
+    assert (siri_version_cmp("a", "") > 0);
+    assert (siri_version_cmp("", "b") < 0);
+    assert (siri_version_cmp("", "") == 0);
+    assert (siri_version_cmp("2.0.0", "2.0.0") == 0);
+
+    return test_end(TEST_OK);
+}
+
 int run_tests(int flags)
 {
     timeit_t start;
@@ -626,6 +648,7 @@ int run_tests(int flags)
     rc += test_iso8601();
     rc += test_expr();
     rc += test_access();
+    rc += test_version();
 
     printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
             rc, timeit_stop(&start));
