@@ -110,7 +110,7 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
-    sirinet_msg_t rc;
+    bp_server_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
     qp_obj_t * qp_uuid = qp_new_object();
@@ -124,9 +124,21 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 client,
                 qp_uuid,
                 qp_dbname);
-        log_warning("Auth request result: %d", rc);
-        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL);
+        if (rc == BP_AUTH_SUCCESS)
+        {
+            siridb_server_t * server =
+                    ((sirinet_socket_t *) client->data)->origin;
+
+            qp_packer_t * packer = qp_new_packer(16);
+            qp_add_int16(packer, server->flags);
+            package = sirinet_pkg_new(pkg->pid, packer->len, rc, packer->buffer);
+            qp_free_packer(packer);
+        }
+        else
+        {
+            package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
+        }
+        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
         free(package);
     }
     else

@@ -20,6 +20,7 @@
 #define SERVER_FLAG_ONLINE 1
 #define SERVER_FLAG_PAUSED 2
 #define SERVER_FLAG_SYNCHRONIZING 4
+#define SERVER_FLAG_EXPANDING 8
 
 typedef struct siridb_s siridb_t;
 
@@ -30,10 +31,11 @@ typedef struct siridb_server_s
     char * address;
     uint16_t port;
     uint16_t pool;
-    uint8_t flags;
-    uint8_t ref;
+    uint16_t ref;
+    uint16_t flags; /* do not use flags above 16384 */
     imap64_t * promises;
     uv_tcp_t * socket;
+    uint64_t pid;
 } siridb_server_t;
 
 siridb_server_t * siridb_server_new(

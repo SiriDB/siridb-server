@@ -245,7 +245,7 @@ static void prop_version(
         siridb_t * siridb, qp_packer_t * packer, int map)
 {
     SIRIDB_PROP_MAP("version", 7)
-    qp_add_string(packer, SDB_VERSION);
+    qp_add_string(packer, SIRIDB_VERSION);
 }
 
 static void prop_who_am_i(

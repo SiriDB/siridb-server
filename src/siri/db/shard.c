@@ -33,17 +33,25 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
 
-/* 0    (uint64_t)  DURATION
- * 8    (uint8_t)   SHEMA
- * 9    (uint8_t)   TP
- * 10   (uint8_t)   TIME_PRECISION
- * 11   (uint8_t)   STATUS
+/*
+ * Header schema layout
+ *
+ * Total Size 20
+ * 0    (uint8_t)   SHEMA
+ * 1    (uint64_t)  ID
+ * 9    (uint64_t)  DURATION
+ * 17   (uint8_t)   TP
+ * 18   (uint8_t)   TIME_PRECISION
+ * 19   (uint8_t)   FLAGS
+ *
  */
-#define HEADER_SIZE 12
-
-#define HEADER_SCHEMA 8
-#define HEADER_TP 9
-#define HEADER_STATUS 11
+#define HEADER_SIZE 20
+#define HEADER_SCHEMA 0
+#define HEADER_ID 1
+#define HEADER_DURATION 9
+#define HEADER_TP 17
+#define HEADER_TIME_PRECISION 18
+#define HEADER_FLAGS 19
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint32_t)  START_TS
@@ -115,7 +123,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
 
     /* set shard type and status flag */
     shard->tp = (uint8_t) header[HEADER_TP];
-    shard->flags = (uint8_t) header[HEADER_STATUS] | SIRIDB_SHARD_IS_LOADING;
+    shard->flags = (uint8_t) header[HEADER_FLAGS] | SIRIDB_SHARD_IS_LOADING;
 
     SHARD_load_idx_num32(siridb, shard, fp);
 
@@ -155,8 +163,16 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    fwrite(&duration, sizeof(uint64_t), 1, fp);
+    /* 0    (uint8_t)   SHEMA
+     * 1    (uint64_t)  ID
+     * 9    (uint64_t)  DURATION
+     * 17   (uint8_t)   TP
+     * 18   (uint8_t)   TIME_PRECISION
+     * 19   (uint8_t)   FLAGS
+     */
     fputc(SIRIDB_SHARD_SHEMA, fp);
+    fwrite(&id, sizeof(uint64_t), 1, fp);
+    fwrite(&duration, sizeof(uint64_t), 1, fp);
     fputc(tp, fp);
     fputc(siridb->time->precision, fp);
     fputc(shard->flags, fp);
@@ -439,7 +455,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     sleep(1);
 }
 
-void siridb_shard_write_status(siridb_shard_t * shard)
+void siridb_shard_write_flags(siridb_shard_t * shard)
 {
     if (shard->fp->fp == NULL)
     {
@@ -451,7 +467,7 @@ void siridb_shard_write_status(siridb_shard_t * shard)
             return;
         }
     }
-    fseek(shard->fp->fp, HEADER_STATUS, SEEK_SET);
+    fseek(shard->fp->fp, HEADER_FLAGS, SEEK_SET);
     fputc(shard->flags, shard->fp->fp);
     fflush(shard->fp->fp);
 }

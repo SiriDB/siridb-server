@@ -160,9 +160,9 @@ void siri_args_parse(siri_t * siri, int argc, char *argv[])
                 "SiriDB Server %s\n"
                 "Maintainer: %s\n"
                 "Home-page: %s\n",
-                SDB_VERSION,
-                SDB_MAINTAINER,
-                SDB_HOME_PAGE);
+                SIRIDB_VERSION,
+                SIRIDB_MAINTAINER,
+                SIRIDB_HOME_PAGE);
         exit(EXIT_SUCCESS);
     }
 }

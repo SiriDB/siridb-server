@@ -99,11 +99,9 @@ static void HEARTBEAT_work(uv_work_t * work)
         {
             server = (siridb_server_t *) slservers->data[i];
 
-            if (server == siridb->server)
-            {
-                log_debug("This is me :-)");
-            }
-            else
+            if (    server != siridb->server &&
+                    heartbeat.status != SIRI_HEARTBEAT_CANCELLED &&
+                    server->socket == NULL)
             {
                 siridb_server_connect(siridb, server);
             }

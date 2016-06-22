@@ -31,8 +31,15 @@ typedef struct siri_cfg_s siri_cfg_t;
 typedef struct siri_args_s siri_args_t;
 typedef struct llist_s llist_t;
 
+typedef enum siri_status
+{
+    SIRI_STATUS_RUNNING,
+    SIRI_STATUS_CLOSING
+} siri_status_t;
+
 typedef struct siri_s
 {
+    siri_status_t status;
     uv_loop_t * loop;
     cleri_grammar_t * grammar;
     llist_t * siridb_list;

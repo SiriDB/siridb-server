@@ -130,20 +130,20 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn)
 
 void qp_free_object(qp_obj_t * qp_obj)
 {
-    if (qp_obj != NULL)
-    {
-        free(qp_obj->via);
-        free(qp_obj);
-    }
+#ifdef DEBUG
+    assert(qp_obj != NULL);
+#endif
+    free(qp_obj->via);
+    free(qp_obj);
 }
 
 void qp_free_unpacker(qp_unpacker_t * unpacker)
 {
-    if (unpacker != NULL)
-    {
-        free(unpacker->source);
-        free(unpacker);
-    }
+#ifdef DEBUG
+    assert(unpacker != NULL);
+#endif
+    free(unpacker->source);
+    free(unpacker);
 }
 
 qp_obj_t * qp_new_object(void)
@@ -166,11 +166,11 @@ qp_packer_t * qp_new_packer(size_t alloc_size)
 
 void qp_free_packer(qp_packer_t * packer)
 {
-    if (packer != NULL)
-    {
-        free(packer->buffer);
-        free(packer);
-    }
+#ifdef DEBUG
+    assert(packer != NULL);
+#endif
+    free(packer->buffer);
+    free(packer);
 }
 
 void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source)

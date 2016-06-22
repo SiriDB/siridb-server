@@ -220,7 +220,7 @@ void siridb_series_add_idx_num32(
             (i < index->len - 1 && idx->shard == shard)))
     {
         shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
-        siridb_shard_write_status(shard);
+        siridb_shard_write_flags(shard);
     }
 
     idx->start_ts = start_ts;

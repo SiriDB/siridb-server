@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
     #endif
 
     /* start server */
-    log_info("Starting SiriDB Server (version: %s)", SDB_VERSION);
+    log_info("Starting SiriDB Server (version: %s)", SIRIDB_VERSION);
 
     /* initialize SiriDB mutex (used for the siridb_list) */
     uv_mutex_init(&siri.siridb_mutex);

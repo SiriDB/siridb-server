@@ -49,7 +49,7 @@ typedef enum sirinet_backend_protocol_client_tp
 
 typedef enum sirinet_backend_protocol_server_tp
 {
-    BP_AUTH_SUCCESS,                        // Empty
+    BP_AUTH_SUCCESS,                        // (flags)
     BP_AUTH_ERROR_UNKNOWN_UUID,             // Empty
     BP_AUTH_ERROR_UNKNOWN_DBNAME,           // Empty
     BP_AUTH_ERROR_INVALID_UUID,             // Empty

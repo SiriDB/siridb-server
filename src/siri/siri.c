@@ -34,12 +34,21 @@
 #include <qpack/qpack.h>
 #include <assert.h>
 #include <siri/net/socket.h>
+#include <siri/version.h>
 
+static void SIRI_signal_handler(uv_signal_t * req, int signum);
+static int SIRI_load_databases(void);
+static void SIRI_close_handlers(void);
+static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg);
+static void SIRI_destroy(void);
+static void SIRI_set_closing_state(void);
+static void SIRI_try_close(uv_timer_t * handle);
+static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 
-static void close_handlers(void);
-static void signal_handler(uv_signal_t * req, int signum);
-static int siridb_load_databases(void);
-static void walk_close_handlers(uv_handle_t * handle, void * arg);
+#define WAIT_BETWEEN_CLOSE_ATTEMPTS 3000
+
+static uv_timer_t closing_timer;
+static int closing_attempts = 20;
 
 #define N_SIGNALS 3
 static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV};
@@ -52,7 +61,8 @@ siri_t siri = {
         .optimize=NULL,
         .heartbeat=NULL,
         .cfg=NULL,
-        .args=NULL
+        .args=NULL,
+        .status=SIRI_STATUS_RUNNING
 };
 
 
@@ -86,7 +96,7 @@ void siri_setup_logger(void)
     logger_init(stdout, 10);
 }
 
-static int siridb_load_databases(void)
+static int SIRI_load_databases(void)
 {
     struct stat st = {0};
     DIR * db_container_path;
@@ -309,7 +319,7 @@ int siri_start(void)
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
     /* load databases */
-    if ((rc = siridb_load_databases()))
+    if ((rc = SIRI_load_databases()))
         return rc; //something went wrong
 
     /* initialize the default event loop */
@@ -320,20 +330,20 @@ int siri_start(void)
     for (int i = 0; i < N_SIGNALS; i++)
     {
         uv_signal_init(siri.loop, &sig[i]);
-        uv_signal_start(&sig[i], signal_handler, signals[i]);
+        uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
     }
 
     /* initialize the back-end server */
     if ((rc = sirinet_bserver_init(&siri)))
     {
-        close_handlers();
+        SIRI_close_handlers();
         return rc; // something went wrong
     }
 
     /* initialize the client server */
     if ((rc = sirinet_clserver_init(&siri)))
     {
-        close_handlers();
+        SIRI_close_handlers();
         return rc; // something went wrong
     }
     /* initialize optimize task (bind siri.optimize) */
@@ -366,31 +376,97 @@ void siri_free(void)
     llist_free_cb(siri.siridb_list, (llist_cb_t) siridb_free_cb, NULL);
 }
 
-static void close_handlers(void)
+static void SIRI_destroy(void)
 {
-    /* close open handlers */
-    uv_walk(siri.loop, walk_close_handlers, NULL);
+    log_info("Closing SiriDB Server (version: %s)", SIRIDB_VERSION);
 
-    /* run the loop once more so call-backs on uv_close() can run */
-    uv_run(siri.loop, UV_RUN_DEFAULT);
-}
-
-static void signal_handler(uv_signal_t * req, int signum)
-{
-    log_debug("Asked SiriDB Server to stop (%d)", signum);
-
-    /* cancel optimize task */
-    siri_optimize_cancel();
-
-    /* cancel heart-beat task */
-    siri_heartbeat_cancel();
-
+    /* stop the event loop */
     uv_stop(siri.loop);
 
-    close_handlers();
+    /* use one iteration to close all open handlers */
+    SIRI_close_handlers();
 }
 
-static void walk_close_handlers(uv_handle_t * handle, void * arg)
+static void SIRI_set_closing_state(void)
+{
+    siri.status = SIRI_STATUS_CLOSING;
+
+    llist_node_t * db_node = siri.siridb_list->first;
+
+    while (db_node != NULL)
+    {
+        siridb_server_t * server = ((siridb_t *) db_node->data)->server;
+
+        server->flags ^= SERVER_FLAG_ONLINE & server->flags;
+
+        db_node = db_node->next;
+    }
+}
+
+static void SIRI_walk_try_close(uv_handle_t * handle, int * num)
+{
+    if (handle->type == UV_ASYNC)
+    {
+        (*num)++;
+    }
+}
+
+static void SIRI_try_close(uv_timer_t * handle)
+{
+    int num = 0;
+    uv_walk(siri.loop, (uv_walk_cb) SIRI_walk_try_close, &num);
+    if (!num)
+    {
+        SIRI_destroy();
+    }
+    else if (!--closing_attempts)
+    {
+        log_error("SiriDB will close but still had %d task(s) running.", num);
+        SIRI_destroy();
+    }
+    else
+    {
+        log_info("SiriDB is closing but is waiting for %d task(s) to "
+                "finish...", num);
+    }
+}
+
+static void SIRI_signal_handler(uv_signal_t * req, int signum)
+{
+    if (siri.status == SIRI_STATUS_CLOSING)
+    {
+        log_error("Receive a second signal (%d), stop SiriDB immediately!");
+        SIRI_destroy();
+    }
+    else
+    {
+        /* cancel optimize task */
+        siri_optimize_cancel();
+
+        /* cancel heart-beat task */
+        siri_heartbeat_cancel();
+
+        /* mark SiriDB as closing and remove ONLINE flag from servers. */
+        SIRI_set_closing_state();
+
+        if (signum == SIGINT || signum == SIGTERM)
+        {
+            log_info("Asked SiriDB Server to stop (%d)", signum);
+            uv_timer_init(siri.loop, &closing_timer);
+            uv_timer_start(
+                    &closing_timer, SIRI_try_close,
+                    0,
+                    WAIT_BETWEEN_CLOSE_ATTEMPTS);
+        }
+        else
+        {
+            log_critical("Signal (%d) received, stop SiriDB immediately!");
+            SIRI_destroy();
+        }
+    }
+}
+
+static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 {
     switch (handle->type)
     {
@@ -415,4 +491,13 @@ static void walk_close_handlers(uv_handle_t * handle, void * arg)
         log_error("Oh oh, we need to implement type %d", handle->type);
         assert(0);
     }
+}
+
+static void SIRI_close_handlers(void)
+{
+    /* close open handlers */
+    uv_walk(siri.loop, SIRI_walk_close_handlers, NULL);
+
+    /* run the loop once more so call-backs on uv_close() can run */
+    uv_run(siri.loop, UV_RUN_DEFAULT);
 }

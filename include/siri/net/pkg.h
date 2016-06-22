@@ -35,4 +35,5 @@ sirinet_pkg_t * sirinet_pkg_new(
 void sirinet_pkg_send(
         uv_stream_t * client,
         sirinet_pkg_t * pkg,
-        uv_write_cb cb);
+        uv_write_cb cb,
+        void * data);

@@ -11,10 +11,12 @@
  */
 #pragma once
 
-#define SDB_VERSION_MAJOR 2
-#define SDB_VERSION_MINOR 0
-#define SDB_VERSION_PATCH 0
+#define SIRIDB_VERSION_MAJOR 2
+#define SIRIDB_VERSION_MINOR 0
+#define SIRIDB_VERSION_PATCH 0
 
-#define SDB_VERSION "2.0.0"
-#define SDB_MAINTAINER "Jeroen van der Heijden <jeroen@transceptor.technology>"
-#define SDB_HOME_PAGE "http://siridb.net"
+#define SIRIDB_VERSION "2.0.0"
+#define SIRIDB_MAINTAINER "Jeroen van der Heijden <jeroen@transceptor.technology>"
+#define SIRIDB_HOME_PAGE "http://siridb.net"
+
+int siri_version_cmp(const char * version_a, const char * version_b);

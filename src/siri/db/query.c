@@ -149,7 +149,7 @@ void siridb_send_query_result(uv_async_t * handle)
             query->packer->len,
             SN_MSG_RESULT,
             query->packer->buffer);
-    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL);
+    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL, NULL);
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
@@ -169,7 +169,7 @@ void siridb_send_error(
             err,  // usually this is SN_MSG_QUERY_ERROR
             query->err_msg);
 
-    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL);
+    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL, NULL);
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
