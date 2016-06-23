@@ -33,7 +33,8 @@ void sirinet_socket_alloc_buffer(
     {
         if (ssocket->len > SN_PKG_HEADER_SIZE)
         {
-            suggested_size = ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
+            suggested_size =
+                    ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
         }
 
         buf->base = ssocket->buf + ssocket->len;

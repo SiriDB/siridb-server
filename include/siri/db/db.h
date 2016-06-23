@@ -79,7 +79,7 @@ typedef struct siridb_s
     siridb_time_t * time;
     siridb_server_t * server;
     siridb_server_t * replica;
-    siridb_users_t * users;
+    llist_t * users;
     llist_t * servers;
     siridb_pools_t * pools;
     ct_t * series;

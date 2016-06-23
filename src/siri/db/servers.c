@@ -189,7 +189,7 @@ static int SERVERS_save(siridb_t * siridb)
     qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
     /* write the current schema */
-    qp_fadd_int8(fpacker, SIRIDB_SERVERS_SCHEMA);
+    qp_fadd_int16(fpacker, SIRIDB_SERVERS_SCHEMA);
 
     llist_walk(siridb->servers, (llist_cb_t) SERVERS_walk_save, fpacker);
 

@@ -109,8 +109,15 @@ void siridb_free_query(uv_handle_t * handle)
     free(query->q);
 
     /* free qpack buffers */
-    qp_free_packer(query->packer);
-    qp_free_packer(query->timeit);
+    if (query->packer != NULL)
+    {
+        qp_free_packer(query->packer);
+    }
+
+    if (query->timeit != NULL)
+    {
+        qp_free_packer(query->timeit);
+    }
 
     /* free node list */
     siridb_nodes_free(query->nodes);

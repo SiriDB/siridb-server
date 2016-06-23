@@ -18,6 +18,7 @@
 #include <siri/net/socket.h>
 #include <siri/net/protocol.h>
 #include <siri/db/auth.h>
+#include <assert.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -33,11 +34,9 @@ int sirinet_bserver_init(siri_t * siri)
 {
     int rc;
 
-    if (loop != NULL)
-    {
-        log_critical("Back-end server is already initialized!");
-        return 1;
-    }
+#ifdef DEBUG
+    assert (loop == NULL);
+#endif
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -69,13 +68,13 @@ int sirinet_bserver_init(siri_t * siri)
 
 static void on_new_connection(uv_stream_t * server, int status)
 {
-    log_debug("Received a back-end server connection request.");
-
     if (status < 0)
     {
         log_error("Back-end server connection error: %s", uv_strerror(status));
         return;
     }
+
+    log_debug("Received a back-end server connection request.");
 
     uv_tcp_t * client = sirinet_socket_new(SOCKET_BACKEND, &on_data);
 
@@ -129,6 +128,9 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
             siridb_server_t * server =
                     ((sirinet_socket_t *) client->data)->origin;
 
+            log_info("Accepting back-end server connection: '%s'",
+                    server->name);
+
             qp_packer_t * packer = qp_new_packer(16);
             qp_add_int16(packer, server->flags);
             package = sirinet_pkg_new(pkg->pid, packer->len, rc, packer->buffer);
@@ -136,6 +138,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
         }
         else
         {
+            log_warning("Refusing back-end connection (error code: %d)", rc);
             package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
         }
         sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);

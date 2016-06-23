@@ -79,6 +79,53 @@ void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args)
     }
 }
 
+void * llist_pop(llist_t * llist, llist_cb_t cb, void * args)
+{
+    llist_node_t * node = llist->first;
+    llist_node_t * prev = NULL;
+    void * data;
+
+    while (node != NULL)
+    {
+        if (cb(node->data, args))
+        {
+            if (prev == NULL)
+            {
+                llist->first = node->next;
+            }
+            else
+            {
+                prev->next = node->next;
+                if (prev->next == NULL)
+                {
+                    llist->last = prev;
+                }
+            }
+
+            data = node->data;
+            free(node);
+            return data;
+        }
+        prev = node;
+        node = node->next;
+    }
+    return NULL;
+}
+
+void * llist_get(llist_t * llist, llist_cb_t cb, void * args)
+{
+    llist_node_t * node = llist->first;
+    while (node != NULL)
+    {
+        if (cb(node->data, args))
+        {
+            return node->data;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
 slist_t * llist2slist(llist_t * llist)
 {
     slist_t * slist = slist_new(llist->len);

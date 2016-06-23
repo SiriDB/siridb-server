@@ -46,7 +46,7 @@ sirinet_msg_t siridb_auth_user_request(
         return SN_MSG_UNKNOWN_DATABASE;
     }
 
-    if ((user = siridb_users_get_user(siridb, username, password)) == NULL)
+    if ((user = siridb_users_get_user(siridb->users, username, password)) == NULL)
     {
         return SN_MSG_INVALID_CREDENTIALS;
     }
@@ -90,6 +90,8 @@ bp_server_t siridb_auth_server_request(
 
     ((sirinet_socket_t *) client->data)->siridb = siridb;
     ((sirinet_socket_t *) client->data)->origin = server;
+
+    /* we must increment the server reference counter */
     siridb_server_incref(server);
 
     return BP_AUTH_SUCCESS;

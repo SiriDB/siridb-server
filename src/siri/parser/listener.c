@@ -217,7 +217,7 @@ static void enter_alter_user_stmt(uv_async_t * handle)
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb->users, username, NULL)) == NULL)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
@@ -301,7 +301,7 @@ static void enter_grant_user_stmt(uv_async_t * handle)
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb->users, username, NULL)) == NULL)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
@@ -377,7 +377,7 @@ static void enter_revoke_user_stmt(uv_async_t * handle)
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb->users, username, NULL)) == NULL)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
@@ -669,23 +669,20 @@ static void exit_count_users_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    siridb_users_t * users = siridb->users;
+    llist_node_t * node = siridb->users->first;
     cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
     int n = 0;
 
     qp_add_raw(query->packer, "users", 5);
 
-    if (users->user != NULL)
+    while (node != NULL)
     {
-        while (users != NULL)
+        if (where_expr == NULL || cexpr_run(where_expr, cb, node->data))
         {
-            if (where_expr == NULL || cexpr_run(where_expr, cb, users->user))
-            {
-                n++;
-            }
-            users = users->next;
+            n++;
         }
+        node = node->next;
     }
 
     qp_add_int64(query->packer, n);
@@ -1008,14 +1005,15 @@ static void exit_list_users_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    siridb_users_t * users =
-            ((sirinet_socket_t *) query->client->data)->siridb->users;
+    llist_node_t * node =
+            ((sirinet_socket_t *) query->client->data)->siridb->users->first;
 
     slist_t * props = ((query_list_t *) query->data)->props;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
 
     size_t i;
+    siridb_user_t * user;
 
     if (props == NULL)
     {
@@ -1028,40 +1026,34 @@ static void exit_list_users_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "users", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    if (users->user != NULL)
+    while (node != NULL)
     {
-        while (users != NULL)
+        user = node->data;
+
+        if (where_expr == NULL || cexpr_run(where_expr, cb, user))
         {
-            if (where_expr == NULL || cexpr_run(where_expr, cb, users->user))
+            qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+            if (props == NULL)
             {
-                qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-                if (props == NULL)
-                {
-                    siridb_user_prop(
-                            users->user,
-                            query->packer,
-                            CLERI_GID_K_USER);
-                    siridb_user_prop(
-                            users->user,
-                            query->packer,
-                            CLERI_GID_K_ACCESS);
-                }
-                else
-                {
-                    for (i = 0; i < props->len; i++)
-                    {
-                        siridb_user_prop(
-                                users->user,
-                                query->packer,
-                                *((uint32_t *) props->data[i]));
-                    }
-                }
-
-                qp_add_type(query->packer, QP_ARRAY_CLOSE);
+                siridb_user_prop(user, query->packer, CLERI_GID_K_USER);
+                siridb_user_prop(user, query->packer, CLERI_GID_K_ACCESS);
             }
-            users = users->next;
+            else
+            {
+                for (i = 0; i < props->len; i++)
+                {
+                    siridb_user_prop(
+                            user,
+                            query->packer,
+                            *((uint32_t *) props->data[i]));
+                }
+            }
+
+            qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
         }
+        node = node->next;
     }
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 

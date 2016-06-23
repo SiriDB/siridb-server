@@ -47,7 +47,7 @@ void sirinet_pkg_send(
 {
     if (cb == NULL)
     {
-        cb = (uv_write_cb) (&PKG_write_cb);
+        cb = (uv_write_cb) &PKG_write_cb;
     }
 
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));

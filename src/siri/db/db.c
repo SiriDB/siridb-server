@@ -23,6 +23,8 @@
 #include <siri/db/servers.h>
 #include <math.h>
 
+#define SIRIDB_SHEMA 1
+
 static siridb_t * SIRIDB_new(void);
 static void SIRIDB_free(siridb_t * siridb);
 
@@ -50,7 +52,7 @@ int siridb_from_unpacker(
     }
 
     /* check schema */
-    if (qp_obj->via->int64 != 1)
+    if (qp_obj->via->int64 != SIRIDB_SHEMA)
     {
         sprintf(err_msg, "error: unsupported schema found: %ld",
                 qp_obj->via->int64);

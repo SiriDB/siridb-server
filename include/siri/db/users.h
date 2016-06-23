@@ -13,17 +13,12 @@
 
 #include <inttypes.h>
 #include <siri/db/db.h>
+#include <llist/llist.h>
 
 typedef struct siridb_s siridb_t;
 
-typedef struct siridb_users_s
-{
-    siridb_user_t * user;
-    struct siridb_users_s * next;
-} siridb_users_t;
-
 int siridb_users_load(siridb_t * siridb);
-void siridb_users_free(siridb_users_t * users);
+void siridb_users_free(llist_t * users);
 
 int siridb_users_add_user(
         siridb_t * siridb,
@@ -41,7 +36,7 @@ int siridb_users_drop_user(
  * the user will be returned when found.
  */
 siridb_user_t * siridb_users_get_user(
-        siridb_t * siridb,
+        llist_t * users,
         const char * username,
         const char * password);
 

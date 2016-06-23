@@ -15,15 +15,15 @@
 #include <siri/net/pkg.h>
 #include <siri/net/socket.h>
 
-#define PROMISE_DEFAULT_TIMEOUT 10000
+#define PROMISE_DEFAULT_TIMEOUT 10000  // 10 seconds
 
-enum
+typedef enum sirinet_promise_status
 {
     PROMISE_TMEOUT_ERROR=-3,
     PROMISE_WRITE_ERROR,
     PROMISE_CANCELLED_ERROR,
     PROMISE_SUCCESS=0
-};
+} sirinet_promise_status_t;
 
 typedef struct sirinet_promise_s sirinet_promise_t;
 
@@ -44,3 +44,4 @@ typedef struct sirinet_promise_s
 
 sirinet_promise_t * sirinet_promise_new(void);
 void sirinet_promise_free(sirinet_promise_t * promise);
+const char * sirinet_promise_strstatus(sirinet_promise_status_t status);

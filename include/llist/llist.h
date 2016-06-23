@@ -50,3 +50,11 @@ void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args);
 
 /* copy the linked list to a simple list */
 slist_t * llist2slist(llist_t * llist);
+
+/* return the first item where 'cb' is not zero or NULL if not found */
+void * llist_get(llist_t * llist, llist_cb_t cb, void * args);
+
+/* remove and return the first item where 'cb' is not zero
+ * or NULL if not found
+ */
+void * llist_pop(llist_t * llist, llist_cb_t cb, void * args);

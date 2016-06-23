@@ -96,6 +96,7 @@ void siridb_server_send_pkg(
 {
 #ifdef DEBUG
     assert (server->promises != NULL);
+    assert (cb != NULL);
 #endif
     sirinet_promise_t * promise = (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
 
@@ -204,7 +205,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
         ;
         qp_packer_t * packer = qp_new_packer(1024);
         qp_add_type(packer, QP_ARRAY_OPEN);
-        qp_add_raw(packer, (const char *) server->uuid, 16);
+        qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16);
         qp_add_string(packer, ssocket->siridb->dbname);
 
         siridb_server_send_pkg(
@@ -237,7 +238,9 @@ static void SERVER_on_auth_response(
     if (status)
     {
         /* we already have a log entry so this can be a debug log */
-        log_debug("Error while sending authentication request: %d", status);
+        log_debug(
+                "Error while sending authentication request: %s",
+                sirinet_promise_strstatus(status));
     }
     else
     {

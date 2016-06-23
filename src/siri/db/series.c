@@ -571,7 +571,7 @@ static int SERIES_save(siridb_t * siridb)
     qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
     /* write the current schema */
-    qp_fadd_int8(fpacker, SIRIDB_SERIES_SCHEMA);
+    qp_fadd_int16(fpacker, SIRIDB_SERIES_SCHEMA);
 
     ct_walk(siridb->series, (ct_cb_t) &SERIES_pack, fpacker);
 

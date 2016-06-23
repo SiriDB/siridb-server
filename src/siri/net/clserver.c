@@ -24,6 +24,7 @@
 #include <qpack/qpack.h>
 #include <siri/db/insert.h>
 #include <siri/net/socket.h>
+#include <assert.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -52,15 +53,14 @@ static void CLSERVER_send_server_error(
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg);
 
+
 int sirinet_clserver_init(siri_t * siri)
 {
     int rc;
 
-    if (loop != NULL)
-    {
-        log_critical("Client server is already initialized!");
-        return 1;
-    }
+#ifdef DEBUG
+    assert (loop == NULL);
+#endif
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -121,10 +121,8 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     log_debug("[Client server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
 
-    siridb_t * siridb = ((sirinet_socket_t *) client->data)->siridb;
-
     /* in case the online flag is not set, we cannot perform any request */
-    if (siridb->server->flags & SERVER_FLAG_ONLINE)
+    if (siri.status == SIRI_STATUS_RUNNING)
     {
         switch (pkg->tp)
         {
@@ -144,7 +142,11 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     }
     else
     {
-        CLSERVER_send_server_error(siridb, (uv_stream_t *) client, pkg);
+        /* data->siridb can be NULL here, make sure we can handle this state */
+        CLSERVER_send_server_error(
+                ((sirinet_socket_t *) client->data)->siridb,
+                (uv_stream_t *) client,
+                pkg);
     }
 
 }
@@ -200,11 +202,18 @@ static void CLSERVER_send_server_error(
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg)
 {
+    /* WARNING: siridb can be NULL here */
+
     char * err_msg;
     int len;
     sirinet_pkg_t * package;
 
-    len = asprintf(
+    len = (siridb == NULL) ?
+            asprintf(
+            &err_msg,
+            "error, not accepting the request because the sever is not running")
+            :
+            asprintf(
             &err_msg,
             "error, '%s' is not accepting request because of having status: %u",
             siridb->server->name,
