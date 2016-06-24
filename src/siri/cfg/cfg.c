@@ -56,7 +56,7 @@ void siri_cfg_init(siri_t * siri)
         /* we could choose to continue with defaults but this is probably
          * not what users want so lets quit.
          */
-        fprintf(stderr,
+        log_critical(
                 "Could not read '%s': %s\n",
                 siri->args->config,
                 cfgparser_errmsg(rc));
@@ -154,6 +154,7 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                 "siridb",
                 "default_db_path");
     if (rc != CFGPARSER_SUCCESS)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s'",
@@ -161,7 +162,9 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                 siri.args->config,
                 cfgparser_errmsg(rc),
                 siri_cfg.default_db_path);
+    }
     else if (option->tp != CFGPARSER_TP_STRING)
+    {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': %s. "
                 "Using default value: '%s:%d'",
@@ -169,6 +172,7 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                 siri.args->config,
                 "error: expecting a string value",
                 siri_cfg.default_db_path);
+    }
     else
     {
         strncpy(siri_cfg.default_db_path,
@@ -359,9 +363,13 @@ static void SIRI_CFG_read_address_port(
         else
         {
             if (*address == '*')
+            {
                 strcpy(address_pt, "0.0.0.0");
+            }
             else
+            {
                 strcpy(address_pt, address);
+            }
 
             test_port = atoi(port);
 

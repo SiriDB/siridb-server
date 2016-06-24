@@ -40,7 +40,9 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
 
     fp = fopen(fn, "r");
     if (fp == NULL)
+    {
         return CFGPARSER_ERR_READING_FILE;
+    }
 
 
     while (fgets(line, MAXLINE, fp) != NULL)
@@ -52,7 +54,9 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
         strx_trim(&pt, 0);
 
         if (*pt == '#' || *pt == 0)
+        {
             continue;
+        }
 
         if (*pt == '[' && pt[strlen(pt) - 1] == ']')
         {
@@ -146,7 +150,9 @@ cfgparser_section_t * cfgparser_section(
     while (current->next != NULL)
     {
         if (strcmp(current->name, name) == 0)
+        {
             return current;
+        }
         current = current->next;
     }
     current->next =
