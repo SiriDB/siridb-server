@@ -148,6 +148,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_WHERE_POOL_STMT] = enter_where_xxx_stmt;
     siriparser_listen_enter[CLERI_GID_WHERE_SERIES_STMT] = enter_where_xxx_stmt;
+    siriparser_listen_enter[CLERI_GID_WHERE_SERVER_STMT] = enter_where_xxx_stmt;
     siriparser_listen_enter[CLERI_GID_WHERE_USER_STMT] = enter_where_xxx_stmt;
 
 
@@ -965,6 +966,7 @@ static void exit_list_servers_stmt(uv_async_t * handle)
 
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
 
     if (qlist->props == NULL)
     {
