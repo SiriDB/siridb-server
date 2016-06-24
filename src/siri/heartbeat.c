@@ -26,17 +26,19 @@ static void HEARTBEAT_cb(uv_timer_t * handle);
 
 void siri_heartbeat_init(siri_t * siri)
 {
-    uint64_t timeout = siri->cfg->heartbeat_interval * 1000;
+    uint64_t repeat = siri->cfg->heartbeat_interval * 1000;
     siri->heartbeat = &heartbeat;
     uv_timer_init(siri->loop, &heartbeat);
-    uv_timer_start(&heartbeat, HEARTBEAT_cb, HEARTBEAT_INIT_TIMEOUT, timeout);
+    uv_timer_start(&heartbeat, HEARTBEAT_cb, HEARTBEAT_INIT_TIMEOUT, repeat);
 }
 
-void siri_heartbeat_stop(void)
+void siri_heartbeat_stop(siri_t * siri)
 {
     /* stop the timer so it will not run again */
     uv_timer_stop(&heartbeat);
     uv_close((uv_handle_t *) &heartbeat, NULL);
+
+    siri->heartbeat = NULL;
 }
 
 static void HEARTBEAT_cb(uv_timer_t * handle)
@@ -81,6 +83,5 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     }
 
     uv_mutex_unlock(&siri.siridb_mutex);
-
 }
 

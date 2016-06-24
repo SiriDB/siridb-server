@@ -50,6 +50,7 @@ typedef struct siri_s
     siri_cfg_t * cfg;
     siri_args_t * args;
     uv_mutex_t siridb_mutex;
+    uint32_t startup_time;
 } siri_t;
 
 

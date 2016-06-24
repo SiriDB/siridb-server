@@ -283,8 +283,8 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
     siridb_t * siridb = ssocket->siridb;
 
-    /* only when when the flag is EXACTLY online we can continue */
-    if (siridb->server->flags != SERVER_FLAG_ONLINE)
+    /* only when when the flag is EXACTLY running we can continue */
+    if (siridb->server->flags != SERVER_FLAG_RUNNING)
     {
         CLSERVER_send_server_error(siridb, (uv_stream_t *) client, pkg);
         return;

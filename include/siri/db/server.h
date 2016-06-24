@@ -17,13 +17,13 @@
 #include <imap64/imap64.h>
 #include <uv.h>
 
-#define SERVER_FLAG_ONLINE 1
+#define SERVER_FLAG_RUNNING 1
 #define SERVER_FLAG_PAUSED 2
 #define SERVER_FLAG_SYNCHRONIZING 4
-#define SERVER_FLAG_EXPANDING 8
-#define SERVER_FLAG_AUTHENTICATED 64
+#define SERVER_FLAG_REINDEXING 8
+#define SERVER_FLAG_AUTHENTICATED 16  // must be the last (we depend on this)
 
-#define SERVER_IS_AVAILABLE 65  // SERVER_FLAG_ONLINE + SERVER_FLAG_AUTHENTICATED
+#define SERVER_IS_AVAILABLE 17  // RUNNING + AUTHENTICATED
 
 #define siridb_server_is_available(server) \
     (server->flags & SERVER_IS_AVAILABLE) == SERVER_IS_AVAILABLE
@@ -35,14 +35,20 @@ typedef struct siridb_server_s
     uuid_t uuid;
     char * name; /* this is a format for address:port but we use it a lot */
     char * address;
-    char * version;
     uint16_t port;
     uint16_t pool;
     uint16_t ref;
-    uint16_t flags; /* do not use flags above 16384 */
+    uint8_t flags; /* do not use flags above 16384 */
     imap64_t * promises;
     uv_tcp_t * socket;
     uint64_t pid;
+    /* fixed server properties */
+    char * version;
+    char * dbpath;
+    char * buffer_path;
+    size_t buffer_size;
+    uint32_t startup_time;
+
 } siridb_server_t;
 
 siridb_server_t * siridb_server_new(
@@ -63,6 +69,12 @@ void siridb_server_incref(siridb_server_t * server);
 void siridb_server_decref(siridb_server_t * server);
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 void siridb_server_send_flags(siridb_server_t * server);
+
+/* returns the current server status (flags) as string. the returned value
+ * is created with malloc() so do not forget to free the result.
+ */
+char * siridb_server_str_status(siridb_server_t * server);
+
 
 #define siridb_server_update_flags(org, new) \
     org = new | (org & SERVER_FLAG_AUTHENTICATED)

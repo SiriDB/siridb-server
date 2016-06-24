@@ -129,7 +129,7 @@ int walk_list_servers(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     slist_t * props = ((query_list_t *) query->data)->props;
-//    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     size_t i;
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -161,6 +161,20 @@ int walk_list_servers(
             qp_add_string(
                     query->packer,
                     (server->version == NULL) ? "unknown" : server->version);
+            break;
+        case CLERI_GID_K_ONLINE:
+            qp_add_type(
+                    query->packer,
+                    (siridb->server == server || server->socket != NULL) ?
+                            QP_TRUE : QP_FALSE);
+            break;
+        case CLERI_GID_K_STATUS:
+            {
+                char * status = siridb_server_str_status(server);
+                qp_add_string(query->packer, status);
+                free(status);
+            }
+
             break;
         }
     }

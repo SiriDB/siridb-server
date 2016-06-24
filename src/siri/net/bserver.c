@@ -139,13 +139,21 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_obj_t * qp_flags = qp_new_object();
     qp_obj_t * qp_version = qp_new_object();
     qp_obj_t * qp_min_version = qp_new_object();
+    qp_obj_t * qp_dbpath = qp_new_object();
+    qp_obj_t * qp_buffer_path = qp_new_object();
+    qp_obj_t * qp_buffer_size = qp_new_object();
+    qp_obj_t * qp_startup_time = qp_new_object();
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_uuid) == QP_RAW &&
             qp_next(unpacker, qp_dbname) == QP_RAW &&
             qp_next(unpacker, qp_flags) == QP_INT64 &&
             qp_next(unpacker, qp_version) == QP_RAW &&
-            qp_next(unpacker, qp_min_version) == QP_RAW)
+            qp_next(unpacker, qp_min_version) == QP_RAW &&
+            qp_next(unpacker, qp_dbpath) == QP_RAW &&
+            qp_next(unpacker, qp_buffer_path) == QP_RAW &&
+            qp_next(unpacker, qp_buffer_size) == QP_INT64 &&
+            qp_next(unpacker, qp_startup_time) == QP_INT64)
     {
         rc = siridb_auth_server_request(
                 client,
@@ -160,6 +168,12 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
             /* update server flags */
             siridb_server_update_flags(server->flags, qp_flags->via->int64);
+
+            /* update other server properties */
+            server->dbpath = strdup(qp_dbpath->via->raw);
+            server->buffer_path = strdup(qp_buffer_path->via->raw);
+            server->buffer_size = qp_buffer_size->via->int64;
+            server->startup_time = qp_startup_time->via->int64;
 
             log_info("Accepting back-end server connection: '%s'",
                     server->name);
@@ -182,6 +196,10 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_free_object(qp_flags);
     qp_free_object(qp_version);
     qp_free_object(qp_min_version);
+    qp_free_object(qp_dbpath);
+    qp_free_object(qp_buffer_path);
+    qp_free_object(qp_buffer_size);
+    qp_free_object(qp_startup_time);
     qp_free_unpacker(unpacker);
 }
 
@@ -213,3 +231,5 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_free_object(qp_flags);
     qp_free_unpacker(unpacker);
 }
+
+

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <siri/net/socket.h>
+#include <siri/siri.h>
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb);
 

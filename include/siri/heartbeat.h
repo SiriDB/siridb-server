@@ -20,4 +20,4 @@
 typedef struct siri_s siri_t;
 
 void siri_heartbeat_init(siri_t * siri);
-void siri_heartbeat_stop(void);
+void siri_heartbeat_stop(siri_t * siri);

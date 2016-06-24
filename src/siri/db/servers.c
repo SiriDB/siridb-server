@@ -111,7 +111,6 @@ int siridb_servers_load(siridb_t * siridb)
         if (uuid_compare(server->uuid, siridb->uuid) == 0)
         {
             siridb->server = server;
-            server->version = strdup(SIRIDB_VERSION);
         }
         else
         {

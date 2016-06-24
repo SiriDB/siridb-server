@@ -62,7 +62,10 @@ siridb_server_t * siridb_server_new(
     server->ref = 0;
     server->pid = 0;
     server->version = NULL;
-
+    server->dbpath = NULL;
+    server->buffer_path = NULL;
+    server->buffer_size = 0;
+    server->startup_time = 0;
     /* we set the promises later because we don't need one for self */
     server->promises = NULL;
     server->socket = NULL;
@@ -173,7 +176,6 @@ void siridb_server_send_flags(siridb_server_t * server)
             NULL);
 }
 
-
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
     if (status)
@@ -236,14 +238,19 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_alloc_buffer,
                 sirinet_socket_on_data);
 
-        ;
-        qp_packer_t * packer = qp_new_packer(1024);
-        qp_add_type(packer, QP_ARRAY5);
+        qp_packer_t * packer = qp_new_packer(512);
+
+        qp_add_type(packer, QP_ARRAY_OPEN);
+
         qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16);
         qp_add_string_term(packer, ssocket->siridb->dbname);
         qp_add_int16(packer, ssocket->siridb->server->flags);
         qp_add_string_term(packer, SIRIDB_VERSION);
         qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION);
+        qp_add_string_term(packer, ssocket->siridb->dbpath);
+        qp_add_string_term(packer, ssocket->siridb->buffer_path);
+        qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size));
+        qp_add_int32(packer, (int32_t) abs(siri.startup_time));
 
         siridb_server_send_pkg(
                 server,
@@ -315,6 +322,36 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             SERVER_on_connect);
 }
 
+char * siridb_server_str_status(siridb_server_t * server)
+{
+    /* we must initialize the buffer according to the longest possible value */
+    char buffer[48] = {};
+    int n = 0;
+    for (int i = 1; i < SERVER_FLAG_AUTHENTICATED; i *= 2)
+    {
+        if (server->flags & i)
+        {
+            switch (i)
+            {
+            case SERVER_FLAG_RUNNING:
+                strcat(buffer, (!n) ? "running" : " | " "running");
+                break;
+            case SERVER_FLAG_PAUSED:
+                strcat(buffer, (!n) ? "paused" : " | " "paused");
+                break;
+            case SERVER_FLAG_SYNCHRONIZING:
+                strcat(buffer, (!n) ? "synchronizing" : " | " "synchronizing");
+                break;
+            case SERVER_FLAG_REINDEXING:
+                strcat(buffer, (!n) ? "re-indexing" : " | " "re-indexing");
+                break;
+            }
+            n = 1;
+        }
+    }
+    return strdup((n) ? buffer : "offline");
+}
+
 static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 {
     if (!uv_is_closing((uv_handle_t *) promise->timer))
@@ -341,6 +378,8 @@ static void SERVER_free(siridb_server_t * server)
     free(server->name);
     free(server->address);
     free(server->version);
+    free(server->dbpath);
+    free(server->buffer_path);
     free(server);
 }
 
@@ -426,4 +465,3 @@ static void SERVER_on_flags_ack(
     /* we must free the promise */
     free(promise);
 }
-

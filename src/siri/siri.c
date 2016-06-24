@@ -63,7 +63,8 @@ siri_t siri = {
         .heartbeat=NULL,
         .cfg=NULL,
         .args=NULL,
-        .status=SIRI_STATUS_LOADING
+        .status=SIRI_STATUS_LOADING,
+        .startup_time=0
 };
 
 
@@ -303,7 +304,12 @@ static int SIRI_load_databases(void)
 int siri_start(void)
 {
     int rc;
+    struct timespec start;
+    struct timespec end;
     uv_signal_t sig[N_SIGNALS];
+
+    /* get start time so we can calculate the startup_time */
+    clock_gettime(CLOCK_REALTIME, &start);
 
     /* initialize listener (set enter and exit functions) */
     siriparser_init_listener();
@@ -361,6 +367,10 @@ int siri_start(void)
     /* update siridb status to running */
     SIRI_set_running_state();
 
+    /* set startup time */
+    clock_gettime(CLOCK_REALTIME, &end);
+    siri.startup_time = end.tv_sec - start.tv_sec;
+
     /* start the event loop */
     uv_run(siri.loop, UV_RUN_DEFAULT);
 
@@ -412,7 +422,7 @@ static void SIRI_set_running_state(void)
     while (db_node != NULL)
     {
         siridb_server_t * server = ((siridb_t *) db_node->data)->server;
-        server->flags |= SERVER_FLAG_ONLINE;
+        server->flags |= SERVER_FLAG_RUNNING;
         db_node = db_node->next;
     }
 }
@@ -425,7 +435,7 @@ static void SIRI_set_closing_state(void)
     while (db_node != NULL)
     {
         siridb_server_t * server = ((siridb_t *) db_node->data)->server;
-        server->flags ^= SERVER_FLAG_ONLINE & server->flags;
+        server->flags ^= SERVER_FLAG_RUNNING & server->flags;
         db_node = db_node->next;
     }
 }
@@ -476,10 +486,10 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
     else
     {
         /* stop optimize task */
-        siri_optimize_stop();
+        siri_optimize_stop(&siri);
 
         /* stop heart-beat task */
-        siri_heartbeat_stop();
+        siri_heartbeat_stop(&siri);
 
         /* mark SiriDB as closing and remove ONLINE flag from servers. */
         SIRI_set_closing_state();

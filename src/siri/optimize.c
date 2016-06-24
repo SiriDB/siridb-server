@@ -44,7 +44,7 @@ void siri_optimize_init(siri_t * siri)
     uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
 }
 
-void siri_optimize_stop(void)
+void siri_optimize_stop(siri_t * siri)
 {
     /*
      * Main Thread
@@ -57,6 +57,8 @@ void siri_optimize_stop(void)
     /* stop the timer so it will not run again */
     uv_timer_stop(&optimize.timer);
     uv_close((uv_handle_t *) &optimize.timer, NULL);
+
+    siri->optimize = NULL;
 }
 
 static void OPTIMIZE_work(uv_work_t * work)
@@ -88,7 +90,9 @@ static void OPTIMIZE_work(uv_work_t * work)
     {
         siridb = (siridb_t *) slsiridb->data[i];
 
+#ifdef DEBUG
         log_debug("Start optimizing database '%s'", siridb->dbname);
+#endif
 
         uv_mutex_lock(&siridb->shards_mutex);
 
@@ -119,7 +123,9 @@ static void OPTIMIZE_work(uv_work_t * work)
             log_info("Optimize task is cancelled.");
             break;
         }
+#ifdef DEBUG
         log_debug("Finished optimizing database '%s'", siridb->dbname);
+#endif
     }
 
     for (size_t i = 0; i < slsiridb->len; i++)

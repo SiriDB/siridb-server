@@ -44,19 +44,21 @@ typedef enum sirinet_msg_tp
 
 typedef enum sirinet_backend_protocol_client_tp
 {
-    BP_AUTH_REQUEST,                        // (uuid, dbname, flags, version, min_version)
+    BP_AUTH_REQUEST,                        /* (uuid, dbname, flags, version,
+                                                min_version, dbpath, buffer_path,
+                                                buffer_size, startup_time) */
     BP_FLAGS_UPDATE,                        // flags
 } bp_client_t;
 
 typedef enum sirinet_backend_protocol_server_tp
 {
     BP_AUTH_SUCCESS,                        // Empty
+    BP_FLAGS_ACK,                           // Empty
     BP_AUTH_ERROR_UNKNOWN_UUID,             // Empty
     BP_AUTH_ERROR_UNKNOWN_DBNAME,           // Empty
     BP_AUTH_ERROR_INVALID_UUID,             // Empty
     BP_AUTH_ERROR_VERSION_TOO_OLD,          // Empty
     BP_AUTH_ERROR_VERSION_TOO_NEW,          // Empty
-    BP_FLAGS_ACK,                           // Empty
     BP_ERROR_NOT_AUTHENTICATED,             // Empty
 } bp_server_t;
 
