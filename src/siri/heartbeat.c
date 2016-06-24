@@ -20,6 +20,8 @@
 
 static uv_timer_t heartbeat;
 
+#define HEARTBEAT_INIT_TIMEOUT 1000
+
 static void HEARTBEAT_cb(uv_timer_t * handle);
 
 void siri_heartbeat_init(siri_t * siri)
@@ -27,7 +29,14 @@ void siri_heartbeat_init(siri_t * siri)
     uint64_t timeout = siri->cfg->heartbeat_interval * 1000;
     siri->heartbeat = &heartbeat;
     uv_timer_init(siri->loop, &heartbeat);
-    uv_timer_start(&heartbeat, HEARTBEAT_cb, timeout, timeout);
+    uv_timer_start(&heartbeat, HEARTBEAT_cb, HEARTBEAT_INIT_TIMEOUT, timeout);
+}
+
+void siri_heartbeat_stop(void)
+{
+    /* stop the timer so it will not run again */
+    uv_timer_stop(&heartbeat);
+    uv_close((uv_handle_t *) &heartbeat, NULL);
 }
 
 static void HEARTBEAT_cb(uv_timer_t * handle)
@@ -38,7 +47,9 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     llist_node_t * siridb_node;
     llist_node_t * server_node;
 
+#ifdef DEBUG
     log_debug("Start heart-beat task");
+#endif
 
     uv_mutex_lock(&siri.siridb_mutex);
 
@@ -62,7 +73,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
             {
                 siridb_server_send_flags(server);
             }
-            log_debug("Server '%s' flags: %d", server->name, server->flags);
+
             server_node = server_node->next;
         }
 

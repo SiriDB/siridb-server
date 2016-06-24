@@ -511,6 +511,11 @@ static void SHARD_free(siridb_shard_t * shard)
                     rc);
         }
     }
+
+#ifdef DEBUG
+    log_debug("Free shard id: %lu", shard->id);
+#endif
+
     free(shard->fn);
     free(shard);
 }

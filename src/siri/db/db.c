@@ -218,11 +218,25 @@ static siridb_t * SIRIDB_new(void)
 
 static void SIRIDB_free(siridb_t * siridb)
 {
-    if (siridb == NULL)
+#ifdef DEBUG
+    log_debug("Free database: %s", siridb->dbname);
+#endif
+
+    /* first we should close all open files */
+    if (siridb->buffer_fp != NULL)
     {
-        return;
+        fclose(siridb->buffer_fp);
     }
-    log_debug("Free database '%s'", siridb->dbname);
+
+    if (siridb->dropped_fp != NULL)
+    {
+        fclose(siridb->dropped_fp);
+    }
+
+    if (siridb->store != NULL)
+    {
+        qp_close(siridb->store);
+    }
 
     /* free users */
     siridb_users_free(siridb->users);
@@ -246,21 +260,6 @@ static void SIRIDB_free(siridb_t * siridb)
 
     /* free imap64 (shards) */
     imap64_free(siridb->shards);
-
-    if (siridb->buffer_fp != NULL)
-    {
-        fclose(siridb->buffer_fp);
-    }
-
-    if (siridb->dropped_fp != NULL)
-    {
-        fclose(siridb->dropped_fp);
-    }
-
-    if (siridb->store != NULL)
-    {
-        qp_close(siridb->store);
-    }
 
     /* only free buffer path when not equal to db_path */
     if (siridb->buffer_path != siridb->dbpath)

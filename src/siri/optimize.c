@@ -44,7 +44,7 @@ void siri_optimize_init(siri_t * siri)
     uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
 }
 
-void siri_optimize_cancel(void)
+void siri_optimize_stop(void)
 {
     /*
      * Main Thread
@@ -53,6 +53,10 @@ void siri_optimize_cancel(void)
     /* uv_cancel will only be successful when the task is not started yet */
     optimize.status = SIRI_OPTIMIZE_CANCELLED;
     uv_cancel((uv_req_t *) &optimize.work);
+
+    /* stop the timer so it will not run again */
+    uv_timer_stop(&optimize.timer);
+    uv_close((uv_handle_t *) &optimize.timer, NULL);
 }
 
 static void OPTIMIZE_work(uv_work_t * work)

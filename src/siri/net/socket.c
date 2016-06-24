@@ -163,7 +163,10 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb cb)
 void sirinet_socket_free(uv_tcp_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
-    log_debug("Free socket (type: %d)", ssocket->tp);
+
+#ifdef DEBUG
+    log_debug("Free socket type: %d", ssocket->tp);
+#endif
 
     switch (ssocket->tp)
     {

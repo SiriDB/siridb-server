@@ -380,10 +380,12 @@ void siri_free(void)
         }
     }
 
-    free(siri.loop);
-    free(siri.grammar);
+    /* first close the File Handler. (this will close all open shard files) */
     siri_fh_free(siri.fh);
+
     llist_free_cb(siri.siridb_list, (llist_cb_t) siridb_free_cb, NULL);
+    free(siri.grammar);
+    free(siri.loop);
 }
 
 static void SIRI_destroy(void)
@@ -434,14 +436,22 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num)
 static void SIRI_try_close(uv_timer_t * handle)
 {
     int num = 0;
+
     uv_walk(siri.loop, (uv_walk_cb) SIRI_walk_try_close, &num);
-    if (!num)
-    {
-        SIRI_destroy();
-    }
-    else if (!--closing_attempts)
+
+    if (!--closing_attempts && num)
     {
         log_error("SiriDB will close but still had %d task(s) running.", num);
+        num = 0;
+    }
+
+    if (!num)
+    {
+        /* close this timer */
+        uv_timer_stop(handle);
+        uv_close((uv_handle_t *) handle, NULL);
+
+        /* stop SiriDB */
         SIRI_destroy();
     }
     else
@@ -460,11 +470,11 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
     }
     else
     {
-        /* cancel optimize task */
-        siri_optimize_cancel();
+        /* stop optimize task */
+        siri_optimize_stop();
 
-        /* cancel heart-beat task */
-        uv_close((uv_handle_t *) siri.heartbeat, NULL);
+        /* stop heart-beat task */
+        siri_heartbeat_stop();
 
         /* mark SiriDB as closing and remove ONLINE flag from servers. */
         SIRI_set_closing_state();
@@ -472,9 +482,14 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         if (signum == SIGINT || signum == SIGTERM)
         {
             log_info("Asked SiriDB Server to stop (%d)", signum);
+
+            /* set SiriDB in closing mode and start a timer to check if
+             * we can finish open tasks before really closing
+             */
             uv_timer_init(siri.loop, &closing_timer);
             uv_timer_start(
-                    &closing_timer, SIRI_try_close,
+                    &closing_timer,
+                    SIRI_try_close,
                     0,
                     WAIT_BETWEEN_CLOSE_ATTEMPTS);
         }
@@ -491,25 +506,51 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
     switch (handle->type)
     {
     case UV_SIGNAL:
+        /* this is where we cleanup the signal handlers */
         uv_close(handle, NULL);
         break;
+
     case UV_TCP:
-        /* TCP server has data set to NULL but
-         * clients use data and should be freed.
+        /* This can be a TCP server with data set to NULL or a SiriDB socket
+         * which should be destroyed.
          */
         uv_close(handle, (handle->data == NULL) ?
                 NULL : (uv_close_cb) sirinet_socket_free);
         break;
+
     case UV_TIMER:
-        uv_timer_stop((uv_timer_t *) handle);
-        uv_close(handle, NULL);
+        /* we do not expect any timer object since they should all be closed
+         * (or at least closing) at this point.
+         */
+#ifdef DEBUG
+        if (!uv_is_closing(handle))
+        {
+            log_critical(
+                    "Found a non closing Timer, all timers should"
+                    "be stopped at this point!!!");
+            uv_timer_stop((uv_timer_t *) handle);
+            uv_close(handle, NULL);
+        }
+#endif
         break;
+
     case UV_ASYNC:
+#ifdef DEBUG
+        log_critical(
+                "An async task is only expected to be found in case"
+                "not all tasks were closed within the timeout limit.");
+#endif
         uv_close(handle, (uv_close_cb) free);
         break;
+
     default:
-        log_error("Oh oh, we need to implement type %d", handle->type);
+
+#ifdef DEBUG
+        log_critical("Oh oh, we need to implement type %d", handle->type);
         assert(0);
+#endif
+
+        break;
     }
 }
 

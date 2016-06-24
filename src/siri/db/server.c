@@ -327,7 +327,9 @@ static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 
 static void SERVER_free(siridb_server_t * server)
 {
-    log_debug("FREE Server");
+#ifdef DEBUG
+    log_debug("Free server: %s", server->name);
+#endif
     /* we MUST first free the promises because each promise has a reference to
      * this server and the promise callback might depend on this.
      */

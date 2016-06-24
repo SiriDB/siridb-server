@@ -123,8 +123,10 @@ static void on_new_connection(uv_stream_t * server, int status)
 
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
+#ifdef DEBUG
     log_debug("[Client server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
+#endif
 
     /* in case the online flag is not set, we cannot perform any request */
     if (siri.status == SIRI_STATUS_RUNNING)

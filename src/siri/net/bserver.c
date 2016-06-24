@@ -112,8 +112,10 @@ static void on_new_connection(uv_stream_t * server, int status)
 
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
+#ifdef DEBUG
     log_debug("[Back-end server] Got data (pid: %d, len: %d, tp: %d)",
             pkg->pid, pkg->len, pkg->tp);
+#endif
 
     switch ((bp_client_t) pkg->tp)
     {
@@ -196,10 +198,9 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
         /* update server flags */
         siridb_server_update_flags(server->flags, qp_flags->via->int64);
 
-        log_info("Status received for server '%s' (status: %d, %d)",
+        log_info("Status received from '%s' (status: %d)",
                 server->name,
-                server->flags,
-                qp_flags->via->int64);
+                server->flags);
 
         package = sirinet_pkg_new(pkg->pid, 0, BP_FLAGS_ACK, NULL);
         sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
