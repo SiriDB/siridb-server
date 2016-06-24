@@ -26,6 +26,7 @@
 #include <siri/db/nodes.h>
 #include <siri/net/pkg.h>
 #include <siri/net/socket.h>
+#include <siri/db/walker.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -199,7 +200,7 @@ static void siridb_send_invalid_query_error(uv_async_t * handle)
     expecting = query->pr->expecting->required;
 
     /* start building the error message */
-    snprintf(query->err_msg,
+    len = snprintf(query->err_msg,
             SIRIDB_MAX_SIZE_ERR_MSG,
             "Query error at position %zd. Expecting ",
             query->pr->pos);
@@ -209,15 +210,22 @@ static void siridb_send_invalid_query_error(uv_async_t * handle)
      */
     while (expecting != NULL && expecting->cl_obj != NULL)
     {
-        len = strlen(query->err_msg);
         if (expecting->cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
+        {
             expect = "end_of_statement";
+        }
         else if (expecting->cl_obj->tp == CLERI_TP_KEYWORD)
+        {
             expect = expecting->cl_obj->cl_obj->keyword->keyword;
+        }
         else if (expecting->cl_obj->tp == CLERI_TP_TOKENS)
+        {
             expect = expecting->cl_obj->cl_obj->tokens->spaced;
+        }
         else if (expecting->cl_obj->tp == CLERI_TP_TOKEN)
+        {
             expect = expecting->cl_obj->cl_obj->token->token;
+        }
         else switch (expecting->cl_obj->cl_obj->dummy->gid)
         {
         case CLERI_GID_R_SINGLEQ_STR:
@@ -247,20 +255,26 @@ static void siridb_send_invalid_query_error(uv_async_t * handle)
          * a comma prefix and the last with -or-
          */
         if (!count++)
-            snprintf(query->err_msg + len,
+        {
+            len += snprintf(query->err_msg + len,
                     SIRIDB_MAX_SIZE_ERR_MSG - len,
                     "%s",
                     expect);
+        }
         else if (expecting->next == NULL || expecting->next->cl_obj == NULL)
-            snprintf(query->err_msg + len,
+        {
+            len += snprintf(query->err_msg + len,
                     SIRIDB_MAX_SIZE_ERR_MSG - len,
                     " or %s",
                     expect);
+        }
         else
-            snprintf(query->err_msg + len,
+        {
+            len += snprintf(query->err_msg + len,
                     SIRIDB_MAX_SIZE_ERR_MSG - len,
                     ", %s",
                     expect);
+        }
 
         expecting = expecting->next;
     }
@@ -276,7 +290,7 @@ static void siridb_send_motd(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP1);
     qp_add_raw(query->packer, "motd", 4);
     msg = motd_get_random_msg();
-    qp_add_raw(query->packer, msg, strlen(msg));
+    qp_add_string(query->packer, msg);
 
     siridb_send_query_result(handle);
 }
@@ -295,7 +309,7 @@ static void siridb_parse_query(uv_async_t * handle)
 
     if (!query->pr->is_valid)
     {
-        siridb_walker_free(walker);
+        siridb_nodes_free(siridb_walker_free(walker));
         return siridb_send_invalid_query_error(handle);
     }
 
@@ -326,7 +340,7 @@ static void siridb_parse_query(uv_async_t * handle)
             log_critical("Unknown Return Code received: %d", rc);
             assert(0);
         }
-        siridb_walker_free(walker);
+        siridb_nodes_free(siridb_walker_free(walker));
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
@@ -348,16 +362,16 @@ static void siridb_parse_query(uv_async_t * handle)
         {
             /* terminate buffer */
             buffer[max_size - size] = 0;
-//            log_debug("New query: %s", buffer);
         }
     }
-    /* siridb_node_chain also free's the walker; we now only need to
-     * cleanup the node list.
-     */
-    query->nodes = siridb_nodes_chain(walker);
+
+    /* free the walker but keep the nodes list */
+    query->nodes = siridb_walker_free(walker);
 
     if (query->nodes == NULL)
+    {
         return siridb_send_motd(handle);
+    }
 
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
@@ -383,9 +397,13 @@ static int QUERY_walk(
     if (gid != CLERI_NONE)
     {
         if ((func = siriparser_listen_enter[gid]) != NULL)
+        {
             siridb_walker_append(walker, node, func);
+        }
         if ((func = siriparser_listen_exit[gid]) != NULL)
+        {
             siridb_walker_insert(walker, node, func);
+        }
     }
 
 
@@ -429,14 +447,18 @@ static int QUERY_walk(
                 node->children->node,
                 buffer,
                 &size)))
+        {
             return rc;
+        }
 
         /* terminate buffer */
         buffer[EXPR_MAX_SIZE - size] = 0;
 
         /* evaluate the expression */
         if ((rc = expr_parse(&node->result, buffer)))
+        {
             return rc;
+        }
     }
     else
     {
@@ -452,7 +474,9 @@ static int QUERY_walk(
                 current = current->node->children;
             }
             if ((rc = QUERY_walk(current->node, walker)))
+            {
                 return rc;
+            }
             current = current->next;
         }
     }
@@ -497,7 +521,9 @@ static int QUERY_time_expr(
         {
         case CLERI_GID_R_INTEGER:
             if (node->len >= *size)
+            {
                 return EXPR_TOO_LONG;
+            }
             memcpy(buf + EXPR_MAX_SIZE - *size, node->str, node->len);
             *size -= node->len;
             return 0;
@@ -534,7 +560,9 @@ static int QUERY_time_expr(
             int64_t ts = iso8601_parse_date(datestr, 432);
 
             if (ts < 0)
+            {
                 return EXPR_INVALID_DATE_STRING;
+            }
 
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
@@ -565,7 +593,9 @@ static int QUERY_time_expr(
                         walker,
                         buf,
                         size)))
+                {
                     return rc;
+                }
                 current = current->next;
             }
         }
@@ -589,7 +619,9 @@ static int QUERY_int_expr(
     case CLERI_TP_REGEX:
         /* this is an integer */
         if (node->len >= *size)
+        {
             return EXPR_TOO_LONG;
+        }
         memcpy(buf + EXPR_MAX_SIZE - *size, node->str, node->len);
         *size -= node->len;
         return 0;
@@ -607,7 +639,9 @@ static int QUERY_int_expr(
                         current->node,
                         buf,
                         size)))
+                {
                     return rc;
+                }
                 current = current->next;
             }
         }
@@ -671,10 +705,11 @@ static int QUERY_rebuild(
                         buf,
                         size,
                         max_size)))
+                {
                     return rc;
+                }
                 current = current->next;
             }
-
         }
     }
     return 0;

@@ -86,7 +86,6 @@ typedef struct siridb_s
     imap32_t * series_map;
     uv_mutex_t series_mutex;
     uv_mutex_t shards_mutex;
-    uv_mutex_t servers_mutex;
     imap64_t * shards;
     FILE * buffer_fp;
     FILE * dropped_fp;

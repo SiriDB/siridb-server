@@ -17,6 +17,8 @@
 #include <logger/logger.h>
 #include <unistd.h>
 #include <assert.h>
+#include <siri/version.h>
+
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -66,14 +68,16 @@ int siridb_servers_load(siridb_t * siridb)
         if (SERVERS_save(siridb))
         {
             log_critical("Cannot save servers");
-            return 1;
+            return -1;
         }
 
         return 0;
     }
 
     if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
-        return 1;
+    {
+        return -1;
+    }
 
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_SERVERS_SCHEMA)
@@ -101,10 +105,13 @@ int siridb_servers_load(siridb_t * siridb)
         llist_append(siridb->servers, server);
         siridb_server_incref(server);
 
-        /* if this is me, bind server to siridb or else create a client */
+        /* if this is me, bind server to siridb and update the version
+         * or else create a client.
+         */
         if (uuid_compare(server->uuid, siridb->uuid) == 0)
         {
             siridb->server = server;
+            server->version = strdup(SIRIDB_VERSION);
         }
         else
         {
@@ -127,13 +134,13 @@ int siridb_servers_load(siridb_t * siridb)
     if (siridb->server == NULL)
     {
         log_critical("Could not find my own uuid in '%s'", SIRIDB_SERVERS_FN);
-        return 1;
+        return -1;
     }
 
     if (tp != QP_END)
     {
         log_critical("Expected end of file '%s'", fn);
-        return 1;
+        return -1;
     }
 
     return 0;

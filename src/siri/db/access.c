@@ -41,8 +41,12 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
 siridb_access_t siridb_access_from_strn(const char * str, size_t n)
 {
     for (int i = 0; i < ACCESS_SIZE; i++)
+    {
         if (strncmp(access_map[i].repr, str, n) == 0)
+        {
             return access_map[i].access_bit;
+        }
+    }
     return 0;
 }
 

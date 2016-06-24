@@ -33,6 +33,7 @@ typedef struct llist_s llist_t;
 
 typedef enum siri_status
 {
+    SIRI_STATUS_LOADING,
     SIRI_STATUS_RUNNING,
     SIRI_STATUS_CLOSING
 } siri_status_t;
@@ -45,7 +46,7 @@ typedef struct siri_s
     llist_t * siridb_list;
     siri_fh_t * fh;
     siri_optimize_t * optimize;
-    siri_heartbeat_t * heartbeat;
+    uv_timer_t * heartbeat;
     siri_cfg_t * cfg;
     siri_args_t * args;
     uv_mutex_t siridb_mutex;

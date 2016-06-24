@@ -21,16 +21,26 @@ siridb_walker_t * siridb_walker_new(
     walker->siridb = siridb;
     walker->now = now;
     walker->flags = flags;
+    walker->start = NULL;
     walker->enter_nodes = NULL;
     walker->exit_nodes = NULL;
     return walker;
 }
 
-void siridb_walker_free(siridb_walker_t * walker)
+siridb_nodes_t * siridb_walker_free(siridb_walker_t * walker)
 {
-    siridb_nodes_free(walker->enter_nodes);
-    siridb_nodes_free(walker->exit_nodes);
+    siridb_nodes_t * nodes;
+    if (walker->start == NULL)
+    {
+        nodes = walker->exit_nodes;
+    }
+    else
+    {
+        walker->enter_nodes->next = walker->exit_nodes;
+        nodes = walker->start;
+    }
     free(walker);
+    return nodes;
 }
 
 void siridb_walker_append(
@@ -38,26 +48,23 @@ void siridb_walker_append(
         cleri_node_t * node,
         uv_async_cb cb)
 {
-    siridb_nodes_t ** parent;
+    siridb_nodes_t * wnode;
 
-    if (walker->enter_nodes == NULL)
+    wnode = (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
+    wnode->node = node;
+    wnode->cb = cb;
+    wnode->next = NULL;
+
+    if (walker->start == NULL)
     {
-        parent = &walker->enter_nodes;
+        walker->start = wnode;
+        walker->enter_nodes = wnode;
     }
     else
     {
-        siridb_nodes_t * current = walker->enter_nodes;
-
-        while (current->next != NULL)
-            current = current->next;
-
-        parent = &current->next;
+        walker->enter_nodes->next = wnode;
+        walker->enter_nodes = wnode;
     }
-
-    (*parent) = (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
-    (*parent)->node = node;
-    (*parent)->cb = cb;
-    (*parent)->next = NULL;
 }
 
 void siridb_walker_insert(

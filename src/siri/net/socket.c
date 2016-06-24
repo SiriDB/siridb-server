@@ -183,6 +183,7 @@ void sirinet_socket_free(uv_tcp_t * client)
         {
             siridb_server_t * server = ssocket->origin;
             server->socket = NULL;
+            server->flags = 0;
             siridb_server_decref(server);
         }
     }

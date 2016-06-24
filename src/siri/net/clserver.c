@@ -56,11 +56,11 @@ static void CLSERVER_send_server_error(
 
 int sirinet_clserver_init(siri_t * siri)
 {
-    int rc;
-
 #ifdef DEBUG
-    assert (loop == NULL);
+    assert (loop == NULL && siri->loop != NULL);
 #endif
+
+    int rc;
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -87,6 +87,11 @@ int sirinet_clserver_init(siri_t * siri)
         log_error("Error listening client server: %s", uv_strerror(rc));
         return 1;
     }
+
+    log_info("Start listening for client connections on '%s:%d'",
+            siri->cfg->listen_client_address,
+            siri->cfg->listen_client_port);
+
     return 0;
 }
 
@@ -225,6 +230,8 @@ static void CLSERVER_send_server_error(
     }
     else
     {
+        log_debug(err_msg);
+
         package = sirinet_pkg_new(pkg->pid, len, SN_MSG_SERVER_ERROR, err_msg);
 
         sirinet_pkg_send(stream, package, NULL, NULL);

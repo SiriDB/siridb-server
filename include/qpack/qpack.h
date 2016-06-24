@@ -180,3 +180,10 @@ int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
 int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer);
 int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
+
+/* creates a valid qpack buffer of length 3 holding an int16 type. */
+#define QP_PACK_INT16(buffer, n) \
+char buffer[3];\
+buffer[0] = QP_INT16; \
+memcpy(&buffer[1], &n, 2);
+

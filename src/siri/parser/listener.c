@@ -986,15 +986,11 @@ static void exit_list_servers_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "servers", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    uv_mutex_lock(&siridb->servers_mutex);
-
     llist_walkn(
             siridb->servers,
             qlist->limit,
             (llist_cb_t) walk_list_servers,
             handle);
-
-    uv_mutex_unlock(&siridb->servers_mutex);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 

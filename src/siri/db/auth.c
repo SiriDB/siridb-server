@@ -19,6 +19,8 @@
 #include <siri/net/socket.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/version.h>
+#include <assert.h>
 
 sirinet_msg_t siridb_auth_user_request(
         uv_handle_t * client,
@@ -61,24 +63,39 @@ sirinet_msg_t siridb_auth_user_request(
 bp_server_t siridb_auth_server_request(
         uv_handle_t * client,
         qp_obj_t * qp_uuid,
-        qp_obj_t * qp_dbname)
+        qp_obj_t * qp_dbname,
+        qp_obj_t * qp_version,
+        qp_obj_t * qp_min_version)
 {
     siridb_t * siridb;
     siridb_server_t * server;
     uuid_t uuid;
 
-    char dbname[qp_dbname->len + 1];
-    memcpy(dbname, qp_dbname->via->raw, qp_dbname->len);
-    dbname[qp_dbname->len] = 0;
+#ifdef DEBUG
+    /* test if all are terminated */
+    assert (*(qp_dbname->via->raw + qp_dbname->len - 1) == 0);
+    assert (*(qp_version->via->raw + qp_version->len - 1) == 0);
+    assert (*(qp_min_version->via->raw + qp_min_version->len - 1) == 0);
+#endif
 
     if (qp_uuid->len != 16)
     {
         return BP_AUTH_ERROR_INVALID_UUID;
     }
 
+    if (siri_version_cmp(qp_version->via->raw, SIRIDB_MINIMAL_VERSION) < 0)
+    {
+        return BP_AUTH_ERROR_VERSION_TOO_OLD;
+    }
+
+    if (siri_version_cmp(qp_min_version->via->raw, SIRIDB_VERSION) > 0)
+    {
+        return BP_AUTH_ERROR_VERSION_TOO_NEW;
+    }
+
     memcpy(uuid, qp_uuid->via->raw, 16);
 
-    if ((siridb = siridb_get(siri.siridb_list, dbname)) == NULL)
+    if ((siridb = siridb_get(siri.siridb_list, qp_dbname->via->raw)) == NULL)
     {
         return BP_AUTH_ERROR_UNKNOWN_DBNAME;
     }
@@ -90,6 +107,8 @@ bp_server_t siridb_auth_server_request(
 
     ((sirinet_socket_t *) client->data)->siridb = siridb;
     ((sirinet_socket_t *) client->data)->origin = server;
+
+    server->version = strdup(qp_version->via->raw);
 
     /* we must increment the server reference counter */
     siridb_server_incref(server);

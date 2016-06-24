@@ -26,4 +26,6 @@ sirinet_msg_t siridb_auth_user_request(
 bp_server_t siridb_auth_server_request(
         uv_handle_t * client,
         qp_obj_t * qp_uuid,
-        qp_obj_t * qp_dbname);
+        qp_obj_t * qp_dbname,
+        qp_obj_t * qp_version,
+        qp_obj_t * qp_min_version);

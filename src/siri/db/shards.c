@@ -26,21 +26,28 @@
 static bool is_shard_fn(const char * fn)
 {
     if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
+    {
         return false;
+    }
 
     fn++;
     while (*fn && isdigit(*fn))
+    {
         fn++;
+    }
 
-    return (strlen(fn) == 4 && strncmp(fn, ".sdb", 3) == 0);
+    return (strcmp(fn, ".sdb") == 0);
 }
 
 static bool is_temp_shard_fn(const char * fn)
 {
     for (int i = 0; i < 2; i++, fn++)
+    {
         if (*fn != '_')
+        {
             return false;
-
+        }
+    }
     return is_shard_fn(fn);
 }
 

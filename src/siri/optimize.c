@@ -9,6 +9,10 @@
  * reason we do not need to parse data but we should only take care for locks
  * while writing data.
  *
+ *
+ * Thread debugging:
+ *  log_debug("getpid: %d - pthread_self: %lu",getpid(), pthread_self());
+ *
  * changes
  *  - initial version, 09-05-2016
  *
@@ -146,6 +150,7 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
     /*
      * Main Thread
      */
+
 
     if (optimize.status != SIRI_OPTIMIZE_PENDING)
     {

@@ -24,6 +24,7 @@ typedef struct siridb_walker_s
     siridb_t * siridb;
     uint64_t now;
     int * flags;
+    siridb_nodes_t * start;
     siridb_nodes_t * enter_nodes;
     siridb_nodes_t * exit_nodes;
 } siridb_walker_t;
@@ -33,7 +34,11 @@ siridb_walker_t * siridb_walker_new(
         const uint64_t now,
         int * flags);
 
-void siridb_walker_free(siridb_walker_t * walker);
+/* free the walker and return the nodes which are kept in the walker.
+ * note: the nodes are created using 'malloc()' so they must be destroyed
+ *       using siridb_nodes_free().
+ */
+siridb_nodes_t * siridb_walker_free(siridb_walker_t * walker);
 
 void siridb_walker_append(
         siridb_walker_t * walker,

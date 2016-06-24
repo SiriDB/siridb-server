@@ -22,9 +22,21 @@
 
 #define DEFAULT_BACKLOG 128
 
+#define SERVER_CHECK_AUTHENTICATED(server)                                    \
+siridb_server_t * server = ((sirinet_socket_t * ) client->data)->origin;      \
+if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
+{                                                                             \
+    sirinet_pkg_t * package;                                                  \
+    package = sirinet_pkg_new(pkg->pid, 0, BP_ERROR_NOT_AUTHENTICATED, NULL); \
+    sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);            \
+    free(package);                                                            \
+    return;                                                                   \
+}
+
 static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -32,11 +44,11 @@ static uv_tcp_t backend_server;
 
 int sirinet_bserver_init(siri_t * siri)
 {
-    int rc;
-
 #ifdef DEBUG
     assert (loop == NULL);
 #endif
+
+    int rc;
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -63,6 +75,11 @@ int sirinet_bserver_init(siri_t * siri)
         log_error("Error listening back-end server: %s", uv_strerror(rc));
         return 1;
     }
+
+    log_info("Start listening for back-end connections on '%s:%d'",
+            siri->cfg->listen_backend_address,
+            siri->cfg->listen_backend_port);
+
     return 0;
 }
 
@@ -103,6 +120,9 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     case BP_AUTH_REQUEST:
         on_auth_request(client, pkg);
         break;
+    case BP_FLAGS_UPDATE:
+        on_flags_update(client, pkg);
+        break;
     }
 
 }
@@ -114,41 +134,81 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
     qp_obj_t * qp_uuid = qp_new_object();
     qp_obj_t * qp_dbname = qp_new_object();
+    qp_obj_t * qp_flags = qp_new_object();
+    qp_obj_t * qp_version = qp_new_object();
+    qp_obj_t * qp_min_version = qp_new_object();
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_uuid) == QP_RAW &&
-            qp_next(unpacker, qp_dbname) == QP_RAW)
+            qp_next(unpacker, qp_dbname) == QP_RAW &&
+            qp_next(unpacker, qp_flags) == QP_INT64 &&
+            qp_next(unpacker, qp_version) == QP_RAW &&
+            qp_next(unpacker, qp_min_version) == QP_RAW)
     {
         rc = siridb_auth_server_request(
                 client,
                 qp_uuid,
-                qp_dbname);
+                qp_dbname,
+                qp_version,
+                qp_min_version);
         if (rc == BP_AUTH_SUCCESS)
         {
             siridb_server_t * server =
-                    ((sirinet_socket_t *) client->data)->origin;
+                    ((sirinet_socket_t * ) client->data)->origin;
+
+            /* update server flags */
+            siridb_server_update_flags(server->flags, qp_flags->via->int64);
 
             log_info("Accepting back-end server connection: '%s'",
                     server->name);
-
-            qp_packer_t * packer = qp_new_packer(16);
-            qp_add_int16(packer, server->flags);
-            package = sirinet_pkg_new(pkg->pid, packer->len, rc, packer->buffer);
-            qp_free_packer(packer);
         }
         else
         {
             log_warning("Refusing back-end connection (error code: %d)", rc);
-            package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
         }
+
+        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
         sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
         free(package);
     }
     else
     {
-        log_error("Invalid back-end authentication request received.");
+        log_error("Invalid back-end 'on_auth_request' received.");
     }
     qp_free_object(qp_uuid);
     qp_free_object(qp_dbname);
+    qp_free_object(qp_flags);
+    qp_free_object(qp_version);
+    qp_free_object(qp_min_version);
+    qp_free_unpacker(unpacker);
+}
+
+static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    sirinet_pkg_t * package;
+    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
+    qp_obj_t * qp_flags = qp_new_object();
+
+    if (qp_next(unpacker, qp_flags) == QP_INT64)
+    {
+        /* update server flags */
+        siridb_server_update_flags(server->flags, qp_flags->via->int64);
+
+        log_info("Status received for server '%s' (status: %d, %d)",
+                server->name,
+                server->flags,
+                qp_flags->via->int64);
+
+        package = sirinet_pkg_new(pkg->pid, 0, BP_FLAGS_ACK, NULL);
+        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+        free(package);
+    }
+    else
+    {
+        log_error("Invalid back-end 'on_flags_update' received.");
+    }
+    qp_free_object(qp_flags);
     qp_free_unpacker(unpacker);
 }

@@ -50,7 +50,9 @@ void siridb_pools_gen(siridb_t * siridb)
 
     /* initialize number of servers with zero for each pool */
     for (n = 0; n < siridb->pools->size; n++)
+    {
         siridb->pools->pool[n].size = 0;
+    }
 
     llist_walk(siridb->servers, (llist_cb_t) POOLS_arrange, siridb);
 
@@ -61,7 +63,9 @@ void siridb_pools_gen(siridb_t * siridb)
 void siridb_pools_free(siridb_pools_t * pools)
 {
     if (pools == NULL)
+    {
         return;
+    }
     free(pools->pool);
     free(pools->lookup);
     free(pools);
@@ -81,20 +85,26 @@ static void POOLS_make(
         siridb_lookup_t * lookup)
 {
     if (n == num_pools)
+    {
         return;
+    }
 
     uint_fast16_t i;
     uint_fast16_t m;
     uint_fast16_t counters[n];
     for (i = 0; i < n; i++)
+    {
         counters[i] = i;
+    }
 
     m = n + 1;
     for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
     {
         counters[(*lookup)[i]]++;
         if (counters[(*lookup)[i]] % m == 0)
+        {
             (*lookup)[i] = n;
+        }
     }
     POOLS_make(m, num_pools, lookup);
 }
@@ -102,7 +112,9 @@ static void POOLS_make(
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
 {
     if (server->pool > *max_pool)
+    {
         *max_pool = server->pool;
+    }
 }
 
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
@@ -123,7 +135,9 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 #endif
         /* add the server to the pool, ordered by UUID */
         if (siridb_server_cmp(pool->server[0], server) < 0)
+        {
             pool->server[1] = server;
+        }
         else
         {
 #ifdef DEBUG

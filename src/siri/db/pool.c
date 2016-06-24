@@ -24,7 +24,9 @@ uint16_t siridb_pool_sn(
 {
     uint32_t n = 0;
     for (; *sn; sn++)
+    {
         n += *sn;
+    }
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 
@@ -35,7 +37,9 @@ uint16_t siridb_pool_sn_raw(
 {
     uint32_t n = 0;
     while (len--)
+    {
         n += sn[len];
+    }
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 

@@ -212,7 +212,6 @@ static siridb_t * SIRIDB_new(void)
 
     uv_mutex_init(&siridb->series_mutex);
     uv_mutex_init(&siridb->shards_mutex);
-    uv_mutex_init(&siridb->servers_mutex);
 
     return siridb;
 }
@@ -275,7 +274,6 @@ static void SIRIDB_free(siridb_t * siridb)
 
     uv_mutex_destroy(&siridb->series_mutex);
     uv_mutex_destroy(&siridb->shards_mutex);
-    uv_mutex_destroy(&siridb->servers_mutex);
 
     free(siridb);
 }

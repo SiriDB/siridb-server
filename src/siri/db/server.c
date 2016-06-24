@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <siri/net/socket.h>
 #include <string.h>
+#include <siri/version.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -26,6 +27,10 @@ static void SERVER_free(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
 static void SERVER_write_cb(uv_write_t * req, int status);
 static void SERVER_on_auth_response(
+        sirinet_promise_t * promise,
+        const sirinet_pkg_t * pkg,
+        int status);
+static void SERVER_on_flags_ack(
         sirinet_promise_t * promise,
         const sirinet_pkg_t * pkg,
         int status);
@@ -56,6 +61,7 @@ siridb_server_t * siridb_server_new(
     server->flags = 0;
     server->ref = 0;
     server->pid = 0;
+    server->version = NULL;
 
     /* we set the promises later because we don't need one for self */
     server->promises = NULL;
@@ -99,16 +105,20 @@ void siridb_server_send_pkg(
     assert (cb != NULL);
 #endif
     sirinet_promise_t * promise = (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
-
-    promise->timer.data = promise;
+    promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
+    promise->timer->data = promise;
     promise->cb = cb;
+    /*
+     * we do not need to increment the server reference counter since promises
+     * will be destroyed before the server is destroyed.
+     */
     promise->server = server;
     promise->pid = server->pid;
     promise->data = data;
 
-    uv_timer_init(siri.loop, &promise->timer);
+    uv_timer_init(siri.loop, promise->timer);
     uv_timer_start(
-            &promise->timer,
+            promise->timer,
             SERVER_timeout_pkg,
             (timeout) ? timeout : PROMISE_DEFAULT_TIMEOUT,
             0);
@@ -122,7 +132,7 @@ void siridb_server_send_pkg(
     sirinet_pkg_t * pkg = sirinet_pkg_new(
             promise->pid,
             len,
-            BP_AUTH_REQUEST,
+            tp,
             content);
 
     uv_buf_t wrbuf = uv_buf_init(
@@ -135,6 +145,34 @@ void siridb_server_send_pkg(
 
     server->pid++;
 }
+
+void siridb_server_send_flags(siridb_server_t * server)
+{
+
+#ifdef DEBUG
+    assert (server->socket != NULL);
+    assert (siridb_server_is_available(server));
+#endif
+
+    sirinet_socket_t * ssocket = server->socket->data;
+
+#ifdef DEBUG
+    assert (ssocket->siridb != NULL);
+#endif
+
+    int16_t n = ssocket->siridb->server->flags;
+    QP_PACK_INT16(buffer, n)
+
+    siridb_server_send_pkg(
+            server,
+            3,
+            BP_FLAGS_UPDATE,
+            buffer,
+            0,
+            SERVER_on_flags_ack,
+            NULL);
+}
+
 
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
@@ -152,8 +190,9 @@ static void SERVER_write_cb(uv_write_t * req, int status)
             log_critical("Got a socket error but the promise is not found!!");
         }
 
-        uv_timer_stop(&promise->timer);
-        uv_close((uv_handle_t *) &promise->timer, NULL);
+        uv_timer_stop(promise->timer);
+        uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
+
         promise->cb(promise, NULL, PROMISE_WRITE_ERROR);
     }
     free(req);
@@ -186,11 +225,6 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
     sirinet_socket_t * ssocket = req->handle->data;
     siridb_server_t * server = ssocket->origin;
 
-#ifdef DEBUG
-    /* make sure this server does not have the online flag set */
-    assert (!(server->flags & SERVER_FLAG_ONLINE));
-#endif
-
     if (status == 0)
     {
         log_debug(
@@ -204,9 +238,12 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
 
         ;
         qp_packer_t * packer = qp_new_packer(1024);
-        qp_add_type(packer, QP_ARRAY_OPEN);
+        qp_add_type(packer, QP_ARRAY5);
         qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16);
-        qp_add_string(packer, ssocket->siridb->dbname);
+        qp_add_string_term(packer, ssocket->siridb->dbname);
+        qp_add_int16(packer, ssocket->siridb->server->flags);
+        qp_add_string_term(packer, SIRIDB_VERSION);
+        qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION);
 
         siridb_server_send_pkg(
                 server,
@@ -230,66 +267,22 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
     free(req);
 }
 
-static void SERVER_on_auth_response(
-        sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
-        int status)
-{
-    if (status)
-    {
-        /* we already have a log entry so this can be a debug log */
-        log_debug(
-                "Error while sending authentication request: %s",
-                sirinet_promise_strstatus(status));
-    }
-    else
-    {
-        if (pkg->tp == BP_AUTH_SUCCESS)
-        {
-            log_info("Successful authenticated to server '%s'",
-                    promise->server->name);
-
-            qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-            qp_obj_t * qp_flags = qp_new_object();
-
-            if (qp_next(unpacker, qp_flags) == QP_INT64)
-            {
-                promise->server->flags = qp_flags->via->int64;
-            }
-
-            qp_free_object(qp_flags);
-            qp_free_unpacker(unpacker);
-        }
-        else
-        {
-            log_error("Authentication with server '%s' failed, error code: %d",
-                    promise->server->name,
-                    pkg->tp);
-        }
-
-    }
-
-    /* we must free the promise */
-    free(promise);
-}
-
 static void SERVER_on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_socket_t * ssocket = client->data;
     siridb_server_t * server = ssocket->origin;
-    sirinet_promise_t * promise =
-            imap64_pop(server->promises, pkg->pid);
+    sirinet_promise_t * promise = imap64_pop(server->promises, pkg->pid);
 
     if (promise == NULL)
     {
         log_warning(
-                "Received a package (PID %lu) from server '%s' which is "
+                "Received a package (PID %lu) from server '%s' which has "
                 "probably timed-out earlier.", pkg->pid, server->name);
     }
     else
     {
-        uv_timer_stop(&promise->timer);
-        uv_close((uv_handle_t *) &promise->timer, NULL);
+        uv_timer_stop(promise->timer);
+        uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
         promise->cb(promise, pkg, PROMISE_SUCCESS);
     }
 }
@@ -324,10 +317,10 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 
 static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 {
-    if (!uv_is_closing((uv_handle_t *) &promise->timer))
+    if (!uv_is_closing((uv_handle_t *) promise->timer))
     {
-        uv_timer_stop(&promise->timer);
-        uv_close((uv_handle_t *) &promise->timer, NULL);
+        uv_timer_stop(promise->timer);
+        uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
     }
     promise->cb(promise, NULL, PROMISE_CANCELLED_ERROR);
 }
@@ -335,6 +328,9 @@ static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 static void SERVER_free(siridb_server_t * server)
 {
     log_debug("FREE Server");
+    /* we MUST first free the promises because each promise has a reference to
+     * this server and the promise callback might depend on this.
+     */
     if (server->promises != NULL)
     {
         imap64_walk(server->promises, (imap64_cb_t) SERVER_cancel_promise, NULL);
@@ -342,6 +338,7 @@ static void SERVER_free(siridb_server_t * server)
     }
     free(server->name);
     free(server->address);
+    free(server->version);
     free(server);
 }
 
@@ -367,5 +364,64 @@ static void SERVER_update_name(siridb_server_t * server)
 
     /* set the name */
     sprintf(server->name, "%s:%d", server->address, server->port);
+}
+
+static void SERVER_on_auth_response(
+        sirinet_promise_t * promise,
+        const sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        /* we already have a log entry so this can be a debug log */
+        log_debug(
+                "Error while sending authentication request to '%s' (%s)",
+                promise->server->name,
+                sirinet_promise_strstatus(status));
+    }
+    else if (pkg->tp == BP_AUTH_SUCCESS)
+    {
+        log_info("Successful authenticated to server '%s'",
+                promise->server->name);
+
+        promise->server->flags |= SERVER_FLAG_AUTHENTICATED;
+    }
+    else
+    {
+        log_error("Authentication with server '%s' failed, error code: %d",
+                promise->server->name,
+                pkg->tp);
+    }
+
+    /* we must free the promise */
+    free(promise);
+}
+
+static void SERVER_on_flags_ack(
+        sirinet_promise_t * promise,
+        const sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        /* we already have a log entry so this can be a debug log */
+        log_debug(
+                "Error while sending flags update to '%s' (%s)",
+                promise->server->name,
+                sirinet_promise_strstatus(status));
+    }
+    else if (pkg->tp == BP_FLAGS_ACK)
+    {
+        log_debug("Flags ACK received from '%s'", promise->server->name);
+    }
+    else
+    {
+        log_critical("Unexpected package type received from '%s' (type: %u)",
+                promise->server->name,
+                pkg->tp);
+    }
+
+    /* we must free the promise */
+    free(promise);
 }
 

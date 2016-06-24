@@ -157,6 +157,11 @@ int walk_list_servers(
                 qp_add_string(query->packer, uuid);
             }
             break;
+        case CLERI_GID_K_VERSION:
+            qp_add_string(
+                    query->packer,
+                    (server->version == NULL) ? "unknown" : server->version);
+            break;
         }
     }
 

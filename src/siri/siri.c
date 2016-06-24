@@ -41,6 +41,7 @@ static int SIRI_load_databases(void);
 static void SIRI_close_handlers(void);
 static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg);
 static void SIRI_destroy(void);
+static void SIRI_set_running_state(void);
 static void SIRI_set_closing_state(void);
 static void SIRI_try_close(uv_timer_t * handle);
 static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
@@ -62,7 +63,7 @@ siri_t siri = {
         .heartbeat=NULL,
         .cfg=NULL,
         .args=NULL,
-        .status=SIRI_STATUS_RUNNING
+        .status=SIRI_STATUS_LOADING
 };
 
 
@@ -133,19 +134,23 @@ static int SIRI_load_databases(void)
     {
         struct stat st = {0};
 
-        if ((strlen(dbpath->d_name) == 1 &&
-                    strcmp(dbpath->d_name, ".") == 0) ||
-                (strlen(dbpath->d_name) >= 2 &&
-                        (strncmp(dbpath->d_name, "..", 2) == 0 ||
-                         strncmp(dbpath->d_name, "__", 2) == 0)))
+        if (    strcmp(dbpath->d_name, ".") == 0 ||
+                strcmp(dbpath->d_name, "..") == 0 ||
+                strncmp(dbpath->d_name, "__", 2) == 0)
+        {
             /* skip "." ".." and prefixed with double underscore directories */
             continue;
+        }
 
         if (fstatat(dirfd(db_container_path), dbpath->d_name, &st, 0) < 0)
+        {
             continue;
+        }
 
         if (!S_ISDIR(st.st_mode))
+        {
             continue;
+        }
 
         /* read database.conf */
         snprintf(buffer,
@@ -346,11 +351,15 @@ int siri_start(void)
         SIRI_close_handlers();
         return rc; // something went wrong
     }
+
     /* initialize optimize task (bind siri.optimize) */
     siri_optimize_init(&siri);
 
     /* initialize heart-beat task (bind siri.heartbeat) */
     siri_heartbeat_init(&siri);
+
+    /* update siridb status to running */
+    SIRI_set_running_state();
 
     /* start the event loop */
     uv_run(siri.loop, UV_RUN_DEFAULT);
@@ -366,8 +375,9 @@ void siri_free(void)
         int rc;
         rc = uv_loop_close(siri.loop);
         if (rc) // could be UV_EBUSY (-16) in case handlers are not closed yet
+        {
             log_error("Error occurred while closing the event loop: %d", rc);
-
+        }
     }
 
     free(siri.loop);
@@ -387,18 +397,28 @@ static void SIRI_destroy(void)
     SIRI_close_handlers();
 }
 
+static void SIRI_set_running_state(void)
+{
+    siri.status = SIRI_STATUS_RUNNING;
+
+    llist_node_t * db_node = siri.siridb_list->first;
+    while (db_node != NULL)
+    {
+        siridb_server_t * server = ((siridb_t *) db_node->data)->server;
+        server->flags |= SERVER_FLAG_ONLINE;
+        db_node = db_node->next;
+    }
+}
+
 static void SIRI_set_closing_state(void)
 {
     siri.status = SIRI_STATUS_CLOSING;
 
     llist_node_t * db_node = siri.siridb_list->first;
-
     while (db_node != NULL)
     {
         siridb_server_t * server = ((siridb_t *) db_node->data)->server;
-
         server->flags ^= SERVER_FLAG_ONLINE & server->flags;
-
         db_node = db_node->next;
     }
 }
@@ -444,7 +464,7 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         siri_optimize_cancel();
 
         /* cancel heart-beat task */
-        siri_heartbeat_cancel();
+        uv_close((uv_handle_t *) siri.heartbeat, NULL);
 
         /* mark SiriDB as closing and remove ONLINE flag from servers. */
         SIRI_set_closing_state();

@@ -22,4 +22,4 @@
 int siri_version_cmp(const char * version_a, const char * version_b);
 
 /* SiriDB can only connect with servers having at least this version. */
-#define SIRIDB_MINIMAL_VERISION = "2.0.0"
+#define SIRIDB_MINIMAL_VERSION "2.0.0"
