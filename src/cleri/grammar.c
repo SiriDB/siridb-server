@@ -62,7 +62,9 @@ void cleri_free_grammar(cleri_grammar_t * grammar)
     grammar->olist = cleri_new_olist();
     free(grammar->re_keywords);
     if (grammar->re_kw_extra != NULL)
+    {
         free(grammar->re_kw_extra);
+    }
     cleri_free_object(grammar, grammar->start);
     cleri_free_olist(NULL, grammar->olist);
     free(grammar);
