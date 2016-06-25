@@ -125,6 +125,8 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     case BP_FLAGS_UPDATE:
         on_flags_update(client, pkg);
         break;
+    case BP_SERVER_PROPS_REQUEST:
+        break;
     }
 
 }

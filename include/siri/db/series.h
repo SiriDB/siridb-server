@@ -73,12 +73,12 @@ typedef struct siridb_series_s
     uint8_t tp;
 } siridb_series_t;
 
-typedef struct series_walker_s
+typedef struct siridb_series_walker_s
 {
     const char * series_name;
     const uint16_t pool;
     siridb_series_t * series;
-} series_walker_t;
+} siridb_series_walker_t;
 
 int siridb_series_load(siridb_t * siridb);
 
@@ -129,4 +129,6 @@ void siridb_series_optimize_shard_num32(
 
 void siridb_series_update_props(siridb_series_t * series, void * args);
 
-int siridb_series_cexpr_cb(series_walker_t * wseries, cexpr_condition_t * cond);
+int siridb_series_cexpr_cb(
+        siridb_series_walker_t * wseries,
+        cexpr_condition_t * cond);

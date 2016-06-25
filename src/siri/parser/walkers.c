@@ -18,6 +18,8 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/shard.h>
 #include <siri/net/socket.h>
+#include <siri/siri.h>
+#include <siri/version.h>
 
 int walk_drop_series(
         const char * series_name,
@@ -77,7 +79,7 @@ int walk_list_series(
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
 
-    series_walker_t wseries = {
+    siridb_series_walker_t wseries = {
         .series_name=series_name,
         .series=series,
         .pool=siridb->server->pool
@@ -160,7 +162,10 @@ int walk_list_servers(
         case CLERI_GID_K_VERSION:
             qp_add_string(
                     query->packer,
-                    (server->version == NULL) ? "unknown" : server->version);
+                    (siridb->server == server) ?
+                            SIRIDB_VERSION :
+                            (server->version != NULL) ?
+                                    server->version : "");
             break;
         case CLERI_GID_K_ONLINE:
             qp_add_type(
@@ -175,6 +180,34 @@ int walk_list_servers(
                 free(status);
             }
 
+            break;
+        case CLERI_GID_K_DBPATH:
+            qp_add_string(
+                    query->packer,
+                    (siridb->server == server) ?
+                        siridb->dbpath :
+                        (server->dbpath != NULL) ?
+                            server->dbpath : "");
+            break;
+        case CLERI_GID_K_BUFFER_PATH:
+            qp_add_string(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siridb->buffer_path :
+                            (server->buffer_path != NULL) ?
+                                    server->buffer_path : "");
+            break;
+        case CLERI_GID_K_BUFFER_SIZE:
+            qp_add_int64(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siridb->buffer_size : server->buffer_size);
+            break;
+        case CLERI_GID_K_STARTUP_TIME:
+            qp_add_int32(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siri.startup_time : server->startup_time);
             break;
         }
     }

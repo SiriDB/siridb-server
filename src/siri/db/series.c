@@ -57,7 +57,9 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-int siridb_series_cexpr_cb(series_walker_t * wseries, cexpr_condition_t * cond)
+int siridb_series_cexpr_cb(
+        siridb_series_walker_t * wseries,
+        cexpr_condition_t * cond)
 {
     switch (cond->prop)
     {

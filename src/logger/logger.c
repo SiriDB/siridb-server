@@ -35,7 +35,7 @@ logger_t Logger = {
 #define KWHT  "\x1B[37m"    // -- not used --
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
-    {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"};
+    {"debug", "info", "warning", "error", "critical"};
 
 #define LOGGER_LOG_STUFF(LEVEL)                                 \
 {                                                               \

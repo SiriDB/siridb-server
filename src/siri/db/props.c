@@ -32,45 +32,85 @@ if (map)                                \
 }
 
 static void prop_buffer_path(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_buffer_size(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_dbname(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_dbpath(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_libuv(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_log_level(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_max_open_files(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_mem_usage(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_open_files(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_pool(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_server(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_sharding_max_chunk_points(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_startup_time(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_status(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_timezone(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_time_precision(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_uptime(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_uuid(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_version(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_who_am_i(
-        siridb_t * siridb, qp_packer_t * packer, int map);
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 
 extern char * who_am_i;
 
@@ -122,63 +162,81 @@ void siridb_init_props(void)
 }
 
 static void prop_buffer_path(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("buffer_path", 11)
         qp_add_string(packer, siridb->buffer_path);
 }
 
 static void prop_buffer_size(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("buffer_size", 11)
     qp_add_int32(packer, (int32_t) siridb->buffer_size);
 }
 
 static void prop_dbname(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("dbname", 6)
     qp_add_string(packer, siridb->dbname);
 }
 
 static void prop_dbpath(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("dbpath", 6)
     qp_add_string(packer, siridb->dbpath);
 }
 
 static void prop_libuv(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("libuv", 5)
     qp_add_string(packer, uv_version_string());
 }
 
 static void prop_log_level(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("log_level", 9)
     qp_add_string(packer, Logger.level_name);
 }
 
 static void prop_max_open_files(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("max_open_files", 14)
     qp_add_int32(packer, (int32_t) abs(siri.cfg->max_open_files));
 }
 
 static void prop_mem_usage(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("mem_usage", 9)
     qp_add_int32(packer, (int32_t) (procinfo_total_physical_memory() / 1024));
 }
 
 static void prop_open_files(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("open_files", 10)
 
@@ -195,30 +253,43 @@ static void prop_open_files(
 }
 
 static void prop_pool(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("pool", 4)
     qp_add_int16(packer, (int16_t) siridb->server->pool);
 }
 
-static void prop_server(siridb_t * siridb, qp_packer_t * packer, int map)
+static void prop_server(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("server", 6)
     qp_add_string(packer, siridb->server->name);
 }
 static void prop_sharding_max_chunk_points(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("sharding_max_chunk_points", 25)
     qp_add_int32(packer, (int32_t) abs(siri.cfg->max_chunk_points));
 }
 
-static void prop_startup_time(siridb_t * siridb, qp_packer_t * packer, int map)
+static void prop_startup_time(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("startup_time", 12)
     qp_add_int32(packer, (int32_t) abs(siri.startup_time));
 }
-static void prop_status(siridb_t * siridb, qp_packer_t * packer, int map)
+static void prop_status(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("status", 6)
     char * status = siridb_server_str_status(siridb->server);
@@ -226,14 +297,19 @@ static void prop_status(siridb_t * siridb, qp_packer_t * packer, int map)
     free(status);
 }
 
-static void prop_timezone(siridb_t * siridb, qp_packer_t * packer, int map)
+static void prop_timezone(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("timezone", 8)
     qp_add_string(packer, iso8601_tzname(siridb->tz));
 }
 
 static void prop_time_precision(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("time_precision", 14)
 
@@ -245,14 +321,19 @@ static void prop_time_precision(
     qp_add_string(packer, siridb_time_short_map[siridb->time->precision]);
 }
 
-static void prop_uptime(siridb_t * siridb, qp_packer_t * packer, int map)
+static void prop_uptime(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("uptime", 6)
     qp_add_int32(packer, (int32_t) ((uint32_t) time(NULL) - siridb->start_ts));
 }
 
 static void prop_uuid(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("uuid", 4)
     char uuid[37];
@@ -261,14 +342,18 @@ static void prop_uuid(
 }
 
 static void prop_version(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("version", 7)
     qp_add_string(packer, SIRIDB_VERSION);
 }
 
 static void prop_who_am_i(
-        siridb_t * siridb, qp_packer_t * packer, int map)
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
 {
     SIRIDB_PROP_MAP("who_am_i", 8)
     qp_add_string(packer, who_am_i);
