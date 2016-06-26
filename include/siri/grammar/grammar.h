@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-06-24 16:11:56
+ * Created at: 2016-06-26 22:03:43
  */
 
 #pragma once
@@ -134,6 +134,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_CONTINUE,
     CLERI_GID_K_COUNT,
     CLERI_GID_K_CREATE,
+    CLERI_GID_K_CRITICAL,
     CLERI_GID_K_DATABASE,
     CLERI_GID_K_DBNAME,
     CLERI_GID_K_DBPATH,
@@ -145,6 +146,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_DURATION_LOG,
     CLERI_GID_K_DURATION_NUM,
     CLERI_GID_K_END,
+    CLERI_GID_K_ERROR,
     CLERI_GID_K_EXPRESSION,
     CLERI_GID_K_FALSE,
     CLERI_GID_K_FILTER,
@@ -158,6 +160,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_HELP,
     CLERI_GID_K_IGNORE_THRESHOLD,
     CLERI_GID_K_INDEXED,
+    CLERI_GID_K_INFO,
     CLERI_GID_K_INSERT,
     CLERI_GID_K_INTEGER,
     CLERI_GID_K_INTERSECTION,
@@ -167,7 +170,6 @@ enum cleri_grammar_ids {
     CLERI_GID_K_LIMIT,
     CLERI_GID_K_LIST,
     CLERI_GID_K_LOG_LEVEL,
-    CLERI_GID_K_MANHOLE,
     CLERI_GID_K_MAX,
     CLERI_GID_K_MAX_CACHE_EXPRESSIONS,
     CLERI_GID_K_MAX_OPEN_FILES,
@@ -236,6 +238,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_UUID,
     CLERI_GID_K_VARIANCE,
     CLERI_GID_K_VERSION,
+    CLERI_GID_K_WARNING,
     CLERI_GID_K_WHERE,
     CLERI_GID_K_WHO_AM_I,
     CLERI_GID_K_WRITE,
@@ -248,6 +251,7 @@ enum cleri_grammar_ids {
     CLERI_GID_LIST_SHARDS_STMT,
     CLERI_GID_LIST_STMT,
     CLERI_GID_LIST_USERS_STMT,
+    CLERI_GID_LOG_KEYWORDS,
     CLERI_GID_MAX_EXPR,
     CLERI_GID_MEAN_EXPR,
     CLERI_GID_MEDIAN_EXPR,

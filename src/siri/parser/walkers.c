@@ -20,6 +20,7 @@
 #include <siri/net/socket.h>
 #include <siri/siri.h>
 #include <siri/version.h>
+#include <assert.h>
 
 int walk_drop_series(
         const char * series_name,
@@ -132,7 +133,21 @@ int walk_list_servers(
     siridb_query_t * query = (siridb_query_t *) handle->data;
     slist_t * props = ((query_list_t *) query->data)->props;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
+
+    siridb_server_walker_t wserver = {
+        .server=server,
+        .siridb=siridb
+    };
+
+    if (where_expr != NULL && !cexpr_run(
+            where_expr,
+            (cexpr_cb_t) siridb_server_cexpr_cb,
+            &wserver))
+    {
+        return 0; // false
+    }
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
@@ -208,6 +223,16 @@ int walk_list_servers(
                     query->packer,
                     (siridb->server == server) ?
                             siri.startup_time : server->startup_time);
+            break;
+        /* all properties below are 'remote properties'. if a remote property
+         * is detected we should perform the query on each server and only for
+         * that specific server.
+         */
+        case CLERI_GID_K_LOG_LEVEL:
+#ifdef DEBUG
+        assert (siridb->server == server);
+#endif
+            qp_add_string(query->packer, Logger.level_name);
             break;
         }
     }

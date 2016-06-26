@@ -152,6 +152,28 @@ int cexpr_str_cmp(
     return -1;
 }
 
+int cexpr_bool_cmp(
+        const cexpr_operator_t operator,
+        const int64_t a,
+        const int64_t b)
+{
+#ifdef DEBUG
+    assert ((a == 0 || a == 1) && (b == 0 || b == 1));
+#endif
+    switch (operator)
+    {
+    case CEXPR_EQ:
+        return a == b;
+    case CEXPR_NE:
+        return a != b;
+    default:
+        log_critical("Got an unexpected operator (boolean type): %d", operator);
+        assert (0);
+    }
+    /* we should NEVER get here */
+    return -1;
+}
+
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
 {
     /* should return either 1 or 0. (true or false) */
@@ -346,6 +368,18 @@ static cexpr_t * CEXPR_walk_node(
                 (*condition)->int64 = SIRIDB_ACCESS_PROFILE_MODIFY; break;
             case CLERI_GID_K_FULL:
                 (*condition)->int64 = SIRIDB_ACCESS_PROFILE_FULL; break;
+
+            /* map log levels */
+            case CLERI_GID_K_DEBUG:
+                (*condition)->int64 = LOGGER_DEBUG; break;
+            case CLERI_GID_K_INFO:
+                (*condition)->int64 = LOGGER_INFO; break;
+            case CLERI_GID_K_WARNING:
+                (*condition)->int64 = LOGGER_WARNING; break;
+            case CLERI_GID_K_ERROR:
+                (*condition)->int64 = LOGGER_ERROR; break;
+            case CLERI_GID_K_CRITICAL:
+                (*condition)->int64 = LOGGER_CRITICAL; break;
 
             default:
                 (*condition)->int64 = node->cl_obj->cl_obj->keyword->gid;

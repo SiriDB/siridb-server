@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <siri/db/db.h>
 #include <imap64/imap64.h>
+#include <cexpr/cexpr.h>
 #include <uv.h>
 
 #define SERVER_FLAG_RUNNING 1
@@ -51,6 +52,12 @@ typedef struct siridb_server_s
 
 } siridb_server_t;
 
+typedef struct siridb_server_walker_s
+{
+    siridb_server_t * server;
+    siridb_t * siridb;
+} siridb_server_walker_t;
+
 siridb_server_t * siridb_server_new(
         const char * uuid,
         const char * address,
@@ -75,6 +82,9 @@ void siridb_server_send_flags(siridb_server_t * server);
  */
 char * siridb_server_str_status(siridb_server_t * server);
 
+int siridb_server_cexpr_cb(
+        siridb_server_walker_t * wserver,
+        cexpr_condition_t * cond);
 
 #define siridb_server_update_flags(org, new) \
     org = new | (org & SERVER_FLAG_AUTHENTICATED)

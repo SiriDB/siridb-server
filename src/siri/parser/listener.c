@@ -966,7 +966,6 @@ static void exit_list_servers_stmt(uv_async_t * handle)
 
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
-    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
 
     if (qlist->props == NULL)
     {

@@ -352,6 +352,86 @@ char * siridb_server_str_status(siridb_server_t * server)
     return strdup((n) ? buffer : "offline");
 }
 
+int siridb_server_cexpr_cb(
+        siridb_server_walker_t * wserver,
+        cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_BUFFER_SIZE:
+        return cexpr_int_cmp(
+                cond->operator,
+                (wserver->siridb->server == wserver->server) ?
+                        wserver->siridb->buffer_size :
+                        wserver->server->buffer_size,
+                cond->int64);
+
+    case CLERI_GID_K_PORT:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->server->port,
+                cond->int64);
+
+    case CLERI_GID_K_POOL:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->server->pool,
+                cond->int64);
+
+    case CLERI_GID_K_ADDRESS:
+        return cexpr_str_cmp(
+                cond->operator,
+                wserver->server->address,
+                cond->str);
+
+    case CLERI_GID_K_NAME:
+        return cexpr_str_cmp(
+                cond->operator,
+                wserver->server->name,
+                cond->str);
+
+    case CLERI_GID_K_UUID:
+        {
+            char uuid[37];
+            uuid_unparse_lower(wserver->server->uuid, uuid);
+            return cexpr_str_cmp(cond->operator, uuid, cond->str);
+        }
+
+    case CLERI_GID_K_ONLINE:
+        return cexpr_bool_cmp(
+                cond->operator,
+                (   wserver->siridb->server == wserver->server ||
+                    wserver->server->socket != NULL),
+                cond->int64);
+
+    case CLERI_GID_K_STATUS:
+        {
+            char * status = siridb_server_str_status(wserver->server);
+            int rc = cexpr_str_cmp(cond->operator, status, cond->str);
+            free(status);
+            return rc;
+        }
+
+    /* all properties below are 'remote properties'. if a remote property
+     * is detected we should perform the query on each server and only for
+     * that specific server.
+     */
+    case CLERI_GID_K_LOG_LEVEL:
+#ifdef DEBUG
+        assert (wserver->siridb->server == wserver->server);
+#endif
+        return cexpr_int_cmp(
+                        cond->operator,
+                        Logger.level,
+                        cond->int64);
+
+    }
+    /* we must NEVER get here */
+    log_critical("Unexpected server property received: %d", cond->prop);
+    assert (0);
+    return -1;
+}
+
 static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 {
     if (!uv_is_closing((uv_handle_t *) promise->timer))

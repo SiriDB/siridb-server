@@ -72,5 +72,9 @@ int cexpr_str_cmp(
         const cexpr_operator_t operator,
         const char * a,
         const char * b);
+int cexpr_bool_cmp(
+        const cexpr_operator_t operator,
+        const int64_t a,
+        const int64_t b);
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj);
 void cexpr_free(cexpr_t * cexpr);
