@@ -23,7 +23,6 @@ logger_t Logger = {
 };
 
 #define LOGGER_CHR_MAP "DIWECU"
-#define LOGGER_SIZE 1024
 
 #define KNRM  "\x1B[0m"     // normal
 #define KRED  "\x1B[31m"    // error
@@ -39,19 +38,12 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
 
 #define LOGGER_LOG_STUFF(LEVEL)                                 \
 {                                                               \
-    if (Logger.level_name == NULL)                              \
-    {                                                           \
-        fprintf(stderr, "Forgot to run logger_init?");          \
-        exit(EXIT_FAILURE);                                     \
-    }                                                           \
     if (Logger.level > LEVEL)                                   \
+    {                                                           \
         return;                                                 \
-    char buffer[LOGGER_SIZE];                                   \
+    }                                                           \
     time_t t = time(NULL);                                      \
     struct tm tm = *localtime(&t);                              \
-    va_list args;                                               \
-    va_start(args, fmt);                                        \
-    vsnprintf(buffer, LOGGER_SIZE, fmt, args);                  \
     if (Logger.flags & LOGGER_FLAG_COLORED)                     \
     {                                                           \
         char * color =                                          \
@@ -60,7 +52,7 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
                 (LEVEL <= 30) ? KYEL :                          \
                 (LEVEL <= 40) ? KRED : KMAG;                    \
         fprintf(Logger.ostream,                                 \
-            "%s[%c %d-%0*d-%0*d %0*d:%0*d:%0*d]" KNRM " %s\n",  \
+            "%s[%c %d-%0*d-%0*d %0*d:%0*d:%0*d]" KNRM " ",      \
             color,                                              \
             LOGGER_CHR_MAP[(LEVEL - 1) / 10],                   \
             tm.tm_year + 1900,                                  \
@@ -68,23 +60,27 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
             2, tm.tm_mday,                                      \
             2, tm.tm_hour,                                      \
             2, tm.tm_min,                                       \
-            2, tm.tm_sec,                                       \
-            buffer);                                            \
+            2, tm.tm_sec);                                      \
     }                                                           \
     else                                                        \
     {                                                           \
         fprintf(Logger.ostream,                                 \
-            "[%c %d-%0*d-%0*d %0*d:%0*d:%0*d] %s\n",            \
+        "[%c %d-%0*d-%0*d %0*d:%0*d:%0*d] ",                    \
             LOGGER_CHR_MAP[(LEVEL - 1) / 10],                   \
             tm.tm_year + 1900,                                  \
             2, tm.tm_mon + 1,                                   \
             2, tm.tm_mday,                                      \
             2, tm.tm_hour,                                      \
             2, tm.tm_min,                                       \
-            2, tm.tm_sec,                                       \
-            buffer);                                            \
+            2, tm.tm_sec);                                      \
     }                                                           \
+    /* print the actual log line */                             \
+    va_list args;                                               \
+    va_start(args, fmt);                                        \
+    vfprintf(Logger.ostream, fmt, args);                        \
     va_end(args);                                               \
+    /* write end of line and flush the stream */                \
+    fputc('\n', Logger.ostream);                                \
     fflush(Logger.ostream);                                     \
 }
 
