@@ -244,7 +244,7 @@ static void SIRIDB_free(siridb_t * siridb)
     /* we do not need to free server and replica since they exist in
      * this list and therefore will be freed.
      */
-    siridb_servers_free(siridb);
+    siridb_servers_free(siridb->servers);
 
     /* free pools */
     siridb_pools_free(siridb->pools);

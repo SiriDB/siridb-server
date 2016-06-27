@@ -26,20 +26,31 @@ typedef enum sirinet_promise_status
 } sirinet_promise_status_t;
 
 typedef struct sirinet_promise_s sirinet_promise_t;
+typedef struct sirinet_promises_s sirinet_promises_t;
 
-typedef void (* sirinet_promise_cb)(
+typedef void (* sirinet_promise_cb_t)(
         sirinet_promise_t * promise,
         const sirinet_pkg_t * pkg,
         int status);
+
+typedef void (* sirinet_promises_cb_t)(
+        slist_t * promises, void * data);
 
 /* the callback will always be called and is responsible to free the promise */
 typedef struct sirinet_promise_s
 {
     uv_timer_t * timer;
-    sirinet_promise_cb cb;
+    sirinet_promise_cb_t cb;
     siridb_server_t * server;
     uint64_t pid;
     void * data;
 } sirinet_promise_t;
+
+typedef struct sirinet_promises_s
+{
+    sirinet_promises_cb_t cb;
+    slist_t * promises;
+    void * data;
+} sirinet_promises_t;
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status);

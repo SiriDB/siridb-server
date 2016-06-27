@@ -27,3 +27,35 @@ const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
     assert(0);
     return "";
 }
+
+
+static void promise_on_response(
+        sirinet_promise_t * promise,
+        const sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        /* we already have a log entry so this can be a debug log */
+        log_debug(
+                "Error occurred while sending package to '%s' (%s)",
+                promise->server->name,
+                sirinet_promise_strstatus(status));
+    }
+
+    sirinet_promises_t * promises = promise->data;
+
+    /* pkg is NULL when and only when an error has occurred */
+#ifdef DEBUG
+    assert (pkg != NULL || status);
+#endif
+    promise->data = pkg;
+    slist_append(promises->promises, promise);
+
+    if (promises->promises->len == promises->promises->size)
+    {
+        promises->cb(promises->promises, promises->data);
+        free(promises);
+    }
+
+}

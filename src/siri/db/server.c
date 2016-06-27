@@ -30,7 +30,7 @@ static void SERVER_on_auth_response(
         sirinet_promise_t * promise,
         const sirinet_pkg_t * pkg,
         int status);
-static void SERVER_on_flags_ack(
+static void SERVER_on_flags_update_response(
         sirinet_promise_t * promise,
         const sirinet_pkg_t * pkg,
         int status);
@@ -172,7 +172,7 @@ void siridb_server_send_flags(siridb_server_t * server)
             BP_FLAGS_UPDATE,
             buffer,
             0,
-            SERVER_on_flags_ack,
+            SERVER_on_flags_update_response,
             NULL);
 }
 
@@ -518,7 +518,7 @@ static void SERVER_on_auth_response(
     free(promise);
 }
 
-static void SERVER_on_flags_ack(
+static void SERVER_on_flags_update_response(
         sirinet_promise_t * promise,
         const sirinet_pkg_t * pkg,
         int status)

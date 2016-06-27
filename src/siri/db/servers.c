@@ -145,14 +145,41 @@ int siridb_servers_load(siridb_t * siridb)
     return 0;
 }
 
-void siridb_servers_free(siridb_t * siridb)
+void siridb_servers_free(llist_t * servers)
 {
-    llist_free_cb(siridb->servers, (llist_cb_t) SERVERS_walk_free, NULL);
+    llist_free_cb(servers, (llist_cb_t) SERVERS_walk_free, NULL);
 }
 
-siridb_server_t * siridb_servers_get_server(siridb_t * siridb, uuid_t uuid)
+void siridb_servers_send_pkg(
+        llist_t * servers,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promise_cb cb,
+        void * data)
 {
-    llist_node_t * node = siridb->servers->first;
+    slist_t * promises = slist_new(servers->len);
+
+    siridb_server_t * server;
+    for (size_t i = 0; i < servers->len; i++)
+    {
+        server = servers->data[i];
+        siridb_server_send_pkg(
+                server,
+                len,
+                tp,
+                content,
+                timeout,
+                cb,
+                data);
+    }
+
+}
+
+siridb_server_t * siridb_servers_get_server(llist_t * servers, uuid_t uuid)
+{
+    llist_node_t * node = servers->first;
     siridb_server_t * server;
 
     while (node != NULL)
