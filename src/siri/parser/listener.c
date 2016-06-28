@@ -79,6 +79,8 @@ static void exit_select_stmt(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
+static void on_list_servers_response(slist_t * promises, uv_async_t * handle);
+
 static uint32_t GID_K_NAME = CLERI_GID_K_NAME;
 static uint32_t GID_K_POOL = CLERI_GID_K_POOL;
 static uint32_t GID_K_VERSION = CLERI_GID_K_VERSION;
@@ -86,16 +88,6 @@ static uint32_t GID_K_ONLINE = CLERI_GID_K_ONLINE;
 static uint32_t GID_K_STATUS = CLERI_GID_K_STATUS;
 static uint32_t GID_K_SERVERS = CLERI_GID_K_SERVERS;
 static uint32_t GID_K_SERIES = CLERI_GID_K_SERIES;
-
-
-/* TODO: check if uv_close_cb can be used with free or do we need a correct
- * casting like the following:
- *
- *  inline void sirinet_free_async(uv_handle_t * handle)
- *  {
- *      free((uv_async_t *) handle);
- *  }
- */
 
 #define SIRIPARSER_NEXT_NODE                                                \
 siridb_nodes_next(&query->nodes);                                           \
@@ -963,55 +955,6 @@ static void exit_list_series_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void on_query_list_servers_response(slist_t * promises, uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    sirinet_pkg_t * pkg;
-    sirinet_promise_t * promise;
-    qp_unpacker_t * unpacker;
-
-    for (size_t i = 0; i < promises->len; i++)
-    {
-        promise = promises->data[i];
-
-        if (promise == NULL)
-        {
-            continue;
-        }
-
-        pkg = promise->data;
-
-        if (pkg != NULL && pkg->tp == BP_QUERY_RESPONSE)
-        {
-            unpacker = qp_new_unpacker(pkg->data, pkg->len);
-
-            if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                    qp_next(unpacker, NULL) == QP_RAW && // columns
-                    qp_is_array(qp_skip_next(unpacker)) &&
-                    qp_next(unpacker, NULL) == QP_RAW && // servers
-                    qp_is_array(qp_next(unpacker, NULL)))
-            {
-                /* the result should contain one an only one array with server
-                 * properties.
-                 */
-                qp_extend_from_unpacker(query->packer, unpacker);
-            }
-
-            /* free the unpacker */
-            qp_free_unpacker(unpacker);
-
-        }
-
-        /* make sure we free the promise and data */
-        free(promise->data);
-        free(promise);
-    }
-
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
-
-    SIRIPARSER_NEXT_NODE
-}
-
 static void exit_list_servers_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1088,7 +1031,7 @@ static void exit_list_servers_stmt(uv_async_t * handle)
                 BP_QUERY_SERVER,
                 packer->buffer,
                 0,
-                (sirinet_promises_cb_t) on_query_list_servers_response,
+                (sirinet_promises_cb_t) on_list_servers_response,
                 handle);
 
         qp_free_packer(packer);
@@ -1289,6 +1232,59 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
     /* extend packer with timeit information */
     qp_extend_packer(query->packer, query->timeit);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+/****************************************************************************
+ * On Response Functions
+ ****************************************************************************/
+
+static void on_list_servers_response(slist_t * promises, uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t * unpacker;
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            continue;
+        }
+
+        pkg = promise->data;
+
+        if (pkg != NULL && pkg->tp == BP_QUERY_RESPONSE)
+        {
+            unpacker = qp_new_unpacker(pkg->data, pkg->len);
+
+            if (    qp_is_map(qp_next(unpacker, NULL)) &&
+                    qp_next(unpacker, NULL) == QP_RAW && // columns
+                    qp_is_array(qp_skip_next(unpacker)) &&
+                    qp_next(unpacker, NULL) == QP_RAW && // servers
+                    qp_is_array(qp_next(unpacker, NULL)))
+            {
+                /* the result should contain one an only one array with server
+                 * properties.
+                 */
+                qp_extend_from_unpacker(query->packer, unpacker);
+            }
+
+            /* free the unpacker */
+            qp_free_unpacker(unpacker);
+
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE
 }

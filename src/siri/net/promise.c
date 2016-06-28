@@ -47,6 +47,9 @@ void sirinet_promise_on_response(
         sirinet_pkg_t * pkg,
         int status)
 {
+    /* This method will clean the promises type and list. The promises->cb
+     * is responsible for calling 'free' on each promise and promise->data.
+     */
     sirinet_promises_t * promises = promise->data;
 
     if (status)
