@@ -39,6 +39,7 @@ typedef struct cexpr_condition_s
 } cexpr_condition_t;
 
 typedef int (*cexpr_cb_t)(void * obj, cexpr_condition_t * cond);
+typedef int (*cexpr_cb_prop_t)(uint32_t prop);
 
 typedef struct cexpr_s cexpr_t;
 
@@ -77,4 +78,5 @@ int cexpr_bool_cmp(
         const int64_t a,
         const int64_t b);
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj);
+int cexpr_contains(cexpr_t * cexpr, cexpr_cb_prop_t cb);
 void cexpr_free(cexpr_t * cexpr);

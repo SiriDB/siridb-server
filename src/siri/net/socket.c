@@ -16,7 +16,7 @@
 #include <siri/net/socket.h>
 #include <siri/siri.h>
 
-static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb);
+static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
 void sirinet_socket_alloc_buffer(
         uv_handle_t * handle,
@@ -154,7 +154,7 @@ void sirinet_socket_on_data(
     ssocket->buf = NULL;
 }
 
-uv_tcp_t * sirinet_socket_new(int tp, on_data_cb cb)
+uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
 {
     uv_tcp_t * socket = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
     socket->data = SOCKET_new(tp, cb);
@@ -196,9 +196,7 @@ void sirinet_socket_free(uv_tcp_t * client)
     free(client);
 }
 
-
-
-static sirinet_socket_t * SOCKET_new(int tp, on_data_cb cb)
+static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
 {
     sirinet_socket_t * ssocket =
             (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));

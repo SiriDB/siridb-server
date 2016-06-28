@@ -14,8 +14,12 @@
 
 #include <siri/net/pkg.h>
 #include <siri/net/socket.h>
+#include <slist/slist.h>
+#include <siri/db/server.h>
 
 #define PROMISE_DEFAULT_TIMEOUT 10000  // 10 seconds
+
+typedef struct siridb_server_s siridb_server_t;
 
 typedef enum sirinet_promise_status
 {
@@ -30,11 +34,12 @@ typedef struct sirinet_promises_s sirinet_promises_t;
 
 typedef void (* sirinet_promise_cb_t)(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status);
 
 typedef void (* sirinet_promises_cb_t)(
-        slist_t * promises, void * data);
+        slist_t * promises,
+        void * data);
 
 /* the callback will always be called and is responsible to free the promise */
 typedef struct sirinet_promise_s
@@ -54,3 +59,20 @@ typedef struct sirinet_promises_s
 } sirinet_promises_t;
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status);
+
+void sirinet_promise_on_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status);
+
+sirinet_promises_t * sirinet_promises_new(
+        size_t size,
+        sirinet_promises_cb_t cb,
+        void * data);
+
+#define SIRINET_PROMISES_CHECK(promises)                        \
+    if (promises->promises->len == promises->promises->size)    \
+    {                                                           \
+        promises->cb(promises->promises, promises->data);       \
+        free(promises);                                         \
+    }

@@ -28,11 +28,11 @@ static void SERVER_timeout_pkg(uv_timer_t * handle);
 static void SERVER_write_cb(uv_write_t * req, int status);
 static void SERVER_on_auth_response(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status);
 static void SERVER_on_flags_update_response(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status);
 
 siridb_server_t * siridb_server_new(
@@ -100,10 +100,11 @@ void siridb_server_send_pkg(
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promise_cb cb,
+        sirinet_promise_cb_t cb,
         void * data)
 {
 #ifdef DEBUG
+    assert (server->socket != NULL);
     assert (server->promises != NULL);
     assert (cb != NULL);
 #endif
@@ -274,7 +275,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
     free(req);
 }
 
-static void SERVER_on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void SERVER_on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     sirinet_socket_t * ssocket = client->data;
     siridb_server_t * server = ssocket->origin;
@@ -350,6 +351,23 @@ char * siridb_server_str_status(siridb_server_t * server)
         }
     }
     return strdup((n) ? buffer : "offline");
+}
+
+int siridb_server_is_remote_prop(uint32_t prop)
+{
+    switch (prop)
+    {
+    case CLERI_GID_K_ADDRESS:
+    case CLERI_GID_K_PORT:
+    case CLERI_GID_K_NAME:
+    case CLERI_GID_K_UUID:
+    case CLERI_GID_K_ONLINE:
+    case CLERI_GID_K_STATUS:
+    case CLERI_GID_K_POOL:
+    case CLERI_GID_K_VERSION:
+        return 0;
+    }
+    return 1;
 }
 
 int siridb_server_cexpr_cb(
@@ -489,7 +507,7 @@ static void SERVER_update_name(siridb_server_t * server)
 
 static void SERVER_on_auth_response(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status)
 {
     if (status)
@@ -520,7 +538,7 @@ static void SERVER_on_auth_response(
 
 static void SERVER_on_flags_update_response(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status)
 {
     if (status)

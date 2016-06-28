@@ -71,6 +71,8 @@ static qp_types_t print_unpacker(
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj);
 
+static qp_types_t walk_unpacker(qp_unpacker_t * unpacker);
+
 qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
@@ -180,6 +182,16 @@ void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source)
     packer->len += source->len;
 }
 
+void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker)
+{
+    const char * start = unpacker->pt;
+    size_t size;
+    walk_unpacker(unpacker);
+    size = unpacker->pt - start;
+    QP_RESIZE(size)
+    memcpy(packer->buffer, start, size);
+}
+
 inline int qp_is_array(qp_types_t tp)
 {
     return tp == QP_ARRAY_OPEN || (tp >= QP_ARRAY0 && tp <= QP_ARRAY5);
@@ -200,6 +212,60 @@ void qp_print(const char * pt, size_t len)
     qp_free_unpacker(unpacker);
 }
 
+static qp_types_t walk_unpacker(qp_unpacker_t * unpacker)
+{
+    qp_types_t tp = qp_next(unpacker, NULL);
+    int count;
+    switch (tp)
+    {
+
+    case QP_ARRAY0:
+    case QP_ARRAY1:
+    case QP_ARRAY2:
+    case QP_ARRAY3:
+    case QP_ARRAY4:
+    case QP_ARRAY5:
+        count = tp - QP_ARRAY0;
+        while (count--)
+        {
+            walk_unpacker(unpacker);
+        }
+        return tp;
+    case QP_MAP0:
+    case QP_MAP1:
+    case QP_MAP2:
+    case QP_MAP3:
+    case QP_MAP4:
+    case QP_MAP5:
+        count = (tp - QP_MAP0) * 2;
+        while (count--)
+        {
+            walk_unpacker(unpacker);
+        }
+        return tp;
+    case QP_ARRAY_OPEN:
+        while (tp && tp != QP_ARRAY_CLOSE)
+        {
+            tp = walk_unpacker(unpacker);
+        }
+        return QP_ARRAY_OPEN;
+    case QP_MAP_OPEN:
+        /* read first key or end or close */
+        tp = walk_unpacker(unpacker);
+        while (tp && tp != QP_MAP_CLOSE)
+        {
+            /* read value */
+            walk_unpacker(unpacker);
+
+            /* read next key or end or close */
+            tp = walk_unpacker(unpacker);
+        }
+        return QP_MAP_OPEN;
+    default:
+        return tp;
+    }
+}
+
 static qp_types_t print_unpacker(
         qp_types_t tp,
         qp_unpacker_t * unpacker,
@@ -207,74 +273,96 @@ static qp_types_t print_unpacker(
 {
     int count;
     int found;
-    if (tp == QP_INT64)
-        printf("%ld", qp_obj->via->int64);
-    else if (tp == QP_DOUBLE)
-        printf("%f", qp_obj->via->real);
-    else if (tp == QP_RAW)
-        printf("\"%.*s\"", (int) qp_obj->len,
-                qp_obj->via->raw);
-    else if (tp == QP_TRUE)
-        printf("true");
-    else if (tp == QP_FALSE)
-        printf("false");
-    else if (tp == QP_NULL)
-        printf("null");
-    else if (tp >= QP_ARRAY0 && tp <= QP_ARRAY5)
+    switch (tp)
     {
+    case QP_INT64:
+        printf("%ld", qp_obj->via->int64);
+        break;
+    case QP_DOUBLE:
+        printf("%f", qp_obj->via->real);
+        break;
+    case QP_RAW:
+        printf("\"%.*s\"", (int) qp_obj->len, qp_obj->via->raw);
+        break;
+    case QP_TRUE:
+        printf("true");
+        break;
+    case QP_FALSE:
+        printf("false");
+        break;
+    case QP_NULL:
+        printf("null");
+        break;
+    case QP_ARRAY0:
+    case QP_ARRAY1:
+    case QP_ARRAY2:
+    case QP_ARRAY3:
+    case QP_ARRAY4:
+    case QP_ARRAY5:
         printf("[");
         count = tp - QP_ARRAY0;
         tp = qp_next(unpacker, qp_obj);
         for (found = 0; count-- && tp; found = 1)
         {
             if (found )
+            {
                 printf(", ");
+            }
             tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("]");
         return tp;
-    }
-    else if (tp >= QP_MAP0 && tp <= QP_MAP5)
-    {
+    case QP_MAP0:
+    case QP_MAP1:
+    case QP_MAP2:
+    case QP_MAP3:
+    case QP_MAP4:
+    case QP_MAP5:
         printf("{");
         count = tp - QP_MAP0;
         tp = qp_next(unpacker, qp_obj);
         for (found = 0; count-- && tp; found = 1)
         {
             if (found )
+            {
                 printf(", ");
+            }
             tp = print_unpacker(tp, unpacker, qp_obj);
             printf(": ");
             tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("}");
         return tp;
-    }
-    else if (tp == QP_ARRAY_OPEN)
-    {
+    case QP_ARRAY_OPEN:
         printf("[");
         tp = qp_next(unpacker, qp_obj);
         for (count = 0; tp && tp != QP_ARRAY_CLOSE; count = 1)
         {
             if (count)
+            {
                 printf(", ");
+            }
             tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("]");
-    }
-    else if (tp == QP_MAP_OPEN)
-    {
+        break;
+    case QP_MAP_OPEN:
         printf("{");
         tp = qp_next(unpacker, qp_obj);
         for (count = 0; tp && tp != QP_MAP_CLOSE; count = 1)
         {
             if (count)
+            {
                 printf(", ");
+            }
             tp = print_unpacker(tp, unpacker, qp_obj);
             printf(": ");
             tp = print_unpacker(tp, unpacker, qp_obj);
         }
         printf("}");
+        break;
+    default:
+        break;
     }
     return qp_next(unpacker, qp_obj);
 }
@@ -457,8 +545,9 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
 {
     uint_fast8_t tp;
     if (unpacker->pt >= unpacker->end)
+    {
         return QP_END;
-
+    }
     tp = *unpacker->pt;
 
     /* unpack specials like array, map, boolean, null etc */

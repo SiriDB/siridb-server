@@ -25,19 +25,19 @@ typedef enum sirinet_socket_tp
 typedef struct siridb_s siridb_t;
 typedef struct siridb_user_s siridb_user_t;
 
-typedef void (* on_data_cb)(uv_handle_t * client, const sirinet_pkg_t * pkg);
+typedef void (* on_data_cb_t)(uv_handle_t * client, sirinet_pkg_t * pkg);
 
 typedef struct sirinet_socket_s
 {
     sirinet_socket_tp_t tp;
-    on_data_cb on_data;
+    on_data_cb_t on_data;
     siridb_t * siridb;
     void * origin;  /* can be a user, server or NULL */
     char * buf;
     size_t len;
 } sirinet_socket_t;
 
-uv_tcp_t * sirinet_socket_new(int tp, on_data_cb cb);
+uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb);
 void sirinet_socket_free(uv_tcp_t * client);
 
 void sirinet_socket_alloc_buffer(

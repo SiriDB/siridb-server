@@ -112,6 +112,9 @@ void qp_free_packer(qp_packer_t * packer);
 
 void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source);
 
+/* extend from unpacker (only the current position will be copied) */
+void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker);
+
 qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len);
 
 qp_unpacker_t * qp_from_file_unpacker(const char * fn);
@@ -125,8 +128,6 @@ void qp_free_unpacker(qp_unpacker_t * unpacker);
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
 
 void qp_free_object(qp_obj_t * qp_obj);
-
-qp_types_t qp_next_object(qp_unpacker_t * unpacker);
 
 void qp_print(const char * pt, size_t len);
 

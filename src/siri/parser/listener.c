@@ -19,6 +19,7 @@
 #include <siri/db/props.h>
 #include <siri/db/shard.h>
 #include <siri/net/protocol.h>
+#include <siri/db/servers.h>
 #include <inttypes.h>
 #include <sys/time.h>
 #include <qpack/qpack.h>
@@ -528,7 +529,9 @@ static void enter_xxx_columns(uv_async_t * handle)
                 &columns->node->children->node->cl_obj->cl_obj->dummy->gid);
 
         if (columns->next == NULL)
+        {
             break;
+        }
 
         columns = columns->next->next;
     }
@@ -960,12 +963,67 @@ static void exit_list_series_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
+static void on_query_list_servers_response(slist_t * promises, uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t * unpacker;
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+        if (    promise != NULL &&
+                (pkg = promise->data) != NULL &&
+                pkg->tp == BP_QUERY_RESPONSE)
+        {
+            unpacker = qp_new_unpacker(pkg->data, pkg->len);
+            qp_print_unpacker(unpacker);
+
+            if (    qp_is_map(qp_next(unpacker, NULL)) &&
+                    qp_next(unpacker, NULL) == QP_RAW)
+            {
+                qp_extend_from_unpacker(query->packer, unpacker);
+            }
+
+            qp_free_unpacker(unpacker);
+        }
+    }
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    qp_print_packer(query->packer);
+
+    SIRIPARSER_NEXT_NODE
+}
+
 static void exit_list_servers_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     query_list_t * qlist = (query_list_t *) query->data;
+    int is_local = query->flags & SIRIDB_QUERY_FLAG_MASTER;
+
+    /* if is_local, check if we need ask for 'remote' columns */
+    if (is_local && qlist->props != NULL)
+    {
+        for (int i = 0; i < qlist->props->len; i++)
+        {
+            if (siridb_server_is_remote_prop(
+                    *((uint32_t *) qlist->props->data[i])))
+            {
+                is_local = 0;
+                break;
+            }
+        }
+    }
+
+    /* if is_local, check if we use 'remote' props in where expression */
+    if (is_local && where_expr != NULL)
+    {
+        is_local = !cexpr_contains(where_expr, siridb_server_is_remote_prop);
+    }
 
     if (qlist->props == NULL)
     {
@@ -987,15 +1045,44 @@ static void exit_list_servers_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "servers", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    llist_walkn(
-            siridb->servers,
-            qlist->limit,
-            (llist_cb_t) walk_list_servers,
-            handle);
+    if (is_local)
+    {
+        llist_walkn(
+                siridb->servers,
+                qlist->limit,
+                (llist_cb_t) walk_list_servers,
+                handle);
+    }
+    else
+    {
+        walk_list_servers(siridb->server, handle);
+    }
 
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+    if ((query->flags & SIRIDB_QUERY_FLAG_MASTER) && !is_local)
+    {
+        qp_packer_t * packer = qp_new_packer(1024);
+        qp_add_type(packer, QP_ARRAY2);
+        qp_add_int8(packer, query->time_precision);
+
+        siridb_query_to_packer(packer, query);
+
+        siridb_servers_send_pkg(
+                siridb,
+                packer->len,
+                BP_QUERY_SERVER,
+                packer->buffer,
+                0,
+                (sirinet_promises_cb_t) on_query_list_servers_response,
+                handle);
+
+        qp_free_packer(packer);
+    }
+    else
+    {
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_list_users_stmt(uv_async_t * handle)

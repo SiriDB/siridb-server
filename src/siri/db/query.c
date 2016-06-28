@@ -83,9 +83,7 @@ void siridb_async_query(
     query->free_cb = siridb_free_query;
 
     /* set query */
-    query->q = (char *) malloc(q_len + 1);
-    memcpy(query->q, q, q_len); // copy query
-    query->q[q_len] = 0;        // write null terminator
+    query->q = strndup(q, q_len);
 
     /* We should initialize the packer based on query type */
     query->packer = NULL;
@@ -182,6 +180,7 @@ void siridb_send_error(
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
 }
+
 
 static void siridb_send_invalid_query_error(uv_async_t * handle)
 {
@@ -378,6 +377,36 @@ static void siridb_parse_query(uv_async_t * handle)
     forward->data = (void *) handle->data;
     uv_async_send(forward);
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+}
+
+int siridb_query_to_packer(qp_packer_t * packer, siridb_query_t * query)
+{
+    if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
+    {
+        size_t max_size = query->pr->tree->len + 200; /* reserve 200 extra chars */
+        char buffer[max_size];
+        size_t size = max_size;
+
+        if (QUERY_rebuild(
+                query->pr->tree->children->node,
+                buffer,
+                &size,
+                max_size))
+        {
+            return -1;
+        }
+        else
+        {
+            /* terminate buffer */
+            buffer[max_size - size] = 0;
+        }
+        qp_add_raw(packer, buffer, max_size - size);
+    }
+    else
+    {
+        qp_add_string(packer, query->q);
+    }
+    return 0;
 }
 
 static int QUERY_walk(

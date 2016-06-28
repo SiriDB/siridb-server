@@ -209,6 +209,29 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
     return -1; /* this should NEVER happen */
 }
 
+int cexpr_contains(cexpr_t * cexpr, cexpr_cb_prop_t cb)
+{
+    /* should return either 1 or 0. (true or false) */
+
+    if (cexpr->tp_a == VIA_CEXPR && cexpr_contains(cexpr->via_a.cexpr, cb))
+    {
+        return 1;
+    }
+    if (cexpr->tp_b == VIA_CEXPR && cexpr_contains(cexpr->via_b.cexpr, cb))
+    {
+        return 1;
+    }
+    if (cexpr->tp_a == VIA_COND && cb(cexpr->via_a.cond->prop))
+    {
+        return 1;
+    }
+    if (cexpr->tp_b == VIA_COND && cb(cexpr->via_b.cond->prop))
+    {
+        return 1;
+    }
+    return 0;
+}
+
 void cexpr_free(cexpr_t * cexpr)
 {
     switch (cexpr->tp_a)

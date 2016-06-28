@@ -74,3 +74,4 @@ void siridb_send_error(
         sirinet_msg_t err);
 
 
+int siridb_query_to_packer(qp_packer_t * packer, siridb_query_t * query);

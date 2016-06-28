@@ -17,6 +17,7 @@
 #include <imap64/imap64.h>
 #include <cexpr/cexpr.h>
 #include <uv.h>
+#include <siri/net/promise.h>
 
 #define SERVER_FLAG_RUNNING 1
 #define SERVER_FLAG_PAUSED 2
@@ -30,6 +31,11 @@
     (server->flags & SERVER_IS_AVAILABLE) == SERVER_IS_AVAILABLE
 
 typedef struct siridb_s siridb_t;
+typedef struct sirinet_promise_s sirinet_promise_t;
+typedef void (* sirinet_promise_cb_t)(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status);
 
 typedef struct siridb_server_s
 {
@@ -75,12 +81,23 @@ int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
 void siridb_server_incref(siridb_server_t * server);
 void siridb_server_decref(siridb_server_t * server);
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
+void siridb_server_send_pkg(
+        siridb_server_t * server,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promise_cb_t cb,
+        void * data);
 void siridb_server_send_flags(siridb_server_t * server);
 
 /* returns the current server status (flags) as string. the returned value
  * is created with malloc() so do not forget to free the result.
  */
 char * siridb_server_str_status(siridb_server_t * server);
+
+/* return true when the given property (CLERI keyword) needs a remote query */
+int siridb_server_is_remote_prop(uint32_t prop);
 
 int siridb_server_cexpr_cb(
         siridb_server_walker_t * wserver,

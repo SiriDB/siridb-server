@@ -146,7 +146,7 @@ int walk_list_servers(
             (cexpr_cb_t) siridb_server_cexpr_cb,
             &wserver))
     {
-        return 0; // false
+        return 0;  // false
     }
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -239,7 +239,7 @@ int walk_list_servers(
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    return 1;
+    return 1;  // true
 }
 
 int walk_select(

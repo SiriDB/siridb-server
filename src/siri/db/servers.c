@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <siri/version.h>
+#include <siri/db/db.h>
 
 
 #define SIRIDB_SERVERS_FN "servers.dat"
@@ -151,30 +152,49 @@ void siridb_servers_free(llist_t * servers)
 }
 
 void siridb_servers_send_pkg(
-        llist_t * servers,
+        siridb_t * siridb,
         uint32_t len,
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promise_cb cb,
+        sirinet_promises_cb_t cb,
         void * data)
 {
-    slist_t * promises = slist_new(servers->len);
+    sirinet_promises_t * promises =
+            sirinet_promises_new(siridb->servers->len - 1, cb, data);
 
     siridb_server_t * server;
-    for (size_t i = 0; i < servers->len; i++)
-    {
-        server = servers->data[i];
-        siridb_server_send_pkg(
-                server,
-                len,
-                tp,
-                content,
-                timeout,
-                cb,
-                data);
-    }
 
+    for (   llist_node_t * node = siridb->servers->first;
+            node != NULL;
+            node = node->next)
+    {
+        server = node->data;
+        if (server == siridb->server)
+        {
+            continue;
+        }
+
+        if (siridb_server_is_available(server))
+        {
+            siridb_server_send_pkg(
+                    server,
+                    len,
+                    tp,
+                    content,
+                    timeout,
+                    sirinet_promise_on_response,
+                    promises);
+        }
+        else
+        {
+            log_debug("Cannot send package to '%s' (server is offline)",
+                    server->name);
+            slist_append(promises->promises, NULL);
+        }
+
+    }
+    SIRINET_PROMISES_CHECK(promises)
 }
 
 siridb_server_t * siridb_servers_get_server(llist_t * servers, uuid_t uuid)

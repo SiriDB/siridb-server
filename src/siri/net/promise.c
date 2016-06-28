@@ -13,6 +13,7 @@
 
 #include <siri/net/promise.h>
 #include <assert.h>
+#include <logger/logger.h>
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
 {
@@ -28,10 +29,22 @@ const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
     return "";
 }
 
+sirinet_promises_t * sirinet_promises_new(
+        size_t size,
+        sirinet_promises_cb_t cb,
+        void * data)
+{
+    sirinet_promises_t * promises =
+            (sirinet_promises_t *) malloc(sizeof(sirinet_promises_t));
+    promises->promises = slist_new(size);
+    promises->cb = cb;
+    promises->data = data;
+    return promises;
+}
 
-static void promise_on_response(
+void sirinet_promise_on_response(
         sirinet_promise_t * promise,
-        const sirinet_pkg_t * pkg,
+        sirinet_pkg_t * pkg,
         int status)
 {
     if (status)
@@ -52,10 +65,5 @@ static void promise_on_response(
     promise->data = pkg;
     slist_append(promises->promises, promise);
 
-    if (promises->promises->len == promises->promises->size)
-    {
-        promises->cb(promises->promises, promises->data);
-        free(promises);
-    }
-
+    SIRINET_PROMISES_CHECK(promises)
 }
