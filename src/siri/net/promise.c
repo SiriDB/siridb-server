@@ -47,6 +47,8 @@ void sirinet_promise_on_response(
         sirinet_pkg_t * pkg,
         int status)
 {
+    sirinet_promises_t * promises = promise->data;
+
     if (status)
     {
         /* we already have a log entry so this can be a debug log */
@@ -54,15 +56,13 @@ void sirinet_promise_on_response(
                 "Error occurred while sending package to '%s' (%s)",
                 promise->server->name,
                 sirinet_promise_strstatus(status));
+        promise->data = NULL;
+    }
+    else
+    {
+        promise->data = sirinet_pkg_dup(pkg);
     }
 
-    sirinet_promises_t * promises = promise->data;
-
-    /* pkg is NULL when and only when an error has occurred */
-#ifdef DEBUG
-    assert (pkg != NULL || status);
-#endif
-    promise->data = pkg;
     slist_append(promises->promises, promise);
 
     SIRINET_PROMISES_CHECK(promises)

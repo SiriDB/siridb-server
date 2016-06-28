@@ -541,7 +541,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         if (!uv_is_closing(handle))
         {
             log_critical(
-                    "Found a non closing Timer, all timers should"
+                    "Found a non closing Timer, all timers should "
                     "be stopped at this point!!!");
             uv_timer_stop((uv_timer_t *) handle);
             uv_close(handle, NULL);

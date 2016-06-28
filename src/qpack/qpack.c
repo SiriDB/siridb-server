@@ -71,8 +71,6 @@ static qp_types_t print_unpacker(
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj);
 
-static qp_types_t walk_unpacker(qp_unpacker_t * unpacker);
-
 qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
@@ -184,12 +182,19 @@ void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source)
 
 void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker)
 {
+    /* mark the start of the object */
     const char * start = unpacker->pt;
-    size_t size;
-    walk_unpacker(unpacker);
-    size = unpacker->pt - start;
+
+    /* jump to the end of the current object */
+    qp_skip_next(unpacker);
+
+    /* get size of the total object */
+    size_t size = unpacker->pt - start;
+
+    /* write object to the packer */
     QP_RESIZE(size)
-    memcpy(packer->buffer, start, size);
+    memcpy(packer->buffer + packer->len, start, size);
+    packer->len += size;
 }
 
 inline int qp_is_array(qp_types_t tp)
@@ -212,7 +217,7 @@ void qp_print(const char * pt, size_t len)
     qp_free_unpacker(unpacker);
 }
 
-static qp_types_t walk_unpacker(qp_unpacker_t * unpacker)
+qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
 {
     qp_types_t tp = qp_next(unpacker, NULL);
     int count;
@@ -228,7 +233,7 @@ static qp_types_t walk_unpacker(qp_unpacker_t * unpacker)
         count = tp - QP_ARRAY0;
         while (count--)
         {
-            walk_unpacker(unpacker);
+            qp_skip_next(unpacker);
         }
         return tp;
     case QP_MAP0:
@@ -240,25 +245,25 @@ static qp_types_t walk_unpacker(qp_unpacker_t * unpacker)
         count = (tp - QP_MAP0) * 2;
         while (count--)
         {
-            walk_unpacker(unpacker);
+            qp_skip_next(unpacker);
         }
         return tp;
     case QP_ARRAY_OPEN:
         while (tp && tp != QP_ARRAY_CLOSE)
         {
-            tp = walk_unpacker(unpacker);
+            tp = qp_skip_next(unpacker);
         }
         return QP_ARRAY_OPEN;
     case QP_MAP_OPEN:
         /* read first key or end or close */
-        tp = walk_unpacker(unpacker);
+        tp = qp_skip_next(unpacker);
         while (tp && tp != QP_MAP_CLOSE)
         {
             /* read value */
-            walk_unpacker(unpacker);
+            qp_skip_next(unpacker);
 
             /* read next key or end or close */
-            tp = walk_unpacker(unpacker);
+            tp = qp_skip_next(unpacker);
         }
         return QP_MAP_OPEN;
     default:
@@ -544,6 +549,7 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
 {
     uint_fast8_t tp;
+
     if (unpacker->pt >= unpacker->end)
     {
         return QP_END;

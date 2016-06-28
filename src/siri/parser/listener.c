@@ -973,25 +973,41 @@ static void on_query_list_servers_response(slist_t * promises, uv_async_t * hand
     for (size_t i = 0; i < promises->len; i++)
     {
         promise = promises->data[i];
-        if (    promise != NULL &&
-                (pkg = promise->data) != NULL &&
-                pkg->tp == BP_QUERY_RESPONSE)
+
+        if (promise == NULL)
+        {
+            continue;
+        }
+
+        pkg = promise->data;
+
+        if (pkg != NULL && pkg->tp == BP_QUERY_RESPONSE)
         {
             unpacker = qp_new_unpacker(pkg->data, pkg->len);
-            qp_print_unpacker(unpacker);
 
             if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                    qp_next(unpacker, NULL) == QP_RAW)
+                    qp_next(unpacker, NULL) == QP_RAW && // columns
+                    qp_is_array(qp_skip_next(unpacker)) &&
+                    qp_next(unpacker, NULL) == QP_RAW && // servers
+                    qp_is_array(qp_next(unpacker, NULL)))
             {
+                /* the result should contain one an only one array with server
+                 * properties.
+                 */
                 qp_extend_from_unpacker(query->packer, unpacker);
             }
 
+            /* free the unpacker */
             qp_free_unpacker(unpacker);
-        }
-    }
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_print_packer(query->packer);
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1063,9 +1079,8 @@ static void exit_list_servers_stmt(uv_async_t * handle)
     {
         qp_packer_t * packer = qp_new_packer(1024);
         qp_add_type(packer, QP_ARRAY2);
-        qp_add_int8(packer, query->time_precision);
-
         siridb_query_to_packer(packer, query);
+        qp_add_int8(packer, query->time_precision);
 
         siridb_servers_send_pkg(
                 siridb,

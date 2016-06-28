@@ -37,3 +37,6 @@ void sirinet_pkg_send(
         sirinet_pkg_t * pkg,
         uv_write_cb cb,
         void * data);
+
+
+sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg);

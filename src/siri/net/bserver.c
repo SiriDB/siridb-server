@@ -19,6 +19,7 @@
 #include <siri/net/protocol.h>
 #include <siri/db/auth.h>
 #include <assert.h>
+#include <siri/db/query.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -37,6 +38,7 @@ static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_query_server(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -93,7 +95,8 @@ static void on_new_connection(uv_stream_t * server, int status)
 
     log_debug("Received a back-end server connection request.");
 
-    uv_tcp_t * client = sirinet_socket_new(SOCKET_BACKEND, &on_data);
+    uv_tcp_t * client =
+            sirinet_socket_new(SOCKET_BACKEND, (on_data_cb_t) &on_data);
 
     uv_tcp_init(loop, client);
 
@@ -124,6 +127,9 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
         break;
     case BP_FLAGS_UPDATE:
         on_flags_update(client, pkg);
+        break;
+    case BP_QUERY_SERVER:
+        on_query_server(client, pkg);
         break;
     }
 
@@ -229,6 +235,36 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
         log_error("Invalid back-end 'on_flags_update' received.");
     }
     qp_free_object(qp_flags);
+    qp_free_unpacker(unpacker);
+}
+
+static void on_query_server(uv_handle_t * client, const sirinet_pkg_t * pkg)
+{
+    return;
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
+    qp_obj_t * qp_query = qp_new_object();
+    qp_obj_t * qp_time_precision = qp_new_object();
+
+    if (    qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_next(unpacker, qp_query) == QP_RAW &&
+            qp_next(unpacker, qp_time_precision) == QP_INT64)
+    {
+        siridb_async_query(
+                pkg->pid,
+                client,
+                qp_query->via->raw,
+                qp_query->len,
+                (siridb_timep_t) qp_time_precision->via->int64,
+                0);
+    }
+    else
+    {
+        log_error("Invalid back-end 'on_query_server' received.");
+    }
+    qp_free_object(qp_query);
+    qp_free_object(qp_time_precision);
     qp_free_unpacker(unpacker);
 }
 

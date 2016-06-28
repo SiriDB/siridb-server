@@ -61,6 +61,14 @@ void sirinet_pkg_send(
     uv_write(req, client, &wrbuf, 1, *cb);
 }
 
+sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
+{
+    size_t size = SN_PKG_HEADER_SIZE + pkg->len;
+    sirinet_pkg_t * dup = (sirinet_pkg_t *) malloc(size);
+    memcpy(dup, pkg, size);
+    return dup;
+}
+
 static void PKG_write_cb(uv_write_t * req, int status)
 {
     if (status)

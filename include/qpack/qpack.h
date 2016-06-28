@@ -127,6 +127,12 @@ void qp_free_unpacker(qp_unpacker_t * unpacker);
  */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
 
+/* this is like qp_next(unpacker, NULL) but in case of a map or array the
+ * total object is skipped. The return type can be used to check what the
+ * skipped object was.
+ */
+qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
+
 void qp_free_object(qp_obj_t * qp_obj);
 
 void qp_print(const char * pt, size_t len);
@@ -137,7 +143,7 @@ void qp_print(const char * pt, size_t len);
 
 /* Shortcut to print an unpacker object */
 #define qp_print_unpacker(unpacker) \
-    qp_print(unpacker->source, unpacker->end - unpacker->source)
+    qp_print(unpacker->pt, unpacker->end - unpacker->pt)
 
 /* Test functions */
 extern int qp_is_array(qp_types_t tp);

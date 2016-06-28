@@ -74,5 +74,6 @@ sirinet_promises_t * sirinet_promises_new(
     if (promises->promises->len == promises->promises->size)    \
     {                                                           \
         promises->cb(promises->promises, promises->data);       \
+        slist_free(promises->promises);                         \
         free(promises);                                         \
     }

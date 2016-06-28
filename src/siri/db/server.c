@@ -219,6 +219,8 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
                 promise->pid,
                 promise->server->name);
     }
+    /* the timer is stopped but we still need to close the timer */
+    uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
 
     promise->cb(promise, NULL, PROMISE_TMEOUT_ERROR);
 }

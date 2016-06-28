@@ -104,7 +104,8 @@ static void on_new_connection(uv_stream_t * server, int status)
         log_error("Client connection error: %s", uv_strerror(status));
         return;
     }
-    uv_tcp_t * client = sirinet_socket_new(SOCKET_CLIENT, &on_data);
+    uv_tcp_t * client =
+            sirinet_socket_new(SOCKET_CLIENT, (on_data_cb_t) &on_data);
 
     uv_tcp_init(loop, client);
 
