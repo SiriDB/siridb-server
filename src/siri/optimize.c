@@ -58,7 +58,7 @@ void siri_optimize_stop(siri_t * siri)
     uv_timer_stop(&optimize.timer);
     uv_close((uv_handle_t *) &optimize.timer, NULL);
 
-    siri->optimize = NULL;
+    /* keep optimize bound to siri because we still want to check the status */
 }
 
 static void OPTIMIZE_work(uv_work_t * work)
@@ -110,7 +110,13 @@ static void OPTIMIZE_work(uv_work_t * work)
         for (size_t i = 0; i < slshards->len; i++)
         {
             shard = (siridb_shard_t *) slshards->data[i];
-            siridb_shard_optimize(shard, siridb);
+
+            if (    optimize.status != SIRI_OPTIMIZE_CANCELLED &&
+                    shard->flags != SIRIDB_SHARD_OK &&
+                    !(shard->flags & SIRIDB_SHARD_WILL_BE_REMOVED))
+            {
+                siridb_shard_optimize(shard, siridb);
+            }
 
             /* decrement ref for the shard which was incremented earlier */
             siridb_shard_decref(shard);

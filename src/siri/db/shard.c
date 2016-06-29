@@ -318,11 +318,6 @@ int siridb_shard_get_points_num32(
 
 void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
-    if (    siri.optimize->status == SIRI_OPTIMIZE_CANCELLED ||
-            shard->flags == SIRIDB_SHARD_OK ||
-            (shard->flags & SIRIDB_SHARD_WILL_BE_REMOVED))
-        return;
-
     siridb_shard_t * new_shard = NULL;
 
     uint64_t duration = (shard->tp == SIRIDB_POINTS_TP_STRING) ?

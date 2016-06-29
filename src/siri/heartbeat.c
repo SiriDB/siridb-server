@@ -38,6 +38,7 @@ void siri_heartbeat_stop(siri_t * siri)
     uv_timer_stop(&heartbeat);
     uv_close((uv_handle_t *) &heartbeat, NULL);
 
+    /* we do not need the heart-beat anymore */
     siri->heartbeat = NULL;
 }
 

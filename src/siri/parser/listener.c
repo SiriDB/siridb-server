@@ -83,6 +83,10 @@ static void exit_set_log_level(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
+static void on_ack_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status);
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
 
@@ -94,10 +98,15 @@ static uint32_t GID_K_STATUS = CLERI_GID_K_STATUS;
 static uint32_t GID_K_SERVERS = CLERI_GID_K_SERVERS;
 static uint32_t GID_K_SERIES = CLERI_GID_K_SERIES;
 
+/*
+ * Start SIRIPARSER_NEXT_NODE
+ */
 #define SIRIPARSER_NEXT_NODE                                                \
 siridb_nodes_next(&query->nodes);                                           \
 if (query->nodes == NULL)                                                   \
+{                                                                           \
     siridb_send_query_result(handle);                                       \
+}                                                                           \
 else                                                                        \
 {                                                                           \
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));       \
@@ -107,13 +116,18 @@ else                                                                        \
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
 }
 
+/*
+ * Start SIRIPARSER_MASTER_CHECK_ACCESS
+ */
 #define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
 if (    IS_MASTER &&                                                        \
         !siridb_user_check_access(                                          \
             ((sirinet_socket_t *) query->client->data)->origin,             \
             ACCESS_BIT,                                                     \
             query->err_msg))                                                \
-    return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+{                                                                           \
+    return siridb_send_error(handle, SN_MSG_QUERY_ERROR);                   \
+}
 
 
 void siriparser_init_listener(void)
@@ -1299,11 +1313,10 @@ static void exit_set_log_level(uv_async_t * handle)
         assert(0);
         break;
     }
-    if (server == siridb->server)
-    {
-        logger_set_level(log_level);
-    }
 
+    /* we can set the success message, we just ignore the message in case an
+     * error occurs.
+     */
     query->packer = qp_new_packer(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -1313,7 +1326,35 @@ static void exit_set_log_level(uv_async_t * handle)
             logger_level_name(log_level),
             server->name);
 
-    SIRIPARSER_NEXT_NODE
+    if (server == siridb->server)
+    {
+        logger_set_level(log_level);
+
+        SIRIPARSER_NEXT_NODE
+    }
+    else
+    {
+        QP_PACK_INT16(buffer, log_level)
+        if (siridb_server_is_available(server))
+        {
+            siridb_server_send_pkg(
+                    server,
+                    3,
+                    BP_LOG_LEVEL_UPDATE,
+                    buffer,
+                    0,
+                    (sirinet_promise_cb_t) on_ack_response,
+                    handle);
+        }
+        else
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Cannot set log level, '%s' is currently unavailable",
+                    server->name);
+            siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+        }
+    }
 }
 
 static void exit_show_stmt(uv_async_t * handle)
@@ -1422,6 +1463,46 @@ static void exit_timeit_stmt(uv_async_t * handle)
 /******************************************************************************
  * On Response functions
  *****************************************************************************/
+
+static void on_ack_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status)
+{
+    uv_async_t * handle = (uv_async_t *) promise->data;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    if (status == PROMISE_SUCCESS)
+    {
+        switch (pkg->tp)
+        {
+        case BP_LOG_LEVEL_ACK:
+            /* success message is already set */
+            break;
+
+        default:
+            status = PROMISE_PKG_TYPE_ERROR;
+            break;
+        }
+    }
+
+    if (status)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Error occurred while sending the request to '%s' (%s)",
+                promise->server->name,
+                sirinet_promise_strstatus(status));
+        siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
+
+    /* we must free the promise */
+    free(promise);
+}
 
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 {

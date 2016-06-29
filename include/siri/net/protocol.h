@@ -49,6 +49,7 @@ typedef enum sirinet_backend_protocol_client_tp
     BP_FLAGS_UPDATE,                        // flags
     BP_QUERY_SERVER,                        // (query, time_precision)
     BP_QUERY_POOL,                          // (query, time_precision)
+    BP_LOG_LEVEL_UPDATE,                    // log_level
 } bp_client_t;
 
 typedef enum sirinet_backend_protocol_server_tp
@@ -57,6 +58,7 @@ typedef enum sirinet_backend_protocol_server_tp
     BP_QUERY_RESPONSE=SN_MSG_RESULT,        // data (query respose)
     BP_AUTH_SUCCESS=128,                    // Empty
     BP_FLAGS_ACK,                           // Empty
+    BP_LOG_LEVEL_ACK,                       // Empty
     BP_AUTH_ERROR_UNKNOWN_UUID,             // Empty
     BP_AUTH_ERROR_UNKNOWN_DBNAME,           // Empty
     BP_AUTH_ERROR_INVALID_UUID,             // Empty

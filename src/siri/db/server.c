@@ -223,7 +223,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     /* the timer is stopped but we still need to close the timer */
     uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
 
-    promise->cb(promise, NULL, PROMISE_TMEOUT_ERROR);
+    promise->cb(promise, NULL, PROMISE_TIMEOUT_ERROR);
 }
 
 static void SERVER_on_connect(uv_connect_t * req, int status)

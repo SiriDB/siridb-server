@@ -38,6 +38,7 @@ static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags);
 
 static uv_loop_t * loop = NULL;
@@ -127,6 +128,9 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
         break;
     case BP_FLAGS_UPDATE:
         on_flags_update(client, pkg);
+        break;
+    case BP_LOG_LEVEL_UPDATE:
+        on_log_level_update(client, pkg);
         break;
     case BP_QUERY_SERVER:
         on_query(client, pkg, 0);
@@ -238,6 +242,35 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
         log_error("Invalid back-end 'on_flags_update' received.");
     }
     qp_free_object(qp_flags);
+    qp_free_unpacker(unpacker);
+}
+
+static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    sirinet_pkg_t * package;
+    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
+    qp_obj_t * qp_log_level = qp_new_object();
+
+    if (qp_next(unpacker, qp_log_level) == QP_INT64)
+    {
+        /* update log level */
+        logger_set_level(qp_log_level->via->int64);
+
+        log_info("Log level update received from '%s' (%s)",
+                server->name,
+                Logger.level_name);
+
+        package = sirinet_pkg_new(pkg->pid, 0, BP_LOG_LEVEL_ACK, NULL);
+        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+        free(package);
+    }
+    else
+    {
+        log_error("Invalid back-end 'on_log_level_update' received.");
+    }
+    qp_free_object(qp_log_level);
     qp_free_unpacker(unpacker);
 }
 
