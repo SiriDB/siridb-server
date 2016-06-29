@@ -21,6 +21,7 @@
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <assert.h>
+#include <procinfo/procinfo.h>
 
 int walk_drop_series(
         const char * series_name,
@@ -75,7 +76,8 @@ int walk_list_series(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    slist_t * props = ((query_list_t *) query->data)->props;
+    query_list_t * q_list = query->data;
+    slist_t * props = q_list->props;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
@@ -155,17 +157,59 @@ int walk_list_servers(
     {
         switch(*((uint32_t *) props->data[i]))
         {
+        case CLERI_GID_K_ADDRESS:
+            qp_add_string(query->packer, server->address);
+            break;
+        case CLERI_GID_K_BUFFER_PATH:
+            qp_add_string(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siridb->buffer_path :
+                            (server->buffer_path != NULL) ?
+                                    server->buffer_path : "");
+            break;
+        case CLERI_GID_K_BUFFER_SIZE:
+            qp_add_int64(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siridb->buffer_size : server->buffer_size);
+            break;
+        case CLERI_GID_K_DBPATH:
+            qp_add_string(
+                    query->packer,
+                    (siridb->server == server) ?
+                        siridb->dbpath :
+                        (server->dbpath != NULL) ?
+                            server->dbpath : "");
+            break;
         case CLERI_GID_K_NAME:
             qp_add_string(query->packer, server->name);
             break;
-        case CLERI_GID_K_ADDRESS:
-            qp_add_string(query->packer, server->address);
+        case CLERI_GID_K_ONLINE:
+            qp_add_type(
+                    query->packer,
+                    (siridb->server == server || server->socket != NULL) ?
+                            QP_TRUE : QP_FALSE);
+            break;
+        case CLERI_GID_K_POOL:
+            qp_add_int16(query->packer, server->pool);
             break;
         case CLERI_GID_K_PORT:
             qp_add_int32(query->packer, server->port);
             break;
-        case CLERI_GID_K_POOL:
-            qp_add_int16(query->packer, server->pool);
+        case CLERI_GID_K_STARTUP_TIME:
+            qp_add_int32(
+                    query->packer,
+                    (siridb->server == server) ?
+                            siri.startup_time : server->startup_time);
+            break;
+        case CLERI_GID_K_STATUS:
+            {
+                char * status = siridb_server_str_status(server);
+                qp_add_string(query->packer, status);
+                free(status);
+            }
+
             break;
         case CLERI_GID_K_UUID:
             {
@@ -182,57 +226,36 @@ int walk_list_servers(
                             (server->version != NULL) ?
                                     server->version : "");
             break;
-        case CLERI_GID_K_ONLINE:
-            qp_add_type(
-                    query->packer,
-                    (siridb->server == server || server->socket != NULL) ?
-                            QP_TRUE : QP_FALSE);
-            break;
-        case CLERI_GID_K_STATUS:
-            {
-                char * status = siridb_server_str_status(server);
-                qp_add_string(query->packer, status);
-                free(status);
-            }
-
-            break;
-        case CLERI_GID_K_DBPATH:
-            qp_add_string(
-                    query->packer,
-                    (siridb->server == server) ?
-                        siridb->dbpath :
-                        (server->dbpath != NULL) ?
-                            server->dbpath : "");
-            break;
-        case CLERI_GID_K_BUFFER_PATH:
-            qp_add_string(
-                    query->packer,
-                    (siridb->server == server) ?
-                            siridb->buffer_path :
-                            (server->buffer_path != NULL) ?
-                                    server->buffer_path : "");
-            break;
-        case CLERI_GID_K_BUFFER_SIZE:
-            qp_add_int64(
-                    query->packer,
-                    (siridb->server == server) ?
-                            siridb->buffer_size : server->buffer_size);
-            break;
-        case CLERI_GID_K_STARTUP_TIME:
-            qp_add_int32(
-                    query->packer,
-                    (siridb->server == server) ?
-                            siri.startup_time : server->startup_time);
-            break;
         /* all properties below are 'remote properties'. if a remote property
          * is detected we should perform the query on each server and only for
          * that specific server.
          */
         case CLERI_GID_K_LOG_LEVEL:
 #ifdef DEBUG
-        assert (siridb->server == server);
+            assert (siridb->server == server);
 #endif
             qp_add_string(query->packer, Logger.level_name);
+            break;
+        case CLERI_GID_K_MAX_OPEN_FILES:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) abs(siri.cfg->max_open_files));
+            break;
+        case CLERI_GID_K_MEM_USAGE:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) (procinfo_total_physical_memory() / 1024));
+            break;
+        case CLERI_GID_K_OPEN_FILES:
+            qp_add_int32(query->packer, siridb_open_files(siridb));
+            break;
+        case CLERI_GID_K_RECEIVED_POINTS:
+            qp_add_int64(query->packer, siridb->received_points);
+            break;
+        case CLERI_GID_K_UPTIME:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) (time(NULL) - siridb->start_ts));
             break;
         }
     }

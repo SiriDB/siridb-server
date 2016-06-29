@@ -25,7 +25,7 @@ typedef struct siri_optimize_s
 {
     uv_timer_t timer;
     int status;
-    struct timespec start;
+    time_t start;
     uv_work_t work;
 } siri_optimize_t;
 

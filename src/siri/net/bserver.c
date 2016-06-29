@@ -38,7 +38,7 @@ static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static void on_query_server(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -129,7 +129,10 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
         on_flags_update(client, pkg);
         break;
     case BP_QUERY_SERVER:
-        on_query_server(client, pkg);
+        on_query(client, pkg, 0);
+        break;
+    case BP_QUERY_POOL:
+        on_query(client, pkg, SIRIDB_QUERY_FLAG_POOL);
         break;
     }
 
@@ -238,9 +241,8 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_free_unpacker(unpacker);
 }
 
-static void on_query_server(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags)
 {
-    return;
     SERVER_CHECK_AUTHENTICATED(server)
 
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
@@ -251,7 +253,7 @@ static void on_query_server(uv_handle_t * client, const sirinet_pkg_t * pkg)
             qp_next(unpacker, qp_query) == QP_RAW &&
             qp_next(unpacker, qp_time_precision) == QP_INT64)
     {
-        siridb_async_query(
+        siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query->via->raw,

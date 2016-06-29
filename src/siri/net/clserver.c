@@ -265,7 +265,7 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
             tp %= SIRIDB_TIME_END;
         }
 
-        siridb_async_query(
+        siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query->via->raw,

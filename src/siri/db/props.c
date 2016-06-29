@@ -71,6 +71,10 @@ static void prop_pool(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_received_points(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_server(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -139,6 +143,8 @@ void siridb_init_props(void)
             prop_open_files;
     siridb_props[CLERI_GID_K_POOL - KW_OFFSET] =
             prop_pool;
+    siridb_props[CLERI_GID_K_RECEIVED_POINTS - KW_OFFSET] =
+            prop_received_points;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] =
             prop_server;
     siridb_props[CLERI_GID_K_SHARDING_MAX_CHUNK_POINTS - KW_OFFSET] =
@@ -239,17 +245,7 @@ static void prop_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("open_files", 10)
-
-    int open_files = procinfo_open_files(siridb->dbpath);
-
-    if (    siridb->buffer_path != siridb->dbpath &&
-            strncmp(
-                siridb->dbpath,
-                siridb->buffer_path,
-                strlen(siridb->dbpath)))
-        open_files += procinfo_open_files(siridb->buffer_path);
-
-    qp_add_int16(packer, open_files);
+    qp_add_int32(packer, siridb_open_files(siridb));
 }
 
 static void prop_pool(
@@ -259,6 +255,15 @@ static void prop_pool(
 {
     SIRIDB_PROP_MAP("pool", 4)
     qp_add_int16(packer, (int16_t) siridb->server->pool);
+}
+
+static void prop_received_points(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("received_points", 15)
+    qp_add_int64(packer, siridb->received_points);
 }
 
 static void prop_server(
@@ -327,7 +332,7 @@ static void prop_uptime(
         int map)
 {
     SIRIDB_PROP_MAP("uptime", 6)
-    qp_add_int32(packer, (int32_t) ((uint32_t) time(NULL) - siridb->start_ts));
+    qp_add_int32(packer, (int32_t) (time(NULL) - siridb->start_ts));
 }
 
 static void prop_uuid(

@@ -66,14 +66,14 @@ void llist_walk(llist_t * llist, llist_cb_t cb, void * args)
     }
 }
 
-void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args)
+void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
-    while (node != NULL && n)
+    while (node != NULL && *n)
     {
         if (cb(node->data, args))
         {
-            n--;
+            (*n)--;
         }
         node = node->next;
     }

@@ -76,4 +76,8 @@ void * ct_get(ct_t * node, const char * key);
 void * ct_pop(ct_t * ct, const char * key);
 
 void ct_walk(ct_t * ct, ct_cb_t cb, void * args);
-void ct_walkn(ct_t * ct, size_t n, ct_cb_t cb, void * args);
+
+/* like ct_walk but an optional n which can be used as limit. the result of
+ * n can be used to check the number. (n will be 0 if the limit was reached)
+ */
+void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args);

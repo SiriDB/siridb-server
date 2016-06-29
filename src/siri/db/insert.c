@@ -223,6 +223,8 @@ static void send_points_to_pools(uv_async_t * handle)
 
     log_info("Inserted %zd point(s) successfully.", insert->size);
 
+    siridb->received_points += insert->size;
+
     package = sirinet_pkg_new(
             insert->pid,
             packer->len,

@@ -71,7 +71,9 @@ int procinfo_open_files(const char * path)
     char buf[PATH_MAX];
 
     if ((dirp = opendir("/proc/self/fd")) == NULL)
+    {
         return -1;
+    }
 
     while ((entry = readdir(dirp)) != NULL)
     {
@@ -80,10 +82,14 @@ int procinfo_open_files(const char * path)
             snprintf(buffer, PATH_MAX, "/proc/self/fd/%s", entry->d_name);
 
             if (realpath(buffer, buf) == NULL)
+            {
                 continue;
+            }
 
             if (strncmp(path, buf, len) == 0)
+            {
                 count++;
+            }
         }
     }
 
@@ -96,7 +102,9 @@ static int parse_line(char * line)
 {
     int i = strlen(line);
     while (*line < '0' || *line > '9')
+    {
         line++;
+    }
 
     line[i - 3] = '\0';
 

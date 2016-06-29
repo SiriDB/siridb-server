@@ -12,7 +12,7 @@
 #pragma once
 
 #define SIRIDB_QUERY_FLAG_MASTER 1
-#define SIRIDB_QUERY_FLAG_REPL 2
+#define SIRIDB_QUERY_FLAG_POOL 2
 #define SIRIDB_QUERY_FLAG_REBUILD 4
 
 #include <uv.h>
@@ -59,7 +59,7 @@ typedef struct siridb_query_s
 
 } siridb_query_t;
 
-void siridb_async_query(
+void siridb_query_run(
         uint64_t pid,
         uv_handle_t * client,
         const char * q,
@@ -67,11 +67,17 @@ void siridb_async_query(
         siridb_timep_t time_precision,
         int flags);
 
-void siridb_free_query(uv_handle_t * handle);
+void siridb_query_free(uv_handle_t * handle);
 void siridb_send_query_result(uv_async_t * handle);
 void siridb_send_error(
         uv_async_t * handle,
         sirinet_msg_t err);
 
+void siridb_query_forward(
+        uv_async_t * handle,
+        uint16_t tp,
+        sirinet_promises_cb_t cb);
 
-int siridb_query_to_packer(qp_packer_t * packer, siridb_query_t * query);
+void siridb_query_timeit_from_unpacker(
+        siridb_query_t * query,
+        qp_unpacker_t * unpacker);

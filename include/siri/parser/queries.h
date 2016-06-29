@@ -29,7 +29,7 @@ typedef struct query_wrapper_ct_series_s
 
 typedef struct query_wrapper_where_node_s
 {
-    void * pad0;
+    W0_CT_SERIES    // padding
     W1_WHERE_EXPR
 } query_wrapper_where_node_t;
 
@@ -37,7 +37,7 @@ typedef struct query_list_s
 {
     W0_CT_SERIES
     W1_WHERE_EXPR
-    slist_t * props;
+    slist_t * props;  // will be freed
     size_t limit;
 } query_list_t;
 
@@ -45,14 +45,15 @@ typedef struct query_count_s
 {
     W0_CT_SERIES
     W1_WHERE_EXPR
+    size_t n;   // can be used as counter
 } query_count_t;
 
 typedef struct query_drop_s
 {
     W0_CT_SERIES
     W1_WHERE_EXPR
-    void * data; // data will not be freed, make sure to use it correct.
-    ssize_t n;  // keep a counter for number of drops.
+    void * data; // data will NOT be freed, make sure to use it correct.
+    size_t n;  // keep a counter for number of drops.
 } query_drop_t;
 
 /* TODO: probably we need to add ct_results or something to store the results
@@ -61,8 +62,8 @@ typedef struct query_select_s
 {
     W0_CT_SERIES
     W1_WHERE_EXPR
-    uint64_t * start_ts;
-    uint64_t * end_ts;
+    uint64_t * start_ts;  // will NOT be freed
+    uint64_t * end_ts;  // will NOT be freed
 } query_select_t;
 
 

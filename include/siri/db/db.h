@@ -67,7 +67,7 @@ typedef struct siridb_s
     uint8_t ref;
     size_t buffer_size;
     size_t buffer_len;
-    uint32_t start_ts;                  // in seconds, to calculate up-time.
+    time_t start_ts;                  // in seconds, to calculate up-time.
     uint32_t max_series_id;
     uint64_t duration_num;              // number duration in s, ms, us or ns
     uint64_t duration_log;              // log duration in s, ms, us or ns
@@ -76,6 +76,7 @@ typedef struct siridb_s
     char * buffer_path;
     char * index;
     size_t index_size;
+    size_t received_points;
     siridb_time_t * time;
     siridb_server_t * server;
     siridb_server_t * replica;
@@ -102,3 +103,4 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
 void siridb_free_cb(siridb_t * siridb, void * args);
 void siridb_incref(siridb_t * siridb);
 void siridb_decref(siridb_t * siridb);
+int siridb_open_files(siridb_t * siridb);

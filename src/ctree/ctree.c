@@ -21,7 +21,6 @@
 #define CT_BUFFER_ALLOC_SIZE 256
 
 static ct_node_t * new_node(const char * key, void * data);
-static void walk(ct_t * ct, size_t * pn, ct_cb_t cb, void * args);
 static int CT_add(
         ct_node_t * node,
         const char * key,
@@ -158,27 +157,25 @@ void * ct_pop(ct_t * ct, const char * key)
     return data;
 }
 
-void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
+inline void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
 {
-    walk(ct, NULL, cb, args);
+    ct_walkn(ct, NULL, cb, args);
 }
 
-void ct_walkn(ct_t * ct, size_t n, ct_cb_t cb, void * args)
-{
-    walk(ct, &n, cb, args);
-}
-
-static void walk(ct_t * ct, size_t * pn, ct_cb_t cb, void * args)
+void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
 {
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
     ct_node_t * nd;
     char * buffer = (char *) malloc(buffer_sz);
-    for (*buffer = 255; (pn == NULL || *pn) && (*buffer)--;)
+
+    for (*buffer = 255; (n == NULL || *n) && (*buffer)--;)
     {
         if ((nd = (*ct->nodes)[(uint_fast8_t) *buffer]) == NULL)
+        {
             continue;
-        CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
+        }
+        CT_walk(nd, n, len, buffer_sz, buffer, cb, args);
     }
 }
 

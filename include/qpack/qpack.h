@@ -23,7 +23,6 @@ typedef enum
      * Values with -##- will never be returned while unpacking. For example
      * a QP_INT8 (1 byte signed integer) will be returned as QP_INT64.
      */
-    QP_ERR=-1,          // when an error occurred
     QP_END,             // at the end while unpacking
     QP_RAW,             // raw string
     /*
@@ -127,6 +126,8 @@ void qp_free_unpacker(qp_unpacker_t * unpacker);
  */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
 
+qp_types_t qp_current(qp_unpacker_t * unpacker);
+
 /* this is like qp_next(unpacker, NULL) but in case of a map or array the
  * total object is skipped. The return type can be used to check what the
  * skipped object was.
@@ -148,6 +149,10 @@ void qp_print(const char * pt, size_t len);
 /* Test functions */
 extern int qp_is_array(qp_types_t tp);
 extern int qp_is_map(qp_types_t tp);
+extern int qp_is_close(qp_types_t tp);
+extern int qp_is_raw(qp_types_t tp);
+extern int qp_is_int(qp_types_t tp);
+extern int qp_is_double(qp_types_t tp);
 
 /* Adds a raw string to the packer fixed to len chars */
 void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
@@ -193,4 +198,5 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
 char buffer[3];\
 buffer[0] = QP_INT16; \
 memcpy(&buffer[1], &n, 2);
+
 

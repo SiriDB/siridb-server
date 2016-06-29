@@ -197,7 +197,7 @@ void siridb_servers_send_pkg(
     SIRINET_PROMISES_CHECK(promises)
 }
 
-siridb_server_t * siridb_servers_get_server(llist_t * servers, uuid_t uuid)
+siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid)
 {
     llist_node_t * node = servers->first;
     siridb_server_t * server;
@@ -206,6 +206,23 @@ siridb_server_t * siridb_servers_get_server(llist_t * servers, uuid_t uuid)
     {
         server = node->data;
         if (uuid_compare(server->uuid, uuid) == 0)
+        {
+            return server;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name)
+{
+    llist_node_t * node = servers->first;
+    siridb_server_t * server;
+
+    while (node != NULL)
+    {
+        server = node->data;
+        if (strcmp(server->name, name) == 0)
         {
             return server;
         }

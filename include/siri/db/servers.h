@@ -19,7 +19,8 @@ typedef struct siridb_s siridb_t;
 
 int siridb_servers_load(siridb_t * siridb);
 void siridb_servers_free(llist_t * servers);
-siridb_server_t * siridb_servers_get_server(llist_t * servers, uuid_t uuid);
+siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid);
+siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name);
 
 void siridb_servers_send_pkg(
         siridb_t * siridb,

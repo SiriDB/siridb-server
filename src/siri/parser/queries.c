@@ -16,7 +16,7 @@
     if (q->where_expr != NULL)                                                \
         cexpr_free(q->where_expr);                                            \
     free(q);                                                                  \
-    siridb_free_query(handle);                                                \
+    siridb_query_free(handle);                                                \
 }
 
 query_select_t * query_select_new(void)
@@ -39,7 +39,6 @@ query_list_t * query_list_new(void)
     q_list->where_expr = NULL;
     q_list->props = NULL;
     q_list->limit = DEFAULT_LIST_LIMIT;
-
     return q_list;
 }
 
@@ -49,7 +48,7 @@ query_count_t * query_count_new(void)
             (query_count_t *) malloc(sizeof(query_count_t));
     q_count->ct_series = NULL;
     q_count->where_expr = NULL;
-
+    q_count->n = 0;
     return q_count;
 }
 
@@ -70,21 +69,27 @@ void query_select_free(uv_handle_t * handle)
 void query_list_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_list_t * qlist = (query_list_t *) query->data;
+    query_list_t * q_list = (query_list_t *) query->data;
 
-    if (qlist->ct_series != NULL)
-        ct_free_cb(qlist->ct_series, (ct_free_cb_t) &siridb_series_decref);
+    if (q_list->ct_series != NULL)
+    {
+        ct_free_cb(q_list->ct_series, (ct_free_cb_t) &siridb_series_decref);
+    }
 
-    if (qlist->props != NULL)
-        slist_free(qlist->props);
+    if (q_list->where_expr != NULL)
+    {
+        cexpr_free(q_list->where_expr);
+    }
 
-    if (qlist->where_expr != NULL)
-        cexpr_free(qlist->where_expr);
+    if (q_list->props != NULL)
+    {
+        slist_free(q_list->props);
+    }
 
-    free(qlist);
+    free(q_list);
 
     /* normal free call */
-    siridb_free_query(handle);
+    siridb_query_free(handle);
 }
 
 

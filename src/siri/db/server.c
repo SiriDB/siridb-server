@@ -18,6 +18,7 @@
 #include <siri/net/socket.h>
 #include <string.h>
 #include <siri/version.h>
+#include <procinfo/procinfo.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -360,12 +361,16 @@ int siridb_server_is_remote_prop(uint32_t prop)
     switch (prop)
     {
     case CLERI_GID_K_ADDRESS:
-    case CLERI_GID_K_PORT:
+    case CLERI_GID_K_BUFFER_PATH:
+    case CLERI_GID_K_BUFFER_SIZE:
+    case CLERI_GID_K_DBPATH:
     case CLERI_GID_K_NAME:
-    case CLERI_GID_K_UUID:
     case CLERI_GID_K_ONLINE:
-    case CLERI_GID_K_STATUS:
     case CLERI_GID_K_POOL:
+    case CLERI_GID_K_PORT:
+    case CLERI_GID_K_STARTUP_TIME:
+    case CLERI_GID_K_STATUS:
+    case CLERI_GID_K_UUID:
     case CLERI_GID_K_VERSION:
         return 0;
     }
@@ -378,6 +383,21 @@ int siridb_server_cexpr_cb(
 {
     switch (cond->prop)
     {
+    case CLERI_GID_K_ADDRESS:
+        return cexpr_str_cmp(
+                cond->operator,
+                wserver->server->address,
+                cond->str);
+
+    case CLERI_GID_K_BUFFER_PATH:
+        return cexpr_str_cmp(
+                cond->operator,
+                (wserver->siridb->server == wserver->server) ?
+                        wserver->siridb->buffer_path :
+                        (wserver->server->buffer_path != NULL) ?
+                                wserver->server->buffer_path : "",
+                cond->str);
+
     case CLERI_GID_K_BUFFER_SIZE:
         return cexpr_int_cmp(
                 cond->operator,
@@ -386,22 +406,13 @@ int siridb_server_cexpr_cb(
                         wserver->server->buffer_size,
                 cond->int64);
 
-    case CLERI_GID_K_PORT:
-        return cexpr_int_cmp(
-                cond->operator,
-                wserver->server->port,
-                cond->int64);
-
-    case CLERI_GID_K_POOL:
-        return cexpr_int_cmp(
-                cond->operator,
-                wserver->server->pool,
-                cond->int64);
-
-    case CLERI_GID_K_ADDRESS:
+    case CLERI_GID_K_DBPATH:
         return cexpr_str_cmp(
                 cond->operator,
-                wserver->server->address,
+                (wserver->siridb->server == wserver->server) ?
+                        wserver->siridb->dbpath :
+                        (wserver->server->dbpath != NULL) ?
+                                wserver->server->dbpath : "",
                 cond->str);
 
     case CLERI_GID_K_NAME:
@@ -410,18 +421,31 @@ int siridb_server_cexpr_cb(
                 wserver->server->name,
                 cond->str);
 
-    case CLERI_GID_K_UUID:
-        {
-            char uuid[37];
-            uuid_unparse_lower(wserver->server->uuid, uuid);
-            return cexpr_str_cmp(cond->operator, uuid, cond->str);
-        }
-
     case CLERI_GID_K_ONLINE:
         return cexpr_bool_cmp(
                 cond->operator,
                 (   wserver->siridb->server == wserver->server ||
                     wserver->server->socket != NULL),
+                cond->int64);
+
+    case CLERI_GID_K_POOL:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->server->pool,
+                cond->int64);
+
+    case CLERI_GID_K_PORT:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->server->port,
+                cond->int64);
+
+    case CLERI_GID_K_STARTUP_TIME:
+        return cexpr_int_cmp(
+                cond->operator,
+                (wserver->siridb->server == wserver->server) ?
+                        siri.startup_time :
+                        wserver->server->startup_time,
                 cond->int64);
 
     case CLERI_GID_K_STATUS:
@@ -432,6 +456,22 @@ int siridb_server_cexpr_cb(
             return rc;
         }
 
+    case CLERI_GID_K_UUID:
+        {
+            char uuid[37];
+            uuid_unparse_lower(wserver->server->uuid, uuid);
+            return cexpr_str_cmp(cond->operator, uuid, cond->str);
+        }
+
+    case CLERI_GID_K_VERSION:
+        return cexpr_str_cmp(
+                cond->operator,
+                (wserver->siridb->server == wserver->server) ?
+                        SIRIDB_VERSION :
+                        (wserver->server->version != NULL) ?
+                                wserver->server->version : "",
+                cond->str);
+
     /* all properties below are 'remote properties'. if a remote property
      * is detected we should perform the query on each server and only for
      * that specific server.
@@ -441,10 +481,39 @@ int siridb_server_cexpr_cb(
         assert (wserver->siridb->server == wserver->server);
 #endif
         return cexpr_int_cmp(
-                        cond->operator,
-                        Logger.level,
-                        cond->int64);
+                cond->operator,
+                Logger.level,
+                cond->int64);
 
+    case CLERI_GID_K_MAX_OPEN_FILES:
+        return cexpr_int_cmp(
+                cond->operator,
+                siri.cfg->max_open_files,
+                cond->int64);
+
+    case CLERI_GID_K_MEM_USAGE:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) (procinfo_total_physical_memory() / 1024),
+                cond->int64);
+
+    case CLERI_GID_K_OPEN_FILES:
+        return cexpr_int_cmp(
+                cond->operator,
+                siridb_open_files(wserver->siridb),
+                cond->int64);
+
+    case CLERI_GID_K_RECEIVED_POINTS:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->siridb->received_points,
+                cond->int64);
+
+    case CLERI_GID_K_UPTIME:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) (time(NULL) - wserver->siridb->start_ts),
+                cond->int64);
     }
     /* we must NEVER get here */
     log_critical("Unexpected server property received: %d", cond->prop);

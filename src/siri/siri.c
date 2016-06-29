@@ -292,7 +292,7 @@ static int SIRI_load_databases(void)
                 (imap32_cb_t) siridb_series_update_props,
                 NULL);
 
-        siridb->start_ts = (uint32_t) time(NULL);
+        siridb->start_ts = time(NULL);
 
         log_info("Finished loading database: '%s'", siridb->dbname);
     }
@@ -540,8 +540,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 #ifdef DEBUG
         if (!uv_is_closing(handle))
         {
-            log_critical(
-                    "Found a non closing Timer, all timers should "
+            LOGC(   "Found a non closing Timer, all timers should "
                     "be stopped at this point!!!");
             uv_timer_stop((uv_timer_t *) handle);
             uv_close(handle, NULL);
@@ -551,8 +550,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 
     case UV_ASYNC:
 #ifdef DEBUG
-        log_critical(
-                "An async task is only expected to be found in case"
+        LOGC(   "An async task is only expected to be found in case"
                 "not all tasks were closed within the timeout limit.");
 #endif
         uv_close(handle, (uv_close_cb) free);
@@ -561,7 +559,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
     default:
 
 #ifdef DEBUG
-        log_critical("Oh oh, we need to implement type %d", handle->type);
+        LOGC("Oh oh, we might need to implement type %d", handle->type);
         assert(0);
 #endif
 

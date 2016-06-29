@@ -48,6 +48,7 @@ typedef enum sirinet_backend_protocol_client_tp
                                                 buffer_size, startup_time) */
     BP_FLAGS_UPDATE,                        // flags
     BP_QUERY_SERVER,                        // (query, time_precision)
+    BP_QUERY_POOL,                          // (query, time_precision)
 } bp_client_t;
 
 typedef enum sirinet_backend_protocol_server_tp

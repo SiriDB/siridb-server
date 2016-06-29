@@ -100,7 +100,7 @@ bp_server_t siridb_auth_server_request(
         return BP_AUTH_ERROR_UNKNOWN_DBNAME;
     }
 
-    if ((server = siridb_servers_get_server(siridb->servers, uuid)) == NULL)
+    if ((server = siridb_servers_by_uuid(siridb->servers, uuid)) == NULL)
     {
         return BP_AUTH_ERROR_UNKNOWN_UUID;
     }

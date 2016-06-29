@@ -22,6 +22,7 @@
 #include <siri/db/shard.h>
 #include <siri/db/servers.h>
 #include <math.h>
+#include <procinfo/procinfo.h>
 
 #define SIRIDB_SHEMA 1
 
@@ -186,6 +187,22 @@ void siridb_decref(siridb_t * siridb)
     }
 }
 
+int siridb_open_files(siridb_t * siridb)
+{
+    int open_files = procinfo_open_files(siridb->dbpath);
+
+    if (    siridb->buffer_path != siridb->dbpath &&
+            strncmp(
+                siridb->dbpath,
+                siridb->buffer_path,
+                strlen(siridb->dbpath)))
+    {
+        open_files += procinfo_open_files(siridb->buffer_path);
+    }
+
+    return open_files;
+}
+
 static siridb_t * SIRIDB_new(void)
 {
     siridb_t * siridb;
@@ -199,6 +216,7 @@ static siridb_t * SIRIDB_new(void)
     siridb->servers = NULL;
     siridb->pools = NULL;
     siridb->max_series_id = 0;
+    siridb->received_points = 0;
     siridb->series = ct_new();
     siridb->series_map = imap32_new();
     siridb->shards = imap64_new();

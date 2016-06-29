@@ -20,7 +20,7 @@
 
 static uv_timer_t heartbeat;
 
-#define HEARTBEAT_INIT_TIMEOUT 1000
+#define HEARTBEAT_INIT_TIMEOUT 5000
 
 static void HEARTBEAT_cb(uv_timer_t * handle);
 

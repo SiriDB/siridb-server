@@ -142,17 +142,16 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
 
     if (Logger.level <= LOGGER_INFO)
     {
-        struct timespec end;
-        clock_gettime(CLOCK_REALTIME, &end);
-
         log_info("Finished optimize task in %d seconds with status: %d",
-                end.tv_sec - optimize.start.tv_sec,
+                time(NULL) - optimize.start,
                 status);
     }
 
     /* reset optimize status to pending if and only if the status is RUNNING */
     if (optimize.status == SIRI_OPTIMIZE_RUNNING)
+    {
         optimize.status = SIRI_OPTIMIZE_PENDING;
+    }
 }
 
 static void OPTIMIZE_cb(uv_timer_t * handle)
@@ -172,7 +171,7 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
     optimize.status = SIRI_OPTIMIZE_RUNNING;
 
     /* set start time */
-    clock_gettime(CLOCK_REALTIME, &optimize.start);
+    optimize.start = time(NULL);
 
     uv_queue_work(
             siri.loop,

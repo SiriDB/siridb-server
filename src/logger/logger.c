@@ -38,10 +38,6 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
 
 #define LOGGER_LOG_STUFF(LEVEL)                                 \
 {                                                               \
-    if (Logger.level > LEVEL)                                   \
-    {                                                           \
-        return;                                                 \
-    }                                                           \
     time_t t = time(NULL);                                      \
     struct tm tm = *localtime(&t);                              \
     if (Logger.flags & LOGGER_FLAG_COLORED)                     \
@@ -93,21 +89,26 @@ void logger_init(struct _IO_FILE * ostream, int log_level)
 void logger_set_level(int log_level)
 {
     Logger.level = log_level;
-    Logger.level_name = LOGGER_LEVEL_NAMES[(log_level - 1) / 10];
+    Logger.level_name = logger_level_name(log_level);
 }
 
-void log_debug(char * fmt, ...)
+const char * logger_level_name(int log_level)
+{
+    return LOGGER_LEVEL_NAMES[(log_level - 1) / 10];
+}
+
+void log__debug(char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_DEBUG)
 
-void log_info(char * fmt, ...)
+void log__info(char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_INFO)
 
-void log_warning(char * fmt, ...)
+void log__warning(char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_WARNING)
 
-void log_error(char * fmt, ...)
+void log__error(char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_ERROR)
 
-void log_critical(char * fmt, ...)
+void log__critical(char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_CRITICAL)
 

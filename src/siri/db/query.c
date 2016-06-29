@@ -27,34 +27,29 @@
 #include <siri/net/pkg.h>
 #include <siri/net/socket.h>
 #include <siri/db/walker.h>
+#include <siri/db/servers.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
+#define QUERY_EXTRA_ALLOC_SIZE 200
 
-static void siridb_parse_query(uv_async_t * handle);
-static int QUERY_walk(
-        cleri_node_t * node,
-        siridb_walker_t * walker);
 static void siridb_send_invalid_query_error(uv_async_t * handle);
-
+static void QUERY_parse(uv_async_t * handle);
+static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker);
+static void QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query);
 static int QUERY_time_expr(
         cleri_node_t * node,
         siridb_walker_t * walker,
         char * buf,
         size_t * size);
-
-static int QUERY_int_expr(
-        cleri_node_t * node,
-        char * buf,
-        size_t * size);
-
+static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size);
 static int QUERY_rebuild(
         cleri_node_t * node,
         char * buf,
         size_t * size,
         const size_t max_size);
 
-void siridb_async_query(
+void siridb_query_run(
         uint64_t pid,
         uv_handle_t * client,
         const char * q,
@@ -80,7 +75,7 @@ void siridb_async_query(
     /* set the default callback, this might change when custom
      * data is linked to the query handle
      */
-    query->free_cb = siridb_free_query;
+    query->free_cb = siridb_query_free;
 
     /* set query */
     query->q = strndup(q, q_len);
@@ -94,13 +89,15 @@ void siridb_async_query(
     query->pr = NULL;
     query->nodes = NULL;
 
+    log_debug("Parsing query (%d): %s", query->flags, query->q);
+
     /* send next call */
-    uv_async_init(siri.loop, handle, (uv_async_cb) siridb_parse_query);
+    uv_async_init(siri.loop, handle, (uv_async_cb) QUERY_parse);
     handle->data = (void *) query;
     uv_async_send(handle);
 }
 
-void siridb_free_query(uv_handle_t * handle)
+void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
@@ -181,6 +178,60 @@ void siridb_send_error(
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
 }
 
+void siridb_query_forward(
+        uv_async_t * handle,
+        uint16_t tp,
+        sirinet_promises_cb_t cb)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /* the size is important here, we will use the alloc_size to quess the
+     * maximum query size in QUERY_to_packer.
+     */
+    qp_packer_t * packer =
+            qp_new_packer(query->pr->tree->len + QUERY_EXTRA_ALLOC_SIZE);
+
+    qp_add_type(packer, QP_ARRAY2);
+
+    /* add the query to the packer */
+    QUERY_to_packer(packer, query);
+
+    qp_add_int8(packer, query->time_precision);
+
+    siridb_servers_send_pkg(
+            ((sirinet_socket_t *) query->client->data)->siridb,
+            packer->len,
+            tp,
+            packer->buffer,
+            0,
+            cb,
+            handle);
+
+    qp_free_packer(packer);
+}
+
+void siridb_query_timeit_from_unpacker(
+        siridb_query_t * query,
+        qp_unpacker_t * unpacker)
+{
+#ifdef DEBUG
+    assert (query->timeit != NULL);
+#endif
+
+    qp_types_t tp = qp_next(unpacker, NULL);
+
+    while (qp_is_close(tp))
+    {
+        tp = qp_next(unpacker, NULL);
+    }
+
+    if (    qp_is_raw(tp) &&
+            qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_is_map(qp_current(unpacker)))
+    {
+        qp_extend_from_unpacker(query->timeit, unpacker);
+    }
+}
 
 static void siridb_send_invalid_query_error(uv_async_t * handle)
 {
@@ -294,7 +345,7 @@ static void siridb_send_motd(uv_async_t * handle)
     siridb_send_query_result(handle);
 }
 
-static void siridb_parse_query(uv_async_t * handle)
+static void QUERY_parse(uv_async_t * handle)
 {
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -343,27 +394,6 @@ static void siridb_parse_query(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
-    if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
-    {
-        size_t max_size = query->pr->tree->len + 200; /* reserve 200 extra chars */
-        char buffer[max_size];
-        size_t size = max_size;
-
-        if (QUERY_rebuild(
-                query->pr->tree->children->node,
-                buffer,
-                &size,
-                max_size))
-        {
-            log_debug("Hmmm.. failed");
-        }
-        else
-        {
-            /* terminate buffer */
-            buffer[max_size - size] = 0;
-        }
-    }
-
     /* free the walker but keep the nodes list */
     query->nodes = siridb_walker_free(walker);
 
@@ -379,39 +409,40 @@ static void siridb_parse_query(uv_async_t * handle)
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 }
 
-int siridb_query_to_packer(qp_packer_t * packer, siridb_query_t * query)
+static void QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
 {
+    int rc;
     if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
     {
-        size_t max_size = query->pr->tree->len + 200; /* reserve 200 extra chars */
-        char buffer[max_size];
-        size_t size = max_size;
+        /* reserve 200 extra chars */
+        char buffer[packer->alloc_size];
+        size_t size = packer->alloc_size;
 
-        if (QUERY_rebuild(
+        rc = QUERY_rebuild(
                 query->pr->tree->children->node,
                 buffer,
                 &size,
-                max_size))
+                packer->alloc_size);
+
+        if (rc)
         {
-            return -1;
+            log_error(
+                    "Error '%d' occurred while re-building the query, "
+                    "continue using the original query", rc);
+            qp_add_string(packer, query->q);
         }
         else
         {
-            /* terminate buffer */
-            buffer[max_size - size] = 0;
+            qp_add_raw(packer, buffer, packer->alloc_size - size);
         }
-        qp_add_raw(packer, buffer, max_size - size);
     }
     else
     {
         qp_add_string(packer, query->q);
     }
-    return 0;
 }
 
-static int QUERY_walk(
-        cleri_node_t * node,
-        siridb_walker_t * walker)
+static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
 {
     int rc;
     uint32_t gid;
@@ -632,10 +663,7 @@ static int QUERY_time_expr(
     return 0;
 }
 
-static int QUERY_int_expr(
-        cleri_node_t * node,
-        char * buf,
-        size_t * size)
+static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size)
 {
     switch (node->cl_obj->tp)
     {

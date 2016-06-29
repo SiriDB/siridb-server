@@ -46,7 +46,7 @@ void llist_insert(llist_t * llist, void * data);
 void llist_walk(llist_t * llist, llist_cb_t cb, void * args);
 
 /* walk the list with limit */
-void llist_walkn(llist_t * llist, size_t n, llist_cb_t cb, void * args);
+void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args);
 
 /* copy the linked list to a simple list */
 slist_t * llist2slist(llist_t * llist);
