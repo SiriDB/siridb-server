@@ -74,7 +74,7 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     case FFILE_NO_FREE_SPACE:
         if (fifo->in != fifo->out)
         {
-            fclose(fifo->in);
+            fclose(fifo->in->fp);
         }
         fifo->in = FIFO_next(fifo, pkg);
         if (!fifo->out->next_size)
@@ -98,15 +98,25 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     return 0;
 }
 
-sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
+inline sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
 {
-    sirinet_pkg_t * pkg = siridb_ffile_pop(fifo->out);
+    return siridb_ffile_pop(fifo->out);
+}
+
+int siridb_fifo_commit(siridb_fifo_t * fifo)
+{
+    if (siridb_ffile_pop_commit(fifo->out))
+    {
+        return -1;
+    }
+
     if (!fifo->out->next_size && fifo->out != fifo->in)
     {
         siridb_ffile_unlink(fifo->out);
         fifo->out = llist_shift(fifo->fifos);
     }
-    return pkg;
+
+    return siri_err;
 }
 
 int siridb_fifo_close(siridb_fifo_t * fifo)
@@ -161,6 +171,10 @@ void siridb_fifo_free(siridb_fifo_t * fifo)
     free(fifo);
 }
 
+/*
+ * returns NULL and set a signal when an error has occurred. otherwise
+ * max_id will be incremented and a new siridb_ffile_t object will be returned.
+ */
 static siridb_ffile_t * FIFO_next(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
 {
     char * fn;
@@ -172,6 +186,7 @@ static siridb_ffile_t * FIFO_next(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
             FIFO_NUMBERS,
             fifo->max_id) < 0)
     {
+        ALLOC_ERR
         return NULL; /* error occurred */
     }
 
@@ -179,6 +194,9 @@ static siridb_ffile_t * FIFO_next(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     return siridb_ffile_new(fifo->max_id, fn, pkg);
 }
 
+/*
+ * returns 1 (true) but a signal can be set if a file close has failed
+ */
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
 {
     siridb_ffile_free(ffile);
@@ -188,7 +206,6 @@ static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
 static int FIFO_init(siridb_fifo_t * fifo)
 {
     struct stat st = {0};
-    int rc = 0;
 
     siridb_ffile_t * ffile;
 
@@ -199,8 +216,8 @@ static int FIFO_init(siridb_fifo_t * fifo)
                 fifo->path);
         if (mkdir(fifo->path, 0700) == -1)
         {
-            log_error("Cannot create directory '%s'.", fifo->path);
-            return -1;
+            log_critical("Cannot create directory '%s'.", fifo->path);
+            C_ERR
         }
     }
     else
@@ -212,8 +229,8 @@ static int FIFO_init(siridb_fifo_t * fifo)
         if (total < 0)
         {
             /* no need to free fifo_list when total < 0 */
-            log_error("Cannot read fifo directory '%s'.", fifo->path);
-            return -1;
+            log_critical("Cannot read fifo directory '%s'.", fifo->path);
+            C_ERR
         }
 
         for (int n = 0; n < total; n++)
@@ -222,8 +239,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
             {
                 if (asprintf(&fn, "%s%s", fifo->path, fifo_list[n]->d_name) < 0)
                 {
-                    rc = -1;
-                    log_critical("Allocation failed");
+                    ALLOC_ERR
                 }
                 else
                 {
@@ -240,7 +256,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
         }
         free(fifo_list);
     }
-    return rc;
+    return siri_err;
 }
 
 static int FIFO_is_fifo_fn(const char * fn)

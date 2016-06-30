@@ -29,15 +29,22 @@ log_critical("Critical file error at: %s:%d (%s)",          \
         __FILE__, __LINE__, __func__);                      \
 raise(SIGABRT);                                             \
 siri_err = SIGABRT;
+#define C_ERR                                       \
+log_critical("Critical error at: %s:%d (%s)",       \
+        __FILE__, __LINE__, __func__);              \
+raise(SIGABRT);                                     \
+siri_err = SIGABRT;
 #else
 #define ALLOC_ERR                                   \
 log_critical("Memory allocation error occurred");   \
 raise(SIGSEGV);                                     \
 siri_err = SIGSEGV;
-
 #define FILE_ERR                                                            \
 log_critical("Critical file error occurred (possible the disk is full)");   \
 raise(SIGABRT);                                                             \
+siri_err = SIGABRT;
+#define C_ERR                               \
+raise(SIGABRT);                             \
 siri_err = SIGABRT;
 #endif
 

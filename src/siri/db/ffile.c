@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <logger/logger.h>
 #include <assert.h>
+#include <siri/err.h>
 
 #define FFILE_DEFAULT_SIZE 104857600  // 100 MB
 
@@ -109,23 +110,26 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 
     if (fseek(ffile->fp, -ffile->next_size - sizeof(uint32_t), SEEK_END))
     {
+        FILE_ERR
         return NULL;
     }
 
-    unsigned char * data = (unsigned char *) malloc(sizeof(ffile->next_size));
+    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(sizeof(ffile->next_size));
 
-    if (data == NULL)
+    if (pkg == NULL)
     {
+        ALLOC_ERR
         return NULL;
     }
 
-    if (fread(data, ffile->next_size, 1, ffile->fp) != 1)
+    if (fread(pkg, ffile->next_size, 1, ffile->fp) != 1)
     {
-        free(data);
+        FILE_ERR
+        free(pkg);
         return NULL;
     }
 
-    return (sirinet_pkg_t *) data;
+    return pkg;
 }
 
 int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
@@ -135,31 +139,16 @@ int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
     assert (ffile->pop_commit);
     ffile->pop_commit = 0;
 #endif
+
     long int pos;
+    int n;
 
-    if (fseek(ffile->fp, -ffile->next_size - 2 * sizeof(uint32_t), SEEK_END))
-    {
-        return -1;
-    }
-
-    if (fread(&ffile->next_size, sizeof(uint32_t), 1, ffile->fp) != 1)
-    {
-        return -1;
-    }
-
-    pos = ftell(ffile->fp);
-
-    if (pos < 0)
-    {
-        return -1;
-    }
-
-    if (ftruncate(ffile->fp, ftell(ffile->fp)))
-    {
-        return -1;
-    }
-
-    return 0;
+    return (fseek(ffile->fp, -ffile->next_size - 2 * sizeof(uint32_t), SEEK_END) ||
+            fread(&ffile->next_size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
+            (pos = ftell(ffile->fp)) < 0 ||
+            (n = fileno(ffile->fp)) == -1 ||
+            ftruncate(n, pos)) ?
+                    -1 : 0;
 }
 
 void siridb_ffile_open(siridb_ffile_t * ffile)
@@ -172,10 +161,11 @@ void siridb_ffile_unlink(siridb_ffile_t * ffile)
 {
     if (ffile->fp != NULL && fclose(ffile->fp))
     {
-        log_critical("Cannot close '%s', (disk full?)", ffile->fn);
+        FILE_ERR
     }
     if (unlink(ffile->fn))
     {
+        FILE_ERR
         log_critical("Cannot remove fifo file: '%s'", ffile->fn);
     }
     free(ffile->fn);
@@ -186,7 +176,7 @@ void siridb_ffile_free(siridb_ffile_t * ffile)
 {
     if (ffile->fp != NULL && fclose(ffile->fp))
     {
-        log_critical("Cannot close '%s', (disk full?)", ffile->fn);
+        FILE_ERR
     }
     free(ffile->fn);
     free(ffile);
