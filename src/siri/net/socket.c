@@ -32,10 +32,10 @@ void sirinet_socket_alloc_buffer(
     }
     else
     {
-        if (ssocket->len > SN_PKG_HEADER_SIZE)
+        if (ssocket->len > PKG_HEADER_SIZE)
         {
             suggested_size =
-                    ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
+                    ((sirinet_pkg_t *) ssocket->buf)->len + PKG_HEADER_SIZE;
         }
 
         buf->base = ssocket->buf + ssocket->len;
@@ -73,10 +73,10 @@ void sirinet_socket_on_data(
 
     if (ssocket->buf == NULL)
     {
-        if (nread >= SN_PKG_HEADER_SIZE)
+        if (nread >= PKG_HEADER_SIZE)
         {
             pkg = (sirinet_pkg_t *) buf->base;
-            size_t total_sz = pkg->len + SN_PKG_HEADER_SIZE;
+            size_t total_sz = pkg->len + PKG_HEADER_SIZE;
 
             if (nread == total_sz)
             {
@@ -109,17 +109,17 @@ void sirinet_socket_on_data(
         return;
     }
 
-    if (ssocket->len < SN_PKG_HEADER_SIZE)
+    if (ssocket->len < PKG_HEADER_SIZE)
     {
         ssocket->len += nread;
 
-        if (ssocket->len < SN_PKG_HEADER_SIZE)
+        if (ssocket->len < PKG_HEADER_SIZE)
         {
             return;
         }
 
         size_t total_sz =
-                ((sirinet_pkg_t *) ssocket->buf)->len + SN_PKG_HEADER_SIZE;
+                ((sirinet_pkg_t *) ssocket->buf)->len + PKG_HEADER_SIZE;
 
         if (buf->len < total_sz)
         {
@@ -133,12 +133,12 @@ void sirinet_socket_on_data(
 
     pkg = (sirinet_pkg_t *) ssocket->buf;
 
-    if (ssocket->len < pkg->len + SN_PKG_HEADER_SIZE)
+    if (ssocket->len < pkg->len + PKG_HEADER_SIZE)
     {
         return;
     }
 
-    if (ssocket->len == pkg->len + SN_PKG_HEADER_SIZE)
+    if (ssocket->len == pkg->len + PKG_HEADER_SIZE)
     {
         (*ssocket->on_data)((uv_handle_t *) client, pkg);
     }

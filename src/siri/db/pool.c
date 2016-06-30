@@ -43,6 +43,18 @@ uint16_t siridb_pool_sn_raw(
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 
+int siridb_pool_online(siridb_pool_t * pool)
+{
+    for (uint16_t i = 0; i < pool->len; i++)
+    {
+        if (siridb_server_is_available(pool->server[i]))
+        {
+            return 1;  // true
+        }
+    }
+    return 0;  // false
+}
+
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
 {
     switch (cond->prop)

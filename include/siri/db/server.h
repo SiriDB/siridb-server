@@ -23,9 +23,10 @@
 #define SERVER_FLAG_PAUSED 2
 #define SERVER_FLAG_SYNCHRONIZING 4
 #define SERVER_FLAG_REINDEXING 8
-#define SERVER_FLAG_AUTHENTICATED 16  // must be the last (we depend on this)
+#define SERVER_FLAG_WILL_BE_REMOVED 16
+#define SERVER_FLAG_AUTHENTICATED 32  // must be the last (we depend on this)
 
-#define SERVER_IS_AVAILABLE 17  // RUNNING + AUTHENTICATED
+#define SERVER_IS_AVAILABLE 33  // RUNNING + AUTHENTICATED
 
 #define siridb_server_is_available(server) \
     (server->flags & SERVER_IS_AVAILABLE) == SERVER_IS_AVAILABLE

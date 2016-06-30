@@ -22,7 +22,7 @@ typedef struct cexpr_condition_s cexpr_condition_t;
 
 typedef struct siridb_pool_s
 {
-    uint16_t size;
+    uint16_t len;
     siridb_server_t * server[2];
 } siridb_pool_t;
 

@@ -198,14 +198,34 @@ void siridb_query_forward(
 
     qp_add_int8(packer, query->time_precision);
 
-    siridb_servers_send_pkg(
-            ((sirinet_socket_t *) query->client->data)->siridb,
-            packer->len,
-            tp,
-            packer->buffer,
-            0,
-            cb,
-            handle);
+    switch (tp)
+    {
+    case BP_QUERY_SERVER:
+        siridb_servers_send_pkg(
+                ((sirinet_socket_t *) query->client->data)->siridb,
+                packer->len,
+                tp,
+                packer->buffer,
+                0,
+                cb,
+                handle);
+        break;
+
+    case BP_QUERY_POOL:
+        siridb_pools_send_pkg(
+                ((sirinet_socket_t *) query->client->data)->siridb,
+                packer->len,
+                tp,
+                packer->buffer,
+                0,
+                cb,
+                handle);
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
 
     qp_free_packer(packer);
 }

@@ -12,7 +12,7 @@
  *
  */
 #include <stdlib.h>
-
+#include <motd/motd.h>
 
 static const char * motd_messages[] = {
         "If God had intended Man to program, \n"

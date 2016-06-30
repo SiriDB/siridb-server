@@ -57,4 +57,10 @@ void * llist_get(llist_t * llist, llist_cb_t cb, void * args);
 /* remove and return the first item where 'cb' is not zero
  * or NULL if not found
  */
-void * llist_pop(llist_t * llist, llist_cb_t cb, void * args);
+void * llist_remove(llist_t * llist, llist_cb_t cb, void * args);
+
+/* remove and return the last item in the list or NULL if empty */
+void * llist_pop(llist_t * llist);
+
+/* remove and return the first item in the list or NULL if empty */
+void * llist_shift(llist_t * llist);

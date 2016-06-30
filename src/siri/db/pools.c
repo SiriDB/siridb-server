@@ -16,6 +16,7 @@
 #include <string.h>
 #include <logger/logger.h>
 #include <llist/llist.h>
+#include <siri/net/promise.h>
 
 static void POOLS_make(
         uint_fast16_t n,
@@ -42,22 +43,22 @@ void siridb_pools_gen(siridb_t * siridb)
     llist_walk(siridb->servers, (llist_cb_t) POOLS_max_pool, &max_pool);
 
     /* set number of pools */
-    siridb->pools->size = max_pool + 1;
+    siridb->pools->len = max_pool + 1;
 
     /* allocate memory for all pools */
     siridb->pools->pool = (siridb_pool_t *)
-            malloc(sizeof(siridb_pool_t) * siridb->pools->size);
+            malloc(sizeof(siridb_pool_t) * siridb->pools->len);
 
     /* initialize number of servers with zero for each pool */
-    for (n = 0; n < siridb->pools->size; n++)
+    for (n = 0; n < siridb->pools->len; n++)
     {
-        siridb->pools->pool[n].size = 0;
+        siridb->pools->pool[n].len = 0;
     }
 
     llist_walk(siridb->servers, (llist_cb_t) POOLS_arrange, siridb);
 
     /* generate pool lookup for series */
-    siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->size);
+    siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);
 }
 
 void siridb_pools_free(siridb_pools_t * pools)
@@ -77,6 +78,78 @@ siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
             (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
     POOLS_make(1, num_pools, lookup);
     return lookup;
+}
+
+int siridb_pools_online(siridb_t * siridb)
+{
+    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    {
+        if (    pid != siridb->server->pool &&
+                !siridb_pool_online(siridb->pools->pool + pid))
+        {
+            return 0;  // false
+        }
+    }
+    return 1;  //true
+}
+
+void siridb_pools_send_pkg(
+        siridb_t * siridb,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promises_cb_t cb,
+        void * data)
+{
+    sirinet_promises_t * promises =
+            sirinet_promises_new(siridb->pools->len - 1, cb, data);
+
+    siridb_pool_t * pool;
+    siridb_server_t * server;
+
+    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    {
+        if (pid == siridb->server->pool)
+        {
+            continue;
+        }
+
+        pool = siridb->pools->pool + pid;
+
+        server = NULL;
+
+        for (uint16_t i = 0; i < pool->len; i++)
+        {
+            if (siridb_server_is_available(pool->server[i]))
+            {
+                server = (server == NULL) ?
+                        pool->server[i] : pool->server[rand() % 2];
+            }
+        }
+
+        if (server != NULL)
+        {
+            siridb_server_send_pkg(
+                    server,
+                    len,
+                    tp,
+                    content,
+                    timeout,
+                    sirinet_promise_on_response,
+                    promises);
+        }
+        else
+        {
+            log_debug(
+                    "Cannot send package to pool '%u' "
+                    "(no available server found)",
+                    pid);
+            slist_append(promises->promises, NULL);
+        }
+    }
+
+    SIRINET_PROMISES_CHECK(promises)
 }
 
 static void POOLS_make(
@@ -121,8 +194,15 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 {
     siridb_pool_t * pool;
     pool = siridb->pools->pool + server->pool;
-    pool->size++;
-    if (pool->size == 1)
+    pool->len++;
+
+    /* if the server is member of the same pool, it must be the replica */
+    if (siridb->server != server && siridb->server->pool == server->pool)
+    {
+        siridb->replica = server;
+    }
+
+    if (pool->len == 1)
     {
         /* this is the first server found for this pool */
         pool->server[0] = server;
@@ -131,7 +211,7 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     {
 #ifdef DEBUG
         /* we can only have 1 or 2 servers per pool */
-        assert (pool->size == 2);
+        assert (pool->len == 2);
 #endif
         /* add the server to the pool, ordered by UUID */
         if (siridb_server_cmp(pool->server[0], server) < 0)

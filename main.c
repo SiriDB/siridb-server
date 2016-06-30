@@ -15,6 +15,7 @@
 #include <time.h>
 #include <logger/logger.h>
 #include <siri/args/args.h>
+#include <siri/err.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 

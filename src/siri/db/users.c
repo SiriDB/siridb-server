@@ -157,7 +157,7 @@ int siridb_users_add_user(
                 "Could not save user '%s' to file.",
                 user->username);
         log_critical(err_msg);
-        llist_pop(siridb->users, (llist_cb_t) USERS_cmp, user->username);
+        llist_remove(siridb->users, (llist_cb_t) USERS_cmp, user->username);
         return 1;
     }
 
@@ -197,7 +197,7 @@ int siridb_users_drop_user(
 {
     siridb_user_t * user;
 
-    if ((user = llist_pop(
+    if ((user = llist_remove(
             siridb->users,
             (llist_cb_t) USERS_cmp,
             (void *) username)) == NULL)

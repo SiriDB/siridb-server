@@ -16,10 +16,12 @@
 #include <siri/net/socket.h>
 #include <slist/slist.h>
 #include <siri/db/server.h>
+#include <siri/db/pool.h>
 
 #define PROMISE_DEFAULT_TIMEOUT 10000  // 10 seconds
 
 typedef struct siridb_server_s siridb_server_t;
+typedef struct siridb_pool_s siridb_pool_t;
 
 typedef enum sirinet_promise_status
 {
@@ -65,6 +67,8 @@ void sirinet_promise_on_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
+
+int siridb_pool_online(siridb_pool_t * pool);
 
 sirinet_promises_t * sirinet_promises_new(
         size_t size,

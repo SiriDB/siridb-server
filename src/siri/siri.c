@@ -51,8 +51,8 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 static uv_timer_t closing_timer;
 static int closing_attempts = 20;
 
-#define N_SIGNALS 3
-static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV};
+#define N_SIGNALS 4
+static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV, SIGABRT};
 
 siri_t siri = {
         .grammar=NULL,

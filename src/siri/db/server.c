@@ -142,7 +142,7 @@ void siridb_server_send_pkg(
 
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
-            SN_PKG_HEADER_SIZE + pkg->len);
+            PKG_HEADER_SIZE + pkg->len);
 
     uv_write(req, (uv_stream_t *) server->socket, &wrbuf, 1, SERVER_write_cb);
 

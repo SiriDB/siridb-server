@@ -73,6 +73,10 @@ void siridb_send_error(
         uv_async_t * handle,
         sirinet_msg_t err);
 
+/* Can be used to forward a query to all pools or all servers.
+ * Use tp = BP_QUERY_SERVER when the query needs to be send to all servers,
+ * or BP_QUERY_POOL for sending the query to all pools.
+ */
 void siridb_query_forward(
         uv_async_t * handle,
         uint16_t tp,

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <siri/err.h>
 #include <siri/db/time.h>
 #include <siri/db/user.h>
 #include <qpack/qpack.h>

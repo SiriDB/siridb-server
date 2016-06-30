@@ -293,7 +293,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
     qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
     qp_obj_t * qp_obj = qp_new_object();
-    qp_packer_t * packer[siridb->pools->size];
+    qp_packer_t * packer[siridb->pools->len];
     int32_t rc;
 
     const char * err_msg;
@@ -314,7 +314,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         free(package);
 
         /* free packer */
-        for (size_t n = 0; n < siridb->pools->size; n++)
+        for (size_t n = 0; n < siridb->pools->len; n++)
         {
             qp_free_packer(packer[n]);
         }
@@ -325,7 +325,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 pkg->pid,
                 client,
                 (size_t) rc,
-                siridb->pools->size,
+                siridb->pools->len,
                 packer);
     }
 

@@ -17,16 +17,20 @@
 siri_fh_t * siri_fh_new(uint16_t size)
 {
     siri_fh_t * fh = (siri_fh_t *) malloc(sizeof(siri_fh_t));
+
     fh->size = size;
     fh->idx = 0;
     fh->fpointers = (siri_fp_t **) calloc(size, sizeof(siri_fp_t *));
+
     return fh;
 }
 
 void siri_fh_free(siri_fh_t * fh)
 {
     if (fh == NULL)
+    {
         return;
+    }
 
     siri_fp_t ** fp;
     for (uint16_t i = 0; i < fh->size; i++)
@@ -34,7 +38,9 @@ void siri_fh_free(siri_fh_t * fh)
         fp = fh->fpointers + i;
 
         if (*fp == NULL)
+        {
             break;
+        }
         siri_fp_decref(*fp);
     }
     free(fh->fpointers);
@@ -51,7 +57,9 @@ int siri_fopen(
 
     /* close and possible free file pointer at next position */
     if (*dest)
+    {
         siri_fp_decref(*dest);
+    }
 
     /* assign file pointer */
     *dest = fp;

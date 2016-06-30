@@ -14,12 +14,12 @@
 #include <inttypes.h>
 #include <uv.h>
 
-#define SN_PKG_HEADER_SIZE 14
+#define PKG_HEADER_SIZE 14
 
 typedef struct sirinet_pkg_s
 {
     uint64_t pid;
-    uint32_t len;
+    uint32_t len;   // length of data (SN_PKG_HEADER_SIZE excluded)
     uint16_t tp;
     char data[];
 } sirinet_pkg_t;

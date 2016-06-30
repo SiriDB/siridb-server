@@ -76,7 +76,7 @@ int32_t siridb_insert_assign_pools(
     size_t n;
     qp_types_t tp;
 
-    for (n = 0; n < siridb->pools->size; n++)
+    for (n = 0; n < siridb->pools->len; n++)
     {
         /* These packers will be freed either in clserver in case of an error,
          * or by siridb_free_insert(..) in case of success.

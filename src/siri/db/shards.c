@@ -23,35 +23,10 @@
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 
-static bool is_shard_fn(const char * fn)
-{
-    if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
-    {
-        return false;
-    }
+static bool is_shard_fn(const char * fn);
+static bool is_temp_shard_fn(const char * fn);
 
-    fn++;
-    while (*fn && isdigit(*fn))
-    {
-        fn++;
-    }
-
-    return (strcmp(fn, ".sdb") == 0);
-}
-
-static bool is_temp_shard_fn(const char * fn)
-{
-    for (int i = 0; i < 2; i++, fn++)
-    {
-        if (*fn != '_')
-        {
-            return false;
-        }
-    }
-    return is_shard_fn(fn);
-}
-
-int siridb_shards_load(struct siridb_s * siridb)
+int siridb_shards_load(siridb_t * siridb)
 {
     struct stat st = {0};
     struct dirent ** shard_list;
@@ -96,7 +71,7 @@ int siridb_shards_load(struct siridb_s * siridb)
             snprintf(buffer, PATH_MAX, "%s%s",
                    path, shard_list[n]->d_name);
 
-            log_debug("Temporary shard found, we will remove file: '%s'",
+            log_warning("Temporary shard found, we will remove file: '%s'",
                    buffer);
 
             if (unlink(buffer))
@@ -130,3 +105,30 @@ int siridb_shards_load(struct siridb_s * siridb)
     return rc;
 }
 
+static bool is_shard_fn(const char * fn)
+{
+    if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
+    {
+        return false;
+    }
+
+    fn++;
+    while (*fn && isdigit(*fn))
+    {
+        fn++;
+    }
+
+    return (strcmp(fn, ".sdb") == 0);
+}
+
+static bool is_temp_shard_fn(const char * fn)
+{
+    for (int i = 0; i < 2; i++, fn++)
+    {
+        if (*fn != '_')
+        {
+            return false;
+        }
+    }
+    return is_shard_fn(fn);
+}

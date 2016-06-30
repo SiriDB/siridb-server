@@ -238,6 +238,8 @@ static void enter_alter_server(uv_async_t * handle)
     cleri_node_t * server_node =
                     query->nodes->node->children->next->node->children->node;
 
+    ALLOC_ERR
+
     siridb_server_t * server;
 
     switch (server_node->cl_obj->tp)
@@ -713,16 +715,16 @@ static void exit_count_pools_stmt(uv_async_t * handle)
 
     if (where_expr == NULL)
     {
-        qp_add_int64(query->packer, siridb->pools->size);
+        qp_add_int64(query->packer, siridb->pools->len);
     }
     else
     {
         int n = 0;
         siridb_pool_walker_t wpool;
         cexpr_cb_t cb = (cexpr_cb_t) siridb_pool_cexpr_cb;
-        for (wpool.pid = 0; wpool.pid < siridb->pools->size; wpool.pid++)
+        for (wpool.pid = 0; wpool.pid < siridb->pools->len; wpool.pid++)
         {
-            wpool.servers = siridb->pools->pool[wpool.pid].size;
+            wpool.servers = siridb->pools->pool[wpool.pid].len;
             wpool.series = siridb->series->len;
             n += cexpr_run(where_expr, cb, &wpool);
         }
@@ -1015,12 +1017,12 @@ static void exit_list_pools_stmt(uv_async_t * handle)
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     for (   wpool.pid = 0, n = 0;
-            wpool.pid < siridb->pools->size && n < qlist->limit;
+            wpool.pid < siridb->pools->len && n < qlist->limit;
             wpool.pid++)
     {
         pool = siridb->pools->pool + wpool.pid;
 
-        wpool.servers = pool->size;
+        wpool.servers = pool->len;
         wpool.series = siridb->series->len;
 
         if (where_expr == NULL || cexpr_run(where_expr, cb, &wpool))

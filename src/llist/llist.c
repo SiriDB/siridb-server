@@ -79,7 +79,7 @@ void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
     }
 }
 
-void * llist_pop(llist_t * llist, llist_cb_t cb, void * args)
+void * llist_remove(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
     llist_node_t * prev = NULL;
@@ -91,13 +91,23 @@ void * llist_pop(llist_t * llist, llist_cb_t cb, void * args)
         {
             if (prev == NULL)
             {
-                llist->first = node->next;
+                /* this is the first node */
+                if (llist->last == llist->first)
+                {
+                    /* this is the only node */
+                    llist->first = llist->last = NULL;
+                }
+                else
+                {
+                    llist->first = node->next;
+                }
             }
             else
             {
                 prev->next = node->next;
                 if (prev->next == NULL)
                 {
+                    /* this is the last node */
                     llist->last = prev;
                 }
             }
@@ -110,6 +120,61 @@ void * llist_pop(llist_t * llist, llist_cb_t cb, void * args)
         node = node->next;
     }
     return NULL;
+}
+
+void * llist_pop(llist_t * llist)
+{
+    llist_node_t * node = llist->first;
+    llist_node_t * prev = NULL;
+    void * data = NULL;
+
+    if (node != NULL)
+    {
+        /* get the last node */
+        while (node->next != NULL)
+        {
+            prev = node;
+            node = node->next;
+        }
+
+        if (prev == NULL)
+        {
+            /* this is the only node */
+            llist->first = llist->last = NULL;
+        }
+        else
+        {
+            prev->next = NULL;
+            llist->last = prev;
+        }
+        data = node->data;
+        free(node);
+    }
+
+    return data;
+}
+
+void * llist_shift(llist_t * llist)
+{
+    llist_node_t * node = llist->first;
+    void * data = NULL;
+
+    if (node != NULL)
+    {
+        if (llist->last == llist->first)
+        {
+            llist->first = llist->last = NULL;
+        }
+        else
+        {
+            llist->first = node->next;
+        }
+
+        data = node->data;
+        free(node);
+    }
+
+    return data;
 }
 
 void * llist_get(llist_t * llist, llist_cb_t cb, void * args)
