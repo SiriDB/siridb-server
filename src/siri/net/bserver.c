@@ -29,7 +29,7 @@ if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
 {                                                                             \
     sirinet_pkg_t * package;                                                  \
     package = sirinet_pkg_new(pkg->pid, 0, BP_ERROR_NOT_AUTHENTICATED, NULL); \
-    sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);            \
+    sirinet_pkg_send((uv_stream_t *) client, package);                        \
     free(package);                                                            \
     return;                                                                   \
 }
@@ -197,23 +197,25 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
         }
 
         package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
         free(package);
     }
     else
     {
         log_error("Invalid back-end 'on_auth_request' received.");
     }
-    qp_free_object(qp_uuid);
-    qp_free_object(qp_dbname);
-    qp_free_object(qp_flags);
-    qp_free_object(qp_version);
-    qp_free_object(qp_min_version);
-    qp_free_object(qp_dbpath);
-    qp_free_object(qp_buffer_path);
-    qp_free_object(qp_buffer_size);
-    qp_free_object(qp_startup_time);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_uuid);
+    qp_object_free(qp_dbname);
+    qp_object_free(qp_flags);
+    qp_object_free(qp_version);
+    qp_object_free(qp_min_version);
+    qp_object_free(qp_dbpath);
+    qp_object_free(qp_buffer_path);
+    qp_object_free(qp_buffer_size);
+    qp_object_free(qp_startup_time);
+    qp_unpacker_free(unpacker);
 }
 
 static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
@@ -234,15 +236,17 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 server->flags);
 
         package = sirinet_pkg_new(pkg->pid, 0, BP_FLAGS_ACK, NULL);
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
         free(package);
     }
     else
     {
         log_error("Invalid back-end 'on_flags_update' received.");
     }
-    qp_free_object(qp_flags);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_flags);
+    qp_unpacker_free(unpacker);
 }
 
 static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
@@ -263,15 +267,17 @@ static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 Logger.level_name);
 
         package = sirinet_pkg_new(pkg->pid, 0, BP_LOG_LEVEL_ACK, NULL);
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
         free(package);
     }
     else
     {
         log_error("Invalid back-end 'on_log_level_update' received.");
     }
-    qp_free_object(qp_log_level);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_log_level);
+    qp_unpacker_free(unpacker);
 }
 
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags)
@@ -298,9 +304,9 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags)
     {
         log_error("Invalid back-end 'on_query_server' received.");
     }
-    qp_free_object(qp_query);
-    qp_free_object(qp_time_precision);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_query);
+    qp_object_free(qp_time_precision);
+    qp_unpacker_free(unpacker);
 }
 
 

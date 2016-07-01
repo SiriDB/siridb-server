@@ -181,11 +181,11 @@ static int SIRI_load_databases(void)
                 siri.cfg->default_db_path,
                 dbpath->d_name);
 
-        if ((unpacker = qp_from_file_unpacker(buffer)) == NULL)
+        if ((unpacker = qp_unpacker_from_file(buffer)) == NULL)
         {
             log_error("Could not read '%s'", buffer);
             closedir(db_container_path);
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
             cfgparser_free(cfgparser);
             return 1;
         }
@@ -197,7 +197,7 @@ static int SIRI_load_databases(void)
         {
             log_error("Could not read '%s': %s", buffer, err_msg);
             closedir(db_container_path);
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
             cfgparser_free(cfgparser);
             return 1;
         }
@@ -206,7 +206,7 @@ static int SIRI_load_databases(void)
         llist_append(siri.siridb_list, siridb);
         siridb_incref(siridb);
 
-        qp_free_unpacker(unpacker);
+        qp_unpacker_free(unpacker);
 
         log_info("Start loading database: '%s'", siridb->dbname);
 
@@ -553,8 +553,9 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 
     case UV_ASYNC:
 #ifdef DEBUG
-        LOGC(   "An async task is only expected to be found in case"
-                "not all tasks were closed within the timeout limit.");
+        LOGC(   "An async task is only expected to be found in case "
+                "not all tasks were closed within the timeout limit, "
+                "or when a critical signal error is raised.");
 #endif
         uv_close(handle, (uv_close_cb) free);
         break;

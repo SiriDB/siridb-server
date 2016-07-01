@@ -105,21 +105,19 @@ typedef FILE qp_fpacker_t;
 #define qp_flush fflush
 
 qp_packer_t * qp_packer_new(size_t alloc_size);
+void qp_packer_free(qp_packer_t * packer);
+int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source);
+int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker);
+
+
 qp_obj_t * qp_object_new(void);
-
-void qp_free_packer(qp_packer_t * packer);
-
-void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source);
-
-/* extend from unpacker (only the current position will be copied) */
-void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker);
+void qp_object_free(qp_obj_t * qp_obj);
 
 qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len);
+void qp_unpacker_free(qp_unpacker_t * unpacker);
+qp_unpacker_t * qp_unpacker_from_file(const char * fn);
 
-qp_unpacker_t * qp_from_file_unpacker(const char * fn);
 
-
-void qp_free_unpacker(qp_unpacker_t * unpacker);
 
 /* Its fine to reuse the same object without calling free in between.
  * (qp_obj may also be NULL)
@@ -134,16 +132,15 @@ qp_types_t qp_current(qp_unpacker_t * unpacker);
  */
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
 
-void qp_free_object(qp_obj_t * qp_obj);
 
 void qp_print(const char * pt, size_t len);
 
 /* Shortcut to print a packer object */
-#define qp_print_packer(packer) \
+#define qp_packer_print(packer) \
     qp_print(packer->buffer, packer->len)
 
 /* Shortcut to print an unpacker object */
-#define qp_print_unpacker(unpacker) \
+#define qp_unpacker_print(unpacker) \
     qp_print(unpacker->pt, unpacker->end - unpacker->pt)
 
 /* Test functions */
@@ -155,35 +152,35 @@ extern int qp_is_int(qp_types_t tp);
 extern int qp_is_double(qp_types_t tp);
 
 /* Adds a raw string to the packer fixed to len chars */
-void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
+int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
 
 /* Adds a raw string to the packer and appends a terminator (0) so the written
  * length is len + 1 */
-void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
+int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
 
 /* Adds a 0 terminated string to the packer but note that the terminator itself
  * will NOT be written. (Use qp_add_string_term() instead if you want the
  * destination to be 0 terminated */
-void qp_add_string(qp_packer_t * packer, const char * str);
+int qp_add_string(qp_packer_t * packer, const char * str);
 
 /* Like qp_add_string() but includes the 0 terminator. */
-void qp_add_string_term(qp_packer_t * packer, const char * str);
+int qp_add_string_term(qp_packer_t * packer, const char * str);
 
-void qp_add_double(qp_packer_t * packer, double real);
-void qp_add_int8(qp_packer_t * packer, int8_t integer);
-void qp_add_int16(qp_packer_t * packer, int16_t integer);
-void qp_add_int32(qp_packer_t * packer, int32_t integer);
-void qp_add_int64(qp_packer_t * packer, int64_t integer);
-void qp_add_true(qp_packer_t * packer);
-void qp_add_false(qp_packer_t * packer);
-void qp_add_null(qp_packer_t * packer);
+int qp_add_double(qp_packer_t * packer, double real);
+int qp_add_int8(qp_packer_t * packer, int8_t integer);
+int qp_add_int16(qp_packer_t * packer, int16_t integer);
+int qp_add_int32(qp_packer_t * packer, int32_t integer);
+int qp_add_int64(qp_packer_t * packer, int64_t integer);
+int qp_add_true(qp_packer_t * packer);
+int qp_add_false(qp_packer_t * packer);
+int qp_add_null(qp_packer_t * packer);
 
-void qp_add_type(qp_packer_t * packer, qp_types_t tp);
+int qp_add_type(qp_packer_t * packer, qp_types_t tp);
 
 /* adds a format string to the packer, but take in account that only
  * QPACK_MAX_FMT_SIZE characters are supported. (rest will be cut off)
  */
-void qp_add_fmt(qp_packer_t * packer, const char * fmt, ...);
+int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...);
 
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
 int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);

@@ -22,7 +22,7 @@ static void KWCACHE_kw_match(
         const char * str);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 cleri_kwcache_t * cleri_kwcache_new(void)
 {

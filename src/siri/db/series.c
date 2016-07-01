@@ -671,7 +671,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
         return SERIES_save(siridb);
     }
 
-    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
+    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
         return 1;
 
     /* unpacker will be freed in case macro fails */
@@ -712,12 +712,12 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     tp = qp_next(unpacker, NULL);
 
     /* free objects */
-    qp_free_object(qp_series_name);
-    qp_free_object(qp_series_id);
-    qp_free_object(qp_series_tp);
+    qp_object_free(qp_series_name);
+    qp_object_free(qp_series_id);
+    qp_object_free(qp_series_tp);
 
     /* free unpacker */
-    qp_free_unpacker(unpacker);
+    qp_unpacker_free(unpacker);
 
     if (tp != QP_END)
     {

@@ -23,7 +23,7 @@ static cleri_node_t *  LIST_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  *
  * cl_obj       :   object to repeat
  * delimiter    :   object (Usually a Token) as delimiter

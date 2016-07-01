@@ -23,7 +23,7 @@ static cleri_node_t * REPEAT_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  *
  * cl_ob :      object to repeat
  * min :        should be equal to or higher then 0.

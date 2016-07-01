@@ -17,6 +17,8 @@
 #include <logger/logger.h>
 #include <assert.h>
 #include <siri/err.h>
+#include <ctype.h>
+#include <string.h>
 
 #define FFILE_DEFAULT_SIZE 104857600  // 100 MB
 #define FFILE_NUMBERS 9  // how much numbers are used to generate the file.

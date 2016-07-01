@@ -18,7 +18,7 @@
 static llist_node_t * LLIST_node_new(void * data);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 llist_t * llist_new(void)
 {
@@ -261,7 +261,7 @@ slist_t * llist2slist(llist_t * llist)
 }
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 static llist_node_t * LLIST_node_new(void * data)
 {

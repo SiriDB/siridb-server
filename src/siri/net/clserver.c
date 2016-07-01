@@ -33,8 +33,11 @@ if (ssocket->siridb == NULL)                                                \
 {                                                                           \
     sirinet_pkg_t * package;                                                \
     package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_NOT_AUTHENTICATED, NULL); \
-    sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);          \
-    free(package);                                                          \
+    if (package != NULL)                                                    \
+    {                                                                       \
+        sirinet_pkg_send((uv_stream_t *) client, package);                  \
+        free(package);                                                      \
+    }                                                                       \
     return;                                                                 \
 }
 
@@ -48,7 +51,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static void CLSERVER_send_server_error(
+static int CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg);
@@ -192,20 +195,24 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
             package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
         }
 
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
         free(package);
     }
     else
     {
         log_error("Invalid client authentication request received.");
     }
-    qp_free_object(qp_username);
-    qp_free_object(qp_password);
-    qp_free_object(qp_dbname);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_username);
+    qp_object_free(qp_password);
+    qp_object_free(qp_dbname);
+    qp_unpacker_free(unpacker);
 }
 
-static void CLSERVER_send_server_error(
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+static int CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg)
@@ -213,7 +220,7 @@ static void CLSERVER_send_server_error(
     /* WARNING: siridb can be NULL here */
 
     char * err_msg;
-    int len;
+    int len, rc;
     sirinet_pkg_t * package;
 
     len = (siridb == NULL) ?
@@ -229,20 +236,31 @@ static void CLSERVER_send_server_error(
 
     if (len < 0)
     {
-        log_critical("Error creating message");
+        ERR_ALLOC
+        rc = -1;
     }
     else
     {
         log_debug(err_msg);
 
         package = sirinet_pkg_new(pkg->pid, len, SN_MSG_SERVER_ERROR, err_msg);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(stream, package);
 
-        sirinet_pkg_send(stream, package, NULL, NULL);
-
-        /* free package and err_msg*/
-        free(package);
+            /* free package and err_msg*/
+            free(package);
+            rc = 0;
+        }
+        else
+        {
+            rc = -1;
+        }
         free(err_msg);
     }
+
+    return rc;
 }
 
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
@@ -273,9 +291,9 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 tp,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
-    qp_free_object(qp_query);
-    qp_free_object(qp_time_precision);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_query);
+    qp_object_free(qp_time_precision);
+    qp_unpacker_free(unpacker);
 }
 
 static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
@@ -294,21 +312,31 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     qp_obj_t * qp_obj = qp_object_new();
     qp_packer_t * packer[siridb->pools->len];
-    int32_t rc;
+    siridb_insert_err_t rc;
 
     const char * err_msg;
 
     rc = siridb_insert_assign_pools(siridb, unpacker, qp_obj, packer);
 
-    if (rc < 0)
+    switch (rc)
     {
+    case ERR_EXPECTING_ARRAY:
+    case ERR_EXPECTING_SERIES_NAME:
+    case ERR_EXPECTING_MAP_OR_ARRAY:
+    case ERR_EXPECTING_INTEGER_TS:
+    case ERR_TIMESTAMP_OUT_OF_RANGE:
+    case ERR_UNSUPPORTED_VALUE:
+    case ERR_EXPECTING_AT_LEAST_ONE_POINT:
+    case ERR_EXPECTING_NAME_AND_POINTS:
         /* something went wrong, get correct err message */
         err_msg = siridb_insert_err_msg(rc);
 
         /* create and send package */
         sirinet_pkg_t * package = sirinet_pkg_new(
                 pkg->pid, strlen(err_msg), SN_MSG_INSERT_ERROR, err_msg);
-        sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
 
         /* free package*/
         free(package);
@@ -316,30 +344,34 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         /* free packer */
         for (size_t n = 0; n < siridb->pools->len; n++)
         {
-            qp_free_packer(packer[n]);
+            qp_packer_free(packer[n]);
         }
-    }
-    else
-    {
+        break;
+    case ERR_MEM_ALLOC:
+        break;
+    case INSERT_SUCCESS:
         siridb_insert_points(
                 pkg->pid,
                 client,
                 (size_t) rc,
                 siridb->pools->len,
                 packer);
+        break;
     }
 
     /* free qp_object */
-    qp_free_object(qp_obj);
+    qp_object_free(qp_obj);
 
     /* free unpacker */
-    qp_free_unpacker(unpacker);
+    qp_unpacker_free(unpacker);
 }
 
 static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_pkg_t * package;
     package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_ACK, NULL);
-    sirinet_pkg_send((uv_stream_t *) client, package, NULL, NULL);
+
+    /* ignore result code, signal can be raised */
+    sirinet_pkg_send((uv_stream_t *) client, package);
     free(package);
 }

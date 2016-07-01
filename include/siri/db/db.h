@@ -44,12 +44,12 @@
             qp_schema->via->int64 != SCHEMA)                    \
     {                                                           \
         log_critical("Invalid schema detected in '%s'", fn);    \
-        qp_free_object(qp_schema);                              \
-        qp_free_unpacker(unpacker);                             \
+        qp_object_free(qp_schema);                              \
+        qp_unpacker_free(unpacker);                             \
         return -1;                                              \
     }                                                           \
     /* finished schema check, free schema object */             \
-    qp_free_object(qp_schema);
+    qp_object_free(qp_schema);
 
 typedef struct siridb_time_s siridb_time_t;
 typedef struct siridb_server_s siridb_server_t;

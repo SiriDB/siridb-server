@@ -67,7 +67,7 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     return err_msg[err + SIRIDB_INSERT_ERR_SIZE];
 }
 
-int32_t siridb_insert_assign_pools(
+siridb_insert_err_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,
@@ -81,21 +81,30 @@ int32_t siridb_insert_assign_pools(
         /* These packers will be freed either in clserver in case of an error,
          * or by siridb_free_insert(..) in case of success.
          */
-        packer[n] = qp_packer_new(QP_SUGGESTED_SIZE);
+        if ((packer[n] = qp_packer_new(QP_SUGGESTED_SIZE)) == NULL)
+        {
+            return ERR_MEM_ALLOC;
+        }
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
     tp = qp_next(unpacker, NULL);
 
     if (qp_is_map(tp))
+    {
         return assign_by_map(siridb, unpacker, packer, qp_obj);
+    }
 
     if (qp_is_array(tp))
     {
         qp_packer_t * tmp_packer = qp_packer_new(QP_SUGGESTED_SIZE);
+        if (tmp_packer == NULL)
+        {
+            return ERR_MEM_ALLOC;
+        }
         int32_t rc =
                 assign_by_array(siridb, unpacker, packer, qp_obj, tmp_packer);
-        qp_free_packer(tmp_packer);
+        qp_packer_free(tmp_packer);
         return rc;
     }
     return ERR_EXPECTING_MAP_OR_ARRAY;
@@ -129,7 +138,9 @@ void siridb_free_insert(uv_handle_t * handle)
 
     /* free packer */
     for (size_t n = 0; n < insert->packer_size; n++)
-        qp_free_packer(insert->packer[n]);
+    {
+        qp_packer_free(insert->packer[n]);
+    }
 
     /* free insert */
     free(insert);
@@ -152,7 +163,7 @@ static void send_points_to_pools(uv_async_t * handle)
     qp_obj_t * qp_series_name = qp_object_new();
     qp_obj_t * qp_series_ts = qp_object_new();
     qp_obj_t * qp_series_val = qp_object_new();
-    sirinet_pkg_t * package;
+    sirinet_pkg_t * pkg;
     qp_packer_t * packer;
 
     for (uint16_t n = 0; n < insert->packer_size; n++)
@@ -205,35 +216,46 @@ static void send_points_to_pools(uv_async_t * handle)
                 if (tp == QP_ARRAY_CLOSE)
                     tp = qp_next(unpacker, qp_series_name);
             }
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
 
             uv_mutex_unlock(&siridb->series_mutex);
             uv_mutex_unlock(&siridb->shards_mutex);
         }
     }
 
-    qp_free_object(qp_series_name);
-    qp_free_object(qp_series_ts);
-    qp_free_object(qp_series_val);
+    qp_object_free(qp_series_name);
+    qp_object_free(qp_series_ts);
+    qp_object_free(qp_series_val);
 
     packer = qp_packer_new(1024);
-    qp_add_type(packer, QP_MAP_OPEN);
-    qp_add_raw(packer, "success_msg", 11);
-    qp_add_fmt(packer, "Inserted %zd point(s) successfully.", insert->size);
 
-    log_info("Inserted %zd point(s) successfully.", insert->size);
+    if (packer != NULL)
+    {
+        qp_add_type(packer, QP_MAP_OPEN);
+        qp_add_raw(packer, "success_msg", 11);
+        qp_add_fmt(packer, "Inserted %zd point(s) successfully.", insert->size);
 
-    siridb->received_points += insert->size;
+        log_info("Inserted %zd point(s) successfully.", insert->size);
 
-    package = sirinet_pkg_new(
-            insert->pid,
-            packer->len,
-            SN_MSG_RESULT,
-            packer->buffer);
-    sirinet_pkg_send((uv_stream_t *) insert->client, package, NULL, NULL);
+        siridb->received_points += insert->size;
 
-    free(package);
-    qp_free_packer(packer);
+        pkg = sirinet_pkg_new(
+                insert->pid,
+                packer->len,
+                SN_MSG_RESULT,
+                packer->buffer);
+
+        if (pkg != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send((uv_stream_t *) insert->client, pkg);
+
+            /* free package */
+            free(pkg);
+        }
+
+        qp_packer_free(packer);
+    }
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) siridb_free_insert);
 }
@@ -325,7 +347,7 @@ static int32_t assign_by_array(
 
         if (tmp_packer->len)
         {
-            qp_extend_packer(packer[pool], tmp_packer);
+            qp_packer_extend(packer[pool], tmp_packer);
             tmp_packer->len = 0;
             tp = qp_next(unpacker, qp_obj);
         }

@@ -14,58 +14,76 @@
 #include <stdlib.h>
 #include <string.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 static void PKG_write_cb(uv_write_t * req, int status);
 
-
+/*
+ * Returns NULL and raises a signal in case an error has occurred.
+ * (do not forget to run free(...) on the result. )
+ */
 sirinet_pkg_t * sirinet_pkg_new(
         uint64_t pid,
         uint32_t len,
         uint16_t tp,
         const char * data)
 {
-    /*
-     * do not forget to run free(pkg) when using sirinet_new_pkg
-     */
+
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
-    pkg->pid = pid;
-    pkg->len = len;
-    pkg->tp = tp;
-    if (data != NULL)
+
+    if (pkg == NULL)
     {
-        memcpy(pkg->data, data, len);
+        ERR_ALLOC
+    }
+    else
+    {
+        pkg->pid = pid;
+        pkg->len = len;
+        pkg->tp = tp;
+        if (data != NULL)
+        {
+            memcpy(pkg->data, data, len);
+        }
     }
     return pkg;
 }
 
-void sirinet_pkg_send(
-        uv_stream_t * client,
-        sirinet_pkg_t * pkg,
-        uv_write_cb cb,
-        void * data)
+/*
+ * Returns 0 if successful or -1 when an error has occurred.
+ * (signal is raised in case of an error)
+ */
+int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    if (cb == NULL)
-    {
-        cb = (uv_write_cb) &PKG_write_cb;
-    }
-
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
-
-    req->data = data;
-
+    if (req == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
             PKG_HEADER_SIZE + pkg->len);
-
-    uv_write(req, client, &wrbuf, 1, *cb);
+    uv_write(req, client, &wrbuf, 1, PKG_write_cb);
+    return 0;
 }
 
+/*
+ * Returns a copy of package allocated using malloc().
+ * In case of an error, NULL is returned and a signal is raised.
+ */
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
 {
     size_t size = PKG_HEADER_SIZE + pkg->len;
     sirinet_pkg_t * dup = (sirinet_pkg_t *) malloc(size);
-    memcpy(dup, pkg, size);
+    if (dup == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        memcpy(dup, pkg, size);
+    }
     return dup;
 }
 

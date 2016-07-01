@@ -265,7 +265,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 SERVER_on_auth_response,
                 NULL);
 
-        qp_free_packer(packer);
+        qp_packer_free(packer);
     }
     else
     {

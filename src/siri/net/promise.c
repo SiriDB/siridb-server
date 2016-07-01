@@ -64,6 +64,7 @@ void sirinet_promise_on_response(
     }
     else
     {
+        /* we can ignore errors from sirinet_pkg_dup() */
         promise->data = sirinet_pkg_dup(pkg);
     }
 

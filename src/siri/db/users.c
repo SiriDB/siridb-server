@@ -69,7 +69,7 @@ int siridb_users_load(siridb_t * siridb)
         return 0;
     }
 
-    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
+    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
         return 1;
 
     /* unpacker will be freed in case macro fails */
@@ -96,12 +96,12 @@ int siridb_users_load(siridb_t * siridb)
     }
 
     /* free objects */
-    qp_free_object(username);
-    qp_free_object(password);
-    qp_free_object(access_bit);
+    qp_object_free(username);
+    qp_object_free(password);
+    qp_object_free(access_bit);
 
     /* free unpacker */
-    qp_free_unpacker(unpacker);
+    qp_unpacker_free(unpacker);
 
     return 0;
 }

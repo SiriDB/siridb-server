@@ -40,12 +40,12 @@ siridb_walker_t * siridb_walker_new(
  */
 siridb_nodes_t * siridb_walker_free(siridb_walker_t * walker);
 
-void siridb_walker_append(
+int siridb_walker_append(
         siridb_walker_t * walker,
         cleri_node_t * node,
         uv_async_cb cb);
 
-void siridb_walker_insert(
+int siridb_walker_insert(
         siridb_walker_t * walker,
         cleri_node_t * node,
         uv_async_cb cb);

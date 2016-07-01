@@ -1467,7 +1467,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
     }
 
     /* extend packer with timeit information */
-    qp_extend_packer(query->packer, query->timeit);
+    qp_packer_extend(query->packer, query->timeit);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1565,7 +1565,7 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
             }
 
             /* free the unpacker */
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
         }
 
         /* make sure we free the promise and data */
@@ -1573,7 +1573,7 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
         free(promise);
     }
 
-    qp_free_object(qp_count);
+    qp_object_free(qp_count);
     qp_add_int64(query->packer, q_count->n);
 
     SIRIPARSER_NEXT_NODE
@@ -1621,7 +1621,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
                 {
                     if (q_list->limit)
                     {
-                        qp_extend_from_unpacker(query->packer, unpacker);
+                        qp_packer_extend_fu(query->packer, unpacker);
                         q_list->limit--;
                     }
                     else
@@ -1639,7 +1639,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
             }
 
             /* free the unpacker */
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
 
         }
 

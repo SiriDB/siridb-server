@@ -107,12 +107,12 @@ void siridb_query_free(uv_handle_t * handle)
     /* free qpack buffers */
     if (query->packer != NULL)
     {
-        qp_free_packer(query->packer);
+        qp_packer_free(query->packer);
     }
 
     if (query->timeit != NULL)
     {
-        qp_free_packer(query->timeit);
+        qp_packer_free(query->timeit);
     }
 
     /* free node list */
@@ -152,7 +152,9 @@ void siridb_send_query_result(uv_async_t * handle)
             query->packer->len,
             SN_MSG_RESULT,
             query->packer->buffer);
-    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL, NULL);
+    /* ignore result code, signal can be raised */
+    sirinet_pkg_send((uv_stream_t *) query->client, package);
+
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
@@ -172,7 +174,8 @@ void siridb_send_error(
             err,  // usually this is SN_MSG_QUERY_ERROR
             query->err_msg);
 
-    sirinet_pkg_send((uv_stream_t *) query->client, package, NULL, NULL);
+    /* ignore result code, signal can be raised */
+    sirinet_pkg_send((uv_stream_t *) query->client, package);
     free(package);
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
@@ -227,7 +230,7 @@ void siridb_query_forward(
         break;
     }
 
-    qp_free_packer(packer);
+    qp_packer_free(packer);
 }
 
 void siridb_query_timeit_from_unpacker(
@@ -249,7 +252,7 @@ void siridb_query_timeit_from_unpacker(
             qp_is_array(qp_next(unpacker, NULL)) &&
             qp_is_map(qp_current(unpacker)))
     {
-        qp_extend_from_unpacker(query->timeit, unpacker);
+        qp_packer_extend_fu(query->timeit, unpacker);
     }
 }
 
@@ -375,7 +378,8 @@ static void QUERY_parse(uv_async_t * handle)
             siridb_time_now(siridb, query->start),
             &query->flags);
 
-    if ((query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
+    if (    walker == NULL ||
+            (query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
     {
         return;  /* signal is set */
     }

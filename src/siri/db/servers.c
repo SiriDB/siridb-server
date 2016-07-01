@@ -75,7 +75,7 @@ int siridb_servers_load(siridb_t * siridb)
         return 0;
     }
 
-    if ((unpacker = qp_from_file_unpacker(fn)) == NULL)
+    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
     {
         return -1;
     }
@@ -123,13 +123,13 @@ int siridb_servers_load(siridb_t * siridb)
     tp = qp_next(unpacker, NULL);
 
     /* free objects */
-    qp_free_object(qp_uuid);
-    qp_free_object(qp_address);
-    qp_free_object(qp_port);
-    qp_free_object(qp_pool);
+    qp_object_free(qp_uuid);
+    qp_object_free(qp_address);
+    qp_object_free(qp_port);
+    qp_object_free(qp_pool);
 
     /* free unpacker */
-    qp_free_unpacker(unpacker);
+    qp_unpacker_free(unpacker);
 
     if (siridb->server == NULL)
     {

@@ -15,7 +15,7 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
-#define SIRIDB_INSERT_ERR_SIZE 8
+#define SIRIDB_INSERT_ERR_SIZE 9
 
 typedef enum
 {
@@ -26,8 +26,9 @@ typedef enum
     ERR_TIMESTAMP_OUT_OF_RANGE,
     ERR_UNSUPPORTED_VALUE,
     ERR_EXPECTING_AT_LEAST_ONE_POINT,
-    ERR_EXPECTING_NAME_AND_POINTS
-
+    ERR_EXPECTING_NAME_AND_POINTS,
+    ERR_MEM_ALLOC,
+    INSERT_SUCCESS,
 } siridb_insert_err_t;
 
 typedef struct siridb_s siridb_t;
@@ -44,7 +45,7 @@ typedef struct siridb_insert_s
     qp_packer_t * packer[];
 } siridb_insert_t;
 
-int32_t siridb_insert_assign_pools(
+siridb_insert_err_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,

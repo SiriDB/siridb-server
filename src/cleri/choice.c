@@ -39,7 +39,7 @@ static cleri_node_t * CHOICE_parse_first_match(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 cleri_object_t * cleri_choice(
         uint32_t gid,

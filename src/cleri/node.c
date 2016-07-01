@@ -25,7 +25,7 @@ static cleri_node_t Cleri_empty_node = {
 cleri_node_t * CLERI_EMPTY_NODE = &Cleri_empty_node;
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 cleri_node_t * cleri_node_new(
         cleri_object_t * cl_obj,

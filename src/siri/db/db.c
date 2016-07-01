@@ -33,7 +33,7 @@ static void SIRIDB_free(siridb_t * siridb);
 {                                           \
     sprintf(err_msg, "error: " ERROR_MSG);  \
     SIRIDB_free(*siridb);                   \
-    qp_free_object(qp_obj);                 \
+    qp_object_free(qp_obj);                 \
     return 1;                               \
 }
 
@@ -48,7 +48,7 @@ int siridb_from_unpacker(
             qp_next(unpacker, qp_obj) != QP_INT64)
     {
         sprintf(err_msg, "error: corrupted database file.");
-        qp_free_object(qp_obj);
+        qp_object_free(qp_obj);
         return 1;
     }
 
@@ -57,7 +57,7 @@ int siridb_from_unpacker(
     {
         sprintf(err_msg, "error: unsupported schema found: %ld",
                 qp_obj->via->int64);
-        qp_free_object(qp_obj);
+        qp_object_free(qp_obj);
         return 1;
     }
 
@@ -146,7 +146,7 @@ int siridb_from_unpacker(
     }
 
     /* free qp_object */
-    qp_free_object(qp_obj);
+    qp_object_free(qp_obj);
 
     return 0;
 }

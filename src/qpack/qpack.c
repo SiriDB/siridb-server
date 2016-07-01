@@ -29,14 +29,21 @@ if (packer->len + LEN > packer->buffer_size)                            \
     packer->buffer_size =                                               \
             ((packer->len + LEN) / packer->alloc_size + 1)              \
             * packer->alloc_size;                                       \
-    packer->buffer =                                                    \
-            (char *) realloc(packer->buffer, packer->buffer_size);      \
+    char * tmp = (char *) realloc(packer->buffer, packer->buffer_size); \
+    if (tmp == NULL)                                                    \
+    {                                                                   \
+        ERR_ALLOC                                                       \
+        packer->buffer_size = packer->len;                              \
+        return -1;                                                      \
+    }                                                                   \
+    packer->buffer = tmp;                                               \
 }
 
 #define QP_PLAIN_OBJ(QP_TYPE)                       \
 {                                                   \
     QP_RESIZE(1)                                    \
     packer->buffer[packer->len++] = QP_TYPE;        \
+    return 0;                                       \
 }
 
 #define QP_PREPARE_RAW                                      \
@@ -73,7 +80,7 @@ static qp_types_t print_unpacker(
         qp_obj_t * qp_obj);
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
 {
@@ -89,7 +96,7 @@ qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
     return unpacker;
 }
 
-qp_unpacker_t * qp_from_file_unpacker(const char * fn)
+qp_unpacker_t * qp_unpacker_from_file(const char * fn)
 {
     FILE * fp;
     size_t size;
@@ -127,7 +134,7 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn)
         else
         {
             log_error("Cannot not read from file '%s'", fn);
-            qp_free_unpacker(unpacker);
+            qp_unpacker_free(unpacker);
             unpacker = NULL;
         }
     }
@@ -137,7 +144,7 @@ qp_unpacker_t * qp_from_file_unpacker(const char * fn)
     return unpacker;
 }
 
-void qp_free_object(qp_obj_t * qp_obj)
+void qp_object_free(qp_obj_t * qp_obj)
 {
 #ifdef DEBUG
     assert(qp_obj != NULL);
@@ -146,7 +153,7 @@ void qp_free_object(qp_obj_t * qp_obj)
     free(qp_obj);
 }
 
-void qp_free_unpacker(qp_unpacker_t * unpacker)
+void qp_unpacker_free(qp_unpacker_t * unpacker)
 {
 #ifdef DEBUG
     assert(unpacker != NULL);
@@ -156,7 +163,7 @@ void qp_free_unpacker(qp_unpacker_t * unpacker)
 }
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 qp_obj_t * qp_object_new(void)
 {
@@ -178,7 +185,7 @@ qp_obj_t * qp_object_new(void)
 }
 
 /*
- * Returns NULL and sets a signal in case an error has occurred.
+ * Returns NULL and raises a signal in case an error has occurred.
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)
 {
@@ -201,7 +208,10 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
     return packer;
 }
 
-void qp_free_packer(qp_packer_t * packer)
+/*
+ * Destroy packer object. (parsing NULL is not allowed)
+ */
+void qp_packer_free(qp_packer_t * packer)
 {
 #ifdef DEBUG
     assert(packer != NULL);
@@ -210,14 +220,26 @@ void qp_free_packer(qp_packer_t * packer)
     free(packer);
 }
 
-void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source)
+/*
+ * Extend packer with another packer (source).
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred
+ */
+int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source)
 {
     QP_RESIZE(source->len)
     memcpy(packer->buffer + packer->len, source->buffer, source->len);
     packer->len += source->len;
+    return 0;
 }
 
-void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker)
+/*
+ * Extend packer with data from an unpacker.
+ * (only the object at the current position will be copied)
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
 {
     /* mark the start of the object */
     const char * start = unpacker->pt;
@@ -232,6 +254,7 @@ void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker)
     QP_RESIZE(size)
     memcpy(packer->buffer + packer->len, start, size);
     packer->len += size;
+    return 0;
 }
 
 inline int qp_is_array(qp_types_t tp)
@@ -271,8 +294,8 @@ void qp_print(const char * pt, size_t len)
     qp_obj_t * qp_obj = qp_object_new();
     print_unpacker(qp_next(unpacker, qp_obj), unpacker, qp_obj);
     printf("\n");
-    qp_free_object(qp_obj);
-    qp_free_unpacker(unpacker);
+    qp_object_free(qp_obj);
+    qp_unpacker_free(unpacker);
 }
 
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
@@ -429,24 +452,25 @@ static qp_types_t print_unpacker(
     }
     return qp_next(unpacker, qp_obj);
 }
-void qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
+int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
 {
     va_list args;
     char buffer[QPACK_MAX_FMT_SIZE];
     va_start(args, fmt);
     vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args);
     va_end(args);
-    qp_add_raw(packer, buffer, strlen(buffer));
+    return qp_add_raw(packer, buffer, strlen(buffer));
 }
 
-void qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
+int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
 {
     QP_PREPARE_RAW
     memcpy(packer->buffer + packer->len, raw, len);
     packer->len += len;
+    return 0;
 }
 
-void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
+int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
 {
     /* add one because 0 (terminator) should be included with the length */
     size_t len = len_raw + 1;
@@ -456,19 +480,20 @@ void qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
     memcpy(packer->buffer + packer->len, raw, len_raw);
     packer->len += len;
     packer->buffer[packer->len - 1] = 0;
+    return 0;
 }
 
-void qp_add_string(qp_packer_t * packer, const char * str)
+int qp_add_string(qp_packer_t * packer, const char * str)
 {
-    qp_add_raw(packer, str, strlen(str));
+    return qp_add_raw(packer, str, strlen(str));
 }
 
-void qp_add_string_term(qp_packer_t * packer, const char * str)
+int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
-    qp_add_raw(packer, str, strlen(str) + 1);
+    return qp_add_raw(packer, str, strlen(str) + 1);
 }
 
-void qp_add_double(qp_packer_t * packer, double real)
+int qp_add_double(qp_packer_t * packer, double real)
 {
     QP_RESIZE(9)
     if (real == 0.0)
@@ -483,8 +508,9 @@ void qp_add_double(qp_packer_t * packer, double real)
         memcpy(packer->buffer + packer->len, &real, 8);
         packer->len += 8;
     }
+    return 0;
 }
-void qp_add_int8(qp_packer_t * packer, int8_t integer)
+int qp_add_int8(qp_packer_t * packer, int8_t integer)
 {
     QP_RESIZE(2)
     if (integer >= 0 && integer < 64)
@@ -496,34 +522,38 @@ void qp_add_int8(qp_packer_t * packer, int8_t integer)
         packer->buffer[packer->len++] = QP_INT8;
         packer->buffer[packer->len++] = integer;
     }
+    return 0;
 }
-void qp_add_int16(qp_packer_t * packer, int16_t integer)
+int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
     QP_RESIZE(3)
     packer->buffer[packer->len++] = QP_INT16;
     memcpy(packer->buffer + packer->len, &integer, 2);
     packer->len += 2;
+    return 0;
 }
-void qp_add_int32(qp_packer_t * packer, int32_t integer)
+int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
     QP_RESIZE(5)
     packer->buffer[packer->len++] = QP_INT32;
     memcpy(packer->buffer + packer->len, &integer, 4);
     packer->len += 4;
+    return 0;
 }
-void qp_add_int64(qp_packer_t * packer, int64_t integer)
+int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
     QP_RESIZE(9)
     packer->buffer[packer->len++] = QP_INT64;
     memcpy(packer->buffer + packer->len, &integer, 8);
     packer->len += 8;
+    return 0;
 }
 
-void qp_add_true(qp_packer_t * packer) QP_PLAIN_OBJ(QP_TRUE)
-void qp_add_false(qp_packer_t * packer) QP_PLAIN_OBJ(QP_FALSE)
-void qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
+int qp_add_true(qp_packer_t * packer) QP_PLAIN_OBJ(QP_TRUE)
+int qp_add_false(qp_packer_t * packer) QP_PLAIN_OBJ(QP_FALSE)
+int qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
 
-void qp_add_type(qp_packer_t * packer, qp_types_t tp)
+int qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
 #ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
@@ -531,6 +561,7 @@ void qp_add_type(qp_packer_t * packer, qp_types_t tp)
 
     QP_RESIZE(1)
     packer->buffer[packer->len++] = tp;
+    return 0;
 }
 
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
@@ -545,7 +576,9 @@ int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
 {
     if (len < 100)
+    {
         fputc(128 + len, fpacker);
+    }
     else if (len < 256)
     {
         fputc(QP_RAW8, fpacker);
@@ -604,6 +637,18 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
             fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : -1;
 }
 
+/*
+ * Jump to the next object. If 'qp_obj' is not NULL, the object will be stored
+ * in qp_obj so you can use it later.
+ *
+ * Returns one of the following: (these are the ONLY possible return values)
+ *
+ *  QP_END, QP_RAW, QP_INT64, QP_DOUBLE
+ *  QP_TRUE, QP_FALSE, QP_NULL, QP_ARRAY0..5, QP_MAP0..5,
+ *  QP_ARRAY_OPEN, QP_ARRAY_CLOSE, QP_MAP_OPEN, QP_MAP_CLOSE
+ *
+ * Its fine to reuse the same object without calling free in between.
+ */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
 {
     uint8_t tp;
@@ -715,6 +760,13 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
     return 0;
 }
 
+/*
+ * Returns one of the following: (these are the ONLY possible return values)
+ *
+ *  QP_END, QP_RAW, QP_INT64, QP_DOUBLE
+ *  QP_TRUE, QP_FALSE, QP_NULL, QP_ARRAY0..5, QP_MAP0..5,
+ *  QP_ARRAY_OPEN, QP_ARRAY_CLOSE, QP_MAP_OPEN, QP_MAP_CLOSE
+ */
 qp_types_t qp_current(qp_unpacker_t * unpacker)
 {
     if (unpacker->pt >= unpacker->end)

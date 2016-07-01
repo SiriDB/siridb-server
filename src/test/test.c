@@ -99,8 +99,8 @@ static int test_qpack(void)
 
     qp_unpacker_t * unpacker = qp_unpacker_new(packer->buffer, packer->len);
 
-    qp_free_unpacker(unpacker);
-    qp_free_packer(packer);
+    qp_unpacker_free(unpacker);
+    qp_packer_free(packer);
 
     return test_end(TEST_OK);
 }
