@@ -67,7 +67,7 @@ cleri_node_t * cleri_node_new(
 }
 
 /*
- * Destroy node.
+ * Destroy node. (parsing NULL is allowed)
  */
 void cleri_node_free(cleri_node_t * node)
 {

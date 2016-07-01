@@ -67,6 +67,9 @@ static void KEYWORD_free(cleri_object_t * cl_object)
     free(cl_object->via.keyword);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * KEYWORD_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -77,7 +80,11 @@ static cleri_node_t * KEYWORD_parse(
     cleri_node_t * node = NULL;
     const char * str = parent->str + parent->len;
 
-    match_len = cleri_kwcache_match(pr, str);
+    if ((match_len = cleri_kwcache_match(pr, str)) < 0)
+    {
+        return NULL;
+    }
+
     if (match_len == cl_obj->via.keyword->len &&
        (
            strncmp(cl_obj->via.keyword->keyword, str, match_len) == 0 ||
@@ -87,14 +94,19 @@ static cleri_node_t * KEYWORD_parse(
            )
        ))
     {
-        node = cleri_node_new(cl_obj, str, match_len);
-        parent->len += node->len;
-        cleri_children_add(parent->children, node);
+        if ((node = cleri_node_new(cl_obj, str, match_len)) != NULL)
+        {
+            parent->len += node->len;
+            cleri_children_add(parent->children, node);
+        }
     }
     else
     {
         /* Update expecting */
-        cleri_expecting_update(pr->expecting, cl_obj, str);
+        if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
+        {
+            ERR_ALLOC  /* node is alread NULL */
+        }
     }
     return node;
 }

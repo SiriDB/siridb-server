@@ -375,7 +375,10 @@ static void QUERY_parse(uv_async_t * handle)
             siridb_time_now(siridb, query->start),
             &query->flags);
 
-    query->pr = cleri_parse(siri.grammar, query->q);
+    if ((query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
+    {
+        return;  /* signal is set */
+    }
 
     if (!query->pr->is_valid)
     {

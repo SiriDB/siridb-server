@@ -89,13 +89,16 @@ static cleri_node_t * REPEAT_parse(
     cleri_node_t * node;
     cleri_node_t * rnode;
     size_t i;
-    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
+    if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
+    {
+        return NULL;
+    }
 
     for (i = 0;
          cl_obj->via.repeat->max == 0 || i < cl_obj->via.repeat->max;
          i++)
     {
-        rnode = cleri_walk(
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 cl_obj->via.repeat->cl_obj,

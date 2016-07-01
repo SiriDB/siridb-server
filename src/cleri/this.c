@@ -33,6 +33,9 @@ static cleri_object_t cleri_this = {
 
 cleri_object_t * CLERI_THIS = &cleri_this;
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * cleri_parse_this(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -46,8 +49,11 @@ static cleri_node_t * cleri_parse_this(
     switch (cleri_rule_init(&tested, rule->tested, str))
     {
     case CLERI_RULE_TRUE:
-        node = cleri_node_new(cl_obj, str, 0);
-        tested->node = cleri_walk(
+        if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
+        {
+            return NULL;
+        }
+        tested->node = cleri__parser_walk(
                 pr,
                 node,
                 rule->root_obj,
@@ -69,8 +75,7 @@ static cleri_node_t * cleri_parse_this(
         node->ref++;
         break;
     case CLERI_RULE_ERROR:
-        /* TODO: handle error */
-        break;
+        return NULL;
     }
 
     parent->len += tested->node->len;

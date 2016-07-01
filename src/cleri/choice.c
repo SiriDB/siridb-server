@@ -106,6 +106,9 @@ static void CHOICE_free(cleri_object_t * cl_object)
     free(cl_object->via.choice);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * CHOICE_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -117,6 +120,9 @@ static cleri_node_t * CHOICE_parse(
             CHOICE_parse_first_match(pr, parent, cl_obj, rule);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * CHOICE_parse_most_greedy(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -132,8 +138,11 @@ static cleri_node_t * CHOICE_parse_most_greedy(
     olist = cl_obj->via.choice->olist;
     while (olist != NULL)
     {
-        node = cleri_node_new(cl_obj, str, 0);
-        rnode = cleri_walk(
+        if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
+        {
+            return NULL;  /* signal is set */
+        }
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 olist->cl_obj,
@@ -158,6 +167,9 @@ static cleri_node_t * CHOICE_parse_most_greedy(
     return mg_node;
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * CHOICE_parse_first_match(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -170,9 +182,13 @@ static cleri_node_t * CHOICE_parse_first_match(
 
     olist = cl_obj->via.sequence->olist;
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
+    if (node == NULL)
+    {
+        return NULL;
+    }
     while (olist != NULL)
     {
-        rnode = cleri_walk(
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 olist->cl_obj,

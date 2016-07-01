@@ -89,6 +89,9 @@ static void SEQUENCE_free(cleri_object_t * cl_object)
     free(cl_object->via.sequence);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * SEQUENCE_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -100,11 +103,14 @@ static cleri_node_t * SEQUENCE_parse(
     cleri_node_t * rnode;
 
     olist = cl_obj->via.sequence->olist;
-    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
+    if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
+    {
+        return NULL;
+    }
 
     while (olist != NULL)
     {
-        rnode = cleri_walk(
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 olist->cl_obj,

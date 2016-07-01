@@ -17,24 +17,25 @@
 #include <cleri/children.h>
 #include <inttypes.h>
 
-struct cleri_object_s;
-struct cleri_children_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_children_s cleri_children_t;
 
 typedef struct cleri_node_s
 {
-    struct cleri_object_s * cl_obj;
+    cleri_object_t * cl_obj;
     const char * str;
     size_t len;
     uint_fast8_t ref;
     int64_t result;
-    struct cleri_children_s * children;
+    cleri_children_t * children;
 } cleri_node_t;
 
 
 cleri_node_t * cleri_node_new(
-        struct cleri_object_s * cl_obj,
+        cleri_object_t * cl_obj,
         const char * str,
         size_t len);
+
 void cleri_node_free(cleri_node_t * node);
 
 cleri_node_t * CLERI_EMPTY_NODE;

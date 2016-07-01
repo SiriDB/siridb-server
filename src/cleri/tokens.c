@@ -21,7 +21,7 @@
 
 static void TOKENS_free(cleri_object_t * cl_object);
 
-static cleri_node_t * cleri_parse_tokens(
+static cleri_node_t * TOKENS_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
@@ -48,7 +48,7 @@ cleri_object_t * cleri_tokens(
     cl_object = cleri_object_new(
             CLERI_TP_TOKENS,
             &TOKENS_free,
-            &cleri_parse_tokens);
+            &TOKENS_parse);
 
     if (cl_object == NULL)
     {
@@ -140,7 +140,10 @@ static void TOKENS_free(cleri_object_t * cl_object)
     free(cl_object->via.tokens);
 }
 
-static cleri_node_t * cleri_parse_tokens(
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
+static cleri_node_t * TOKENS_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
@@ -155,13 +158,18 @@ static cleri_node_t * cleri_parse_tokens(
     {
         if (strncmp(tlist->token, str, tlist->len) == 0)
         {
-            node = cleri_node_new(cl_obj, str, tlist->len);
-            parent->len += node->len;
-            cleri_children_add(parent->children, node);
+            if ((node = cleri_node_new(cl_obj, str, tlist->len)) != NULL)
+            {
+                parent->len += node->len;
+                cleri_children_add(parent->children, node);
+            }
             return node;
         }
     }
-    cleri_expecting_update(pr->expecting, cl_obj, str);
+    if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
+    {
+        ERR_ALLOC
+    }
     return NULL;
 }
 

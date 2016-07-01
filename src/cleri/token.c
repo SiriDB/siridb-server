@@ -69,6 +69,9 @@ static void TOKEN_free(cleri_object_t * cl_object)
     free(cl_object->via.token);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * TOKEN_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -82,13 +85,15 @@ static cleri_node_t * TOKEN_parse(
             str,
             cl_obj->via.token->len) == 0)
     {
-        node = cleri_node_new(cl_obj, str, cl_obj->via.token->len);
-        parent->len += node->len;
-        cleri_children_add(parent->children, node);
+        if ((node = cleri_node_new(cl_obj, str, cl_obj->via.token->len)) != NULL)
+        {
+            parent->len += node->len;
+            cleri_children_add(parent->children, node);
+        }
     }
-    else
+    else if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
     {
-        cleri_expecting_update(pr->expecting, cl_obj, str);
+        ERR_ALLOC
     }
     return node;
 }

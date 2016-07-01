@@ -39,13 +39,13 @@ typedef struct cleri_parser_s
     cleri_kwcache_t * kwcache;
 } cleri_parser_t;
 
-cleri_parser_t * cleri_parse(
+cleri_parser_t * cleri_parser_new(
         cleri_grammar_t * grammar,
         const char * str);
 
 void cleri_parser_free(cleri_parser_t * pr);
 
-cleri_node_t * cleri_walk(
+cleri_node_t * cleri__parser_walk(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,

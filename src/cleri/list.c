@@ -89,6 +89,9 @@ static void LIST_free(cleri_object_t * cl_object)
     free(cl_object->via.list);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t *  LIST_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -99,27 +102,35 @@ static cleri_node_t *  LIST_parse(
     cleri_node_t * rnode;
     size_t i = 0;
     size_t j = 0;
-    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
+
+    if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
+    {
+        return NULL;
+    }
+
     while (1)
     {
-
-        rnode = cleri_walk(
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 cl_obj->via.list->cl_obj,
                 rule,
                 i < cl_obj->via.list->min); // 1 = REQUIRED
         if (rnode == NULL)
+        {
             break;
+        }
         i++;
-        rnode = cleri_walk(
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 cl_obj->via.list->delimiter,
                 rule,
                 i < cl_obj->via.list->min); // 1 = REQUIRED
         if (rnode == NULL)
+        {
             break;
+        }
         j++;
     }
     if (    i < cl_obj->via.list->min ||

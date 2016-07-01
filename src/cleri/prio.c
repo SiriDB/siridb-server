@@ -92,7 +92,7 @@ static void PRIO_free(cleri_object_t * cl_object)
 }
 
 /*
- * Parse prio object.
+ * Returns a node or NULL. In case of an error a signal is set.
  */
 static cleri_node_t *  PRIO_parse(
         cleri_parser_t * pr,
@@ -110,15 +110,18 @@ static cleri_node_t *  PRIO_parse(
      * if *str is already in tested */
     if (cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
     {
-        /* TODO: handle error */
+        return NULL;
     }
 
     olist = cl_obj->via.prio->olist;
 
     while (olist != NULL)
     {
-        node = cleri_node_new(cl_obj, str, 0);
-        rnode = cleri_walk(
+        if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
+        {
+            return NULL;
+        }
+        rnode = cleri__parser_walk(
                 pr,
                 node,
                 olist->cl_obj,

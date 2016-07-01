@@ -96,6 +96,9 @@ cleri_object_t * cleri_regex(uint32_t gid, const char * pattern)
     return cl_object;
 }
 
+/*
+ * Destroy regex object.
+ */
 static void REGEX_free(cleri_object_t * cl_object)
 {
     free(cl_object->via.regex->regex);
@@ -106,6 +109,9 @@ static void REGEX_free(cleri_object_t * cl_object)
     free(cl_object->via.regex);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t *  REGEX_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -128,14 +134,19 @@ static cleri_node_t *  REGEX_parse(
             2);                    // length of sub_str_vec
     if (pcre_exec_ret < 0)
     {
-        cleri_expecting_update(pr->expecting, cl_obj, str);
+        if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
+        {
+            ERR_ALLOC
+        }
         return NULL;
     }
     /* since each regex pattern should start with ^ we now sub_str_vec[0]
      * should be 0. sub_str_vec[1] contains the end position in the sting
      */
-    node = cleri_node_new(cl_obj, str, (size_t) sub_str_vec[1]);
-    parent->len += node->len;
-    cleri_children_add(parent->children, node);
+    if ((node = cleri_node_new(cl_obj, str, (size_t) sub_str_vec[1])) != NULL)
+    {
+        parent->len += node->len;
+        cleri_children_add(parent->children, node);
+    }
     return node;
 }

@@ -31,6 +31,10 @@ cleri_children_t * cleri_children_new(void)
     return children;
 }
 
+/*
+ * Appends a node to children but a signal is set in case an error occurs.
+ * (in case of an error, children remains unchanged)
+ */
 void cleri_children_add(cleri_children_t * children, cleri_node_t * node)
 {
     if (children->node == NULL)
@@ -45,10 +49,20 @@ void cleri_children_add(cleri_children_t * children, cleri_node_t * node)
     }
 
     children->next = (cleri_children_t *) malloc(sizeof(cleri_children_t));
-    children->next->node = node;
-    children->next->next = NULL;
+    if (children->next == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        children->next->node = node;
+        children->next->next = NULL;
+    }
 }
 
+/*
+ * Destroy children.
+ */
 void cleri_children_free(cleri_children_t * children)
 {
     cleri_children_t * next;

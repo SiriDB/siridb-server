@@ -127,7 +127,10 @@ static cleri_node_t * RULE_parse(
 {
     cleri_node_t * node;
     cleri_node_t * rnode;
-    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
+    if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
+    {
+        return NULL;
+    }
 
     rule = (cleri_rule_store_t *) malloc(sizeof(cleri_rule_store_t));
     rule->tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
@@ -136,7 +139,7 @@ static cleri_node_t * RULE_parse(
     rule->tested->next = NULL;
     rule->root_obj = cl_obj->via.rule->cl_obj;
 
-    rnode = cleri_walk(
+    rnode = cleri__parser_walk(
             pr,
             node,
             rule->root_obj,

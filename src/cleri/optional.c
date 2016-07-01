@@ -69,6 +69,9 @@ static void OPTIONAL_free(cleri_object_t * cl_object)
     free(cl_object->via.optional);
 }
 
+/*
+ * Returns a node or NULL. In case of an error a signal is set.
+ */
 static cleri_node_t * OPTIONAL_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -78,8 +81,11 @@ static cleri_node_t * OPTIONAL_parse(
     cleri_node_t * node;
     cleri_node_t * rnode;
 
-    node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
-    rnode = cleri_walk(
+    if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
+    {
+        return NULL;
+    }
+    rnode = cleri__parser_walk(
             pr,
             node,
             cl_obj->via.optional->cl_obj,
