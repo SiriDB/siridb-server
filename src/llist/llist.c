@@ -13,19 +13,32 @@
 #include <stddef.h>
 #include <llist/llist.h>
 #include <stdlib.h>
+#include <siri/err.h>
 
 static llist_node_t * LLIST_node_new(void * data);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 llist_t * llist_new(void)
 {
     llist_t * llist;
     llist = (llist_t *) malloc(sizeof(llist_t));
+    if (llist == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     llist->len = 0;
     llist->first = NULL;
     llist->last = NULL;
     return llist;
 }
 
+/*
+ * Destroys the linked list but performs a call-back function on the data.
+ * The result of the call back function will be ignored.
+ */
 void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
@@ -41,6 +54,13 @@ void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
     free(llist);
 }
 
+/*
+ * Appends to the end of the list.
+ *
+ * Be aware that list->len is probably incorrect when an error has occurred,
+ * but this is not an issue for destroying the list.
+ * (signal will be set in case of an error so this can be checked)
+ */
 void llist_append(llist_t * llist, void * data)
 {
     llist->len++;
@@ -56,6 +76,10 @@ void llist_append(llist_t * llist, void * data)
     }
 }
 
+/*
+ * Walk through the list. Call-back function will be called on each item but
+ * the call-back result will be ignored.
+ */
 void llist_walk(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
@@ -66,6 +90,11 @@ void llist_walk(llist_t * llist, llist_cb_t cb, void * args)
     }
 }
 
+/*
+ * Walk through the list. Call-back function will be called on each item and
+ * 'n' will be decremented by one for each non-zero call-back result.
+ * The walk will stop either on the end of the list or when 'n' is zero.
+ */
 void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
@@ -79,6 +108,10 @@ void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
     }
 }
 
+/*
+ * Remove and return the first item where 'cb' is not zero
+ * or NULL if not found.
+ */
 void * llist_remove(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
@@ -122,6 +155,9 @@ void * llist_remove(llist_t * llist, llist_cb_t cb, void * args)
     return NULL;
 }
 
+/*
+ * Remove and return the last item in the list or NULL if empty.
+ */
 void * llist_pop(llist_t * llist)
 {
     llist_node_t * node = llist->first;
@@ -154,6 +190,9 @@ void * llist_pop(llist_t * llist)
     return data;
 }
 
+/*
+ * Remove and return the first item in the list or NULL if empty.
+ */
 void * llist_shift(llist_t * llist)
 {
     llist_node_t * node = llist->first;
@@ -177,6 +216,9 @@ void * llist_shift(llist_t * llist)
     return data;
 }
 
+/*
+ * Return the first item where 'cb' is not zero or NULL if not found.
+ */
 void * llist_get(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
@@ -191,9 +233,20 @@ void * llist_get(llist_t * llist, llist_cb_t cb, void * args)
     return NULL;
 }
 
+/*
+ * Copy the linked list to a simple list.
+ * (returns NULL and sets a signal in case an error has occurred)
+ */
 slist_t * llist2slist(llist_t * llist)
 {
     slist_t * slist = slist_new(llist->len);
+
+    if (slist == NULL)
+    {
+        /* signal is set be slist_new() */
+        return NULL;
+    }
+
     llist_node_t * node = llist->first;
     size_t n;
 
@@ -207,12 +260,21 @@ slist_t * llist2slist(llist_t * llist)
     return slist;
 }
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 static llist_node_t * LLIST_node_new(void * data)
 {
     llist_node_t * llist_node;
     llist_node = (llist_node_t *) malloc(sizeof(llist_node_t));
+    if (llist_node == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     llist_node->data = data;
     llist_node->next = NULL;
+
     return llist_node;
 }
 

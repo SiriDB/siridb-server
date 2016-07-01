@@ -311,6 +311,17 @@ int siri_start(void)
     /* get start time so we can calculate the startup_time */
     clock_gettime(CLOCK_REALTIME, &start);
 
+    /* initialize the default event loop */
+    siri.loop = malloc(sizeof(uv_loop_t));
+    uv_loop_init(siri.loop);
+
+    /* bind signals to the event loop */
+    for (int i = 0; i < N_SIGNALS; i++)
+    {
+        uv_signal_init(siri.loop, &sig[i]);
+        uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
+    }
+
     /* initialize listener (set enter and exit functions) */
     siriparser_init_listener();
 
@@ -333,16 +344,6 @@ int siri_start(void)
     if ((rc = SIRI_load_databases()))
         return rc; //something went wrong
 
-    /* initialize the default event loop */
-    siri.loop = malloc(sizeof(uv_loop_t));
-    uv_loop_init(siri.loop);
-
-    /* bind signals to the event loop */
-    for (int i = 0; i < N_SIGNALS; i++)
-    {
-        uv_signal_init(siri.loop, &sig[i]);
-        uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
-    }
 
     /* initialize the back-end server */
     if ((rc = sirinet_bserver_init(&siri)))
@@ -397,7 +398,7 @@ void siri_free(void)
     llist_free_cb(siri.siridb_list, (llist_cb_t) siridb_free_cb, NULL);
 
     /* free siridb grammar */
-    cleri_free_grammar(siri.grammar);
+    cleri_grammar_free(siri.grammar);
 
     /* free event loop */
     free(siri.loop);
@@ -480,7 +481,8 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
 {
     if (siri.status == SIRI_STATUS_CLOSING)
     {
-        log_error("Receive a second signal (%d), stop SiriDB immediately!");
+        log_error("Receive a second signal (%d), stop SiriDB immediately!",
+                signum);
         SIRI_destroy();
     }
     else
@@ -510,7 +512,8 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         }
         else
         {
-            log_critical("Signal (%d) received, stop SiriDB immediately!");
+            log_critical("Signal (%d) received, stop SiriDB immediately!",
+                    signum);
             SIRI_destroy();
         }
     }

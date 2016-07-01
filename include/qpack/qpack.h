@@ -104,8 +104,8 @@ typedef FILE qp_fpacker_t;
 #define qp_close fclose
 #define qp_flush fflush
 
-qp_packer_t * qp_new_packer(size_t alloc_size);
-qp_obj_t * qp_new_object(void);
+qp_packer_t * qp_packer_new(size_t alloc_size);
+qp_obj_t * qp_object_new(void);
 
 void qp_free_packer(qp_packer_t * packer);
 
@@ -114,7 +114,7 @@ void qp_extend_packer(qp_packer_t * packer, qp_packer_t * source);
 /* extend from unpacker (only the current position will be copied) */
 void qp_extend_from_unpacker(qp_packer_t * packer, qp_unpacker_t * unpacker);
 
-qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len);
+qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len);
 
 qp_unpacker_t * qp_from_file_unpacker(const char * fn);
 

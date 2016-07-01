@@ -16,24 +16,27 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <siri/err.h>
+#include <assert.h>
 
-static void cleri_free_tokens(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void TOKENS_free(cleri_object_t * cl_object);
 
 static cleri_node_t * cleri_parse_tokens(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
-static void cleri_tlist_add(
+static int TOKENS_list_append(
         cleri_tlist_t * tlist,
         const char * token,
         size_t len);
 
-static void cleri_free_tlist(cleri_tlist_t * tlist);
+static void TOKENS_list_free(cleri_tlist_t * tlist);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 cleri_object_t * cleri_tokens(
         uint32_t gid,
         const char * tokens)
@@ -42,28 +45,51 @@ cleri_object_t * cleri_tokens(
     char * pt;
     cleri_object_t * cl_object;
 
-    cl_object = cleri_new_object(
+    cl_object = cleri_object_new(
             CLERI_TP_TOKENS,
-            &cleri_free_tokens,
+            &TOKENS_free,
             &cleri_parse_tokens);
-    cl_object->cl_obj->tokens =
-            (cleri_tokens_t *) malloc(sizeof(cleri_tokens_t));
-    cl_object->cl_obj->tokens->gid = gid;
 
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.tokens =
+            (cleri_tokens_t *) malloc(sizeof(cleri_tokens_t));
+
+    if (cl_object->via.tokens == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.tokens->gid = gid;
 
     /* copy the sting twice, first one we set spaces to 0...*/
-    cl_object->cl_obj->tokens->tokens = strdup(tokens);
+    cl_object->via.tokens->tokens = strdup(tokens);
 
     /* ...and this one we keep for showing the original */
-    cl_object->cl_obj->tokens->spaced = strdup(tokens);
+    cl_object->via.tokens->spaced = strdup(tokens);
 
-    cl_object->cl_obj->tokens->tlist =
+    cl_object->via.tokens->tlist =
             (cleri_tlist_t *) malloc(sizeof(cleri_tlist_t));
-    cl_object->cl_obj->tokens->tlist->token = NULL;
-    cl_object->cl_obj->tokens->tlist->next = NULL;
-    cl_object->cl_obj->tokens->tlist->len = 0;
 
-    pt = cl_object->cl_obj->tokens->tokens;
+    if (    cl_object->via.tokens->tokens == NULL ||
+            cl_object->via.tokens->spaced == NULL ||
+            cl_object->via.tokens->tlist == NULL)
+    {
+        ERR_ALLOC
+        cleri_object_decref(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.tokens->tlist->token = NULL;
+    cl_object->via.tokens->tlist->next = NULL;
+    cl_object->via.tokens->tlist->len = 0;
+
+    pt = cl_object->via.tokens->tokens;
 
     for (len = 0;; pt++)
     {
@@ -71,49 +97,58 @@ cleri_object_t * cleri_tokens(
         {
             if (len)
             {
-                cleri_tlist_add(
-                        cl_object->cl_obj->tokens->tlist,
+                if (TOKENS_list_append(
+                        cl_object->via.tokens->tlist,
                         pt - len,
-                        len);
+                        len))
+                {
+                    ERR_ALLOC
+                    cleri_object_decref(cl_object);
+                    return NULL;
+                }
                 len = 0;
             }
             if (*pt)
                 *pt = 0;
             else
+            {
                 break;
+            }
         }
         else
+        {
             len++;
+        }
     }
 
-    if (cl_object->cl_obj->tokens->tlist->token == NULL)
-    {
-        printf("Got an empty tokens object!");
-        exit(EXIT_FAILURE);
-    }
+#ifdef DEBUG
+    /* check for empty token list */
+    assert (cl_object->via.tokens->tlist->token != NULL);
+#endif
 
     return cl_object;
 }
 
-static void cleri_free_tokens(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy token object.
+ */
+static void TOKENS_free(cleri_object_t * cl_object)
 {
-    cleri_free_tlist(cl_obj->cl_obj->tokens->tlist);
-    free(cl_obj->cl_obj->tokens->tokens);
-    free(cl_obj->cl_obj->tokens->spaced);
-    free(cl_obj->cl_obj->tokens);
+    TOKENS_list_free(cl_object->via.tokens->tlist);
+    free(cl_object->via.tokens->tokens);
+    free(cl_object->via.tokens->spaced);
+    free(cl_object->via.tokens);
 }
 
 static cleri_node_t * cleri_parse_tokens(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
 {
     cleri_node_t * node = NULL;
     const char * str = parent->str + parent->len;
-    cleri_tlist_t * tlist = cl_obj->cl_obj->tokens->tlist;
+    cleri_tlist_t * tlist = cl_obj->via.tokens->tlist;
 
     /* we can trust that at least one token is in the list */
     for (; tlist != NULL; tlist = tlist->next)
@@ -130,7 +165,11 @@ static cleri_node_t * cleri_parse_tokens(
     return NULL;
 }
 
-static void cleri_tlist_add(
+/*
+ * Returns 0 if successful and -1 in case an error occurred.
+ * (the token list remains unchanged in case of an error)
+ */
+static int TOKENS_list_append(
         cleri_tlist_t * tlist,
         const char * token,
         size_t len)
@@ -139,18 +178,30 @@ static void cleri_tlist_add(
     {
         tlist->token = token;
         tlist->len = len;
-        return;
+        return 0;
     }
+
     while (tlist->next != NULL)
+    {
         tlist = tlist->next;
+    }
 
     tlist->next = (cleri_tlist_t *) malloc(sizeof(cleri_tlist_t));
+    if (tlist->next == NULL)
+    {
+        return -1;
+    }
     tlist->next->len = len;
     tlist->next->token = token;
     tlist->next->next = NULL;
+
+    return 0;
 }
 
-static void cleri_free_tlist(cleri_tlist_t * tlist)
+/*
+ * Destroy token list. (NULL can be parsed tlist argument)
+ */
+static void TOKENS_list_free(cleri_tlist_t * tlist)
 {
     cleri_tlist_t * next;
     while (tlist != NULL)

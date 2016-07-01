@@ -15,20 +15,29 @@
 #include <string.h>
 #include <ctype.h>
 #include <strextra/strextra.h>
+#include <siri/err.h>
 
-cleri_parse_result_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+cleri_parser_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
 {
-    cleri_parse_result_t * pr;
+    cleri_parser_t * pr;
     cleri_node_t * rnode;
     const char * end;
     bool at_end;
 
     /* prepare parsing */
-    pr = (cleri_parse_result_t *) malloc(sizeof(cleri_parse_result_t));
+    pr = (cleri_parser_t *) malloc(sizeof(cleri_parser_t));
+    if (pr == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     pr->str = str;
     pr->tree = cleri_node_new(NULL, str, 0);
     pr->kwcache = cleri_new_kwcache();
-    pr->expecting = cleri_new_expecting(str);
+    pr->expecting = cleri_expecting_new(str);
     pr->re_keywords = grammar->re_keywords;
     pr->re_kw_extra = grammar->re_kw_extra;
 
@@ -58,22 +67,21 @@ cleri_parse_result_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
                 end);
     }
 
-    /* append optional to required and set optional to NULL */
-    cleri_combine_expecting(pr->expecting);
+    cleri_expecting_combine(pr->expecting);
 
     return pr;
 }
 
-void cleri_free_parse_result(cleri_parse_result_t * pr)
+void cleri_parser_free(cleri_parser_t * pr)
 {
     cleri_node_free(pr->tree);
-    cleri_free_expecting(pr->expecting);
+    cleri_expecting_free(pr->expecting);
     cleri_free_kwcache(pr->kwcache);
     free(pr);
 }
 
 cleri_node_t * cleri_walk(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule,
@@ -81,7 +89,9 @@ cleri_node_t * cleri_walk(
 {
     /* set parent len to next none white space char */
     while (isspace(*(parent->str + parent->len)))
+    {
         parent->len++;
+    }
 
     /* set expecting mode */
     cleri_expecting_set_mode(pr->expecting, parent->str, mode);

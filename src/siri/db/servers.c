@@ -83,10 +83,10 @@ int siridb_servers_load(siridb_t * siridb)
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_SERVERS_SCHEMA)
 
-    qp_uuid = qp_new_object();
-    qp_address = qp_new_object();
-    qp_port = qp_new_object();
-    qp_pool = qp_new_object();
+    qp_uuid = qp_object_new();
+    qp_address = qp_object_new();
+    qp_port = qp_object_new();
+    qp_pool = qp_object_new();
 
     while (qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_uuid) == QP_RAW &&

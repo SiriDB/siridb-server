@@ -163,10 +163,10 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_msg_t rc;
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_username = qp_new_object();
-    qp_obj_t * qp_password = qp_new_object();
-    qp_obj_t * qp_dbname = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_username = qp_object_new();
+    qp_obj_t * qp_password = qp_object_new();
+    qp_obj_t * qp_dbname = qp_object_new();
 
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
@@ -249,9 +249,9 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_query = qp_new_object();
-    qp_obj_t * qp_time_precision = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_query = qp_object_new();
+    qp_obj_t * qp_time_precision = qp_object_new();
     siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
@@ -291,8 +291,8 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         return;
     }
 
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_obj = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_obj = qp_object_new();
     qp_packer_t * packer[siridb->pools->len];
     int32_t rc;
 

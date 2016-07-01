@@ -15,22 +15,20 @@
 #include <cleri/object.h>
 #include <cleri/olist.h>
 
-struct cleri_olist_s;
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 #define CLERI_DEFAULT_RE_KEYWORDS "^\\w+"
 
 typedef struct cleri_grammar_s
 {
-    struct cleri_object_s * start;
+    cleri_object_t * start;
     pcre * re_keywords;
     pcre_extra * re_kw_extra;
-    struct cleri_olist_s * olist;
 } cleri_grammar_t;
 
 
 cleri_grammar_t * cleri_grammar(
-        struct cleri_object_s * start,
+        cleri_object_t * start,
         const char * re_keywords);
 
-void cleri_free_grammar(cleri_grammar_t * grammar);
+void cleri_grammar_free(cleri_grammar_t * grammar);

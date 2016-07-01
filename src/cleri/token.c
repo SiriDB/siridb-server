@@ -16,44 +16,61 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/err.h>
 
-static void cleri_free_token(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void TOKEN_free(cleri_object_t * cl_object);
 
-static cleri_node_t * cleri_parse_token(
-        cleri_parse_result_t * pr,
+static cleri_node_t * TOKEN_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 cleri_object_t * cleri_token(
         uint32_t gid,
         const char * token)
 {
-    cleri_object_t * cl_object;
-
-    cl_object = cleri_new_object(
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_TOKEN,
-            &cleri_free_token,
-            &cleri_parse_token);
-    cl_object->cl_obj->token =
+            &TOKEN_free,
+            &TOKEN_parse);
+
+
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.token =
             (cleri_token_t *) malloc(sizeof(cleri_token_t));
-    cl_object->cl_obj->token->gid = gid;
-    cl_object->cl_obj->token->token = token;
-    cl_object->cl_obj->token->len = strlen(token);
+
+    if (cl_object->via.token == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.token->gid = gid;
+    cl_object->via.token->token = token;
+    cl_object->via.token->len = strlen(token);
+
     return cl_object;
 }
 
-static void cleri_free_token(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy token object.
+ */
+static void TOKEN_free(cleri_object_t * cl_object)
 {
-    free(cl_obj->cl_obj->token);
+    free(cl_object->via.token);
 }
 
-static cleri_node_t * cleri_parse_token(
-        cleri_parse_result_t * pr,
+static cleri_node_t * TOKEN_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -61,11 +78,11 @@ static cleri_node_t * cleri_parse_token(
     cleri_node_t * node = NULL;
     const char * str = parent->str + parent->len;
     if (strncmp(
-            cl_obj->cl_obj->token->token,
+            cl_obj->via.token->token,
             str,
-            cl_obj->cl_obj->token->len) == 0)
+            cl_obj->via.token->len) == 0)
     {
-        node = cleri_node_new(cl_obj, str, cl_obj->cl_obj->token->len);
+        node = cleri_node_new(cl_obj, str, cl_obj->via.token->len);
         parent->len += node->len;
         cleri_children_add(parent->children, node);
     }

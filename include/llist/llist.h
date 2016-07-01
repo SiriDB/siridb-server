@@ -30,37 +30,13 @@ typedef struct llist_s
 
 typedef int (*llist_cb_t)(void * data, void * args);
 
-/* create a new llist */
 llist_t * llist_new(void);
-
-/* destroy llist */
 void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args);
-
-/* append data at the end */
 void llist_append(llist_t * llist, void * data);
-
-/* insert data at the beginning */
-void llist_insert(llist_t * llist, void * data);
-
-/* walk the list */
 void llist_walk(llist_t * llist, llist_cb_t cb, void * args);
-
-/* walk the list with limit */
 void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args);
-
-/* copy the linked list to a simple list */
 slist_t * llist2slist(llist_t * llist);
-
-/* return the first item where 'cb' is not zero or NULL if not found */
 void * llist_get(llist_t * llist, llist_cb_t cb, void * args);
-
-/* remove and return the first item where 'cb' is not zero
- * or NULL if not found
- */
 void * llist_remove(llist_t * llist, llist_cb_t cb, void * args);
-
-/* remove and return the last item in the list or NULL if empty */
 void * llist_pop(llist_t * llist);
-
-/* remove and return the first item in the list or NULL if empty */
 void * llist_shift(llist_t * llist);

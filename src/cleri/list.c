@@ -12,17 +12,27 @@
 #include <cleri/list.h>
 #include <logger/logger.h>
 #include <stdlib.h>
+#include <siri/err.h>
 
-static void cleri_free_list(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void LIST_free(cleri_object_t * cl_object);
 
-static cleri_node_t *  cleri_parse_list(
-        cleri_parse_result_t * pr,
+static cleri_node_t *  LIST_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ *
+ * cl_obj       :   object to repeat
+ * delimiter    :   object (Usually a Token) as delimiter
+ * min          :   should be equal to or higher then 0.
+ * max          :   should be equal to or higher then 0 but when 0 it
+ *                  means unlimited.
+ * opt_closing  :   when set to true (1) the list can be closed with a
+ *                  delimiter. when false (0) this is not allowed.
+ */
 cleri_object_t * cleri_list(
         uint32_t gid,
         cleri_object_t * cl_obj,
@@ -31,43 +41,56 @@ cleri_object_t * cleri_list(
         size_t max,
         int opt_closing)
 {
-    /*
-     * cl_obj       :   object to repeat
-     * delimiter    :   object (Usually a Token) as delimiter
-     * min          :   should be equal to or higher then 0.
-     * max          :   should be equal to or higher then 0 but when 0 it
-     *                  means unlimited.
-     * opt_closing  :   when set to true (1) the list can be closed with a
-     *                  delimiter. when false (0) this is not allowed.
-     */
-    cleri_object_t * cl_object;
+    if (cl_obj == NULL || delimiter == NULL)
+    {
+        return NULL;
+    }
 
-    cl_object = cleri_new_object(
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_LIST,
-            &cleri_free_list,
-            &cleri_parse_list);
-    cl_object->cl_obj->list =
+            &LIST_free,
+            &LIST_parse);
+
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.list =
             (cleri_list_t *) malloc(sizeof(cleri_list_t));
-    cl_object->cl_obj->list->gid = gid;
-    cl_object->cl_obj->list->cl_obj = cl_obj;
-    cl_object->cl_obj->list->delimiter = delimiter;
-    cl_object->cl_obj->list->min = min;
-    cl_object->cl_obj->list->max = max;
-    cl_object->cl_obj->list->opt_closing = opt_closing;
+
+    if (cl_object->via.list == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.list->gid = gid;
+    cl_object->via.list->cl_obj = cl_obj;
+    cl_object->via.list->delimiter = delimiter;
+    cl_object->via.list->min = min;
+    cl_object->via.list->max = max;
+    cl_object->via.list->opt_closing = opt_closing;
+
+    cleri_object_incref(cl_obj);
+    cleri_object_incref(delimiter);
+
     return cl_object;
 }
 
-static void cleri_free_list(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy list object.
+ */
+static void LIST_free(cleri_object_t * cl_object)
 {
-    cleri_free_object(grammar, cl_obj->cl_obj->list->cl_obj);
-    cleri_free_object(grammar, cl_obj->cl_obj->list->delimiter);
-    free(cl_obj->cl_obj->list);
+    cleri_object_decref(cl_object->via.list->cl_obj);
+    cleri_object_decref(cl_object->via.list->delimiter);
+    free(cl_object->via.list);
 }
 
-static cleri_node_t *  cleri_parse_list(
-        cleri_parse_result_t * pr,
+static cleri_node_t *  LIST_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -83,25 +106,25 @@ static cleri_node_t *  cleri_parse_list(
         rnode = cleri_walk(
                 pr,
                 node,
-                cl_obj->cl_obj->list->cl_obj,
+                cl_obj->via.list->cl_obj,
                 rule,
-                i < cl_obj->cl_obj->list->min); // 1 = REQUIRED
+                i < cl_obj->via.list->min); // 1 = REQUIRED
         if (rnode == NULL)
             break;
         i++;
         rnode = cleri_walk(
                 pr,
                 node,
-                cl_obj->cl_obj->list->delimiter,
+                cl_obj->via.list->delimiter,
                 rule,
-                i < cl_obj->cl_obj->list->min); // 1 = REQUIRED
+                i < cl_obj->via.list->min); // 1 = REQUIRED
         if (rnode == NULL)
             break;
         j++;
     }
-    if (    i < cl_obj->cl_obj->list->min ||
-            (cl_obj->cl_obj->list->max && i > cl_obj->cl_obj->list->max) ||
-            ((cl_obj->cl_obj->list->opt_closing == 0) && i && i == j))
+    if (    i < cl_obj->via.list->min ||
+            (cl_obj->via.list->max && i > cl_obj->via.list->max) ||
+            ((cl_obj->via.list->opt_closing == 0) && i && i == j))
     {
         cleri_node_free(node);
         return NULL;

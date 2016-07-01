@@ -19,9 +19,16 @@ cleri_grammar_t * cleri_grammar(
         cleri_object_t * start,
         const char * re_keywords)
 {
+    if (start == NULL)
+    {
+        log_debug("Failed..");
+        return NULL;
+    }
     cleri_grammar_t * grammar;
     grammar = (cleri_grammar_t *) malloc(sizeof(cleri_grammar_t));
     grammar->start = start;
+
+    cleri_object_incref(start);
 
     const char * pcre_error_str;
     int pcre_error_offset;
@@ -53,19 +60,18 @@ cleri_grammar_t * cleri_grammar(
                 pcre_error_str);
         exit(EXIT_FAILURE);
     }
-    grammar->olist = NULL;
     return grammar;
 }
 
-void cleri_free_grammar(cleri_grammar_t * grammar)
+void cleri_grammar_free(cleri_grammar_t * grammar)
 {
-    grammar->olist = cleri_new_olist();
     free(grammar->re_keywords);
+
     if (grammar->re_kw_extra != NULL)
     {
         free(grammar->re_kw_extra);
     }
-    cleri_free_object(grammar, grammar->start);
-    cleri_free_olist(NULL, grammar->olist);
+
+    cleri_object_decref(grammar->start);
     free(grammar);
 }

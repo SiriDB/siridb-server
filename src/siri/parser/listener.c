@@ -110,9 +110,16 @@ if (query->nodes == NULL)                                                   \
 else                                                                        \
 {                                                                           \
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));       \
-    forward->data = (void *) handle->data;                                  \
-    uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);      \
-    uv_async_send(forward);                                                 \
+    if (forward == NULL)                                                    \
+    {                                                                       \
+        ERR_ALLOC                                                           \
+    }                                                                       \
+    else                                                                    \
+    {                                                                       \
+        forward->data = (void *) handle->data;                              \
+        uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);  \
+        uv_async_send(forward);                                             \
+    }                                                                       \
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
 }
 
@@ -238,8 +245,6 @@ static void enter_alter_server(uv_async_t * handle)
     cleri_node_t * server_node =
                     query->nodes->node->children->next->node->children->node;
 
-    ALLOC_ERR
-
     siridb_server_t * server;
 
     switch (server_node->cl_obj->tp)
@@ -325,7 +330,7 @@ static void enter_count_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(256);
+    query->packer = qp_packer_new(256);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_count_new();
@@ -357,7 +362,7 @@ static void enter_drop_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_drop_new();
@@ -431,7 +436,7 @@ static void enter_list_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
+    query->packer = qp_packer_new(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     qp_add_raw(query->packer, "columns", 7);
@@ -494,7 +499,7 @@ static void enter_select_stmt(uv_async_t * handle)
     query->data = query_select_new();
     query->free_cb = (uv_close_cb) query_select_free;
 
-    query->packer = qp_new_packer(QP_SUGGESTED_SIZE);
+    query->packer = qp_packer_new(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     SIRIPARSER_NEXT_NODE
@@ -570,7 +575,7 @@ static void enter_series_match(uv_async_t * handle)
 static void enter_timeit_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    query->timeit = qp_new_packer(512);
+    query->timeit = qp_packer_new(512);
 
     qp_add_raw(query->timeit, "__timeit__", 10);
     qp_add_type(query->timeit, QP_ARRAY_OPEN);
@@ -606,20 +611,26 @@ static void enter_xxx_columns(uv_async_t * handle)
 
     qlist->props = slist_new(DEFAULT_ALLOC_COLUMNS);
 
-    while (1)
+    if (qlist->props != NULL)
     {
-        qp_add_raw(query->packer, columns->node->str, columns->node->len);
-
-        slist_append_save(
-                &qlist->props,
-                &columns->node->children->node->cl_obj->cl_obj->dummy->gid);
-
-        if (columns->next == NULL)
+        while (1)
         {
-            break;
-        }
+            qp_add_raw(query->packer, columns->node->str, columns->node->len);
 
-        columns = columns->next->next;
+            if (slist_append_safe(
+                    &qlist->props,
+                    &columns->node->children->node->cl_obj->via.dummy->gid))
+            {
+                ERR_ALLOC
+            }
+
+            if (columns->next == NULL)
+            {
+                break;
+            }
+
+            columns = columns->next->next;
+        }
     }
 
     SIRIPARSER_NEXT_NODE
@@ -649,7 +660,7 @@ static void exit_alter_user(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
 
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -689,7 +700,7 @@ static void exit_calc_stmt(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * calc_node = query->nodes->node->children->node;
 
-    query->packer = qp_new_packer(64);
+    query->packer = qp_packer_new(64);
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "calc", 4);
 
@@ -851,7 +862,7 @@ static void exit_create_user_stmt(uv_async_t * handle)
     /* success, we do not need to free the user anymore */
     query->free_cb = (uv_close_cb) siridb_query_free;
 
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -978,7 +989,7 @@ static void exit_grant_user_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -1251,7 +1262,7 @@ static void exit_revoke_user_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -1293,7 +1304,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
     int log_level;
 
-    switch (node->cl_obj->cl_obj->keyword->gid)
+    switch (node->cl_obj->via.keyword->gid)
     {
     case CLERI_GID_K_DEBUG:
         log_level = LOGGER_DEBUG;
@@ -1319,7 +1330,7 @@ static void exit_set_log_level(uv_async_t * handle)
     /* we can set the success message, we just ignore the message in case an
      * error occurs.
      */
-    query->packer = qp_new_packer(1024);
+    query->packer = qp_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -1373,7 +1384,7 @@ static void exit_show_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_new_packer(4096);
+    query->packer = qp_packer_new(4096);
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -1402,9 +1413,8 @@ static void exit_show_stmt(uv_async_t * handle)
         while (1)
         {
             /* get the callback */
-            prop_cb = siridb_props[children->node->children->
-                                   node->cl_obj->cl_obj->
-                                   keyword->gid - KW_OFFSET];
+            prop_cb = siridb_props[children->node->children->node->
+                                   cl_obj->via.keyword->gid - KW_OFFSET];
 #ifdef DEBUG
             /* TODO: can be removed as soon as all props are implemented */
             if (prop_cb == NULL)
@@ -1452,7 +1462,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
     {
         /* lets give the new packer the exact size so we do not
          * need a realloc */
-        query->packer = qp_new_packer(query->timeit->len + 1);
+        query->packer = qp_packer_new(query->timeit->len + 1);
         qp_add_type(query->packer, QP_MAP_OPEN);
     }
 
@@ -1512,7 +1522,13 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t * unpacker;
-    qp_obj_t * qp_count = qp_new_object();
+    qp_obj_t * qp_count = qp_object_new();
+
+    if (qp_count == NULL)
+    {
+        return;  /* critical error, signal is set */
+    }
+
     query_count_t * q_count = query->data;
 
     for (size_t i = 0; i < promises->len; i++)
@@ -1528,7 +1544,12 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 
         if (pkg != NULL && pkg->tp == BP_QUERY_RESPONSE)
         {
-            unpacker = qp_new_unpacker(pkg->data, pkg->len);
+            unpacker = qp_unpacker_new(pkg->data, pkg->len);
+
+            if (unpacker == NULL)
+            {
+                return;  /* critical error, signal is set */
+            }
 
             if (    qp_is_map(qp_next(unpacker, NULL)) &&
                     qp_is_raw(qp_next(unpacker, NULL)) &&  // servers
@@ -1583,7 +1604,12 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
         if (pkg != NULL && pkg->tp == BP_QUERY_RESPONSE)
         {
-            unpacker = qp_new_unpacker(pkg->data, pkg->len);
+            unpacker = qp_unpacker_new(pkg->data, pkg->len);
+
+            if (unpacker == NULL)
+            {
+                return;  /* critical error, signal is set */
+            }
 
             if (    qp_is_map(qp_next(unpacker, NULL)) &&
                     qp_is_raw(qp_next(unpacker, NULL)) && // columns

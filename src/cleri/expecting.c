@@ -14,52 +14,94 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <siri/err.h>
 
-
-static cleri_exp_modes_t * cleri_new_exp_modes(const char * str);
-static void cleri_empty_exp(cleri_expecting_t * expecting);
-static int cleri_exp_get_mode(cleri_exp_modes_t * modes, const char * str);
-static void cleri_exp_shift_modes(
+static cleri_exp_modes_t * EXPECTING_modes_new(const char * str);
+static void EXPECTING_empty(cleri_expecting_t * expecting);
+static int EXPECTING_get_mode(cleri_exp_modes_t * modes, const char * str);
+static void EXPECTING_shift_modes(
         cleri_exp_modes_t ** modes,
         const char * str);
-static void cleri_free_exp_modex(cleri_exp_modes_t * modes);
+static void EXPECTING_modes_free(cleri_exp_modes_t * modes);
 
-
-cleri_expecting_t * cleri_new_expecting(const char * str)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+cleri_expecting_t * cleri_expecting_new(const char * str)
 {
-    cleri_expecting_t * expecting;
-    expecting = (cleri_expecting_t *) malloc(sizeof(cleri_expecting_t));
+    cleri_expecting_t * expecting =
+            (cleri_expecting_t *) malloc(sizeof(cleri_expecting_t));
+
+    if (expecting == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
+
     expecting->str = str;
-    expecting->required = cleri_new_olist();
-    expecting->optional = cleri_new_olist();
-    expecting->modes = cleri_new_exp_modes(str);
+    expecting->required = cleri_olist_new();
+
+    if (expecting->required == NULL)
+    {
+        free(expecting);
+        return NULL;
+    }
+    expecting->optional = cleri_olist_new();
+    if (expecting->optional == NULL)
+    {
+        free(expecting->required);
+        free(expecting);
+        return NULL;
+    }
+
+    expecting->modes = EXPECTING_modes_new(str);
+    if (expecting->optional == NULL)
+    {
+        free(expecting->required);
+        free(expecting);
+        return NULL;
+    }
 
     return expecting;
 }
 
-void cleri_expecting_update(
+/*
+ * Returns 0 if the mode is set successful and -1 if an error has occurred.
+ */
+int cleri_expecting_update(
         cleri_expecting_t * expecting,
         cleri_object_t * cl_obj,
         const char * str)
 {
+    int rc;
+
     if (str > expecting->str)
     {
-        cleri_empty_exp(expecting);
+        EXPECTING_empty(expecting);
         expecting->str = str;
-        cleri_exp_shift_modes(&(expecting->modes), str);
+        EXPECTING_shift_modes(&(expecting->modes), str);
     }
     if (expecting->str == str)
     {
-        if (cleri_exp_get_mode(expecting->modes, str))
+        if (EXPECTING_get_mode(expecting->modes, str))
+        {
             /* true (1) is required */
-            cleri_olist_add(expecting->required, cl_obj);
+            rc = cleri_olist_append_nref(expecting->required, cl_obj);
+        }
         else
+        {
             /* false (0) is optional */
-            cleri_olist_add(expecting->optional, cl_obj);
+            rc = cleri_olist_append_nref(expecting->optional, cl_obj);
+        }
     }
+    return rc;
 }
 
-void cleri_expecting_set_mode(
+/*
+ * Returns 0 if the mode is set successful and -1 if an error has occurred.
+ * (in case of an error a signal is set)
+ */
+int cleri_expecting_set_mode(
         cleri_expecting_t * expecting,
         const char * str,
         int mode)
@@ -70,59 +112,88 @@ void cleri_expecting_set_mode(
         if (current->str == str)
         {
             current->mode = mode && current->mode;
-            return;
+            return 0;
         }
     }
     current->next = (cleri_exp_modes_t *) malloc(sizeof(cleri_exp_modes_t));
+
+    if (current->next == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
+
     current->next->mode = mode;
     current->next->next = NULL;
     current->next->str = str;
+
+    return 0;
 }
 
-void cleri_free_expecting(cleri_expecting_t * expecting)
+/*
+ * Destroy expecting object.
+ */
+void cleri_expecting_free(cleri_expecting_t * expecting)
 {
-    cleri_empty_exp(expecting);
+    EXPECTING_empty(expecting);
     free(expecting->required);
     free(expecting->optional);
-    cleri_free_exp_modex(expecting->modes);
+    EXPECTING_modes_free(expecting->modes);
     free(expecting);
 }
 
-void cleri_combine_expecting(cleri_expecting_t * expecting)
+/*
+ * append optional to required and sets optional to NULL
+ */
+
+void cleri_expecting_combine(cleri_expecting_t * expecting)
 {
     cleri_olist_t * required = expecting->required;
 
     if (required->cl_obj == NULL)
     {
-        cleri_empty_olist(expecting->required);
+        cleri_olist_empty(expecting->required);
         free(expecting->required);
         expecting->required = expecting->optional;
     }
     else
     {
         while (required->next != NULL)
+        {
             required = required->next;
+        }
         required->next = expecting->optional;
     }
     expecting->optional = NULL;
 }
 
-void cleri_remove_from_expecting(cleri_expecting_t * expecting, uint32_t gid)
+/*
+ * removes an gid from expecting if the gid exists in the list.
+ * note: we only look in required since this is where the final
+ * expects are stored.
+ */
+void cleri_expecting_remove(cleri_expecting_t * expecting, uint32_t gid)
 {
     cleri_olist_t * curr = expecting->required;
     cleri_olist_t * prev = NULL;
 
     if (curr == NULL || curr->cl_obj == NULL)
+    {
         return;
+    }
 
     for (; curr != NULL; prev = curr, curr = curr->next)
     {
-        if (curr->cl_obj != NULL && curr->cl_obj->cl_obj->dummy->gid == gid)
+        if (curr->cl_obj != NULL && curr->cl_obj->via.dummy->gid == gid)
         {
             if (prev == NULL)
+            {
                 expecting->required = curr->next;
+            }
             else
+            {
                 prev->next = curr->next;
+            }
 
             /* free current */
             free(curr);
@@ -131,18 +202,31 @@ void cleri_remove_from_expecting(cleri_expecting_t * expecting, uint32_t gid)
     }
 }
 
-
-static cleri_exp_modes_t * cleri_new_exp_modes(const char * str)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+static cleri_exp_modes_t * EXPECTING_modes_new(const char * str)
 {
-    cleri_exp_modes_t * modes;
-    modes = (cleri_exp_modes_t *) malloc(sizeof(cleri_exp_modes_t));
+    cleri_exp_modes_t * modes =
+            (cleri_exp_modes_t *) malloc(sizeof(cleri_exp_modes_t));
+
+    if (modes == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
+
     modes->mode = CLERI_EXP_MODE_REQUIRED;
     modes->next = NULL;
     modes->str = str;
+
     return modes;
 }
 
-static void cleri_exp_shift_modes(
+/*
+ * shift from modes
+ */
+static void EXPECTING_shift_modes(
         cleri_exp_modes_t ** modes,
         const char * str)
 {
@@ -151,14 +235,19 @@ static void cleri_exp_shift_modes(
     while ((*modes)->next != NULL)
     {
         if ((*modes)->str == str)
+        {
             break;
+        }
         next = (*modes)->next;
         free(*modes);
         *modes = next;
     }
 }
 
-static void cleri_free_exp_modex(cleri_exp_modes_t * modes)
+/*
+ * Destroy modes.
+ */
+static void EXPECTING_modes_free(cleri_exp_modes_t * modes)
 {
     cleri_exp_modes_t * next;
     while (modes != NULL)
@@ -169,16 +258,26 @@ static void cleri_free_exp_modex(cleri_exp_modes_t * modes)
     }
 }
 
-static int cleri_exp_get_mode(cleri_exp_modes_t * modes, const char * str)
+/*
+ * Return modes for a given position in str.
+ */
+static int EXPECTING_get_mode(cleri_exp_modes_t * modes, const char * str)
 {
     for (; modes != NULL; modes = modes->next)
+    {
         if (modes->str == str)
+        {
             return modes->mode;
+        }
+    }
     return CLERI_EXP_MODE_REQUIRED;
 }
 
-static void cleri_empty_exp(cleri_expecting_t * expecting)
+/*
+ * Empty both required and optional lists.
+ */
+static void EXPECTING_empty(cleri_expecting_t * expecting)
 {
-    cleri_empty_olist(expecting->required);
-    cleri_empty_olist(expecting->optional);
+    cleri_olist_empty(expecting->required);
+    cleri_olist_empty(expecting->optional);
 }

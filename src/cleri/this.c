@@ -18,7 +18,7 @@
 #include <cleri/expecting.h>
 
 static cleri_node_t * cleri_parse_this(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -29,12 +29,12 @@ static cleri_object_t cleri_this = {
         .tp=CLERI_TP_THIS,
         .free_object=NULL,
         .parse_object=&cleri_parse_this,
-        .cl_obj=(cleri_object_u *)  &cleri_dummy};
+        .via={.dummy=(cleri_dummy_t *) &cleri_dummy}};
 
 cleri_object_t * CLERI_THIS = &cleri_this;
 
 static cleri_node_t * cleri_parse_this(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -43,8 +43,9 @@ static cleri_node_t * cleri_parse_this(
     cleri_rule_tested_t * tested;
     const char * str = parent->str + parent->len;
 
-    if (cleri_init_rule_tested(&tested, rule->tested, str))
+    switch (cleri_rule_init(&tested, rule->tested, str))
     {
+    case CLERI_RULE_TRUE:
         node = cleri_node_new(cl_obj, str, 0);
         tested->node = cleri_walk(
                 pr,
@@ -58,14 +59,18 @@ static cleri_node_t * cleri_parse_this(
             cleri_node_free(node);
             return NULL;
         }
-
-    }
-    else
-    {
+        break;
+    case CLERI_RULE_FALSE:
         node = tested->node;
         if (node == NULL)
+        {
             return NULL;
+        }
         node->ref++;
+        break;
+    case CLERI_RULE_ERROR:
+        /* TODO: handle error */
+        break;
     }
 
     parent->len += tested->node->len;

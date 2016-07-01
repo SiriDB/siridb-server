@@ -38,7 +38,7 @@
  */
 #define siridb_schema_check(SCHEMA)                             \
     /* read and check schema */                                 \
-    qp_obj_t * qp_schema = qp_new_object();                     \
+    qp_obj_t * qp_schema = qp_object_new();                     \
     if (!qp_is_array(qp_next(unpacker, NULL)) ||                \
             qp_next(unpacker, qp_schema) != QP_INT64 ||         \
             qp_schema->via->int64 != SCHEMA)                    \

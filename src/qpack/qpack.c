@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <logger/logger.h>
 #include <assert.h>
+#include <siri/err.h>
 
 #define QPACK_MAX_FMT_SIZE 1024
 
@@ -71,9 +72,17 @@ static qp_types_t print_unpacker(
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj);
 
-qp_unpacker_t * qp_new_unpacker(const char * pt, size_t len)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
+    if (unpacker == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     unpacker->source = NULL;
     unpacker->pt = pt;
     unpacker->end = pt + len;
@@ -146,21 +155,49 @@ void qp_free_unpacker(qp_unpacker_t * unpacker)
     free(unpacker);
 }
 
-qp_obj_t * qp_new_object(void)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+qp_obj_t * qp_object_new(void)
 {
     qp_obj_t * qp_obj;
     qp_obj = (qp_obj_t *) malloc(sizeof(qp_obj_t));
+    if (qp_obj == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     qp_obj->via = (qp_via_t *) malloc(sizeof(qp_via_t));
+    if (qp_obj->via == NULL)
+    {
+        ERR_ALLOC
+        free(qp_obj);
+        return NULL;
+    }
     return qp_obj;
 }
 
-qp_packer_t * qp_new_packer(size_t alloc_size)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+qp_packer_t * qp_packer_new(size_t alloc_size)
 {
     qp_packer_t * packer = (qp_packer_t *) malloc(sizeof(qp_packer_t));
+    if (packer == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     packer->alloc_size = alloc_size;
     packer->buffer_size = packer->alloc_size;
     packer->len = 0;
     packer->buffer = (char *) malloc(packer->buffer_size);
+    if (packer->buffer == NULL)
+    {
+        ERR_ALLOC
+        free(packer);
+        return NULL;
+    }
     return packer;
 }
 
@@ -230,8 +267,8 @@ inline int qp_is_double(qp_types_t tp)
 
 void qp_print(const char * pt, size_t len)
 {
-    qp_unpacker_t * unpacker = qp_new_unpacker(pt, len);
-    qp_obj_t * qp_obj = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pt, len);
+    qp_obj_t * qp_obj = qp_object_new();
     print_unpacker(qp_next(unpacker, qp_obj), unpacker, qp_obj);
     printf("\n");
     qp_free_object(qp_obj);

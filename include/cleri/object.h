@@ -43,7 +43,7 @@ typedef struct cleri_prio_s cleri_prio_t;
 typedef struct cleri_rule_s cleri_rule_t;
 typedef struct cleri_rule_store_s cleri_rule_store_t;
 typedef struct cleri_node_s cleri_node_t;
-typedef struct cleri_parse_result_s cleri_parse_result_t;
+typedef struct cleri_parser_s cleri_parser_t;
 
 typedef enum {
     CLERI_TP_SEQUENCE,
@@ -83,12 +83,10 @@ typedef union
     cleri_dummy_t * dummy; /* place holder so we can easy get a gid */
 } cleri_object_u;
 
-typedef void (*cleri_free_object_t)(
-        cleri_grammar_t *,
-        cleri_object_t *);
+typedef void (*cleri_free_object_t)(cleri_object_t *);
 
 typedef cleri_node_t * (*cleri_parse_object_t)(
-        cleri_parse_result_t *,
+        cleri_parser_t *,
         cleri_node_t *,
         cleri_object_t *,
         cleri_rule_store_t *);
@@ -96,19 +94,19 @@ typedef cleri_node_t * (*cleri_parse_object_t)(
 typedef struct cleri_object_s
 {
     cleri_object_tp tp;
+    uint32_t ref;
     cleri_free_object_t free_object;
     cleri_parse_object_t parse_object;
-    cleri_object_u * cl_obj;
+    cleri_object_u via;
 } cleri_object_t;
 
-cleri_object_t * cleri_new_object(
-        int tp,
+cleri_object_t * cleri_object_new(
+        cleri_object_tp tp,
         cleri_free_object_t free_object,
         cleri_parse_object_t parse_object);
 
-void cleri_free_object(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_object);
+void cleri_object_incref(cleri_object_t * cl_object);
+void cleri_object_decref(cleri_object_t * cl_object);
 
 cleri_object_t * CLERI_END_OF_STATEMENT;
 

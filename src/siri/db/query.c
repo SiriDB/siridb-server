@@ -119,7 +119,7 @@ void siridb_query_free(uv_handle_t * handle)
     siridb_nodes_free(query->nodes);
 
     /* free query result */
-    cleri_free_parse_result(query->pr);
+    cleri_parser_free(query->pr);
 
     /* free query */
     free(query);
@@ -189,7 +189,7 @@ void siridb_query_forward(
      * maximum query size in QUERY_to_packer.
      */
     qp_packer_t * packer =
-            qp_new_packer(query->pr->tree->len + QUERY_EXTRA_ALLOC_SIZE);
+            qp_packer_new(query->pr->tree->len + QUERY_EXTRA_ALLOC_SIZE);
 
     qp_add_type(packer, QP_ARRAY2);
 
@@ -262,7 +262,7 @@ static void siridb_send_invalid_query_error(uv_async_t * handle)
     cleri_olist_t * expecting;
 
     /* remove comment from suggestions since this is boring info */
-    cleri_remove_from_expecting(query->pr->expecting, CLERI_GID_R_COMMENT);
+    cleri_expecting_remove(query->pr->expecting, CLERI_GID_R_COMMENT);
 
     /* we always need required since cleri uses required as its final
      * suggestions tree.
@@ -286,17 +286,17 @@ static void siridb_send_invalid_query_error(uv_async_t * handle)
         }
         else if (expecting->cl_obj->tp == CLERI_TP_KEYWORD)
         {
-            expect = expecting->cl_obj->cl_obj->keyword->keyword;
+            expect = expecting->cl_obj->via.keyword->keyword;
         }
         else if (expecting->cl_obj->tp == CLERI_TP_TOKENS)
         {
-            expect = expecting->cl_obj->cl_obj->tokens->spaced;
+            expect = expecting->cl_obj->via.tokens->spaced;
         }
         else if (expecting->cl_obj->tp == CLERI_TP_TOKEN)
         {
-            expect = expecting->cl_obj->cl_obj->token->token;
+            expect = expecting->cl_obj->via.token->token;
         }
-        else switch (expecting->cl_obj->cl_obj->dummy->gid)
+        else switch (expecting->cl_obj->via.dummy->gid)
         {
         case CLERI_GID_R_SINGLEQ_STR:
             expect = "single_quote_str"; break;
@@ -356,7 +356,7 @@ static void siridb_send_motd(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     const char * msg;
 
-    query->packer = qp_new_packer(512);
+    query->packer = qp_packer_new(512);
     qp_add_type(query->packer, QP_MAP1);
     qp_add_raw(query->packer, "motd", 4);
     msg = motd_get_random_msg();
@@ -469,7 +469,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
     cleri_children_t * current;
     uv_async_cb func;
 
-    gid = node->cl_obj->cl_obj->dummy->gid;
+    gid = node->cl_obj->via.dummy->gid;
 
     /*
      * When GID is 0 this means CLERI_NONE
@@ -597,7 +597,7 @@ static int QUERY_time_expr(
 
     case CLERI_TP_REGEX:
         /* can be an integer or time string like 2d or something */
-        switch (node->cl_obj->cl_obj->regex->gid)
+        switch (node->cl_obj->via.regex->gid)
         {
         case CLERI_GID_R_INTEGER:
             if (node->len >= *size)
@@ -749,7 +749,7 @@ static int QUERY_rebuild(
         return (--(*size)) ? 0 : QUERY_TOO_LONG;
 
     case CLERI_TP_RULE:
-        switch (node->cl_obj->cl_obj->dummy->gid)
+        switch (node->cl_obj->via.dummy->gid)
         {
         case CLERI_GID_INT_EXPR:
         case CLERI_GID_TIME_EXPR:

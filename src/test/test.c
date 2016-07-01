@@ -80,7 +80,7 @@ static int test_qpack(void)
 {
     test_start("Testing qpack");
 
-    qp_packer_t * packer = qp_new_packer(32);
+    qp_packer_t * packer = qp_packer_new(32);
     qp_add_type(packer, QP_MAP_OPEN);
     qp_add_raw(packer, "data", 4);
     qp_add_type(packer, QP_ARRAY_OPEN);
@@ -97,7 +97,7 @@ static int test_qpack(void)
     qp_add_raw(packer, "value", 5);
     qp_add_raw(packer, "2.0.0", 5);
 
-    qp_unpacker_t * unpacker = qp_new_unpacker(packer->buffer, packer->len);
+    qp_unpacker_t * unpacker = qp_unpacker_new(packer->buffer, packer->len);
 
     qp_free_unpacker(unpacker);
     qp_free_packer(packer);
@@ -109,7 +109,7 @@ static int test_qpack(void)
 static int test_cleri(void)
 {
     test_start("Testing cleri");
-    cleri_parse_result_t * pr;
+    cleri_parser_t * pr;
     cleri_grammar_t * grammar = compile_grammar();
 
     /* should not break on full grammar */
@@ -121,7 +121,7 @@ static int test_cleri(void)
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_free_parse_result(pr);
+    cleri_parser_free(pr);
 
     /* should not break on empty grammar */
     pr = cleri_parse(grammar, "");
@@ -129,7 +129,7 @@ static int test_cleri(void)
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_free_parse_result(pr);
+    cleri_parser_free(pr);
 
     /* should not break on single word grammar */
     pr = cleri_parse(grammar, "now");
@@ -137,7 +137,7 @@ static int test_cleri(void)
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_free_parse_result(pr);
+    cleri_parser_free(pr);
 
     /* should not break on wrong grammar */
     pr = cleri_parse(grammar, "count serious?");
@@ -148,7 +148,7 @@ static int test_cleri(void)
     /* pos should be 6 */
     assert(pr->pos == 6);
 
-    cleri_free_parse_result(pr);
+    cleri_parser_free(pr);
 
     /* simple sum */
     pr = cleri_parse(grammar, "21 % 2");
@@ -156,10 +156,10 @@ static int test_cleri(void)
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_free_parse_result(pr);
+    cleri_parser_free(pr);
 
     /* free grammar */
-    cleri_free_grammar(grammar);
+    cleri_grammar_free(grammar);
 
     return test_end(TEST_OK);
 }

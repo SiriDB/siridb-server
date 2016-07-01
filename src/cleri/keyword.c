@@ -13,46 +13,62 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/err.h>
 
-static void cleri_free_keyword(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void KEYWORD_free(cleri_object_t * cl_object);
 
-static cleri_node_t * cleri_parse_keyword(
-        cleri_parse_result_t * pr,
+static cleri_node_t * KEYWORD_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 cleri_object_t * cleri_keyword(
         uint32_t gid,
         const char * keyword,
         int ign_case)
 {
-    cleri_object_t * cl_object;
-
-    cl_object = cleri_new_object(
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_KEYWORD,
-            &cleri_free_keyword,
-            &cleri_parse_keyword);
-    cl_object->cl_obj->keyword =
+            &KEYWORD_free,
+            &KEYWORD_parse);
+
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.keyword =
             (cleri_keyword_t *) malloc(sizeof(cleri_keyword_t));
-    cl_object->cl_obj->keyword->gid = gid;
-    cl_object->cl_obj->keyword->keyword = keyword;
-    cl_object->cl_obj->keyword->ign_case = ign_case;
-    cl_object->cl_obj->keyword->len = strlen(keyword);
+
+    if (cl_object->via.tokens == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.keyword->gid = gid;
+    cl_object->via.keyword->keyword = keyword;
+    cl_object->via.keyword->ign_case = ign_case;
+    cl_object->via.keyword->len = strlen(keyword);
+
     return cl_object;
 }
 
-static void cleri_free_keyword(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy keyword object.
+ */
+static void KEYWORD_free(cleri_object_t * cl_object)
 {
-    free(cl_obj->cl_obj->keyword);
+    free(cl_object->via.keyword);
 }
 
-static cleri_node_t * cleri_parse_keyword(
-        cleri_parse_result_t * pr,
+static cleri_node_t * KEYWORD_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -62,12 +78,12 @@ static cleri_node_t * cleri_parse_keyword(
     const char * str = parent->str + parent->len;
 
     match_len = cleri_kwcache_match(pr, str);
-    if (match_len == cl_obj->cl_obj->keyword->len &&
+    if (match_len == cl_obj->via.keyword->len &&
        (
-           strncmp(cl_obj->cl_obj->keyword->keyword, str, match_len) == 0 ||
+           strncmp(cl_obj->via.keyword->keyword, str, match_len) == 0 ||
            (
-               cl_obj->cl_obj->keyword->ign_case &&
-               strncasecmp(cl_obj->cl_obj->keyword->keyword, str, match_len) == 0
+               cl_obj->via.keyword->ign_case &&
+               strncasecmp(cl_obj->via.keyword->keyword, str, match_len) == 0
            )
        ))
     {

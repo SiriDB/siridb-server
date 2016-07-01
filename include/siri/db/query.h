@@ -26,7 +26,7 @@
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
 
-typedef struct cleri_parse_result_s cleri_parse_result_t;
+typedef struct cleri_parser_s cleri_parser_t;
 typedef struct siridb_node_list_s siridb_node_list_t;
 
 typedef enum siridb_err_tp
@@ -52,7 +52,7 @@ typedef struct siridb_query_s
     qp_packer_t * timeit;
     siridb_timep_t time_precision;
     uv_close_cb free_cb;
-    cleri_parse_result_t * pr;
+    cleri_parser_t * pr;
     siridb_nodes_t * nodes;
     struct timespec start;
     int flags;

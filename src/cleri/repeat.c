@@ -12,56 +12,76 @@
 #include <cleri/repeat.h>
 #include <logger/logger.h>
 #include <stdlib.h>
+#include <siri/err.h>
 
-static void cleri_free_repeat(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void REPEAT_free(cleri_object_t * cl_object);
 
-static cleri_node_t * cleri_parse_repeat(
-        cleri_parse_result_t * pr,
+static cleri_node_t * REPEAT_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ *
+ * cl_ob :      object to repeat
+ * min :        should be equal to or higher then 0.
+ * max :        should be equal to or higher then 0 but when 0 it means
+ *              unlimited.
+ */
 cleri_object_t * cleri_repeat(
         uint32_t gid,
         cleri_object_t * cl_obj,
         size_t min,
         size_t max)
 {
-    /*
-     * cl_ob :      object to repeat
-     * min :        should be equal to or higher then 0.
-     * max :        should be equal to or higher then 0 but when 0 it means
-     *              unlimited.
-     */
-    cleri_object_t * cl_object;
-
-    cl_object = cleri_new_object(
+    if (cl_obj == NULL)
+    {
+        return NULL;
+    }
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_REPEAT,
-            &cleri_free_repeat,
-            &cleri_parse_repeat);
-    cl_object->cl_obj->repeat =
-            (cleri_repeat_t *) malloc(sizeof(cleri_repeat_t));
-    cl_object->cl_obj->repeat->gid = gid;
-    cl_object->cl_obj->repeat->cl_obj = cl_obj;
+            &REPEAT_free,
+            &REPEAT_parse);
 
-    cl_object->cl_obj->repeat->min = min;
-    cl_object->cl_obj->repeat->max = max;
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.repeat =
+            (cleri_repeat_t *) malloc(sizeof(cleri_repeat_t));
+
+    if (cl_object->via.repeat == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.repeat->gid = gid;
+    cl_object->via.repeat->cl_obj = cl_obj;
+
+    cl_object->via.repeat->min = min;
+    cl_object->via.repeat->max = max;
+
+    cleri_object_incref(cl_obj);
 
     return cl_object;
 }
 
-static void cleri_free_repeat(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy repeat object.
+ */
+static void REPEAT_free(cleri_object_t * cl_object)
 {
-    cleri_free_object(grammar, cl_obj->cl_obj->repeat->cl_obj);
-    free(cl_obj->cl_obj->repeat);
+    cleri_object_decref(cl_object->via.repeat->cl_obj);
+    free(cl_object->via.repeat);
 }
 
-static cleri_node_t * cleri_parse_repeat(
-        cleri_parse_result_t * pr,
+static cleri_node_t * REPEAT_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -72,20 +92,20 @@ static cleri_node_t * cleri_parse_repeat(
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
 
     for (i = 0;
-         cl_obj->cl_obj->repeat->max == 0 || i < cl_obj->cl_obj->repeat->max;
+         cl_obj->via.repeat->max == 0 || i < cl_obj->via.repeat->max;
          i++)
     {
         rnode = cleri_walk(
                 pr,
                 node,
-                cl_obj->cl_obj->repeat->cl_obj,
+                cl_obj->via.repeat->cl_obj,
                 rule,
-                i < cl_obj->cl_obj->repeat->min); // 1 = REQUIRED
+                i < cl_obj->via.repeat->min); // 1 = REQUIRED
         if (rnode == NULL)
             break;
     }
 
-    if (i < cl_obj->cl_obj->repeat->min)
+    if (i < cl_obj->via.repeat->min)
     {
         cleri_node_free(node);
         return NULL;

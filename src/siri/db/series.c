@@ -677,9 +677,9 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_SERIES_SCHEMA)
 
-    qp_series_name = qp_new_object();
-    qp_series_id = qp_new_object();
-    qp_series_tp = qp_new_object();
+    qp_series_name = qp_object_new();
+    qp_series_id = qp_object_new();
+    qp_series_tp = qp_object_new();
 
     while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
             qp_next(unpacker, qp_series_name) == QP_RAW &&

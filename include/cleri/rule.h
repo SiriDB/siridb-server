@@ -18,33 +18,38 @@
 #include <cleri/node.h>
 #include <cleri/expecting.h>
 
-struct cleri_object_s;
-struct cleri_node_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_node_s cleri_node_t;
+
+typedef enum cleri_rule_test_e
+{
+    CLERI_RULE_ERROR=-1,
+    CLERI_RULE_FALSE,
+    CLERI_RULE_TRUE
+} cleri_rule_test_t;
 
 typedef struct cleri_rule_tested_s
 {
     const char * str;
-    struct cleri_node_s * node;
+    cleri_node_t * node;
     struct cleri_rule_tested_s * next;
 } cleri_rule_tested_t;
 
 typedef struct cleri_rule_store_s
 {
     cleri_rule_tested_t * tested;
-    struct cleri_object_s * root_obj;
+    cleri_object_t * root_obj;
 } cleri_rule_store_t;
 
 typedef struct cleri_rule_s
 {
     uint32_t gid;
-    struct cleri_object_s * cl_obj;
+    cleri_object_t * cl_obj;
 } cleri_rule_t;
 
-struct cleri_object_s * cleri_rule(
-        uint32_t gid,
-        struct cleri_object_s * cl_obj);
+cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj);
 
-int cleri_init_rule_tested(
+cleri_rule_test_t cleri_rule_init(
         cleri_rule_tested_t ** target,
         cleri_rule_tested_t * tested,
         const char * str);

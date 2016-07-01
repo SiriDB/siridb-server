@@ -23,28 +23,17 @@ typedef struct siridb_fifo_s
     ssize_t max_id;  // max_id can be -1
 } siridb_fifo_t;
 
+
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb);
-
-/*
- * destroy the fifo and close open files.
- * (signal is set if a file close has failed)
- */
 void siridb_fifo_free(siridb_fifo_t * fifo);
-
-/*
- * returns a package created with malloc or NULL when an error has occured.
- * (signal is set when return value is NULL)
- */
+int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo);
+int siridb_fifo_commit(siridb_fifo_t * fifo);
+int siridb_fifo_close(siridb_fifo_t * fifo);
+int siridb_fifo_open(siridb_fifo_t * fifo);
 
 /*
- * returns 0 if successful or another value in case of errors.
- * (signal can be set when result is not 0)
+ * Value is greater than 0 when the fifo has data or 0 when empty.
+ * Use this to check if the fifo has data. (must be done before calling pop)
  */
-int siridb_fifo_commit(siridb_fifo_t * fifo);
-
-/* returns 0 if successful or a negative value in case of errors */
-int siridb_fifo_close(siridb_fifo_t * fifo);
-
-/* returns 0 if successful or a -1 in case of errors */
-int siridb_fifo_open(siridb_fifo_t * fifo);
+#define siridb_fifo_has_data(fifo) fifo->out->next_size

@@ -31,22 +31,16 @@ typedef struct siridb_ffile_s
     FILE * fp;
 } siridb_ffile_t;
 
-/* fn must be set using malloc and will be freed with either
- * siridb_ffile_free or siridb_ffile_unlink.
- */
+
 siridb_ffile_t * siridb_ffile_new(
         uint64_t id,
-        char * fn,
+        const char * path,
         sirinet_pkg_t * pkg);
-
-void siridb_ffile_open(siridb_ffile_t * ffile);
+int siridb_ffile_check_fn(const char * fn);
 void siridb_ffile_free(siridb_ffile_t * ffile);
 void siridb_ffile_unlink(siridb_ffile_t * ffile);
 sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile);
-
-/* returns 0 if successful, -1 in case of an error */
 int siridb_ffile_pop_commit(siridb_ffile_t * ffile);
-
 siridb_ffile_result_t siridb_ffile_append(
         siridb_ffile_t * ffile,
         sirinet_pkg_t * pkg);

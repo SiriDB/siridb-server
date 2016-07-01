@@ -75,9 +75,9 @@ int siridb_users_load(siridb_t * siridb)
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_USER_ACCESS_SCHEMA)
 
-    username = qp_new_object();
-    password = qp_new_object();
-    access_bit = qp_new_object();
+    username = qp_object_new();
+    password = qp_object_new();
+    access_bit = qp_object_new();
 
     while (qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, username) == QP_RAW &&

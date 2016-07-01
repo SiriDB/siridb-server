@@ -15,54 +15,87 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <siri/err.h>
 
-static void cleri_free_prio(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
+static void PRIO_free(cleri_object_t * cl_obj);
 
-static cleri_node_t *  cleri_parse_prio(
-        cleri_parse_result_t * pr,
+static cleri_node_t *  PRIO_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 cleri_object_t * cleri_prio(
         uint32_t gid,
         size_t len,
         ...)
 {
     va_list ap;
-    cleri_object_t * cl_object;
 
-    cl_object = cleri_new_object(
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_PRIO,
-            &cleri_free_prio,
-            &cleri_parse_prio);
-    cl_object->cl_obj->prio =
+            &PRIO_free,
+            &PRIO_parse);
+
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.prio =
             (cleri_prio_t *) malloc(sizeof(cleri_prio_t));
-    cl_object->cl_obj->prio->gid = 0;
-    cl_object->cl_obj->prio->olist = cleri_new_olist();
+
+    if (cl_object->via.prio == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.prio->gid = 0;
+    cl_object->via.prio->olist = cleri_olist_new();
+
+    if (cl_object->via.prio->olist == NULL)
+    {
+        /* signal is set */
+        cleri_object_decref(cl_object);
+        return NULL;
+    }
 
     va_start(ap, len);
     while(len--)
-        cleri_olist_add(
-                cl_object->cl_obj->prio->olist,
-                va_arg(ap, cleri_object_t *));
+    {
+        if (cleri_olist_append(
+                cl_object->via.prio->olist,
+                va_arg(ap, cleri_object_t *)))
+        {
+            ERR_ALLOC
+            cleri_object_decref(cl_object);
+            return NULL;
+        }
+    }
     va_end(ap);
 
     return cleri_rule(gid, cl_object);
 }
 
-static void cleri_free_prio(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy prio object.
+ */
+static void PRIO_free(cleri_object_t * cl_object)
 {
-    cleri_free_olist(grammar, cl_obj->cl_obj->prio->olist);
-    free(cl_obj->cl_obj->prio);
+    cleri_olist_free(cl_object->via.prio->olist);
+    free(cl_object->via.prio);
 }
 
-static cleri_node_t *  cleri_parse_prio(
-        cleri_parse_result_t * pr,
+/*
+ * Parse prio object.
+ */
+static cleri_node_t *  PRIO_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -75,9 +108,12 @@ static cleri_node_t *  cleri_parse_prio(
 
     /* initialize and return rule test, or return an existing test
      * if *str is already in tested */
-    cleri_init_rule_tested(&tested, rule->tested, str);
+    if (cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
+    {
+        /* TODO: handle error */
+    }
 
-    olist = cl_obj->cl_obj->prio->olist;
+    olist = cl_obj->via.prio->olist;
 
     while (olist != NULL)
     {
@@ -95,7 +131,9 @@ static cleri_node_t *  cleri_parse_prio(
             tested->node = node;
         }
         else
+        {
             cleri_node_free(node);
+        }
         olist = olist->next;
     }
     if (tested->node != NULL)

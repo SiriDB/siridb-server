@@ -56,7 +56,9 @@ int main(int argc, char * argv[])
     /* run tests when we are in debug mode */
     rc = run_tests(0);
     if (rc)
+    {
         exit(1);
+    }
     #endif
 
     /* start server */

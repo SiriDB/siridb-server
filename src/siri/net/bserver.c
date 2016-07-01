@@ -146,16 +146,16 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     bp_server_t rc;
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_uuid = qp_new_object();
-    qp_obj_t * qp_dbname = qp_new_object();
-    qp_obj_t * qp_flags = qp_new_object();
-    qp_obj_t * qp_version = qp_new_object();
-    qp_obj_t * qp_min_version = qp_new_object();
-    qp_obj_t * qp_dbpath = qp_new_object();
-    qp_obj_t * qp_buffer_path = qp_new_object();
-    qp_obj_t * qp_buffer_size = qp_new_object();
-    qp_obj_t * qp_startup_time = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_uuid = qp_object_new();
+    qp_obj_t * qp_dbname = qp_object_new();
+    qp_obj_t * qp_flags = qp_object_new();
+    qp_obj_t * qp_version = qp_object_new();
+    qp_obj_t * qp_min_version = qp_object_new();
+    qp_obj_t * qp_dbpath = qp_object_new();
+    qp_obj_t * qp_buffer_path = qp_object_new();
+    qp_obj_t * qp_buffer_size = qp_object_new();
+    qp_obj_t * qp_startup_time = qp_object_new();
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_uuid) == QP_RAW &&
@@ -221,8 +221,8 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
     SERVER_CHECK_AUTHENTICATED(server)
 
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_flags = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_flags = qp_object_new();
 
     if (qp_next(unpacker, qp_flags) == QP_INT64)
     {
@@ -250,8 +250,8 @@ static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
     SERVER_CHECK_AUTHENTICATED(server)
 
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_log_level = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_log_level = qp_object_new();
 
     if (qp_next(unpacker, qp_log_level) == QP_INT64)
     {
@@ -278,9 +278,9 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags)
 {
     SERVER_CHECK_AUTHENTICATED(server)
 
-    qp_unpacker_t * unpacker = qp_new_unpacker(pkg->data, pkg->len);
-    qp_obj_t * qp_query = qp_new_object();
-    qp_obj_t * qp_time_precision = qp_new_object();
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_obj_t * qp_query = qp_object_new();
+    qp_obj_t * qp_time_precision = qp_object_new();
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_query) == QP_RAW &&

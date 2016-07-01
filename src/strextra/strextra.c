@@ -60,12 +60,19 @@ void strx_trim(char ** str, char chr)
     *(end + 1) = 0;
 }
 
+/*
+ * returns true or false
+ */
 bool strx_is_empty(const char * str)
 {
     const char * test = str;
     for (; *test; test++)
+    {
         if (!isspace(*test))
+        {
             return false;
+        }
+    }
     return true;
 }
 

@@ -17,7 +17,7 @@
 
 static void pcre_kw_match(
         cleri_kwcache_t * kwcache,
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         const char * str);
 
 
@@ -32,7 +32,7 @@ cleri_kwcache_t * cleri_new_kwcache(void)
 }
 
 size_t cleri_kwcache_match(
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         const char * str)
 {
     /* returns 0 when no kw_match is found */
@@ -72,7 +72,7 @@ void cleri_free_kwcache(cleri_kwcache_t * kwcache)
 
 static void pcre_kw_match(
         cleri_kwcache_t * kwcache,
-        cleri_parse_result_t * pr,
+        cleri_parser_t * pr,
         const char * str)
 {
     int pcre_exec_ret;

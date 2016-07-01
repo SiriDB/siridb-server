@@ -17,17 +17,17 @@
 #include <cleri/object.h>
 #include <cleri/olist.h>
 
-struct cleri_object_s;
-struct cleri_olist_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_olist_s cleri_olist_t;
 
 typedef struct cleri_choice_s
 {
     uint32_t gid;
     int most_greedy;
-    struct cleri_olist_s * olist;
+    cleri_olist_t * olist;
 } cleri_choice_t;
 
-struct cleri_object_s * cleri_choice(
+cleri_object_t * cleri_choice(
         uint32_t gid,
         int most_greedy,
         size_t len,

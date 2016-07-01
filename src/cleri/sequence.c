@@ -14,54 +14,83 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <siri/err.h>
 
-static void cleri_free_sequence(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj);
 
-static cleri_node_t * cleri_parse_sequence(
-        cleri_parse_result_t * pr,
+static void SEQUENCE_free(cleri_object_t * cl_object);
+
+static cleri_node_t * SEQUENCE_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 cleri_object_t * cleri_sequence(
         uint32_t gid,
         size_t len,
         ...)
 {
     va_list ap;
-    cleri_object_t * cl_object;
-
-    cl_object = cleri_new_object(
+    cleri_object_t * cl_object = cleri_object_new(
             CLERI_TP_SEQUENCE,
-            &cleri_free_sequence,
-            &cleri_parse_sequence);
-    cl_object->cl_obj->sequence =
+            &SEQUENCE_free,
+            &SEQUENCE_parse);
+
+    if (cl_object == NULL)
+    {
+        return NULL;  /* signal is set */
+    }
+
+    cl_object->via.sequence =
             (cleri_sequence_t *) malloc(sizeof(cleri_sequence_t));
-    cl_object->cl_obj->sequence->gid = gid;
-    cl_object->cl_obj->sequence->olist = cleri_new_olist();
+
+    if (cl_object->via.sequence == NULL)
+    {
+        ERR_ALLOC
+        free(cl_object);
+        return NULL;
+    }
+
+    cl_object->via.sequence->gid = gid;
+    cl_object->via.sequence->olist = cleri_olist_new();
+
+    if (cl_object->via.sequence->olist == NULL)
+    {
+        cleri_object_decref(cl_object);
+        return NULL;  /* signal is set */
+    }
 
     va_start(ap, len);
     while(len--)
-        cleri_olist_add(
-                cl_object->cl_obj->sequence->olist,
-                va_arg(ap, cleri_object_t *));
+    {
+        if (cleri_olist_append(
+                cl_object->via.sequence->olist,
+                va_arg(ap, cleri_object_t *)))
+        {
+            ERR_ALLOC
+            cleri_object_decref(cl_object);
+            return NULL;
+        }
+    }
     va_end(ap);
 
     return cl_object;
 }
 
-static void cleri_free_sequence(
-        cleri_grammar_t * grammar,
-        cleri_object_t * cl_obj)
+/*
+ * Destroy sequence object.
+ */
+static void SEQUENCE_free(cleri_object_t * cl_object)
 {
-    cleri_free_olist(grammar, cl_obj->cl_obj->sequence->olist);
-    free(cl_obj->cl_obj->sequence);
+    cleri_olist_free(cl_object->via.sequence->olist);
+    free(cl_object->via.sequence);
 }
 
-static cleri_node_t * cleri_parse_sequence(
-        cleri_parse_result_t * pr,
+static cleri_node_t * SEQUENCE_parse(
+        cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -70,7 +99,7 @@ static cleri_node_t * cleri_parse_sequence(
     cleri_node_t * node;
     cleri_node_t * rnode;
 
-    olist = cl_obj->cl_obj->sequence->olist;
+    olist = cl_obj->via.sequence->olist;
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
 
     while (olist != NULL)

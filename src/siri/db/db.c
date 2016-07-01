@@ -42,7 +42,7 @@ int siridb_from_unpacker(
         siridb_t ** siridb,
         char * err_msg)
 {
-    qp_obj_t * qp_obj = qp_new_object();
+    qp_obj_t * qp_obj = qp_object_new();
 
     if (!qp_is_array(qp_next(unpacker, NULL)) ||
             qp_next(unpacker, qp_obj) != QP_INT64)

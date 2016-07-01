@@ -20,34 +20,34 @@
 #include <cleri/kwcache.h>
 #include <cleri/rule.h>
 
-struct cleri_object_s;
-struct cleri_grammar_s;
-struct cleri_node_s;
-struct cleri_expecting_s;
-struct cleri_kwcache_s;
-struct cleri_rule_store_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_grammar_s cleri_grammar_t;
+typedef struct cleri_node_s cleri_node_t;
+typedef struct cleri_expecting_s cleri_expecting_t;
+typedef struct cleri_kwcache_s cleri_kwcache_t;
+typedef struct cleri_rule_store_s cleri_rule_store_t;
 
-typedef struct cleri_parse_result_s
+typedef struct cleri_parser_s
 {
     bool is_valid;
     size_t pos;
     const char * str;
-    struct cleri_node_s * tree;
-    struct cleri_expecting_s * expecting;
+    cleri_node_t * tree;
+    cleri_expecting_t * expecting;
     pcre * re_keywords;
     pcre_extra * re_kw_extra;
-    struct cleri_kwcache_s * kwcache;
-} cleri_parse_result_t;
+    cleri_kwcache_t * kwcache;
+} cleri_parser_t;
 
-cleri_parse_result_t * cleri_parse(
-        struct cleri_grammar_s * grammar,
+cleri_parser_t * cleri_parse(
+        cleri_grammar_t * grammar,
         const char * str);
 
-void cleri_free_parse_result(cleri_parse_result_t * pr);
+void cleri_parser_free(cleri_parser_t * pr);
 
-struct cleri_node_s * cleri_walk(
-        cleri_parse_result_t * pr,
-        struct cleri_node_s * parent,
-        struct cleri_object_s * cl_obj,
-        struct cleri_rule_store_s * rule,
+cleri_node_t * cleri_walk(
+        cleri_parser_t * pr,
+        cleri_node_t * parent,
+        cleri_object_t * cl_obj,
+        cleri_rule_store_t * rule,
         int mode);

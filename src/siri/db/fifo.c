@@ -21,18 +21,28 @@
 #include <ctype.h>
 #include <assert.h>
 
-#define FIFO_NUMBERS 9
-
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args);
-static int FIFO_is_fifo_fn(const char * fn);
 static int FIFO_init(siridb_fifo_t * fifo);
-static siridb_ffile_t * FIFO_next(siridb_fifo_t * fifo, sirinet_pkg_t * pkg);
 
+/* TODO: malloc and file checks */
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 {
     siridb_fifo_t * fifo = (siridb_fifo_t *) malloc(sizeof(siridb_fifo_t));
 
+    if (fifo == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
+
     fifo->fifos = llist_new();
+
+    if (fifo->fifos == NULL)
+    {
+        free(fifo);
+        return NULL;
+    }
+
     fifo->in = NULL;
     fifo->out = NULL;
 
@@ -41,6 +51,8 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 
     if (asprintf(&fifo->path, "%s.%s/", siridb->dbpath, str_uuid) < 0)
     {
+        ERR_ALLOC
+        siridb_fifo_free(fifo);
         return NULL;
     }
 
@@ -53,7 +65,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     fifo->max_id = (fifo->fifos->len) ?
             ((siridb_ffile_t *) fifo->fifos->last)->id : -1;
 
-    fifo->in = FIFO_next(fifo, NULL);
+    fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, NULL);
     llist_append(fifo->fifos, fifo->in);
 
     /* we have at least one fifo in the list */
@@ -67,16 +79,23 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     return fifo;
 }
 
+/*
+ * Returns 0 if successful or anything else if not.
+ * (signal is set in case of an error)
+ */
 int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
 {
     switch(siridb_ffile_append(fifo->in, pkg))
     {
     case FFILE_NO_FREE_SPACE:
-        if (fifo->in != fifo->out)
+        if (fifo->in != fifo->out && fclose(fifo->in->fp))
         {
-            fclose(fifo->in->fp);
+            ERR_FILE
+            break;
         }
-        fifo->in = FIFO_next(fifo, pkg);
+
+        fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, pkg);
+
         if (!fifo->out->next_size)
         {
             /* when the out fifo has no next size, we want to use the new
@@ -93,16 +112,29 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     case FFILE_SUCCESS:
         break;
     case FFILE_ERROR:
-        return -1;
+        ERR_FILE
+        break;
     }
-    return 0;
+    return siri_err;
 }
 
+/*
+ * returns a package created with malloc or NULL when an error has occurred.
+ * (signal is set when return value is NULL)
+ *
+ * warning:
+ *      be sure to check the fifo using siridb_fifo_has_data() before
+ *      calling this function.
+ */
 inline sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
 {
     return siridb_ffile_pop(fifo->out);
 }
 
+/*
+ * returns 0 if successful or another value in case of errors.
+ * (signal can be set when result is not 0)
+ */
 int siridb_fifo_commit(siridb_fifo_t * fifo)
 {
     if (siridb_ffile_pop_commit(fifo->out))
@@ -119,6 +151,9 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
     return siri_err;
 }
 
+/*
+ * returns 0 if successful or a negative value in case of errors
+ */
 int siridb_fifo_close(siridb_fifo_t * fifo)
 {
 #ifdef DEBUG
@@ -141,6 +176,9 @@ int siridb_fifo_close(siridb_fifo_t * fifo)
     return rc;
 }
 
+/*
+ * returns 0 if successful or a -1 in case of errors
+ */
 int siridb_fifo_open(siridb_fifo_t * fifo)
 {
 #ifdef DEBUG
@@ -159,6 +197,10 @@ int siridb_fifo_open(siridb_fifo_t * fifo)
     return (fifo->in->fp != NULL && fifo->out->fp != NULL) ? 0 : -1;
 }
 
+/*
+ * destroy the fifo and close open files.
+ * (signal is set if a file close has failed)
+ */
 void siridb_fifo_free(siridb_fifo_t * fifo)
 {
     /* we only need to free fifo->out because fido->in is either in the
@@ -172,30 +214,7 @@ void siridb_fifo_free(siridb_fifo_t * fifo)
 }
 
 /*
- * returns NULL and set a signal when an error has occurred. otherwise
- * max_id will be incremented and a new siridb_ffile_t object will be returned.
- */
-static siridb_ffile_t * FIFO_next(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
-{
-    char * fn;
-    fifo->max_id++;
-    if (asprintf(
-            &fn,
-            "%s%0*ld.fifo",
-            fifo->path,
-            FIFO_NUMBERS,
-            fifo->max_id) < 0)
-    {
-        ALLOC_ERR
-        return NULL; /* error occurred */
-    }
-
-    /* fn will be freed when ffile is destroyed */
-    return siridb_ffile_new(fifo->max_id, fn, pkg);
-}
-
-/*
- * returns 1 (true) but a signal can be set if a file close has failed
+ * returns 1 and a signal can be set if a file close has failed
  */
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
 {
@@ -203,6 +222,10 @@ static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
     return 1;
 }
 
+/*
+ * returns 0 when successful or any other value when not.
+ * (in case of an error a signal is set too)
+ */
 static int FIFO_init(siridb_fifo_t * fifo)
 {
     struct stat st = {0};
@@ -217,7 +240,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
         if (mkdir(fifo->path, 0700) == -1)
         {
             log_critical("Cannot create directory '%s'.", fifo->path);
-            C_ERR
+            ERR_C
         }
     }
     else
@@ -230,16 +253,16 @@ static int FIFO_init(siridb_fifo_t * fifo)
         {
             /* no need to free fifo_list when total < 0 */
             log_critical("Cannot read fifo directory '%s'.", fifo->path);
-            C_ERR
+            ERR_C
         }
 
         for (int n = 0; n < total; n++)
         {
-            if (FIFO_is_fifo_fn(fifo_list[n]->d_name))
+            if (siridb_ffile_check_fn(fifo_list[n]->d_name))
             {
                 if (asprintf(&fn, "%s%s", fifo->path, fifo_list[n]->d_name) < 0)
                 {
-                    ALLOC_ERR
+                    ERR_ALLOC
                 }
                 else
                 {
@@ -259,13 +282,4 @@ static int FIFO_init(siridb_fifo_t * fifo)
     return siri_err;
 }
 
-static int FIFO_is_fifo_fn(const char * fn)
-{
-    int i = 0;
-    while (*fn && isdigit(*fn))
-    {
-        fn++;
-        i++;
-    }
-    return (i == FIFO_NUMBERS) ? (strcmp(fn, ".fifo") == 0) : 0;
-}
+

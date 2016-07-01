@@ -12,11 +12,20 @@
 #include <cleri/children.h>
 #include <logger/logger.h>
 #include <stdlib.h>
+#include <siri/err.h>
 
-cleri_children_t * cleri_new_children(void)
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
+cleri_children_t * cleri_children_new(void)
 {
-    cleri_children_t * children;
-    children = (cleri_children_t *) malloc(sizeof(cleri_children_t));
+    cleri_children_t * children =
+            (cleri_children_t *) malloc(sizeof(cleri_children_t));
+    if (children == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     children->node = NULL;
     children->next = NULL;
     return children;
@@ -31,14 +40,16 @@ void cleri_children_add(cleri_children_t * children, cleri_node_t * node)
     }
 
     while (children->next != NULL)
+    {
         children = children->next;
+    }
 
     children->next = (cleri_children_t *) malloc(sizeof(cleri_children_t));
     children->next->node = node;
     children->next->next = NULL;
 }
 
-void cleri_free_children(cleri_children_t * children)
+void cleri_children_free(cleri_children_t * children)
 {
     cleri_children_t * next;
     while (children != NULL)
@@ -50,24 +61,3 @@ void cleri_free_children(cleri_children_t * children)
     }
 }
 
-void cleri_empty_children(cleri_children_t * children)
-{
-    cleri_children_t * current;
-
-    /* clean root node and set to NULL */
-    cleri_node_free(children->node);
-    children->node = NULL;
-
-    /* set root next to NULL */
-    current = children->next;
-    children->next = NULL;
-
-    /* clean all the rest */
-    while (current != NULL)
-    {
-        children = current->next;
-        cleri_node_free(current->node);
-        free(current);
-        current = children;
-    }
-}

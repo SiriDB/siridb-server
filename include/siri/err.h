@@ -19,31 +19,31 @@ extern int siri_err;
 
 
 #ifdef DEBUG
-#define ALLOC_ERR                                           \
+#define ERR_ALLOC                                           \
 log_critical("Memory allocation error at: %s:%d (%s)",      \
         __FILE__, __LINE__, __func__);                      \
 raise(SIGSEGV);                                             \
 siri_err = SIGSEGV;
-#define FILE_ERR                                            \
+#define ERR_FILE                                            \
 log_critical("Critical file error at: %s:%d (%s)",          \
         __FILE__, __LINE__, __func__);                      \
 raise(SIGABRT);                                             \
 siri_err = SIGABRT;
-#define C_ERR                                       \
+#define ERR_C                                       \
 log_critical("Critical error at: %s:%d (%s)",       \
         __FILE__, __LINE__, __func__);              \
 raise(SIGABRT);                                     \
 siri_err = SIGABRT;
 #else
-#define ALLOC_ERR                                   \
+#define ERR_ALLOC                                   \
 log_critical("Memory allocation error occurred");   \
 raise(SIGSEGV);                                     \
 siri_err = SIGSEGV;
-#define FILE_ERR                                                            \
+#define ERR_FILE                                                            \
 log_critical("Critical file error occurred (possible the disk is full)");   \
 raise(SIGABRT);                                                             \
 siri_err = SIGABRT;
-#define C_ERR                               \
+#define ERR_C                               \
 raise(SIGABRT);                             \
 siri_err = SIGABRT;
 #endif
