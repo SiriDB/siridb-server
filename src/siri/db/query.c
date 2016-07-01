@@ -409,6 +409,8 @@ static void QUERY_parse(uv_async_t * handle)
         case EXPR_INVALID_DATE_STRING:
             sprintf(query->err_msg, "Invalid date string.");
             break;
+        case EXPR_MEM_ALLOC_ERR:
+            return;
         default:
             log_critical("Unknown Return Code received: %d", rc);
             assert(0);
@@ -479,13 +481,15 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
      */
     if (gid != CLERI_NONE)
     {
-        if ((func = siriparser_listen_enter[gid]) != NULL)
+        if (    (func = siriparser_listen_enter[gid]) != NULL &&
+                siridb_walker_append(walker, node, func))
         {
-            siridb_walker_append(walker, node, func);
+            return EXPR_MEM_ALLOC_ERR;
         }
-        if ((func = siriparser_listen_exit[gid]) != NULL)
+        if (    (func = siriparser_listen_exit[gid]) != NULL &&
+                siridb_walker_insert(walker, node, func))
         {
-            siridb_walker_insert(walker, node, func);
+            return EXPR_MEM_ALLOC_ERR;
         }
     }
 

@@ -10,23 +10,37 @@
  *
  */
 #include <siri/db/walker.h>
+#include <siri/err.h>
 
+/*
+ * Returns NULL and sets a signal in case an error has occurred.
+ */
 siridb_walker_t * siridb_walker_new(
         siridb_t * siridb,
         const uint64_t now,
         int * flags)
 {
-    siridb_walker_t * walker;
-    walker = (siridb_walker_t *) malloc(sizeof(siridb_walker_t));
-    walker->siridb = siridb;
-    walker->now = now;
-    walker->flags = flags;
-    walker->start = NULL;
-    walker->enter_nodes = NULL;
-    walker->exit_nodes = NULL;
+    siridb_walker_t * walker =
+            (siridb_walker_t *) malloc(sizeof(siridb_walker_t));
+    if (walker == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        walker->siridb = siridb;
+        walker->now = now;
+        walker->flags = flags;
+        walker->start = NULL;
+        walker->enter_nodes = NULL;
+        walker->exit_nodes = NULL;
+    }
     return walker;
 }
 
+/*
+ * Destroy walker. (parsing NULL is NOT allowed)
+ */
 siridb_nodes_t * siridb_walker_free(siridb_walker_t * walker)
 {
     siridb_nodes_t * nodes;
@@ -43,14 +57,22 @@ siridb_nodes_t * siridb_walker_free(siridb_walker_t * walker)
     return nodes;
 }
 
-void siridb_walker_append(
+/*
+ * Returns 0 if successful and -1 in case of an error.
+ * (signal is set in case of an error)
+ */
+int siridb_walker_append(
         siridb_walker_t * walker,
         cleri_node_t * node,
         uv_async_cb cb)
 {
-    siridb_nodes_t * wnode;
-
-    wnode = (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
+    siridb_nodes_t * wnode =
+            (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
+    if (wnode == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
     wnode->node = node;
     wnode->cb = cb;
     wnode->next = NULL;
@@ -65,6 +87,8 @@ void siridb_walker_append(
         walker->enter_nodes->next = wnode;
         walker->enter_nodes = wnode;
     }
+
+    return 0;
 }
 
 void siridb_walker_insert(
