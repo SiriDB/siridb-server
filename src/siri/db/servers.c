@@ -146,6 +146,9 @@ int siridb_servers_load(siridb_t * siridb)
     return 0;
 }
 
+/*
+ * Destroy servers, parsing NULL is not allowed.
+ */
 void siridb_servers_free(llist_t * servers)
 {
     llist_free_cb(servers, (llist_cb_t) SERVERS_walk_free, NULL);

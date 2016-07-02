@@ -222,6 +222,8 @@ static siridb_t * SIRIDB_new(void)
     siridb->shards = imap64_new();
     siridb->buffer_size = -1;
     siridb->tz = -1;
+    siridb->server = NULL;
+    siridb->replica = NULL;
 
     /* make file pointers are NULL when file is closed */
     siridb->buffer_fp = NULL;
@@ -257,35 +259,51 @@ static void SIRIDB_free(siridb_t * siridb)
     }
 
     /* free users */
-    siridb_users_free(siridb->users);
+    if (siridb->users != NULL)
+    {
+        siridb_users_free(siridb->users);
+    }
 
     /* we do not need to free server and replica since they exist in
      * this list and therefore will be freed.
      */
-    siridb_servers_free(siridb->servers);
+    if (siridb->servers != NULL)
+    {
+        siridb_servers_free(siridb->servers);
+    }
 
     /* free pools */
-    siridb_pools_free(siridb->pools);
+    if (siridb->pools != NULL)
+    {
+        siridb_pools_free(siridb->pools);
+    }
 
     /* free imap32 (series) */
-    imap32_free(siridb->series_map);
+    if (siridb->series_map != NULL)
+    {
+        imap32_free(siridb->series_map);
+    }
 
     /* free c-tree lookup and series */
-    ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
+    if (siridb->series != NULL)
+    {
+        ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
+    }
 
-    /* free shards using imap64 */
-    imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
-
-    /* free imap64 (shards) */
-    imap64_free(siridb->shards);
+    /* free shards using imap64 walk an free the imap64 */
+    if (siridb->shards != NULL)
+    {
+        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
+        imap64_free(siridb->shards);
+    }
 
     /* only free buffer path when not equal to db_path */
     if (siridb->buffer_path != siridb->dbpath)
     {
         free(siridb->buffer_path);
     }
-    free(siridb->dbpath);
 
+    free(siridb->dbpath);
     free(siridb->dbname);
     free(siridb->time);
 

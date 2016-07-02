@@ -22,13 +22,13 @@
 
 static void INSERT_free(uv_handle_t * handle);
 
-static int32_t assign_by_map(
+static ssize_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
         qp_obj_t * qp_obj);
 
-static int32_t assign_by_array(
+static ssize_t assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
@@ -69,7 +69,7 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     return err_msg[err + SIRIDB_INSERT_ERR_SIZE];
 }
 
-siridb_insert_err_t siridb_insert_assign_pools(
+ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,
@@ -245,7 +245,7 @@ static void send_points_to_pools(uv_async_t * handle)
     uv_close((uv_handle_t *) handle, insert->free_cb);
 }
 
-static int32_t assign_by_map(
+static ssize_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
@@ -283,7 +283,7 @@ static int32_t assign_by_map(
     return count;
 }
 
-static int32_t assign_by_array(
+static ssize_t assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],

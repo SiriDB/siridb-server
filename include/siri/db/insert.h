@@ -46,7 +46,7 @@ typedef struct siridb_insert_s
     qp_packer_t * packer[];
 } siridb_insert_t;
 
-siridb_insert_err_t siridb_insert_assign_pools(
+ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,

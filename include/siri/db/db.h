@@ -75,7 +75,6 @@ typedef struct siridb_s
     char * dbname;
     char * dbpath;
     char * buffer_path;
-    char * index;
     size_t index_size;
     size_t received_points;
     siridb_time_t * time;

@@ -627,7 +627,6 @@ static int test_version(void)
 
 int run_tests(int flags)
 {
-    return 0;
     timeit_t start;
     timeit_start(&start);
     int rc = 0;

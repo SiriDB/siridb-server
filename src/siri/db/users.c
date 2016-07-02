@@ -106,6 +106,9 @@ int siridb_users_load(siridb_t * siridb)
     return 0;
 }
 
+/*
+ * Destroy servers, parsing NULL is not allowed.
+ */
 void siridb_users_free(llist_t * users)
 {
     llist_free_cb(users, (llist_cb_t) USERS_free, NULL);
@@ -274,7 +277,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     rc += qp_fadd_string(fpacker, user->username);
     rc += qp_fadd_string(fpacker, user->password);
     rc += qp_fadd_int32(fpacker, (int32_t) user->access_bit);
-
+    log_debug("RC: %d", rc);
     return rc;
 }
 

@@ -627,7 +627,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
 {
     if (len < 100)
     {
-        if (fputc(128 + len, fpacker))
+        if (fputc(128 + len, fpacker) == EOF)
         {
             return EOF;
         }

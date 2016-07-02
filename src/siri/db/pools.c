@@ -28,7 +28,10 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
 void siridb_pools_gen(siridb_t * siridb)
 {
-    siridb_pools_free(siridb->pools);
+    if (siridb->pools != NULL)
+    {
+        siridb_pools_free(siridb->pools);
+    }
 
     siridb->pools = (siridb_pools_t *) malloc(sizeof(siridb_pools_t));
     uint16_t max_pool = 0;
@@ -61,12 +64,11 @@ void siridb_pools_gen(siridb_t * siridb)
     siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);
 }
 
+/*
+ * Destroy pools. (parsing NULL is NOT allowed)
+ */
 void siridb_pools_free(siridb_pools_t * pools)
 {
-    if (pools == NULL)
-    {
-        return;
-    }
     free(pools->pool);
     free(pools->lookup);
     free(pools);

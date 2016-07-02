@@ -311,17 +311,6 @@ int siri_start(void)
     /* get start time so we can calculate the startup_time */
     clock_gettime(CLOCK_REALTIME, &start);
 
-    /* initialize the default event loop */
-    siri.loop = malloc(sizeof(uv_loop_t));
-    uv_loop_init(siri.loop);
-
-    /* bind signals to the event loop */
-    for (int i = 0; i < N_SIGNALS; i++)
-    {
-        uv_signal_init(siri.loop, &sig[i]);
-        uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
-    }
-
     /* initialize listener (set enter and exit functions) */
     siriparser_init_listener();
 
@@ -342,8 +331,20 @@ int siri_start(void)
 
     /* load databases */
     if ((rc = SIRI_load_databases()))
+    {
         return rc; //something went wrong
+    }
 
+    /* initialize the default event loop */
+    siri.loop = malloc(sizeof(uv_loop_t));
+    uv_loop_init(siri.loop);
+
+    /* bind signals to the event loop */
+    for (int i = 0; i < N_SIGNALS; i++)
+    {
+        uv_signal_init(siri.loop, &sig[i]);
+        uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
+    }
 
     /* initialize the back-end server */
     if ((rc = sirinet_bserver_init(&siri)))
