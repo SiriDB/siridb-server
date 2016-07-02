@@ -21,7 +21,7 @@ static cleri_object_t end_of_statement =
 cleri_object_t * CLERI_END_OF_STATEMENT = &end_of_statement;
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_object_t * cleri_object_new(
         cleri_object_tp tp,

@@ -1337,16 +1337,17 @@ static void exit_set_log_level(uv_async_t * handle)
      * error occurs.
      */
     if (
-            (query->packer = qp_packer_new(1024)) == NULL ||
+        /* create a new packer with success message */
+        (query->packer = qp_packer_new(1024)) == NULL ||
 
-            qp_add_type(query->packer, QP_MAP_OPEN) ||
+        qp_add_type(query->packer, QP_MAP_OPEN) ||
 
-            qp_add_raw(query->packer, "success_msg", 11) ||
+        qp_add_raw(query->packer, "success_msg", 11) ||
 
-            qp_add_fmt_safe(query->packer,
-                        "Successful set log level to '%s' on '%s'.",
-                        logger_level_name(log_level),
-                        server->name))
+        qp_add_fmt_safe(query->packer,
+                    "Successful set log level to '%s' on '%s'.",
+                    logger_level_name(log_level),
+                    server->name))
     {
         return;  /* signal is raised */
     }
@@ -1360,6 +1361,7 @@ static void exit_set_log_level(uv_async_t * handle)
     else
     {
         QP_PACK_INT16(buffer, log_level)
+
         if (siridb_server_is_available(server))
         {
             siridb_server_send_pkg(

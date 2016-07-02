@@ -18,7 +18,7 @@
 #include <siri/err.h>
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
 {

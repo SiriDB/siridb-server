@@ -13,33 +13,56 @@
 #include <siri/file/pointer.h>
 #include <stdlib.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
-#define FCLOSE      \
-    fclose(fp->fp); \
-    fp->fp = NULL;
-
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siri_fp_t * siri_fp_new(void)
 {
     siri_fp_t * fp = (siri_fp_t *) malloc(sizeof(siri_fp_t));
-    fp->fp = NULL;
-    fp->ref = 1;
+    if (fp == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        fp->fp = NULL;
+        fp->ref = 1;
+    }
     return fp;
 }
 
+/*
+ * This function will always close the file when open but only frees the
+ * object from memory when reference count 0 is reached.
+ *
+ * When an error occurs while closing the file, a SIGNAL is raised.
+ */
 void siri_fp_decref(siri_fp_t * fp)
 {
     if (fp->fp != NULL)
     {
-        FCLOSE
+        if (fclose(fp->fp))
+        {
+            ERR_FILE
+        }
+        fp->fp = NULL;
     }
     if (!--fp->ref)
     {
         free(fp);
     }
-
 }
 
+/*
+ * This will close a file and a SIGNAL is raised is an error occurs.
+ */
 void siri_fp_close(siri_fp_t * fp)
 {
-    FCLOSE
+    if (fclose(fp->fp))
+    {
+        ERR_FILE
+    }
+    fp->fp = NULL;
 }

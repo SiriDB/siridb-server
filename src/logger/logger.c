@@ -80,18 +80,27 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
     fflush(Logger.ostream);                                     \
 }
 
+/*
+ * Initialize the Logger.
+ */
 void logger_init(struct _IO_FILE * ostream, int log_level)
 {
     Logger.ostream = ostream;
     logger_set_level(log_level);
 }
 
+/*
+ * Set the logger to a given level. (name will be set too)
+ */
 void logger_set_level(int log_level)
 {
     Logger.level = log_level;
     Logger.level_name = logger_level_name(log_level);
 }
 
+/*
+ * Returns a log level name for a given log level.
+ */
 const char * logger_level_name(int log_level)
 {
     return LOGGER_LEVEL_NAMES[(log_level - 1) / 10];

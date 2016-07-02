@@ -33,21 +33,10 @@ typedef struct imap64_s
 
 typedef void (*imap64_cb_t)(void * data, void * args);
 
-/* create a new imap64 */
 imap64_t * imap64_new(void);
-
-/* call imap64_free when finished using an imap64 */
 void imap64_free(imap64_t * imap);
-
-/* overwrites an existing value */
-void imap64_add(imap64_t * imap, uint64_t id, void * data);
-
-/* returns NULL in case the value is not found */
+int imap64_add(imap64_t * imap, uint64_t id, void * data);
 void * imap64_get(imap64_t * imap, uint64_t id);
-
-/* returns NULL in case the value is not found */
 void * imap64_pop(imap64_t * imap, uint64_t id);
-
-/* run the callback for each element in the imap64 */
 void imap64_walk(imap64_t * imap, imap64_cb_t cb, void * args);
 

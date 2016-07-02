@@ -23,7 +23,7 @@ static cleri_node_t * OPTIONAL_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_object_t * cleri_optional(uint32_t gid, cleri_object_t * cl_obj)
 {

@@ -26,7 +26,7 @@ static cleri_node_t * RULE_parse(
 static void RULE_tested(cleri_rule_tested_t * tested);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj)
 {

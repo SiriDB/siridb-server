@@ -25,7 +25,7 @@ static void EXPECTING_shift_modes(
 static void EXPECTING_modes_free(cleri_exp_modes_t * modes);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_expecting_t * cleri_expecting_new(const char * str)
 {
@@ -203,7 +203,7 @@ void cleri_expecting_remove(cleri_expecting_t * expecting, uint32_t gid)
 }
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 static cleri_exp_modes_t * EXPECTING_modes_new(const char * str)
 {

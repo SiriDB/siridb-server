@@ -35,7 +35,7 @@ static int TOKENS_list_append(
 static void TOKENS_list_free(cleri_tlist_t * tlist);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_object_t * cleri_tokens(
         uint32_t gid,

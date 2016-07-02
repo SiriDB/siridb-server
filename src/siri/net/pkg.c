@@ -19,7 +19,7 @@
 static void PKG_write_cb(uv_write_t * req, int status);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_new(

@@ -13,7 +13,7 @@
 #include <siri/err.h>
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 siridb_walker_t * siridb_walker_new(
         siridb_t * siridb,

@@ -84,7 +84,7 @@ static qp_types_t QP_print_unpacker(
         qp_obj_t * qp_obj);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
 {
@@ -188,7 +188,7 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
 }
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 qp_obj_t * qp_object_new(void)
 {
@@ -222,7 +222,7 @@ void qp_object_free(qp_obj_t * qp_obj)
 }
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)
 {
@@ -260,7 +260,7 @@ void qp_packer_free(qp_packer_t * packer)
 /*
  * Extend packer with another packer (source).
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source)
 {
@@ -274,7 +274,7 @@ int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source)
  * Extend packer with data from an unpacker.
  * (only the object at the current position will be copied)
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
 {
@@ -402,7 +402,7 @@ qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
  *
  * Use qp_add_fmt_safe() in case you want to add longer or unknown length.
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
 {
@@ -417,7 +417,7 @@ int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
 /*
  * Like qp_add_fmt() but works for any length.
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...)
 {
@@ -443,7 +443,7 @@ int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...)
 /*
  * Adds a raw string to the packer fixed to len chars.
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
 {
@@ -457,7 +457,7 @@ int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
  * Adds a raw string to the packer and appends a terminator (0) so the written
  * length is len + 1
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
 {
@@ -477,7 +477,7 @@ int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
  * will NOT be written. (Use qp_add_string_term() instead if you want the
  * destination to be 0 terminated
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 inline int qp_add_string(qp_packer_t * packer, const char * str)
 {
@@ -487,7 +487,7 @@ inline int qp_add_string(qp_packer_t * packer, const char * str)
 /*
  * Like qp_add_string() but includes the 0 terminator.
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 inline int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
@@ -495,7 +495,7 @@ inline int qp_add_string_term(qp_packer_t * packer, const char * str)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_double(qp_packer_t * packer, double real)
 {
@@ -522,7 +522,7 @@ int qp_add_double(qp_packer_t * packer, double real)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int8(qp_packer_t * packer, int8_t integer)
 {
@@ -544,7 +544,7 @@ int qp_add_int8(qp_packer_t * packer, int8_t integer)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
@@ -556,7 +556,7 @@ int qp_add_int16(qp_packer_t * packer, int16_t integer)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
@@ -568,7 +568,7 @@ int qp_add_int32(qp_packer_t * packer, int32_t integer)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
@@ -580,22 +580,22 @@ int qp_add_int64(qp_packer_t * packer, int64_t integer)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_true(qp_packer_t * packer) QP_PLAIN_OBJ(QP_TRUE)
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_false(qp_packer_t * packer) QP_PLAIN_OBJ(QP_FALSE)
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {

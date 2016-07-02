@@ -15,7 +15,7 @@
 #include <siri/err.h>
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_olist_t * cleri_olist_new(void)
 {

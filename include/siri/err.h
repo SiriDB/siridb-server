@@ -40,7 +40,7 @@ log_critical("Memory allocation error occurred");   \
 raise(SIGSEGV);                                     \
 siri_err = SIGSEGV;
 #define ERR_FILE                                                            \
-log_critical("Critical file error occurred (possible the disk is full)");   \
+log_critical("Critical file error occurred (possibly the disk is full?)");  \
 raise(SIGABRT);                                                             \
 siri_err = SIGABRT;
 #define ERR_C                               \

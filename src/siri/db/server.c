@@ -109,7 +109,9 @@ void siridb_server_send_pkg(
     assert (server->promises != NULL);
     assert (cb != NULL);
 #endif
-    sirinet_promise_t * promise = (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise =
+            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+
     promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
     promise->timer->data = promise;
     promise->cb = cb;

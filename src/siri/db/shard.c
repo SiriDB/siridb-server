@@ -74,19 +74,9 @@ static int SHARD_load_idx_num32(
 
 static void SHARD_free(siridb_shard_t * shard);
 static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
+static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
-static void init_fn(siridb_t * siridb, siridb_shard_t * shard)
-{
-    char fn[PATH_MAX];
-    sprintf(fn,
-            "%s%s%s%ld%s",
-            siridb->dbpath,
-            SIRIDB_SHARDS_PATH,
-            (shard->replacing == NULL) ? "" : "__",
-            shard->id,
-            ".sdb");
-    shard->fn = strdup(fn);
-}
+
 
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
@@ -96,7 +86,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard->id = id;
     shard->ref = 1;
     shard->replacing = NULL;
-    init_fn(siridb, shard);
+    SHARD_init_fn(siridb, shard);
     FILE * fp;
 
     log_debug("Loading shard %ld", id);
@@ -144,23 +134,26 @@ siridb_shard_t *  siridb_shard_create(
         uint8_t tp,
         siridb_shard_t * replacing)
 {
-    siridb_shard_t * shard;
-
-    shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
-    shard->fp = siri_fp_new();
+    siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+    if (shard == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
+    if ((shard->fp = siri_fp_new()) == NULL)
+    {
+        free(shard);
+        return NULL;  /* signal is raised */
+    }
     shard->id = id;
     shard->ref = 1;
     shard->flags = SIRIDB_SHARD_OK;
     shard->tp = tp;
     shard->replacing = replacing;
     FILE * fp;
-    init_fn(siridb, shard);
-
-    if ((fp = fopen(shard->fn, "w")) == NULL)
+    if (SHARD_init_fn(siridb, shard))
     {
         siridb_shard_decref(shard);
-        log_critical("Cannot create shard file: '%s'", shard->fn);
-        return NULL;
     }
 
     /* 0    (uint8_t)   SHEMA
@@ -170,16 +163,28 @@ siridb_shard_t *  siridb_shard_create(
      * 18   (uint8_t)   TIME_PRECISION
      * 19   (uint8_t)   FLAGS
      */
-    fputc(SIRIDB_SHARD_SHEMA, fp);
-    fwrite(&id, sizeof(uint64_t), 1, fp);
-    fwrite(&duration, sizeof(uint64_t), 1, fp);
-    fputc(tp, fp);
-    fputc(siridb->time->precision, fp);
-    fputc(shard->flags, fp);
 
-    fclose(fp);
+    if (    (fp = fopen(shard->fn, "w")) == NULL ||
+            fputc(SIRIDB_SHARD_SHEMA, fp) == EOF ||
+            fwrite(&id, sizeof(uint64_t), 1, fp) != 1 ||
+            fwrite(&duration, sizeof(uint64_t), 1, fp) != 1 ||
+            fputc(tp, fp) == EOF ||
+            fputc(siridb->time->precision, fp) == EOF ||
+            fputc(shard->flags, fp) == EOF ||
+            fclose(fp))
+    {
+        ERR_FILE
+        siridb_shard_decref(shard);
+        log_critical("Cannot create shard file: '%s'", shard->fn);
+        return NULL;
+    }
 
-    imap64_add(siridb->shards, id, shard);
+    if (imap64_add(siridb->shards, id, shard))
+    {
+        ERR_ALLOC
+        siridb_shard_decref(shard);
+        return NULL;
+    }
 
     /* this is not critical at this point */
     siri_fopen(siri.fh, shard->fp, shard->fn, "r+");
@@ -316,6 +321,11 @@ int siridb_shard_get_points_num32(
     return 0;
 }
 
+/*
+ * This function will be called from the 'optimize' thread.
+ *
+ * TODO: check for allocation and file errors.
+ */
 void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_shard_t * new_shard = NULL;
@@ -467,17 +477,36 @@ void siridb_shard_write_flags(siridb_shard_t * shard)
     fflush(shard->fp->fp);
 }
 
+/*
+ * Increment the shard reference counter.
+ */
 inline void siridb_shard_incref(siridb_shard_t * shard)
 {
     shard->ref++;
 }
 
+/*
+ * Decrement the reference counter, when 0 the shard will be destroyed.
+ *
+ * In case the shard will be destroyed and flag SIRIDB_SHARD_WILL_BE_REMOVED
+ * is set, the file will be removed.
+ *
+ * A signal can be raised in case closing the shard file fails.
+ */
 inline void siridb_shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
+    {
         SHARD_free(shard);
+    }
 }
 
+/*
+ * Destroy shard.
+ * When flag SIRIDB_SHARD_WILL_BE_REMOVED is set, the file will be removed.
+ *
+ * A signal can be raised in case closing the shard file fails.
+ */
 static void SHARD_free(siridb_shard_t * shard)
 {
     if (shard->replacing != NULL)
@@ -619,3 +648,18 @@ static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
     slist_append(slist, series);
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an allocation error.
+ */
+static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
+{
+    char fn[PATH_MAX];
+    sprintf(fn,
+            "%s%s%s%ld%s",
+            siridb->dbpath,
+            SIRIDB_SHARDS_PATH,
+            (shard->replacing == NULL) ? "" : "__",
+            shard->id,
+            ".sdb");
+    return ((shard->fn = strdup(fn)) != NULL) ? 0 : -1;
+}

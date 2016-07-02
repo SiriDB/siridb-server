@@ -26,7 +26,7 @@ static cleri_node_t *  PRIO_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 cleri_object_t * cleri_prio(
         uint32_t gid,

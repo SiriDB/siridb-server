@@ -17,7 +17,7 @@
 #include <siri/err.h>
 
 /*
- * Returns NULL and raises a signal in case an error has occurred.
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 slist_t * slist_new(size_t size)
 {
