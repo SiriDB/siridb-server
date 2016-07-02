@@ -43,6 +43,7 @@ typedef enum siridb_err_tp
 
 typedef struct siridb_query_s
 {
+    uv_close_cb free_cb;    /* must be on top */
     void * data;
     uint64_t pid;
     uv_handle_t * client;
@@ -51,12 +52,10 @@ typedef struct siridb_query_s
     qp_packer_t * packer;
     qp_packer_t * timeit;
     siridb_timep_t time_precision;
-    uv_close_cb free_cb;
     cleri_parser_t * pr;
     siridb_nodes_t * nodes;
     struct timespec start;
     int flags;
-
 } siridb_query_t;
 
 void siridb_query_run(

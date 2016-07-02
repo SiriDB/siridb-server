@@ -557,7 +557,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
                 "not all tasks were closed within the timeout limit, "
                 "or when a critical signal error is raised.");
 #endif
-        uv_close(handle, (uv_close_cb) free);
+        uv_close(handle, ((siri_async_handle_t *) handle->data)->free_cb);
         break;
 
     default:

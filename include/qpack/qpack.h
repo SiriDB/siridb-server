@@ -100,9 +100,9 @@ typedef struct qp_packer_s
 } qp_packer_t;
 
 typedef FILE qp_fpacker_t;
-#define qp_open fopen
-#define qp_close fclose
-#define qp_flush fflush
+#define qp_open fopen    // returns NULL in case of an error
+#define qp_close fclose   // 0 if successful, EOF in case of an error
+#define qp_flush fflush   // 0 if successful, EOF in case of an error
 
 qp_packer_t * qp_packer_new(size_t alloc_size);
 void qp_packer_free(qp_packer_t * packer);
@@ -125,11 +125,6 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn);
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
 
 qp_types_t qp_current(qp_unpacker_t * unpacker);
-
-/* this is like qp_next(unpacker, NULL) but in case of a map or array the
- * total object is skipped. The return type can be used to check what the
- * skipped object was.
- */
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
 
 

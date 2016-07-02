@@ -57,37 +57,46 @@ void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
 /*
  * Appends to the end of the list.
  *
- * Be aware that list->len is probably incorrect when an error has occurred,
- * but this is not an issue for destroying the list.
- * (signal will be set in case of an error so this can be checked)
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * (in case of an error, the list remains unchanged)
  */
-void llist_append(llist_t * llist, void * data)
+int llist_append(llist_t * llist, void * data)
 {
+    llist_node_t * node = LLIST_node_new(data);
+    if (node == NULL)
+    {
+        return -1;
+    }
+
     llist->len++;
     if (llist->last == NULL)
     {
-        llist->last = LLIST_node_new(data);
+        llist->last = node;
         llist->first = llist->last;
     }
     else
     {
-        llist->last->next = LLIST_node_new(data);
+        llist->last->next = node;
         llist->last = llist->last->next;
     }
+
+    return 0;
 }
 
 /*
- * Walk through the list. Call-back function will be called on each item but
- * the call-back result will be ignored.
+ * Walk through the list. Call-back function will be called on each item and
+ * the sum of all results will be returned.
  */
-void llist_walk(llist_t * llist, llist_cb_t cb, void * args)
+int llist_walk(llist_t * llist, llist_cb_t cb, void * args)
 {
     llist_node_t * node = llist->first;
+    int rc = 0;
     while (node != NULL)
     {
-        cb(node->data, args);
+        rc += cb(node->data, args);
         node = node->next;
     }
+    return rc;
 }
 
 /*

@@ -33,10 +33,10 @@
 #define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
 
-static void siridb_send_invalid_query_error(uv_async_t * handle);
+static void QUERY_send_invalid_error(uv_async_t * handle);
 static void QUERY_parse(uv_async_t * handle);
 static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker);
-static void QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query);
+static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query);
 static int QUERY_time_expr(
         cleri_node_t * node,
         siridb_walker_t * walker,
@@ -157,9 +157,12 @@ void siridb_send_query_result(uv_async_t * handle)
 
     free(package);
 
-    uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
+    uv_close((uv_handle_t *) handle, query->free_cb);
 }
 
+/*
+ * Signal can be raised by this function.
+ */
 void siridb_send_error(
         uv_async_t * handle,
         sirinet_msg_t err)
@@ -174,9 +177,12 @@ void siridb_send_error(
             err,  // usually this is SN_MSG_QUERY_ERROR
             query->err_msg);
 
-    /* ignore result code, signal can be raised */
-    sirinet_pkg_send((uv_stream_t *) query->client, package);
-    free(package);
+    if (package != NULL)
+    {
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) query->client, package);
+        free(package);
+    }
 
     uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
 }
@@ -188,11 +194,16 @@ void siridb_query_forward(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    /* the size is important here, we will use the alloc_size to quess the
+    /*
+     * the size is important here, we will use the alloc_size to guess the
      * maximum query size in QUERY_to_packer.
      */
     qp_packer_t * packer =
             qp_packer_new(query->pr->tree->len + QUERY_EXTRA_ALLOC_SIZE);
+    if (packer == NULL)
+    {
+        return;  /* signal is raised */
+    }
 
     qp_add_type(packer, QP_ARRAY2);
 
@@ -256,7 +267,7 @@ void siridb_query_timeit_from_unpacker(
     }
 }
 
-static void siridb_send_invalid_query_error(uv_async_t * handle)
+static void QUERY_send_invalid_error(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     size_t len = 0;
@@ -387,7 +398,7 @@ static void QUERY_parse(uv_async_t * handle)
     if (!query->pr->is_valid)
     {
         siridb_nodes_free(siridb_walker_free(walker));
-        return siridb_send_invalid_query_error(handle);
+        return QUERY_send_invalid_error(handle);
     }
 
     if ((rc = QUERY_walk(
@@ -438,7 +449,7 @@ static void QUERY_parse(uv_async_t * handle)
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 }
 
-static void QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
+static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
 {
     int rc;
     if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
@@ -469,6 +480,7 @@ static void QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
     {
         qp_add_string(packer, query->q);
     }
+    return 0;
 }
 
 static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
@@ -737,6 +749,9 @@ static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size)
     return 0;
 }
 
+/*
+ * Returns 0 if successful or QUERY_TOO_LONG
+ */
 static int QUERY_rebuild(
         cleri_node_t * node,
         char * buf,

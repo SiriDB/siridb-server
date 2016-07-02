@@ -111,6 +111,12 @@ void siridb_users_free(llist_t * users)
     llist_free_cb(users, (llist_cb_t) USERS_free, NULL);
 }
 
+/*
+ * Returns 0 when successful, a value greater then zero for expected errors
+ * like invalid user, password etc, and -1 is returned in case of a critical
+ * error. (a critical error also raises a signal). The err_msg will cantain
+ * the error in any case.
+ */
 int siridb_users_add_user(
         siridb_t * siridb,
         siridb_user_t * user,
@@ -148,17 +154,21 @@ int siridb_users_add_user(
     }
 
     /* add the user to the users */
-    llist_append(siridb->users, user);
+    if (llist_append(siridb->users, user))
+    {
+        /* this is critical, a signal is raises */
+        return -1;
+    }
 
     if (siridb_users_save(siridb))
     {
+        /* this is critical, a signal is raises */
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Could not save user '%s' to file.",
                 user->username);
         log_critical(err_msg);
-        llist_remove(siridb->users, (llist_cb_t) USERS_cmp, user->username);
-        return 1;
+        return -1;
     }
 
     return 0;
@@ -220,6 +230,9 @@ int siridb_users_drop_user(
     return 0;
 }
 
+/*
+ * Returns 0 if successful; EOF and a signal is raised in case an error occurred.
+ */
 int siridb_users_save(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
@@ -227,33 +240,42 @@ int siridb_users_save(siridb_t * siridb)
     /* get user access file name */
     SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
 
-    if ((fpacker = qp_open(fn, "w")) == NULL)
+    if (
+        /* open a new user file */
+        (fpacker = qp_open(fn, "w")) == NULL ||
+
+        /* open a new array */
+        qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
+
+        /* write the current schema */
+        qp_fadd_int16(fpacker, SIRIDB_USER_ACCESS_SCHEMA) ||
+
+        /* we can and should skip this if we have no users to save */
+        llist_walk(siridb->users, (llist_cb_t) USERS_save, fpacker) ||
+
+        /* close file pointer */
+        qp_close(fpacker))
     {
-        return 1;
+        ERR_FILE
+        return EOF;
     }
-
-    /* open a new array */
-    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
-
-    /* write the current schema */
-    qp_fadd_int16(fpacker, SIRIDB_USER_ACCESS_SCHEMA);
-
-    /* we can and should skip this if we have no users to save */
-    llist_walk(siridb->users, (llist_cb_t) USERS_save, fpacker);
-
-    /* close file pointer */
-    qp_close(fpacker);
 
     return 0;
 }
 
+/*
+ * Returns 0 if successful and -1 in case an error occurred.
+ */
 static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
 {
-    qp_fadd_type(fpacker, QP_ARRAY3);
-    qp_fadd_string(fpacker, user->username);
-    qp_fadd_string(fpacker, user->password);
-    qp_fadd_int32(fpacker, (int32_t) user->access_bit);
-    return 0;
+    int rc = 0;
+
+    rc += qp_fadd_type(fpacker, QP_ARRAY3);
+    rc += qp_fadd_string(fpacker, user->username);
+    rc += qp_fadd_string(fpacker, user->password);
+    rc += qp_fadd_int32(fpacker, (int32_t) user->access_bit);
+
+    return rc;
 }
 
 inline static int USERS_cmp(siridb_user_t * user, const char * name)

@@ -20,6 +20,8 @@
 #include <siri/db/points.h>
 #include <siri/net/socket.h>
 
+static void INSERT_free(uv_handle_t * handle);
+
 static int32_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
@@ -117,40 +119,24 @@ void siridb_insert_points(
         uint16_t packer_size,
         qp_packer_t * packer[])
 {
-    siridb_insert_t * insert;
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
-    insert = (siridb_insert_t *) malloc(
+    siridb_insert_t * insert = (siridb_insert_t *) malloc(
             sizeof(siridb_insert_t) + packer_size * sizeof(qp_packer_t *));
+    if (handle == NULL || insert == NULL)
+    {
+        ERR_ALLOC
+
+    }
+    insert->free_cb = INSERT_free;
     insert->pid = pid;
     insert->client = client;
     insert->size = size;
     insert->packer_size = packer_size;
     memcpy(insert->packer, packer, sizeof(qp_packer_t *) * packer_size);
 
-    uv_async_init(siri.loop, handle, (uv_async_cb) send_points_to_pools);
+    uv_async_init(siri.loop, handle, send_points_to_pools);
     handle->data = (void *) insert;
     uv_async_send(handle);
-}
-
-void siridb_free_insert(uv_handle_t * handle)
-{
-    siridb_insert_t * insert = (siridb_insert_t *) handle->data;
-
-    /* free packer */
-    for (size_t n = 0; n < insert->packer_size; n++)
-    {
-        qp_packer_free(insert->packer[n]);
-    }
-
-    /* free insert */
-    free(insert);
-
-    /* free handle */
-    free((uv_async_t *) handle);
-
-    #ifdef DEBUG
-    log_debug("Free insert!, hooray!");
-    #endif
 }
 
 static void send_points_to_pools(uv_async_t * handle)
@@ -257,7 +243,7 @@ static void send_points_to_pools(uv_async_t * handle)
         qp_packer_free(packer);
     }
 
-    uv_close((uv_handle_t *) handle, (uv_close_cb) siridb_free_insert);
+    uv_close((uv_handle_t *) handle, insert->free_cb);
 }
 
 static int32_t assign_by_map(
@@ -431,4 +417,28 @@ static int read_points(
     qp_add_type(packer, QP_ARRAY_CLOSE);
 
     return tp;
+}
+
+/*
+ * Used as uv_close_cb.
+ */
+static void INSERT_free(uv_handle_t * handle)
+{
+    siridb_insert_t * insert = (siridb_insert_t *) handle->data;
+
+    /* free packer */
+    for (size_t n = 0; n < insert->packer_size; n++)
+    {
+        qp_packer_free(insert->packer[n]);
+    }
+
+    /* free insert */
+    free(insert);
+
+    /* free handle */
+    free((uv_async_t *) handle);
+
+    #ifdef DEBUG
+    log_debug("Free insert!, hooray!");
+    #endif
 }

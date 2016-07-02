@@ -74,7 +74,7 @@ if (packer->len + LEN > packer->buffer_size)                            \
         packer->len += 8;                                   \
     }
 
-static qp_types_t print_unpacker(
+static qp_types_t QP_print_unpacker(
         qp_types_t tp,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj);
@@ -94,6 +94,18 @@ qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
     unpacker->pt = pt;
     unpacker->end = pt + len;
     return unpacker;
+}
+
+/*
+ * Destroy unpacker object. (parsing NULL is not allowed)
+ */
+void qp_unpacker_free(qp_unpacker_t * unpacker)
+{
+#ifdef DEBUG
+    assert(unpacker != NULL);
+#endif
+    free(unpacker->source);
+    free(unpacker);
 }
 
 qp_unpacker_t * qp_unpacker_from_file(const char * fn)
@@ -144,24 +156,6 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     return unpacker;
 }
 
-void qp_object_free(qp_obj_t * qp_obj)
-{
-#ifdef DEBUG
-    assert(qp_obj != NULL);
-#endif
-    free(qp_obj->via);
-    free(qp_obj);
-}
-
-void qp_unpacker_free(qp_unpacker_t * unpacker)
-{
-#ifdef DEBUG
-    assert(unpacker != NULL);
-#endif
-    free(unpacker->source);
-    free(unpacker);
-}
-
 /*
  * Returns NULL and raises a signal in case an error has occurred.
  */
@@ -182,6 +176,18 @@ qp_obj_t * qp_object_new(void)
         return NULL;
     }
     return qp_obj;
+}
+
+/*
+ * Destroy object object. (parsing NULL is not allowed)
+ */
+void qp_object_free(qp_obj_t * qp_obj)
+{
+#ifdef DEBUG
+    assert(qp_obj != NULL);
+#endif
+    free(qp_obj->via);
+    free(qp_obj);
 }
 
 /*
@@ -223,7 +229,7 @@ void qp_packer_free(qp_packer_t * packer)
 /*
  * Extend packer with another packer (source).
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
  */
 int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source)
 {
@@ -287,17 +293,24 @@ inline int qp_is_double(qp_types_t tp)
     return tp == QP_DOUBLE;
 }
 
-
+/*
+ * Print qpack content.
+ */
 void qp_print(const char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = qp_unpacker_new(pt, len);
     qp_obj_t * qp_obj = qp_object_new();
-    print_unpacker(qp_next(unpacker, qp_obj), unpacker, qp_obj);
+    QP_print_unpacker(qp_next(unpacker, qp_obj), unpacker, qp_obj);
     printf("\n");
     qp_object_free(qp_obj);
     qp_unpacker_free(unpacker);
 }
 
+/*
+ * This is like qp_next(unpacker, NULL) but in case of a map or array the
+ * total object is skipped. The return type can be used to check what the
+ * skipped object was.
+ */
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
 {
     qp_types_t tp = qp_next(unpacker, NULL);
@@ -352,106 +365,7 @@ qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
     }
 }
 
-static qp_types_t print_unpacker(
-        qp_types_t tp,
-        qp_unpacker_t * unpacker,
-        qp_obj_t * qp_obj)
-{
-    int count;
-    int found;
-    switch (tp)
-    {
-    case QP_INT64:
-        printf("%ld", qp_obj->via->int64);
-        break;
-    case QP_DOUBLE:
-        printf("%f", qp_obj->via->real);
-        break;
-    case QP_RAW:
-        printf("\"%.*s\"", (int) qp_obj->len, qp_obj->via->raw);
-        break;
-    case QP_TRUE:
-        printf("true");
-        break;
-    case QP_FALSE:
-        printf("false");
-        break;
-    case QP_NULL:
-        printf("null");
-        break;
-    case QP_ARRAY0:
-    case QP_ARRAY1:
-    case QP_ARRAY2:
-    case QP_ARRAY3:
-    case QP_ARRAY4:
-    case QP_ARRAY5:
-        printf("[");
-        count = tp - QP_ARRAY0;
-        tp = qp_next(unpacker, qp_obj);
-        for (found = 0; count-- && tp; found = 1)
-        {
-            if (found )
-            {
-                printf(", ");
-            }
-            tp = print_unpacker(tp, unpacker, qp_obj);
-        }
-        printf("]");
-        return tp;
-    case QP_MAP0:
-    case QP_MAP1:
-    case QP_MAP2:
-    case QP_MAP3:
-    case QP_MAP4:
-    case QP_MAP5:
-        printf("{");
-        count = tp - QP_MAP0;
-        tp = qp_next(unpacker, qp_obj);
-        for (found = 0; count-- && tp; found = 1)
-        {
-            if (found )
-            {
-                printf(", ");
-            }
-            tp = print_unpacker(tp, unpacker, qp_obj);
-            printf(": ");
-            tp = print_unpacker(tp, unpacker, qp_obj);
-        }
-        printf("}");
-        return tp;
-    case QP_ARRAY_OPEN:
-        printf("[");
-        tp = qp_next(unpacker, qp_obj);
-        for (count = 0; tp && tp != QP_ARRAY_CLOSE; count = 1)
-        {
-            if (count)
-            {
-                printf(", ");
-            }
-            tp = print_unpacker(tp, unpacker, qp_obj);
-        }
-        printf("]");
-        break;
-    case QP_MAP_OPEN:
-        printf("{");
-        tp = qp_next(unpacker, qp_obj);
-        for (count = 0; tp && tp != QP_MAP_CLOSE; count = 1)
-        {
-            if (count)
-            {
-                printf(", ");
-            }
-            tp = print_unpacker(tp, unpacker, qp_obj);
-            printf(": ");
-            tp = print_unpacker(tp, unpacker, qp_obj);
-        }
-        printf("}");
-        break;
-    default:
-        break;
-    }
-    return qp_next(unpacker, qp_obj);
-}
+
 int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
 {
     va_list args;
@@ -564,77 +478,117 @@ int qp_add_type(qp_packer_t * packer, qp_types_t tp)
     return 0;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 {
 #ifdef DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
 
-    return (fputc(tp, fpacker) == tp) ? 0 : -1;
+    return (fputc(tp, fpacker) == tp) ? 0 : EOF;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
 {
     if (len < 100)
     {
-        fputc(128 + len, fpacker);
+        if (fputc(128 + len, fpacker))
+        {
+            return EOF;
+        }
     }
     else if (len < 256)
     {
-        fputc(QP_RAW8, fpacker);
-        fputc(len, fpacker);
+        if (    fputc(QP_RAW8, fpacker) == EOF ||
+                fputc(len, fpacker) == EOF)
+        {
+            return EOF;
+        }
     }
     else if (len < 65536)
     {
-        fputc(QP_RAW16, fpacker);
-        fwrite(&len, sizeof(uint16_t), 1, fpacker);
+        if (    fputc(QP_RAW16, fpacker) == EOF ||
+                fwrite(&len, sizeof(uint16_t), 1, fpacker) != 1)
+        {
+            return EOF;
+        }
     }
     else if (len < 4294967296)
     {
-        fputc(QP_RAW32, fpacker);
-        fwrite(&len, sizeof(uint32_t), 1, fpacker);
+        if (    fputc(QP_RAW32, fpacker) == EOF ||
+                fwrite(&len, sizeof(uint32_t), 1, fpacker) != 1)
+        {
+            return EOF;
+        }
     }
     else
     {
-        fputc(QP_RAW64, fpacker);
-        fwrite(&len, sizeof(uint64_t), 1, fpacker);
+        if (    fputc(QP_RAW64, fpacker) == EOF ||
+                fwrite(&len, sizeof(uint64_t), 1, fpacker) != 1)
+        {
+            return EOF;
+        }
     }
-    return (fwrite(raw, len, 1, fpacker) == 1) ? 0 : -1;
+    return (fwrite(raw, len, 1, fpacker) == 1) ? 0 : EOF;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
 {
     return qp_fadd_raw(fpacker, str, strlen(str));
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
 {
     if (integer >= 0 && integer < 64)
-        return (fputc(integer, fpacker) != EOF) ? 0 : -1;
+    {
+        return (fputc(integer, fpacker) != EOF) ? 0 : EOF;
+    }
 
     if (integer > -64 && integer < 0)
-        return (fputc(63 - integer, fpacker) != EOF) ? 0 : -1;
+    {
+        return (fputc(63 - integer, fpacker) != EOF) ? 0 : EOF;
+    }
 
     return (fputc(QP_INT8, fpacker) != EOF && fputc(integer, fpacker) != EOF)
-            ? 0 : -1;
+            ? 0 : EOF;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
 {
     return (fputc(QP_INT16, fpacker) != EOF &&
-            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : -1;
+            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : EOF;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
 {
     return (fputc(QP_INT32, fpacker) != EOF &&
-            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : -1;
+            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : EOF;
 }
 
+/*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
 int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 {
     return (fputc(QP_INT64, fpacker) != EOF &&
-            fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : -1;
+            fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : EOF;
 }
 
 /*
@@ -915,4 +869,109 @@ qp_types_t qp_current(qp_unpacker_t * unpacker)
     default:
         return QP_INT64;
     }
+}
+
+/*
+ * Recursive function for printing qpack data. (this function uses an unpacker
+ * object but its also used when using qp_packer_print().
+ */
+static qp_types_t QP_print_unpacker(
+        qp_types_t tp,
+        qp_unpacker_t * unpacker,
+        qp_obj_t * qp_obj)
+{
+    int count;
+    int found;
+    switch (tp)
+    {
+    case QP_INT64:
+        printf("%ld", qp_obj->via->int64);
+        break;
+    case QP_DOUBLE:
+        printf("%f", qp_obj->via->real);
+        break;
+    case QP_RAW:
+        printf("\"%.*s\"", (int) qp_obj->len, qp_obj->via->raw);
+        break;
+    case QP_TRUE:
+        printf("true");
+        break;
+    case QP_FALSE:
+        printf("false");
+        break;
+    case QP_NULL:
+        printf("null");
+        break;
+    case QP_ARRAY0:
+    case QP_ARRAY1:
+    case QP_ARRAY2:
+    case QP_ARRAY3:
+    case QP_ARRAY4:
+    case QP_ARRAY5:
+        printf("[");
+        count = tp - QP_ARRAY0;
+        tp = qp_next(unpacker, qp_obj);
+        for (found = 0; count-- && tp; found = 1)
+        {
+            if (found )
+            {
+                printf(", ");
+            }
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+        }
+        printf("]");
+        return tp;
+    case QP_MAP0:
+    case QP_MAP1:
+    case QP_MAP2:
+    case QP_MAP3:
+    case QP_MAP4:
+    case QP_MAP5:
+        printf("{");
+        count = tp - QP_MAP0;
+        tp = qp_next(unpacker, qp_obj);
+        for (found = 0; count-- && tp; found = 1)
+        {
+            if (found )
+            {
+                printf(", ");
+            }
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+            printf(": ");
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+        }
+        printf("}");
+        return tp;
+    case QP_ARRAY_OPEN:
+        printf("[");
+        tp = qp_next(unpacker, qp_obj);
+        for (count = 0; tp && tp != QP_ARRAY_CLOSE; count = 1)
+        {
+            if (count)
+            {
+                printf(", ");
+            }
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+        }
+        printf("]");
+        break;
+    case QP_MAP_OPEN:
+        printf("{");
+        tp = qp_next(unpacker, qp_obj);
+        for (count = 0; tp && tp != QP_MAP_CLOSE; count = 1)
+        {
+            if (count)
+            {
+                printf(", ");
+            }
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+            printf(": ");
+            tp = QP_print_unpacker(tp, unpacker, qp_obj);
+        }
+        printf("}");
+        break;
+    default:
+        break;
+    }
+    return qp_next(unpacker, qp_obj);
 }

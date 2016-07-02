@@ -38,6 +38,7 @@ typedef struct qp_obj_s qp_obj_t;
 
 typedef struct siridb_insert_s
 {
+    uv_close_cb free_cb;    /* must be on top */
     uint64_t pid;
     uv_handle_t * client;
     size_t size;        /* number of points */
