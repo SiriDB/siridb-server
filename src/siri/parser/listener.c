@@ -664,7 +664,7 @@ static void exit_alter_user(uv_async_t * handle)
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
-        qp_add_fmt(query->packer,
+        qp_add_fmt_safe(query->packer,
                 "Successful changed password for user '%s'.",
                 ((siridb_user_t *) query->data)->username);
     }
@@ -871,7 +871,7 @@ static void exit_create_user(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
+    qp_add_fmt_safe(query->packer,
             "User '%s' is created successfully.", user->username);
     SIRIPARSER_NEXT_NODE
 }
@@ -973,7 +973,7 @@ static void exit_drop_user(uv_async_t * handle)
         return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
     }
     QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
+    qp_add_fmt_safe(query->packer,
             "User '%s' is dropped successfully.", username);
 
     SIRIPARSER_NEXT_NODE
@@ -998,7 +998,7 @@ static void exit_grant_user(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
+    qp_add_fmt_safe(query->packer,
             "Successfully granted permissions to user '%s'.",
             ((siridb_user_t *) query->data)->username);
 
@@ -1271,7 +1271,7 @@ static void exit_revoke_user(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
+    qp_add_fmt_safe(query->packer,
             "Successfully revoked permissions from user '%s'.",
             ((siridb_user_t *) query->data)->username);
 
@@ -1332,17 +1332,24 @@ static void exit_set_log_level(uv_async_t * handle)
         break;
     }
 
-    /* we can set the success message, we just ignore the message in case an
+    /*
+     * we can set the success message, we just ignore the message in case an
      * error occurs.
      */
-    query->packer = qp_packer_new(1024);
-    qp_add_type(query->packer, QP_MAP_OPEN);
+    if (
+            (query->packer = qp_packer_new(1024)) == NULL ||
 
-    QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
-            "Successful set log level to '%s' on '%s'.",
-            logger_level_name(log_level),
-            server->name);
+            qp_add_type(query->packer, QP_MAP_OPEN) ||
+
+            qp_add_raw(query->packer, "success_msg", 11) ||
+
+            qp_add_fmt_safe(query->packer,
+                        "Successful set log level to '%s' on '%s'.",
+                        logger_level_name(log_level),
+                        server->name))
+    {
+        return;  /* signal is raised */
+    }
 
     if (server == siridb->server)
     {

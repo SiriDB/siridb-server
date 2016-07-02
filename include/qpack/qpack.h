@@ -104,30 +104,27 @@ typedef FILE qp_fpacker_t;
 #define qp_close fclose   // 0 if successful, EOF in case of an error
 #define qp_flush fflush   // 0 if successful, EOF in case of an error
 
+/* packer: create, destroy and extend functions */
 qp_packer_t * qp_packer_new(size_t alloc_size);
 void qp_packer_free(qp_packer_t * packer);
 int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source);
 int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker);
 
-
+/* qp object: create and destroy functions */
 qp_obj_t * qp_object_new(void);
 void qp_object_free(qp_obj_t * qp_obj);
 
+/* unpacker: create and destroy functions */
 qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len);
 void qp_unpacker_free(qp_unpacker_t * unpacker);
 qp_unpacker_t * qp_unpacker_from_file(const char * fn);
 
-
-
-/* Its fine to reuse the same object without calling free in between.
- * (qp_obj may also be NULL)
- */
+/* step functions to be used with an unpacker */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);
-
 qp_types_t qp_current(qp_unpacker_t * unpacker);
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
 
-
+/* print function */
 void qp_print(const char * pt, size_t len);
 
 /* Shortcut to print a packer object */
@@ -146,21 +143,11 @@ extern int qp_is_raw(qp_types_t tp);
 extern int qp_is_int(qp_types_t tp);
 extern int qp_is_double(qp_types_t tp);
 
-/* Adds a raw string to the packer fixed to len chars */
+/* Add to packer functions */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
-
-/* Adds a raw string to the packer and appends a terminator (0) so the written
- * length is len + 1 */
 int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
-
-/* Adds a 0 terminated string to the packer but note that the terminator itself
- * will NOT be written. (Use qp_add_string_term() instead if you want the
- * destination to be 0 terminated */
 int qp_add_string(qp_packer_t * packer, const char * str);
-
-/* Like qp_add_string() but includes the 0 terminator. */
 int qp_add_string_term(qp_packer_t * packer, const char * str);
-
 int qp_add_double(qp_packer_t * packer, double real);
 int qp_add_int8(qp_packer_t * packer, int8_t integer);
 int qp_add_int16(qp_packer_t * packer, int16_t integer);
@@ -169,14 +156,11 @@ int qp_add_int64(qp_packer_t * packer, int64_t integer);
 int qp_add_true(qp_packer_t * packer);
 int qp_add_false(qp_packer_t * packer);
 int qp_add_null(qp_packer_t * packer);
-
 int qp_add_type(qp_packer_t * packer, qp_types_t tp);
-
-/* adds a format string to the packer, but take in account that only
- * QPACK_MAX_FMT_SIZE characters are supported. (rest will be cut off)
- */
 int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...);
+int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...);
 
+/* Add to file-packer functions */
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
 int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);
 int qp_fadd_string(qp_fpacker_t * fpacker, const char * str);

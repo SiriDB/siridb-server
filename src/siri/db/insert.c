@@ -125,7 +125,6 @@ void siridb_insert_points(
     if (handle == NULL || insert == NULL)
     {
         ERR_ALLOC
-
     }
     insert->free_cb = INSERT_free;
     insert->pid = pid;

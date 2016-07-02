@@ -9,6 +9,7 @@
  *  - initial version, 11-03-2016
  *          ((l + n) // 4 + 1) * 4
  */
+#define _GNU_SOURCE
 #include <qpack/qpack.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -20,6 +21,7 @@
 #include <logger/logger.h>
 #include <assert.h>
 #include <siri/err.h>
+
 
 #define QPACK_MAX_FMT_SIZE 1024
 
@@ -49,7 +51,9 @@ if (packer->len + LEN > packer->buffer_size)                            \
 #define QP_PREPARE_RAW                                      \
     QP_RESIZE((5 + len))                                    \
     if (len < 100)                                          \
+    {                                                       \
         packer->buffer[packer->len++] = 128 + len;          \
+    }                                                       \
     else if (len < 256)                                     \
     {                                                       \
         packer->buffer[packer->len++] = QP_RAW8;            \
@@ -108,6 +112,12 @@ void qp_unpacker_free(qp_unpacker_t * unpacker)
     free(unpacker);
 }
 
+/*
+ * Returns a unpacker object or NULL in case an error occurred. The error
+ * message will logged using at least log_error().
+ *
+ * In case and only in case of a memory (malloc) error, a signal will be raised.
+ */
 qp_unpacker_t * qp_unpacker_from_file(const char * fn)
 {
     FILE * fp;
@@ -115,7 +125,9 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     qp_unpacker_t * unpacker;
 
     if (access(fn, R_OK) == -1)
+    {
         return NULL;
+    }
 
     fp = fopen(fn, "r");
     if (fp == NULL)
@@ -125,11 +137,10 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     }
 
     /* get the size */
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    if (size == -1)
+    if (
+            fseek(fp, 0, SEEK_END) ||
+            (size = ftell(fp)) == -1 ||
+            fseek(fp, 0, SEEK_SET))
     {
         log_error("Cannot not read size of file '%s'", fn);
         unpacker = NULL;
@@ -137,21 +148,41 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     else
     {
         unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
-        unpacker->source = (char *) malloc(size);
-        if (fread(unpacker->source, size, 1, fp) == 1)
+        if (unpacker == NULL)
         {
-            unpacker->pt = unpacker->source;
-            unpacker->end = unpacker->source + size;
+            ERR_ALLOC
         }
         else
         {
-            log_error("Cannot not read from file '%s'", fn);
-            qp_unpacker_free(unpacker);
-            unpacker = NULL;
+            unpacker->source = (char *) malloc(size);
+            if (unpacker->source == NULL)
+            {
+                ERR_ALLOC
+                qp_unpacker_free(unpacker);
+                unpacker = NULL;
+            }
+            else if (fread(unpacker->source, size, 1, fp) == 1)
+            {
+                unpacker->pt = unpacker->source;
+                unpacker->end = unpacker->source + size;
+            }
+            else
+            {
+                log_error("Cannot not read from file '%s'", fn);
+                qp_unpacker_free(unpacker);
+                unpacker = NULL;
+            }
         }
     }
 
-    fclose(fp);
+    if (fclose(fp))
+    {
+        /*
+         * Not critical and should probably never happen because file was
+         * open only for reading.
+         */
+        log_error("Could not close file: '%s'", fn);
+    }
 
     return unpacker;
 }
@@ -365,7 +396,14 @@ qp_types_t qp_skip_next(qp_unpacker_t * unpacker)
     }
 }
 
-
+/*
+ * This function will not add more than QPACK_MAX_FMT_SIZE and will still
+ * return 0 in case longer strings are parsed.
+ *
+ * Use qp_add_fmt_safe() in case you want to add longer or unknown length.
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
 {
     va_list args;
@@ -376,6 +414,37 @@ int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
     return qp_add_raw(packer, buffer, strlen(buffer));
 }
 
+/*
+ * Like qp_add_fmt() but works for any length.
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...)
+{
+    int rc;
+    va_list args;
+    char * buffer;
+
+    va_start(args, fmt);
+    rc = vasprintf(&buffer, fmt, args);
+    va_end(args);
+
+    if (rc == -1)
+    {
+        ERR_ALLOC
+        return -1;
+    }
+
+    rc = qp_add_raw(packer, buffer, strlen(buffer));
+    free(buffer);
+    return rc;
+}
+
+/*
+ * Adds a raw string to the packer fixed to len chars.
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
 {
     QP_PREPARE_RAW
@@ -384,6 +453,12 @@ int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
     return 0;
 }
 
+/*
+ * Adds a raw string to the packer and appends a terminator (0) so the written
+ * length is len + 1
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
 {
     /* add one because 0 (terminator) should be included with the length */
@@ -397,25 +472,46 @@ int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
     return 0;
 }
 
-int qp_add_string(qp_packer_t * packer, const char * str)
+/*
+ * Adds a 0 terminated string to the packer but note that the terminator itself
+ * will NOT be written. (Use qp_add_string_term() instead if you want the
+ * destination to be 0 terminated
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+inline int qp_add_string(qp_packer_t * packer, const char * str)
 {
     return qp_add_raw(packer, str, strlen(str));
 }
 
-int qp_add_string_term(qp_packer_t * packer, const char * str)
+/*
+ * Like qp_add_string() but includes the 0 terminator.
+ *
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+inline int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
     return qp_add_raw(packer, str, strlen(str) + 1);
 }
 
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_double(qp_packer_t * packer, double real)
 {
     QP_RESIZE(9)
     if (real == 0.0)
+    {
         packer->buffer[packer->len++] = QP_DOUBLE_0;
+    }
     else if (real == 1.0)
+    {
         packer->buffer[packer->len++] = QP_DOUBLE_1;
+    }
     else if (real == -1.0)
+    {
         packer->buffer[packer->len++] = QP_DOUBLE_N1;
+    }
     else
     {
         packer->buffer[packer->len++] = QP_DOUBLE;
@@ -424,13 +520,21 @@ int qp_add_double(qp_packer_t * packer, double real)
     }
     return 0;
 }
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_int8(qp_packer_t * packer, int8_t integer)
 {
     QP_RESIZE(2)
     if (integer >= 0 && integer < 64)
+    {
         packer->buffer[packer->len++] = integer;
+    }
     else if (integer > -64 && integer < 0)
+    {
         packer->buffer[packer->len++] = 63 - integer;
+    }
     else
     {
         packer->buffer[packer->len++] = QP_INT8;
@@ -438,6 +542,10 @@ int qp_add_int8(qp_packer_t * packer, int8_t integer)
     }
     return 0;
 }
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
     QP_RESIZE(3)
@@ -446,6 +554,10 @@ int qp_add_int16(qp_packer_t * packer, int16_t integer)
     packer->len += 2;
     return 0;
 }
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
     QP_RESIZE(5)
@@ -454,6 +566,10 @@ int qp_add_int32(qp_packer_t * packer, int32_t integer)
     packer->len += 4;
     return 0;
 }
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
     QP_RESIZE(9)
@@ -463,10 +579,24 @@ int qp_add_int64(qp_packer_t * packer, int64_t integer)
     return 0;
 }
 
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_true(qp_packer_t * packer) QP_PLAIN_OBJ(QP_TRUE)
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_false(qp_packer_t * packer) QP_PLAIN_OBJ(QP_FALSE)
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
 
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
 int qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
 #ifdef DEBUG
