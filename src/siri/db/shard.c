@@ -76,8 +76,6 @@ static void SHARD_free(siridb_shard_t * shard);
 static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
-
-
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
     siridb_shard_t * shard;
@@ -127,6 +125,11 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     return 0;
 }
 
+/*
+ * Create a new shard file and return a siridb_shard_t object.
+ *
+ * In case of an error the return value is NULL and a SIGNAL is raised.
+ */
 siridb_shard_t *  siridb_shard_create(
         siridb_t * siridb,
         uint64_t id,
@@ -156,6 +159,14 @@ siridb_shard_t *  siridb_shard_create(
         siridb_shard_decref(shard);
     }
 
+    if ((fp = fopen(shard->fn, "w")) == NULL)
+    {
+        ERR_FILE
+        siridb_shard_decref(shard);
+        log_critical("Cannot create shard file: '%s'", shard->fn);
+        return NULL;
+    }
+
     /* 0    (uint8_t)   SHEMA
      * 1    (uint64_t)  ID
      * 9    (uint64_t)  DURATION
@@ -163,19 +174,26 @@ siridb_shard_t *  siridb_shard_create(
      * 18   (uint8_t)   TIME_PRECISION
      * 19   (uint8_t)   FLAGS
      */
-
-    if (    (fp = fopen(shard->fn, "w")) == NULL ||
-            fputc(SIRIDB_SHARD_SHEMA, fp) == EOF ||
+    if (    fputc(SIRIDB_SHARD_SHEMA, fp) == EOF ||
             fwrite(&id, sizeof(uint64_t), 1, fp) != 1 ||
             fwrite(&duration, sizeof(uint64_t), 1, fp) != 1 ||
             fputc(tp, fp) == EOF ||
             fputc(siridb->time->precision, fp) == EOF ||
-            fputc(shard->flags, fp) == EOF ||
-            fclose(fp))
+            fputc(shard->flags, fp) == EOF)
     {
         ERR_FILE
+        fclose(fp);
         siridb_shard_decref(shard);
-        log_critical("Cannot create shard file: '%s'", shard->fn);
+        log_critical("Cannot write to shard file: '%s'", shard->fn);
+        return NULL;
+    }
+
+    if (fclose(fp))
+    {
+
+        ERR_FILE
+        siridb_shard_decref(shard);
+        log_critical("Cannot close shard file: '%s'", shard->fn);
         return NULL;
     }
 

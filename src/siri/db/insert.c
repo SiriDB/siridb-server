@@ -117,11 +117,17 @@ ssize_t siridb_insert_assign_pools(
     }
     else
     {
-        rc = ERR_EXPECTING_MAP_OR_ARRAY
+        rc = ERR_EXPECTING_MAP_OR_ARRAY;
     }
     return (siri_err) ? ERR_MEM_ALLOC : rc;
 }
 
+/*
+ * Prepare a new insert object an start an async call to 'send_points_to_pools'.
+ *
+ * In case of an error a SIGNAL is raised and 'send_points_to_pools' will not
+ * be called.
+ */
 void siridb_insert_points(
         uint64_t pid,
         uv_handle_t * client,
@@ -130,12 +136,21 @@ void siridb_insert_points(
         qp_packer_t * packer[])
 {
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
-    siridb_insert_t * insert = (siridb_insert_t *) malloc(
-            sizeof(siridb_insert_t) + packer_size * sizeof(qp_packer_t *));
-    if (handle == NULL || insert == NULL)
+    if (handle == NULL)
     {
         ERR_ALLOC
+        return;
     }
+
+    siridb_insert_t * insert = (siridb_insert_t *) malloc(
+            sizeof(siridb_insert_t) + packer_size * sizeof(qp_packer_t *));
+    if (insert == NULL)
+    {
+        ERR_ALLOC
+        free(handle);
+        return;
+    }
+
     insert->free_cb = INSERT_free;
     insert->pid = pid;
     insert->client = client;
@@ -156,8 +171,27 @@ static void send_points_to_pools(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
     qp_obj_t * qp_series_name = qp_object_new();
+    if (qp_series_name == NULL)
+    {
+        ERR_ALLOC
+        return;
+    }
     qp_obj_t * qp_series_ts = qp_object_new();
+    if (qp_series_ts == NULL)
+    {
+        ERR_ALLOC
+        qp_object_free(qp_series_name);
+        return;
+    }
     qp_obj_t * qp_series_val = qp_object_new();
+    if (qp_series_val == NULL)
+    {
+        ERR_ALLOC
+        qp_object_free(qp_series_name);
+        qp_object_free(qp_series_ts);
+        return;
+    }
+
     sirinet_pkg_t * pkg;
     qp_packer_t * packer;
 

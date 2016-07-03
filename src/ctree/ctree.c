@@ -16,11 +16,12 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUFFER_ALLOC_SIZE 256
 
-static ct_node_t * new_node(const char * key, void * data);
+static ct_node_t * CT_new_node(const char * key, void * data);
 static int CT_add(
         ct_node_t * node,
         const char * key,
@@ -93,11 +94,13 @@ void ** ct_get_sure(ct_t * ct, const char * key)
     {
         data = CT_get_sure(*nd, key + 1);
         if (*data == CT_EMPTY)
+        {
             ct->len++;
+        }
     }
     else
     {
-        *nd = new_node(key + 1, CT_EMPTY);
+        *nd = CT_new_node(key + 1, CT_EMPTY);
         data = &(*nd)->data;
         ct->len++;
     }
@@ -119,7 +122,7 @@ int ct_add(ct_t * ct, const char * key, void * data)
             ct->len++;    }
     else
     {
-        *nd = new_node(key + 1, data);
+        *nd = CT_new_node(key + 1, data);
         ct->len++;
         rc = CT_OK;
     }
@@ -151,7 +154,9 @@ void * ct_pop(ct_t * ct, const char * key)
     {
         data = CT_pop(NULL, nd, key + 1);
         if (data != NULL)
+        {
             ct->len--;
+        }
     }
 
     return data;
@@ -250,7 +255,7 @@ static int CT_add(
                 node->size = 1;
                 node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
                 (*node->nodes)[(uint_fast8_t) *key] =
-                        new_node(key + 1, data);
+                        CT_new_node(key + 1, data);
 
                 return CT_OK;
             }
@@ -261,7 +266,7 @@ static int CT_add(
                 return CT_add(*nd, key + 1, data);
 
             node->size++;
-            *nd = new_node(key + 1, data);
+            *nd = CT_new_node(key + 1, data);
 
             return CT_OK;
         }
@@ -274,7 +279,7 @@ static int CT_add(
 
             /* create new nodes with rest of node pt */
             ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
-                    new_node(pt + 1, node->data);
+                    CT_new_node(pt + 1, node->data);
 
             /* bind the -rest- of current node to the new nodes */
             nd->nodes = node->nodes;
@@ -297,7 +302,7 @@ static int CT_add(
                 node->size = 2;
                 node->data = NULL;
                 (*new_nodes)[(uint_fast8_t) *key] =
-                        new_node(key + 1, data);
+                        CT_new_node(key + 1, data);
             }
 
             /* write terminator */
@@ -361,17 +366,19 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
                 node->size = 1;
                 node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
                 return &((*node->nodes)[(uint_fast8_t) *key] =
-                        new_node(key + 1, CT_EMPTY))->data;
+                        CT_new_node(key + 1, CT_EMPTY))->data;
             }
 
             ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
 
             if (*nd != NULL)
+            {
                 return CT_get_sure(*nd, key + 1);
+            }
 
             node->size++;
 
-            *nd = new_node(key + 1, CT_EMPTY);
+            *nd = CT_new_node(key + 1, CT_EMPTY);
 
             return &(*nd)->data;
         }
@@ -384,7 +391,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             /* bind the -rest- of current node to the new nodes */
             ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
-                    new_node(pt + 1, node->data);
+                    CT_new_node(pt + 1, node->data);
 
             nd->size = node->size;
             nd->nodes = node->nodes;
@@ -408,7 +415,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             node->size = 2;
             node->data = NULL;
             return &((*new_nodes)[(uint_fast8_t) *key] =
-                    new_node(key + 1, CT_EMPTY))->data;
+                    CT_new_node(key + 1, CT_EMPTY))->data;
         }
     }
 
@@ -416,11 +423,17 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
     return NULL;
 }
 
+/*
+ * Merge a child node with its parent for cleanup.
+ *
+ * This function should only be called when exactly one node is left and the
+ * node itself has no data.
+ *
+ * A SIGNAL can be raised in case an error occurred. If this happens the tree
+ * remains unchanged and therefore can be destroyed using ct_free().
+ */
 static void CT_merge_node(ct_node_t * node)
 {
-    /* this function should only be called when 1 node is left and the
-     * node itself has no data
-     */
 #ifdef DEBUG
     assert(node->size == 1 && node->data == NULL);
 #endif
@@ -429,10 +442,15 @@ static void CT_merge_node(ct_node_t * node)
     size_t len_key = strlen(node->key);
     size_t len_child_key;
     ct_node_t * child_node;
+    char * tmp;
 
     for (i = 0; i < 256; i++)
+    {
         if ((*node->nodes)[i] != NULL)
+        {
             break;
+        }
+    }
     /* this is the child node we need to merge */
     child_node = (*node->nodes)[i];
 
@@ -440,7 +458,13 @@ static void CT_merge_node(ct_node_t * node)
     len_child_key = strlen(child_node->key);
 
     /* re-allocate enough space for the key + child_key */
-    node->key = (char *) realloc(node->key, len_key + len_child_key + 2);
+    tmp = (char *) realloc(node->key, len_key + len_child_key + 2);
+    if (tmp == NULL)
+    {
+        ERR_ALLOC
+        return;
+    }
+    node->key = tmp;
 
     /* set node char */
     node->key[len_key] = i;
@@ -463,11 +487,19 @@ static void CT_merge_node(ct_node_t * node)
     free(child_node);
 }
 
+/*
+ * A SIGNAL can be raised in case an error occurred. If this happens the node
+ * size will still be decremented by one but the tree is not optionally merged.
+ * This means that in case of an error its still possible to call ct_free() or
+ * ct_free_cb() to destroy the tree.
+ */
 static void CT_dec_node(ct_node_t * node)
 {
     if (node == NULL)
+    {
         /* this is the root node */
         return;
+    }
 
     node->size--;
 
@@ -485,6 +517,11 @@ static void CT_dec_node(ct_node_t * node)
     }
 }
 
+/*
+ * Removes and returns an item from the tree or NULL when not found.
+ * In case of an error a SIGNAL is raised and should be checked with 'siri_err'.
+ * (ct_free or ct_free_cb can still be used when this happens)
+ */
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 {
     char * pt = (*nd)->key;
@@ -515,66 +552,102 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                 node->data = NULL;
 
                 if (node->size == 1)
+                {
                     /* we have only one child, we can merge this
                      * child with this one */
                     CT_merge_node(*nd);
+                }
 
                 return data;
             }
 
             if (node->nodes == NULL)
+            {
                 /* nothing to pop */
                 return NULL;
+            }
 
             ct_node_t ** next = &(*node->nodes)[(uint_fast8_t) *key];
 
             return (*next == NULL) ? NULL : CT_pop(node, next, key + 1);
         }
         if (*key != *pt)
+        {
             /* nothing to pop */
             return NULL;
+        }
     }
 
     /* we should never get here */
     return NULL;
 }
 
-static ct_node_t * new_node(const char * key, void * data)
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+static ct_node_t * CT_new_node(const char * key, void * data)
 {
     ct_node_t * node = (ct_node_t *) malloc(sizeof(ct_node_t));
-
-    node->key = strdup(key);
-    node->data = data;
-    node->size = 0;
-    node->nodes = NULL;
-
+    if (node == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        node->data = data;
+        node->size = 0;
+        node->nodes = NULL;
+        if ((node->key = strdup(key)) == NULL)
+        {
+            ERR_ALLOC
+            free(node);
+            node = NULL;
+        }
+    }
     return node;
 }
 
+/*
+ * Destroy ct_tree. (parsing NULL is NOT allowed)
+ */
 static void CT_free(ct_node_t * node)
 {
     if (node->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
+        {
             if ((*node->nodes)[i] != NULL)
+            {
                 CT_free((*node->nodes)[i]);
+            }
+        }
         free(node->nodes);
     }
     free(node->key);
     free(node);
 }
 
+/*
+ * Destroy ct_tree. (parsing NULL is NOT allowed)
+ * Call-back function will be called on each item in the tree.
+ */
 static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb)
 {
     if (node->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
+        {
             if ((*node->nodes)[i] != NULL)
+            {
                 CT_free_cb((*node->nodes)[i], cb);
+            }
+        }
         free(node->nodes);
     }
     if (node->data != NULL)
+    {
         cb(node->data);
+    }
     free(node->key);
     free(node);
 }
