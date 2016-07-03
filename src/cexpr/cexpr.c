@@ -88,6 +88,9 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     return cexpr;
 }
 
+/*
+ * Returns 0 or 1 (false or true).
+ */
 int cexpr_int_cmp(
         const cexpr_operator_t operator,
         const int64_t a,
@@ -115,6 +118,9 @@ int cexpr_int_cmp(
     return -1;
 }
 
+/*
+ * Returns 0 or 1 (false or true).
+ */
 int cexpr_str_cmp(
         const cexpr_operator_t operator,
         const char * a,
@@ -152,6 +158,9 @@ int cexpr_str_cmp(
     return -1;
 }
 
+/*
+ * Returns 0 or 1 (false or true).
+ */
 int cexpr_bool_cmp(
         const cexpr_operator_t operator,
         const int64_t a,
@@ -174,10 +183,11 @@ int cexpr_bool_cmp(
     return -1;
 }
 
+/*
+ * Returns 0 or 1 (false or true).
+ */
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
 {
-    /* should return either 1 or 0. (true or false) */
-
     switch (cexpr->operator)
     {
     case CEXPR_AND:

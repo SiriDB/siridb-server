@@ -27,8 +27,8 @@ typedef enum
     ERR_UNSUPPORTED_VALUE,
     ERR_EXPECTING_AT_LEAST_ONE_POINT,
     ERR_EXPECTING_NAME_AND_POINTS,
-    ERR_MEM_ALLOC,
-    INSERT_SUCCESS,
+    ERR_MEM_ALLOC,          // This is a critical error.
+    SUCCESS_ZERO_POINTS,    // successful but zero points are inserted.
 } siridb_insert_err_t;
 
 typedef struct siridb_s siridb_t;

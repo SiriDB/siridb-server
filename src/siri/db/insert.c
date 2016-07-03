@@ -69,24 +69,34 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     return err_msg[err + SIRIDB_INSERT_ERR_SIZE];
 }
 
+/*
+ * Returns a negative value in case of an error or a value equal to zero or
+ * higher representing the number of points processed.
+ *
+ * This function can set a SIGNAL when not enough space in the packer can be
+ * allocated for the points and ERR_MEM_ALLOC will be the return value if this
+ * is the case.
+ */
 ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,
         qp_packer_t * packer[])
 {
-    size_t n;
+    ssize_t rc;
     qp_types_t tp;
 
-    for (n = 0; n < siridb->pools->len; n++)
+    for (size_t n = 0; n < siridb->pools->len; n++)
     {
         /* These packers will be freed either in clserver in case of an error,
          * or by siridb_free_insert(..) in case of success.
          */
         if ((packer[n] = qp_packer_new(QP_SUGGESTED_SIZE)) == NULL)
         {
-            return ERR_MEM_ALLOC;
+            return ERR_MEM_ALLOC;  /* a signal is raised */
         }
+
+        /* cannot raise a signal since enough space is allocated */
         qp_add_type(packer[n], QP_MAP_OPEN);
     }
 
@@ -94,22 +104,22 @@ ssize_t siridb_insert_assign_pools(
 
     if (qp_is_map(tp))
     {
-        return assign_by_map(siridb, unpacker, packer, qp_obj);
+        rc = assign_by_map(siridb, unpacker, packer, qp_obj);
     }
-
-    if (qp_is_array(tp))
+    else if (qp_is_array(tp))
     {
         qp_packer_t * tmp_packer = qp_packer_new(QP_SUGGESTED_SIZE);
-        if (tmp_packer == NULL)
+        if (tmp_packer != NULL)
         {
-            return ERR_MEM_ALLOC;
+            rc = assign_by_array(siridb, unpacker, packer, qp_obj, tmp_packer);
+            qp_packer_free(tmp_packer);
         }
-        int32_t rc =
-                assign_by_array(siridb, unpacker, packer, qp_obj, tmp_packer);
-        qp_packer_free(tmp_packer);
-        return rc;
     }
-    return ERR_EXPECTING_MAP_OR_ARRAY;
+    else
+    {
+        rc = ERR_EXPECTING_MAP_OR_ARRAY
+    }
+    return (siri_err) ? ERR_MEM_ALLOC : rc;
 }
 
 void siridb_insert_points(
@@ -245,6 +255,13 @@ static void send_points_to_pools(uv_async_t * handle)
     uv_close((uv_handle_t *) handle, insert->free_cb);
 }
 
+/*
+ * Returns a negative value in case of an error or a value equal to zero or
+ * higher representing the number of points processed.
+ *
+ * This function can set a SIGNAL when not enough space in the packer can be
+ * allocated for the points and should be checked with 'siri_err'.
+ */
 static ssize_t assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
@@ -274,15 +291,26 @@ static ssize_t assign_by_map(
                 unpacker,
                 qp_obj,
                 &count)) < 0)
+        {
             return tp;
+        }
     }
 
     if (tp != QP_END && tp != QP_MAP_CLOSE)
+    {
         return ERR_EXPECTING_SERIES_NAME;
+    }
 
     return count;
 }
 
+/*
+ * Returns a negative value in case of an error or a value equal to zero or
+ * higher representing the number of points processed.
+ *
+ * This function can set a SIGNAL when not enough space in the packer can be
+ * allocated for the points and should be checked with 'siri_err'.
+ */
 static ssize_t assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
@@ -298,7 +326,9 @@ static ssize_t assign_by_array(
     while (tp == QP_MAP2)
     {
         if (qp_next(unpacker, qp_obj) != QP_RAW)
+        {
             return ERR_EXPECTING_NAME_AND_POINTS;
+        }
 
         if (strncmp(qp_obj->via->raw, "points", qp_obj->len) == 0)
         {
@@ -308,13 +338,17 @@ static ssize_t assign_by_array(
                     unpacker,
                     qp_obj,
                     &count)) < 0 || tp != QP_RAW)
+            {
                 return (tp < 0) ? tp : ERR_EXPECTING_NAME_AND_POINTS;
+            }
         }
 
         if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
         {
             if (qp_next(unpacker, qp_obj) != QP_RAW)
+            {
                 return ERR_EXPECTING_NAME_AND_POINTS;
+            }
 
             pool = siridb_pool_sn_raw(
                     siridb,
@@ -340,7 +374,9 @@ static ssize_t assign_by_array(
         {
             if (qp_next(unpacker, qp_obj) != QP_RAW ||
                     strncmp(qp_obj->via->raw, "points", qp_obj->len))
+            {
                 return ERR_EXPECTING_NAME_AND_POINTS;
+            }
 
             if ((tp = read_points(
                     siridb,
@@ -348,16 +384,27 @@ static ssize_t assign_by_array(
                     unpacker,
                     qp_obj,
                     &count)) < 0)
+            {
                 return tp;
+            }
         }
     }
 
     if (tp != QP_END && tp != QP_ARRAY_CLOSE)
+    {
         return ERR_EXPECTING_SERIES_NAME;
+    }
 
     return count;
 }
 
+/*
+ * Returns a negative value in case of an error or a value equal to zero or
+ * higher representing the next qpack type in the unpaker.
+ *
+ * This function can set a SIGNAL when not enough space in the packer can be
+ * allocated for the points.
+ */
 static int read_points(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -368,22 +415,30 @@ static int read_points(
     qp_types_t tp;
 
     if (!qp_is_array(qp_next(unpacker, NULL)))
-                return ERR_EXPECTING_ARRAY;
+    {
+        return ERR_EXPECTING_ARRAY;
+    }
 
     qp_add_type(packer, QP_ARRAY_OPEN);
 
     if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2)
+    {
         return ERR_EXPECTING_AT_LEAST_ONE_POINT;
+    }
 
     for (; tp == QP_ARRAY2; (*count)++, tp = qp_next(unpacker, qp_obj))
     {
         qp_add_type(packer, QP_ARRAY2);
 
         if (qp_next(unpacker, qp_obj) != QP_INT64)
+        {
             return ERR_EXPECTING_INTEGER_TS;
+        }
 
         if (!siridb_int64_valid_ts(siridb, qp_obj->via->int64))
+        {
             return ERR_TIMESTAMP_OUT_OF_RANGE;
+        }
 
         qp_add_int64(packer, qp_obj->via->int64);
 
@@ -411,7 +466,9 @@ static int read_points(
     }
 
     if (tp == QP_ARRAY_CLOSE)
+    {
         tp = qp_next(unpacker, qp_obj);
+    }
 
     qp_add_type(packer, QP_ARRAY_CLOSE);
 

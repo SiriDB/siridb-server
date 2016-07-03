@@ -18,6 +18,10 @@
 #include <siri/grammar/grammar.h>
 #include <assert.h>
 
+
+/*
+ * Returns a pool id based on a terminated string.
+ */
 uint16_t siridb_pool_sn(
         siridb_t * siridb,
         const char * sn)
@@ -30,6 +34,9 @@ uint16_t siridb_pool_sn(
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 
+/*
+ * Returns a pool id based on a raw string.
+ */
 uint16_t siridb_pool_sn_raw(
         siridb_t * siridb,
         const char * sn,
@@ -43,6 +50,12 @@ uint16_t siridb_pool_sn_raw(
     return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
 }
 
+/*
+ * Returns 1 (true) if at least one server in the pool is online, 0 (false)
+ * if no server in the pool is online.
+ *
+ * A server is considered  'online' when connected and authenticated.
+ */
 int siridb_pool_online(siridb_pool_t * pool)
 {
     for (uint16_t i = 0; i < pool->len; i++)
@@ -55,6 +68,11 @@ int siridb_pool_online(siridb_pool_t * pool)
     return 0;  // false
 }
 
+/*
+ * Call-back function used to validate pools in a where expression.
+ *
+ * Returns 0 or 1 (false or true).
+ */
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
 {
     switch (cond->prop)
