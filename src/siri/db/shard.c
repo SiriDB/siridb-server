@@ -74,17 +74,34 @@ static int SHARD_load_idx_num32(
 
 static void SHARD_free(siridb_shard_t * shard);
 static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
-static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
+static void SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * When an error occurs, a SIGNAL can be raised in some cases but not for sure.
+ */
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
-    siridb_shard_t * shard;
-    shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+    siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+    if (shard == NULL)
+    {
+        return -1;
+    }
     shard->fp = siri_fp_new();
+    if (shard->fp == NULL)
+    {
+        free(shard);
+        return -1;  /* signal is raised */
+    }
     shard->id = id;
     shard->ref = 1;
     shard->replacing = NULL;
     SHARD_init_fn(siridb, shard);
+    if (shard->fn == NULL)
+    {
+        siridb_shard_decref(shard);
+        return -1;
+    }
     FILE * fp;
 
     log_debug("Loading shard %ld", id);
@@ -115,9 +132,18 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
 
     SHARD_load_idx_num32(siridb, shard, fp);
 
-    fclose(fp);
+    if (fclose(fp))
+    {
+        siridb_shard_decref(shard);
+        log_critical("Cannot close shard file: '%s'", shard->fn);
+        return -1;
+    }
 
-    imap64_add(siridb->shards, id, shard);
+    if (imap64_add(siridb->shards, id, shard))
+    {
+        siridb_shard_decref(shard);
+        return -1;  /* signal is raised */
+    }
 
     /* remove LOADING flag from shard status */
     shard->flags ^= SIRIDB_SHARD_IS_LOADING & shard->flags;
@@ -154,9 +180,12 @@ siridb_shard_t *  siridb_shard_create(
     shard->tp = tp;
     shard->replacing = replacing;
     FILE * fp;
-    if (SHARD_init_fn(siridb, shard))
+    SHARD_init_fn(siridb, shard);
+    if (shard->fn == NULL)
     {
+        ERR_ALLOC
         siridb_shard_decref(shard);
+        return NULL;
     }
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
@@ -204,7 +233,10 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    /* this is not critical at this point */
+    /*
+     * This is not critical at this point and it's hard to imagine this
+     * fails if all the above was successful
+     */
     siri_fopen(siri.fh, shard->fp, shard->fn, "r+");
 
     return shard;
@@ -692,9 +724,10 @@ static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
 }
 
 /*
- * Returns 0 if successful or -1 in case of an allocation error.
+ * Set shard->fn to the correct file name or to NULL in case of an
+ * allocation error.
  */
-static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
+static void SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
     char fn[PATH_MAX];
     sprintf(fn,
@@ -704,5 +737,5 @@ static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
             (shard->replacing == NULL) ? "" : "__",
             shard->id,
             ".sdb");
-    return ((shard->fn = strdup(fn)) != NULL) ? 0 : -1;
+    shard->fn = strdup(fn);
 }

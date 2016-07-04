@@ -12,19 +12,33 @@
 #include <siri/file/handler.h>
 #include <stdlib.h>
 #include <logger/logger.h>
-
+#include <siri/err.h>
 
 siri_fh_t * siri_fh_new(uint16_t size)
 {
     siri_fh_t * fh = (siri_fh_t *) malloc(sizeof(siri_fh_t));
-
-    fh->size = size;
-    fh->idx = 0;
-    fh->fpointers = (siri_fp_t **) calloc(size, sizeof(siri_fp_t *));
-
+    if (fh == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        fh->size = size;
+        fh->idx = 0;
+        fh->fpointers = (siri_fp_t **) calloc(size, sizeof(siri_fp_t *));
+        if (fh->fpointers == NULL)
+        {
+            free(fh);
+            fh = NULL;
+        }
+    }
     return fh;
 }
 
+/*
+ * Destroy file handler. (closes all open files in the file handler)
+ * In case closing an open file fails, a SIGNAL will be raised.
+ */
 void siri_fh_free(siri_fh_t * fh)
 {
     if (fh == NULL)
@@ -47,6 +61,9 @@ void siri_fh_free(siri_fh_t * fh)
     free(fh);
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ */
 int siri_fopen(
         siri_fh_t * fh,
         siri_fp_t * fp,

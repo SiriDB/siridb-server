@@ -734,6 +734,11 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     return 0;
 }
 
+/*
+ * Open SiriDB drop series file.
+ *
+ * Returns 0 if successful or -1 in case of an error.
+ */
 static int SERIES_open_new_dropped_file(siridb_t * siridb)
 {
     SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
@@ -741,12 +746,16 @@ static int SERIES_open_new_dropped_file(siridb_t * siridb)
     if ((siridb->dropped_fp = fopen(fn, "w")) == NULL)
     {
         log_critical("Cannot open '%s' for writing", fn);
-        return 1;
+        return -1;
     }
-
     return 0;
 }
 
+/*
+ * Open SiriDB series store file.
+ *
+ * Returns 0 if successful or -1 in case of an error.
+ */
 static int SERIES_open_store(siridb_t * siridb)
 {
     /* macro get series file name */
@@ -757,24 +766,26 @@ static int SERIES_open_store(siridb_t * siridb)
         log_critical("Cannot open file '%s' for appending", fn);
         return -1;
     }
-
     return 0;
 }
 
+/*
+ * When series are dropped, the store still has this series so when
+ * SiriDB starts the next time we will include this dropped series by
+ * counting the max_series_id. A second restart could be a problem if
+ * not all shards are optimized because now the store does not have the
+ * last removed series and therefore the max_series_id could be set to
+ * a value for which shards still have data. Creating a new series and
+ * another SiriDB restart before the optimize has finished could lead
+ * to problems.
+ *
+ * Saving max_series_id at startup solves this issue because it will
+ * include the dropped series.
+ *
+ * Returns 0 if successful or -1 in case of an error.
+ */
 static int SERIES_update_max_id(siridb_t * siridb)
 {
-    /* When series are dropped, the store still has this series so when
-     * SiriDB starts the next time we will include this dropped series by
-     * counting the max_series_id. A second restart could be a problem if
-     * not all shards are optimized because now the store does not have the
-     * last removed series and therefore the max_series_id could be set to
-     * a value for which shards still have data. Creating a new series and
-     * another SiriDB restart before the optimize has finished could lead
-     * to problems.
-     *
-     * Saving max_series_id at startup solves this issue because it will
-     * include the dropped series.
-     */
     int rc = 0;
     FILE * fp;
     uint32_t max_series_id = 0;
@@ -796,12 +807,16 @@ static int SERIES_update_max_id(siridb_t * siridb)
             return -1;
         }
 
+        if (fclose(fp))
+        {
+            log_critical("Cannot save max_series_id to '%s'", fn);
+            return -1;
+        }
+
         if (max_series_id > siridb->max_series_id)
         {
             siridb->max_series_id = max_series_id;
         }
-
-        fclose(fp);
     }
 
     /* we only need to write max_series_id in case the one in the file is
@@ -822,13 +837,19 @@ static int SERIES_update_max_id(siridb_t * siridb)
             log_critical("Cannot write max_series_id to file '%s'", fn);
             rc = -1;
         }
-
-        fclose(fp);
+        if (fclose(fp))
+        {
+            log_critical("Cannot save max_series_id to file '%s'", fn);
+            rc = -1;
+        }
     }
-
     return rc;
 }
 
+/*
+ * Update series 'start' property.
+ * (integer/float series with 32bit time-stamps)
+ */
 static void SERIES_update_start_num32(siridb_series_t * series)
 {
     series->start = (series->index->len) ?
@@ -844,6 +865,10 @@ static void SERIES_update_start_num32(siridb_series_t * series)
     }
 }
 
+/*
+ * Update series 'end' property.
+ * (integer/float series with 32bit time-stamps)
+ */
 static void SERIES_update_end_num32(siridb_series_t * series)
 {
     if (series->index->len)
@@ -855,11 +880,15 @@ static void SERIES_update_end_num32(siridb_series_t * series)
             idx = (idx_num32_t *) series->index->idx + i;
 
             if (idx->end_ts < start)
+            {
                 break;
+            }
 
             start = idx->start_ts;
             if (idx->end_ts > series->end)
+            {
                 series->end = idx->end_ts;
+            }
         }
     }
     else
