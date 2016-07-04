@@ -401,7 +401,7 @@ int siridb_shard_get_points_num32(
  *
  * TODO: check for allocation and file errors.
  */
-void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
+int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_shard_t * new_shard = NULL;
 
@@ -422,6 +422,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             shard->tp,
             shard)) == NULL)
         {
+            /* signal is raised */
             log_critical(
                     "Cannot create shard id '%lu' for optimizing.",
                     shard->id);
@@ -445,7 +446,7 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         /* creating the new shard has failed, we exit here so the mutex is
          * is unlocked.
          */
-        return;
+        return -1;
     }
 
     /* at this point the references should be as following (unless dropped):
@@ -462,13 +463,21 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     uv_mutex_lock(&siridb->series_mutex);
 
     slist_t * slist = slist_new(siridb->series_map->len);
-
-    imap32_walk(
-            siridb->series_map,
-            (imap32_cb_t) &SHARD_create_slist,
-            (void *) slist);
+    if (slist != NULL)
+    {
+        imap32_walk(
+                siridb->series_map,
+                (imap32_cb_t) &SHARD_create_slist,
+                (void *) slist);
+    }
 
     uv_mutex_unlock(&siridb->series_mutex);
+
+    if (siri_err)
+    {
+        /* SIGNAL can be raised by slist_new() */
+        return -1;
+    }
 
     sleep(1);
 
@@ -533,9 +542,14 @@ void siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     siridb_shard_decref(new_shard);
 
     sleep(1);
+
+    return 0;
 }
 
-void siridb_shard_write_flags(siridb_shard_t * shard)
+/*
+ * Returns 0 if successful or EOF in case of an error.
+ */
+int siridb_shard_write_flags(siridb_shard_t * shard)
 {
     if (shard->fp->fp == NULL)
     {
@@ -544,12 +558,12 @@ void siridb_shard_write_flags(siridb_shard_t * shard)
             log_critical(
                     "Cannot open file '%s', skip writing status",
                     shard->fn);
-            return;
+            return EOF;
         }
     }
-    fseek(shard->fp->fp, HEADER_FLAGS, SEEK_SET);
-    fputc(shard->flags, shard->fp->fp);
-    fflush(shard->fp->fp);
+    return (fseek(shard->fp->fp, HEADER_FLAGS, SEEK_SET) ||
+            fputc(shard->flags, shard->fp->fp) == EOF ||
+            fflush(shard->fp->fp)) ? EOF : 0;
 }
 
 /*
@@ -717,6 +731,10 @@ static int SHARD_load_idx_num32(
     return 0;
 }
 
+/*
+ * Append series to a list and increment the series reference counter.
+ * (this function assumes the list has enough space for all series)
+ */
 static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
 {
     siridb_series_incref(series);
