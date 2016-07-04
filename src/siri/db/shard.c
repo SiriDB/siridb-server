@@ -210,6 +210,12 @@ siridb_shard_t *  siridb_shard_create(
     return shard;
 }
 
+/*
+ * Writes an index and points to a shard. The return value is the position
+ * where the points start in the shard file.
+ *
+ * If an error has occurred, EOF will be returned and a SIGNAL will be raised.
+ */
 long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -227,36 +233,54 @@ long int siridb_shard_write_points(
     {
         if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
         {
-            log_critical(
-                    "Cannot open file '%s', skip writing points",
-                    shard->fn);
-            return -1;
+            ERR_FILE
+            log_critical("Cannot open file '%s'", shard->fn);
+            return EOF;
         }
     }
     fp = shard->fp->fp;
 
-    fseek(fp, 0, SEEK_END);
-    fwrite(&series->id, sizeof(uint32_t), 1, fp);
-    fwrite(&points->data[start].ts, siridb->time->ts_sz, 1, fp);
-    fwrite(&points->data[end - 1].ts, siridb->time->ts_sz, 1, fp);
-    fwrite(&len, sizeof(uint16_t), 1, fp);
-
-    pos = ftell(fp);
+    if (
+        fseek(fp, 0, SEEK_END) ||
+        fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1 ||
+        fwrite(&points->data[start].ts, siridb->time->ts_sz, 1, fp) != 1 ||
+        fwrite(&points->data[end - 1].ts, siridb->time->ts_sz, 1, fp) != 1 ||
+        fwrite(&len, sizeof(uint16_t), 1, fp) != 1 ||
+        (pos = ftell(fp)) < 0)
+    {
+        ERR_FILE
+        log_critical("Cannot write index header to file '%s'", shard->fn);
+        return EOF;
+    }
 
     /* TODO: this works for both double and integer.
      * Add size values for strings and write string using 'old' way
      */
     for (i = start; i < end; i++)
     {
-        fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp);
-        fwrite(&points->data[i].val, 8, 1, fp);
+        if (fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp) != 1 ||
+            fwrite(&points->data[i].val, 8, 1, fp) != 1)
+        {
+            ERR_FILE
+            log_critical("Cannot write points to file '%s'", shard->fn);
+            return EOF;
+        }
     }
 
-    fflush(fp);
+    if (fflush(fp))
+    {
+        ERR_FILE
+        log_critical("Cannot write flush file '%s'", shard->fn);
+        return EOF;
+    }
 
     return pos;
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error. SiriDB might recover
+ * from this error so we do not consider this critical.
+ */
 int siridb_shard_get_points_num32(
         siridb_points_t * points,
         idx_num32_t * idx,
@@ -279,8 +303,9 @@ int siridb_shard_get_points_num32(
         }
     }
 
-    fseek(idx->shard->fp->fp, idx->pos, SEEK_SET);
-    if (fread(
+
+    if (fseek(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+        fread(
             temp,
             12,
             idx->len,

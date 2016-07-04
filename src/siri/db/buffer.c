@@ -36,10 +36,10 @@ void siridb_free_buffer(siridb_buffer_t * buffer)
     }
 }
 
-void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
+int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 {
     siridb_shard_t * shard;
-    uint64_t duration = SIRIDB_SERIES_ISNUM(series) ?
+    uint64_t duration = siridb_series_isnum(series) ?
             siridb->duration_num : siridb->duration_log;
 
     uint64_t shard_start, shard_end, shard_id;
@@ -63,6 +63,10 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                     duration,
                     series->tp,
                     NULL);
+            if (shard == NULL)
+            {
+                return -1;  /* signal is raised */
+            }
         }
 
         for (   start = end;
@@ -81,7 +85,9 @@ void siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
             {
                 pend = pstart + chunk_sz;
                 if (pend > end)
+                {
                     pend = end;
+                }
 
                 if ((pos = siridb_shard_write_points(
                         siridb,
