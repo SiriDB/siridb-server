@@ -17,9 +17,9 @@
 
 enum
 {
-    CT_CRITICAL=-2,
+    CT_ERR=-1,
+    CT_OK,
     CT_EXISTS,
-    CT_OK
 };
 
 /* ct_get_sure() will set a pointer to CT_EMPTY and returns the address so
@@ -46,38 +46,13 @@ typedef struct ct_s
 typedef int (*ct_cb_t)(const char * key, void * data, void * args);
 typedef void (*ct_free_cb_t)(void * data);
 
-/* create a new compact binary tree */
 ct_t * ct_new(void);
-
-/* call ct_free when finished using ct */
 void ct_free(ct_t * ct);
-
-/* the callback will be called before freeing the node. this can be used
- * to perform some action on the data when freeing the c-tree. */
 void ct_free_cb(ct_t * ct, ct_free_cb_t cb);
-
-/* can be used to check if get_sure has set an CT_EMPTY */
 extern int ct_is_empty(void * data);
-
-/* gets a value or set an CT_EMPTY if the key is not there. the address
- * is returned and can be used to set a new value. */
 void ** ct_get_sure(ct_t * ct, const char * key);
-
-/* add a new key/value. return CT_EXISTS if the key already
- * exists and CT_OK if not. when the key exists the value will not
- * be overwritten. */
 int ct_add(ct_t * ct, const char * key, void * data);
-
-/* return the value or NULL if the key does not exist. */
 void * ct_get(ct_t * node, const char * key);
-
-/* remove a key/value and return the value. NULL will be returned if
- * the key did not exist. */
 void * ct_pop(ct_t * ct, const char * key);
-
 void ct_walk(ct_t * ct, ct_cb_t cb, void * args);
-
-/* like ct_walk but an optional n which can be used as limit. the result of
- * n can be used to check the number. (n will be 0 if the limit was reached)
- */
 void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args);

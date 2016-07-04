@@ -46,54 +46,88 @@ static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb);
 static char dummy = '\0';
 char * CT_EMPTY = &dummy;
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 ct_t * ct_new(void)
 {
     ct_t * ct = (ct_t *) malloc(sizeof(ct_t));
-    ct->len = 0;
-    ct->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+    if (ct == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        ct->len = 0;
+        ct->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+    }
     return ct;
 }
 
+/*
+ * Destroy ct-tree. Parsing NULL is NOT allowed.
+ */
 void ct_free(ct_t * ct)
 {
     if (ct->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
+        {
             if ((*ct->nodes)[i] != NULL)
+            {
                 CT_free((*ct->nodes)[i]);
+            }
+        }
         free(ct->nodes);
     }
     free(ct);
 }
 
+/*
+ * Destroy ct_tree. (parsing NULL is NOT allowed)
+ * Call-back function will be called on each item in the tree.
+ */
 void ct_free_cb(ct_t * ct, ct_free_cb_t cb)
 {
     if (ct->nodes != NULL)
     {
         for (uint_fast16_t i = 256; i--;)
+        {
             if ((*ct->nodes)[i] != NULL)
+            {
                 CT_free_cb((*ct->nodes)[i], cb);
+            }
+        }
         free(ct->nodes);
     }
     free(ct);
 }
 
+/*
+ * Can be used to check if ct_get_sure() has set an CT_EMPTY
+ */
 inline int ct_is_empty(void * data)
 {
     return data == CT_EMPTY;
 }
 
+/*
+ * Returns an item from the list or CT_EMPTY if the key does not exist.
+ * The address or CT_EMPTY should then be used to set a new value.
+/*
+ * In case of an error, NULL is returned and a SIGNAL is raised.
+ */
 void ** ct_get_sure(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
-    void ** data;
+    void ** data = NULL;
 
     nd = &(*ct->nodes)[(uint_fast8_t) *key];
 
     if (*nd != NULL)
     {
         data = CT_get_sure(*nd, key + 1);
-        if (*data == CT_EMPTY)
+        if (data != NULL && *data == CT_EMPTY)
         {
             ct->len++;
         }
@@ -101,13 +135,22 @@ void ** ct_get_sure(ct_t * ct, const char * key)
     else
     {
         *nd = CT_new_node(key + 1, CT_EMPTY);
-        data = &(*nd)->data;
-        ct->len++;
+        if (*nd != NULL)
+        {
+            data = &(*nd)->data;
+            ct->len++;
+        }
     }
-
     return data;
 }
 
+/*
+ * Add a new key/value. return CT_EXISTS if the key already
+ * exists and CT_OK if not. When the key exists the value will not
+ * be overwritten.
+ *
+ * In case of an error, CT_ERR will be returned and a SIGNAL is raised.
+ */
 int ct_add(ct_t * ct, const char * key, void * data)
 {
     int rc;
@@ -119,17 +162,29 @@ int ct_add(ct_t * ct, const char * key, void * data)
     {
         rc = CT_add(*nd, key + 1, data);
         if (rc == CT_OK)
-            ct->len++;    }
+        {
+            ct->len++;
+        }
+    }
     else
     {
         *nd = CT_new_node(key + 1, data);
-        ct->len++;
-        rc = CT_OK;
+        if (*nd == NULL)
+        {
+            rc = CT_ERR;
+        }
+        else
+        {
+            ct->len++;
+            rc = CT_OK;
+        }
     }
-
     return rc;
 }
 
+/*
+ * Returns an item or NULL if the key does not exist.
+ */
 void * ct_get(ct_t * ct, const char * key)
 {
     ct_node_t * nd;
@@ -139,6 +194,11 @@ void * ct_get(ct_t * ct, const char * key)
     return (nd == NULL) ? NULL : CT_get(nd, key + 1);
 }
 
+/*
+ * Removes and returns an item from the tree or NULL when not found.
+ * In case of an error a SIGNAL is raised and should be checked with 'siri_err'.
+ * (ct_free or ct_free_cb can still be used when this happens)
+ */
 void * ct_pop(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
@@ -162,11 +222,20 @@ void * ct_pop(ct_t * ct, const char * key)
     return data;
 }
 
+/*
+ * Loop over all items in the tree and perform the call-back on each item.
+ */
 inline void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
 {
     ct_walkn(ct, NULL, cb, args);
 }
 
+/*
+ * Loop over all items in the tree and perform the call-back on each item.
+ * Walking stops either when the call-back is called on each item or
+ * when 'n' is zero. 'n' will be decremented by one on each successful
+ * call-back.
+ */
 void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
 {
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
@@ -184,6 +253,12 @@ void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
     }
 }
 
+/*
+ * Loop over all items in the tree and perform the call-back on each item.
+ * Walking stops either when the call-back is called on each item or
+ * when 'pn' is zero. 'pn' will be decremented by one on each successful
+ * call-back.
+ */
 static void CT_walk(
         ct_node_t * node,
         size_t * pn,
@@ -221,12 +296,21 @@ static void CT_walk(
         for (*pt = 255; (pn == NULL || *pn) && (*pt)--;)
         {
             if ((nd = (*node->nodes)[(uint_fast8_t) *pt]) == NULL)
+            {
                 continue;
+            }
             CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
 }
 
+
+/*
+ * Returns CT_OK when the item is added, CT_EXISTS if the item already exists,
+ * or CT_ERR in case or an error.
+ * In case of CT_ERR a SIGNAL is raised too and in case of CT_EXISTS the
+ * existing item is not overwritten.
+ */
 static int CT_add(
         ct_node_t * node,
         const char * key,
@@ -252,10 +336,21 @@ static int CT_add(
 
             if (node->nodes == NULL)
             {
-                node->size = 1;
                 node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-                (*node->nodes)[(uint_fast8_t) *key] =
-                        CT_new_node(key + 1, data);
+                                if (node->nodes == NULL)
+                {
+                    ERR_ALLOC
+                    return CT_ERR;
+                }
+
+                ct_node_t * nd = CT_new_node(key + 1, data);
+                if (nd == NULL)
+                {
+                    return CT_ERR;
+                }
+
+                node->size = 1;
+                (*node->nodes)[(uint_fast8_t) *key] = nd;
 
                 return CT_OK;
             }
@@ -263,23 +358,39 @@ static int CT_add(
             ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
 
             if (*nd != NULL)
+            {
                 return CT_add(*nd, key + 1, data);
+            }
 
-            node->size++;
             *nd = CT_new_node(key + 1, data);
-
+            if (*nd == NULL)
+            {
+                return CT_ERR;
+            }
+            node->size++;
             return CT_OK;
         }
 
         if (*key != *pt)
         {
+            char * tmp;
+
             /* create new nodes */
             ct_nodes_t * new_nodes =
                     (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+            if (new_nodes == NULL)
+            {
+                ERR_ALLOC
+                return CT_ERR;
+            }
 
             /* create new nodes with rest of node pt */
             ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
                     CT_new_node(pt + 1, node->data);
+            if (nd == NULL)
+            {
+                return CT_ERR;
+            }
 
             /* bind the -rest- of current node to the new nodes */
             nd->nodes = node->nodes;
@@ -299,26 +410,39 @@ static int CT_add(
                 /* we have more, make sure data for this node is NULL and
                  * add rest of our key to the nodes.
                  */
+                nd = CT_new_node(key + 1, data);
+                if (nd == NULL)
+                {
+                    return CT_ERR;
+                }
                 node->size = 2;
                 node->data = NULL;
-                (*new_nodes)[(uint_fast8_t) *key] =
-                        CT_new_node(key + 1, data);
+                (*new_nodes)[(uint_fast8_t) *key] = nd;
             }
 
             /* write terminator */
             *pt = 0;
 
             /* re-allocate the key to free some space */
-            node->key = (char *) realloc(node->key, pt - node->key + 1);
+            tmp = (char *) realloc(node->key, pt - node->key + 1);
+            if (tmp == NULL)
+            {
+                ERR_ALLOC
+                return CT_ERR;
+            }
+            node->key = tmp;
 
             return CT_OK;
         }
     }
 
     /* we should never get here */
-    return CT_CRITICAL;
+    return CT_ERR;
 }
 
+/*
+ * Returns an item or NULL if the key does not exist.
+ */
 static void * CT_get(ct_node_t * node, const char * key)
 {
     char * pt = node->key;
@@ -328,23 +452,33 @@ static void * CT_get(ct_node_t * node, const char * key)
         if (*pt == 0)
         {
             if  (*key == 0)
+            {
                 return node->data;
+            }
 
             if (node->nodes == NULL)
+            {
                 return NULL;
+            }
 
             ct_node_t * nd = (*node->nodes)[(uint_fast8_t) *key];
 
             return (nd == NULL) ? NULL : CT_get(nd, key + 1);
         }
         if (*key != *pt)
+        {
             return NULL;
+        }
     }
 
     /* we should never get here */
     return NULL;
 }
 
+/*
+ * Returns a item from the tree or CT_EMPTY in case the item is not found.
+ * In case of an error, NULL is returned and a SIGNAL is raised.
+ */
 static void ** CT_get_sure(ct_node_t * node, const char * key)
 {
     char * pt = node->key;
@@ -356,7 +490,9 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             if  (*key == 0)
             {
                 if (node->data == NULL)
+                {
                     node->data = CT_EMPTY;
+                }
 
                 return &node->data;
             }
@@ -365,8 +501,15 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             {
                 node->size = 1;
                 node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-                return &((*node->nodes)[(uint_fast8_t) *key] =
-                        CT_new_node(key + 1, CT_EMPTY))->data;
+                if (node->nodes == NULL)
+                {
+                    ERR_ALLOC
+                    return NULL;
+                }
+
+                ct_node_t * nd = CT_new_node(key + 1, CT_EMPTY);
+                return (nd == NULL) ? NULL :
+                        &((*node->nodes)[(uint_fast8_t) *key] = nd)->data;
             }
 
             ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
@@ -379,19 +522,34 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             node->size++;
 
             *nd = CT_new_node(key + 1, CT_EMPTY);
+            if (*nd == NULL)
+            {
+                return NULL;
+            }
 
             return &(*nd)->data;
         }
 
         if (*key != *pt)
         {
+            char * tmp;
+
             /* create new nodes */
             ct_nodes_t * new_nodes =
                     (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+            if (new_nodes == NULL)
+            {
+                ERR_ALLOC
+                return NULL;
+            }
 
             /* bind the -rest- of current node to the new nodes */
             ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
                     CT_new_node(pt + 1, node->data);
+            if (nd == NULL)
+            {
+                return NULL;
+            }
 
             nd->size = node->size;
             nd->nodes = node->nodes;
@@ -403,7 +561,13 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             *pt = 0;
 
             /* re-allocate the key to free some space */
-            node->key = (char *) realloc(node->key, pt - node->key + 1);
+            tmp = (char *) realloc(node->key, pt - node->key + 1);
+            if (tmp == NULL)
+            {
+                ERR_ALLOC
+                return NULL;
+            }
+            node->key = tmp;
 
             if (*key == 0)
             {
@@ -414,8 +578,10 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             node->size = 2;
             node->data = NULL;
-            return &((*new_nodes)[(uint_fast8_t) *key] =
-                    CT_new_node(key + 1, CT_EMPTY))->data;
+
+            nd = CT_new_node(key + 1, CT_EMPTY);
+            return (nd == NULL) ?
+                    NULL : &((*new_nodes)[(uint_fast8_t) *key] = nd)->data;
         }
     }
 
