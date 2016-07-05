@@ -77,14 +77,22 @@ static void OPTIMIZE_work(uv_work_t * work)
     uv_mutex_lock(&siri.siridb_mutex);
 
     slsiridb = llist2slist(siri.siridb_list);
-
-    for (size_t i = 0; i < slsiridb->len; i++)
+    if (slsiridb != NULL)
     {
-        siridb = (siridb_t *) slsiridb->data[i];
-        siridb_incref(siridb);
+        for (size_t i = 0; i < slsiridb->len; i++)
+        {
+            siridb = (siridb_t *) slsiridb->data[i];
+            siridb_incref(siridb);
+        }
     }
 
     uv_mutex_unlock(&siri.siridb_mutex);
+
+    if (siri_err)
+    {
+        /* signal is set when slsiridb is NULL */
+        return;
+    }
 
     for (size_t i = 0; i < slsiridb->len; i++)
     {
@@ -97,13 +105,21 @@ static void OPTIMIZE_work(uv_work_t * work)
         uv_mutex_lock(&siridb->shards_mutex);
 
         slshards = slist_new(siridb->shards->len);
-
-        imap64_walk(
-                siridb->shards,
-                (imap64_cb_t) &OPTIMIZE_create_slist,
-                (void *) slshards);
+        if (slshards != NULL)
+        {
+            imap64_walk(
+                    siridb->shards,
+                    (imap64_cb_t) &OPTIMIZE_create_slist,
+                    (void *) slshards);
+        }
 
         uv_mutex_unlock(&siridb->shards_mutex);
+
+        if (siri_err)
+        {
+            /* signal is set when slshards is NULL */
+            return;
+        }
 
         sleep(1);
 
@@ -111,11 +127,24 @@ static void OPTIMIZE_work(uv_work_t * work)
         {
             shard = (siridb_shard_t *) slshards->data[i];
 
-            if (    optimize.status != SIRI_OPTIMIZE_CANCELLED &&
+            if (    !siri_err &&
+                    optimize.status != SIRI_OPTIMIZE_CANCELLED &&
                     shard->flags != SIRIDB_SHARD_OK &&
                     !(shard->flags & SIRIDB_SHARD_WILL_BE_REMOVED))
             {
-                siridb_shard_optimize(shard, siridb);
+                log_info("Start optimizing shard id %lu (%u)",
+                        shard->id, shard->flags);
+                if (siridb_shard_optimize(shard, siridb) == 0)
+                {
+                    log_info("Finished optimizing shard id %ld", shard->id);
+                }
+                else
+                {
+                    /* signal is raised */
+                    log_critical(
+                            "Optimizing shard id %ld has failed with a "
+                            "critical error", shard->id);
+                }
             }
 
             /* decrement ref for the shard which was incremented earlier */
@@ -160,13 +189,14 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
     }
 }
 
+/*
+ * Start the optimize task. (will start a new thread performing the work)
+ */
 static void OPTIMIZE_cb(uv_timer_t * handle)
 {
     /*
      * Main Thread
      */
-
-
     if (optimize.status != SIRI_OPTIMIZE_PENDING)
     {
         log_debug("Skip optimize task because of having status: %d",
@@ -186,6 +216,9 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
             OPTIMIZE_work_finish);
 }
 
+/*
+ * Append shard to simple list. (list must have enough space to hold the shard)
+ */
 static void OPTIMIZE_create_slist(siridb_shard_t * shard, slist_t * slist)
 {
     siridb_shard_incref(shard);

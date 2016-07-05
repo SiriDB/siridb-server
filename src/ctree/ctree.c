@@ -114,7 +114,7 @@ inline int ct_is_empty(void * data)
 /*
  * Returns an item from the list or CT_EMPTY if the key does not exist.
  * The address or CT_EMPTY should then be used to set a new value.
-/*
+ *
  * In case of an error, NULL is returned and a SIGNAL is raised.
  */
 void ** ct_get_sure(ct_t * ct, const char * key)

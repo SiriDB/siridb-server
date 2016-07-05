@@ -26,7 +26,9 @@ series->buffer->points = siridb_points_new(                                 \
         /* this buffer can hold 1 more point than actual on disk */         \
         siridb->buffer_len, series->tp);
 
-
+/*
+ * Destroy buffer. (parsing NULL is allowed)
+ */
 void siridb_free_buffer(siridb_buffer_t * buffer)
 {
     if (buffer != NULL)

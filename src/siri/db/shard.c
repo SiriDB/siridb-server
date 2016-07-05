@@ -399,7 +399,7 @@ int siridb_shard_get_points_num32(
 /*
  * This function will be called from the 'optimize' thread.
  *
- * TODO: check for allocation and file errors.
+ * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
  */
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
@@ -408,8 +408,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     uint64_t duration = (shard->tp == SIRIDB_POINTS_TP_STRING) ?
             siridb->duration_log : siridb->duration_num;
     siridb_series_t * series;
-
-    log_info("Start optimizing shard id %lu (%u)", shard->id, shard->flags);
 
     uv_mutex_lock(&siridb->shards_mutex);
 
@@ -444,7 +442,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     if (new_shard == NULL)
     {
         /* creating the new shard has failed, we exit here so the mutex is
-         * is unlocked.
+         * is unlocked. (signal is raised)
          */
         return -1;
     }
@@ -475,7 +473,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (siri_err)
     {
-        /* SIGNAL can be raised by slist_new() */
+        /* SIGNAL can be raised only by slist_new() */
         return -1;
     }
 
@@ -484,22 +482,36 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     for (size_t i = 0; i < slist->len; i++)
     {
         /* its possible that another database is paused, but we wait anyway */
-        while (siri.optimize->status == SIRI_OPTIMIZE_PAUSED)
+        if (siri.optimize->status == SIRI_OPTIMIZE_PAUSED)
         {
-            log_info("Optimize task is paused, wait for 30 seconds...");
-            sleep(30);
+            log_info("Optimize task is paused, wait until we can continue...");
+            sleep(5);
+
+            while (siri.optimize->status == SIRI_OPTIMIZE_PAUSED)
+            {
+                log_debug("Optimize task is paused, wait for 5 seconds...");
+                sleep(5);
+            }
+
+            log_info("Continue optimize task...");
         }
 
         series = slist->data[i];
 
         /* TODO: get correct function based on shard and time precision */
 
-        if (    siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
+        if (    !siri_err &&
+                siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
                 shard->id % siridb->duration_num == series->mask)
         {
             uv_mutex_lock(&siridb->series_mutex);
 
-            siridb_series_optimize_shard_num32(siridb, series, new_shard);
+            if (siridb_series_optimize_shard_num32(siridb, series, new_shard))
+            {
+                log_critical(
+                        "Optimizing shard '%s' has failed due to a critical "
+                        "error", shard->fn);
+            }
 
             uv_mutex_unlock(&siridb->series_mutex);
 
@@ -511,39 +523,74 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     slist_free(slist);
 
+    /* this is a good time to copy the file name */
+    char * tmp = strdup(new_shard->replacing->fn);
+    if (tmp == NULL)
+    {
+        ERR_ALLOC
+    }
+
+    if (siri_err || siri.optimize->status == SIRI_OPTIMIZE_CANCELLED)
+    {
+        /*
+         * Error occurred or the optimize task is cancelled. By decrementing
+         * only the reference counter for the new_shard we keep this shard as
+         * if it is still optimizing so remaining points can still be written.
+         */
+        siridb_shard_decref(new_shard);
+        return siri_err;
+    }
+
     sleep(1);
 
     uv_mutex_lock(&siridb->series_mutex);
-    /* this will close the file but does not free the shard yet since we still
-     * have a reference to the simple list.
-     */
-    siridb_shard_decref(new_shard->replacing);
 
-    /* make sure the temporary shard file is also closed */
+    /* make sure both shards files are closed */
+    siri_fp_close(new_shard->replacing->fp);
     siri_fp_close(new_shard->fp);
 
-    /* remove the old shard file */
-    unlink(new_shard->replacing->fn);
+    /*
+     * Closing files or writing to the new shard might have produced
+     * critical errors. This seems to be a good point to check for errors.
+     */
+    if (!siri_err)
+    {
+        /* remove the old shard file */
+        unlink(new_shard->replacing->fn);
 
-    /* rename the temporary shard file to the correct shard filename */
-    rename(new_shard->fn, new_shard->replacing->fn);
+        /* rename the temporary shard file to the correct shard filename */
+        if (rename(new_shard->fn, new_shard->replacing->fn))
+        {
+            log_critical(
+                    "Could not rename file '%s' to '%s'",
+                    new_shard->fn,
+                    new_shard->replacing->fn);
+            ERR_FILE
+        }
+        else
+        {
+            /* free the original allocated memory and set the new filename */
+            free(new_shard->fn);
+            new_shard->fn = tmp;
 
-    /* free the original allocated memory and set the correct filename */
-    free(new_shard->fn);
-    new_shard->fn = strdup(new_shard->replacing->fn);
-
-    /* set replacing shard to NULL, reference is decremented earlier. */
-    new_shard->replacing = NULL;
+            /* decrement reference to old shard and set
+             * new_shard->replacing to NULL
+             */
+            siridb_shard_decref(new_shard->replacing);
+            new_shard->replacing = NULL;
+        }
+    }
 
     uv_mutex_unlock(&siridb->series_mutex);
 
-    log_info("Finished optimizing shard id %ld", new_shard->id);
-
+    /* can raise an error only if the shard is dropped, in any other case we
+     * still have a reference left and an error cannot be raised.
+     */
     siridb_shard_decref(new_shard);
 
     sleep(1);
 
-    return 0;
+    return siri_err;
 }
 
 /*

@@ -370,11 +370,18 @@ siridb_points_t * siridb_series_get_points_num32(
     return points;
 }
 
+/*
+ * Increment the series reference counter.
+ */
 inline void siridb_series_incref(siridb_series_t * series)
 {
     series->ref++;
 }
 
+/*
+ * Decrement reference counter for series and free the series when zero is
+ * reached.
+ */
 void siridb_series_decref(siridb_series_t * series)
 {
     if (!--series->ref)
@@ -383,7 +390,14 @@ void siridb_series_decref(siridb_series_t * series)
     }
 }
 
-void siridb_series_optimize_shard_num32(
+/*
+ * Returns 0 if successful or -1 and a SIGNAL is raised in case of a critical
+ * error.
+ * Note that we also return 0 if we had to recover a shard. In this case you
+ * can find the errors we had to recover in the log file. (log level should
+ * be at least 'ERROR' for all error logs)
+ */
+int siridb_series_optimize_shard_num32(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard)
@@ -396,6 +410,7 @@ void siridb_series_optimize_shard_num32(
     uint_fast32_t i, start, end, max_ts;
     size_t size;
     siridb_points_t * points;
+    int rc = 0;
 
     max_ts = (shard->id + siridb->duration_num) - series->mask;
 
@@ -419,7 +434,7 @@ void siridb_series_optimize_shard_num32(
     if (!end)
     {
         /* no data for this series is found in the shard */
-        return;
+        return rc;
     }
 
     long int pos;
@@ -427,6 +442,10 @@ void siridb_series_optimize_shard_num32(
     uint_fast32_t num_chunks, pstart, pend;
 
     points = siridb_points_new(size, series->tp);
+    if (points == NULL)
+    {
+        return -1;  /* signal is raised */
+    }
 
     for (i = start; i < end; i++)
     {
@@ -437,6 +456,7 @@ void siridb_series_optimize_shard_num32(
                 NULL,
                 series->index->has_overlap))
         {
+            /* an error occurred while reading points, logging is done */
             idx = (idx_num32_t *) series->index->idx + i;
             size -= idx->len;
         }
@@ -449,7 +469,9 @@ void siridb_series_optimize_shard_num32(
     {
         pend = pstart + chunk_sz;
         if (pend > size)
+        {
             pend = size;
+        }
 
         if ((pos = siridb_shard_write_points(
                 siridb,
@@ -457,9 +479,10 @@ void siridb_series_optimize_shard_num32(
                 shard,
                 points,
                 pstart,
-                pend)) < 0)
+                pend)) == EOF)
         {
             log_critical("Cannot write points to shard id '%ld'", shard->id);
+            rc = -1;  /* signal is raised */
         }
         else
         {
@@ -490,18 +513,34 @@ void siridb_series_optimize_shard_num32(
         }
 
         /* shrink memory to the new size */
-        series->index->idx = (idx_num32_t *) realloc(
+        idx = (idx_num32_t *) realloc(
                 (idx_num32_t *) series->index->idx,
                 series->index->len * sizeof(idx_num32_t));
+        if (idx == NULL)
+        {
+            /* this is not critical since the original allocated block still
+             * works.
+             */
+            log_error("Shrinking memory for one series has failed!");
+        }
+        else
+        {
+            series->index->idx = idx;
+        }
     }
 #ifdef DEBUG
     else
+    {
         /* start must be equal to end if not smaller */
         assert (start == end);
+    }
 #endif
-
+    return rc;
 }
 
+/*
+ * Destroy series. (parsing NULL is not allowed)
+ */
 static void SERIES_free(siridb_series_t * series)
 {
 //    log_debug("Free series!");

@@ -15,17 +15,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <siri/err.h>
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 imap32_t * imap32_new(void)
 {
     imap32_t * imap = (imap32_t *) malloc(sizeof(imap32_t));
-    imap->len = 0;
-    imap->size = 0;
-    imap->offset = 0;
-    imap->grid = NULL;
+    if (imap == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        imap->len = 0;
+        imap->size = 0;
+        imap->offset = 0;
+        imap->grid = NULL;
+    }
     return imap;
 }
 
+/*
+ * Destroy imap32. (parsing NULL not allowed)
+ */
 void imap32_free(imap32_t * imap)
 {
     uint_fast16_t i;
@@ -34,13 +48,17 @@ void imap32_free(imap32_t * imap)
         im_grid_t * grid = imap->grid + imap->size;
 
         if (grid == NULL)
+        {
             continue;
+        }
 
         for (i = 0; i < 256; i++)
         {
 
             if (grid->store[i] == NULL)
+            {
                 continue;
+            }
             free(grid->store[i]);
         }
     }
@@ -48,6 +66,13 @@ void imap32_free(imap32_t * imap)
     free(imap);
 }
 
+/*
+ * Add data by id to the map.
+ *
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ *
+ * Warning: existing data will be overwritten!
+ */
 void imap32_add(imap32_t * imap, uint32_t id, void * data)
 {
     uint32_t key = id / 65536;
