@@ -680,6 +680,13 @@ static void SHARD_free(siridb_shard_t * shard)
     free(shard);
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ *
+ * A SIGNAL might be raised in case of memory errors. We mark the shard as
+ * corrupt in case of disk errors and try to recover on the next optimize
+ * cycle.
+ */
 static int SHARD_load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
@@ -746,16 +753,22 @@ static int SHARD_load_idx_num32(
         }
         else
         {
-            siridb_series_add_idx_num32(
+            if (siridb_series_add_idx_num32(
                     series->index,
                     shard,
                     *((uint32_t *) (idx + 4)),
                     *((uint32_t *) (idx + 8)),
                     (uint32_t) pos,
-                    len);
-
-            /* update the series length property */
-            series->length += len;
+                    len) == 0)
+            {
+                /* update the series length property */
+                series->length += len;
+            }
+            else
+            {
+                /* signal is raised */
+                log_critical("Cannot load index for Series ID %u", series->id);
+            }
         }
 
         rc = fseek(fp, len * 12, SEEK_CUR);
@@ -775,7 +788,7 @@ static int SHARD_load_idx_num32(
     {
         log_debug("Size: %lu", size);
     }
-    return 0;
+    return siri_err;
 }
 
 /*

@@ -128,59 +128,87 @@ siridb_series_t * siridb_series_new(
     siridb->max_series_id++;
 
     series = SERIES_new(siridb, siridb->max_series_id, tp, series_name);
-
-    /* We only should add the series to series_map and assume the caller
-     * takes responsibility adding the series to SiriDB -> series
-     */
-    imap32_add(siridb->series_map, series->id, series);
-
-    /* create a buffer for series (except string series) */
-    if (
-            tp != SIRIDB_SERIES_TP_STRING &&
-            siridb_buffer_new_series(siridb, series))
+    if (series != NULL)
     {
-        log_critical("Could not create buffer for series '%s'.", series_name);
-    }
+        /* We only should add the series to series_map and assume the caller
+         * takes responsibility adding the series to SiriDB -> series
+         */
+        imap32_add(siridb->series_map, series->id, series);
 
-    if (
-            qp_fadd_type(siridb->store, QP_ARRAY3) ||
-            qp_fadd_raw(siridb->store, series_name, len + 1) ||
-            qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-            qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
-            qp_flush(siridb->store))
-    {
-        log_critical("Cannot write series '%s' to store.", series_name);
+        /* create a buffer for series (except string series) */
+        if (
+                tp != SIRIDB_SERIES_TP_STRING &&
+                siridb_buffer_new_series(siridb, series))
+        {
+            log_critical("Could not create buffer for series '%s'.", series_name);
+        }
+
+        if (
+                qp_fadd_type(siridb->store, QP_ARRAY3) ||
+                qp_fadd_raw(siridb->store, series_name, len + 1) ||
+                qp_fadd_int32(siridb->store, (int32_t) series->id) ||
+                qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+                qp_flush(siridb->store))
+        {
+            ERR_FILE
+            log_critical("Cannot write series '%s' to store.", series_name);
+        }
     }
     return series;
 }
 
+/*
+ * Returns 0 if successful or -1 in case or an error.
+ * (a SIGNAL might be raised)
+ */
 int siridb_series_load(siridb_t * siridb)
 {
-    int rc;
-    imap32_t * dropped;
+    imap32_t * dropped = imap32_new();
+    if (dropped == NULL)
+    {
+        return -1;
+    }
 
-    dropped = imap32_new();
+    if (SERIES_read_dropped(siridb, dropped))
+    {
+        imap32_free(dropped);
+        return -1;
+    }
 
-    rc = SERIES_read_dropped(siridb, dropped);
-
-    if (!rc)
-        rc = SERIES_load(siridb, dropped);
+    if (SERIES_load(siridb, dropped))
+    {
+        imap32_free(dropped);
+        return -1;
+    }
 
     imap32_free(dropped);
 
-    if (!rc)
-        rc = SERIES_update_max_id(siridb);
+    if (SERIES_update_max_id(siridb))
+    {
+        return -1;
+    }
 
-    if (!rc)
-        rc = SERIES_open_new_dropped_file(siridb);
+    if (SERIES_open_new_dropped_file(siridb))
+    {
+        return -1;
+    }
 
-    if (!rc)
-        rc = SERIES_open_store(siridb);
+    if (SERIES_open_store(siridb))
+    {
+        return -1;
+    }
 
-    return rc;
+    return 0;
 }
 
-void siridb_series_add_idx_num32(
+/*
+ * This function should only be called when new values are added.
+ * For example, during optimization we do not use this function for
+ * replacing indexes. This way we can set the HAS_NEW_VALUES correctly.
+ *
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ */
+int siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
         siridb_shard_t * shard,
         uint32_t start_ts,
@@ -188,23 +216,25 @@ void siridb_series_add_idx_num32(
         uint32_t pos,
         uint16_t len)
 {
-    /* This function should only be called when new values are added.
-     * For example, during optimization we do not use this function for
-     * replacing indexes. This way we can also set the HAS_NEW_VALUES
-     * correctly.
-     */
-
     idx_num32_t * idx;
     uint32_t i = index->len;
     index->len++;
 
-    index->idx = (idx_num32_t *) realloc(
+    idx = (idx_num32_t *) realloc(
             (idx_num32_t *) index->idx,
             index->len * sizeof(idx_num32_t));
+    if (idx == NULL)
+    {
+        ERR_ALLOC
+        index->len--;
+        return -1;
+    }
+    (idx_num32_t *) index->idx = idx;
 
     for (; i && start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts; i--)
-        ((idx_num32_t *) index->idx)[i] =
-                ((idx_num32_t *) index->idx)[i - 1];
+    {
+        ((idx_num32_t *) index->idx)[i] = ((idx_num32_t *) index->idx)[i - 1];
+    }
 
     idx = ((idx_num32_t *) (index->idx)) + i;
 
@@ -242,6 +272,8 @@ void siridb_series_add_idx_num32(
         shard->flags |= SIRIDB_SHARD_HAS_OVERLAP;
         index->has_overlap = 1;
     }
+
+    return 0;
 }
 
 void siridb_series_remove_shard_num32(
@@ -292,6 +324,9 @@ void siridb_series_remove_shard_num32(
     }
 }
 
+/*
+ * Update series properties.
+ */
 void siridb_series_update_props(siridb_series_t * series, void * args)
 {
     SERIES_update_start_num32(series);
@@ -525,7 +560,7 @@ int siridb_series_optimize_shard_num32(
         }
         else
         {
-            series->index->idx = idx;
+            (idx_num32_t *) series->index->idx = idx;
         }
     }
 #ifdef DEBUG
@@ -550,6 +585,9 @@ static void SERIES_free(siridb_series_t * series)
     free(series);
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 static siridb_series_t * SERIES_new(
         siridb_t * siridb,
         uint32_t id,
@@ -559,40 +597,71 @@ static siridb_series_t * SERIES_new(
     uint32_t n = 0;
     siridb_series_t * series;
     series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
-    series->id = id;
-    series->tp = tp;
-    series->ref = 1;
-    series->length = 0;
-    series->start = -1;
-    series->end = 0;
-    series->buffer = NULL;
-    series->index = (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
-    series->index->len = 0;
-    series->index->has_overlap = 0;
-    series->index->idx = NULL;
+    if (series == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        series->id = id;
+        series->tp = tp;
+        series->ref = 1;
+        series->length = 0;
+        series->start = -1;
+        series->end = 0;
+        series->buffer = NULL;
 
-    /* get sum series name to calculate series mask (for sharding) */
-    for (; *sn; sn++)
-        n += *sn;
+        /* get sum series name to calculate series mask (for sharding) */
+        for (; *sn; sn++)
+        {
+            n += *sn;
+        }
 
-    series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
-            siridb->shard_mask_log : siridb->shard_mask_num);
+        series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
+                siridb->shard_mask_log : siridb->shard_mask_num);
 
+        series->index =
+                (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
+        if (series->index == NULL)
+        {
+            ERR_ALLOC
+            free(series);
+        }
+        else
+        {
+            series->index->len = 0;
+            series->index->has_overlap = 0;
+            series->index->idx = NULL;
+        }
+    }
     return series;
 }
 
+/*
+ * Raises a SIGNAL in case or an error.
+ *
+ * Returns always 0 but the result will be ignored since this function is used
+ * in ct_walk().
+ */
 static int SERIES_pack(
         const char * key,
         siridb_series_t * series,
         qp_fpacker_t * fpacker)
 {
-    qp_fadd_type(fpacker, QP_ARRAY3);
-    qp_fadd_raw(fpacker, key, strlen(key) + 1);
-    qp_fadd_int32(fpacker, (int32_t) series->id);
-    qp_fadd_int8(fpacker, (int8_t) series->tp);
-    return 0;
+    if (qp_fadd_type(fpacker, QP_ARRAY3) ||
+        qp_fadd_raw(fpacker, key, strlen(key) + 1) ||
+        qp_fadd_int32(fpacker, (int32_t) series->id) ||
+        qp_fadd_int8(fpacker, (int8_t) series->tp))
+    {
+        ERR_FILE
+    }
+    return 0;  /* return code will be ignored */
 }
 
+/*
+ * Returns 0 if successful or a negative integer in case of an error.
+ * (SIGNAL is raised in case of an error)
+ */
 static int SERIES_save(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
@@ -604,24 +673,37 @@ static int SERIES_save(siridb_t * siridb)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {
+        ERR_FILE
         log_critical("Cannot open file '%s' for writing", fn);
-        return 1;
+        return EOF;
     }
 
-    /* open a new array */
-    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
 
-    /* write the current schema */
-    qp_fadd_int16(fpacker, SIRIDB_SERIES_SCHEMA);
+    if (/* open a new array */
+        qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
-    ct_walk(siridb->series, (ct_cb_t) &SERIES_pack, fpacker);
-
+        /* write the current schema */
+        qp_fadd_int16(fpacker, SIRIDB_SERIES_SCHEMA))
+    {
+        ERR_FILE
+    }
+    else
+    {
+        ct_walk(siridb->series, (ct_cb_t) &SERIES_pack, fpacker);
+    }
     /* close file pointer */
-    qp_close(fpacker);
+    if (qp_close(fpacker))
+    {
+        ERR_FILE
+    }
 
-    return 0;
+    return siri_err;
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * (a SIGNAL might be raised but -1 should be considered critical in any case)
+ */
 static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
 {
     char * buffer;
@@ -643,16 +725,15 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
     if ((fp = fopen(fn, "r")) == NULL)
     {
         log_critical("Cannot open '%s' for reading", fn);
-        return -1;
+        return EOF;
     }
 
     /* get file size */
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    if (size == -1)
+    if (fseek(fp, 0, SEEK_END) ||
+        (size = ftell(fp)) < 0 ||
+        fseek(fp, 0, SEEK_SET))
     {
+        fclose(fp);
         log_critical("Cannot read size of file '%s'", fn);
         rc = -1;
     }
@@ -660,18 +741,26 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
     {
 
         buffer = (char *) malloc(size);
-
-        if (fread(buffer, size, 1, fp) == 1)
+        if (buffer == NULL)
+        {
+            log_critical("Cannot allocate buffer for reading dropped series");
+            rc = -1;
+        }
+        else if (fread(buffer, size, 1, fp) == 1)
         {
             char * end = buffer + size;
             for (   pt = buffer;
                     pt < end;
                     pt += sizeof(uint32_t))
             {
-                imap32_add(
+                if (imap32_add(
                         dropped,
                         (uint32_t) *((uint32_t *) pt),
-                        (int *) DROPPED_DUMMY);
+                        (int *) DROPPED_DUMMY))
+                {
+                    log_critical("Cannot add id to dropped map");
+                    rc = -1;
+                }
             }
         }
         else
@@ -679,7 +768,6 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
             log_critical("Cannot read %ld bytes from file '%s'", size, fn);
             rc = -1;
         }
-
         free(buffer);
     }
 
@@ -711,14 +799,25 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     }
 
     if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
-        return 1;
+    {
+        return -1;
+    }
 
-    /* unpacker will be freed in case macro fails */
+    /* unpacker will be freed in case schema check fails */
     siridb_schema_check(SIRIDB_SERIES_SCHEMA)
 
     qp_series_name = qp_object_new();
     qp_series_id = qp_object_new();
     qp_series_tp = qp_object_new();
+    if (siri_err)
+    {
+        /* free objects */
+        qp_object_free_safe(qp_series_name);
+        qp_object_free_safe(qp_series_id);
+        qp_object_free_safe(qp_series_tp);
+        qp_unpacker_free(unpacker);
+        return -1;  /* signal is raised */
+    }
 
     while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
             qp_next(unpacker, qp_series_name) == QP_RAW &&
@@ -729,7 +828,9 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
 
         /* update max_series_id */
         if (series_id > siridb->max_series_id)
+        {
             siridb->max_series_id = series_id;
+        }
 
         if (imap32_get(dropped, series_id) == NULL)
         {
@@ -738,12 +839,14 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
                     series_id,
                     (uint8_t) qp_series_tp->via->int64,
                     qp_series_name->via->raw);
+            if (series != NULL)
+            {
+                /* add series to c-tree */
+                ct_add(siridb->series, qp_series_name->via->raw, series);
 
-            /* add series to c-tree */
-            ct_add(siridb->series, qp_series_name->via->raw, series);
-
-            /* add series to imap32 */
-            imap32_add(siridb->series_map, series->id, series);
+                /* add series to imap32 */
+                imap32_add(siridb->series_map, series->id, series);
+            }
         }
     }
 
@@ -761,13 +864,17 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     if (tp != QP_END)
     {
         log_critical("Expected end of file '%s'", fn);
-        return 1;
+        return -1;
     }
 
-    if (SERIES_save(siridb))
+    /*
+     * In case of a siri_err we should not overwrite series because the
+     * file then might be incomplete.
+     */
+    if (siri_err || SERIES_save(siridb))
     {
         log_critical("Cannot write series index to disk");
-        return -1;
+        return -1;  /* signal is raised */
     }
 
     return 0;

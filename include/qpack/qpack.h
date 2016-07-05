@@ -113,6 +113,7 @@ int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker);
 /* qp object: create and destroy functions */
 qp_obj_t * qp_object_new(void);
 void qp_object_free(qp_obj_t * qp_obj);
+void qp_object_free_safe(qp_obj_t * qp_obj);
 
 /* unpacker: create and destroy functions */
 qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len);

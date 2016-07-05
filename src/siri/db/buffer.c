@@ -38,6 +38,10 @@ void siridb_free_buffer(siridb_buffer_t * buffer)
     }
 }
 
+/*
+ * Returns siri_err which is 0 if successful or a negative integer in case
+ * of an error. (a SIGNAL is also raised in case of an error)
+ */
 int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
 {
     siridb_shard_t * shard;
@@ -125,8 +129,8 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                 }
             }
         }
-
     }
+    return siri_err;
 }
 
 void siridb_buffer_write_len(
@@ -164,10 +168,18 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
 {
     /* get file descriptor */
     int buffer_fd = fileno(siridb->buffer_fp);
+    if (buffer_fd == -1)
+    {
+        ERR_FILE
+        return -1;
+    }
 
     /* jump to end of buffer */
     if (fseek(siridb->buffer_fp, 0, SEEK_END))
+    {
+        ERR_FILE
         return -1;
+    }
 
     /* allocate new buffer */
     ALLOC_BUFFER

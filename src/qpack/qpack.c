@@ -222,6 +222,17 @@ void qp_object_free(qp_obj_t * qp_obj)
 }
 
 /*
+ * Destroy object object. (parsing NULL is allowed)
+ */
+void qp_object_free_safe(qp_obj_t * qp_obj)
+{
+    if (qp_obj != NULL)
+    {
+        qp_object_free(qp_obj);
+    }
+}
+
+/*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)

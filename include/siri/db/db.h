@@ -34,11 +34,18 @@
 
 /* Schema File Check
  * Needs fn and unpacker, free unpacker in case of an error.
- * Returns current function with -1 in case of an error
+ * Returns current function with -1 in case of an error and
+ * raises a SIGNAL in case of a memory error.
  */
 #define siridb_schema_check(SCHEMA)                             \
     /* read and check schema */                                 \
     qp_obj_t * qp_schema = qp_object_new();                     \
+    if (qp_schema == NULL)                                      \
+    {                                                           \
+        ERR_ALLOC                                               \
+        qp_unpacker_free(unpacker);                             \
+        return -1;                                              \
+    }                                                           \
     if (!qp_is_array(qp_next(unpacker, NULL)) ||                \
             qp_next(unpacker, qp_schema) != QP_INT64 ||         \
             qp_schema->via->int64 != SCHEMA)                    \

@@ -23,9 +23,9 @@ typedef struct siridb_buffer_s siridb_buffer_t;
 typedef struct siridb_points_s siridb_points_t;
 typedef struct siridb_shard_s siridb_shard_t;
 
-#define SIRIDB_SERIES_TP_INT SIRIDB_POINTS_TP_INT
-#define SIRIDB_SERIES_TP_DOUBLE SIRIDB_POINTS_TP_DOUBLE
-#define SIRIDB_SERIES_TP_STRING SIRIDB_POINTS_TP_STRING
+#define SIRIDB_SERIES_TP_INT 0  // SIRIDB_POINTS_TP_INT
+#define SIRIDB_SERIES_TP_DOUBLE 1  // SIRIDB_POINTS_TP_DOUBLE
+#define SIRIDB_SERIES_TP_STRING 2  // SIRIDB_POINTS_TP_STRING
 
 #define siridb_series_isnum(series) series->tp != SIRIDB_SERIES_TP_STRING
 
@@ -90,7 +90,7 @@ siridb_series_t * siridb_series_new(
 void siridb_series_incref(siridb_series_t * series);
 void siridb_series_decref(siridb_series_t * series);
 
-void siridb_series_add_idx_num32(
+int siridb_series_add_idx_num32(
         siridb_series_idx_t * index,
         siridb_shard_t * shard,
         uint32_t start_ts,

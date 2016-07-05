@@ -14,9 +14,9 @@
 #include <inttypes.h>
 #include <qpack/qpack.h>
 
-#define SIRIDB_POINTS_TP_INT 0
-#define SIRIDB_POINTS_TP_DOUBLE 1
-#define SIRIDB_POINTS_TP_STRING 2
+#define SIRIDB_POINTS_TP_INT 0  //SIRIDB_SERIES_TP_INT
+#define SIRIDB_POINTS_TP_DOUBLE 1  //SIRIDB_SERIES_TP_DOUBLE
+#define SIRIDB_POINTS_TP_STRING 2  //SIRIDB_SERIES_TP_STRING
 
 typedef struct siridb_point_s
 {

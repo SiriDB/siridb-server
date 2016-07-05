@@ -73,23 +73,35 @@ void imap32_free(imap32_t * imap)
  *
  * Warning: existing data will be overwritten!
  */
-void imap32_add(imap32_t * imap, uint32_t id, void * data)
+int imap32_add(imap32_t * imap, uint32_t id, void * data)
 {
     uint32_t key = id / 65536;
+    im_grid_t * tmp;
 
 #ifdef DEBUG
     assert (data != NULL);
 #endif
 
     if (!imap->size)
+    {
         imap->offset = key;
+    }
     else if (key < imap->offset)
     {
         size_t temp = imap->size;
         size_t diff = imap->offset - key;
         imap->size += diff;
-        imap->grid = (im_grid_t *) realloc(
-                imap->grid, imap->size * sizeof(im_grid_t));
+        tmp = (im_grid_t *) realloc(
+                imap->grid,
+                imap->size * sizeof(im_grid_t));
+        if (tmp == NULL)
+        {
+            ERR_ALLOC
+            /* restore size */
+            imap->size -= diff;
+            return -1;
+        }
+        imap->grid = tmp;
         memmove(imap->grid + diff, imap->grid, temp * sizeof(im_grid_t));
         memset(imap->grid, 0, diff * sizeof(im_grid_t));
         imap->offset = key;
@@ -101,10 +113,18 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
     {
         size_t temp = imap->size;
         imap->size = key + 1;
-        imap->grid = (im_grid_t *) realloc(
-                imap->grid, imap->size * sizeof(im_grid_t));
+        tmp = (im_grid_t *) realloc(
+                imap->grid,
+                imap->size * sizeof(im_grid_t));
+        if (tmp == NULL)
+        {
+            ERR_ALLOC
+            /* restore size */
+            imap->size = temp;
+            return -1;
+        }
+        imap->grid = tmp;
 
-        // TODO: Actually this is not totally right since 0 is not NULL
         memset(imap->grid + temp, 0, (imap->size- temp) * sizeof(im_grid_t));
     }
     im_grid_t * grid = imap->grid + key;
@@ -114,9 +134,13 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
 
     if (grid->store[key] == NULL)
     {
-        grid->size++;
-        // TODO: Same for calloc, 0 is not NULL
         grid->store[key] = (im_store_t *) calloc(1, sizeof(im_store_t));
+        if (grid->store[key] == NULL)
+        {
+            ERR_ALLOC
+            return -1;
+        }
+        grid->size++;
     }
     im_store_t * store = grid->store[key];
 
@@ -129,14 +153,21 @@ void imap32_add(imap32_t * imap, uint32_t id, void * data)
     }
 
     store->data[id] = data;
+
+    return 0;
 }
 
+/*
+ * Returns item by key.
+ */
 void * imap32_get(imap32_t * imap, uint32_t id)
 {
     uint32_t key = id / 65536 - imap->offset;
 
     if (key >= imap->size)
+    {
         return NULL;
+    }
 
     im_grid_t * grid = imap->grid + key;
 
@@ -147,13 +178,20 @@ void * imap32_get(imap32_t * imap, uint32_t id)
             NULL : grid->store[key]->data[id % 256];
 }
 
+/*
+ * Remove and return an item by key or NULL when not found.
+ * This function might re-allocate some memory but these are not critical.
+ */
 void * imap32_pop(imap32_t * imap, uint32_t id)
 {
     void * data;
+    im_grid_t * tmp;
     uint32_t key = id / 65536 - imap->offset;
 
     if (key >= imap->size)
+    {
         return NULL;
+    }
 
     im_grid_t * grid = imap->grid + key;
 
@@ -163,25 +201,33 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
     im_store_t * store = grid->store[key];
 
     if (store == NULL)
+    {
         return NULL;
+    }
 
     id %= 256;
 
     if (store->data[id] == NULL)
+    {
         return NULL;
+    }
 
     imap->len--;
     data = store->data[id];
     store->data[id] = NULL;
 
     if (--store->size)
+    {
         return data;
+    }
 
     free(grid->store[key]);
     grid->store[key] = NULL;
 
     if (--grid->size)
+    {
         return data;
+    }
 
     if (grid == imap->grid)
     {
@@ -194,8 +240,17 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
             memmove(imap->grid,
                     imap->grid + key,
                     imap->size * sizeof(im_grid_t));
-            imap->grid = (im_grid_t *) realloc(
-                            imap->grid, imap->size * sizeof(im_grid_t));
+            tmp = (im_grid_t *) realloc(
+                    imap->grid,
+                    imap->size * sizeof(im_grid_t));
+            if (tmp == NULL)
+            {
+                log_error("Non-critical re-allocation has failed");
+            }
+            else
+            {
+                imap->grid = tmp;
+            }
             imap->offset += key;
         }
         else
@@ -210,8 +265,19 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
         while (imap->size > 0 && !(imap->grid + (--imap->size))->size);
         imap->size = key;
         if (imap->size)
-            imap->grid = (im_grid_t *) realloc(
-                            imap->grid, imap->size * sizeof(im_grid_t));
+        {
+            tmp = (im_grid_t *) realloc(
+                    imap->grid,
+                    imap->size * sizeof(im_grid_t));
+            if (tmp == NULL)
+            {
+                log_error("Non-critical re-allocation has failed");
+            }
+            else
+            {
+                imap->grid = tmp;
+            }
+        }
         else
         {
             free(imap->grid);
@@ -219,10 +285,12 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
             imap->grid = NULL;
         }
     }
-
     return data;
 }
 
+/*
+ * Walk over all items and perform the call-back on each item.
+ */
 void imap32_walk(imap32_t * imap, imap32_cb_t cb, void * args)
 {
     im_store_t * store;
@@ -234,11 +302,15 @@ void imap32_walk(imap32_t * imap, imap32_cb_t cb, void * args)
         for (uint_fast8_t i = 255; i--;)
         {
             if ((store = grid->store[i]) == NULL)
+            {
                 continue;
+            }
             for (uint_fast8_t j = 255; j--;)
             {
                 if ((data = store->data[j]) == NULL)
+                {
                     continue;
+                }
                 (*cb)(data, args);
             }
         }
