@@ -1362,7 +1362,7 @@ static void exit_set_log_level(uv_async_t * handle)
     {
         QP_PACK_INT16(buffer, log_level)
 
-        if (siridb_server_is_available(server))
+        if (siridb_server_is_online(server))
         {
             siridb_server_send_pkg(
                     server,

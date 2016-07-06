@@ -11,9 +11,35 @@
  */
 #pragma once
 
-typedef enum sirinet_msg_tp
+typedef enum sirinet_protocal_msg_client_tp
 {
-    SN_MSG_AUTH_REQUEST,                    // (user, password, dbname)
+    MP_RES_AUTH_SUCCESS,                    // Empty
+    MP_RES_QUERY,                           // {query response data}
+    MP_RES_INSERT,                          // {"success_msg": ...}
+
+    MP_ERR_QUERY=64,                        // {"error_msg": ...}
+    MP_ERR_INSERT,                          // {"error_msg": ...}
+    MP_ERR_SERVER,                          // {"error_msg": ...}
+    MP_ERR_POOL,                            // {"error_msg": ...}
+    MP_ERR_INSUFFICIENT_PRIVILEGES,         // {"error_msg": ...}
+    MP_ERR_INVALID_CREDENTIALS,             // Empty
+    MP_ERR_NOT_AUTHENTICATED,               // Empty
+    MP_ERR_UNKNOWN_DATABASE,                // Empty
+
+} mp_client_t;
+
+typedef enum sirinet_protocal_msg_server_tp
+{
+    MP_REQ_AUTH,                            // (user, password, dbname)
+    MP_REQ_QUERY,                           // (query, time_precision)
+    MP_REQ_INSERT,                          // series with points map/array
+
+} mp_server_t;
+
+
+typedef enum sirinet_protocal_msg_tp
+{
+
     SN_MSG_INVALID_CREDENTIALS,             // Empty
     SN_MSG_AUTH_SUCCESS,                    // Empty
     SN_MSG_NOT_AUTHENTICATED,               // Empty
@@ -41,9 +67,9 @@ typedef enum sirinet_msg_tp
     SN_MSG_ACK,                             // Empty
 } sirinet_msg_t;
 
-typedef enum sirinet_backend_protocol_client_tp
+typedef enum sirinet_protocol_backend_client_tp
 {
-    BP_AUTH_REQUEST,                        /* (uuid, dbname, flags, version,
+    BP_AUTH_REQUEST=128,                    /* (uuid, dbname, flags, version,
                                                 min_version, dbpath, buffer_path,
                                                 buffer_size, startup_time) */
     BP_FLAGS_UPDATE,                        // flags
@@ -52,10 +78,11 @@ typedef enum sirinet_backend_protocol_client_tp
     BP_LOG_LEVEL_UPDATE,                    // log_level
 } bp_client_t;
 
-typedef enum sirinet_backend_protocol_server_tp
+typedef enum sirinet_protocol_backend_server_tp
 {
-    BP_QUERY_ERROR=SN_MSG_QUERY_ERROR,      // string
-    BP_QUERY_RESPONSE=SN_MSG_RESULT,        // data (query respose)
+    BP_ERR_QUERY=MP_ERR_QUERY,              // {"error_msg": ...}
+    BP_RES_QUERY=MP_RES_QUERY,              // {query response data}
+
     BP_AUTH_SUCCESS=128,                    // Empty
     BP_FLAGS_ACK,                           // Empty
     BP_LOG_LEVEL_ACK,                       // Empty

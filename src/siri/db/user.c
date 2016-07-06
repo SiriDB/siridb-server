@@ -39,11 +39,17 @@ siridb_user_t * siridb_user_new(void)
     return user;
 }
 
+/*
+ * Increment the user reference counter.
+ */
 inline void siridb_user_incref(siridb_user_t * user)
 {
     user->ref++;
 }
 
+/*
+ * Decrement user reference counter and free the user when zero is reached.
+ */
 void siridb_user_decref(siridb_user_t * user)
 {
     if (!--user->ref)
@@ -147,6 +153,9 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
     return -1;
 }
 
+/*
+ * Destroy user. (parsing NULL is not allowed)
+ */
 static void USER_free(siridb_user_t * user)
 {
 #ifdef DEBUG

@@ -20,22 +20,17 @@
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
-#define ALLOC_BUFFER                                                        \
-series->buffer = (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));       \
-series->buffer->points = siridb_points_new(                                 \
-        /* this buffer can hold 1 more point than actual on disk */         \
-        siridb->buffer_len, series->tp);
+static siridb_buffer_t * BUFFER_new(
+        siridb_t * siridb,
+        siridb_series_t * series);
 
 /*
- * Destroy buffer. (parsing NULL is allowed)
+ * Destroy buffer. (parsing NULL is not allowed)
  */
-void siridb_free_buffer(siridb_buffer_t * buffer)
+void siridb_buffer_free(siridb_buffer_t * buffer)
 {
-    if (buffer != NULL)
-    {
-        siridb_points_free(buffer->points);
-        free(buffer);
-    }
+    siridb_points_free(buffer->points);
+    free(buffer);
 }
 
 /*
@@ -133,37 +128,57 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
     return siri_err;
 }
 
-void siridb_buffer_write_len(
+/*
+ * Returns 0 if success or EOF in case of an error.
+ */
+int siridb_buffer_write_len(
         siridb_t * siridb,
         siridb_series_t * series)
 {
-    /* go to the series position in buffer */
-    fseek(  siridb->buffer_fp,
-            series->buffer->bf_offset + sizeof(uint32_t),
-            SEEK_SET);
+    return (
+        /* go to the series position in buffer */
+        fseek(  siridb->buffer_fp,
+                series->buffer->bf_offset + sizeof(uint32_t),
+                SEEK_SET) ||
 
-    /* write new length */
-    fwrite(&series->buffer->points->len, sizeof(size_t), 1, siridb->buffer_fp);
+        /* write new length */
+        fwrite( &series->buffer->points->len,
+                sizeof(size_t),
+                1,
+                siridb->buffer_fp) != 1) ? EOF : 0;
 }
 
-void siridb_buffer_write_point(
+/*
+ * Waring: we must check if the new point fits inside the buffer before using
+ * the 'siridb_buffer_write_point()' function.
+ *
+ * Returns 0 if success or EOF in case of an error.
+ */
+int siridb_buffer_write_point(
         siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val)
 {
-    siridb_buffer_write_len(siridb, series);
+    return (
+        siridb_buffer_write_len(siridb, series) ||
 
-    /* jump to position where to write the new point */
-    fseek(siridb->buffer_fp, 16 * (series->buffer->points->len - 1), SEEK_CUR);
+        /* jump to position where to write the new point */
+        fseek(  siridb->buffer_fp,
+                16 * (series->buffer->points->len - 1),
+                SEEK_CUR) ||
 
-    /* write time-stamp */
-    fwrite(ts, sizeof(uint64_t), 1, siridb->buffer_fp);
+        /* write time-stamp */
+        fwrite(ts, sizeof(uint64_t), 1, siridb->buffer_fp) != 1 ||
 
-    /* write value */
-    fwrite(val, sizeof(qp_via_t), 1, siridb->buffer_fp);
+        /* write value */
+        fwrite(val, sizeof(qp_via_t), 1, siridb->buffer_fp) != 1) ? EOF : 0;
 }
 
+
+/*
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ */
 int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
 {
     /* get file descriptor */
@@ -182,22 +197,38 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
     }
 
     /* allocate new buffer */
-    ALLOC_BUFFER
+    if ((series->buffer = BUFFER_new(siridb, series)) == NULL)
+    {
+        return -1;  /* signal is raised */
+    }
 
     /* bind the current offset to the new series */
-    series->buffer->bf_offset = ftell(siridb->buffer_fp);
+    if ((series->buffer->bf_offset = ftell(siridb->buffer_fp)) == -1)
+    {
+        ERR_FILE
+        return -1;
+    }
 
     /* write series ID to buffer */
     if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->buffer_fp) != 1)
+    {
+        ERR_FILE
         return -1;
+    }
 
     /* fill buffer with zeros */
     if (ftruncate(buffer_fd, series->buffer->bf_offset + siridb->buffer_size))
+    {
+        ERR_FILE
         return -1;
+    }
 
     /* commit changes to disk */
     if (fsync(buffer_fd))
+    {
+        ERR_FILE
         return -1;
+    }
 
     return 0;
 }
@@ -215,7 +246,11 @@ int siridb_buffer_open(siridb_t * siridb)
     return 0;
 }
 
-int siridb_load_buffer(siridb_t * siridb)
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * (signal might be raised)
+ */
+int siridb_buffer_load(siridb_t * siridb)
 {
     FILE * fp;
     FILE * fp_temp;
@@ -236,7 +271,7 @@ int siridb_load_buffer(siridb_t * siridb)
         log_error(
                 "Temporary buffer file found: '%s'. "
                 "Check if something went wrong or remove this file", fn_temp);
-        return 1;
+        return -1;
     }
 
     if (access(fn, F_OK) == -1)
@@ -245,23 +280,22 @@ int siridb_load_buffer(siridb_t * siridb)
         if ((fp = fopen(fn, "w")) == NULL)
         {
             log_critical("Cannot create buffer file '%s'.", fn);
-            return 1;
+            return -1;
         }
-        fclose(fp);
-        return 0;
+        return fclose(fp);
     }
 
     if ((fp = fopen(fn, "r")) == NULL)
     {
         log_critical("Cannot open '%s' for reading", fn);
-        return 1;
+        return -1;
     }
 
     if ((fp_temp = fopen(fn_temp, "w")) == NULL)
     {
         log_critical("Cannot open '%s' for writing", fn_temp);
         fclose(fp);
-        return 1;
+        return -1;
     }
 
     while ((num = fread(buffer, siridb->buffer_size, read_at_once, fp)))
@@ -275,9 +309,20 @@ int siridb_load_buffer(siridb_t * siridb)
                     imap32_get(siridb->series_map, *((uint32_t *) pt));
 
             if (series == NULL)
+            {
                 continue;
+            }
 
-            ALLOC_BUFFER
+            series->buffer = BUFFER_new(siridb, series);
+            if (series->buffer == NULL)
+            {
+                log_critical("Cannot allocate a buffer for series id %u",
+                        series->id);
+                fclose(fp);
+                fclose(fp_temp);
+
+                return -1;  /* signal is raised */
+            }
 
             series->buffer->bf_offset = offset;
 
@@ -304,23 +349,48 @@ int siridb_load_buffer(siridb_t * siridb)
             {
                 log_critical("Could not write to temporary buffer file: '%s'",
                         fn_temp);
-
                 fclose(fp);
                 fclose(fp_temp);
 
-                return 1;
+                return -1;
             }
         }
     }
 
-    fclose(fp);
-    fclose(fp_temp);
-
-    if (rename(fn_temp, fn))
+    if (fclose(fp) ||
+        fclose(fp_temp) ||
+        rename(fn_temp, fn))
     {
         log_critical("Could not rename '%s' to '%s'.", fn_temp, fn);
-        return 1;
+        return -1;
     }
 
     return 0;
+}
+
+/*
+ * Returns a buffer that can hold 1 more point than actual on disk.
+ *
+ * NULL and a SIGNAL is raised in case an error has occurred.
+ */
+static siridb_buffer_t * BUFFER_new(
+        siridb_t * siridb,
+        siridb_series_t * series)
+{
+    siridb_buffer_t * buffer =
+            (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));
+    if (buffer == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        buffer->points = siridb_points_new(siridb->buffer_len, series->tp);
+        if (buffer->points == NULL)
+        {
+            free(buffer);
+            buffer = NULL;  /* signal is raised */
+        }
+    }
+    return buffer;
 }

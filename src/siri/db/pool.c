@@ -54,9 +54,27 @@ uint16_t siridb_pool_sn_raw(
  * Returns 1 (true) if at least one server in the pool is online, 0 (false)
  * if no server in the pool is online.
  *
- * A server is considered  'online' when connected and authenticated.
+ * A server is  'online' when at least connected and authenticated.
  */
 int siridb_pool_online(siridb_pool_t * pool)
+{
+    for (uint16_t i = 0; i < pool->len; i++)
+    {
+        if (siridb_server_is_online(pool->server[i]))
+        {
+            return 1;  // true
+        }
+    }
+    return 0;  // false
+}
+
+/*
+ * Returns 1 (true) if at least one server in the pool is available, 0 (false)
+ * if no server in the pool is available.
+ *
+ * A server is  'available' when and only when connected and authenticated.
+ */
+int siridb_pool_available(siridb_pool_t * pool)
 {
     for (uint16_t i = 0; i < pool->len; i++)
     {

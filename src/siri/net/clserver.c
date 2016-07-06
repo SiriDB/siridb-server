@@ -223,6 +223,7 @@ static int CLSERVER_send_server_error(
     int len, rc;
     sirinet_pkg_t * package;
 
+    qp_packer_t * packer =
     len = (siridb == NULL) ?
             asprintf(
             &err_msg,
@@ -230,7 +231,62 @@ static int CLSERVER_send_server_error(
             :
             asprintf(
             &err_msg,
-            "error, '%s' is not accepting request because of having status: %u",
+            "error, '%s' is not accepting then request because of having "
+            "status: %u",
+            siridb->server->name,
+            siridb->server->flags);
+
+    if (len < 0)
+    {
+        ERR_ALLOC
+        rc = -1;
+    }
+    else
+    {
+        log_debug(err_msg);
+
+        package = sirinet_pkg_new(pkg->pid, len, SN_MSG_SERVER_ERROR, err_msg);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(stream, package);
+
+            /* free package and err_msg*/
+            free(package);
+            rc = 0;
+        }
+        else
+        {
+            rc = -1;
+        }
+        free(err_msg);
+    }
+
+    return rc;
+}
+
+/*
+ * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ */
+static int CLSERVER_send_pools_error(
+        uv_stream_t * stream,
+        const sirinet_pkg_t * pkg)
+{
+    /* WARNING: siridb can be NULL here */
+
+    char * err_msg;
+    int len, rc;
+    sirinet_pkg_t * package;
+
+    len = (siridb == NULL) ?
+            asprintf(
+            &err_msg,
+            "error, not accepting the request because the sever is not running")
+            :
+            asprintf(
+            &err_msg,
+            "error, '%s' is not accepting then request because of having "
+            "status: %u",
             siridb->server->name,
             siridb->server->flags);
 
@@ -310,7 +366,16 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
     }
 
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    if (unpacker == NULL)
+    {
+        return;  /* signal is raised */
+    }
     qp_obj_t * qp_obj = qp_object_new();
+    if (qp_obj == NULL)
+    {
+        free(unpacker);
+        return;
+    }
     qp_packer_t * packer[siridb->pools->len];
     siridb_insert_err_t rc;
 
@@ -334,12 +399,14 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         /* create and send package */
         sirinet_pkg_t * package = sirinet_pkg_new(
                 pkg->pid, strlen(err_msg), SN_MSG_INSERT_ERROR, err_msg);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send((uv_stream_t *) client, package);
 
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send((uv_stream_t *) client, package);
-
-        /* free package*/
-        free(package);
+            /* free package*/
+            free(package);
+        }
 
         /* free packer */
         for (size_t n = 0; n < siridb->pools->len; n++)

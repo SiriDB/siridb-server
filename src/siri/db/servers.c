@@ -178,7 +178,7 @@ void siridb_servers_send_pkg(
             continue;
         }
 
-        if (siridb_server_is_available(server))
+        if (siridb_server_is_online(server))
         {
             siridb_server_send_pkg(
                     server,

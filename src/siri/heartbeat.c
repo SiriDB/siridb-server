@@ -72,7 +72,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
             {
                 siridb_server_connect(siridb, server);
             }
-            else if (siridb_server_is_available(server))
+            else if (siridb_server_is_online(server))
             {
                 siridb_server_send_flags(server);
             }

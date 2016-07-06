@@ -31,18 +31,16 @@ int siridb_buffer_new_series(
 
 int siridb_buffer_open(siridb_t * siridb);
 
-int siridb_load_buffer(siridb_t * siridb);
+int siridb_buffer_load(siridb_t * siridb);
 
-void siridb_free_buffer(siridb_buffer_t * buffer);
+void siridb_buffer_free(siridb_buffer_t * buffer);
 
-void siridb_buffer_write_len(
+int siridb_buffer_write_len(
         siridb_t * siridb,
         siridb_series_t * series);
 
-/* Waring: we must check if the new point fits inside the buffer before using
- * the 'siridb_buffer_write_point()' function.
- */
-void siridb_buffer_write_point(
+
+int siridb_buffer_write_point(
         siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,

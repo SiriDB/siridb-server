@@ -18,6 +18,9 @@
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
+/*
+ * This function can raise a SIGNAL.
+ */
 void sirinet_socket_alloc_buffer(
         uv_handle_t * handle,
         size_t suggested_size,
@@ -28,7 +31,15 @@ void sirinet_socket_alloc_buffer(
     if (ssocket->buf == NULL)
     {
         buf->base = (char *) malloc(suggested_size);
-        buf->len = suggested_size;
+        if (buf->base == NULL)
+        {
+            ERR_ALLOC
+            buf->len = 0;
+        }
+        else
+        {
+            buf->len = suggested_size;
+        }
     }
     else
     {
@@ -43,6 +54,9 @@ void sirinet_socket_alloc_buffer(
     }
 }
 
+/*
+ * This function can raise a SIGNAL.
+ */
 void sirinet_socket_on_data(
         uv_stream_t * client,
         ssize_t nread,
@@ -80,6 +94,7 @@ void sirinet_socket_on_data(
 
             if (nread == total_sz)
             {
+                /* Call on-data function */
                 (*ssocket->on_data)((uv_handle_t *) client, pkg);
                 free(buf->base);
                 return;
@@ -97,7 +112,10 @@ void sirinet_socket_on_data(
 
             ssocket->buf = (buf->len < total_sz) ?
                 (char *) realloc(buf->base, total_sz) : buf->base;
-
+            if (ssocket->buf == NULL)
+            {
+                ERR_ALLOC
+            }
         }
         else
         {
@@ -124,6 +142,10 @@ void sirinet_socket_on_data(
         if (buf->len < total_sz)
         {
             ssocket->buf = (char *) realloc(ssocket->buf, total_sz);
+            if (ssocket->buf == NULL)
+            {
+                ERR_ALLOC
+            }
         }
     }
     else
@@ -140,6 +162,7 @@ void sirinet_socket_on_data(
 
     if (ssocket->len == pkg->len + PKG_HEADER_SIZE)
     {
+        /* Call on-data function. */
         (*ssocket->on_data)((uv_handle_t *) client, pkg);
     }
     else
@@ -154,13 +177,35 @@ void sirinet_socket_on_data(
     ssocket->buf = NULL;
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
 {
     uv_tcp_t * socket = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
-    socket->data = SOCKET_new(tp, cb);
+    if (socket == NULL)
+    {
+        ERR_ALLOC
+    }
+    else if ((socket->data = SOCKET_new(tp, cb)) == NULL)
+    {
+        free(socket);
+        socket = NULL;  /* signal is raised */
+    }
     return socket;
 }
 
+/*
+ * Destroy socket. (parsing NULL is not allowed)
+ *
+ * We know three different socket types:
+ *  - client: used for clients. a user object might be destroyed.
+ *  - backend: used to connect to other servers. a server might be destroyed.
+ *  - server: user for severs connecting to here. a server might be destroyed.
+ *
+ *  In case a server is destroyed, remaining promises will be cancelled and
+ *  the call-back functions will be called.
+ */
 void sirinet_socket_free(uv_tcp_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
@@ -196,18 +241,26 @@ void sirinet_socket_free(uv_tcp_t * client)
     free(client);
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
 {
     sirinet_socket_t * ssocket =
             (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
-
-    ssocket->tp = tp;
-    ssocket->on_data = cb;
-    ssocket->buf = NULL;
-    ssocket->len = 0;
-    ssocket->origin = NULL;
-    ssocket->siridb = NULL;
-
+    if (ssocket == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        ssocket->tp = tp;
+        ssocket->on_data = cb;
+        ssocket->buf = NULL;
+        ssocket->len = 0;
+        ssocket->origin = NULL;
+        ssocket->siridb = NULL;
+    }
     return ssocket;
 }
 

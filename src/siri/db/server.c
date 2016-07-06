@@ -87,6 +87,11 @@ inline void siridb_server_incref(siridb_server_t * server)
     server->ref++;
 }
 
+/*
+ * Decrement server reference counter and free the server when zero is reached.
+ * When the server is destroyed, all remaining server->promises are cancelled
+ * and each promise->cb() will be called.
+ */
 void siridb_server_decref(siridb_server_t * server)
 {
     if (!--server->ref)
@@ -95,6 +100,9 @@ void siridb_server_decref(siridb_server_t * server)
     }
 }
 
+/*
+ * This function can raise a SIGNAL.
+ */
 void siridb_server_send_pkg(
         siridb_server_t * server,
         uint32_t len,
@@ -111,8 +119,19 @@ void siridb_server_send_pkg(
 #endif
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    if (promise == NULL)
+    {
+        ERR_ALLOC
+        return;
+    }
 
     promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
+    if (promise->timer == NULL)
+    {
+        ERR_ALLOC
+        free(promise);
+        return;
+    }
     promise->timer->data = promise;
     promise->cb = cb;
     /*
@@ -123,16 +142,29 @@ void siridb_server_send_pkg(
     promise->pid = server->pid;
     promise->data = data;
 
+    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    if (req == NULL)
+    {
+        ERR_ALLOC
+        free(promise->timer);
+        free(promise);
+        return;
+    }
+
+    if (imap64_add(server->promises, promise->pid, promise))
+    {
+        free(promise->timer);
+        free(promise);
+        free(req);
+        return;  /* signal is raised */
+    }
+
     uv_timer_init(siri.loop, promise->timer);
     uv_timer_start(
             promise->timer,
             SERVER_timeout_pkg,
             (timeout) ? timeout : PROMISE_DEFAULT_TIMEOUT,
             0);
-
-    imap64_add(server->promises, promise->pid, promise);
-
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
 
     req->data = promise;
 
@@ -141,24 +173,33 @@ void siridb_server_send_pkg(
             len,
             tp,
             content);
+    if (pkg != NULL)
+    {
+        uv_buf_t wrbuf = uv_buf_init(
+                (char *) pkg,
+                PKG_HEADER_SIZE + pkg->len);
 
-    uv_buf_t wrbuf = uv_buf_init(
-            (char *) pkg,
-            PKG_HEADER_SIZE + pkg->len);
+        uv_write(
+                req,
+                (uv_stream_t *) server->socket,
+                &wrbuf,
+                1,
+                SERVER_write_cb);
 
-    uv_write(req, (uv_stream_t *) server->socket, &wrbuf, 1, SERVER_write_cb);
-
-    free(pkg);
-
+        free(pkg);
+    }
     server->pid++;
 }
 
+/*
+ * This function can raise a SIGNAL.
+ */
 void siridb_server_send_flags(siridb_server_t * server)
 {
 
 #ifdef DEBUG
     assert (server->socket != NULL);
-    assert (siridb_server_is_available(server));
+    assert (siridb_server_is_online(server));
 #endif
 
     sirinet_socket_t * ssocket = server->socket->data;
@@ -180,6 +221,9 @@ void siridb_server_send_flags(siridb_server_t * server)
             NULL);
 }
 
+/*
+ * Write call-back.
+ */
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
     if (status)
@@ -204,6 +248,9 @@ static void SERVER_write_cb(uv_write_t * req, int status)
     free(req);
 }
 
+/*
+ * Timeout received.
+ */
 static void SERVER_timeout_pkg(uv_timer_t * handle)
 {
     sirinet_promise_t * promise = handle->data;
@@ -228,6 +275,9 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     promise->cb(promise, NULL, PROMISE_TIMEOUT_ERROR);
 }
 
+/*
+ * This function can raise a SIGNAL.
+ */
 static void SERVER_on_connect(uv_connect_t * req, int status)
 {
     sirinet_socket_t * ssocket = req->handle->data;
@@ -245,29 +295,31 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_on_data);
 
         qp_packer_t * packer = qp_packer_new(512);
-
-        qp_add_type(packer, QP_ARRAY_OPEN);
-
-        qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16);
-        qp_add_string_term(packer, ssocket->siridb->dbname);
-        qp_add_int16(packer, ssocket->siridb->server->flags);
-        qp_add_string_term(packer, SIRIDB_VERSION);
-        qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION);
-        qp_add_string_term(packer, ssocket->siridb->dbpath);
-        qp_add_string_term(packer, ssocket->siridb->buffer_path);
-        qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size));
-        qp_add_int32(packer, (int32_t) abs(siri.startup_time));
-
-        siridb_server_send_pkg(
-                server,
-                packer->len,
-                BP_AUTH_REQUEST,
-                packer->buffer,
-                0,
-                SERVER_on_auth_response,
-                NULL);
-
-        qp_packer_free(packer);
+        if (packer != NULL)
+        {
+            if (!(
+                qp_add_type(packer, QP_ARRAY_OPEN) ||
+                qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16) ||
+                qp_add_string_term(packer, ssocket->siridb->dbname) ||
+                qp_add_int16(packer, ssocket->siridb->server->flags) ||
+                qp_add_string_term(packer, SIRIDB_VERSION) ||
+                qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION) ||
+                qp_add_string_term(packer, ssocket->siridb->dbpath) ||
+                qp_add_string_term(packer, ssocket->siridb->buffer_path) ||
+                qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
+                qp_add_int32(packer, (int32_t) abs(siri.startup_time))))
+            {
+                siridb_server_send_pkg(
+                        server,
+                        packer->len,
+                        BP_AUTH_REQUEST,
+                        packer->buffer,
+                        0,
+                        SERVER_on_auth_response,
+                        NULL);
+            }
+            qp_packer_free(packer);
+        }
     }
     else
     {
@@ -280,6 +332,10 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
     free(req);
 }
 
+/*
+ * on-data call-back function.
+ *In case the promise is found, promise->cb() will be called.
+ */
 static void SERVER_on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     sirinet_socket_t * ssocket = client->data;
@@ -523,6 +579,9 @@ int siridb_server_cexpr_cb(
     return -1;
 }
 
+/*
+ * Cancel promise. The promise->cb will be called.
+ */
 static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
 {
     if (!uv_is_closing((uv_handle_t *) promise->timer))
@@ -533,6 +592,10 @@ static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
     promise->cb(promise, NULL, PROMISE_CANCELLED_ERROR);
 }
 
+/*
+ * Free server. If the server has promises, each promise will be cancelled and
+ * so each promise->cb() will be called.
+ */
 static void SERVER_free(siridb_server_t * server)
 {
 #ifdef DEBUG

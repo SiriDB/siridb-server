@@ -34,15 +34,13 @@ typedef struct siridb_pool_walker_s
 } siridb_pool_walker_t;
 
 
-/* lookup by 0 terminated string */
 uint16_t siridb_pool_sn(
         siridb_t * siridb,
         const char * sn);
-
-/* lookup by raw string */
 uint16_t siridb_pool_sn_raw(
         siridb_t * siridb,
         const char * sn,
         size_t len);
-
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond);
+int siridb_pool_online(siridb_pool_t * pool);
+int siridb_pool_available(siridb_pool_t * pool);

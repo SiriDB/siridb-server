@@ -57,6 +57,11 @@ const char series_type_map[3][8] = {
         "string"
 };
 
+/*
+ * Call-back used to compare series properties.
+ *
+ * Returns 1 when series match or 0 if not.
+ */
 int siridb_series_cexpr_cb(
         siridb_series_walker_t * wseries,
         cexpr_condition_t * cond)
@@ -82,12 +87,25 @@ int siridb_series_cexpr_cb(
     return -1;
 }
 
-void siridb_series_add_point(
+/*
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ *
+ * Warning:
+ *      do not call this function after a siri_err has occurred since this
+ *      would risk a stack overflow in case this series has caused the siri_err
+ *      and the buffer length is not reset.
+ */
+int siridb_series_add_point(
         siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val)
 {
+#ifdef DEBUG
+    assert (!siri_err);
+#endif
+    int rc = 0;
+
     series->length++;
     if (*ts < series->start)
     {
@@ -106,17 +124,36 @@ void siridb_series_add_point(
 
         if (series->buffer->points->len == siridb->buffer_len)
         {
-            siridb_buffer_to_shards(siridb, series);
-            series->buffer->points->len = 0;
-            siridb_buffer_write_len(siridb, series);
+            if (siridb_buffer_to_shards(siridb, series))
+            {
+                rc = -1;  /* signal is raised */
+            }
+            else
+            {
+                series->buffer->points->len = 0;
+                if (siridb_buffer_write_len(siridb, series))
+                {
+                    ERR_FILE
+                    rc = -1;
+                }
+            }
         }
         else
         {
-            siridb_buffer_write_point(siridb, series, ts, val);
+            if (siridb_buffer_write_point(siridb, series, ts, val))
+            {
+                ERR_FILE
+                log_critical("Cannot write new point to buffer");
+                rc = -1;
+            }
         }
     }
+    return rc;
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
@@ -130,19 +167,7 @@ siridb_series_t * siridb_series_new(
     series = SERIES_new(siridb, siridb->max_series_id, tp, series_name);
     if (series != NULL)
     {
-        /* We only should add the series to series_map and assume the caller
-         * takes responsibility adding the series to SiriDB -> series
-         */
-        imap32_add(siridb->series_map, series->id, series);
-
-        /* create a buffer for series (except string series) */
-        if (
-                tp != SIRIDB_SERIES_TP_STRING &&
-                siridb_buffer_new_series(siridb, series))
-        {
-            log_critical("Could not create buffer for series '%s'.", series_name);
-        }
-
+        /* add series to the store */
         if (
                 qp_fadd_type(siridb->store, QP_ARRAY3) ||
                 qp_fadd_raw(siridb->store, series_name, len + 1) ||
@@ -152,6 +177,26 @@ siridb_series_t * siridb_series_new(
         {
             ERR_FILE
             log_critical("Cannot write series '%s' to store.", series_name);
+            SERIES_free(series);
+            series = NULL;
+        }
+        /* create a buffer for series (except string series) */
+        else if (
+                tp != SIRIDB_SERIES_TP_STRING &&
+                siridb_buffer_new_series(siridb, series))
+        {
+            /* signal is raised */
+            log_critical("Could not create buffer for series '%s'.",
+                    series_name);
+            SERIES_free(series);
+            series = NULL;
+        }
+        /* We only should add the series to series_map and assume the caller
+         * takes responsibility adding the series to SiriDB -> series
+         */
+        else
+        {
+            imap32_add(siridb->series_map, series->id, series);
         }
     }
     return series;
@@ -229,7 +274,7 @@ int siridb_series_add_idx_num32(
         index->len--;
         return -1;
     }
-    (idx_num32_t *) index->idx = idx;
+    index->idx = idx;
 
     for (; i && start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts; i--)
     {
@@ -560,7 +605,7 @@ int siridb_series_optimize_shard_num32(
         }
         else
         {
-            (idx_num32_t *) series->index->idx = idx;
+            series->index->idx = idx;
         }
     }
 #ifdef DEBUG
@@ -579,7 +624,10 @@ int siridb_series_optimize_shard_num32(
 static void SERIES_free(siridb_series_t * series)
 {
 //    log_debug("Free series!");
-    siridb_free_buffer(series->buffer);
+    if (series->buffer != NULL)
+    {
+        siridb_buffer_free(series->buffer);
+    }
     free(series->index->idx);
     free(series->index);
     free(series);

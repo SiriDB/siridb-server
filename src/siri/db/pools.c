@@ -82,12 +82,37 @@ siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
     return lookup;
 }
 
+/*
+ * Returns 1 (true) if at least one server in each pool is online, 0 (false)
+ * if at least one pool has no server online.
+ *
+ * A server is considered  'online' when connected and authenticated.
+ */
 int siridb_pools_online(siridb_t * siridb)
 {
     for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
     {
         if (    pid != siridb->server->pool &&
                 !siridb_pool_online(siridb->pools->pool + pid))
+        {
+            return 0;  // false
+        }
+    }
+    return 1;  //true
+}
+
+/*
+ * Returns 1 (true) if at least one server in each pool is available, 0 (false)
+ * if at least one pool has no server available.
+ *
+ * A server is  'available' when and only when connected and authenticated.
+ */
+int siridb_pools_available(siridb_t * siridb)
+{
+    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    {
+        if (    pid != siridb->server->pool &&
+                !siridb_pool_available(siridb->pools->pool + pid))
         {
             return 0;  // false
         }
@@ -123,7 +148,7 @@ void siridb_pools_send_pkg(
 
         for (uint16_t i = 0; i < pool->len; i++)
         {
-            if (siridb_server_is_available(pool->server[i]))
+            if (siridb_server_is_online(pool->server[i]))
             {
                 server = (server == NULL) ?
                         pool->server[i] : pool->server[rand() % 2];

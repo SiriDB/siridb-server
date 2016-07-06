@@ -98,7 +98,7 @@ int siridb_series_add_idx_num32(
         uint32_t pos,
         uint16_t len);
 
-void siridb_series_add_idx_num64(
+int siridb_series_add_idx_num64(
         siridb_series_idx_t * index,
         siridb_shard_t * shard,
         uint64_t start_ts,
@@ -106,7 +106,7 @@ void siridb_series_add_idx_num64(
         uint32_t pos,
         uint16_t len);
 
-void siridb_series_add_point(
+int siridb_series_add_point(
         siridb_t * siridb,
         siridb_series_t * series,
         uint64_t * ts,

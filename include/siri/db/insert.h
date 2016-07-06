@@ -15,11 +15,9 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
-#define SIRIDB_INSERT_ERR_SIZE 9
-
 typedef enum
 {
-    ERR_EXPECTING_ARRAY=-SIRIDB_INSERT_ERR_SIZE,
+    ERR_EXPECTING_ARRAY=-9,
     ERR_EXPECTING_SERIES_NAME,
     ERR_EXPECTING_MAP_OR_ARRAY,
     ERR_EXPECTING_INTEGER_TS,
@@ -28,7 +26,6 @@ typedef enum
     ERR_EXPECTING_AT_LEAST_ONE_POINT,
     ERR_EXPECTING_NAME_AND_POINTS,
     ERR_MEM_ALLOC,          // This is a critical error.
-    SUCCESS_ZERO_POINTS,    // successful but zero points are inserted.
 } siridb_insert_err_t;
 
 typedef struct siridb_s siridb_t;
@@ -41,6 +38,7 @@ typedef struct siridb_insert_s
     uv_close_cb free_cb;    /* must be on top */
     uint64_t pid;
     uv_handle_t * client;
+    qp_packer_t * response;
     size_t size;        /* number of points */
     uint16_t packer_size; /* number of packers (one for each pool) */
     qp_packer_t * packer[];

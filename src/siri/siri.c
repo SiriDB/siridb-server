@@ -259,7 +259,7 @@ static int SIRI_load_databases(void)
         }
 
         /* load buffer */
-        if (siridb_load_buffer(siridb))
+        if (siridb_buffer_load(siridb))
         {
             log_error("Could not read buffer for database '%s'", siridb->dbname);
             closedir(db_container_path);
