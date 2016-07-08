@@ -214,7 +214,7 @@ void siridb_server_send_flags(siridb_server_t * server)
     siridb_server_send_pkg(
             server,
             3,
-            BP_FLAGS_UPDATE,
+            BPROTO_FLAGS_UPDATE,
             buffer,
             0,
             SERVER_on_flags_update_response,
@@ -312,7 +312,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 siridb_server_send_pkg(
                         server,
                         packer->len,
-                        BP_AUTH_REQUEST,
+                        BPROTO_AUTH_REQUEST,
                         packer->buffer,
                         0,
                         SERVER_on_auth_response,
@@ -654,7 +654,7 @@ static void SERVER_on_auth_response(
                 promise->server->name,
                 sirinet_promise_strstatus(status));
     }
-    else if (pkg->tp == BP_AUTH_SUCCESS)
+    else if (pkg->tp == BPROTO_AUTH_SUCCESS)
     {
         log_info("Successful authenticated to server '%s'",
                 promise->server->name);
@@ -685,7 +685,7 @@ static void SERVER_on_flags_update_response(
                 promise->server->name,
                 sirinet_promise_strstatus(status));
     }
-    else if (pkg->tp == BP_FLAGS_ACK)
+    else if (pkg->tp == BPROTO_FLAGS_ACK)
     {
         log_debug("Flags ACK received from '%s'", promise->server->name);
     }

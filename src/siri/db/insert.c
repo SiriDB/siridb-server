@@ -43,7 +43,7 @@ static int INSERT_read_points(
         qp_packer_t * packer,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,
-        int32_t * count);
+        ssize_t * count);
 
 
 /*
@@ -323,14 +323,14 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         }
         else
         {
-            siridb_server_send_pkg(
-                    server,
-                    len,
-                    tp,
-                    content,
-                    timeout,
-                    sirinet_promise_on_response,
-                    promises);
+//            siridb_server_send_pkg(
+//                    server,
+//                    len,
+//                    tp,
+//                    content,
+//                    timeout,
+//                    sirinet_promise_on_response,
+//                    promises);
         }
     }
 
@@ -338,10 +338,14 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 
     if (insert->response != NULL)
     {
+        cproto_client_t tp;
+
         /* this will fit for sure */
         qp_add_type(insert->response, QP_MAP_OPEN);
+
         if (siri_err)
         {
+            tp = CPROTO_ERR_INSERT;
             qp_add_raw(insert->response, "error_msg", 9);
             qp_add_fmt(
                     insert->response,
@@ -352,6 +356,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         }
         else
         {
+            tp = CPROTO_RES_INSERT;
             qp_add_raw(insert->response, "success_msg", 11);
             qp_add_fmt(
                     insert->response,
@@ -366,7 +371,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         sirinet_pkg_t * pkg = sirinet_pkg_new(
                 insert->pid,
                 insert->response->len,
-                SN_MSG_RESULT,
+                tp,
                 insert->response->buffer);
 
         if (pkg != NULL)
@@ -395,9 +400,9 @@ static ssize_t INSERT_assign_by_map(
         qp_packer_t * packer[],
         qp_obj_t * qp_obj)
 {
-    qp_types_t tp;
+    int tp;  /* use int instead of qp_types_t for negative values */
     uint16_t pool;
-    int32_t count = 0;
+    ssize_t count = 0;
 
     tp = qp_next(unpacker, qp_obj);
 
@@ -445,9 +450,9 @@ static ssize_t INSERT_assign_by_array(
         qp_obj_t * qp_obj,
         qp_packer_t * tmp_packer)
 {
-    qp_types_t tp;
+    int tp;  /* use int instead of qp_types_t for negative values */
     uint16_t pool;
-    int32_t count = 0;
+    ssize_t count = 0;
     tp = qp_next(unpacker, qp_obj);
 
     while (tp == QP_MAP2)
@@ -537,7 +542,7 @@ static int INSERT_read_points(
         qp_packer_t * packer,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_obj,
-        int32_t * count)
+        ssize_t * count)
 {
     qp_types_t tp;
 

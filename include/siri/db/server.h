@@ -24,7 +24,9 @@
 #define SERVER_FLAG_SYNCHRONIZING 4
 #define SERVER_FLAG_REINDEXING 8
 #define SERVER_FLAG_WILL_BE_REMOVED 16
-#define SERVER_FLAG_AUTHENTICATED 32  // must be the last (we depend on this)
+#define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
+                                         and will NEVER be set on 'this'
+                                         server */
 
 #define SERVER__IS_ONLINE 33  // RUNNING + AUTHENTICATED
 
@@ -32,13 +34,13 @@
  * A server is  'online' when at least connected and authenticated.
  */
 #define siridb_server_is_online(server) \
-    (server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE
+    ((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
 
 /*
- * A server is  'available' when and only when connected and authenticated.
+ * A server is  'available' when and ONLY when connected and authenticated.
  */
 #define siridb_server_is_available(server) \
-    server->flags == SERVER__IS_ONLINE
+    (server->flags == SERVER__IS_ONLINE)
 
 typedef struct siridb_s siridb_t;
 typedef struct sirinet_promise_s sirinet_promise_t;

@@ -143,14 +143,14 @@ void siridb_send_query_result(uv_async_t * handle)
     if (query->packer == NULL)
     {
         sprintf(query->err_msg, "CRITICAL: We have nothing to send!");
-        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+        return siridb_send_error(handle, CPROTO_ERR_QUERY);
     }
 #endif
     sirinet_pkg_t * package;
     package = sirinet_pkg_new(
             query->pid,
             query->packer->len,
-            SN_MSG_RESULT,
+            CPROTO_RES_QUERY,
             query->packer->buffer);
     /* ignore result code, signal can be raised */
     sirinet_pkg_send((uv_stream_t *) query->client, package);
@@ -165,17 +165,14 @@ void siridb_send_query_result(uv_async_t * handle)
  */
 void siridb_send_error(
         uv_async_t * handle,
-        sirinet_msg_t err)
+        cproto_client_t err)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    sirinet_pkg_t * package;
-    size_t len = strlen(query->err_msg);
-
-    package = sirinet_pkg_new(
-            query->pid,
-            len,
-            err,  // usually this is SN_MSG_QUERY_ERROR
-            query->err_msg);
+    sirinet_pkg_t * package = sirinet_pkg_err(
+                query->pid,
+                strlen(query->err_msg),
+                err,  // usually this is CPROTO_ERR_QUERY
+                query->err_msg);
 
     if (package != NULL)
     {
@@ -214,7 +211,7 @@ void siridb_query_forward(
 
     switch (tp)
     {
-    case BP_QUERY_SERVER:
+    case BPROTO_QUERY_SERVER:
         siridb_servers_send_pkg(
                 ((sirinet_socket_t *) query->client->data)->siridb,
                 packer->len,
@@ -225,7 +222,7 @@ void siridb_query_forward(
                 handle);
         break;
 
-    case BP_QUERY_POOL:
+    case BPROTO_QUERY_POOL:
         siridb_pools_send_pkg(
                 ((sirinet_socket_t *) query->client->data)->siridb,
                 packer->len,
@@ -362,7 +359,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
 
         expecting = expecting->next;
     }
-    siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+    siridb_send_error(handle, CPROTO_ERR_QUERY);
 }
 
 static void siridb_send_motd(uv_async_t * handle)
@@ -431,7 +428,7 @@ static void QUERY_parse(uv_async_t * handle)
             assert(0);
         }
         siridb_nodes_free(siridb_walker_free(walker));
-        return siridb_send_error(handle, SN_MSG_QUERY_ERROR);
+        return siridb_send_error(handle, CPROTO_ERR_QUERY);
     }
 
     /* free the walker but keep the nodes list */

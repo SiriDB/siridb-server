@@ -27,7 +27,7 @@ typedef struct siridb_shard_s siridb_shard_t;
 #define SIRIDB_SERIES_TP_DOUBLE 1  // SIRIDB_POINTS_TP_DOUBLE
 #define SIRIDB_SERIES_TP_STRING 2  // SIRIDB_POINTS_TP_STRING
 
-#define siridb_series_isnum(series) series->tp != SIRIDB_SERIES_TP_STRING
+#define siridb_series_isnum(series) (series->tp != SIRIDB_SERIES_TP_STRING)
 
 #define SIRIDB_QP_MAP2_TP(TP)                                               \
     (TP == QP_INT64) ? SIRIDB_SERIES_TP_INT :                               \

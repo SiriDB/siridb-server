@@ -25,8 +25,13 @@ typedef struct sirinet_pkg_s
 } sirinet_pkg_t;
 
 
-/* do not forget to run free(pkg) when using sirinet_new_pkg */
 sirinet_pkg_t * sirinet_pkg_new(
+        uint64_t pid,
+        uint32_t len,
+        uint16_t tp,
+        const char * data);
+
+sirinet_pkg_t * sirinet_pkg_err(
         uint64_t pid,
         uint32_t len,
         uint16_t tp,

@@ -32,7 +32,7 @@ sirinet_socket_t * ssocket = client->data;                                  \
 if (ssocket->siridb == NULL)                                                \
 {                                                                           \
     sirinet_pkg_t * package;                                                \
-    package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_NOT_AUTHENTICATED, NULL); \
+    package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR_NOT_AUTHENTICATED, NULL); \
     if (package != NULL)                                                    \
     {                                                                       \
         sirinet_pkg_send((uv_stream_t *) client, package);                  \
@@ -51,10 +51,18 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static int CLSERVER_send_server_error(
+static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg);
+static void CLSERVER_send_pool_error(
+        uv_stream_t * stream,
+        const sirinet_pkg_t * pkg);
+
+#define POOL_ERR_MSG \
+    "At least one pool has no server available to process the request"
+
+#define POOL_ERR_LEN 64  // exact length of POOL_ERR_MSG
 
 
 int sirinet_clserver_init(siri_t * siri)
@@ -135,19 +143,19 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     /* in case the online flag is not set, we cannot perform any request */
     if (siri.status == SIRI_STATUS_RUNNING)
     {
-        switch (pkg->tp)
+        switch ((mproto_server_t) pkg->tp)
         {
-        case SN_MSG_AUTH_REQUEST:
-            on_auth_request(client, pkg);
-            break;
-        case SN_MSG_QUERY:
+        case CPROTO_REQ_QUERY:
             on_query(client, pkg);
             break;
-        case SN_MSG_PING:
-            on_ping(client, pkg);
-            break;
-        case SN_MSG_INSERT:
+        case CPROTO_REQ_INSERT:
             on_insert(client, pkg);
+            break;
+        case CPROTO_REQ_AUTH:
+            on_auth_request(client, pkg);
+            break;
+        case CPROTO_REQ_PING:
+            on_ping(client, pkg);
             break;
         }
     }
@@ -164,7 +172,7 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
-    sirinet_msg_t rc;
+    cproto_client_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     qp_obj_t * qp_username = qp_object_new();
@@ -182,18 +190,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 qp_username,
                 qp_password,
                 qp_dbname);
-        if (rc == SN_MSG_UNKNOWN_DATABASE)
-        {
-            package = sirinet_pkg_new(
-                    pkg->pid,
-                    qp_dbname->len,
-                    rc,
-                    qp_dbname->via->raw);
-        }
-        else
-        {
-            package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
-        }
+        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send((uv_stream_t *) client, package);
@@ -201,7 +198,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
     }
     else
     {
-        log_error("Invalid client authentication request received.");
+        log_error("Invalid 'on_auth_request' received.");
     }
     qp_object_free(qp_username);
     qp_object_free(qp_password);
@@ -210,9 +207,9 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * A signal is raised in case an allocation error occurred.
  */
-static int CLSERVER_send_server_error(
+static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg)
@@ -220,11 +217,7 @@ static int CLSERVER_send_server_error(
     /* WARNING: siridb can be NULL here */
 
     char * err_msg;
-    int len, rc;
-    sirinet_pkg_t * package;
-
-    qp_packer_t * packer =
-    len = (siridb == NULL) ?
+    int len = (siridb == NULL) ?
             asprintf(
             &err_msg,
             "error, not accepting the request because the sever is not running")
@@ -239,13 +232,16 @@ static int CLSERVER_send_server_error(
     if (len < 0)
     {
         ERR_ALLOC
-        rc = -1;
     }
     else
     {
         log_debug(err_msg);
 
-        package = sirinet_pkg_new(pkg->pid, len, SN_MSG_SERVER_ERROR, err_msg);
+        sirinet_pkg_t * package = sirinet_pkg_err(
+                pkg->pid,
+                len,
+                CPROTO_ERR_SERVER,
+                err_msg);
         if (package != NULL)
         {
             /* ignore result code, signal can be raised */
@@ -253,70 +249,34 @@ static int CLSERVER_send_server_error(
 
             /* free package and err_msg*/
             free(package);
-            rc = 0;
-        }
-        else
-        {
-            rc = -1;
         }
         free(err_msg);
     }
-
-    return rc;
 }
 
 /*
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * A signal is raised in case an allocation error occurred.
  */
-static int CLSERVER_send_pools_error(
+static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
         const sirinet_pkg_t * pkg)
 {
-    /* WARNING: siridb can be NULL here */
+    log_debug(POOL_ERR_MSG);
 
-    char * err_msg;
-    int len, rc;
-    sirinet_pkg_t * package;
+    sirinet_pkg_t * package = sirinet_pkg_err(
+            pkg->pid,
+            POOL_ERR_LEN,
+            CPROTO_ERR_POOL,
+            POOL_ERR_MSG);
 
-    len = (siridb == NULL) ?
-            asprintf(
-            &err_msg,
-            "error, not accepting the request because the sever is not running")
-            :
-            asprintf(
-            &err_msg,
-            "error, '%s' is not accepting then request because of having "
-            "status: %u",
-            siridb->server->name,
-            siridb->server->flags);
-
-    if (len < 0)
+    if (package != NULL)
     {
-        ERR_ALLOC
-        rc = -1;
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send(stream, package);
+
+        /* free package and err_msg*/
+        free(package);
     }
-    else
-    {
-        log_debug(err_msg);
-
-        package = sirinet_pkg_new(pkg->pid, len, SN_MSG_SERVER_ERROR, err_msg);
-        if (package != NULL)
-        {
-            /* ignore result code, signal can be raised */
-            sirinet_pkg_send(stream, package);
-
-            /* free package and err_msg*/
-            free(package);
-            rc = 0;
-        }
-        else
-        {
-            rc = -1;
-        }
-        free(err_msg);
-    }
-
-    return rc;
 }
 
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
@@ -365,6 +325,12 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         return;
     }
 
+    if (!siridb_pools_available(siridb))
+    {
+        CLSERVER_send_pool_error((uv_stream_t *) client, pkg);
+        return;
+    }
+
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     if (unpacker == NULL)
     {
@@ -397,8 +363,12 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
         err_msg = siridb_insert_err_msg(rc);
 
         /* create and send package */
-        sirinet_pkg_t * package = sirinet_pkg_new(
-                pkg->pid, strlen(err_msg), SN_MSG_INSERT_ERROR, err_msg);
+        sirinet_pkg_t * package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_INSERT,
+                err_msg);
+
         if (package != NULL)
         {
             /* ignore result code, signal can be raised */
@@ -436,7 +406,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
 static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
     sirinet_pkg_t * package;
-    package = sirinet_pkg_new(pkg->pid, 0, SN_MSG_ACK, NULL);
+    package = sirinet_pkg_new(pkg->pid, 0, CPROTO_RES_ACK, NULL);
 
     /* ignore result code, signal can be raised */
     sirinet_pkg_send((uv_stream_t *) client, package);

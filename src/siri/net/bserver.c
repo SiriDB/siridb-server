@@ -28,7 +28,7 @@ siridb_server_t * server = ((sirinet_socket_t * ) client->data)->origin;      \
 if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
 {                                                                             \
     sirinet_pkg_t * package;                                                  \
-    package = sirinet_pkg_new(pkg->pid, 0, BP_ERROR_NOT_AUTHENTICATED, NULL); \
+    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_NOT_AUTHENTICATED, NULL); \
     sirinet_pkg_send((uv_stream_t *) client, package);                        \
     free(package);                                                            \
     return;                                                                   \
@@ -121,21 +121,21 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
             pkg->pid, pkg->len, pkg->tp);
 #endif
 
-    switch ((bp_client_t) pkg->tp)
+    switch ((bproto_client_t) pkg->tp)
     {
-    case BP_AUTH_REQUEST:
+    case BPROTO_AUTH_REQUEST:
         on_auth_request(client, pkg);
         break;
-    case BP_FLAGS_UPDATE:
+    case BPROTO_FLAGS_UPDATE:
         on_flags_update(client, pkg);
         break;
-    case BP_LOG_LEVEL_UPDATE:
+    case BPROTO_LOG_LEVEL_UPDATE:
         on_log_level_update(client, pkg);
         break;
-    case BP_QUERY_SERVER:
+    case BPROTO_QUERY_SERVER:
         on_query(client, pkg, 0);
         break;
-    case BP_QUERY_POOL:
+    case BPROTO_QUERY_POOL:
         on_query(client, pkg, SIRIDB_QUERY_FLAG_POOL);
         break;
     }
@@ -144,7 +144,7 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
 static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 {
-    bp_server_t rc;
+    bproto_server_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     qp_obj_t * qp_uuid = qp_object_new();
@@ -174,7 +174,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 qp_dbname,
                 qp_version,
                 qp_min_version);
-        if (rc == BP_AUTH_SUCCESS)
+        if (rc == BPROTO_AUTH_SUCCESS)
         {
             siridb_server_t * server =
                     ((sirinet_socket_t * ) client->data)->origin;
@@ -235,7 +235,7 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 server->name,
                 server->flags);
 
-        package = sirinet_pkg_new(pkg->pid, 0, BP_FLAGS_ACK, NULL);
+        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_FLAGS_ACK, NULL);
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send((uv_stream_t *) client, package);
@@ -266,7 +266,7 @@ static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 server->name,
                 Logger.level_name);
 
-        package = sirinet_pkg_new(pkg->pid, 0, BP_LOG_LEVEL_ACK, NULL);
+        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_LOG_LEVEL_ACK, NULL);
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send((uv_stream_t *) client, package);

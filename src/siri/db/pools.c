@@ -84,7 +84,7 @@ siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
 
 /*
  * Returns 1 (true) if at least one server in each pool is online, 0 (false)
- * if at least one pool has no server online.
+ * if at least one pool has no server online. ('this' pool is NOT included)
  *
  * A server is considered  'online' when connected and authenticated.
  */
@@ -103,9 +103,9 @@ int siridb_pools_online(siridb_t * siridb)
 
 /*
  * Returns 1 (true) if at least one server in each pool is available, 0 (false)
- * if at least one pool has no server available.
+ * if at least one pool has no server available. ('this' pool is NOT included)
  *
- * A server is  'available' when and only when connected and authenticated.
+ * A server is  'available' when and ONLY when connected and authenticated.
  */
 int siridb_pools_available(siridb_t * siridb)
 {

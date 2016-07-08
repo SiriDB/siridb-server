@@ -15,6 +15,8 @@
 #include <string.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <qpack/qpack.h>
+#include <assert.h>
 
 static void PKG_write_cb(uv_write_t * req, int status);
 
@@ -28,7 +30,6 @@ sirinet_pkg_t * sirinet_pkg_new(
         uint16_t tp,
         const char * data)
 {
-
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
 
@@ -45,6 +46,40 @@ sirinet_pkg_t * sirinet_pkg_new(
         {
             memcpy(pkg->data, data, len);
         }
+    }
+    return pkg;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * (do not forget to run free(...) on the result. )
+ */
+sirinet_pkg_t * sirinet_pkg_err(
+        uint64_t pid,
+        uint32_t len,
+        uint16_t tp,
+        const char * data)
+{
+#ifdef DEBUG
+    assert (data != NULL);
+#endif
+
+    sirinet_pkg_t * pkg;
+    qp_packer_t * packer = qp_packer_new(len + 20);
+    if (packer == NULL)
+    {
+        pkg = NULL;  /* signal is raised */
+    }
+    else
+    {
+
+        qp_add_type(packer, QP_MAP_OPEN);
+        qp_add_raw(packer, "error_msg", 9);
+        qp_add_raw(packer, data, len);
+
+        pkg = sirinet_pkg_new(pid, packer->len, tp, packer->buffer);
+
+        qp_packer_free(packer);
     }
     return pkg;
 }
