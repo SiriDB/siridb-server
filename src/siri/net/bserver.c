@@ -40,6 +40,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags);
+static void on_insert_pool(uv_handle_t * client, const sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -138,6 +139,9 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
     case BPROTO_QUERY_POOL:
         on_query(client, pkg, SIRIDB_QUERY_FLAG_POOL);
         break;
+    case BPROTO_INSERT_POOL:
+        on_insert_pool(client, pkg);
+        break;
     }
 
 }
@@ -235,7 +239,7 @@ static void on_flags_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 server->name,
                 server->flags);
 
-        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_FLAGS_ACK, NULL);
+        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_FLAGS, NULL);
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send((uv_stream_t *) client, package);
@@ -266,11 +270,13 @@ static void on_log_level_update(uv_handle_t * client, const sirinet_pkg_t * pkg)
                 server->name,
                 Logger.level_name);
 
-        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_LOG_LEVEL_ACK, NULL);
-
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send((uv_stream_t *) client, package);
-        free(package);
+        package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_LOG_LEVEL, NULL);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send((uv_stream_t *) client, package);
+            free(package);
+        }
     }
     else
     {
@@ -307,6 +313,29 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg, int flags)
     qp_object_free(qp_query);
     qp_object_free(qp_time_precision);
     qp_unpacker_free(unpacker);
+}
+
+static void on_insert_pool(uv_handle_t * client, const sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    sirinet_pkg_t * package;
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+
+    if (unpacker != NULL)
+    {
+        package = ( siridb->server->flags != SERVER_FLAG_RUNNING ||
+                    siridb_insert_pool(siridb, unpacker)) ?
+                sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
+                sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
+        if (package != NULL)
+        {
+            sirinet_pkg_send((uv_stream_t *) client, package);
+            free(package);
+        }
+        qp_unpacker_free(unpacker);
+    }
 }
 
 

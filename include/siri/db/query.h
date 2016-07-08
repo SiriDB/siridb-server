@@ -79,7 +79,7 @@ void siridb_send_error(
 void siridb_query_forward(
         uv_async_t * handle,
         uint16_t tp,
-        sirinet_promises_cb_t cb);
+        sirinet_promises_cb cb);
 
 void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,

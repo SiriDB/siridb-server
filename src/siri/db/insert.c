@@ -23,7 +23,7 @@
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
-static int INSERT_points_to_pool(siridb_insert_t * insert, qp_packer_t * packer);
+static void INSERT_on_response(slist_t * promises, uv_async_t * handle);
 
 static ssize_t INSERT_assign_by_map(
         siridb_t * siridb,
@@ -45,6 +45,7 @@ static int INSERT_read_points(
         qp_obj_t * qp_obj,
         ssize_t * count);
 
+#define MAX_INSERT_MSG 236
 
 /*
  * Return an error message for an insert err.
@@ -141,12 +142,13 @@ ssize_t siridb_insert_assign_pools(
 }
 
 /*
- * Prepare a new insert object an start an async call to 'INSERT_points_to_pools'.
+ * Prepare a new insert object an start an async call
+ * to 'INSERT_points_to_pools'.
  *
  * In case of an error a SIGNAL is raised and 'INSERT_points_to_pools' will not
  * be called.
  */
-void siridb_insert_points(
+void siridb_insert_init(
         uint64_t pid,
         uv_handle_t * client,
         size_t size,
@@ -173,7 +175,6 @@ void siridb_insert_points(
     insert->pid = pid;
     insert->client = client;
     insert->size = size;
-    insert->response = NULL;
 
     /*
      * we keep the packer size because the number of pools might change and
@@ -188,19 +189,18 @@ void siridb_insert_points(
 }
 
 /*
- * Returns 0 if successful and no siri_err is raised or a negative value in
- * case of errors.
+ * Return siri_err which should be 0 if all is successful. Another value is
+ * critical so basically this functions should always return 0.
  *
  * Note that insert->packer[] will be ignored, instead a pointer the correct
  * packer should be parsed to this function.
  *
  * (a SIGNAL will be raised in case of an error)
  */
-static int INSERT_points_to_pool(siridb_insert_t * insert, qp_packer_t * packer)
+int siridb_insert_pool(siridb_t * siridb, qp_unpacker_t * unpacker)
 {
     qp_types_t tp;
     siridb_series_t ** series;
-    siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     qp_obj_t * qp_series_name = qp_object_new();
     qp_obj_t * qp_series_ts = qp_object_new();
     qp_obj_t * qp_series_val = qp_object_new();
@@ -216,50 +216,60 @@ static int INSERT_points_to_pool(siridb_insert_t * insert, qp_packer_t * packer)
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
-    qp_unpacker_t * unpacker = qp_unpacker_new(packer->buffer, packer->len);
-    if (unpacker != NULL)
-    {
-        qp_next(unpacker, NULL); // map
-        tp = qp_next(unpacker, qp_series_name); // first series or end
+    qp_next(unpacker, NULL); // map
+    tp = qp_next(unpacker, qp_series_name); // first series or end
 
-        /*
-         * we check for siri_err because siridb_series_add_point()
-         * should never be called twice on the same series after an
-         * error has occurred.
-         */
-        while (!siri_err && tp == QP_RAW)
+    /*
+     * we check for siri_err because siridb_series_add_point()
+     * should never be called twice on the same series after an
+     * error has occurred.
+     */
+    while (!siri_err && tp == QP_RAW)
+    {
+        series = (siridb_series_t **) ct_get_sure(
+                siridb->series,
+                qp_series_name->via->raw);
+        if (series == NULL)
         {
-            series = (siridb_series_t **) ct_get_sure(
-                    siridb->series,
+            log_critical(
+                    "Error getting or create series: '%s'",
                     qp_series_name->via->raw);
-            if (series == NULL)
+            break;  /* signal is raised */
+        }
+
+        qp_next(unpacker, NULL); // array open
+        qp_next(unpacker, NULL); // first point array2
+        qp_next(unpacker, qp_series_ts); // first ts
+        qp_next(unpacker, qp_series_val); // first val
+
+        if (ct_is_empty(*series))
+        {
+            *series = siridb_series_new(
+                    siridb,
+                    qp_series_name->via->raw,
+                    SIRIDB_QP_MAP2_TP(qp_series_val->tp));
+            if (*series == NULL)
             {
                 log_critical(
-                        "Error getting or create series: '%s'",
+                        "Error creating series: '%s'",
                         qp_series_name->via->raw);
                 break;  /* signal is raised */
             }
+        }
 
-            qp_next(unpacker, NULL); // array open
-            qp_next(unpacker, NULL); // first point array2
-            qp_next(unpacker, qp_series_ts); // first ts
-            qp_next(unpacker, qp_series_val); // first val
+        if (siridb_series_add_point(
+                siridb,
+                *series,
+                (uint64_t *) &qp_series_ts->via->int64,
+                qp_series_val->via))
+        {
+            break;  /* signal is raised */
+        }
 
-            if (ct_is_empty(*series))
-            {
-                *series = siridb_series_new(
-                        siridb,
-                        qp_series_name->via->raw,
-                        SIRIDB_QP_MAP2_TP(qp_series_val->tp));
-                if (*series == NULL)
-                {
-                    log_critical(
-                            "Error creating series: '%s'",
-                            qp_series_name->via->raw);
-                    break;  /* signal is raised */
-                }
-            }
-
+        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        {
+            qp_next(unpacker, qp_series_ts); // ts
+            qp_next(unpacker, qp_series_val); // val
             if (siridb_series_add_point(
                     siridb,
                     *series,
@@ -268,26 +278,11 @@ static int INSERT_points_to_pool(siridb_insert_t * insert, qp_packer_t * packer)
             {
                 break;  /* signal is raised */
             }
-
-            while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
-            {
-                qp_next(unpacker, qp_series_ts); // ts
-                qp_next(unpacker, qp_series_val); // val
-                if (siridb_series_add_point(
-                        siridb,
-                        *series,
-                        (uint64_t *) &qp_series_ts->via->int64,
-                        qp_series_val->via))
-                {
-                    break;  /* signal is raised */
-                }
-            }
-            if (tp == QP_ARRAY_CLOSE)
-            {
-                tp = qp_next(unpacker, qp_series_name);
-            }
         }
-        qp_unpacker_free(unpacker);
+        if (tp == QP_ARRAY_CLOSE)
+        {
+            tp = qp_next(unpacker, qp_series_name);
+        }
     }
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -301,78 +296,77 @@ static int INSERT_points_to_pool(siridb_insert_t * insert, qp_packer_t * packer)
 }
 
 /*
- * In case of an error a SIGNAL is raised and a successful message will not
- * be send to the client.
+ * This function can raise a SIGNAL.
  */
-static void INSERT_points_to_pools(uv_async_t * handle)
+static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 {
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
-    uint16_t pool = siridb->server->pool;
+    sirinet_promise_t * promise;
+    sirinet_pkg_t * pkg;
 
-    for (uint16_t n = 0; n < insert->packer_size; n++)
+    char msg[MAX_INSERT_MSG];
+
+    /* the packer size is big enough to hold MAX_INSERT_MSG */
+    qp_packer_t * packer = qp_packer_new(256);
+
+    if (packer != NULL)
     {
-        if (insert->packer[n]->len == 1)
-        {
-            /* skip empty packer. (empty packer has only QP_MAP_OPEN) */
-            continue;
-        }
-        if (n == pool)
-        {
-            INSERT_points_to_pool(insert, insert->packer[n]);
-        }
-        else
-        {
-//            siridb_server_send_pkg(
-//                    server,
-//                    len,
-//                    tp,
-//                    content,
-//                    timeout,
-//                    sirinet_promise_on_response,
-//                    promises);
-        }
-    }
+        cproto_client_t tp = CPROTO_RES_INSERT;
 
-    insert->response = qp_packer_new(64);
+        for (size_t i = 0; i < promises->len; i++)
+        {
+            promise = promises->data[i];
+            if (siri_err || promise == NULL)
+            {
+                snprintf(msg,
+                        MAX_INSERT_MSG,
+                        "Critical error occurred on '%s'",
+                        siridb->server->name);
+                tp = CPROTO_ERR_INSERT;
+                continue;
+            }
+            pkg = promise->data;
 
-    if (insert->response != NULL)
-    {
-        cproto_client_t tp;
+            if (pkg == NULL || pkg->tp != BPROTO_ACK_INSERT)
+            {
+                snprintf(msg,
+                        MAX_INSERT_MSG,
+                        "Error occurred while sending points to at least '%s'",
+                        promise->server->name);
+                tp = CPROTO_ERR_INSERT;
+            }
+
+            /* make sure we free the promise and data */
+            free(promise->data);
+            free(promise);
+        }
 
         /* this will fit for sure */
-        qp_add_type(insert->response, QP_MAP_OPEN);
+        qp_add_type(packer, QP_MAP_OPEN);
 
-        if (siri_err)
+        if (tp == CPROTO_ERR_INSERT)
         {
-            tp = CPROTO_ERR_INSERT;
-            qp_add_raw(insert->response, "error_msg", 9);
-            qp_add_fmt(
-                    insert->response,
-                    "Error inserting %zd point(s).",
-                    insert->size);
-
-            log_error("Error inserting %zd point(s).", insert->size);
+            qp_add_raw(packer, "error_msg", 9);
         }
         else
         {
-            tp = CPROTO_RES_INSERT;
-            qp_add_raw(insert->response, "success_msg", 11);
-            qp_add_fmt(
-                    insert->response,
+            qp_add_raw(packer, "success_msg", 11);
+            snprintf(msg,
+                    MAX_INSERT_MSG,
                     "Inserted %zd point(s) successfully.",
                     insert->size);
-
-            log_info("Inserted %zd point(s) successfully.", insert->size);
-
+            log_info(msg);
             siridb->received_points += insert->size;
         }
 
+        qp_add_string(packer, msg);
+
         sirinet_pkg_t * pkg = sirinet_pkg_new(
                 insert->pid,
-                insert->response->len,
+                packer->len,
                 tp,
-                insert->response->buffer);
+                packer->buffer);
 
         if (pkg != NULL)
         {
@@ -383,8 +377,81 @@ static void INSERT_points_to_pools(uv_async_t * handle)
             free(pkg);
         }
     }
-
     uv_close((uv_handle_t *) handle, insert->free_cb);
+}
+
+/*
+ * In case of an error a SIGNAL is raised and a successful message will not
+ * be send to the client.
+ */
+static void INSERT_points_to_pools(uv_async_t * handle)
+{
+    siridb_insert_t * insert = (siridb_insert_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
+    uint16_t pool = siridb->server->pool;
+
+    sirinet_promises_t * promises = sirinet_promises_new(
+            siridb->pools->len - 1,
+            (sirinet_promises_cb) INSERT_on_response,
+            handle);
+
+    if (promises == NULL)
+    {
+        return;  /* signal is raised */
+    }
+
+    int pool_count = 0;
+
+    for (uint16_t n = 0; n < insert->packer_size; n++)
+    {
+        if (insert->packer[n]->len == 1)
+        {
+            /* skip empty packer. (empty packer has only QP_MAP_OPEN) */
+            continue;
+        }
+        if (n == pool)
+        {
+            qp_unpacker_t * unpacker = qp_unpacker_new(
+                    insert->packer[n]->buffer,
+                    insert->packer[n]->len);
+
+            /* a signal is set in case creating the unpacker fails and this
+             * signal is handled in the promises->cb function.
+             */
+            if (unpacker != NULL)
+            {
+                siridb_insert_pool(siridb, unpacker);
+                qp_unpacker_free(unpacker);
+            }
+        }
+        else
+        {
+            if (siridb_pool_send_pkg(
+                    siridb->pools->pool + n,
+                    insert->packer[n]->len,
+                    BPROTO_INSERT_POOL,
+                    insert->packer[n]->buffer,
+                    0,
+                    sirinet_promise_on_response,
+                    promises))
+            {
+                log_error(
+                        "Although we have checked and validated each pool "
+                        "had at least one server available, it seems that the "
+                        "situation has changed and we cannot send points to "
+                        "pool %u", n);
+            }
+            else
+            {
+                pool_count++;
+            }
+        }
+    }
+
+    /* pool_count is always smaller than the initial promises->size */
+    promises->promises->size = pool_count;
+
+    SIRINET_PROMISES_CHECK(promises)
 }
 
 /*
@@ -618,11 +685,6 @@ static void INSERT_free(uv_handle_t * handle)
     for (size_t n = 0; n < insert->packer_size; n++)
     {
         qp_packer_free(insert->packer[n]);
-    }
-
-    if (insert->response != NULL)
-    {
-        qp_packer_free(insert->response);
     }
 
     /* free insert */

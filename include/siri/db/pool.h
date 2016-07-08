@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <siri/net/promise.h>
 #include <siri/db/server.h>
 #include <siri/db/db.h>
 #include <inttypes.h>
@@ -19,6 +20,12 @@
 typedef struct siridb_s siridb_t;
 typedef struct siridb_server_s siridb_server_t;
 typedef struct cexpr_condition_s cexpr_condition_t;
+typedef struct sirinet_promise_s sirinet_promise_t;
+
+typedef void (* sirinet_promise_cb)(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status);
 
 typedef struct siridb_pool_s
 {
@@ -44,3 +51,11 @@ uint16_t siridb_pool_sn_raw(
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond);
 int siridb_pool_online(siridb_pool_t * pool);
 int siridb_pool_available(siridb_pool_t * pool);
+int siridb_pool_send_pkg(
+        siridb_pool_t * pool,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promise_cb cb,
+        void * data);

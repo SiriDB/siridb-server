@@ -23,7 +23,7 @@ typedef struct siridb_pool_s siridb_pool_t;
 #define SIRIDB_LOOKUP_SZ 8192
 
 typedef uint_fast16_t siridb_lookup_t[SIRIDB_LOOKUP_SZ];
-typedef void (* sirinet_promises_cb_t)(
+typedef void (* sirinet_promises_cb)(
         slist_t * promises,
         void * data);
 
@@ -45,5 +45,5 @@ void siridb_pools_send_pkg(
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promises_cb_t cb,
+        sirinet_promises_cb cb,
         void * data);

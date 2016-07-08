@@ -44,7 +44,7 @@
 
 typedef struct siridb_s siridb_t;
 typedef struct sirinet_promise_s sirinet_promise_t;
-typedef void (* sirinet_promise_cb_t)(
+typedef void (* sirinet_promise_cb)(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
@@ -99,7 +99,7 @@ void siridb_server_send_pkg(
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promise_cb_t cb,
+        sirinet_promise_cb cb,
         void * data);
 void siridb_server_send_flags(siridb_server_t * server);
 

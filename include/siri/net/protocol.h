@@ -45,6 +45,7 @@ typedef enum
     BPROTO_LOG_LEVEL_UPDATE,                    // log_level
     BPROTO_QUERY_SERVER,                        // (query, time_precision)
     BPROTO_QUERY_POOL,                          // (query, time_precision)
+    BPROTO_INSERT_POOL,                         // {series: points, ...}
 } bproto_client_t;
 
 typedef enum
@@ -53,13 +54,15 @@ typedef enum
     BPROTO_ERR_QUERY=CPROTO_ERR_QUERY,          // {"error_msg": ...}
 
     BPROTO_AUTH_SUCCESS=128,                    // Empty
-    BPROTO_FLAGS_ACK,                           // Empty
-    BPROTO_LOG_LEVEL_ACK,                       // Empty
+    BPROTO_ACK_FLAGS,                           // Empty
+    BPROTO_ACK_LOG_LEVEL,                       // Empty
+    BPROTO_ACK_INSERT,                          // Empty
     BPROTO_AUTH_ERR_UNKNOWN_UUID,               // Empty
     BPROTO_AUTH_ERR_UNKNOWN_DBNAME,             // Empty
     BPROTO_AUTH_ERR_INVALID_UUID,               // Empty
     BPROTO_AUTH_ERR_VERSION_TOO_OLD,            // Empty
     BPROTO_AUTH_ERR_VERSION_TOO_NEW,            // Empty
     BPROTO_ERR_NOT_AUTHENTICATED,               // Empty
+    BPROTO_ERR_INSERT,                          // Empty
 } bproto_server_t;
 

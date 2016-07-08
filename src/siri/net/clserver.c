@@ -387,7 +387,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
     case ERR_MEM_ALLOC:
         break;
     default:
-        siridb_insert_points(
+        siridb_insert_init(
                 pkg->pid,
                 client,
                 (size_t) rc,

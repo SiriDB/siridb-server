@@ -160,7 +160,7 @@ void siridb_servers_send_pkg(
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promises_cb_t cb,
+        sirinet_promises_cb cb,
         void * data)
 {
     sirinet_promises_t * promises =

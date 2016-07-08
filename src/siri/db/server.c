@@ -79,7 +79,7 @@ siridb_server_t * siridb_server_new(
 
 inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
 {
-    return uuid_compare(sa->uuid, sa->uuid);
+    return uuid_compare(sa->uuid, sb->uuid);
 }
 
 inline void siridb_server_incref(siridb_server_t * server)
@@ -109,7 +109,7 @@ void siridb_server_send_pkg(
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promise_cb_t cb,
+        sirinet_promise_cb cb,
         void * data)
 {
 #ifdef DEBUG
@@ -685,7 +685,7 @@ static void SERVER_on_flags_update_response(
                 promise->server->name,
                 sirinet_promise_strstatus(status));
     }
-    else if (pkg->tp == BPROTO_FLAGS_ACK)
+    else if (pkg->tp == BPROTO_ACK_FLAGS)
     {
         log_debug("Flags ACK received from '%s'", promise->server->name);
     }

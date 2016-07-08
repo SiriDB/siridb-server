@@ -30,16 +30,31 @@ const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
     return "";
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 sirinet_promises_t * sirinet_promises_new(
         size_t size,
-        sirinet_promises_cb_t cb,
+        sirinet_promises_cb cb,
         void * data)
 {
     sirinet_promises_t * promises =
             (sirinet_promises_t *) malloc(sizeof(sirinet_promises_t));
-    promises->promises = slist_new(size);
-    promises->cb = cb;
-    promises->data = data;
+    if (promises == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        promises->cb = cb;
+        promises->data = data;
+        promises->promises = slist_new(size);
+        if (promises->promises == NULL)
+        {
+            free(promises);
+            promises = NULL;  /* signal is raised */
+        }
+    }
     return promises;
 }
 

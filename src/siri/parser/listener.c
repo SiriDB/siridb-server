@@ -812,7 +812,7 @@ static void exit_count_servers(uv_async_t * handle)
         siridb_query_forward(
                 handle,
                 BPROTO_QUERY_SERVER,
-                (sirinet_promises_cb_t) on_count_servers_response);
+                (sirinet_promises_cb) on_count_servers_response);
     }
     else
     {
@@ -1127,7 +1127,7 @@ static void exit_list_series(uv_async_t * handle)
         siridb_query_forward(
                 handle,
                 BPROTO_QUERY_POOL,
-                (sirinet_promises_cb_t) on_list_xxx_response);
+                (sirinet_promises_cb) on_list_xxx_response);
     }
     else
     {
@@ -1204,7 +1204,7 @@ static void exit_list_servers(uv_async_t * handle)
         siridb_query_forward(
                 handle,
                 BPROTO_QUERY_SERVER,
-                (sirinet_promises_cb_t) on_list_xxx_response);
+                (sirinet_promises_cb) on_list_xxx_response);
     }
     else
     {
@@ -1389,7 +1389,7 @@ static void exit_set_log_level(uv_async_t * handle)
                     BPROTO_LOG_LEVEL_UPDATE,
                     buffer,
                     0,
-                    (sirinet_promise_cb_t) on_ack_response,
+                    (sirinet_promise_cb) on_ack_response,
                     handle);
         }
         else
@@ -1521,7 +1521,7 @@ static void on_ack_response(
     {
         switch (pkg->tp)
         {
-        case BPROTO_LOG_LEVEL_ACK:
+        case BPROTO_ACK_LOG_LEVEL:
             /* success message is already set */
             break;
 

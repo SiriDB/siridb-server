@@ -120,63 +120,57 @@ int siridb_pools_available(siridb_t * siridb)
     return 1;  //true
 }
 
+/*
+ * This function will send a package to one available server in each pool,
+ * 'this' pool not included. The promises call-back function should be
+ * used to check if the package has been send successfully to all pools.
+ *
+ * This function can raise a SIGNAL when allocation errors occur.
+ */
 void siridb_pools_send_pkg(
         siridb_t * siridb,
         uint32_t len,
         uint16_t tp,
         const char * content,
         uint64_t timeout,
-        sirinet_promises_cb_t cb,
+        sirinet_promises_cb cb,
         void * data)
 {
     sirinet_promises_t * promises =
             sirinet_promises_new(siridb->pools->len - 1, cb, data);
 
-    siridb_pool_t * pool;
-    siridb_server_t * server;
-
-    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    if (promises != NULL)
     {
-        if (pid == siridb->server->pool)
+        siridb_pool_t * pool;
+
+        for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
         {
-            continue;
-        }
-
-        pool = siridb->pools->pool + pid;
-
-        server = NULL;
-
-        for (uint16_t i = 0; i < pool->len; i++)
-        {
-            if (siridb_server_is_online(pool->server[i]))
+            if (pid == siridb->server->pool)
             {
-                server = (server == NULL) ?
-                        pool->server[i] : pool->server[rand() % 2];
+                continue;
             }
-        }
 
-        if (server != NULL)
-        {
-            siridb_server_send_pkg(
-                    server,
+            pool = siridb->pools->pool + pid;
+
+            if (siridb_pool_send_pkg(
+                    pool,
                     len,
                     tp,
                     content,
                     timeout,
                     sirinet_promise_on_response,
-                    promises);
+                    promises))
+            {
+                log_debug(
+                        "Cannot send package to pool '%u' "
+                        "(no available server found)",
+                        pid);
+                slist_append(promises->promises, NULL);
+            }
         }
-        else
-        {
-            log_debug(
-                    "Cannot send package to pool '%u' "
-                    "(no available server found)",
-                    pid);
-            slist_append(promises->promises, NULL);
-        }
-    }
 
-    SIRINET_PROMISES_CHECK(promises)
+        SIRINET_PROMISES_CHECK(promises)
+    }
 }
 
 static void POOLS_make(
@@ -248,8 +242,7 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
         else
         {
 #ifdef DEBUG
-            assert(siridb_server_cmp(
-                    pool->server[0], server) > 0);
+            assert(siridb_server_cmp(pool->server[0], server) > 0);
 #endif
             pool->server[1] = pool->server[0];
             pool->server[0] = server;

@@ -111,3 +111,53 @@ int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
     assert (0);
     return -1;
 }
+
+/*
+ * Returns 0 if we have send the package to one available
+ * server in the pool. The package will be send only to one server, even if
+ * the pool has more servers available.
+ *
+ * This function can raise a SIGNAL when allocation errors occur but be aware
+ * that 0 can still be returned in this case.
+ *
+ * The call-back function is not called when -1 is returned.
+ *
+ * A server is  'available' when and ONLY when connected and authenticated.
+ */
+int siridb_pool_send_pkg(
+        siridb_pool_t * pool,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promise_cb cb,
+        void * data)
+{
+    siridb_server_t * server = NULL;
+
+    for (uint16_t i = 0; i < pool->len; i++)
+    {
+        if (siridb_server_is_available(pool->server[i]))
+        {
+            server = (server == NULL) ?
+                    pool->server[i] : pool->server[rand() % 2];
+        }
+    }
+
+    if (server == NULL)
+    {
+        return -1;
+    }
+    else
+
+    siridb_server_send_pkg(
+            server,
+            len,
+            tp,
+            content,
+            timeout,
+            cb,
+            data);
+
+    return 0;
+}

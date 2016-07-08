@@ -21,7 +21,6 @@
 #define PROMISE_DEFAULT_TIMEOUT 10000  // 10 seconds
 
 typedef struct siridb_server_s siridb_server_t;
-typedef struct siridb_pool_s siridb_pool_t;
 
 typedef enum sirinet_promise_status
 {
@@ -35,12 +34,12 @@ typedef enum sirinet_promise_status
 typedef struct sirinet_promise_s sirinet_promise_t;
 typedef struct sirinet_promises_s sirinet_promises_t;
 
-typedef void (* sirinet_promise_cb_t)(
+typedef void (* sirinet_promise_cb)(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
 
-typedef void (* sirinet_promises_cb_t)(
+typedef void (* sirinet_promises_cb)(
         slist_t * promises,
         void * data);
 
@@ -48,7 +47,7 @@ typedef void (* sirinet_promises_cb_t)(
 typedef struct sirinet_promise_s
 {
     uv_timer_t * timer;
-    sirinet_promise_cb_t cb;
+    sirinet_promise_cb cb;
     siridb_server_t * server;
     uint64_t pid;
     void * data;
@@ -56,7 +55,7 @@ typedef struct sirinet_promise_s
 
 typedef struct sirinet_promises_s
 {
-    sirinet_promises_cb_t cb;
+    sirinet_promises_cb cb;
     slist_t * promises;
     void * data;
 } sirinet_promises_t;
@@ -68,11 +67,9 @@ void sirinet_promise_on_response(
         sirinet_pkg_t * pkg,
         int status);
 
-int siridb_pool_online(siridb_pool_t * pool);
-
 sirinet_promises_t * sirinet_promises_new(
         size_t size,
-        sirinet_promises_cb_t cb,
+        sirinet_promises_cb cb,
         void * data);
 
 #define SIRINET_PROMISES_CHECK(promises)                        \

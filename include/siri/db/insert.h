@@ -38,7 +38,6 @@ typedef struct siridb_insert_s
     uv_close_cb free_cb;    /* must be on top */
     uint64_t pid;
     uv_handle_t * client;
-    qp_packer_t * response;
     size_t size;        /* number of points */
     uint16_t packer_size; /* number of packers (one for each pool) */
     qp_packer_t * packer[];
@@ -52,9 +51,11 @@ ssize_t siridb_insert_assign_pools(
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err);
 
-void siridb_insert_points(
+void siridb_insert_init(
         uint64_t pid,
         uv_handle_t * client,
         size_t size,
         uint16_t packer_size,
         qp_packer_t * packer[]);
+
+int siridb_insert_pool(siridb_t * siridb, qp_unpacker_t * unpacker);
