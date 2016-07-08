@@ -40,7 +40,7 @@ siridb_ffile_t * siridb_ffile_new(
         return NULL;
     }
 
-    if (asprintf(&ffile->fn, "%s%0*ld.fifo", path, FFILE_NUMBERS, id) < 0)
+    if (asprintf(&ffile->fn, "%s%0*lu.fifo", path, FFILE_NUMBERS, id) < 0)
     {
         ERR_ALLOC
         free(ffile);
@@ -122,7 +122,7 @@ siridb_ffile_t * siridb_ffile_new(
              * fifo and can be removed.
              */
             siridb_ffile_unlink(ffile);
-            return NULL;
+            ffile = NULL;
         }
     }
     return ffile;

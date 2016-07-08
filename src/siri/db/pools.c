@@ -26,6 +26,9 @@ static void POOLS_make(
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
+/*
+ * This function can raise a signal.
+ */
 void siridb_pools_gen(siridb_t * siridb)
 {
     if (siridb->pools != NULL)
@@ -34,6 +37,11 @@ void siridb_pools_gen(siridb_t * siridb)
     }
 
     siridb->pools = (siridb_pools_t *) malloc(sizeof(siridb_pools_t));
+    if (siridb->pools == NULL)
+    {
+        ERR_ALLOC
+        return;
+    }
     uint16_t max_pool = 0;
     uint16_t n;
 
@@ -51,6 +59,13 @@ void siridb_pools_gen(siridb_t * siridb)
     /* allocate memory for all pools */
     siridb->pools->pool = (siridb_pool_t *)
             malloc(sizeof(siridb_pool_t) * siridb->pools->len);
+    if (siridb->pools->pool == NULL)
+    {
+        ERR_ALLOC
+        free(siridb->pools);
+        siridb->pools = NULL;
+        return;
+    }
 
     /* initialize number of servers with zero for each pool */
     for (n = 0; n < siridb->pools->len; n++)
@@ -58,10 +73,17 @@ void siridb_pools_gen(siridb_t * siridb)
         siridb->pools->pool[n].len = 0;
     }
 
+    /* signal can be raised if creating a fifo buffer fails */
     llist_walk(siridb->servers, (llist_cb_t) POOLS_arrange, siridb);
 
     /* generate pool lookup for series */
     siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);
+    if (siridb->pools->lookup == NULL)
+    {
+        siridb_pools_free(siridb->pools);
+        siridb->pools = NULL;
+        /* signal is raised */
+    }
 }
 
 /*
@@ -74,11 +96,21 @@ void siridb_pools_free(siridb_pools_t * pools)
     free(pools);
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
 {
     siridb_lookup_t * lookup =
             (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
-    POOLS_make(1, num_pools, lookup);
+    if (lookup == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        POOLS_make(1, num_pools, lookup);
+    }
     return lookup;
 }
 
@@ -211,6 +243,10 @@ static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
     }
 }
 
+/*
+ * Signal can be raised by this function when a fifo buffer for an optional
+ * replica server can't be created.
+ */
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 {
     siridb_pool_t * pool;
@@ -223,7 +259,12 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
         siridb->replica = server;
 
         /* initialize replica */
-        siridb_fifo_new(siridb);
+        siridb->fifo = siridb_fifo_new(siridb);
+        if (siridb->fifo == NULL)
+        {
+            log_critical("Cannot initialize fifo buffer for replica server");
+            /* signal is set */
+        }
     }
 
     if (pool->len == 1)

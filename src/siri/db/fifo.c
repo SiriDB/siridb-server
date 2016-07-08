@@ -24,7 +24,9 @@
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args);
 static int FIFO_init(siridb_fifo_t * fifo);
 
-/* TODO: malloc and file checks */
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 {
     siridb_fifo_t * fifo = (siridb_fifo_t *) malloc(sizeof(siridb_fifo_t));
@@ -40,7 +42,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (fifo->fifos == NULL)
     {
         free(fifo);
-        return NULL;
+        return NULL;  /* signal is raised */
     }
 
     fifo->in = NULL;
@@ -66,7 +68,18 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
             ((siridb_ffile_t *) fifo->fifos->last)->id : -1;
 
     fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, NULL);
-    llist_append(fifo->fifos, fifo->in);
+    if (fifo->in == NULL)
+    {
+        ERR_FILE
+        siridb_fifo_free(fifo);
+        return NULL;
+    }
+
+    if (llist_append(fifo->fifos, fifo->in))
+    {
+        siridb_fifo_free(fifo);
+        return NULL;  /* signal is raised */
+    }
 
     /* we have at least one fifo in the list */
     fifo->out = llist_shift(fifo->fifos);
@@ -74,8 +87,14 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (fifo->out->fp == NULL)
     {
         fifo->out->fp = fopen(fifo->out->fn, "r+");
+        if (fifo->out->fp == NULL)
+        {
+            ERR_FILE
+            log_critical("Cannot open file: '%s'", fifo->out->fn);
+            siridb_fifo_free(fifo);
+            return NULL;
+        }
     }
-
     return fifo;
 }
 
@@ -267,7 +286,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
                 else
                 {
                     uint64_t id = strtoull(fifo_list[n]->d_name, NULL, 10);
-                    ffile = siridb_ffile_new(id, fn, NULL);
+                    ffile = siridb_ffile_new(id, fifo->path, NULL);
                     if (ffile != NULL)
                     {
                         llist_append(fifo->fifos, ffile);

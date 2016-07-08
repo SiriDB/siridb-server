@@ -24,6 +24,7 @@
 #include <llist/llist.h>
 #include <string.h>
 #include <uv.h>
+#include <siri/db/fifo.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
@@ -65,6 +66,7 @@ typedef struct siridb_pools_s siridb_pools_t;
 typedef struct ct_node_s ct_node_t;
 typedef struct imap32_s imap32_t;
 typedef struct imap64_s imap64_t;
+typedef struct siridb_fifo_s siridb_fifo_t;
 
 typedef struct siridb_s
 {

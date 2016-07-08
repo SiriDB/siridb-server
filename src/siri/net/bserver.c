@@ -20,6 +20,7 @@
 #include <siri/db/auth.h>
 #include <assert.h>
 #include <siri/db/query.h>
+#include <siri/db/insert.h>
 
 #define DEFAULT_BACKLOG 128
 
