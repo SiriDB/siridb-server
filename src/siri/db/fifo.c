@@ -73,7 +73,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 
     if (fifo->out->fp == NULL)
     {
-        fopen(fifo->out->fn, "r+");
+        fifo->out->fp = fopen(fifo->out->fn, "r+");
     }
 
     return fifo;

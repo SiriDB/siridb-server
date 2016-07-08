@@ -221,6 +221,9 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     if (siridb->server != server && siridb->server->pool == server->pool)
     {
         siridb->replica = server;
+
+        /* initialize replica */
+        siridb_fifo_new(siridb);
     }
 
     if (pool->len == 1)

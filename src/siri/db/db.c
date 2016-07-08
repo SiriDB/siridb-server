@@ -224,6 +224,7 @@ static siridb_t * SIRIDB_new(void)
     siridb->tz = -1;
     siridb->server = NULL;
     siridb->replica = NULL;
+    siridb->fifo = NULL;
 
     /* make file pointers are NULL when file is closed */
     siridb->buffer_fp = NULL;
@@ -251,6 +252,12 @@ static void SIRIDB_free(siridb_t * siridb)
     if (siridb->dropped_fp != NULL)
     {
         fclose(siridb->dropped_fp);
+    }
+
+    /* free fifo (in case we have a replica) */
+    if (siridb->fifo != NULL)
+    {
+        siridb_fifo_free(siridb->fifo);
     }
 
     if (siridb->store != NULL)

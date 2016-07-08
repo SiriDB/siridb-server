@@ -98,6 +98,7 @@ typedef struct siridb_s
     FILE * buffer_fp;
     FILE * dropped_fp;
     qp_fpacker_t * store;
+    siridb_fifo_t * fifo;
 } siridb_t;
 
 
