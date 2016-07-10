@@ -1551,6 +1551,11 @@ static void on_ack_response(
 
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 {
+    if (handle == NULL)
+    {
+        sirinet_promise_llist_free(promises);
+        return;  /* signal is raised when handle is NULL */
+    }
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
@@ -1615,13 +1620,15 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
-    /*
-     * Used for list_series, list_servers
-     */
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    if (handle == NULL)
+    {
+        sirinet_promise_llist_free(promises);
+        return;  /* signal is raised when handle is NULL */
+    }
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t * unpacker;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
@@ -1639,41 +1646,38 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
         {
             unpacker = qp_unpacker_new(pkg->data, pkg->len);
 
-            if (unpacker == NULL)
+            if (unpacker != NULL)
             {
-                return;  /* critical error, signal is set */
-            }
 
-            if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                    qp_is_raw(qp_next(unpacker, NULL)) && // columns
-                    qp_is_array(qp_skip_next(unpacker)) &&
-                    qp_is_raw(qp_next(unpacker, NULL)) && // series/servers/...
-                    qp_is_array(qp_next(unpacker, NULL)))  // holding results
-            {
-                while (qp_is_array(qp_current(unpacker)))
+                if (    qp_is_map(qp_next(unpacker, NULL)) &&
+                        qp_is_raw(qp_next(unpacker, NULL)) && // columns
+                        qp_is_array(qp_skip_next(unpacker)) &&
+                        qp_is_raw(qp_next(unpacker, NULL)) && // series/servers/...
+                        qp_is_array(qp_next(unpacker, NULL)))  // holding results
                 {
-                    if (q_list->limit)
+                    while (qp_is_array(qp_current(unpacker)))
                     {
-                        qp_packer_extend_fu(query->packer, unpacker);
-                        q_list->limit--;
+                        if (q_list->limit)
+                        {
+                            qp_packer_extend_fu(query->packer, unpacker);
+                            q_list->limit--;
+                        }
+                        else
+                        {
+                            qp_skip_next(unpacker);
+                        }
                     }
-                    else
+
+                    /* extract time-it info if needed */
+                    if (query->timeit != NULL)
                     {
-                        qp_skip_next(unpacker);
+                        siridb_query_timeit_from_unpacker(query, unpacker);
                     }
-                }
 
-                /* extract time-it info if needed */
-                if (query->timeit != NULL)
-                {
-                    siridb_query_timeit_from_unpacker(query, unpacker);
                 }
-
+                /* free the unpacker */
+                qp_unpacker_free(unpacker);
             }
-
-            /* free the unpacker */
-            qp_unpacker_free(unpacker);
-
         }
 
         /* make sure we free the promise and data */

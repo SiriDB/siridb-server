@@ -192,12 +192,9 @@ void siridb_insert_init(
  * Return siri_err which should be 0 if all is successful. Another value is
  * critical so basically this functions should always return 0.
  *
- * Note that insert->packer[] will be ignored, instead a pointer the correct
- * packer should be parsed to this function.
- *
  * (a SIGNAL will be raised in case of an error)
  */
-int siridb_insert_pool(siridb_t * siridb, qp_unpacker_t * unpacker)
+int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
 {
     qp_types_t tp;
     siridb_series_t ** series;
@@ -212,6 +209,8 @@ int siridb_insert_pool(siridb_t * siridb, qp_unpacker_t * unpacker)
         qp_object_free_safe(qp_series_val);
         return -1;
     }
+
+
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
@@ -300,10 +299,18 @@ int siridb_insert_pool(siridb_t * siridb, qp_unpacker_t * unpacker)
  */
 static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 {
+    LOGC("1...");
+    if (handle == NULL)
+    {
+        sirinet_promise_llist_free(promises);
+        LOGC("2.5...");
+        return;  /* signal is raised when handle is NULL */
+    }
+    LOGC("2...");
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
-    sirinet_promise_t * promise;
-    sirinet_pkg_t * pkg;
 
     char msg[MAX_INSERT_MSG];
 
@@ -377,6 +384,8 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
             free(pkg);
         }
     }
+    LOGC("4...");
+
     uv_close((uv_handle_t *) handle, insert->free_cb);
 }
 
@@ -411,6 +420,23 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         }
         if (n == pool)
         {
+            if (siridb->replica != NULL)
+            {
+#ifdef DEBUG
+                assert (siridb->fifo != NULL);
+#endif
+                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                        0,
+                        insert->packer[n]->len,
+                        BPROTO_INSERT_SERVER,
+                        insert->packer[n]->buffer);
+                if (pkg != NULL)
+                {
+                    siridb_fifo_append(siridb->fifo, pkg);
+                    free(pkg);
+                }
+            }
+
             qp_unpacker_t * unpacker = qp_unpacker_new(
                     insert->packer[n]->buffer,
                     insert->packer[n]->len);
@@ -420,7 +446,8 @@ static void INSERT_points_to_pools(uv_async_t * handle)
              */
             if (unpacker != NULL)
             {
-                siridb_insert_pool(siridb, unpacker);
+
+                siridb_insert_local(siridb, unpacker);
                 qp_unpacker_free(unpacker);
             }
         }

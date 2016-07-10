@@ -72,6 +72,8 @@ sirinet_promises_t * sirinet_promises_new(
         sirinet_promises_cb cb,
         void * data);
 
+void sirinet_promise_llist_free(slist_t * promises);
+
 #define SIRINET_PROMISES_CHECK(promises)                        \
     if (promises->promises->len == promises->promises->size)    \
     {                                                           \

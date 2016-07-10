@@ -45,19 +45,19 @@ static uv_loop_t * loop = NULL;
 static struct sockaddr_in client_addr;
 static uv_tcp_t client_server;
 
-static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_new_connection(uv_stream_t * server, int status);
-static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg);
-static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg);
+static void on_auth_request(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_insert(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
-        const sirinet_pkg_t * pkg);
+        sirinet_pkg_t * pkg);
 static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
-        const sirinet_pkg_t * pkg);
+        sirinet_pkg_t * pkg);
 
 #define POOL_ERR_MSG \
     "At least one pool has no server available to process the request"
@@ -133,7 +133,7 @@ static void on_new_connection(uv_stream_t * server, int status)
     }
 }
 
-static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
 #ifdef DEBUG
     log_debug("[Client server] Got data (pid: %d, len: %d, tp: %d)",
@@ -170,7 +170,7 @@ static void on_data(uv_handle_t * client, const sirinet_pkg_t * pkg)
 
 }
 
-static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_auth_request(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     cproto_client_t rc;
     sirinet_pkg_t * package;
@@ -212,7 +212,7 @@ static void on_auth_request(uv_handle_t * client, const sirinet_pkg_t * pkg)
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
-        const sirinet_pkg_t * pkg)
+        sirinet_pkg_t * pkg)
 {
     /* WARNING: siridb can be NULL here */
 
@@ -259,7 +259,7 @@ static void CLSERVER_send_server_error(
  */
 static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
-        const sirinet_pkg_t * pkg)
+        sirinet_pkg_t * pkg)
 {
     log_debug(POOL_ERR_MSG);
 
@@ -279,7 +279,7 @@ static void CLSERVER_send_pool_error(
     }
 }
 
-static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
@@ -312,7 +312,7 @@ static void on_query(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_unpacker_free(unpacker);
 }
 
-static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_insert(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
@@ -403,7 +403,7 @@ static void on_insert(uv_handle_t * client, const sirinet_pkg_t * pkg)
     qp_unpacker_free(unpacker);
 }
 
-static void on_ping(uv_handle_t * client, const sirinet_pkg_t * pkg)
+static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     sirinet_pkg_t * package;
     package = sirinet_pkg_new(pkg->pid, 0, CPROTO_RES_ACK, NULL);

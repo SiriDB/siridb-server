@@ -46,6 +46,7 @@ typedef enum
     BPROTO_QUERY_SERVER,                        // (query, time_precision)
     BPROTO_QUERY_POOL,                          // (query, time_precision)
     BPROTO_INSERT_POOL,                         // {series: points, ...}
+    BPROTO_INSERT_SERVER,                       // {series: points, ...}
 } bproto_client_t;
 
 typedef enum
