@@ -525,6 +525,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     /* this is a good time to copy the file name */
     char * tmp = strdup(new_shard->replacing->fn);
+
     if (tmp == NULL)
     {
         ERR_ALLOC
@@ -589,7 +590,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     siridb_shard_decref(new_shard);
 
     sleep(1);
-
     return siri_err;
 }
 

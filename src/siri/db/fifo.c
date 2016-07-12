@@ -87,6 +87,10 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     /* we have at least one fifo in the list */
     fifo->out = llist_shift(fifo->fifos);
 
+#ifdef DEBUG
+    assert (fifo->out != NULL);
+#endif
+
     if (fifo->out->fp == NULL)
     {
         fifo->out->fp = fopen(fifo->out->fn, "r+");
@@ -143,7 +147,7 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
 
 /*
  * returns a package created with malloc or NULL when an error has occurred.
- * (signal is set when return value is NULL)
+ * (signal is set in case of a malloc error, not in case of a file error)
  *
  * warning:
  *      be sure to check the fifo using siridb_fifo_has_data() and
@@ -162,14 +166,44 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
 {
     if (siridb_ffile_pop_commit(fifo->out))
     {
-        return -1;
+        log_error("Error occurred when shrinking file: '%s' ",
+                fifo->out->fn);
+        if (fifo->out != fifo->in)
+        {
+            log_warning(
+                    "We try to recover from this error by removing this fifo.");
+            fifo->out->next_size = 0;
+        }
+        else
+        {
+            ERR_FILE
+            log_critical(
+                    "The current fifo buffer is corrupt and we currently "
+                    "cannot recover from this error. "
+                    "(a reboot might remove the corrupt fifo)");
+        }
     }
 
     if (!fifo->out->next_size && fifo->out != fifo->in)
     {
         siridb_ffile_unlink(fifo->out);
         fifo->out = llist_shift(fifo->fifos);
+
+        /* fifo->out->fp can be open in case it is equal to fifo->in */
+        if (fifo->out->fp == NULL)
+        {
+            fifo->out->fp = fopen(fifo->out->fn, "r+");
+            if (fifo->out->fp == NULL)
+            {
+                ERR_FILE
+                log_critical("Cannot open file: '%s'", fifo->out->fn);
+            }
+        }
     }
+
+#ifdef DEBUG
+    assert (fifo->out != NULL);
+#endif
 
     return siri_err;
 }
@@ -178,7 +212,7 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
  * returns 0 if successful or another value in case of errors.
  * (signal can be set when result is not 0)
  */
-int siridb_fifo_error(siridb_fifo_t * fifo)
+int siridb_fifo_commit_err(siridb_fifo_t * fifo)
 {
     log_error(
             "Handling the last package from the fifo buffer has failed, "

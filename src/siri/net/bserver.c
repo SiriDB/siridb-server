@@ -369,10 +369,22 @@ static void on_insert_pool(uv_handle_t * client, sirinet_pkg_t * pkg)
         assert (siridb->fifo != NULL);
 #endif
         pkg->tp = BPROTO_INSERT_SERVER;
-        siridb_fifo_append(siridb->fifo, pkg);
+        if (siridb_fifo_append(siridb->fifo, pkg))
+        {
+            /* signal is raised */
+            sirinet_pkg_t * package =
+                    sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL);
+            if (package != NULL)
+            {
+                sirinet_pkg_send((uv_stream_t *) client, package);
+                free(package);
+            }
+        }
     }
-
-    on_insert_server(client, pkg);
+    if (!siri_err)
+    {
+        on_insert_server(client, pkg);
+    }
 }
 
 static void on_insert_server(uv_handle_t * client, sirinet_pkg_t * pkg)

@@ -210,8 +210,6 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
         return -1;
     }
 
-
-
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 

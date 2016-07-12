@@ -153,12 +153,13 @@ void siridb_replicate_continue(siridb_replicate_t * replicate)
     }
 }
 
+/*
+ * This function can raise a SIGNAL.
+ */
 static void REPLICATE_work(uv_timer_t * handle)
 {
-    LOGC("Work...1");
     siridb_t * siridb = (siridb_t *) handle->data;
     sirinet_pkg_t * pkg;
-    LOGC("Work...2");
 
 #ifdef DEBUG
     assert (siridb->fifo != NULL);
@@ -172,19 +173,16 @@ static void REPLICATE_work(uv_timer_t * handle)
     if (    siridb->replicate->status == REPLICATE_RUNNING &&
             siridb_fifo_has_data(siridb->fifo) &&
             (   siridb_server_is_available(siridb->replica) ||
-                siridb_server_is_synchronizing(siridb->replica)))
+                siridb_server_is_synchronizing(siridb->replica)) &&
+            (pkg = siridb_fifo_pop(siridb->fifo)) != NULL)
     {
-        pkg = siridb_fifo_pop(siridb->fifo);
-        if (pkg != NULL)
-        {
-            siridb_server_send_pkg(
-                    siridb->replica,
-                    pkg,
-                    0,
-                    (sirinet_promise_cb) REPLICATE_on_repl_response,
-                    siridb);
-            free(pkg);
-        }
+        siridb_server_send_pkg(
+                siridb->replica,
+                pkg,
+                0,
+                (sirinet_promise_cb) REPLICATE_on_repl_response,
+                siridb);
+        free(pkg);
     }
     else
     {
@@ -240,14 +238,14 @@ static void REPLICATE_on_repl_response(
     case PROMISE_CANCELLED_ERROR:
         /*
          * Promise is cancelled but most likely the data is successful
-         * processed. Use siridb_fifo_error() since we're not sure.
+         * processed. Use siridb_fifo_commit_err() since we're not sure.
          */
     case PROMISE_PKG_TYPE_ERROR:
         /*
          * Commit with error since this package has result in an unknown
          * package type.
          */
-        siridb_fifo_error(siridb->fifo);
+        siridb_fifo_commit_err(siridb->fifo);
         break;
     case PROMISE_SUCCESS:
         if (sirinet_protocol_is_error(pkg->tp))
@@ -255,7 +253,7 @@ static void REPLICATE_on_repl_response(
             log_error(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
-            siridb_fifo_error(siridb->fifo);
+            siridb_fifo_commit_err(siridb->fifo);
         }
         else
         {

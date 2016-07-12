@@ -28,6 +28,7 @@ siri_fh_t * siri_fh_new(uint16_t size)
         fh->fpointers = (siri_fp_t **) calloc(size, sizeof(siri_fp_t *));
         if (fh->fpointers == NULL)
         {
+            ERR_ALLOC
             free(fh);
             fh = NULL;
         }
@@ -73,7 +74,7 @@ int siri_fopen(
     siri_fp_t ** dest = fh->fpointers + fh->idx;
 
     /* close and possible free file pointer at next position */
-    if (*dest)
+    if (*dest != NULL)
     {
         siri_fp_decref(*dest);
     }

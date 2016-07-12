@@ -29,7 +29,7 @@ void siridb_fifo_free(siridb_fifo_t * fifo);
 int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo);
 int siridb_fifo_commit(siridb_fifo_t * fifo);
-int siridb_fifo_error(siridb_fifo_t * fifo);
+int siridb_fifo_commit_err(siridb_fifo_t * fifo);
 int siridb_fifo_close(siridb_fifo_t * fifo);
 int siridb_fifo_open(siridb_fifo_t * fifo);
 

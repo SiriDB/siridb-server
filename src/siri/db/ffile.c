@@ -48,6 +48,7 @@ siridb_ffile_t * siridb_ffile_new(
     }
 
     ffile->id = id;
+    ffile->next_size = 0;
 
     if (access(ffile->fn, R_OK) == -1)
     {
@@ -60,8 +61,6 @@ siridb_ffile_t * siridb_ffile_new(
             siridb_ffile_free(ffile);
             return NULL;
         }
-
-        ffile->next_size = 0;
 
         if (pkg == NULL)
         {
@@ -100,7 +99,7 @@ siridb_ffile_t * siridb_ffile_new(
         if (ftell(ffile->fp) >= sizeof(uint32_t))
         {
             ffile->free_space = 0;
-            if (    fseek(ffile->fp, -sizeof(uint32_t), SEEK_END) ||
+            if (    fseek(ffile->fp, -(long int) sizeof(uint32_t), SEEK_END) ||
                     fread(  &ffile->next_size,
                             sizeof(uint32_t),
                             1,
@@ -111,10 +110,10 @@ siridb_ffile_t * siridb_ffile_new(
                 siridb_ffile_free(ffile);
                 return NULL;
             }
-
             ffile->fp = NULL;
         }
-        else
+
+        if (!ffile->next_size)
         {
             log_warning("Empty fifo found, removing file: '%s'", ffile->fn);
             /*
@@ -181,26 +180,24 @@ int siridb_ffile_check_fn(const char * fn)
 
 /*
  * returns a package object or NULL in case of an error.
- * (signal will be set when the return value is NULL)
  *
  * warning: be sure to check 'next_size' before calling this function.
  */
 sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 {
 #ifdef DEBUG
-    assert (ffile->next_size && ffile->fp != NULL);
+    assert (ffile->next_size);
+    assert (ffile->fp != NULL);
 #endif
 
-    fseek(ffile->fp, 0, SEEK_END);
-    long int p = ftell(ffile->fp);
-
-    if (fseek(ffile->fp, -(long int) (ffile->next_size + sizeof(uint32_t)), SEEK_END))
+    if (fseek(
+            ffile->fp,
+            -(long int) (ffile->next_size + sizeof(uint32_t)),
+            SEEK_END))
     {
-        ERR_FILE
+        log_critical("Seek error in '%s'", ffile->fn);
         return NULL;
     }
-    long int pos = ftell(ffile->fp);
-
     sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(ffile->next_size);
 
     if (pkg == NULL)
@@ -211,8 +208,10 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 
     if (fread(pkg, ffile->next_size, 1, ffile->fp) != 1)
     {
-        LOGC("Next size: %u, %ld, %ld", ffile->next_size, p, pos);
-        ERR_FILE
+        log_critical(
+                "Error while reading %lu bytes from '%s'",
+                ffile->next_size,
+                ffile->fn);
         free(pkg);
         return NULL;
     }
