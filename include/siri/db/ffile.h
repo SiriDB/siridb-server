@@ -25,9 +25,6 @@ typedef struct siridb_ffile_s
     char * fn;
     uint32_t free_space;
     uint32_t next_size;  // must be uint32_t (4 bytes)
-#ifdef DEBUG
-    int pop_commit;
-#endif
     FILE * fp;
 } siridb_ffile_t;
 

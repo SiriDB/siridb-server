@@ -295,18 +295,17 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
 }
 
 /*
+ * Call-back function: sirinet_promises_cb
+ *
  * This function can raise a SIGNAL.
  */
 static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 {
-    LOGC("1...");
     if (handle == NULL)
     {
         sirinet_promise_llist_free(promises);
-        LOGC("2.5...");
         return;  /* signal is raised when handle is NULL */
     }
-    LOGC("2...");
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
@@ -384,12 +383,13 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
             free(pkg);
         }
     }
-    LOGC("4...");
 
     uv_close((uv_handle_t *) handle, insert->free_cb);
 }
 
 /*
+ * Call-back function:  uv_async_cb
+ *
  * In case of an error a SIGNAL is raised and a successful message will not
  * be send to the client.
  */

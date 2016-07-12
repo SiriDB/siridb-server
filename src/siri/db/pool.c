@@ -149,15 +149,17 @@ int siridb_pool_send_pkg(
         return -1;
     }
     else
-
-    siridb_server_send_pkg(
-            server,
-            len,
-            tp,
-            content,
-            timeout,
-            cb,
-            data);
-
+    {
+        sirinet_pkg_t * pkg = sirinet_pkg_new(
+                0,
+                len,
+                tp,
+                content);
+        if (pkg != NULL)
+        {
+            siridb_server_send_pkg(server, pkg, timeout, cb, data);
+            free(pkg);
+        }
+    }
     return 0;
 }

@@ -102,12 +102,12 @@ void siridb_server_decref(siridb_server_t * server)
 
 /*
  * This function can raise a SIGNAL.
+ *
+ * Note that 'pkg->pid' will be overwritten with a new package id.
  */
 void siridb_server_send_pkg(
         siridb_server_t * server,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
+        sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
         void * data)
@@ -139,7 +139,7 @@ void siridb_server_send_pkg(
      * will be destroyed before the server is destroyed.
      */
     promise->server = server;
-    promise->pid = server->pid;
+    pkg->pid = promise->pid = server->pid;
     promise->data = data;
 
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
@@ -168,27 +168,46 @@ void siridb_server_send_pkg(
 
     req->data = promise;
 
+    uv_buf_t wrbuf = uv_buf_init(
+            (char *) pkg,
+            PKG_HEADER_SIZE + pkg->len);
+
+    uv_write(
+            req,
+            (uv_stream_t *) server->socket,
+            &wrbuf,
+            1,
+            SERVER_write_cb);
+
+    server->pid++;
+}
+
+
+/*
+ * This function can raise a SIGNAL.
+ *
+ * TODO: make the function obsolete and better create the pkg outside this
+ *       function.
+ */
+void siridb_server_send(
+        siridb_server_t * server,
+        uint32_t len,
+        uint16_t tp,
+        const char * content,
+        uint64_t timeout,
+        sirinet_promise_cb cb,
+        void * data)
+{
     sirinet_pkg_t * pkg = sirinet_pkg_new(
-            promise->pid,
+            0,
             len,
             tp,
             content);
     if (pkg != NULL)
     {
-        uv_buf_t wrbuf = uv_buf_init(
-                (char *) pkg,
-                PKG_HEADER_SIZE + pkg->len);
-
-        uv_write(
-                req,
-                (uv_stream_t *) server->socket,
-                &wrbuf,
-                1,
-                SERVER_write_cb);
-
+        siridb_server_send_pkg(server, pkg, timeout, cb, data);
         free(pkg);
     }
-    server->pid++;
 }
 
 /*
@@ -211,7 +230,7 @@ void siridb_server_send_flags(siridb_server_t * server)
     int16_t n = ssocket->siridb->server->flags;
     QP_PACK_INT16(buffer, n)
 
-    siridb_server_send_pkg(
+    siridb_server_send(
             server,
             3,
             BPROTO_FLAGS_UPDATE,
@@ -309,7 +328,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
                 qp_add_int32(packer, (int32_t) abs(siri.startup_time))))
             {
-                siridb_server_send_pkg(
+                siridb_server_send(
                         server,
                         packer->len,
                         BPROTO_AUTH_REQUEST,
@@ -666,6 +685,14 @@ static void SERVER_on_auth_response(
         log_error("Authentication with server '%s' failed, error code: %d",
                 promise->server->name,
                 pkg->tp);
+    }
+
+    if ((status || pkg->tp != BPROTO_AUTH_SUCCESS) &&
+            promise->server->socket != NULL)
+    {
+        uv_close(
+                (uv_handle_t *) promise->server->socket,
+                (uv_close_cb) sirinet_socket_free);
     }
 
     /* we must free the promise */

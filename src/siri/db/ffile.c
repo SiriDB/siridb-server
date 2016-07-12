@@ -156,7 +156,7 @@ siridb_ffile_result_t siridb_ffile_append(
 
     if (    fseek(ffile->fp, ffile->free_space, SEEK_SET) ||
             fwrite((unsigned char *) pkg, size, 1, ffile->fp) != 1 ||
-            fwrite(&size, sizeof(uint32_t), 1, ffile->fp) ||
+            fwrite(&size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
             fflush(ffile->fp))
     {
         return FFILE_ERROR;
@@ -189,17 +189,19 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 {
 #ifdef DEBUG
     assert (ffile->next_size && ffile->fp != NULL);
-    assert (!ffile->pop_commit);
-    ffile->pop_commit = 1;
 #endif
 
-    if (fseek(ffile->fp, -ffile->next_size - sizeof(uint32_t), SEEK_END))
+    fseek(ffile->fp, 0, SEEK_END);
+    long int p = ftell(ffile->fp);
+
+    if (fseek(ffile->fp, -(long int) (ffile->next_size + sizeof(uint32_t)), SEEK_END))
     {
         ERR_FILE
         return NULL;
     }
+    long int pos = ftell(ffile->fp);
 
-    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(sizeof(ffile->next_size));
+    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(ffile->next_size);
 
     if (pkg == NULL)
     {
@@ -209,6 +211,7 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 
     if (fread(pkg, ffile->next_size, 1, ffile->fp) != 1)
     {
+        LOGC("Next size: %u, %ld, %ld", ffile->next_size, p, pos);
         ERR_FILE
         free(pkg);
         return NULL;
@@ -224,20 +227,22 @@ int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
 {
 #ifdef DEBUG
     assert (ffile->next_size && ffile->fp != NULL);
-    assert (ffile->pop_commit);
-    ffile->pop_commit = 0;
 #endif
 
     long int pos;
     int n;
 
-    return (fseek(ffile->fp, -ffile->next_size - 2 * sizeof(uint32_t), SEEK_END) ||
+    return (fseek(
+                ffile->fp,
+                -(long int) ffile->next_size - 2 * sizeof(uint32_t),
+                SEEK_END) ||
             fread(&ffile->next_size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
             (pos = ftell(ffile->fp)) < 0 ||
             (n = fileno(ffile->fp)) == -1 ||
             ftruncate(n, pos)) ?
                     -1 : 0;
 }
+
 
 /*
  * signal can be set in case of file errors

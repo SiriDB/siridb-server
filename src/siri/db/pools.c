@@ -29,12 +29,13 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 /*
  * This function can raise a signal.
  */
-void siridb_pools_gen(siridb_t * siridb)
+void siridb_pools_init(siridb_t * siridb)
 {
-    if (siridb->pools != NULL)
-    {
-        siridb_pools_free(siridb->pools);
-    }
+#ifdef DEBUG
+    assert (siridb->pools == NULL);
+    assert (siridb->servers != NULL && siridb->servers->len > 0);
+    assert (siridb->server != NULL);
+#endif
 
     siridb->pools = (siridb_pools_t *) malloc(sizeof(siridb_pools_t));
     if (siridb->pools == NULL)
@@ -45,11 +46,6 @@ void siridb_pools_gen(siridb_t * siridb)
     uint16_t max_pool = 0;
     uint16_t n;
 
-#ifdef DEBUG
-    /* we must have at least one server */
-    assert (siridb->servers->len > 0);
-#endif
-
     /* get max_pool (this can be used to get the number of pools) */
     llist_walk(siridb->servers, (llist_cb_t) POOLS_max_pool, &max_pool);
 
@@ -59,6 +55,7 @@ void siridb_pools_gen(siridb_t * siridb)
     /* allocate memory for all pools */
     siridb->pools->pool = (siridb_pool_t *)
             malloc(sizeof(siridb_pool_t) * siridb->pools->len);
+
     if (siridb->pools->pool == NULL)
     {
         ERR_ALLOC
@@ -257,13 +254,20 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     if (siridb->server != server && siridb->server->pool == server->pool)
     {
         siridb->replica = server;
+        siridb->server->flags |= SERVER_FLAG_SYNCHRONIZING;
 
         /* initialize replica */
         siridb->fifo = siridb_fifo_new(siridb);
+
         if (siridb->fifo == NULL)
         {
             log_critical("Cannot initialize fifo buffer for replica server");
             /* signal is set */
+        }
+        else
+        {
+            /* signal can be raised by 'siridb_replicate_init' */
+            siridb_replicate_init(siridb);
         }
     }
 

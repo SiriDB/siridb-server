@@ -96,6 +96,15 @@ void sirinet_promise_on_response(
                 promise->server->name,
                 sirinet_promise_strstatus(status));
         promise->data = NULL;
+
+        if (siri_err)
+        {
+            /*
+             * signal is raised, in this case handlers are destroyed so we
+             * parse NULL to the call-back function.
+             */
+            promises->data = NULL;
+        }
     }
     else
     {

@@ -225,6 +225,7 @@ static siridb_t * SIRIDB_new(void)
     siridb->server = NULL;
     siridb->replica = NULL;
     siridb->fifo = NULL;
+    siridb->replicate = NULL;
 
     /* make file pointers are NULL when file is closed */
     siridb->buffer_fp = NULL;
@@ -254,12 +255,6 @@ static void SIRIDB_free(siridb_t * siridb)
         fclose(siridb->dropped_fp);
     }
 
-    /* free fifo (in case we have a replica) */
-    if (siridb->fifo != NULL)
-    {
-        siridb_fifo_free(siridb->fifo);
-    }
-
     if (siridb->store != NULL)
     {
         qp_close(siridb->store);
@@ -277,6 +272,23 @@ static void SIRIDB_free(siridb_t * siridb)
     if (siridb->servers != NULL)
     {
         siridb_servers_free(siridb->servers);
+    }
+
+    /*
+     * Destroy replicate before fifo but after servers so open promises are
+     * closed which might depend on siridb->replicate
+     *
+     * siridb->replicate must be closed, see 'SIRI_set_closing_state'
+     */
+    if (siridb->replicate != NULL)
+    {
+        siridb_replicate_destroy(siridb);
+    }
+
+    /* free fifo (in case we have a replica) */
+    if (siridb->fifo != NULL)
+    {
+        siridb_fifo_free(siridb->fifo);
     }
 
     /* free pools */

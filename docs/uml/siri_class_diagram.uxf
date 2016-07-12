@@ -525,7 +525,7 @@ size: uint16_t
 lookup: *siridb_lookup_t
 pool: *siridb_pool_t
 --
-siridb_pools_gen(): void
+siridb_pools_init(): void
 siridb_pools_free(): void
 -siridb_pools_gen_lookup(): *siridb_lookup_t</panel_attributes>
     <additional_attributes/>

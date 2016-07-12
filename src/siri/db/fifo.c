@@ -20,12 +20,15 @@
 #include <logger/logger.h>
 #include <ctype.h>
 #include <assert.h>
+#include <siri/err.h>
 
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args);
 static int FIFO_init(siridb_fifo_t * fifo);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * Make sure siridb->replica is not NULL since this function needs its UUID.
  */
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 {
@@ -65,7 +68,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     }
 
     fifo->max_id = (fifo->fifos->len) ?
-            ((siridb_ffile_t *) fifo->fifos->last)->id : -1;
+            ((siridb_ffile_t *) fifo->fifos->last->data)->id : -1;
 
     fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, NULL);
     if (fifo->in == NULL)
@@ -95,6 +98,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
             return NULL;
         }
     }
+
     return fifo;
 }
 
@@ -142,8 +146,8 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
  * (signal is set when return value is NULL)
  *
  * warning:
- *      be sure to check the fifo using siridb_fifo_has_data() before
- *      calling this function.
+ *      be sure to check the fifo using siridb_fifo_has_data() and
+ *      siridb_fifo_is_open() before calling this function.
  */
 inline sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
 {
@@ -168,6 +172,18 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
     }
 
     return siri_err;
+}
+
+/*
+ * returns 0 if successful or another value in case of errors.
+ * (signal can be set when result is not 0)
+ */
+int siridb_fifo_error(siridb_fifo_t * fifo)
+{
+    log_error(
+            "Handling the last package from the fifo buffer has failed, "
+            "commit the pop anyway");
+    return siridb_fifo_commit(fifo);
 }
 
 /*

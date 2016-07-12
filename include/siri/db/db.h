@@ -25,6 +25,7 @@
 #include <string.h>
 #include <uv.h>
 #include <siri/db/fifo.h>
+#include <siri/db/replicate.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
@@ -67,6 +68,7 @@ typedef struct ct_node_s ct_node_t;
 typedef struct imap32_s imap32_t;
 typedef struct imap64_s imap64_t;
 typedef struct siridb_fifo_s siridb_fifo_t;
+typedef struct siridb_replicate_s siridb_replicate_t;
 
 typedef struct siridb_s
 {
@@ -101,6 +103,7 @@ typedef struct siridb_s
     FILE * dropped_fp;
     qp_fpacker_t * store;
     siridb_fifo_t * fifo;
+    siridb_replicate_t * replicate;
 } siridb_t;
 
 

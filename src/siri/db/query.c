@@ -212,7 +212,7 @@ void siridb_query_forward(
     switch (tp)
     {
     case BPROTO_QUERY_SERVER:
-        siridb_servers_send_pkg(
+        siridb_servers_send(
                 ((sirinet_socket_t *) query->client->data)->siridb,
                 packer->len,
                 tp,

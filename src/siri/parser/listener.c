@@ -1383,7 +1383,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
         if (siridb_server_is_online(server))
         {
-            siridb_server_send_pkg(
+            siridb_server_send(
                     server,
                     3,
                     BPROTO_LOG_LEVEL_UPDATE,
@@ -1509,6 +1509,9 @@ static void exit_timeit_stmt(uv_async_t * handle)
  * On Response functions
  *****************************************************************************/
 
+/*
+ * Call-back function: sirinet_promise_cb
+ */
 static void on_ack_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -1549,6 +1552,9 @@ static void on_ack_response(
     free(promise);
 }
 
+/*
+ * Call-back function: sirinet_promises_cb
+ */
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)
@@ -1617,7 +1623,9 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-
+/*
+ * Call-back function: sirinet_promises_cb
+ */
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)

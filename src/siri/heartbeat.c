@@ -60,7 +60,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
 
     while (siridb_node != NULL)
     {
-        siridb = siridb_node->data;
+        siridb = (siridb_t *) siridb_node->data;
 
         server_node = siridb->servers->first;
         while (server_node != NULL)

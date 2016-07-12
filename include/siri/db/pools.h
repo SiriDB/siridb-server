@@ -34,7 +34,7 @@ typedef struct siridb_pools_s
     siridb_pool_t * pool;
 } siridb_pools_t;
 
-void siridb_pools_gen(siridb_t * siridb);
+void siridb_pools_init(siridb_t * siridb);
 void siridb_pools_free(siridb_pools_t * pools);
 siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools);
 int siridb_pools_online(siridb_t * siridb);

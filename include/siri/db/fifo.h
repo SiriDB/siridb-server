@@ -29,6 +29,7 @@ void siridb_fifo_free(siridb_fifo_t * fifo);
 int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo);
 int siridb_fifo_commit(siridb_fifo_t * fifo);
+int siridb_fifo_error(siridb_fifo_t * fifo);
 int siridb_fifo_close(siridb_fifo_t * fifo);
 int siridb_fifo_open(siridb_fifo_t * fifo);
 
@@ -37,3 +38,9 @@ int siridb_fifo_open(siridb_fifo_t * fifo);
  * Use this to check if the fifo has data. (must be done before calling pop)
  */
 #define siridb_fifo_has_data(fifo) fifo->out->next_size
+
+
+/*
+ * Returns 1 if the fifo buffer is open or 0 if closed.
+ */
+#define siridb_fifo_is_open(fifo) (fifo->in->fp != NULL)

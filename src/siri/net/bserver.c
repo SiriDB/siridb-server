@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <siri/db/query.h>
 #include <siri/db/insert.h>
+#include <siri/db/servers.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -40,6 +41,7 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_auth_request(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_flags_update(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_log_level_update(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_repl_finished(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_insert_pool(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_insert_server(uv_handle_t * client, sirinet_pkg_t * pkg);
@@ -134,6 +136,9 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
         break;
     case BPROTO_LOG_LEVEL_UPDATE:
         on_log_level_update(client, pkg);
+        break;
+    case BPROTO_REPL_FINISHED:
+        on_repl_finished(client, pkg);
         break;
     case BPROTO_QUERY_SERVER:
         on_query(client, pkg, 0);
@@ -232,6 +237,7 @@ static void on_flags_update(uv_handle_t * client, sirinet_pkg_t * pkg)
     SERVER_CHECK_AUTHENTICATED(server)
 
     sirinet_pkg_t * package;
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     qp_obj_t * qp_flags = qp_object_new();
 
@@ -239,6 +245,13 @@ static void on_flags_update(uv_handle_t * client, sirinet_pkg_t * pkg)
     {
         /* update server flags */
         siridb_server_update_flags(server->flags, qp_flags->via->int64);
+
+        /* if this is the replica see if we have anything to update */
+        if (    siridb->replica == server &&
+                siridb_replicate_is_idle(siridb->replicate))
+        {
+            siridb_replicate_start(siridb->replicate);
+        }
 
         log_info("Status received from '%s' (status: %d)",
                 server->name,
@@ -289,6 +302,30 @@ static void on_log_level_update(uv_handle_t * client, sirinet_pkg_t * pkg)
     }
     qp_object_free(qp_log_level);
     qp_unpacker_free(unpacker);
+}
+
+static void on_repl_finished(uv_handle_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    sirinet_pkg_t * package;
+
+    if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
+    {
+        siridb->server->flags ^=
+                SERVER_FLAG_SYNCHRONIZING & siridb->server->flags;
+
+        siridb_servers_send_flags(siridb->servers);
+    }
+
+    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_REPL_FINISHED, NULL);
+    if (package != NULL)
+    {
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
+    }
 }
 
 static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg, int flags)
@@ -348,7 +385,8 @@ static void on_insert_server(uv_handle_t * client, sirinet_pkg_t * pkg)
 
     if (unpacker != NULL)
     {
-        package = ( siridb->server->flags != SERVER_FLAG_RUNNING ||
+        package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
+                    (siridb->server->flags & SERVER_FLAG_PAUSED) ||
                     siridb_insert_local(siridb, unpacker)) ?
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);

@@ -154,7 +154,7 @@ void siridb_servers_free(llist_t * servers)
     llist_free_cb(servers, (llist_cb_t) SERVERS_walk_free, NULL);
 }
 
-void siridb_servers_send_pkg(
+void siridb_servers_send(
         siridb_t * siridb,
         uint32_t len,
         uint16_t tp,
@@ -180,7 +180,7 @@ void siridb_servers_send_pkg(
 
         if (siridb_server_is_online(server))
         {
-            siridb_server_send_pkg(
+            siridb_server_send(
                     server,
                     len,
                     tp,
@@ -232,6 +232,22 @@ siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name)
         node = node->next;
     }
     return NULL;
+}
+
+void siridb_servers_send_flags(llist_t * servers)
+{
+    llist_node_t * node = servers->first;
+    siridb_server_t * server;
+
+    while (node != NULL)
+    {
+        server = node->data;
+        if (siridb_server_is_online(server))
+        {
+            siridb_server_send_flags(server);
+        }
+        node = node->next;
+    }
 }
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args)

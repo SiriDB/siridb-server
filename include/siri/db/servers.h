@@ -22,7 +22,7 @@ void siridb_servers_free(llist_t * servers);
 siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid);
 siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name);
 
-void siridb_servers_send_pkg(
+void siridb_servers_send(
         siridb_t * siridb,
         uint32_t len,
         uint16_t tp,
@@ -30,3 +30,4 @@ void siridb_servers_send_pkg(
         uint64_t timeout,
         sirinet_promises_cb cb,
         void * data);
+void siridb_servers_send_flags(llist_t * servers);

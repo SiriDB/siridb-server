@@ -283,7 +283,7 @@ static int SIRI_load_databases(void)
         }
 
         /* generate pools */
-        siridb_pools_gen(siridb);
+        siridb_pools_init(siridb);
 
         /* update series props */
         log_info("Updating series properties");
@@ -329,15 +329,15 @@ int siri_start(void)
     /* initialize file handler for shards */
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
+    /* initialize the default event loop */
+    siri.loop = malloc(sizeof(uv_loop_t));
+    uv_loop_init(siri.loop);
+
     /* load databases */
     if ((rc = SIRI_load_databases()))
     {
         return rc; //something went wrong
     }
-
-    /* initialize the default event loop */
-    siri.loop = malloc(sizeof(uv_loop_t));
-    uv_loop_init(siri.loop);
 
     /* bind signals to the event loop */
     for (int i = 0; i < N_SIGNALS; i++)
@@ -436,8 +436,13 @@ static void SIRI_set_closing_state(void)
     llist_node_t * db_node = siri.siridb_list->first;
     while (db_node != NULL)
     {
-        siridb_server_t * server = ((siridb_t *) db_node->data)->server;
-        server->flags ^= SERVER_FLAG_RUNNING & server->flags;
+        siridb_t * siridb = (siridb_t *) db_node->data;
+        if (siridb->replicate != NULL)
+        {
+            siridb_replicate_close(siridb->replicate);
+        }
+        siridb->server->flags ^= SERVER_FLAG_RUNNING & siridb->server->flags;
+
         db_node = db_node->next;
     }
 }
@@ -459,6 +464,13 @@ static void SIRI_try_close(uv_timer_t * handle)
     if (!--closing_attempts && num)
     {
         log_error("SiriDB will close but still had %d task(s) running.", num);
+        /*
+         * We usually assume all async tasks will finish 'normal' and take care
+         * of destroying the handle. Since now we will loop and force all
+         * handlers to close we must be able to act on this behavior. Therefore
+         * we set siri_err which can be checked.
+         */
+        siri_err = ERR_CLOSE_TIMEOUT_REACHED;
         num = 0;
     }
 
