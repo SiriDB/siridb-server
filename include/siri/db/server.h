@@ -18,6 +18,7 @@
 #include <cexpr/cexpr.h>
 #include <uv.h>
 #include <siri/net/promise.h>
+#include <siri/net/pkg.h>
 
 #define SERVER_FLAG_RUNNING 1
 #define SERVER_FLAG_PAUSED 2

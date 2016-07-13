@@ -16,7 +16,7 @@
 #include <string.h>
 #include <logger/logger.h>
 #include <llist/llist.h>
-#include <siri/net/promise.h>
+#include <siri/net/promises.h>
 
 static void POOLS_make(
         uint_fast16_t n,
@@ -183,7 +183,7 @@ void siridb_pools_send_pkg(
                     pool,
                     pkg,
                     timeout,
-                    sirinet_promise_on_response,
+                    sirinet_promises_on_response,
                     promises))
             {
                 log_debug(

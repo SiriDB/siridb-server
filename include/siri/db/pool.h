@@ -16,6 +16,7 @@
 #include <siri/db/db.h>
 #include <inttypes.h>
 #include <cexpr/cexpr.h>
+#include <siri/net/pkg.h>
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_server_s siridb_server_t;

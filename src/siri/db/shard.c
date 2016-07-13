@@ -561,7 +561,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
      */
     if (!siri_err)
     {
-        /* remove the old shard file */
+        /* remove the old shard file, this is not critical */
         unlink(new_shard->replacing->fn);
 
         /* rename the temporary shard file to the correct shard filename */

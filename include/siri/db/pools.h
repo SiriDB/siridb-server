@@ -16,6 +16,7 @@
 #include <siri/db/pool.h>
 #include <siri/net/promise.h>
 #include <slist/slist.h>
+#include <siri/net/pkg.h>
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_pool_s siridb_pool_t;

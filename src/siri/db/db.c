@@ -23,6 +23,7 @@
 #include <siri/db/servers.h>
 #include <math.h>
 #include <procinfo/procinfo.h>
+#include <lock/lock.h>
 
 #define SIRIDB_SHEMA 1
 
@@ -320,6 +321,16 @@ static void SIRIDB_free(siridb_t * siridb)
     if (siridb->buffer_path != siridb->dbpath)
     {
         free(siridb->buffer_path);
+    }
+
+    /* unlock the database in case no siri_err occurred */
+    if (!siri_err)
+    {
+        lock_t lock_rc = lock_unlock(siridb->dbpath);
+        if (lock_rc != LOCK_REMOVED)
+        {
+            log_error("%s", lock_str(lock_rc));
+        }
     }
 
     free(siridb->dbpath);

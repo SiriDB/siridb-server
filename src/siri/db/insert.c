@@ -20,6 +20,7 @@
 #include <siri/db/points.h>
 #include <siri/net/socket.h>
 #include <assert.h>
+#include <siri/net/promises.h>
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
@@ -463,7 +464,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                         siridb->pools->pool + n,
                         pkg,
                         0,
-                        sirinet_promise_on_response,
+                        sirinet_promises_on_response,
                         promises))
                 {
                     log_error(

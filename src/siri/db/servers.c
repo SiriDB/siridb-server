@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <siri/version.h>
 #include <siri/db/db.h>
-
+#include <siri/net/promises.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -182,7 +182,7 @@ void siridb_servers_send_pkg(
                     server,
                     pkg,
                     timeout,
-                    sirinet_promise_on_response,
+                    sirinet_promises_on_response,
                     promises);
         }
         else

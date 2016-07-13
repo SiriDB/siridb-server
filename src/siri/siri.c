@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <siri/net/socket.h>
 #include <siri/version.h>
+#include <lock/lock.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
@@ -109,6 +110,7 @@ static int SIRI_load_databases(void)
     qp_unpacker_t * unpacker = NULL;
     cfgparser_option_t * option = NULL;
     siridb_t * siridb;
+    lock_t lock_rc;
 
     char err_msg[512];
 
@@ -153,6 +155,36 @@ static int SIRI_load_databases(void)
             continue;
         }
 
+        /* set lock */
+        snprintf(buffer,
+                PATH_MAX,
+                "%s%s/",
+                siri.cfg->default_db_path,
+                dbpath->d_name);
+
+        lock_rc = lock_lock(buffer);
+
+        switch (lock_rc)
+        {
+        case LOCK_IS_LOCKED_ERR:
+        case LOCK_PROCESS_NAME_ERR:
+        case LOCK_WRITE_ERR:
+        case LOCK_READ_ERR:
+        case LOCK_MEM_ALLOC_ERR:
+            log_error("%s (%s)", lock_str(lock_rc), buffer);
+            closedir(db_container_path);
+            return -1;
+        case LOCK_NEW:
+            log_info("%s (%s)", lock_str(lock_rc), dbpath->d_name);
+            break;
+        case LOCK_OVERWRITE:
+            log_warning("%s (%s)", lock_str(lock_rc), dbpath->d_name);
+            break;
+        default:
+            assert (0);
+            break;
+        }
+
         /* read database.conf */
         snprintf(buffer,
                 PATH_MAX,
@@ -161,7 +193,9 @@ static int SIRI_load_databases(void)
                 dbpath->d_name);
 
         if (access(buffer, R_OK) == -1)
+        {
             continue;
+        }
 
         cfgparser = cfgparser_new();
 
@@ -172,7 +206,7 @@ static int SIRI_load_databases(void)
                     cfgparser_errmsg(rc));
             closedir(db_container_path);
             cfgparser_free(cfgparser);
-            return 1;
+            return -1;
         }
 
         snprintf(buffer,
@@ -187,7 +221,7 @@ static int SIRI_load_databases(void)
             closedir(db_container_path);
             qp_unpacker_free(unpacker);
             cfgparser_free(cfgparser);
-            return 1;
+            return -1;
         }
 
         if (siridb_from_unpacker(
