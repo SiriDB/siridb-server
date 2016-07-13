@@ -5,6 +5,8 @@
  * email        : jeroen@transceptor.technology
  * copyright    : 2016, Transceptor Technology
  *
+ * This module works only in Linux
+ *
  * changes
  *  - initial version, 13-07-2016
  *
@@ -130,8 +132,9 @@ const char * lock_str(lock_t rc)
     case LOCK_NEW:
         return "Database is successfully locked with a new lock file";
     case LOCK_OVERWRITE:
-        return "Database is successfully locked but a lock file existed which "
-                "indicates that the database not closed correctly last time";
+        return
+            "Database is successfully locked but a lock file existed which "
+            "indicates that the database was not closed correctly last time";
     }
     return "Unknown type";
 }
@@ -167,7 +170,7 @@ static lock_t LOCK_create(const char * lock_fn, pid_t pid)
 static int LOCK_get_process_name(char ** name, pid_t pid)
 {
     size_t n = 1024;
-   *name = (char *) calloc(n, sizeof(char));
+    *name = (char *) calloc(n, sizeof(char));
 
     if (*name == NULL)
     {
