@@ -425,26 +425,36 @@ siridb_points_t * siridb_series_get_points_num32(
 
     /* crop start buffer if needed */
     if (start_ts != NULL)
+    {
         for (; len && point->ts < *start_ts; point++, len--);
+    }
 
     /* crop end buffer if needed */
     if (end_ts != NULL && len)
+    {
         for (   siridb_point_t * p = point + len - 1;
                 len && p->ts >= *end_ts;
                 p--, len--);
+    }
 
     /* add buffer points */
     for (; len; point++, len--)
+    {
         siridb_points_add_point(points, &point->ts, &point->val);
+    }
 
     if (points->len < size)
+    {
         /* shrink allocation size */
         points->data = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+    }
 #ifdef DEBUG
     else
+    {
         /* size must be equal if not smaller */
         assert (points->len == size);
+    }
 #endif
 
     return points;
@@ -508,6 +518,9 @@ int siridb_series_optimize_shard_num32(
             }
             size += idx->len;
             end++;
+        } else if (idx->shard == shard && end)
+        {
+            end++;
         }
     }
 
@@ -529,15 +542,16 @@ int siridb_series_optimize_shard_num32(
 
     for (i = start; i < end; i++)
     {
-        if (siridb_shard_get_points_num32(
-                points,
-                (idx_num32_t *) series->index->idx + i,
-                NULL,
-                NULL,
-                series->index->has_overlap))
+        idx = (idx_num32_t *) series->index->idx + i;
+        /* we can have indexes for the 'new' shard which we should skip */
+        if (idx->shard == shard->replacing && siridb_shard_get_points_num32(
+                    points,
+                    idx,
+                    NULL,
+                    NULL,
+                    series->index->has_overlap))
         {
             /* an error occurred while reading points, logging is done */
-            idx = (idx_num32_t *) series->index->idx + i;
             size -= idx->len;
         }
     }

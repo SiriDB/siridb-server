@@ -153,9 +153,18 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
  *      be sure to check the fifo using siridb_fifo_has_data() and
  *      siridb_fifo_is_open() before calling this function.
  */
-inline sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
+sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo)
 {
-    return siridb_ffile_pop(fifo->out);
+    sirinet_pkg_t * pkg = siridb_ffile_pop(fifo->out);
+    if (pkg == NULL && !siri_err)
+    {
+        /*
+         * In case siri_err is not set, we can try to recover by commiting an
+         * error. We should not do this in case of malloc errors.
+         */
+        siridb_fifo_commit_err(fifo);
+    }
+    return pkg;
 }
 
 /*

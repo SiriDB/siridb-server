@@ -189,7 +189,6 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
     assert (ffile->next_size);
     assert (ffile->fp != NULL);
 #endif
-
     if (fseek(
             ffile->fp,
             -(long int) (ffile->next_size + sizeof(uint32_t)),
@@ -212,6 +211,15 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
                 "Error while reading %lu bytes from '%s'",
                 ffile->next_size,
                 ffile->fn);
+        free(pkg);
+        return NULL;
+    }
+
+    if (    ffile->next_size < PKG_HEADER_SIZE ||
+            pkg->len != ffile->next_size - PKG_HEADER_SIZE)
+    {
+        log_critical(
+                "Corrupt package in fifo: '%s' ", ffile->fn);
         free(pkg);
         return NULL;
     }

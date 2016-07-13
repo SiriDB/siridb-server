@@ -1,5 +1,6 @@
 /*
  * shard.c - SiriDB Shard.
+
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -9,6 +10,7 @@
  *  - initial version, 04-04-2016
  *
  */
+#define _GNU_SOURCE
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
 #include <imap64/imap64.h>
@@ -74,7 +76,7 @@ static int SHARD_load_idx_num32(
 
 static void SHARD_free(siridb_shard_t * shard);
 static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
-static void SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
+static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -96,8 +98,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     shard->id = id;
     shard->ref = 1;
     shard->replacing = NULL;
-    SHARD_init_fn(siridb, shard);
-    if (shard->fn == NULL)
+    if (SHARD_init_fn(siridb, shard) < 0)
     {
         siridb_shard_decref(shard);
         return -1;
@@ -180,8 +181,7 @@ siridb_shard_t *  siridb_shard_create(
     shard->tp = tp;
     shard->replacing = replacing;
     FILE * fp;
-    SHARD_init_fn(siridb, shard);
-    if (shard->fn == NULL)
+    if (SHARD_init_fn(siridb, shard) < 0)
     {
         ERR_ALLOC
         siridb_shard_decref(shard);
@@ -321,6 +321,10 @@ int siridb_shard_get_points_num32(
         uint8_t has_overlap)
 {
     size_t len = points->len + idx->len;
+    /*
+     * Index length is limited to max_chunck_points so we are able to store
+     * one chunk in stack memory.
+     */
     uint32_t temp[idx->len * 3];
     uint32_t * pt;
 
@@ -334,7 +338,6 @@ int siridb_shard_get_points_num32(
             return -1;
         }
     }
-
 
     if (fseek(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
         fread(
@@ -393,6 +396,7 @@ int siridb_shard_get_points_num32(
             points->data[points->len].val = *((qp_via_t *) (pt + 1));
         }
     }
+
     return 0;
 }
 
@@ -538,6 +542,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
          * only the reference counter for the new_shard we keep this shard as
          * if it is still optimizing so remaining points can still be written.
          */
+        free(tmp);
         siridb_shard_decref(new_shard);
         return siri_err;
     }
@@ -562,6 +567,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         /* rename the temporary shard file to the correct shard filename */
         if (rename(new_shard->fn, new_shard->replacing->fn))
         {
+            free(tmp);
             log_critical(
                     "Could not rename file '%s' to '%s'",
                     new_shard->fn,
@@ -580,6 +586,10 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             siridb_shard_decref(new_shard->replacing);
             new_shard->replacing = NULL;
         }
+    }
+    else
+    {
+        free(tmp);
     }
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -804,16 +814,17 @@ static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
 /*
  * Set shard->fn to the correct file name or to NULL in case of an
  * allocation error.
+ *
+ * Returns the length of 'fn' or a negative value in case of an error.
  */
-static void SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
+inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
-    char fn[PATH_MAX];
-    sprintf(fn,
-            "%s%s%s%ld%s",
-            siridb->dbpath,
-            SIRIDB_SHARDS_PATH,
-            (shard->replacing == NULL) ? "" : "__",
-            shard->id,
-            ".sdb");
-    shard->fn = strdup(fn);
+     return asprintf(
+             &shard->fn,
+             "%s%s%s%ld%s",
+             siridb->dbpath,
+             SIRIDB_SHARDS_PATH,
+             (shard->replacing == NULL) ? "" : "__",
+             shard->id,
+             ".sdb");
 }
