@@ -812,8 +812,7 @@ static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
 }
 
 /*
- * Set shard->fn to the correct file name or to NULL in case of an
- * allocation error.
+ * Set shard->fn to the correct file name.
  *
  * Returns the length of 'fn' or a negative value in case of an error.
  */

@@ -143,8 +143,8 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
     case BPROTO_QUERY_SERVER:
         on_query(client, pkg, 0);
         break;
-    case BPROTO_QUERY_POOL:
-        on_query(client, pkg, SIRIDB_QUERY_FLAG_POOL);
+    case BPROTO_QUERY_UPDATE:
+        on_query(client, pkg, SIRIDB_QUERY_FLAG_UPDATE_REPLICA);
         break;
     case BPROTO_INSERT_POOL:
         on_insert_pool(client, pkg);
@@ -333,8 +333,33 @@ static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg, int flags)
     SERVER_CHECK_AUTHENTICATED(server)
 
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    if (unpacker == NULL)
+    {
+        return;  /* signal is raised */
+    }
     qp_obj_t * qp_query = qp_object_new();
+    if (qp_query == NULL)
+    {
+        qp_unpacker_free(unpacker);
+        return;  /* signal is raised */
+    }
     qp_obj_t * qp_time_precision = qp_object_new();
+    if (qp_time_precision == NULL)
+    {
+        qp_object_free(qp_query);
+        qp_unpacker_free(unpacker);
+        return;  /* signal is raised */
+    }
+
+    if (flags & SIRIDB_QUERY_FLAG_UPDATE_REPLICA)
+    {
+        siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+        if (siridb->replica != NULL)
+        {
+            pkg->tp = BPROTO_QUERY_SERVER;
+            siridb_fifo_append(siridb->fifo, pkg);
+        }
+    }
 
     if (    qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_query) == QP_RAW &&

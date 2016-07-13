@@ -182,34 +182,6 @@ void siridb_server_send_pkg(
     server->pid++;
 }
 
-
-/*
- * This function can raise a SIGNAL.
- *
- * TODO: make the function obsolete and better create the pkg outside this
- *       function.
- */
-void siridb_server_send(
-        siridb_server_t * server,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
-        uint64_t timeout,
-        sirinet_promise_cb cb,
-        void * data)
-{
-    sirinet_pkg_t * pkg = sirinet_pkg_new(
-            0,
-            len,
-            tp,
-            content);
-    if (pkg != NULL)
-    {
-        siridb_server_send_pkg(server, pkg, timeout, cb, data);
-        free(pkg);
-    }
-}
-
 /*
  * This function can raise a SIGNAL.
  */
@@ -230,14 +202,17 @@ void siridb_server_send_flags(siridb_server_t * server)
     int16_t n = ssocket->siridb->server->flags;
     QP_PACK_INT16(buffer, n)
 
-    siridb_server_send(
-            server,
-            3,
-            BPROTO_FLAGS_UPDATE,
-            buffer,
-            0,
-            SERVER_on_flags_update_response,
-            NULL);
+    sirinet_pkg_t * pkg = sirinet_pkg_new(0, 3, BPROTO_FLAGS_UPDATE, buffer);
+    if (pkg != NULL)
+    {
+        siridb_server_send_pkg(
+                server,
+                pkg,
+                0,
+                SERVER_on_flags_update_response,
+                NULL);
+        free(pkg);
+    }
 }
 
 /*
@@ -314,6 +289,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_on_data);
 
         qp_packer_t * packer = qp_packer_new(512);
+        sirinet_pkg_t * pkg;
         if (packer != NULL)
         {
             if (!(
@@ -326,16 +302,20 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_string_term(packer, ssocket->siridb->dbpath) ||
                 qp_add_string_term(packer, ssocket->siridb->buffer_path) ||
                 qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
-                qp_add_int32(packer, (int32_t) abs(siri.startup_time))))
+                qp_add_int32(packer, (int32_t) abs(siri.startup_time))) &&
+                    (pkg = sirinet_pkg_new(
+                            0,
+                            packer->len,
+                            BPROTO_AUTH_REQUEST,
+                            packer->buffer)) != NULL)
             {
-                siridb_server_send(
+                siridb_server_send_pkg(
                         server,
-                        packer->len,
-                        BPROTO_AUTH_REQUEST,
-                        packer->buffer,
+                        pkg,
                         0,
                         SERVER_on_auth_response,
                         NULL);
+                free(pkg);
             }
             qp_packer_free(packer);
         }

@@ -41,9 +41,7 @@ int siridb_pools_online(siridb_t * siridb);
 int siridb_pools_available(siridb_t * siridb);
 void siridb_pools_send_pkg(
         siridb_t * siridb,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
+        sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
         void * data);

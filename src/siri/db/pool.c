@@ -126,9 +126,7 @@ int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
  */
 int siridb_pool_send_pkg(
         siridb_pool_t * pool,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
+        sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
         void * data)
@@ -150,16 +148,7 @@ int siridb_pool_send_pkg(
     }
     else
     {
-        sirinet_pkg_t * pkg = sirinet_pkg_new(
-                0,
-                len,
-                tp,
-                content);
-        if (pkg != NULL)
-        {
-            siridb_server_send_pkg(server, pkg, timeout, cb, data);
-            free(pkg);
-        }
+        siridb_server_send_pkg(server, pkg, timeout, cb, data);
     }
     return 0;
 }

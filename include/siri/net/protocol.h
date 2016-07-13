@@ -45,7 +45,7 @@ typedef enum
     BPROTO_LOG_LEVEL_UPDATE,                    // log_level
     BPROTO_REPL_FINISHED,                       // empty
     BPROTO_QUERY_SERVER,                        // (query, time_precision)
-    BPROTO_QUERY_POOL,                          // (query, time_precision)
+    BPROTO_QUERY_UPDATE,                        // (query, time_precision)
     BPROTO_INSERT_POOL,                         // {series: points, ...}
     BPROTO_INSERT_SERVER,                       // {series: points, ...}
 } bproto_client_t;
@@ -61,10 +61,14 @@ typedef enum
  */
 typedef enum
 {
+    /* Mappings to client protocol messages */
     BPROTO_RES_QUERY=CPROTO_RES_QUERY,          // {query response data}
 
     BPROTO_ERR_QUERY=CPROTO_ERR_QUERY,          // {"error_msg": ...}
+    BPROTO_ERR_SERVER=CPROTO_ERR_SERVER,        // {"error_msg": ...}
+    BPROTO_ERR_POOL=CPROTO_ERR_POOL,            // {"error_msg": ...}
 
+    /* Back-end specific protocol messages */
     BPROTO_AUTH_ERR_UNKNOWN_UUID=128,           // empty
     BPROTO_AUTH_ERR_UNKNOWN_DBNAME,             // empty
     BPROTO_AUTH_ERR_INVALID_UUID,               // empty

@@ -441,7 +441,9 @@ static void SIRI_set_closing_state(void)
         {
             siridb_replicate_close(siridb->replicate);
         }
+
         siridb->server->flags ^= SERVER_FLAG_RUNNING & siridb->server->flags;
+        siridb_servers_send_flags(siridb->servers);
 
         db_node = db_node->next;
     }
@@ -449,7 +451,7 @@ static void SIRI_set_closing_state(void)
 
 static void SIRI_walk_try_close(uv_handle_t * handle, int * num)
 {
-    if (handle->type == UV_ASYNC)
+    if (handle->type == UV_ASYNC || handle->type == UV_TIMER)
     {
         (*num)++;
     }
@@ -457,7 +459,7 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num)
 
 static void SIRI_try_close(uv_timer_t * handle)
 {
-    int num = 0;
+    int num = -1;  /* minus one because we should not incluse 'this' timer */
 
     uv_walk(siri.loop, (uv_walk_cb) SIRI_walk_try_close, &num);
 

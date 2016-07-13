@@ -1219,7 +1219,7 @@ bg=light_gray</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -1230,7 +1230,7 @@ bg=light_gray</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -1241,7 +1241,7 @@ bg=light_gray</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -1252,7 +1252,7 @@ bg=light_gray</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -1989,7 +1989,7 @@ bg=yellow</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -2522,7 +2522,7 @@ bg=yellow</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
@@ -2932,7 +2932,7 @@ bg=light_gray</panel_attributes>
       <w>184</w>
       <h>32</h>
     </coordinates>
-    <panel_attributes>siridb_send_error</panel_attributes>
+    <panel_attributes>siridb_query_send_error</panel_attributes>
     <additional_attributes/>
   </element>
   <element>

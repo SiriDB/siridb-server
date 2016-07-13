@@ -98,14 +98,6 @@ int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
 void siridb_server_incref(siridb_server_t * server);
 void siridb_server_decref(siridb_server_t * server);
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
-void siridb_server_send(
-        siridb_server_t * server,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
-        uint64_t timeout,
-        sirinet_promise_cb cb,
-        void * data);
 void siridb_server_send_pkg(
         siridb_server_t * server,
         sirinet_pkg_t * pkg,

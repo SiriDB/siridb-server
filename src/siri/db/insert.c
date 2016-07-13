@@ -396,6 +396,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
+    sirinet_pkg_t * pkg;
 
     sirinet_promises_t * promises = sirinet_promises_new(
             siridb->pools->len - 1,
@@ -423,7 +424,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 #ifdef DEBUG
                 assert (siridb->fifo != NULL);
 #endif
-                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                pkg = sirinet_pkg_new(
                         0,
                         insert->packer[n]->len,
                         BPROTO_INSERT_SERVER,
@@ -451,24 +452,31 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         }
         else
         {
-            if (siridb_pool_send_pkg(
-                    siridb->pools->pool + n,
+            pkg = sirinet_pkg_new(
+                    0,
                     insert->packer[n]->len,
                     BPROTO_INSERT_POOL,
-                    insert->packer[n]->buffer,
-                    0,
-                    sirinet_promise_on_response,
-                    promises))
+                    insert->packer[n]->buffer);
+            if (pkg != NULL)
             {
-                log_error(
+                if (siridb_pool_send_pkg(
+                        siridb->pools->pool + n,
+                        pkg,
+                        0,
+                        sirinet_promise_on_response,
+                        promises))
+                {
+                    log_error(
                         "Although we have checked and validated each pool "
                         "had at least one server available, it seems that the "
                         "situation has changed and we cannot send points to "
                         "pool %u", n);
-            }
-            else
-            {
-                pool_count++;
+                }
+                else
+                {
+                    pool_count++;
+                }
+                free(pkg);
             }
         }
     }

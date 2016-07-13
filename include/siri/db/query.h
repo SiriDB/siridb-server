@@ -12,8 +12,16 @@
 #pragma once
 
 #define SIRIDB_QUERY_FLAG_MASTER 1
-#define SIRIDB_QUERY_FLAG_POOL 2
-#define SIRIDB_QUERY_FLAG_REBUILD 4
+#define SIRIDB_QUERY_FLAG_REBUILD 2
+#define SIRIDB_QUERY_FLAG_UPDATE_REPLICA 4
+
+typedef enum
+{
+    SIRIDB_QUERY_FWD_SERVERS,  // Forward to all servers directly
+    SIRIDB_QUERY_FWD_POOLS,  // Forward to all pools
+    SIRIDB_QUERY_FWD_UPDATE  // Forward to all pools and update replica's.
+} siridb_query_fwd_t;
+
 
 #include <uv.h>
 #include <inttypes.h>
@@ -65,22 +73,15 @@ void siridb_query_run(
         size_t q_len,
         siridb_timep_t time_precision,
         int flags);
-
 void siridb_query_free(uv_handle_t * handle);
 void siridb_send_query_result(uv_async_t * handle);
-void siridb_send_error(
+void siridb_query_send_error(
         uv_async_t * handle,
         cproto_client_t err);
-
-/* Can be used to forward a query to all pools or all servers.
- * Use tp = BPROTO_QUERY_SERVER when the query needs to be send to all servers,
- * or BPROTO_QUERY_POOL for sending the query to all pools.
- */
 void siridb_query_forward(
         uv_async_t * handle,
-        uint16_t tp,
+        siridb_query_fwd_t fwd,
         sirinet_promises_cb cb);
-
 void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker);

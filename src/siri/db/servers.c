@@ -154,11 +154,9 @@ void siridb_servers_free(llist_t * servers)
     llist_free_cb(servers, (llist_cb_t) SERVERS_walk_free, NULL);
 }
 
-void siridb_servers_send(
+void siridb_servers_send_pkg(
         siridb_t * siridb,
-        uint32_t len,
-        uint16_t tp,
-        const char * content,
+        sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
         void * data)
@@ -180,11 +178,9 @@ void siridb_servers_send(
 
         if (siridb_server_is_online(server))
         {
-            siridb_server_send(
+            siridb_server_send_pkg(
                     server,
-                    len,
-                    tp,
-                    content,
+                    pkg,
                     timeout,
                     sirinet_promise_on_response,
                     promises);
@@ -234,6 +230,11 @@ siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name)
     return NULL;
 }
 
+/*
+ * This function can raise a SIGNAL.
+ *
+ * Use this to send the current server->flags to all servers.
+ */
 void siridb_servers_send_flags(llist_t * servers)
 {
     llist_node_t * node = servers->first;
@@ -242,6 +243,10 @@ void siridb_servers_send_flags(llist_t * servers)
     while (node != NULL)
     {
         server = node->data;
+        /*
+         * The AUTHENTICATED flag is never set on 'this' server and therefore
+         * skipped as should.
+         */
         if (siridb_server_is_online(server))
         {
             siridb_server_send_flags(server);

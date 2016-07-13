@@ -35,6 +35,16 @@
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
+#define MASTER_CHECK_POOLS_ONLINE(siridb)                                          \
+if (IS_MASTER && !siridb_pools_online(siridb))                              \
+{                                                                           \
+    snprintf(query->err_msg,                                                \
+            SIRIDB_MAX_SIZE_ERR_MSG,                                        \
+            "At least one pool is lacking an available server to process "  \
+            "this request");                                                \
+    siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
+    return;                                                                 \
+}
 
 static void decref_server_object(uv_handle_t * handle);
 static void decref_user_object(uv_handle_t * handle);
@@ -89,6 +99,7 @@ static void on_ack_response(
         int status);
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
+static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
 static uint32_t GID_K_NAME = CLERI_GID_K_NAME;
 static uint32_t GID_K_POOL = CLERI_GID_K_POOL;
@@ -133,7 +144,7 @@ if (    IS_MASTER &&                                                        \
             ACCESS_BIT,                                                     \
             query->err_msg))                                                \
 {                                                                           \
-    siridb_send_error(handle, CPROTO_ERR_USER_ACCESS);                      \
+    siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                \
     return;                                                                 \
 }
 
@@ -281,7 +292,7 @@ static void enter_alter_server(uv_async_t * handle)
                 "Cannot find server: %.*s",
                 (int) server_node->len,
                 server_node->str);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -300,6 +311,9 @@ static void enter_alter_user(uv_async_t * handle)
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_ALTER)
 
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
@@ -313,7 +327,7 @@ static void enter_alter_user(uv_async_t * handle)
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'",
                 username);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -351,8 +365,8 @@ static void enter_create_user(uv_async_t * handle)
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_CREATE)
 
     /* bind user object to data and set correct free call */
-    query->data = siridb_user_new();
-    siridb_user_incref(query->data);
+    query->data = (siridb_user_t *) siridb_user_new();
+    siridb_user_incref((siridb_user_t *) query->data);
 
     query->free_cb = (uv_close_cb) decref_user_object;
 
@@ -389,6 +403,9 @@ static void enter_grant_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
@@ -399,7 +416,7 @@ static void enter_grant_user(uv_async_t * handle)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -425,7 +442,7 @@ static void enter_limit_expr(uv_async_t * handle)
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Limit must be a value larger than zero but received: '%ld'",
                 limit);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -468,6 +485,9 @@ static void enter_revoke_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
@@ -480,7 +500,7 @@ static void enter_revoke_user(uv_async_t * handle)
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'",
                 username);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -527,7 +547,7 @@ static void enter_set_password(uv_async_t * handle)
 
     if (siridb_user_set_password(user, password, query->err_msg))
     {
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -560,7 +580,7 @@ static void enter_series_name(uv_async_t * handle)
                     "Cannot find series: '%s'", series_name);
 
             /* free series_name and return with send_errror.. */
-            siridb_send_error(handle, CPROTO_ERR_QUERY);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
             return;
         }
 
@@ -606,7 +626,7 @@ static void enter_where_xxx(uv_async_t * handle)
     {
         sprintf(query->err_msg, "Max depth reached in 'where' expression!");
         log_critical(query->err_msg);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -671,6 +691,7 @@ static void exit_alter_user(uv_async_t * handle)
     }
 
     query->packer = qp_packer_new(1024);
+
     if (query->packer != NULL)
     {
         qp_add_type(query->packer, QP_MAP_OPEN);
@@ -680,7 +701,18 @@ static void exit_alter_user(uv_async_t * handle)
                 "Successful changed password for user '%s'.",
                 ((siridb_user_t *) query->data)->username);
     }
-    SIRIPARSER_NEXT_NODE
+
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_update_xxx_response);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_before_expr(uv_async_t * handle)
@@ -811,7 +843,7 @@ static void exit_count_servers(uv_async_t * handle)
     {
         siridb_query_forward(
                 handle,
-                BPROTO_QUERY_SERVER,
+                SIRIDB_QUERY_FWD_SERVERS,
                 (sirinet_promises_cb) on_count_servers_response);
     }
     else
@@ -860,6 +892,8 @@ static void exit_create_user(uv_async_t * handle)
     assert(query->packer == NULL);
 #endif
 
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
     user->username = (char *) malloc(user_node->len - 1);
     if (user->username == NULL)
     {
@@ -873,7 +907,7 @@ static void exit_create_user(uv_async_t * handle)
             user,
             query->err_msg))
     {
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -886,7 +920,18 @@ static void exit_create_user(uv_async_t * handle)
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
                 "User '%s' is created successfully.", user->username);
-        SIRIPARSER_NEXT_NODE
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
     }
 }
 
@@ -971,6 +1016,9 @@ static void exit_drop_shard(uv_async_t * handle)
 static void exit_drop_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
 
     cleri_node_t * user_node =
             query->nodes->node->children->next->node;
@@ -984,7 +1032,7 @@ static void exit_drop_user(uv_async_t * handle)
             username,
             query->err_msg))
     {
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -992,7 +1040,17 @@ static void exit_drop_user(uv_async_t * handle)
         qp_add_fmt_safe(query->packer,
                 "User '%s' is dropped successfully.", username);
 
-        SIRIPARSER_NEXT_NODE
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
     }
 }
 
@@ -1004,7 +1062,7 @@ static void exit_grant_user(uv_async_t * handle)
     {
         sprintf(query->err_msg, "Could not write users to file!");
         log_critical(query->err_msg);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }
 
@@ -1020,7 +1078,17 @@ static void exit_grant_user(uv_async_t * handle)
             "Successfully granted permissions to user '%s'.",
             ((siridb_user_t *) query->data)->username);
 
-    SIRIPARSER_NEXT_NODE
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_update_xxx_response);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_list_pools(uv_async_t * handle)
@@ -1123,10 +1191,10 @@ static void exit_list_series(uv_async_t * handle)
 
     if (IS_MASTER && q_list->limit)
     {
-        /* we have not reached the limit, send the query to oter pools */
+        /* we have not reached the limit, send the query to other pools */
         siridb_query_forward(
                 handle,
-                BPROTO_QUERY_POOL,
+                SIRIDB_QUERY_FWD_POOLS,
                 (sirinet_promises_cb) on_list_xxx_response);
     }
     else
@@ -1203,7 +1271,7 @@ static void exit_list_servers(uv_async_t * handle)
     {
         siridb_query_forward(
                 handle,
-                BPROTO_QUERY_SERVER,
+                SIRIDB_QUERY_FWD_SERVERS,
                 (sirinet_promises_cb) on_list_xxx_response);
     }
     else
@@ -1278,7 +1346,7 @@ static void exit_revoke_user(uv_async_t * handle)
     {
         sprintf(query->err_msg, "Could not write users to file!");
         log_critical(query->err_msg);
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }
 
@@ -1294,7 +1362,17 @@ static void exit_revoke_user(uv_async_t * handle)
             "Successfully revoked permissions from user '%s'.",
             ((siridb_user_t *) query->data)->username);
 
-    SIRIPARSER_NEXT_NODE
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_update_xxx_response);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_select_stmt(uv_async_t * handle)
@@ -1383,14 +1461,21 @@ static void exit_set_log_level(uv_async_t * handle)
 
         if (siridb_server_is_online(server))
         {
-            siridb_server_send(
-                    server,
+            sirinet_pkg_t * pkg = sirinet_pkg_new(
+                    0,
                     3,
                     BPROTO_LOG_LEVEL_UPDATE,
-                    buffer,
-                    0,
-                    (sirinet_promise_cb) on_ack_response,
-                    handle);
+                    buffer);
+            if (pkg != NULL)
+            {
+                siridb_server_send_pkg(
+                        server,
+                        pkg,
+                        0,
+                        (sirinet_promise_cb) on_ack_response,
+                        handle);
+                free(pkg);
+            }
         }
         else
         {
@@ -1398,7 +1483,7 @@ static void exit_set_log_level(uv_async_t * handle)
                     SIRIDB_MAX_SIZE_ERR_MSG,
                     "Cannot set log level, '%s' is currently unavailable",
                     server->name);
-            siridb_send_error(handle, CPROTO_ERR_QUERY);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         }
     }
 }
@@ -1541,7 +1626,7 @@ static void on_ack_response(
                 "Error occurred while sending the request to '%s' (%s)",
                 promise->server->name,
                 sirinet_promise_strstatus(status));
-        siridb_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
@@ -1696,5 +1781,60 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE
+}
+
+/*
+ * Call-back function: sirinet_promises_cb
+ */
+static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
+{
+    if (handle == NULL)
+    {
+        sirinet_promise_llist_free(promises);
+        return;  /* signal is raised when handle is NULL */
+    }
+
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    size_t err_count = 0;
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            err_count++;
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while sending the database change to at "
+                    "least one required server");
+        }
+
+        pkg = promise->data;
+
+        if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
+        {
+            err_count++;
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while sending the database change to at "
+                    "least '%s'", promise->server->name);
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    if (err_count)
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
