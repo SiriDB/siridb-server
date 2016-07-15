@@ -302,7 +302,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)
     {
-        sirinet_promise_llist_free(promises);
+        sirinet_promises_llist_free(promises);
         return;  /* signal is raised when handle is NULL */
     }
     sirinet_pkg_t * pkg;
@@ -317,7 +317,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 
     if (packer != NULL)
     {
-        cproto_client_t tp = CPROTO_RES_INSERT;
+        cproto_server_t tp = CPROTO_RES_INSERT;
 
         for (size_t i = 0; i < promises->len; i++)
         {

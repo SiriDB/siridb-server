@@ -39,7 +39,7 @@ llist_t * llist_new(void)
  * Destroys the linked list but performs a call-back function on the data.
  * The result of the call back function will be ignored.
  */
-void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args)
+void llist_free_cb(llist_t * llist, llist_cb cb, void * args)
 {
     llist_node_t * node = llist->first;
     llist_node_t * next;
@@ -87,7 +87,7 @@ int llist_append(llist_t * llist, void * data)
  * Walk through the list. Call-back function will be called on each item and
  * the sum of all results will be returned.
  */
-int llist_walk(llist_t * llist, llist_cb_t cb, void * args)
+int llist_walk(llist_t * llist, llist_cb cb, void * args)
 {
     llist_node_t * node = llist->first;
     int rc = 0;
@@ -104,7 +104,7 @@ int llist_walk(llist_t * llist, llist_cb_t cb, void * args)
  * 'n' will be decremented by one for each non-zero call-back result.
  * The walk will stop either on the end of the list or when 'n' is zero.
  */
-void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
+void llist_walkn(llist_t * llist, size_t * n, llist_cb cb, void * args)
 {
     llist_node_t * node = llist->first;
     while (node != NULL && *n)
@@ -121,7 +121,7 @@ void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args)
  * Remove and return the first item where 'cb' is not zero
  * or NULL if not found.
  */
-void * llist_remove(llist_t * llist, llist_cb_t cb, void * args)
+void * llist_remove(llist_t * llist, llist_cb cb, void * args)
 {
     llist_node_t * node = llist->first;
     llist_node_t * prev = NULL;
@@ -228,7 +228,7 @@ void * llist_shift(llist_t * llist)
 /*
  * Return the first item where 'cb' is not zero or NULL if not found.
  */
-void * llist_get(llist_t * llist, llist_cb_t cb, void * args)
+void * llist_get(llist_t * llist, llist_cb cb, void * args)
 {
     llist_node_t * node = llist->first;
     while (node != NULL)

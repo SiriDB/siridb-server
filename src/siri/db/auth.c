@@ -22,7 +22,7 @@
 #include <siri/version.h>
 #include <assert.h>
 
-cproto_client_t siridb_auth_user_request(
+cproto_server_t siridb_auth_user_request(
         uv_handle_t * client,
         qp_obj_t * qp_username,
         qp_obj_t * qp_password,

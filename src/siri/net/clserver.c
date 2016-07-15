@@ -25,6 +25,7 @@
 #include <siri/db/insert.h>
 #include <siri/net/socket.h>
 #include <assert.h>
+#include <siri/version.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -51,6 +52,7 @@ static void on_auth_request(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_insert(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_info(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -58,6 +60,7 @@ static void CLSERVER_send_server_error(
 static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
         sirinet_pkg_t * pkg);
+static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer);
 
 #define POOL_ERR_MSG \
     "At least one pool has no server available to process the request"
@@ -143,7 +146,7 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
     /* in case the online flag is not set, we cannot perform any request */
     if (siri.status == SIRI_STATUS_RUNNING)
     {
-        switch ((mproto_server_t) pkg->tp)
+        switch ((cproto_client_t) pkg->tp)
         {
         case CPROTO_REQ_QUERY:
             on_query(client, pkg);
@@ -157,6 +160,9 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
         case CPROTO_REQ_PING:
             on_ping(client, pkg);
             break;
+        case CPROTO_REQ_INFO:
+            on_info(client, pkg);
+            break;
         }
     }
     else
@@ -167,12 +173,11 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
                 (uv_stream_t *) client,
                 pkg);
     }
-
 }
 
 static void on_auth_request(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
-    cproto_client_t rc;
+    cproto_server_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
     qp_obj_t * qp_username = qp_object_new();
@@ -408,7 +413,49 @@ static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg)
     sirinet_pkg_t * package;
     package = sirinet_pkg_new(pkg->pid, 0, CPROTO_RES_ACK, NULL);
 
-    /* ignore result code, signal can be raised */
-    sirinet_pkg_send((uv_stream_t *) client, package);
-    free(package);
+    if (package != NULL)
+    {
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
+    }
+}
+
+static void on_info(uv_handle_t * client, sirinet_pkg_t * pkg)
+{
+    qp_packer_t * packer = qp_packer_new(128);
+    if (packer != NULL)
+    {
+        qp_add_type(packer, QP_ARRAY_OPEN);
+        qp_add_string(packer, SIRIDB_VERSION);
+        qp_add_type(packer, QP_ARRAY_OPEN);
+
+        if (!llist_walk(
+                siri.siridb_list,
+                (llist_cb) CLSERVER_on_info_cb,
+                packer))
+        {
+            sirinet_pkg_t * package;
+            package = sirinet_pkg_new(
+                    pkg->pid,
+                    packer->len,
+                    CPROTO_RES_INFO,
+                    packer->buffer);
+
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send((uv_stream_t *) client, package);
+
+            free(package);
+        }
+        qp_packer_free(packer);
+    }
+}
+
+/*
+ * Typedef: llist_cb
+ * Returns 0 if successful or -1 and a SIGNAL is raised if not.
+ */
+static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer)
+{
+    return qp_add_string(packer, siridb->dbname);
 }

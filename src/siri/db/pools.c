@@ -27,7 +27,7 @@ static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
 /*
- * This function can raise a signal.
+ * This function can raise an ALLOC signal.
  */
 void siridb_pools_init(siridb_t * siridb)
 {
@@ -47,7 +47,7 @@ void siridb_pools_init(siridb_t * siridb)
     uint16_t n;
 
     /* get max_pool (this can be used to get the number of pools) */
-    llist_walk(siridb->servers, (llist_cb_t) POOLS_max_pool, &max_pool);
+    llist_walk(siridb->servers, (llist_cb) POOLS_max_pool, &max_pool);
 
     /* set number of pools */
     siridb->pools->len = max_pool + 1;
@@ -71,7 +71,7 @@ void siridb_pools_init(siridb_t * siridb)
     }
 
     /* signal can be raised if creating a fifo buffer fails */
-    llist_walk(siridb->servers, (llist_cb_t) POOLS_arrange, siridb);
+    llist_walk(siridb->servers, (llist_cb) POOLS_arrange, siridb);
 
     /* generate pool lookup for series */
     siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);

@@ -36,7 +36,7 @@ typedef struct siridb_time_s
     size_t ts_sz;
 } siridb_time_t;
 
-siridb_time_t * siridb_new_time(siridb_timep_t precision);
+siridb_time_t * siridb_time_new(siridb_timep_t precision);
 
 const char * siridb_time_short_map[SIRIDB_TIME_END];
 

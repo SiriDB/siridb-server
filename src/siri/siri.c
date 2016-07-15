@@ -36,6 +36,7 @@
 #include <siri/net/socket.h>
 #include <siri/version.h>
 #include <lock/lock.h>
+#include <xpath/xpath.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
@@ -99,22 +100,206 @@ void siri_setup_logger(void)
     logger_init(stdout, 10);
 }
 
+static int siri_load_database(const char * dbpath)
+{
+    size_t len = strlen(dbpath);
+    lock_t lock_rc;
+    char buffer[PATH_MAX] = {0};
+    cfgparser_t * cfgparser;
+    cfgparser_option_t * option = NULL;
+    qp_unpacker_t * unpacker;
+    siridb_t * siridb;
+    char err_msg[512];
+    int rc;
+
+    if (!len || dbpath[len - 1] != '/')
+    {
+        return SIRI_ERR_PATH_MISSING_TAIL_SLASH;
+    }
+
+    if (!xpath_is_dir(dbpath))
+    {
+        return SIRI_ERR_PATH_NOT_FOUND;
+    }
+
+    lock_rc = lock_lock(dbpath);
+
+    switch (lock_rc)
+    {
+    case LOCK_IS_LOCKED_ERR:
+    case LOCK_PROCESS_NAME_ERR:
+    case LOCK_WRITE_ERR:
+    case LOCK_READ_ERR:
+    case LOCK_MEM_ALLOC_ERR:
+        log_error("%s (%s)", lock_str(lock_rc), dbpath);
+        return SIRI_ERR_MEM_ALLOC;
+    case LOCK_NEW:
+        log_info("%s (%s)", lock_str(lock_rc), dbpath);
+        break;
+    case LOCK_OVERWRITE:
+        log_warning("%s (%s)", lock_str(lock_rc), dbpath);
+        break;
+    default:
+        assert (0);
+        break;
+    }
+
+    /* read database.conf */
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.conf",
+            dbpath);
+
+    cfgparser = cfgparser_new();
+
+    if ((rc = cfgparser_read(cfgparser, buffer)) != CFGPARSER_SUCCESS)
+    {
+        log_error("Could not read '%s': %s",
+                buffer,
+                cfgparser_errmsg(rc));
+        cfgparser_free(cfgparser);
+        return SIRI_ERR_READING_CONF;
+    }
+
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.dat",
+            dbpath);
+
+    if ((unpacker = qp_unpacker_from_file(buffer)) == NULL)
+    {
+        /* qp_unpacker has done some logging */
+        cfgparser_free(cfgparser);
+        return SIRI_ERR_READING_DAT;
+    }
+
+    if (siridb_from_unpacker(
+            unpacker,
+            &siridb,
+            err_msg))
+    {
+        log_error("Could not read '%s': %s", buffer, err_msg);
+        qp_unpacker_free(unpacker);
+        cfgparser_free(cfgparser);
+        return SIRI_ERR_READING_DAT;
+    }
+
+    qp_unpacker_free(unpacker);
+
+    log_info("Start loading database: '%s'", siridb->dbname);
+
+    /* set dbpath */
+    siridb->dbpath = strdup(dbpath);
+    if (siridb->dbpath == NULL)
+    {
+        ERR_ALLOC
+        siridb_decref(siridb);
+        cfgparser_free(cfgparser);
+        return SIRI_ERR_MEM_ALLOC;
+    }
+
+    /* read buffer_path from database.conf */
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "buffer",
+                "buffer_path");
+
+    siridb->buffer_path = (
+            rc == CFGPARSER_SUCCESS &&
+            option->tp == CFGPARSER_TP_STRING) ?
+                    strdup(option->val->string) : siridb->dbpath;
+
+    /* free cfgparser */
+    cfgparser_free(cfgparser);
+
+    if (siridb->buffer_path == NULL)
+    {
+        ERR_ALLOC
+        siridb_decref(siridb);
+        return SIRI_ERR_MEM_ALLOC;
+    }
+
+
+    /* load users */
+    if (siridb_users_load(siridb))
+    {
+        log_error("Could not read users for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    /* load servers */
+    if (siridb_servers_load(siridb))
+    {
+        log_error("Could not read servers for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    /* load series */
+    if (siridb_series_load(siridb))
+    {
+        log_error("Could not read series for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    /* load buffer */
+    if (siridb_buffer_load(siridb))
+    {
+        log_error("Could not read buffer for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return 1;
+    }
+
+    /* open buffer */
+    if (siridb_buffer_open(siridb))
+    {
+        log_error("Could not open buffer for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    /* load shards */
+    if (siridb_shards_load(siridb))
+    {
+        log_error("Could not read shards for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    /* generate pools, this can raise a signal */
+    siridb_pools_init(siridb);
+
+    /* update series props */
+    log_info("Updating series properties");
+    imap32_walk(
+            siridb->series_map,
+            (imap32_cb_t) siridb_series_update_props,
+            NULL);
+
+    siridb->start_ts = time(NULL);
+
+    /* append SiriDB to siridb_list (reference counter is already 1) */
+    if (llist_append(siri.siridb_list, siridb))
+    {
+        siridb_decref(siridb);
+        return -1;
+    }
+
+    log_info("Finished loading database: '%s'", siridb->dbname);
+
+    return 0;
+}
+
 static int SIRI_load_databases(void)
 {
-    struct stat st = {0};
     DIR * db_container_path;
     struct dirent * dbpath;
-    char buffer[PATH_MAX];
-    cfgparser_return_t rc;
-    cfgparser_t * cfgparser = NULL;
-    qp_unpacker_t * unpacker = NULL;
-    cfgparser_option_t * option = NULL;
-    siridb_t * siridb;
-    lock_t lock_rc;
+    char buffer[PATH_MAX] = {0};
 
-    char err_msg[512];
-
-    if (stat(siri.cfg->default_db_path, &st) == -1)
+    if (!xpath_is_dir(siri.cfg->default_db_path))
     {
         log_warning("Database directory not found, creating directory '%s'.",
                 siri.cfg->default_db_path);
@@ -122,7 +307,7 @@ static int SIRI_load_databases(void)
         {
             log_error("Cannot create directory '%s'.",
                     siri.cfg->default_db_path);
-            return 1;
+            return -1;
         }
     }
 
@@ -130,13 +315,11 @@ static int SIRI_load_databases(void)
     {
         log_error("Cannot open database directory '%s'.",
                 siri.cfg->default_db_path);
-        return 1;
+        return -1;
     }
 
     while((dbpath = readdir(db_container_path)) != NULL)
     {
-        struct stat st = {0};
-
         if (    strcmp(dbpath->d_name, ".") == 0 ||
                 strcmp(dbpath->d_name, "..") == 0 ||
                 strncmp(dbpath->d_name, "__", 2) == 0)
@@ -145,190 +328,17 @@ static int SIRI_load_databases(void)
             continue;
         }
 
-        if (fstatat(dirfd(db_container_path), dbpath->d_name, &st, 0) < 0)
-        {
-            continue;
-        }
-
-        if (!S_ISDIR(st.st_mode))
-        {
-            continue;
-        }
-
-        /* set lock */
         snprintf(buffer,
                 PATH_MAX,
                 "%s%s/",
                 siri.cfg->default_db_path,
                 dbpath->d_name);
 
-        lock_rc = lock_lock(buffer);
-
-        switch (lock_rc)
+        if (siri_load_database(buffer))
         {
-        case LOCK_IS_LOCKED_ERR:
-        case LOCK_PROCESS_NAME_ERR:
-        case LOCK_WRITE_ERR:
-        case LOCK_READ_ERR:
-        case LOCK_MEM_ALLOC_ERR:
-            log_error("%s (%s)", lock_str(lock_rc), buffer);
             closedir(db_container_path);
             return -1;
-        case LOCK_NEW:
-            log_info("%s (%s)", lock_str(lock_rc), dbpath->d_name);
-            break;
-        case LOCK_OVERWRITE:
-            log_warning("%s (%s)", lock_str(lock_rc), dbpath->d_name);
-            break;
-        default:
-            assert (0);
-            break;
         }
-
-        /* read database.conf */
-        snprintf(buffer,
-                PATH_MAX,
-                "%s%s/database.conf",
-                siri.cfg->default_db_path,
-                dbpath->d_name);
-
-        if (access(buffer, R_OK) == -1)
-        {
-            continue;
-        }
-
-        cfgparser = cfgparser_new();
-
-        if ((rc = cfgparser_read(cfgparser, buffer)) != CFGPARSER_SUCCESS)
-        {
-            log_error("Could not read '%s': %s",
-                    buffer,
-                    cfgparser_errmsg(rc));
-            closedir(db_container_path);
-            cfgparser_free(cfgparser);
-            return -1;
-        }
-
-        snprintf(buffer,
-                PATH_MAX,
-                "%s%s/database.dat",
-                siri.cfg->default_db_path,
-                dbpath->d_name);
-
-        if ((unpacker = qp_unpacker_from_file(buffer)) == NULL)
-        {
-            log_error("Could not read '%s'", buffer);
-            closedir(db_container_path);
-            qp_unpacker_free(unpacker);
-            cfgparser_free(cfgparser);
-            return -1;
-        }
-
-        if (siridb_from_unpacker(
-                unpacker,
-                &siridb,
-                err_msg))
-        {
-            log_error("Could not read '%s': %s", buffer, err_msg);
-            closedir(db_container_path);
-            qp_unpacker_free(unpacker);
-            cfgparser_free(cfgparser);
-            return 1;
-        }
-
-        /* append SiriDB to siridb_list and increment reference count */
-        llist_append(siri.siridb_list, siridb);
-        siridb_incref(siridb);
-
-        qp_unpacker_free(unpacker);
-
-        log_info("Start loading database: '%s'", siridb->dbname);
-
-        /* set dbpath */
-        snprintf(buffer,
-                PATH_MAX,
-                "%s%s/",
-                siri.cfg->default_db_path,
-                dbpath->d_name);
-
-        siridb->dbpath = strdup(buffer);
-
-        /* read buffer_path from database.conf */
-        rc = cfgparser_get_option(
-                    &option,
-                    cfgparser,
-                    "buffer",
-                    "buffer_path");
-
-        siridb->buffer_path = (
-                rc == CFGPARSER_SUCCESS &&
-                option->tp == CFGPARSER_TP_STRING) ?
-                        strdup(option->val->string) : siridb->dbpath;
-
-        /* free cfgparser */
-        cfgparser_free(cfgparser);
-
-        /* load users */
-        if (siridb_users_load(siridb))
-        {
-            log_error("Could not read users for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* load servers */
-        if (siridb_servers_load(siridb))
-        {
-            log_error("Could not read servers for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* load series */
-        if (siridb_series_load(siridb))
-        {
-            log_error("Could not read series for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* load buffer */
-        if (siridb_buffer_load(siridb))
-        {
-            log_error("Could not read buffer for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* open buffer */
-        if (siridb_buffer_open(siridb))
-        {
-            log_error("Could not open buffer for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* load shards */
-        if (siridb_shards_load(siridb))
-        {
-            log_error("Could not read shards for database '%s'", siridb->dbname);
-            closedir(db_container_path);
-            return 1;
-        }
-
-        /* generate pools */
-        siridb_pools_init(siridb);
-
-        /* update series props */
-        log_info("Updating series properties");
-        imap32_walk(
-                siridb->series_map,
-                (imap32_cb_t) siridb_series_update_props,
-                NULL);
-
-        siridb->start_ts = time(NULL);
-
-        log_info("Finished loading database: '%s'", siridb->dbname);
     }
     closedir(db_container_path);
 
@@ -430,7 +440,7 @@ void siri_free(void)
     siri_fh_free(siri.fh);
 
     /* this will free each SiriDB database and the list */
-    llist_free_cb(siri.siridb_list, (llist_cb_t) siridb_free_cb, NULL);
+    llist_free_cb(siri.siridb_list, (llist_cb) siridb_free_cb, NULL);
 
     /* free siridb grammar */
     cleri_grammar_free(siri.grammar);
@@ -501,10 +511,10 @@ static void SIRI_try_close(uv_timer_t * handle)
     {
         log_error("SiriDB will close but still had %d task(s) running.", num);
         /*
-         * We usually assume all async tasks will finish 'normal' and take care
-         * of destroying the handle. Since now we will loop and force all
-         * handlers to close we must be able to act on this behavior. Therefore
-         * we set siri_err which can be checked.
+         * We usually assume all async tasks and timers will finish 'normal'
+         * and take care of destroying the handle. Since now we will loop and
+         * force all handlers to close we must be able to act on this behavior.
+         * Therefore we set siri_err which can be checked.
          */
         siri_err = ERR_CLOSE_TIMEOUT_REACHED;
         num = 0;
@@ -532,6 +542,8 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
     {
         log_error("Receive a second signal (%d), stop SiriDB immediately!",
                 signum);
+        /* set siri_err, see ERR_CLOSE_TIMEOUT_REACHED for the reason why */
+        siri_err = ERR_CLOSE_ENFORCED;
         SIRI_destroy();
     }
     else
@@ -563,6 +575,12 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         {
             log_critical("Signal (%d) received, stop SiriDB immediately!",
                     signum);
+
+            /* set siri_err, see ERR_CLOSE_TIMEOUT_REACHED for the reason why */
+            if (!siri_err)
+            {
+                siri_err = signum;
+            }
             SIRI_destroy();
         }
     }

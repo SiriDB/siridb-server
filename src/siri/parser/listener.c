@@ -31,6 +31,7 @@
 #include <siri/db/nodes.h>
 #include <cexpr/cexpr.h>
 #include <siri/net/socket.h>
+#include <siri/net/promises.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
@@ -793,10 +794,20 @@ static void exit_count_series(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-    qp_add_raw(query->packer, "series", 6);
-    qp_add_int64(query->packer, siridb->series_map->len);
+    MASTER_CHECK_POOLS_ONLINE(siridb)
 
-    SIRIPARSER_NEXT_NODE
+    qp_add_raw(query->packer, "series", 6);
+
+    if (IS_MASTER)
+    {
+
+    }
+    else
+    {
+        qp_add_int64(query->packer, siridb->series_map->len);
+
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_count_servers(uv_async_t * handle)
@@ -1258,7 +1269,7 @@ static void exit_list_servers(uv_async_t * handle)
         llist_walkn(
                 siridb->servers,
                 &q_list->limit,
-                (llist_cb_t) walk_list_servers,
+                (llist_cb) walk_list_servers,
                 handle);
     }
     else
@@ -1644,7 +1655,7 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)
     {
-        sirinet_promise_llist_free(promises);
+        sirinet_promises_llist_free(promises);
         return;  /* signal is raised when handle is NULL */
     }
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1715,7 +1726,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)
     {
-        sirinet_promise_llist_free(promises);
+        sirinet_promises_llist_free(promises);
         return;  /* signal is raised when handle is NULL */
     }
     sirinet_pkg_t * pkg;
@@ -1790,7 +1801,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     if (handle == NULL)
     {
-        sirinet_promise_llist_free(promises);
+        sirinet_promises_llist_free(promises);
         return;  /* signal is raised when handle is NULL */
     }
 

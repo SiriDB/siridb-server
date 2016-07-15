@@ -286,7 +286,7 @@ void siridb_fifo_free(siridb_fifo_t * fifo)
      */
     siridb_ffile_free(fifo->out);
 
-    llist_free_cb(fifo->fifos, (llist_cb_t) FIFO_walk_free, NULL);
+    llist_free_cb(fifo->fifos, (llist_cb) FIFO_walk_free, NULL);
     free(fifo->path);
     free(fifo);
 }

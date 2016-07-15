@@ -23,7 +23,7 @@
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 
-static void SERVER_update_name(siridb_server_t * server);
+static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_free(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
 static void SERVER_write_cb(uv_write_t * req, int status);
@@ -36,6 +36,9 @@ static void SERVER_on_flags_update_response(
         sirinet_pkg_t * pkg,
         int status);
 
+/*
+ * In case of an error the return value is NULL and a SIGNAL is raised.
+ */
 siridb_server_t * siridb_server_new(
         const char * uuid,
         const char * address,
@@ -45,7 +48,11 @@ siridb_server_t * siridb_server_new(
 {
     siridb_server_t * server =
             (siridb_server_t *) malloc(sizeof(siridb_server_t));
-
+    if (server == NULL)
+    {
+        ERR_ALLOC
+        return NULL;
+    }
     /* copy uuid */
     memcpy(server->uuid, uuid, 16);
 
@@ -53,9 +60,13 @@ siridb_server_t * siridb_server_new(
     server->name = NULL;
 
     /* copy address */
-    server->address = (char *) malloc(address_len + 1);
-    memcpy(server->address, address, address_len);
-    server->address[address_len] = 0;
+    server->address = strndup(address, address_len);
+    if (server->address == NULL)
+    {
+        ERR_ALLOC
+        free(server);
+        return NULL;
+    }
 
     server->port = port;
     server->pool = pool;
@@ -67,12 +78,17 @@ siridb_server_t * siridb_server_new(
     server->buffer_path = NULL;
     server->buffer_size = 0;
     server->startup_time = 0;
+
     /* we set the promises later because we don't need one for self */
     server->promises = NULL;
     server->socket = NULL;
 
     /* sets address:port to name property */
-    SERVER_update_name(server);
+    if (SERVER_update_name(server))
+    {
+        SERVER_free(server);
+        server = NULL;  /* signal is raised */
+    }
 
     return server;
 }
@@ -616,11 +632,15 @@ static void SERVER_free(siridb_server_t * server)
     free(server);
 }
 
-static void SERVER_update_name(siridb_server_t * server)
+/*
+ * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
+ */
+static int SERVER_update_name(siridb_server_t * server)
 {
     /* start len with 2, one for : and one for 0 terminator */
     size_t len = 2;
     uint16_t i = server->port;
+    char * tmp;
 
 #ifdef DEBUG
     assert(server->port > 0);
@@ -633,11 +653,16 @@ static void SERVER_update_name(siridb_server_t * server)
     len += strlen(server->address);
 
     /* allocate enough space */
-    server->name = (server->name == NULL) ?
-            (char *) malloc(len) : (char *) realloc(server->name, len);
+    tmp = (char *) realloc(server->name, len);
+    if (tmp == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
 
-    /* set the name */
+    server->name = tmp;
     sprintf(server->name, "%s:%d", server->address, server->port);
+    return 0;
 }
 
 static void SERVER_on_auth_response(

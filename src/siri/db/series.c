@@ -12,7 +12,6 @@
 #include <siri/db/series.h>
 #include <stdlib.h>
 #include <logger/logger.h>
-#include <unistd.h>
 #include <siri/db/db.h>
 #include <siri/db/buffer.h>
 #include <stdio.h>
@@ -20,6 +19,7 @@
 #include <string.h>
 #include <siri/db/shard.h>
 #include <siri/siri.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -165,6 +165,7 @@ siridb_series_t * siridb_series_new(
     siridb->max_series_id++;
 
     series = SERIES_new(siridb, siridb->max_series_id, tp, series_name);
+
     if (series != NULL)
     {
         /* add series to the store */
@@ -778,16 +779,10 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
 
     SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
 
-    if (access(fn, R_OK) == -1)
+    if ((fp = fopen(fn, "r")) == NULL)
     {
         /* no drop file, we have nothing to do */
         return 0;
-    }
-
-    if ((fp = fopen(fn, "r")) == NULL)
-    {
-        log_critical("Cannot open '%s' for reading", fn);
-        return EOF;
     }
 
     /* get file size */
@@ -854,7 +849,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
     /* get series file name */
     SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
 
-    if (access(fn, R_OK) == -1)
+    if (!xpath_file_exist(fn))
     {
         // missing series file, create an empty file and return
         return SERIES_save(siridb);
@@ -1000,14 +995,8 @@ static int SERIES_update_max_id(siridb_t * siridb)
 
     SIRIDB_GET_FN(fn, SIRIDB_MAX_SERIES_ID_FN)
 
-    if (access(fn, R_OK) == 0)
+    if ((fp = fopen(fn, "r")) != NULL)
     {
-        if ((fp = fopen(fn, "r")) == NULL)
-        {
-            log_critical("Cannot open file '%s' for reading", fn);
-            return -1;
-        }
-
         if (fread(&max_series_id, sizeof(uint32_t), 1, fp) != 1)
         {
             log_critical("Cannot read max_series_id from '%s'", fn);
@@ -1017,7 +1006,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
 
         if (fclose(fp))
         {
-            log_critical("Cannot save max_series_id to '%s'", fn);
+            log_critical("Cannot close max_series_id file: '%s'", fn);
             return -1;
         }
 
@@ -1045,6 +1034,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
             log_critical("Cannot write max_series_id to file '%s'", fn);
             rc = -1;
         }
+
         if (fclose(fp))
         {
             log_critical("Cannot save max_series_id to file '%s'", fn);

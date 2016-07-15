@@ -33,7 +33,7 @@ sirinet_promises_t * sirinet_promises_new(
         size_t size,
         sirinet_promises_cb cb,
         void * data);
-void sirinet_promise_llist_free(slist_t * promises);
+void sirinet_promises_llist_free(slist_t * promises);
 void sirinet_promises_on_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,

@@ -528,23 +528,35 @@ iso8601_tz_t iso8601_tz(const char * tzname)
     char buf[len];
 
     for (i = 0; i < len; i++)
+    {
         buf[i] = tolower(tzname[i]);
+    }
 
     if (strncmp(buf, "naive", len) == 0)
+    {
         /* TZ=:localtime */
         return 0;
+    }
 
     for (i = 0; i < TZ_LEN; i++)
     {
         if (strlen(tz_common[i]) != len + TZ_NAME_OFFSET)
+        {
             continue;
+        }
 
         for (j = 0; j < len; j++)
+        {
             if (buf[j] != tolower(tz_common[i][j + TZ_NAME_OFFSET]))
+            {
                 break;
+            }
+        }
 
         if (j != len)
+        {
             continue;
+        }
 
         return i;
     }

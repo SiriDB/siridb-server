@@ -124,11 +124,6 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     size_t size;
     qp_unpacker_t * unpacker;
 
-    if (access(fn, R_OK) == -1)
-    {
-        return NULL;
-    }
-
     fp = fopen(fn, "r");
     if (fp == NULL)
     {

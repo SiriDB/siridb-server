@@ -115,16 +115,24 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
     return CFGPARSER_SUCCESS;
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 cfgparser_t * cfgparser_new(void)
 {
     cfgparser_t * cfgparser;
 
     cfgparser = (cfgparser_t *) malloc(sizeof(cfgparser_t));
-    cfgparser->sections = NULL;
-
+    if (cfgparser != NULL)
+    {
+        cfgparser->sections = NULL;
+    }
     return cfgparser;
 }
 
+/*
+ * Destroy cfgparser. (parsing NULL is not allowed)
+ */
 void cfgparser_free(cfgparser_t * cfgparser)
 {
     cfgparser_free_sections(cfgparser->sections);

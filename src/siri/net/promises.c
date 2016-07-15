@@ -48,7 +48,7 @@ sirinet_promises_t * sirinet_promises_new(
  * This function can be used to free promises with data. It assumes
  * data simple can be destroyed with simple calling free().
  */
-void sirinet_promise_llist_free(slist_t * promises)
+void sirinet_promises_llist_free(slist_t * promises)
 {
     sirinet_promise_t * promise;
     for (size_t i = 0; i < promises->len; i++)

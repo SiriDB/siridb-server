@@ -31,12 +31,21 @@ typedef struct siri_cfg_s siri_cfg_t;
 typedef struct siri_args_s siri_args_t;
 typedef struct llist_s llist_t;
 
-typedef enum siri_status
+typedef enum
 {
     SIRI_STATUS_LOADING,
     SIRI_STATUS_RUNNING,
     SIRI_STATUS_CLOSING
 } siri_status_t;
+
+typedef enum
+{
+    SIRI_ERR_PATH_MISSING_TAIL_SLASH,
+    SIRI_ERR_PATH_NOT_FOUND,
+    SIRI_ERR_READING_CONF,
+    SIRI_ERR_READING_DAT,
+    SIRI_ERR_MEM_ALLOC
+} siri_err_t;
 
 typedef struct siri_s
 {

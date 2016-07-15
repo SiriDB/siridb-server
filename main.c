@@ -71,7 +71,10 @@ int main(int argc, char * argv[])
     siri_cfg_init(&siri);
 
     /* start SiriDB. (this start the event loop etc.) */
-    rc = siri_start();
+    if (siri_start() && !siri_err)
+    {
+        siri_err = ERR_STARTUP;
+    }
 
     /* free siridb */
     siri_free();
@@ -79,7 +82,7 @@ int main(int argc, char * argv[])
     /* destroy SiriDB mutex */
     uv_mutex_destroy(&siri.siridb_mutex);
 
-    log_info("Bye!\n");
+    log_info("Bye! (%d)\n", siri_err);
 
-    return rc;
+    return siri_err;
 }

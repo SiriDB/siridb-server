@@ -15,19 +15,23 @@
 #include <siri/siri.h>
 #include <qpack/qpack.h>
 #include <logger/logger.h>
-#include <unistd.h>
 #include <assert.h>
 #include <siri/version.h>
 #include <siri/db/db.h>
 #include <siri/net/promises.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args);
-static void SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
+static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
 static int SERVERS_save(siridb_t * siridb);
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * (a signal can be raised in case of errors)
+ */
 int siridb_servers_load(siridb_t * siridb)
 {
     log_info("Loading servers");
@@ -45,14 +49,17 @@ int siridb_servers_load(siridb_t * siridb)
 
     /* create a new server list */
     siridb->servers = llist_new();
+    if (siridb->servers == NULL)
+    {
+        return -1;  /* signal is raised */
+    }
 
     /* get servers file name */
     SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
 
-    if (access(fn, R_OK) == -1)
+    if (!xpath_file_exist(fn))
     {
         /* we do not have a servers file, lets create the first server */
-        //        uuid_generate_time(uuid);
 
         server = siridb_server_new(
                 (char *) siridb->uuid,
@@ -60,16 +67,24 @@ int siridb_servers_load(siridb_t * siridb)
                 strlen(siri.cfg->listen_backend_address),
                 siri.cfg->listen_backend_port,
                 0);
+        if (server == NULL)
+        {
+            return -1;  /* signal is raised */
+        }
 
-        llist_append(siridb->servers, server);
         siridb_server_incref(server);
+        if (llist_append(siridb->servers, server))
+        {
+            siridb_server_decref(server);
+            return -1;  /* signal is raised */
+        }
 
         siridb->server = server;
 
         if (SERVERS_save(siridb))
         {
             log_critical("Cannot save servers");
-            return -1;
+            return -1;  /* signal is raised */
         }
 
         return 0;
@@ -77,7 +92,7 @@ int siridb_servers_load(siridb_t * siridb)
 
     if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
     {
-        return -1;
+        return -1;  /* a signal is raised in case of memory allocation errors */
     }
 
     /* unpacker will be freed in case macro fails */
@@ -87,6 +102,16 @@ int siridb_servers_load(siridb_t * siridb)
     qp_address = qp_object_new();
     qp_port = qp_object_new();
     qp_pool = qp_object_new();
+
+    if (    qp_uuid == NULL ||
+            qp_address == NULL ||
+            qp_port == NULL ||
+            qp_pool == NULL)
+    {
+        return -1;  /* signal is raised */
+    }
+
+    int rc = 0;
 
     while (qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, qp_uuid) == QP_RAW &&
@@ -101,21 +126,34 @@ int siridb_servers_load(siridb_t * siridb)
                 qp_address->len,
                 (uint16_t) qp_port->via->int64,
                 (uint16_t) qp_pool->via->int64);
-
-        /* append the server to the list */
-        llist_append(siridb->servers, server);
-        siridb_server_incref(server);
-
-        /* if this is me, bind server to siridb and update the version
-         * or else create a client.
-         */
-        if (uuid_compare(server->uuid, siridb->uuid) == 0)
+        if (server == NULL)
         {
-            siridb->server = server;
+            rc = -1;  /* signal is raised */
         }
         else
         {
-            server->promises = imap64_new();
+            siridb_server_incref(server);
+
+            /* append the server to the list */
+            if (llist_append(siridb->servers, server))
+            {
+                siridb_server_decref(server);
+                rc = -1;  /* signal is raised */
+            }
+            else if (uuid_compare(server->uuid, siridb->uuid) == 0)
+            {
+                /* if this is me, bind server to siridb->server */
+                siridb->server = server;
+            }
+            else
+            {
+                /* if this is not me, create promises */
+                server->promises = imap64_new();
+                if (server->promises == NULL)
+                {
+                    rc = -1;  /* signal is raised */
+                }
+            }
         }
     }
 
@@ -134,16 +172,14 @@ int siridb_servers_load(siridb_t * siridb)
     if (siridb->server == NULL)
     {
         log_critical("Could not find my own uuid in '%s'", SIRIDB_SERVERS_FN);
-        return -1;
-    }
-
-    if (tp != QP_END)
+        rc = -1;
+    } else if (tp != QP_END)
     {
         log_critical("Expected end of file '%s'", fn);
-        return -1;
+        rc = -1;
     }
 
-    return 0;
+    return rc;
 }
 
 /*
@@ -151,7 +187,7 @@ int siridb_servers_load(siridb_t * siridb)
  */
 void siridb_servers_free(llist_t * servers)
 {
-    llist_free_cb(servers, (llist_cb_t) SERVERS_walk_free, NULL);
+    llist_free_cb(servers, (llist_cb) SERVERS_walk_free, NULL);
 }
 
 void siridb_servers_send_pkg(
@@ -260,15 +296,20 @@ static void SERVERS_walk_free(siridb_server_t * server, void * args)
     siridb_server_decref(server);
 }
 
-static void SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
+static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
 {
-    qp_fadd_type(fpacker, QP_ARRAY4);
-    qp_fadd_raw(fpacker, (char *) &server->uuid[0], 16);
-    qp_fadd_string(fpacker, server->address);
-    qp_fadd_int32(fpacker, (int32_t) server->port);
-    qp_fadd_int32(fpacker, (int32_t) server->pool);
+    int rc = 0;
+    rc += qp_fadd_type(fpacker, QP_ARRAY4);
+    rc += qp_fadd_raw(fpacker, (char *) &server->uuid[0], 16);
+    rc += qp_fadd_string(fpacker, server->address);
+    rc += qp_fadd_int32(fpacker, (int32_t) server->port);
+    rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
+    return rc;
 }
 
+/*
+ * Return 0 if successful or -1 and a SIGNAL is raised in case of an error.
+ */
 static int SERVERS_save(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
@@ -277,18 +318,36 @@ static int SERVERS_save(siridb_t * siridb)
     SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
-        return 1;
+    {
+        ERR_FILE
+        return -1;
+    }
 
-    /* open a new array */
-    qp_fadd_type(fpacker, QP_ARRAY_OPEN);
+    if (
+        /* open a new array */
+        qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
-    /* write the current schema */
-    qp_fadd_int16(fpacker, SIRIDB_SERVERS_SCHEMA);
+        /* write the current schema */
+        qp_fadd_int16(fpacker, SIRIDB_SERVERS_SCHEMA))
+    {
+        ERR_FILE
+        qp_close(fpacker);
+        return -1;
+    }
 
-    llist_walk(siridb->servers, (llist_cb_t) SERVERS_walk_save, fpacker);
+    if (llist_walk(siridb->servers, (llist_cb) SERVERS_walk_save, fpacker))
+    {
+        ERR_FILE
+        qp_close(fpacker);
+        return -1;
+    }
 
     /* close file pointer */
-    qp_close(fpacker);
+    if (qp_close(fpacker))
+    {
+        ERR_FILE
+        return -1;
+    }
 
     return 0;
 }

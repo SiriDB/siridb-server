@@ -16,14 +16,25 @@
 
 const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
-siridb_time_t * siridb_new_time(siridb_timep_t precision)
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * Node: can be destroyed be using free().
+ */
+siridb_time_t * siridb_time_new(siridb_timep_t precision)
 {
     siridb_time_t * time = (siridb_time_t *) malloc(sizeof(siridb_time_t));
-    time->precision = precision;
-    time->factor = xmath_ipow(1000, precision);
-    time->ts_sz = (precision == SIRIDB_TIME_SECONDS) ?
-            sizeof(uint32_t) : sizeof(uint64_t);
-
+    if (time == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        time->precision = precision;
+        time->factor = xmath_ipow(1000, precision);
+        time->ts_sz = (precision == SIRIDB_TIME_SECONDS) ?
+                sizeof(uint32_t) : sizeof(uint64_t);
+    }
     return time;
 }
 

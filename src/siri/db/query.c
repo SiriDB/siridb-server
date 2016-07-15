@@ -184,7 +184,7 @@ void siridb_send_query_result(uv_async_t * handle)
  */
 void siridb_query_send_error(
         uv_async_t * handle,
-        cproto_client_t err)
+        cproto_server_t err)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * package = sirinet_pkg_err(

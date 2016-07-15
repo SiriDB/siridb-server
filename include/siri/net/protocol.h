@@ -13,10 +13,20 @@
 
 typedef enum
 {
+    CPROTO_REQ_QUERY,                           // (query, time_precision)
+    CPROTO_REQ_INSERT,                          // series with points map/array
+    CPROTO_REQ_AUTH,                            // (user, password, dbname)
+    CPROTO_REQ_PING,                            // empty
+    CPROTO_REQ_INFO,                            // empty
+} cproto_client_t;
+
+typedef enum
+{
     CPROTO_RES_QUERY,                           // {query response data}
     CPROTO_RES_INSERT,                          // {"success_msg": ...}
-    CPROTO_RES_ACK,                             // empty
     CPROTO_RES_AUTH_SUCCESS,                    // empty
+    CPROTO_RES_ACK,                             // empty
+    CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
 
     CPROTO_ERR_QUERY=64,                        // {"error_msg": ...}
     CPROTO_ERR_INSERT,                          // {"error_msg": ...}
@@ -26,15 +36,7 @@ typedef enum
     CPROTO_ERR_NOT_AUTHENTICATED,               // empty
     CPROTO_ERR_AUTH_CREDENTIALS,                // empty
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
-} cproto_client_t;
-
-typedef enum
-{
-    CPROTO_REQ_QUERY,                           // (query, time_precision)
-    CPROTO_REQ_INSERT,                          // series with points map/array
-    CPROTO_REQ_AUTH,                            // (user, password, dbname)
-    CPROTO_REQ_PING,                            // empty
-} mproto_server_t;
+} cproto_server_t;
 
 typedef enum
 {

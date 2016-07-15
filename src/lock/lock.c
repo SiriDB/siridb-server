@@ -13,6 +13,7 @@
  */
 #define _GNU_SOURCE
 #include <lock/lock.h>
+#include <xpath/xpath.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -34,25 +35,23 @@ lock_t lock_lock(const char * path)
     char * proc_name;
     char * pproc_name;
     char strpid[10] = {0};
-    int name_cmp;
+    int is_locked;
+    FILE * fp;
 
     if (asprintf(&lock_fn, "%s%s", path, ".lock") < 0)
     {
         return LOCK_MEM_ALLOC_ERR;
     }
 
-    if (access(lock_fn, F_OK) != -1)
-    {
-        FILE * fp = fopen(lock_fn, "r");
+    fp = fopen(lock_fn, "r");
 
-        if (fp != NULL)
+    if (fp != NULL)
+    {
+        if (fread(strpid, sizeof(char), 9, fp))
         {
-            if (fread(strpid, sizeof(char), 9, fp))
-            {
-                ppid = strtoul(strpid, NULL, 10);
-            }
-            fclose(fp);
+            ppid = strtoul(strpid, NULL, 10);
         }
+        fclose(fp);
 
         if (!ppid)
         {
@@ -62,6 +61,10 @@ lock_t lock_lock(const char * path)
 
         if (ppid == pid)
         {
+            /*
+             * The process id in the existing lock file is the same as 'this'
+             * process, we therefore can overwrite the lock.
+             */
             return LOCK_create(lock_fn, pid);
         }
 
@@ -81,12 +84,17 @@ lock_t lock_lock(const char * path)
             return LOCK_MEM_ALLOC_ERR;
         }
 
-        name_cmp = (pproc_name != NULL && strcmp(proc_name, pproc_name) == 0);
+        /*
+         * If the process id in the lock file does not exist or if the
+         * process id is in use by another program than siridb we can
+         * assume the lock is not valid.
+         */
+        is_locked = (pproc_name != NULL && strcmp(proc_name, pproc_name) == 0);
 
         free(proc_name);
         free(pproc_name);
 
-        if (name_cmp)
+        if (is_locked)
         {
             return LOCK_IS_LOCKED_ERR;
         }
@@ -145,7 +153,7 @@ const char * lock_str(lock_t rc)
  */
 static lock_t LOCK_create(const char * lock_fn, pid_t pid)
 {
-    lock_t rc_success = (access(lock_fn, F_OK) == -1) ?
+    lock_t rc_success = (!xpath_file_exist(lock_fn)) ?
             LOCK_NEW : LOCK_OVERWRITE;
 
     FILE * fp = fopen(lock_fn, "w");
@@ -166,6 +174,9 @@ static lock_t LOCK_create(const char * lock_fn, pid_t pid)
  *
  * When successful, name contains the process name by process id or NULL
  * if the process is not found.
+ *
+ * In case 'name' is not NULL, 'calloc' is used to set the value and should
+ * be destroyed using free(). When -1 is returned 'name' is always NULL.
  */
 static int LOCK_get_process_name(char ** name, pid_t pid)
 {
@@ -198,6 +209,8 @@ static int LOCK_get_process_name(char ** name, pid_t pid)
                 }
             } else if (size < 0)
             {
+                free(*name);
+                *name = NULL;
                 return -1;
             }
         }

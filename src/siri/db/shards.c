@@ -26,6 +26,10 @@
 static bool is_shard_fn(const char * fn);
 static bool is_temp_shard_fn(const char * fn);
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * (a SIGNAL might be raised in case of an error)
+ */
 int siridb_shards_load(siridb_t * siridb)
 {
     struct stat st = {0};
@@ -105,6 +109,9 @@ int siridb_shards_load(siridb_t * siridb)
     return rc;
 }
 
+/*
+ * Returns true if fn is a shard filename, false if not.
+ */
 static bool is_shard_fn(const char * fn)
 {
     if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
@@ -121,6 +128,9 @@ static bool is_shard_fn(const char * fn)
     return (strcmp(fn, ".sdb") == 0);
 }
 
+/*
+ * Returns true if fn is a temp shard filename, false if not.
+ */
 static bool is_temp_shard_fn(const char * fn)
 {
     for (int i = 0; i < 2; i++, fn++)

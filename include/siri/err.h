@@ -17,7 +17,9 @@
 /* value should be 0, any other value indicates a critical error has occurred */
 extern int siri_err;
 
-#define ERR_CLOSE_TIMEOUT_REACHED -1
+#define ERR_CLOSE_ENFORCED -3
+#define ERR_CLOSE_TIMEOUT_REACHED -2
+#define ERR_STARTUP -1
 
 #ifdef DEBUG
 #define ERR_ALLOC                                           \

@@ -38,6 +38,9 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
         {.repr="continue", .access_bit=SIRIDB_ACCESS_CONTINUE},
 };
 
+/*
+ * Returns siridb_access_t by string.
+ */
 siridb_access_t siridb_access_from_strn(const char * str, size_t n)
 {
     for (int i = 0; i < ACCESS_SIZE; i++)
@@ -50,6 +53,9 @@ siridb_access_t siridb_access_from_strn(const char * str, size_t n)
     return 0;
 }
 
+/*
+ * Returns a siridb_access_t bit flag from a Cleri children object.
+ */
 siridb_access_t siridb_access_from_children(cleri_children_t * children)
 {
     siridb_access_t access_bit = 0;
@@ -67,6 +73,10 @@ siridb_access_t siridb_access_from_children(cleri_children_t * children)
     return access_bit;
 }
 
+/*
+ * Make sure 'str' is a pointer to a string which can hold at least
+ * SIRIDB_ACCESS_STR_MAX.
+ */
 void siridb_access_to_str(char * str, siridb_access_t access_bit)
 {
     char * pt = str;
@@ -82,5 +92,7 @@ void siridb_access_to_str(char * str, siridb_access_t access_bit)
         }
     }
     if (pt == str)
+    {
         sprintf(pt, "no access");
+    }
 }

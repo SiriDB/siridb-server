@@ -34,23 +34,35 @@ static void SIRIDB_free(siridb_t * siridb);
 {                                           \
     sprintf(err_msg, "error: " ERROR_MSG);  \
     SIRIDB_free(*siridb);                   \
+    *siridb = NULL;                         \
     qp_object_free(qp_obj);                 \
-    return 1;                               \
+    return -1;                              \
 }
 
+/*
+ * Read SiriDB from unpacker. (reference counter is initially set to 1)
+ *
+ * Returns 0 if successful or another value in case of an error.
+ * (a SIGNAL can be set in case of an error)
+ */
 int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,
         char * err_msg)
 {
+    *siridb = NULL;
     qp_obj_t * qp_obj = qp_object_new();
-
+    if (qp_obj == NULL)
+    {
+        sprintf(err_msg, "error: allocation error.");
+        return -1;
+    }
     if (!qp_is_array(qp_next(unpacker, NULL)) ||
             qp_next(unpacker, qp_obj) != QP_INT64)
     {
         sprintf(err_msg, "error: corrupted database file.");
         qp_object_free(qp_obj);
-        return 1;
+        return -1;
     }
 
     /* check schema */
@@ -59,15 +71,20 @@ int siridb_from_unpacker(
         sprintf(err_msg, "error: unsupported schema found: %ld",
                 qp_obj->via->int64);
         qp_object_free(qp_obj);
-        return 1;
+        return -1;
     }
 
     /* create a new SiriDB structure */
     *siridb = SIRIDB_new();
+    if (*siridb == NULL)
+    {
+        sprintf(err_msg, "error: cannot create SiriDB instance");
+        qp_object_free(qp_obj);
+        return -1;
+    }
 
     /* read uuid */
-    if (qp_next(unpacker, qp_obj) != QP_RAW ||
-            qp_obj->len != 16)
+    if (qp_next(unpacker, qp_obj) != QP_RAW || qp_obj->len != 16)
         READ_DB_EXIT_WITH_ERROR("cannot read uuid.")
 
     /* copy uuid */
@@ -79,13 +96,9 @@ int siridb_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read database name.")
 
     /* alloc mem for database name */
-    (*siridb)->dbname = (char *) malloc(qp_obj->len + 1);
-
-    /* copy datatabase name */
-    memcpy((*siridb)->dbname, qp_obj->via->raw, qp_obj->len);
-
-    /* set terminator */
-    (*siridb)->dbname[qp_obj->len] = 0;
+    (*siridb)->dbname = strndup(qp_obj->via->raw, qp_obj->len);
+    if ((*siridb)->dbname == NULL)
+        READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
 
     /* read time precision */
     if (qp_next(unpacker, qp_obj) != QP_INT64 ||
@@ -95,7 +108,9 @@ int siridb_from_unpacker(
 
     /* bind time precision to SiriDB */
     (*siridb)->time =
-            siridb_new_time((siridb_timep_t) qp_obj->via->int64);
+            siridb_time_new((siridb_timep_t) qp_obj->via->int64);
+    if ((*siridb)->time == NULL)
+        READ_DB_EXIT_WITH_ERROR("cannot create time instance.")
 
     /* read buffer size */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
@@ -137,14 +152,18 @@ int siridb_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
 
     /* bind timezone to SiriDB */
-    char tzname[qp_obj->len + 1];
-    memcpy(tzname, qp_obj->via->raw, qp_obj->len);
-    tzname[qp_obj->len] = 0;
+    char * tzname = strndup(qp_obj->via->raw, qp_obj->len);
+
+    if (tzname == NULL)
+        READ_DB_EXIT_WITH_ERROR("cannot allocate timezone name.")
+
     if (((*siridb)->tz = iso8601_tz(tzname)) < 0)
     {
         log_critical("Unknown timezone found: '%s'.", tzname);
-        READ_DB_EXIT_WITH_ERROR("cannot read timezone.");
+        free(tzname);
+        READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
     }
+    free(tzname);
 
     /* free qp_object */
     qp_object_free(qp_obj);
@@ -204,38 +223,74 @@ int siridb_open_files(siridb_t * siridb)
     return open_files;
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 static siridb_t * SIRIDB_new(void)
 {
-    siridb_t * siridb;
-    siridb = (siridb_t *) malloc(sizeof(siridb_t));
-    siridb->dbname = NULL;
-    siridb->dbpath = NULL;
-    siridb->ref = 0;
-    siridb->buffer_path = NULL;
-    siridb->time = NULL;
-    siridb->users = NULL;
-    siridb->servers = NULL;
-    siridb->pools = NULL;
-    siridb->max_series_id = 0;
-    siridb->received_points = 0;
-    siridb->series = ct_new();
-    siridb->series_map = imap32_new();
-    siridb->shards = imap64_new();
-    siridb->buffer_size = -1;
-    siridb->tz = -1;
-    siridb->server = NULL;
-    siridb->replica = NULL;
-    siridb->fifo = NULL;
-    siridb->replicate = NULL;
+    siridb_t * siridb = (siridb_t *) malloc(sizeof(siridb_t));
+    if (siridb == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        siridb->series = ct_new();
+        if (siridb->series == NULL)
+        {
+            free(siridb);
+            siridb = NULL;  /* signal is raised */
+        }
+        else
+        {
+            siridb->series_map = imap32_new();
+            if (siridb->series_map == NULL)
+            {
+                ct_free(siridb->series);
+                free(siridb);
+                siridb = NULL;  /* signal is raised */
+            }
+            else
+            {
+                siridb->shards = imap64_new();
+                if (siridb->shards == NULL)
+                {
+                    imap32_free(siridb->series_map);
+                    ct_free(siridb->series);
+                    free(siridb);
+                    siridb = NULL;  /* signal is raised */
+                }
+                else
+                {
 
-    /* make file pointers are NULL when file is closed */
-    siridb->buffer_fp = NULL;
-    siridb->dropped_fp = NULL;
-    siridb->store = NULL;
+                    siridb->dbname = NULL;
+                    siridb->dbpath = NULL;
+                    siridb->ref = 1;
+                    siridb->buffer_path = NULL;
+                    siridb->time = NULL;
+                    siridb->users = NULL;
+                    siridb->servers = NULL;
+                    siridb->pools = NULL;
+                    siridb->max_series_id = 0;
+                    siridb->received_points = 0;
+                    siridb->buffer_size = -1;
+                    siridb->tz = -1;
+                    siridb->server = NULL;
+                    siridb->replica = NULL;
+                    siridb->fifo = NULL;
+                    siridb->replicate = NULL;
 
-    uv_mutex_init(&siridb->series_mutex);
-    uv_mutex_init(&siridb->shards_mutex);
+                    /* make file pointers are NULL when file is closed */
+                    siridb->buffer_fp = NULL;
+                    siridb->dropped_fp = NULL;
+                    siridb->store = NULL;
 
+                    uv_mutex_init(&siridb->series_mutex);
+                    uv_mutex_init(&siridb->shards_mutex);
+                }
+            }
+        }
+    }
     return siridb;
 }
 

@@ -77,7 +77,7 @@ void siridb_query_free(uv_handle_t * handle);
 void siridb_send_query_result(uv_async_t * handle);
 void siridb_query_send_error(
         uv_async_t * handle,
-        cproto_client_t err);
+        cproto_server_t err);
 void siridb_query_forward(
         uv_async_t * handle,
         siridb_query_fwd_t fwd,

@@ -29,13 +29,25 @@
 
 static void USER_free(siridb_user_t * user);
 
+/*
+ * Creates a new user with reference counter zero.
+ *
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siridb_user_t * siridb_user_new(void)
 {
     siridb_user_t * user = (siridb_user_t *) malloc(sizeof(siridb_user_t));
-    user->access_bit = 0;
-    user->password = NULL;
-    user->username = NULL;
-    user->ref = 0;
+    if (user == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        user->access_bit = 0;
+        user->password = NULL;
+        user->username = NULL;
+        user->ref = 0;
+    }
     return user;
 }
 
@@ -58,6 +70,10 @@ void siridb_user_decref(siridb_user_t * user)
     }
 }
 
+/*
+ * This function can raise a SIGNAL. In this case the packer is not filled
+ * with the correct values.
+ */
 void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop)
 {
     switch (prop)
@@ -75,6 +91,12 @@ void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop)
     }
 }
 
+/*
+ * Returns 0 when successful or -1 if not.
+ *
+ * This function can have raised a SIGNAL when the result is -1 in case of
+ * a memory allocation error.
+ */
 int siridb_user_set_password(
         siridb_user_t * user,
         const char * password,
@@ -87,14 +109,14 @@ int siridb_user_set_password(
     {
         sprintf(err_msg, "Password should be at least %d characters.",
                 SIRIDB_MIN_PASSWORD_LEN);
-        return 1;
+        return -1;
     }
 
     if (strlen(password) > SIRIDB_MAX_PASSWORD_LEN)
     {
         sprintf(err_msg, "Password should be at most %d characters.",
                 SIRIDB_MAX_PASSWORD_LEN);
-        return 1;
+        return -1;
     }
 
     if (!strx_is_graph(password))
@@ -102,15 +124,22 @@ int siridb_user_set_password(
         sprintf(err_msg,
                 "Password contains illegal characters. (only graphical "
                 "characters are allowed, no spaces, tabs etc.)");
-        return 1;
+        return -1;
     }
     /* encrypt the users password */
     for (size_t i = 3, len=strlen(SEED_CHARS); i < 11; i++)
+    {
         salt[i] = SEED_CHARS[rand() % len];
+    }
     encrypted = crypt(password, salt);
 
     /* replace user password with encrypted password */
     user->password = strdup(encrypted);
+    if (user->password == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
 
     return 0;
 }

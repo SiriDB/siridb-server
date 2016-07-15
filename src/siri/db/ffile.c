@@ -12,7 +12,6 @@
  */
 #define _GNU_SOURCE
 #include <siri/db/ffile.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <logger/logger.h>
 #include <assert.h>
@@ -50,7 +49,9 @@ siridb_ffile_t * siridb_ffile_new(
     ffile->id = id;
     ffile->next_size = 0;
 
-    if (access(ffile->fn, R_OK) == -1)
+    ffile->fp = fopen(ffile->fn, "r+");
+
+    if (ffile->fp == NULL)
     {
         /* create a new fifo file */
         ffile->fp = fopen(ffile->fn, "w+");
@@ -86,10 +87,9 @@ siridb_ffile_t * siridb_ffile_new(
     }
     else
     {
-        /* open existing fifo file */
-        ffile->fp = fopen(ffile->fn, "r+");
+        /* reading existing fifo file */
 
-        if (ffile->fp == NULL || fseek(ffile->fp, 0, SEEK_END))
+        if (fseek(ffile->fp, 0, SEEK_END))
         {
             ERR_FILE
             siridb_ffile_free(ffile);
@@ -115,7 +115,7 @@ siridb_ffile_t * siridb_ffile_new(
 
         if (!ffile->next_size)
         {
-            log_warning("Empty fifo found, removing file: '%s'", ffile->fn);
+            log_debug("Empty fifo found, removing: '%s'", ffile->fn);
             /*
              * signal can be set in unlink, otherwise it's just an empty
              * fifo and can be removed.
@@ -124,6 +124,7 @@ siridb_ffile_t * siridb_ffile_new(
             ffile = NULL;
         }
     }
+
     return ffile;
 }
 

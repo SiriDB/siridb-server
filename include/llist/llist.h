@@ -28,15 +28,15 @@ typedef struct llist_s
     llist_node_t * last;
 } llist_t;
 
-typedef int (*llist_cb_t)(void * data, void * args);
+typedef int (*llist_cb)(void * data, void * args);
 
 llist_t * llist_new(void);
-void llist_free_cb(llist_t * llist, llist_cb_t cb, void * args);
+void llist_free_cb(llist_t * llist, llist_cb cb, void * args);
 int llist_append(llist_t * llist, void * data);
-int llist_walk(llist_t * llist, llist_cb_t cb, void * args);
-void llist_walkn(llist_t * llist, size_t * n, llist_cb_t cb, void * args);
+int llist_walk(llist_t * llist, llist_cb cb, void * args);
+void llist_walkn(llist_t * llist, size_t * n, llist_cb cb, void * args);
 slist_t * llist2slist(llist_t * llist);
-void * llist_get(llist_t * llist, llist_cb_t cb, void * args);
-void * llist_remove(llist_t * llist, llist_cb_t cb, void * args);
+void * llist_get(llist_t * llist, llist_cb cb, void * args);
+void * llist_remove(llist_t * llist, llist_cb cb, void * args);
 void * llist_pop(llist_t * llist);
 void * llist_shift(llist_t * llist);

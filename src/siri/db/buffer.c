@@ -13,10 +13,11 @@
 #include <siri/db/db.h>
 #include <siri/db/shard.h>
 #include <stdio.h>
-#include <sys/unistd.h>
 #include <logger/logger.h>
 #include <string.h>
 #include <siri/siri.h>
+#include <xpath/xpath.h>
+#include <unistd.h>
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
@@ -233,6 +234,9 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
     return 0;
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ */
 int siridb_buffer_open(siridb_t * siridb)
 {
     SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
@@ -240,7 +244,7 @@ int siridb_buffer_open(siridb_t * siridb)
     if ((siridb->buffer_fp = fopen(fn, "r+")) == NULL)
     {
         log_critical("Cannot open '%s' for reading and writing", fn);
-        return 1;
+        return -1;
     }
 
     return 0;
@@ -266,7 +270,7 @@ int siridb_buffer_load(siridb_t * siridb)
     SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
     SIRIDB_GET_FN(fn_temp, "__" SIRIDB_BUFFER_FN)
 
-    if (access(fn_temp, F_OK) != -1)
+    if (xpath_file_exist(fn_temp))
     {
         log_error(
                 "Temporary buffer file found: '%s'. "
@@ -274,21 +278,16 @@ int siridb_buffer_load(siridb_t * siridb)
         return -1;
     }
 
-    if (access(fn, F_OK) == -1)
+    if ((fp = fopen(fn, "r")) == NULL)
     {
         log_warning("Buffer file '%s' not found, create a new one.", fn);
+
         if ((fp = fopen(fn, "w")) == NULL)
         {
             log_critical("Cannot create buffer file '%s'.", fn);
             return -1;
         }
         return fclose(fp);
-    }
-
-    if ((fp = fopen(fn, "r")) == NULL)
-    {
-        log_critical("Cannot open '%s' for reading", fn);
-        return -1;
     }
 
     if ((fp_temp = fopen(fn_temp, "w")) == NULL)
