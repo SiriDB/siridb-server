@@ -100,11 +100,11 @@ void siri_setup_logger(void)
     logger_init(stdout, 10);
 }
 
-static int siri_load_database(const char * dbpath)
+int siri_load_database(const char * dbpath)
 {
     size_t len = strlen(dbpath);
     lock_t lock_rc;
-    char buffer[PATH_MAX] = {0};
+    char buffer[PATH_MAX];
     cfgparser_t * cfgparser;
     cfgparser_option_t * option = NULL;
     qp_unpacker_t * unpacker;
@@ -114,12 +114,15 @@ static int siri_load_database(const char * dbpath)
 
     if (!len || dbpath[len - 1] != '/')
     {
-        return SIRI_ERR_PATH_MISSING_TAIL_SLASH;
+        log_error("Database path should end with a slash. (got: '%s')",
+                dbpath);
+        return -1;
     }
 
     if (!xpath_is_dir(dbpath))
     {
-        return SIRI_ERR_PATH_NOT_FOUND;
+        log_error("Cannot find database path '%s'", dbpath);
+        return -1;
     }
 
     lock_rc = lock_lock(dbpath);
@@ -132,7 +135,7 @@ static int siri_load_database(const char * dbpath)
     case LOCK_READ_ERR:
     case LOCK_MEM_ALLOC_ERR:
         log_error("%s (%s)", lock_str(lock_rc), dbpath);
-        return SIRI_ERR_MEM_ALLOC;
+        return -1;
     case LOCK_NEW:
         log_info("%s (%s)", lock_str(lock_rc), dbpath);
         break;
@@ -151,14 +154,17 @@ static int siri_load_database(const char * dbpath)
             dbpath);
 
     cfgparser = cfgparser_new();
-
+    if (cfgparser == NULL)
+    {
+        return -1;  /* signal is raised */
+    }
     if ((rc = cfgparser_read(cfgparser, buffer)) != CFGPARSER_SUCCESS)
     {
         log_error("Could not read '%s': %s",
                 buffer,
                 cfgparser_errmsg(rc));
         cfgparser_free(cfgparser);
-        return SIRI_ERR_READING_CONF;
+        return -1;
     }
 
     snprintf(buffer,
@@ -170,7 +176,7 @@ static int siri_load_database(const char * dbpath)
     {
         /* qp_unpacker has done some logging */
         cfgparser_free(cfgparser);
-        return SIRI_ERR_READING_DAT;
+        return -1;
     }
 
     if (siridb_from_unpacker(
@@ -181,7 +187,7 @@ static int siri_load_database(const char * dbpath)
         log_error("Could not read '%s': %s", buffer, err_msg);
         qp_unpacker_free(unpacker);
         cfgparser_free(cfgparser);
-        return SIRI_ERR_READING_DAT;
+        return -1;
     }
 
     qp_unpacker_free(unpacker);
@@ -195,7 +201,7 @@ static int siri_load_database(const char * dbpath)
         ERR_ALLOC
         siridb_decref(siridb);
         cfgparser_free(cfgparser);
-        return SIRI_ERR_MEM_ALLOC;
+        return -1;
     }
 
     /* read buffer_path from database.conf */
@@ -217,7 +223,7 @@ static int siri_load_database(const char * dbpath)
     {
         ERR_ALLOC
         siridb_decref(siridb);
-        return SIRI_ERR_MEM_ALLOC;
+        return -1;
     }
 
 
@@ -289,58 +295,6 @@ static int siri_load_database(const char * dbpath)
     }
 
     log_info("Finished loading database: '%s'", siridb->dbname);
-
-    return 0;
-}
-
-static int SIRI_load_databases(void)
-{
-    DIR * db_container_path;
-    struct dirent * dbpath;
-    char buffer[PATH_MAX] = {0};
-
-    if (!xpath_is_dir(siri.cfg->default_db_path))
-    {
-        log_warning("Database directory not found, creating directory '%s'.",
-                siri.cfg->default_db_path);
-        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
-        {
-            log_error("Cannot create directory '%s'.",
-                    siri.cfg->default_db_path);
-            return -1;
-        }
-    }
-
-    if ((db_container_path = opendir(siri.cfg->default_db_path)) == NULL)
-    {
-        log_error("Cannot open database directory '%s'.",
-                siri.cfg->default_db_path);
-        return -1;
-    }
-
-    while((dbpath = readdir(db_container_path)) != NULL)
-    {
-        if (    strcmp(dbpath->d_name, ".") == 0 ||
-                strcmp(dbpath->d_name, "..") == 0 ||
-                strncmp(dbpath->d_name, "__", 2) == 0)
-        {
-            /* skip "." ".." and prefixed with double underscore directories */
-            continue;
-        }
-
-        snprintf(buffer,
-                PATH_MAX,
-                "%s%s/",
-                siri.cfg->default_db_path,
-                dbpath->d_name);
-
-        if (siri_load_database(buffer))
-        {
-            closedir(db_container_path);
-            return -1;
-        }
-    }
-    closedir(db_container_path);
 
     return 0;
 }
@@ -447,6 +401,58 @@ void siri_free(void)
 
     /* free event loop */
     free(siri.loop);
+}
+
+static int SIRI_load_databases(void)
+{
+    DIR * db_container_path;
+    struct dirent * dbpath;
+    char buffer[PATH_MAX];
+
+    if (!xpath_is_dir(siri.cfg->default_db_path))
+    {
+        log_warning("Database directory not found, creating directory '%s'.",
+                siri.cfg->default_db_path);
+        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
+        {
+            log_error("Cannot create directory '%s'.",
+                    siri.cfg->default_db_path);
+            return -1;
+        }
+    }
+
+    if ((db_container_path = opendir(siri.cfg->default_db_path)) == NULL)
+    {
+        log_error("Cannot open database directory '%s'.",
+                siri.cfg->default_db_path);
+        return -1;
+    }
+
+    while((dbpath = readdir(db_container_path)) != NULL)
+    {
+        if (    strcmp(dbpath->d_name, ".") == 0 ||
+                strcmp(dbpath->d_name, "..") == 0 ||
+                strncmp(dbpath->d_name, "__", 2) == 0)
+        {
+            /* skip "." ".." and prefixed with double underscore directories */
+            continue;
+        }
+
+        snprintf(buffer,
+                PATH_MAX,
+                "%s%s/",
+                siri.cfg->default_db_path,
+                dbpath->d_name);
+
+        if (siri_load_database(buffer))
+        {
+            closedir(db_container_path);
+            return -1;
+        }
+    }
+    closedir(db_container_path);
+
+    return 0;
 }
 
 static void SIRI_destroy(void)

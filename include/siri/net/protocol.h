@@ -18,6 +18,7 @@ typedef enum
     CPROTO_REQ_AUTH,                            // (user, password, dbname)
     CPROTO_REQ_PING,                            // empty
     CPROTO_REQ_INFO,                            // empty
+    CPROTO_REQ_LOADDB,                          // database path
 } cproto_client_t;
 
 typedef enum
@@ -36,6 +37,7 @@ typedef enum
     CPROTO_ERR_NOT_AUTHENTICATED,               // empty
     CPROTO_ERR_AUTH_CREDENTIALS,                // empty
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
+    CPROTO_ERR_LOADING_DB,                      // empty
 } cproto_server_t;
 
 typedef enum

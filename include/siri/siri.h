@@ -38,15 +38,6 @@ typedef enum
     SIRI_STATUS_CLOSING
 } siri_status_t;
 
-typedef enum
-{
-    SIRI_ERR_PATH_MISSING_TAIL_SLASH,
-    SIRI_ERR_PATH_NOT_FOUND,
-    SIRI_ERR_READING_CONF,
-    SIRI_ERR_READING_DAT,
-    SIRI_ERR_MEM_ALLOC
-} siri_err_t;
-
 typedef struct siri_s
 {
     siri_status_t status;
@@ -70,5 +61,6 @@ typedef struct siri_async_handle_s
 void siri_setup_logger(void);
 int siri_start(void);
 void siri_free(void);
+int siri_load_database(const char * dbpath);
 
 extern siri_t siri;

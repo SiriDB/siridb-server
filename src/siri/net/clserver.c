@@ -53,6 +53,7 @@ static void on_query(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_insert(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_info(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -162,6 +163,9 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
             break;
         case CPROTO_REQ_INFO:
             on_info(client, pkg);
+            break;
+        case CPROTO_REQ_LOADDB:
+            on_loaddb(client, pkg);
             break;
         }
     }
@@ -448,6 +452,46 @@ static void on_info(uv_handle_t * client, sirinet_pkg_t * pkg)
             free(package);
         }
         qp_packer_free(packer);
+    }
+}
+
+/*
+ * This function can raise a SIGNAL.
+ */
+static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg)
+{
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    if (unpacker != NULL)
+    {
+        qp_obj_t * qp_dbpath = qp_object_new();
+        if (qp_dbpath != NULL)
+        {
+            if (qp_next(unpacker, qp_dbpath) == QP_RAW)
+            {
+                char * dbpath = strndup(qp_dbpath->via->raw, qp_dbpath->len);
+                if (dbpath == NULL)
+                {
+                    ERR_ALLOC
+                }
+                else
+                {
+                    sirinet_pkg_t * package = sirinet_pkg_new(
+                            pkg->pid,
+                            0,
+                            (siri_load_database(dbpath)) ?
+                                    CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK
+                            NULL);
+                    if (package != NULL)
+                    {
+                        sirinet_pkg_send((uv_stream_t *) client, package);
+                        free(package);
+                    }
+                    free(dbpath);
+                }
+            }
+            qp_object_free(qp_dbpath);
+        }
+        qp_unpacker_free(unpacker);
     }
 }
 
