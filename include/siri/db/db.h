@@ -106,7 +106,7 @@ typedef struct siridb_s
     siridb_replicate_t * replicate;
 } siridb_t;
 
-
+siridb_t * siridb_new(const char * dbpath, int lock_flags);
 int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,

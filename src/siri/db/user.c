@@ -144,13 +144,22 @@ int siridb_user_set_password(
     return 0;
 }
 
+/*
+ * Returns true (1) if the user has access or false (0) if not. In case the
+ * user has no access, 'err_msg' is filled with an appropriate error message.
+ *
+ * Make sure 'err_msg' is a pointer to a string which can hold at least
+ * SIRIDB_MAX_SIZE_ERR_MSG.
+ */
 int siridb_user_check_access(
         siridb_user_t * user,
         siridb_access_t access_bit,
         char * err_msg)
 {
-    if (user->access_bit & access_bit)
-        return 1;
+    if (user->access_bit & access_bit == access_bit)
+    {
+        return 1;  // true
+    }
 
     char buffer[SIRIDB_ACCESS_STR_MAX];
     siridb_access_to_str(buffer, access_bit);
@@ -161,7 +170,7 @@ int siridb_user_check_access(
             user->username,
             buffer);
 
-    return 0;
+    return 0;   // false
 }
 
 int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)

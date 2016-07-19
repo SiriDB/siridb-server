@@ -24,6 +24,7 @@
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
+#define SIRIDB_REPLICATE_FN ".replicate"
 #define SIRIDB_SERIES_SCHEMA 1
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
@@ -85,6 +86,44 @@ int siridb_series_cexpr_cb(
     log_critical("Unexpected series property received: %d", cond->prop);
     assert (0);
     return -1;
+}
+
+/*
+ * Write all series id's to the initial replicate file.
+ *
+ * Returns 0 if successful or some other value if not.
+ */
+int siridb_series_replicate_file(siridb_t * siridb)
+{
+    FILE * fp;
+
+    SIRIDB_GET_FN(fn, SIRIDB_REPLICATE_FN)
+
+    fp = fopen(fn, "w");
+    if (fp == NULL)
+    {
+        return -1;
+    }
+    int rc = imap32_walk(
+            siridb->series_map,
+            (imap32_cb) SERIES_create_repl_cb,
+            fp);
+
+    if (fclose(fp))
+    {
+        rc = -1;
+    }
+    return rc;
+}
+
+/*
+ * Typedef: imap32_cb
+ *
+ * Returns 0 if successful
+ */
+static int SERIES_create_repl_cb(siridb_series_t * series, FILE * fp)
+{
+    return fwrite(series->id, sizeof(uint32_t), 1, fp) - 1;
 }
 
 /*
@@ -371,12 +410,15 @@ void siridb_series_remove_shard_num32(
 }
 
 /*
+ * Typedef: imap32_cb
  * Update series properties.
  */
-void siridb_series_update_props(siridb_series_t * series, void * args)
+int siridb_series_update_props(siridb_series_t * series, void * args)
 {
     SERIES_update_start_num32(series);
     SERIES_update_end_num32(series);
+
+    return 0;
 }
 
 siridb_points_t * siridb_series_get_points_num32(

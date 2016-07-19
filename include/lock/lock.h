@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#define LOCK_QUIT_IF_EXIST 1
+
 typedef enum
 {
     LOCK_IS_LOCKED_ERR=-6,
@@ -24,6 +26,6 @@ typedef enum
     LOCK_OVERWRITE
 } lock_t;
 
-lock_t lock_lock(const char * path);
+lock_t lock_lock(const char * path, int flags);
 lock_t lock_unlock(const char * path);
 const char * lock_str(lock_t rc);

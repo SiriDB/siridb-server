@@ -1002,7 +1002,7 @@ static void exit_drop_shard(uv_async_t * handle)
 
         imap32_walk(
                 siridb->series_map,
-                (imap32_cb_t) walk_drop_shard,
+                (imap32_cb) walk_drop_shard,
                 (void *) handle);
 
         uv_mutex_unlock(&siridb->series_mutex);

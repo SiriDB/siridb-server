@@ -165,8 +165,11 @@ static void OPTIMIZE_work(uv_work_t * work)
 
     for (size_t i = 0; i < slsiridb->len; i++)
     {
+        siridb = (siridb_t *) slsiridb->data[i];
         siridb_decref(siridb);
     }
+
+    slist_free(slsiridb);
 }
 
 static void OPTIMIZE_work_finish(uv_work_t * work, int status)

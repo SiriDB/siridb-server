@@ -28,3 +28,6 @@ void siridb_servers_send_pkg(
         sirinet_promises_cb cb,
         void * data);
 void siridb_servers_send_flags(llist_t * servers);
+ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb);
+int siridb_servers_online(siridb_t * siridb);
+int siridb_servers_available(siridb_t * siridb);

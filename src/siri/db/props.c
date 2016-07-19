@@ -47,6 +47,14 @@ static void prop_dbpath(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_duration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_duration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_libuv(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -131,6 +139,10 @@ void siridb_init_props(void)
             prop_dbname;
     siridb_props[CLERI_GID_K_DBPATH - KW_OFFSET] =
             prop_dbpath;
+    siridb_props[CLERI_GID_K_DURATION_LOG - KW_OFFSET] =
+            prop_duration_log;
+    siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
+            prop_duration_num;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
             prop_libuv;
     siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =
@@ -173,7 +185,7 @@ static void prop_buffer_path(
         int map)
 {
     SIRIDB_PROP_MAP("buffer_path", 11)
-        qp_add_string(packer, siridb->buffer_path);
+    qp_add_string(packer, siridb->buffer_path);
 }
 
 static void prop_buffer_size(
@@ -201,6 +213,24 @@ static void prop_dbpath(
 {
     SIRIDB_PROP_MAP("dbpath", 6)
     qp_add_string(packer, siridb->dbpath);
+}
+
+static void prop_duration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("duration_log", 12)
+    qp_add_int64(packer, siridb->duration_log);
+}
+
+static void prop_duration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("duration_num", 12)
+    qp_add_int64(packer, siridb->duration_num);
 }
 
 static void prop_libuv(

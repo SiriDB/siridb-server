@@ -21,7 +21,7 @@ int walk_drop_series(
         siridb_series_t * series,
         uv_async_t * handle);
 
-void walk_drop_shard(
+int walk_drop_shard(
         siridb_series_t * series,
         uv_async_t * handle);
 

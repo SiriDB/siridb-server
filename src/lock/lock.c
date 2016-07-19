@@ -26,8 +26,13 @@ static int LOCK_get_process_name(char ** name, pid_t pid);
 /*
  * Returns LOCK_NEW if a new lock is created, LOCK_OVERWRITE if an existing
  * lock file was overwritten or a negative result in case of an error.
+ *
+ * Flags:
+ *
+ *  LOCK_QUIT_IF_EXIST: do not check the lock file but simply consider the
+ *                      database locked if a lock file exists in the path.
  */
-lock_t lock_lock(const char * path)
+lock_t lock_lock(const char * path, int flags)
 {
     pid_t pid = getpid();
     pid_t ppid = 0;
@@ -47,6 +52,12 @@ lock_t lock_lock(const char * path)
 
     if (fp != NULL)
     {
+        if (flags & LOCK_QUIT_IF_EXIST)
+        {
+            fclose(fp);
+            return LOCK_IS_LOCKED_ERR;
+        }
+
         if (fread(strpid, sizeof(char), 9, fp))
         {
             ppid = strtoul(strpid, NULL, 10);

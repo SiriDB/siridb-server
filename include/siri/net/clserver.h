@@ -18,5 +18,4 @@ typedef struct siri_s siri_t;
 
 int sirinet_clserver_init(siri_t * siri);
 
-
-
+typedef ssize_t (*sirinet_clserver_getfile)(char ** buffer, siridb_t * siridb);

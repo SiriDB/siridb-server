@@ -290,29 +290,32 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
 
 /*
  * Walk over all items and perform the call-back on each item.
+ *
+ * All the results are added together and are returned as the result of
+ * this function.
  */
-void imap32_walk(imap32_t * imap, imap32_cb_t cb, void * args)
+int imap32_walk(imap32_t * imap, imap32_cb cb, void * args)
 {
     im_store_t * store;
     im_grid_t * grid;
     void * data;
+    int rc = 0;
     for (size_t n = 0; n < imap->size; n++)
     {
         grid = imap->grid + n;
         for (uint_fast8_t i = 255; i--;)
         {
-            if ((store = grid->store[i]) == NULL)
+            if ((store = grid->store[i]) != NULL)
             {
-                continue;
-            }
-            for (uint_fast8_t j = 255; j--;)
-            {
-                if ((data = store->data[j]) == NULL)
+                for (uint_fast8_t j = 255; j--;)
                 {
-                    continue;
+                    if ((data = store->data[j]) != NULL)
+                    {
+                        rc += (*cb)(data, args);
+                    }
                 }
-                (*cb)(data, args);
             }
         }
     }
+    return rc;
 }

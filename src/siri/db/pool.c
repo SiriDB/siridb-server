@@ -123,6 +123,8 @@ int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
  * The call-back function is not called when -1 is returned.
  *
  * A server is  'available' when and ONLY when connected and authenticated.
+ *
+ * Note that 'pkg->pid' will be overwritten with a new package id.
  */
 int siridb_pool_send_pkg(
         siridb_pool_t * pool,

@@ -61,6 +61,5 @@ typedef struct siri_async_handle_s
 void siri_setup_logger(void);
 int siri_start(void);
 void siri_free(void);
-int siri_load_database(const char * dbpath);
 
 extern siri_t siri;

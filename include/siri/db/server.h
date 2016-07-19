@@ -33,13 +33,19 @@
 #define SERVER__IS_SYNCHRONIZING 37  // RUNNING + SYNCHRONIZING + AUTHENTICATED
 
 /*
- * A server is  'online' when at least connected and authenticated.
+ * A server is  'connected' when at least connected.
+ */
+#define siridb_server_is_connected(server) \
+    (server->socket != NULL)
+
+/*
+ * A server is  'online' when at least running and authenticated.
  */
 #define siridb_server_is_online(server) \
     ((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
 
 /*
- * A server is  'available' when and ONLY when connected and authenticated.
+ * A server is  'available' when exactly running and authenticated.
  */
 #define siridb_server_is_available(server) \
     (server->flags == SERVER__IS_ONLINE)

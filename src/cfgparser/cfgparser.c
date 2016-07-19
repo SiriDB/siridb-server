@@ -336,6 +336,9 @@ cfgparser_option_t * cfgparser_real_option(
             def_u);
 }
 
+/*
+ * Returns an error message for a cfgparser_return_t code.
+ */
 const char * cfgparser_errmsg(cfgparser_return_t err)
 {
     switch (err)
@@ -358,6 +361,11 @@ const char * cfgparser_errmsg(cfgparser_return_t err)
     return "";
 }
 
+/*
+ * Finds a section in a cfgparser. When the result is CFGPARSER_SUCCESS,
+ * 'section' is set. In case CFGPARSER_ERR_SECTION_NOT_FOUND is returned,
+ * 'section' is untouched.
+ */
 cfgparser_return_t cfgparser_get_section(
         cfgparser_section_t ** section,
         cfgparser_t * cfgparser,
@@ -376,6 +384,11 @@ cfgparser_return_t cfgparser_get_section(
     return CFGPARSER_ERR_SECTION_NOT_FOUND;
 }
 
+/*
+ * Finds a option in a cfgparser. When the result is CFGPARSER_SUCCESS,
+ * 'option' is set. In case CFGPARSER_ERR_SECTION_NOT_FOUND or
+ * CFGPARSER_ERR_OPTION_NOT_FOUND is returned, 'option' is untouched.
+ */
 cfgparser_return_t cfgparser_get_option(
         cfgparser_option_t ** option,
         cfgparser_t * cfgparser,
@@ -388,7 +401,9 @@ cfgparser_return_t cfgparser_get_option(
 
     rc = cfgparser_get_section(&section, cfgparser, section_name);
     if (rc != CFGPARSER_SUCCESS)
+    {
         return rc;
+    }
     current = section->options;
     while (current != NULL)
     {
@@ -399,7 +414,6 @@ cfgparser_return_t cfgparser_get_option(
         }
         current = current->next;
     }
-
     return CFGPARSER_ERR_OPTION_NOT_FOUND;
 }
 
@@ -472,8 +486,7 @@ static cfgparser_option_t * cfgparser_new_option(
         prev->next->val = val;
         prev->next->def = def;
         prev->next->next = NULL;
-        prev->next->name = strdup(name);
-        if (prev->next->name == NULL)
+        if ((prev->next->name = strdup(name)) == NULL)
         {
             ERR_ALLOC
             free(prev->next);

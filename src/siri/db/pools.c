@@ -155,6 +155,8 @@ int siridb_pools_available(siridb_t * siridb)
  * used to check if the package has been send successfully to all pools.
  *
  * This function can raise a SIGNAL when allocation errors occur.
+ *
+ * Note that 'pkg->pid' will be overwritten with a new package id.
  */
 void siridb_pools_send_pkg(
         siridb_t * siridb,

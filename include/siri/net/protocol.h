@@ -19,6 +19,9 @@ typedef enum
     CPROTO_REQ_PING,                            // empty
     CPROTO_REQ_INFO,                            // empty
     CPROTO_REQ_LOADDB,                          // database path
+    CPROTO_REQ_REGISTER_SERVER,                 // (uuid, host, port, pool)
+    CPROTO_REQ_FILE_SERVERS,                    // empty
+    CPROTO_REQ_FILE_USERS,                      // empty
 } cproto_client_t;
 
 typedef enum
@@ -28,16 +31,20 @@ typedef enum
     CPROTO_RES_AUTH_SUCCESS,                    // empty
     CPROTO_RES_ACK,                             // empty
     CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
+    CPROTO_RES_FILE,                            // file content
 
-    CPROTO_ERR_QUERY=64,                        // {"error_msg": ...}
+    CPROTO_ERR_MSG=64,                          // {"error_msg": ...}
+    CPROTO_ERR_QUERY,                           // {"error_msg": ...}
     CPROTO_ERR_INSERT,                          // {"error_msg": ...}
     CPROTO_ERR_SERVER,                          // {"error_msg": ...}
     CPROTO_ERR_POOL,                            // {"error_msg": ...}
     CPROTO_ERR_USER_ACCESS,                     // {"error_msg": ...}
+    CPROTO_ERR,                                 // empty
     CPROTO_ERR_NOT_AUTHENTICATED,               // empty
     CPROTO_ERR_AUTH_CREDENTIALS,                // empty
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
     CPROTO_ERR_LOADING_DB,                      // empty
+    CPROTO_ERR_FILE,                            // empty
 } cproto_server_t;
 
 typedef enum
@@ -52,6 +59,8 @@ typedef enum
     BPROTO_QUERY_UPDATE,                        // (query, time_precision)
     BPROTO_INSERT_POOL,                         // {series: points, ...}
     BPROTO_INSERT_SERVER,                       // {series: points, ...}
+    BPROTO_REGISTER_SERVER_UPDATE,              // (uuid, host, port, pool)
+    BPROTO_REGISTER_SERVER,                     // (uuid, host, port, pool)
 } bproto_client_t;
 
 /*
@@ -86,6 +95,7 @@ typedef enum
     BPROTO_ACK_LOG_LEVEL,                       // empty
     BPROTO_ACK_INSERT,                          // empty
     BPROTO_ACK_REPL_FINISHED,                   // empty
+    BPROTO_ACK_REGISTER_SERVER,                 // empty
 
 } bproto_server_t;
 

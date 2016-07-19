@@ -54,7 +54,7 @@ int walk_drop_series(
     return 0;
 }
 
-void walk_drop_shard(
+int walk_drop_shard(
         siridb_series_t * series,
         uv_async_t * handle)
 {
@@ -67,6 +67,8 @@ void walk_drop_shard(
     {
         siridb_series_remove_shard_num32(siridb, series, shard);
     }
+
+    return 0;
 }
 
 

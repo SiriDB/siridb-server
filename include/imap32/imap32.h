@@ -33,12 +33,12 @@ typedef struct imap32_s
     im_grid_t * grid;
 } imap32_t;
 
-typedef void (*imap32_cb_t)(void * data, void * args);
+typedef int (*imap32_cb)(void * data, void * args);
 
 imap32_t * imap32_new(void);
 void imap32_free(imap32_t * imap);
 int imap32_add(imap32_t * imap, uint32_t id, void * data);
 void * imap32_get(imap32_t * imap, uint32_t id);
 void * imap32_pop(imap32_t * imap, uint32_t id);
-void imap32_walk(imap32_t * imap, imap32_cb_t cb, void * args);
+int imap32_walk(imap32_t * imap, imap32_cb cb, void * args);
 

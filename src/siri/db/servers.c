@@ -182,12 +182,72 @@ int siridb_servers_load(siridb_t * siridb)
     return rc;
 }
 
+
+
 /*
  * Destroy servers, parsing NULL is not allowed.
  */
 void siridb_servers_free(llist_t * servers)
 {
     llist_free_cb(servers, (llist_cb) SERVERS_walk_free, NULL);
+}
+
+/*
+ * Typedef: sirinet_clserver_get_file
+ *
+ * Returns the length of the content for a file and set buffer with the file
+ * content. Note that malloc is used to allocate memory for the buffer.
+ *
+ * In case of an error -1 is returned and buffer will be set to NULL.
+ */
+ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb)
+{
+    /* get servers file name */
+    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
+
+    return xpath_get_content(buffer, fn);
+}
+
+int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
+{
+    if (server->pool < siridb->pools->len)
+    {
+        /* this is a new server for an existing pool */
+        if (siridb->pools->pool[server->pool]->len != 1)
+        {
+            log_error("Cannot register '%s' since pool %d contains %d servers",
+                    server->name,
+                    server->pool,
+                    siridb->pools->pool[server->pool]->len);
+            return -1;
+        }
+        else
+        {
+            if (siridb->server->pool == server->pool)
+            {
+                /* this is a replica for 'this' pool */
+                if (siridb_series_replicate_file(siridb))
+                {
+                    log_error(
+                            "Cannot register '%s' because an initial replica "
+                            "file could not be created",
+                            server->name);
+                    return -1;
+                }
+            }
+        }
+    }
+    else if (server->pool > siridb->pools->len)
+    {
+        log_error("Cannot register '%s' since pool %d is unexpected",
+                server->name,
+                server->pool);
+    }
+    else
+    {
+        /* this is a new server for a new pool */
+    }
+    return 0;
 }
 
 void siridb_servers_send_pkg(
@@ -289,6 +349,48 @@ void siridb_servers_send_flags(llist_t * servers)
         }
         node = node->next;
     }
+}
+
+/*
+ * Returns 1 (true) if all servers are online, 0 (false)
+ * if at least one server is online. ('this' server is NOT included)
+ *
+ * A server is considered  'online' when connected and authenticated.
+ */
+int siridb_servers_online(siridb_t * siridb)
+{
+    llist_node_t * node = siridb->servers->first;
+    siridb_server_t * server;
+    while (node != NULL)
+    {
+        server = (siridb_server_t *) node->data;
+        if (siridb->server != server && !siridb_server_is_online(server))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/*
+ * Returns 1 (true) if all servers are available, 0 (false)
+ * if at least one server is available. ('this' server is NOT included)
+ *
+ * A server is  'available' when and ONLY when connected and authenticated.
+ */
+int siridb_servers_available(siridb_t * siridb)
+{
+    llist_node_t * node = siridb->servers->first;
+    siridb_server_t * server;
+    while (node != NULL)
+    {
+        server = (siridb_server_t *) node->data;
+        if (siridb->server != server && !siridb_server_is_available(server))
+        {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args)

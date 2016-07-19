@@ -26,6 +26,9 @@
 #include <siri/net/socket.h>
 #include <assert.h>
 #include <siri/version.h>
+#include <lock/lock.h>
+#include <siri/db/servers.h>
+#include <siri/db/users.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -54,6 +57,10 @@ static void on_insert(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_ping(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_info(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg);
+static void on_reqfile(
+        uv_handle_t * client,
+        sirinet_pkg_t * pkg,
+        sirinet_clserver_getfile getfile);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -62,6 +69,9 @@ static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
         sirinet_pkg_t * pkg);
 static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer);
+static void CLSERVER_on_register_server_response(
+        slist_t * promises,
+        uv_handle_t * client);
 
 #define POOL_ERR_MSG \
     "At least one pool has no server available to process the request"
@@ -166,6 +176,15 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
             break;
         case CPROTO_REQ_LOADDB:
             on_loaddb(client, pkg);
+            break;
+        case CPROTO_REQ_REGISTER_SERVER:
+            /* TODO */
+            break;
+        case CPROTO_REQ_FILE_SERVERS:
+            on_reqfile(client, pkg, siridb_servers_get_file);
+            break;
+        case CPROTO_REQ_FILE_USERS:
+            on_reqfile(client, pkg, siridb_users_get_file);
             break;
         }
     }
@@ -475,11 +494,16 @@ static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg)
                 }
                 else
                 {
+                    siridb_t * siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
+                    if (siridb != NULL)
+                    {
+                        siridb->server->flags |= SERVER_FLAG_RUNNING;
+                    }
                     sirinet_pkg_t * package = sirinet_pkg_new(
                             pkg->pid,
                             0,
-                            (siri_load_database(dbpath)) ?
-                                    CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK
+                            (siridb == NULL) ?
+                                    CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK,
                             NULL);
                     if (package != NULL)
                     {
@@ -489,9 +513,153 @@ static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg)
                     free(dbpath);
                 }
             }
+            else
+            {
+                log_error("Incorrect package received: 'on_loaddb'");
+            }
             qp_object_free(qp_dbpath);
         }
         qp_unpacker_free(unpacker);
+    }
+}
+
+/*
+ * This function can raise a SIGNAL.
+ */
+static void on_reqfile(
+        uv_handle_t * client,
+        sirinet_pkg_t * pkg,
+        sirinet_clserver_getfile getfile)
+{
+    CHECK_SIRIDB(ssocket)
+
+    siridb_t * siridb = ssocket->siridb;
+    sirinet_pkg_t * package = NULL;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+
+    if (siridb->server->flags != SERVER_FLAG_RUNNING)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Error getting file because server '%s' having status %d",
+                siridb->server->name,
+                siridb->server->flags);
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_SERVER,
+                err_msg);
+    }
+    else if (!siridb_user_check_access(
+            (siridb_user_t *) ssocket->origin,
+            SIRIDB_ACCESS_PROFILE_FULL,
+            err_msg))
+    {
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_USER_ACCESS,
+                err_msg);
+    }
+    else
+    {
+        char * content = NULL;
+        ssize_t size = getfile(&content, siridb);
+        package = (content == NULL) ?
+            sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    CPROTO_ERR_FILE,
+                    NULL) :
+            sirinet_pkg_new(
+                    pkg->pid,
+                    size,
+                    CPROTO_RES_FILE,
+                    content);
+        free(content);
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
+    }
+}
+
+/*
+ * This function can raise a SIGNAL.
+ */
+static void on_register_server(
+        uv_handle_t * client,
+        sirinet_pkg_t * pkg,
+        sirinet_clserver_getfile getfile)
+{
+    CHECK_SIRIDB(ssocket)
+
+    siridb_t * siridb = ssocket->siridb;
+    sirinet_pkg_t * package = NULL;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+
+    if (siridb->server->flags != SERVER_FLAG_RUNNING)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Error getting file because server '%s' having status %d",
+                siridb->server->name,
+                siridb->server->flags);
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_SERVER,
+                err_msg);
+    }
+    else if (!siridb_user_check_access(
+            (siridb_user_t *) ssocket->origin,
+            SIRIDB_ACCESS_PROFILE_FULL,
+            err_msg))
+    {
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_USER_ACCESS,
+                err_msg);
+    }
+    else if (!siridb_servers_available(siridb))
+    {
+        sprintf(err_msg, "At least one server is not online or busy");
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_SERVER,
+                err_msg);
+    }
+    else
+    {
+        if (siridb->replica != NULL)
+        {
+            pkg->tp = BPROTO_REGISTER_SERVER;
+            if (siridb_fifo_append(siridb->fifo, pkg))
+            {
+                /* signal is raised */
+                package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
+            }
+        }
+    }
+
+    if (package == NULL)
+    {
+        pkg->tp = BPROTO_REGISTER_SERVER_UPDATE;
+        siridb_pools_send_pkg(
+                siridb,
+                pkg,
+                0,
+                (sirinet_promises_cb) CLSERVER_on_register_server_response,
+                client);
+    }
+    else
+    {
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
     }
 }
 
@@ -502,4 +670,69 @@ static void on_loaddb(uv_handle_t * client, sirinet_pkg_t * pkg)
 static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer)
 {
     return qp_add_string(packer, siridb->dbname);
+}
+
+/*
+ * Typedef: sirinet_promises_cb
+ */
+static void CLSERVER_on_register_server_response(
+        slist_t * promises,
+        uv_handle_t * client)
+{
+    if (client == NULL)
+    {
+        sirinet_promises_llist_free(promises);
+        return;  /* signal is raised when client is NULL */
+    }
+
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    size_t err_count = 0;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            err_count++;
+            snprintf(err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while registering the new server on at "
+                    "least one server");
+        }
+
+        pkg = promise->data;
+
+        if (pkg == NULL || pkg->tp != BPROTO_ACK_REGISTER_SERVER)
+        {
+            err_count++;
+            snprintf(err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while registering the new server on at "
+                    "least '%s'", promise->server->name);
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    sirinet_pkg_t * package = (err_count) ?
+            sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_MSG,
+                err_msg) :
+            sirinet_pkg_new(
+                pkg->pid,
+                0,
+                CPROTO_RES_ACK,
+                NULL);
+    if (package != NULL)
+    {
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
+    }
 }

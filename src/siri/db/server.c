@@ -199,6 +199,62 @@ void siridb_server_send_pkg(
 }
 
 /*
+ * Register and return a new server from qpack data.
+ * The qpack data should contain: [uuid, address, port, pool]
+ *
+ * In case of an error NULL is returned.
+ * (a SIGNAL might be raised in case of allocation errors)
+ */
+siridb_server_t * siridb_server_register(const char * data, size_t len)
+{
+    siridb_server_t * server = NULL;
+    qp_unpacker_t * unpacker = qp_unpacker_new(data, len);
+    if (unpacker != NULL)
+    {
+        qp_obj_t * qp_uuid = qp_object_new();
+        qp_obj_t * qp_address = qp_object_new();
+        qp_obj_t * qp_port = qp_object_new();
+        qp_obj_t * qp_pool = qp_object_new();
+        if (    qp_uuid == NULL || qp_address == NULL ||
+                qp_port == NULL || qp_pool == NULL)
+        {
+            qp_object_free_safe(qp_uuid);
+            qp_object_free_safe(qp_address);
+            qp_object_free_safe(qp_port);
+            qp_object_free_safe(qp_pool);
+        }
+        else
+        {
+            if (qp_is_array(qp_next(unpacker, NULL)) &&
+                qp_next(unpacker, qp_uuid) == QP_RAW &&
+                qp_next(unpacker, qp_address) == QP_RAW &&
+                qp_next(unpacker, qp_port) == QP_INT64 &&
+                qp_next(unpacker, qp_pool) == QP_INT64)
+            {
+                server = siridb_server_new(
+                        qp_uuid->via->raw,
+                        qp_address->via->raw,
+                        qp_address->len,
+                        qp_port->via->int64,
+                        qp_pool->via->int64);
+                if (server != NULL)
+                {
+
+                }
+            }
+        }
+
+        qp_object_free(qp_uuid);
+        qp_object_free(qp_address);
+        qp_object_free(qp_port);
+        qp_object_free(qp_pool);
+
+        qp_unpacker_free(unpacker);
+    }
+    return server;
+}
+
+/*
  * This function can raise a SIGNAL.
  */
 void siridb_server_send_flags(siridb_server_t * server)

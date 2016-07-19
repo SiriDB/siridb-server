@@ -75,7 +75,7 @@ static int SHARD_load_idx_num32(
         FILE * fp);
 
 static void SHARD_free(siridb_shard_t * shard);
-static void SHARD_create_slist(siridb_series_t * series, slist_t * slist);
+static int SHARD_create_slist(siridb_series_t * series, slist_t * slist);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
 /*
@@ -469,7 +469,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     {
         imap32_walk(
                 siridb->series_map,
-                (imap32_cb_t) &SHARD_create_slist,
+                (imap32_cb) &SHARD_create_slist,
                 (void *) slist);
     }
 
@@ -805,10 +805,12 @@ static int SHARD_load_idx_num32(
  * Append series to a list and increment the series reference counter.
  * (this function assumes the list has enough space for all series)
  */
-static void SHARD_create_slist(siridb_series_t * series, slist_t * slist)
+static int SHARD_create_slist(siridb_series_t * series, slist_t * slist)
 {
     siridb_series_incref(series);
     slist_append(slist, series);
+
+    return 0;
 }
 
 /*

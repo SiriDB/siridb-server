@@ -25,8 +25,8 @@
 #define SIRIDB_MIN_USER_LEN 2
 #define SIRIDB_MAX_USER_LEN 60
 
-#define SIRIDB_USER_ACCESS_SCHEMA 1
-#define SIRIDB_USER_ACCESS_FN "useraccess.dat"
+#define SIRIDB_USERS_SCHEMA 1
+#define SIRIDB_USERS_FN "users.dat"
 
 inline static int USERS_cmp(siridb_user_t * user, const char * name);
 static int USERS_free(siridb_user_t * user, void * args);
@@ -56,7 +56,7 @@ int siridb_users_load(siridb_t * siridb)
     }
 
     /* get user access file name */
-    SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
 
     if (!xpath_file_exist(fn))
     {
@@ -93,7 +93,7 @@ int siridb_users_load(siridb_t * siridb)
     }
 
     /* unpacker will be freed in case macro fails */
-    siridb_schema_check(SIRIDB_USER_ACCESS_SCHEMA)
+    siridb_schema_check(SIRIDB_USERS_SCHEMA)
 
     username = qp_object_new();
     password = qp_object_new();
@@ -153,6 +153,22 @@ int siridb_users_load(siridb_t * siridb)
     qp_unpacker_free(unpacker);
 
     return rc;
+}
+
+/*
+ * Typedef: sirinet_clserver_get_file
+ *
+ * Returns the length of the content for a file and set buffer with the file
+ * content. Note that malloc is used to allocate memory for the buffer.
+ *
+ * In case of an error -1 is returned and buffer will be set to NULL.
+ */
+ssize_t siridb_users_get_file(char ** buffer, siridb_t * siridb)
+{
+    /* get users file name */
+    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
+
+    return xpath_get_content(buffer, fn);
 }
 
 /*
@@ -226,6 +242,11 @@ int siridb_users_add_user(
     return 0;
 }
 
+/*
+ * Returns NULL when the user is not found of when the given password is
+ * incorrect. When *password is NULL the password will NOT be checked and
+ * the user will be returned when found.
+ */
 siridb_user_t * siridb_users_get_user(
         llist_t * users,
         const char * username,
@@ -290,7 +311,7 @@ int siridb_users_save(siridb_t * siridb)
     qp_fpacker_t * fpacker;
 
     /* get user access file name */
-    SIRIDB_GET_FN(fn, SIRIDB_USER_ACCESS_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
 
     if (
         /* open a new user file */
@@ -300,7 +321,7 @@ int siridb_users_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_USER_ACCESS_SCHEMA) ||
+        qp_fadd_int16(fpacker, SIRIDB_USERS_SCHEMA) ||
 
         /* we can and should skip this if we have no users to save */
         llist_walk(siridb->users, (llist_cb) USERS_save, fpacker) ||
