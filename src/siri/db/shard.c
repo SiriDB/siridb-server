@@ -147,7 +147,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
 
     /* remove LOADING flag from shard status */
-    shard->flags ^= SIRIDB_SHARD_IS_LOADING & shard->flags;
+    shard->flags &= ~SIRIDB_SHARD_IS_LOADING;
 
     return 0;
 }
@@ -764,7 +764,7 @@ static int SHARD_load_idx_num32(
         else
         {
             if (siridb_series_add_idx_num32(
-                    series->index,
+                    series,
                     shard,
                     *((uint32_t *) (idx + 4)),
                     *((uint32_t *) (idx + 8)),

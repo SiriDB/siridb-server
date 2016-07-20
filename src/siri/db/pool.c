@@ -112,6 +112,37 @@ int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
     return -1;
 }
 
+void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
+{
+    pool->len++;
+
+    if (pool->len == 1)
+    {
+        /* this is the first server found for this pool */
+        pool->server[0] = server;
+    }
+    else
+    {
+#ifdef DEBUG
+        /* we can only have 1 or 2 servers per pool */
+        assert (pool->len == 2);
+#endif
+        /* add the server to the pool, ordered by UUID */
+        if (siridb_server_cmp(pool->server[0], server) < 0)
+        {
+            pool->server[1] = server;
+        }
+        else
+        {
+#ifdef DEBUG
+            assert (siridb_server_cmp(pool->server[0], server) > 0);
+#endif
+            pool->server[1] = pool->server[0];
+            pool->server[0] = server;
+        }
+    }
+}
+
 /*
  * Returns 0 if we have send the package to one available
  * server in the pool. The package will be send only to one server, even if

@@ -80,7 +80,7 @@ void sirinet_socket_on_data(
             free(buf->base);
         }
 
-        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_decref);
 
         return;
     }
@@ -179,6 +179,8 @@ void sirinet_socket_on_data(
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * Note: ((sirinet_socket_t *) socket->data)->ref is initially set to 1
  */
 uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
 {
@@ -206,9 +208,13 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
  *  In case a server is destroyed, remaining promises will be cancelled and
  *  the call-back functions will be called.
  */
-void sirinet_socket_free(uv_tcp_t * client)
+void sirinet_socket_decref(uv_tcp_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
+    if (--ssocket->ref)
+    {
+        return;
+    }
 
 #ifdef DEBUG
     log_debug("Free socket type: %d", ssocket->tp);
@@ -241,8 +247,14 @@ void sirinet_socket_free(uv_tcp_t * client)
     free(client);
 }
 
+inline void sirinet_socket_incref(uv_tcp_t * client)
+{
+    ((sirinet_socket_t *) client->data)->ref++;
+}
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * (reference counter is initially set to 1)
  */
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
 {
@@ -260,6 +272,7 @@ static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
         ssocket->len = 0;
         ssocket->origin = NULL;
         ssocket->siridb = NULL;
+        ssocket->ref = 1;
     }
     return ssocket;
 }

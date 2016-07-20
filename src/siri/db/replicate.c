@@ -14,12 +14,15 @@
 #include <stddef.h>
 #include <siri/err.h>
 #include <siri/db/fifo.h>
+#include <siri/db/series.h>
 #include <siri/net/protocol.h>
 #include <siri/siri.h>
 #include <assert.h>
 #include <logger/logger.h>
 
 #define REPLICATE_SLEEP 100
+#define REPLICATE_INIT_FN ".replicate"
+
 
 static void REPLICATE_work(uv_timer_t * handle);
 static void REPLICATE_on_repl_response(
@@ -30,6 +33,7 @@ static void REPLICATE_on_repl_finished_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
+static int REPLICATE_create_repl_cb(siridb_series_t * series, FILE * fp);
 
 /*
  * Return 0 is successful or -1 and a SIGNAL is raised if failed.
@@ -48,7 +52,27 @@ int siridb_replicate_init(siridb_t * siridb)
         return -1;
     }
 
-    siridb->replicate->status = REPLICATE_IDLE;
+    SIRIDB_GET_FN(fn, REPLICATE_INIT_FN)
+
+    if ((siridb->replicate->init_fp = fopen(fn, "r+")) != NULL)
+    {
+        uint32_t series_id;
+        siridb_series_t * series;
+        while (fread(
+                &series_id,
+                sizeof(uint32_t),
+                1,
+                siridb->replicate->init_fp) == 1)
+        {
+            series = imap32_get(siridb->series_map, series_id);
+            if (series != NULL)
+            {
+                series->flags |= SIRIDB_SERIES_INIT_REPL;
+            }
+        }
+    }
+    siridb->replicate->status = (siridb->replicate->init_fp == NULL) ?
+            REPLICATE_IDLE : REPLICATE_INIT;
     siridb->replicate->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
     if (siridb->replicate->timer == NULL)
     {
@@ -154,6 +178,39 @@ void siridb_replicate_continue(siridb_replicate_t * replicate)
 }
 
 /*
+ * Write all series id's to the initial replicate file.
+ *
+ * Make sure siridb->replicate is initialized
+ *
+ * Returns 0 if successful or some other value if not.
+ */
+int siridb_replicate_create(siridb_t * siridb)
+{
+#ifdef DEBUG
+    assert (siridb->replicate != NULL);
+    assert (siridb->replicate->init_fp == NULL);
+#endif
+
+    SIRIDB_GET_FN(fn, REPLICATE_INIT_FN)
+
+    siridb->replicate->init_fp = fopen(fn, "w+");
+    if (siridb->replicate->init_fp == NULL)
+    {
+        return -1;
+    }
+    int rc = imap32_walk(
+            siridb->series_map,
+            (imap32_cb) REPLICATE_create_repl_cb,
+            siridb->replicate->init_fp);
+
+    if (fclose(siridb->replicate->init_fp))
+    {
+        rc = -1;
+    }
+    return rc;
+}
+
+/*
  * This function can raise a SIGNAL.
  */
 static void REPLICATE_work(uv_timer_t * handle)
@@ -165,8 +222,9 @@ static void REPLICATE_work(uv_timer_t * handle)
     assert (siridb->fifo != NULL);
     assert (siridb->replicate != NULL);
     assert (siridb->replica != NULL);
-    assert (siridb->replicate->status == REPLICATE_RUNNING ||
-            siridb->replicate->status == REPLICATE_STOPPING);
+    assert (siridb->replicate->status != REPLICATE_IDLE);
+    assert (siridb->replicate->status != REPLICATE_PAUSED);
+    assert (siridb->replicate->status != REPLICATE_CLOSED);
     assert (siridb_fifo_is_open(siridb->fifo));
 #endif
 
@@ -205,6 +263,17 @@ static void REPLICATE_work(uv_timer_t * handle)
                 (siridb->replicate->status == REPLICATE_STOPPING) ?
                 REPLICATE_PAUSED : REPLICATE_IDLE;
     }
+}
+
+/*
+ * Typedef: imap32_cb
+ *
+ * Returns 0 if successful
+ */
+static int REPLICATE_create_repl_cb(siridb_series_t * series, FILE * fp)
+{
+    series->flags |= SIRIDB_SERIES_INIT_REPL;
+    return fwrite(&series->id, sizeof(uint32_t), 1, fp) - 1;
 }
 
 /*

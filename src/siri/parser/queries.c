@@ -12,7 +12,7 @@
     siridb_query_t * query = (siridb_query_t *) handle->data;                 \
     q_type * q = (q_type *) query->data;                                      \
     if (q->ct_series != NULL)                                                 \
-        ct_free_cb(q->ct_series, (ct_free_cb_t) &siridb_series_decref);       \
+        ct_free(q->ct_series, (ct_free_cb) &siridb_series_decref);            \
     if (q->where_expr != NULL)                                                \
         cexpr_free(q->where_expr);                                            \
     free(q);                                                                  \
@@ -73,7 +73,7 @@ void query_list_free(uv_handle_t * handle)
 
     if (q_list->ct_series != NULL)
     {
-        ct_free_cb(q_list->ct_series, (ct_free_cb_t) &siridb_series_decref);
+        ct_free(q_list->ct_series, (ct_free_cb) &siridb_series_decref);
     }
 
     if (q_list->where_expr != NULL)

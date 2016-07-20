@@ -93,6 +93,11 @@ siridb_server_t * siridb_server_new(
     return server;
 }
 
+/*
+ * Returns < 0 if the uuid from server A is less than uuid from server B.
+ * Returns > 0 if the uuid from server A is greater than uuid from server B.
+ * Returns 0 when uuid server A and B are equal.
+ */
 inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
 {
     return uuid_compare(sa->uuid, sb->uuid);
@@ -205,7 +210,10 @@ void siridb_server_send_pkg(
  * In case of an error NULL is returned.
  * (a SIGNAL might be raised in case of allocation errors)
  */
-siridb_server_t * siridb_server_register(const char * data, size_t len)
+siridb_server_t * siridb_server_register(
+        siridb_t * siridb,
+        const char * data,
+        size_t len)
 {
     siridb_server_t * server = NULL;
     qp_unpacker_t * unpacker = qp_unpacker_new(data, len);
@@ -237,9 +245,15 @@ siridb_server_t * siridb_server_register(const char * data, size_t len)
                         qp_address->len,
                         qp_port->via->int64,
                         qp_pool->via->int64);
+
+
                 if (server != NULL)
                 {
-
+                    if (siridb_servers_register(siridb, server))
+                    {
+                        SERVER_free(server);
+                        server = NULL;
+                    }
                 }
             }
         }
@@ -455,6 +469,12 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             SERVER_on_connect);
 }
 
+/*
+ * Returns the current server status (flags) as string. the returned value
+ * is created with malloc() so do not forget to free the result.
+ *
+ * NULL is returned in case malloc has failed.
+ */
 char * siridb_server_str_status(siridb_server_t * server)
 {
     /* we must initialize the buffer according to the longest possible value */
@@ -485,6 +505,9 @@ char * siridb_server_str_status(siridb_server_t * server)
     return strdup((n) ? buffer : "offline");
 }
 
+/*
+ * Returns true when the given property (CLERI keyword) needs a remote query
+ */
 int siridb_server_is_remote_prop(uint32_t prop)
 {
     switch (prop)

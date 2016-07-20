@@ -32,6 +32,7 @@
 #include <cexpr/cexpr.h>
 #include <siri/net/socket.h>
 #include <siri/net/promises.h>
+#include <siri/err.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
@@ -505,9 +506,8 @@ static void enter_revoke_user(uv_async_t * handle)
     }
     else
     {
-        user->access_bit ^= (
-                user->access_bit &
-                siridb_access_from_children((cleri_children_t *) query->data));
+        user->access_bit &=
+                ~siridb_access_from_children((cleri_children_t *) query->data);
 
         query->data = user;
         siridb_user_incref(user);
@@ -955,8 +955,7 @@ static void exit_drop_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_walk(q_drop->ct_series,
-            (ct_cb_t) &walk_drop_series, handle);
+    ct_values(q_drop->ct_series, (ct_val_cb) &walk_drop_series, handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -1192,10 +1191,10 @@ static void exit_list_series(uv_async_t * handle)
      */
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_walkn(
+    ct_valuesn(
             (q_list->ct_series == NULL) ? siridb->series : q_list->ct_series,
             &q_list->limit,
-            (ct_cb_t) &walk_list_series,
+            (ct_val_cb) &walk_list_series,
             handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -1393,8 +1392,10 @@ static void exit_select_stmt(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_walk(((query_select_t *) query->data)->ct_series,
-            (ct_cb_t) &walk_select, handle);
+    ct_values(
+            ((query_select_t *) query->data)->ct_series,
+            (ct_val_cb) &walk_select,
+            handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
 

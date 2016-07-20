@@ -292,7 +292,7 @@ static void SIRI_set_closing_state(void)
             siridb_replicate_close(siridb->replicate);
         }
 
-        siridb->server->flags ^= SERVER_FLAG_RUNNING & siridb->server->flags;
+        siridb->server->flags &= ~SERVER_FLAG_RUNNING;
         siridb_servers_send_flags(siridb->servers);
 
         db_node = db_node->next;

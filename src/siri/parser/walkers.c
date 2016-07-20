@@ -23,10 +23,7 @@
 #include <assert.h>
 #include <procinfo/procinfo.h>
 
-int walk_drop_series(
-        const char * series_name,
-        siridb_series_t * series,
-        uv_async_t * handle)
+int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
 {
     /* Do not forget to flush the dropped file.
      *  using: fflush(siridb->dropped_fp);
@@ -46,7 +43,9 @@ int walk_drop_series(
     imap32_pop(siridb->series_map, series->id);
 
     /* remove series from tree */
-    ct_pop(siridb->series, series_name);
+    ct_pop(siridb->series, series->name);
+
+    series->flags |= SIRIDB_SERIES_IS_DROPPED;
 
     /* decrement reference to series */
     siridb_series_decref(series);
@@ -54,9 +53,7 @@ int walk_drop_series(
     return 0;
 }
 
-int walk_drop_shard(
-        siridb_series_t * series,
-        uv_async_t * handle)
+int walk_drop_shard(siridb_series_t * series, uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
@@ -72,28 +69,17 @@ int walk_drop_shard(
 }
 
 
-int walk_list_series(
-        const char * series_name,
-        siridb_series_t * series,
-        uv_async_t * handle)
+int walk_list_series(siridb_series_t * series, uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_list_t * q_list = query->data;
-    slist_t * props = q_list->props;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    slist_t * props = ((query_list_t *) query->data)->props;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     size_t i;
-
-    siridb_series_walker_t wseries = {
-        .series_name=series_name,
-        .series=series,
-        .pool=siridb->server->pool
-    };
 
     if (where_expr != NULL && !cexpr_run(
             where_expr,
             (cexpr_cb_t) siridb_series_cexpr_cb,
-            &wseries))
+            series))
     {
         return 0; // false
     }
@@ -105,7 +91,7 @@ int walk_list_series(
         switch(*((uint32_t *) props->data[i]))
         {
         case CLERI_GID_K_NAME:
-            qp_add_string(query->packer, series_name);
+            qp_add_string(query->packer, series->name);
             break;
         case CLERI_GID_K_LENGTH:
             qp_add_int32(query->packer, series->length);
@@ -114,7 +100,7 @@ int walk_list_series(
             qp_add_string(query->packer, series_type_map[series->tp]);
             break;
         case CLERI_GID_K_POOL:
-            qp_add_int16(query->packer, siridb->server->pool);
+            qp_add_int16(query->packer, series->pool);
             break;
         case CLERI_GID_K_START:
             qp_add_int64(query->packer, series->start);
@@ -267,16 +253,13 @@ int walk_list_servers(
     return 1;  // true
 }
 
-int walk_select(
-        const char * series_name,
-        siridb_series_t * series,
-        uv_async_t * handle)
+int walk_select(siridb_series_t * series, uv_async_t * handle)
 {
     siridb_point_t * point;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
 
-    qp_add_string(query->packer, series_name);
+    qp_add_string(query->packer, series->name);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     siridb_points_t * points = siridb_series_get_points_num32(

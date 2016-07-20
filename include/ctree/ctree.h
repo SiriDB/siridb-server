@@ -43,16 +43,19 @@ typedef struct ct_s
     ct_nodes_t * nodes;
 } ct_t;
 
-typedef int (*ct_cb_t)(const char * key, void * data, void * args);
-typedef void (*ct_free_cb_t)(void * data);
+typedef int (*ct_item_cb)(const char * key, void * data, void * args);
+typedef int (*ct_val_cb)(void * data, void * args);
+typedef void (*ct_free_cb)(void * data);
 
 ct_t * ct_new(void);
-void ct_free(ct_t * ct);
-void ct_free_cb(ct_t * ct, ct_free_cb_t cb);
+void ct_free(ct_t * ct, ct_free_cb cb);
 extern int ct_is_empty(void * data);
 void ** ct_get_sure(ct_t * ct, const char * key);
 int ct_add(ct_t * ct, const char * key, void * data);
 void * ct_get(ct_t * node, const char * key);
 void * ct_pop(ct_t * ct, const char * key);
-void ct_walk(ct_t * ct, ct_cb_t cb, void * args);
-void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args);
+void ct_items(ct_t * ct, ct_item_cb cb, void * args);
+void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args);
+void ct_values(ct_t * ct, ct_val_cb cb, void * args);
+void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
+

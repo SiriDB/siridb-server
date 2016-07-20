@@ -88,6 +88,12 @@ typedef struct siridb_server_walker_s
     siridb_t * siridb;
 } siridb_server_walker_t;
 
+typedef struct siridb_server_reg_s
+{
+    uint64_t pid;
+    uv_handle_t * client;
+} siridb_server_reg_t;
+
 siridb_server_t * siridb_server_new(
         const char * uuid,
         const char * address,
@@ -95,13 +101,7 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool);
 
-/*
- * returns < 0 if the uuid from server A is less than uuid from server B.
- * returns > 0 if the uuid from server A is greater than uuid from server B.
- * returns 0 when uuid server A and B are equal.
- */
 int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
-
 void siridb_server_incref(siridb_server_t * server);
 void siridb_server_decref(siridb_server_t * server);
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
@@ -112,18 +112,15 @@ void siridb_server_send_pkg(
         sirinet_promise_cb cb,
         void * data);
 void siridb_server_send_flags(siridb_server_t * server);
-
-/* returns the current server status (flags) as string. the returned value
- * is created with malloc() so do not forget to free the result.
- */
 char * siridb_server_str_status(siridb_server_t * server);
-
-/* return true when the given property (CLERI keyword) needs a remote query */
 int siridb_server_is_remote_prop(uint32_t prop);
-
 int siridb_server_cexpr_cb(
         siridb_server_walker_t * wserver,
         cexpr_condition_t * cond);
+siridb_server_t * siridb_server_register(
+        siridb_t * siridb,
+        const char * data,
+        size_t len);
 
 #define siridb_server_update_flags(org, new) \
     org = new | (org & SERVER_FLAG_AUTHENTICATED)

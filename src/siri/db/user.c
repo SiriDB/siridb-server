@@ -156,7 +156,7 @@ int siridb_user_check_access(
         siridb_access_t access_bit,
         char * err_msg)
 {
-    if (user->access_bit & access_bit == access_bit)
+    if ((user->access_bit & access_bit) == access_bit)
     {
         return 1;  // true
     }

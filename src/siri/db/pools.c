@@ -244,9 +244,7 @@ static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
  */
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 {
-    siridb_pool_t * pool;
-    pool = siridb->pools->pool + server->pool;
-    pool->len++;
+    siridb_pool_t * pool = siridb->pools->pool + server->pool;
 
     /* if the server is member of the same pool, it must be the replica */
     if (siridb->server != server && siridb->server->pool == server->pool)
@@ -269,29 +267,5 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
         }
     }
 
-    if (pool->len == 1)
-    {
-        /* this is the first server found for this pool */
-        pool->server[0] = server;
-    }
-    else
-    {
-#ifdef DEBUG
-        /* we can only have 1 or 2 servers per pool */
-        assert (pool->len == 2);
-#endif
-        /* add the server to the pool, ordered by UUID */
-        if (siridb_server_cmp(pool->server[0], server) < 0)
-        {
-            pool->server[1] = server;
-        }
-        else
-        {
-#ifdef DEBUG
-            assert(siridb_server_cmp(pool->server[0], server) > 0);
-#endif
-            pool->server[1] = pool->server[0];
-            pool->server[0] = server;
-        }
-    }
+    siridb_pool_add_server(pool, server);
 }

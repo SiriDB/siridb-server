@@ -455,7 +455,7 @@ static siridb_t * SIRIDB_new(void)
             siridb->series_map = imap32_new();
             if (siridb->series_map == NULL)
             {
-                ct_free(siridb->series);
+                ct_free(siridb->series, NULL);
                 free(siridb);
                 siridb = NULL;  /* signal is raised */
             }
@@ -465,7 +465,7 @@ static siridb_t * SIRIDB_new(void)
                 if (siridb->shards == NULL)
                 {
                     imap32_free(siridb->series_map);
-                    ct_free(siridb->series);
+                    ct_free(siridb->series, NULL);
                     free(siridb);
                     siridb = NULL;  /* signal is raised */
                 }
@@ -571,7 +571,7 @@ static void SIRIDB_free(siridb_t * siridb)
     /* free c-tree lookup and series */
     if (siridb->series != NULL)
     {
-        ct_free_cb(siridb->series, (ct_free_cb_t) &siridb_series_decref);
+        ct_free(siridb->series, (ct_free_cb) &siridb_series_decref);
     }
 
     /* free shards using imap64 walk an free the imap64 */

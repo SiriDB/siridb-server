@@ -22,14 +22,17 @@ typedef struct siridb_s siridb_t;
 #define REPLICATE_PAUSED 2
 #define REPLICATE_STOPPING 3
 #define REPLICATE_CLOSED 4
+#define REPLICATE_INIT 5
 
 typedef struct siridb_replicate_s
 {
     int status;
     uv_timer_t * timer;
+    FILE * init_fp;
 } siridb_replicate_t;
 
 int siridb_replicate_init(siridb_t * siridb);
+int siridb_replicate_create(siridb_t * siridb);
 void siridb_replicate_destroy(siridb_t * siridb);
 void siridb_replicate_start(siridb_replicate_t * replicate);
 void siridb_replicate_close(siridb_replicate_t * replicate);

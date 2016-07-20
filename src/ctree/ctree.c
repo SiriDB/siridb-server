@@ -31,17 +31,20 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void ** CT_get_sure(ct_node_t * node, const char * key);
 static void CT_dec_node(ct_node_t * node);
 static void CT_merge_node(ct_node_t * node);
-static void CT_walk(
+static void CT_items(
         ct_node_t * node,
         size_t * pn,
         size_t len,
         size_t buffer_sz,
         char * buffer,
-        ct_cb_t cb,
+        ct_item_cb cb,
         void * args);
-
-static void CT_free(ct_node_t * node);
-static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb);
+static void CT_values(
+        ct_node_t * node,
+        size_t * pn,
+        ct_val_cb cb,
+        void * args);
+static void CT_free(ct_node_t * node, ct_free_cb cb);
 
 static char dummy = '\0';
 char * CT_EMPTY = &dummy;
@@ -66,36 +69,17 @@ ct_t * ct_new(void)
 
 /*
  * Destroy ct-tree. Parsing NULL is NOT allowed.
- */
-void ct_free(ct_t * ct)
-{
-    if (ct->nodes != NULL)
-    {
-        for (uint_fast16_t i = 256; i--;)
-        {
-            if ((*ct->nodes)[i] != NULL)
-            {
-                CT_free((*ct->nodes)[i]);
-            }
-        }
-        free(ct->nodes);
-    }
-    free(ct);
-}
-
-/*
- * Destroy ct_tree. (parsing NULL is NOT allowed)
  * Call-back function will be called on each item in the tree.
  */
-void ct_free_cb(ct_t * ct, ct_free_cb_t cb)
+void ct_free(ct_t * ct, ct_free_cb cb)
 {
     if (ct->nodes != NULL)
     {
-        for (uint_fast16_t i = 256; i--;)
+        for (uint_fast16_t i = 0; i < 256; i++)
         {
             if ((*ct->nodes)[i] != NULL)
             {
-                CT_free_cb((*ct->nodes)[i], cb);
+                CT_free((*ct->nodes)[i], cb);
             }
         }
         free(ct->nodes);
@@ -225,9 +209,17 @@ void * ct_pop(ct_t * ct, const char * key)
 /*
  * Loop over all items in the tree and perform the call-back on each item.
  */
-inline void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
+inline void ct_items(ct_t * ct, ct_item_cb cb, void * args)
 {
-    ct_walkn(ct, NULL, cb, args);
+    ct_itemsn(ct, NULL, cb, args);
+}
+
+/*
+ * Loop over all values in the tree and perform the call-back on each value.
+ */
+inline void ct_values(ct_t * ct, ct_val_cb cb, void * args)
+{
+    ct_valuesn(ct, NULL, cb, args);
 }
 
 /*
@@ -236,7 +228,7 @@ inline void ct_walk(ct_t * ct, ct_cb_t cb, void * args)
  * when 'n' is zero. 'n' will be decremented by one on each successful
  * call-back.
  */
-void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
+void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
 {
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
@@ -249,7 +241,28 @@ void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
         {
             continue;
         }
-        CT_walk(nd, n, len, buffer_sz, buffer, cb, args);
+        CT_items(nd, n, len, buffer_sz, buffer, cb, args);
+    }
+    free(buffer);
+}
+
+/*
+ * Loop over all values in the tree and perform the call-back on each value.
+ * Walking stops either when the call-back is called on each value or
+ * when 'n' is zero. 'n' will be decremented by one on each successful
+ * call-back.
+ */
+void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
+{
+    ct_node_t * nd;
+
+    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 256; i++)
+    {
+        if ((nd = (*ct->nodes)[i]) == NULL)
+        {
+            continue;
+        }
+        CT_values(nd, n, cb, args);
     }
 }
 
@@ -259,18 +272,16 @@ void ct_walkn(ct_t * ct, size_t * n, ct_cb_t cb, void * args)
  * when 'pn' is zero. 'pn' will be decremented by one on each successful
  * call-back.
  */
-static void CT_walk(
+static void CT_items(
         ct_node_t * node,
         size_t * pn,
         size_t len,
         size_t buffer_sz,
         char * buffer,
-        ct_cb_t cb,
+        ct_item_cb cb,
         void * args)
 {
     size_t sz = strlen(node->key);
-    char * pt;
-    ct_node_t * nd;
 
     if (sz + len + 1 > buffer_sz)
     {
@@ -288,8 +299,11 @@ static void CT_walk(
             (*pn)--;
         }
     }
+
     if (node->nodes != NULL)
     {
+        char * pt;
+        ct_node_t * nd;
         len += sz + 1;
         pt = buffer + len - 1;
 
@@ -299,7 +313,42 @@ static void CT_walk(
             {
                 continue;
             }
-            CT_walk(nd, pn, len, buffer_sz, buffer, cb, args);
+            CT_items(nd, pn, len, buffer_sz, buffer, cb, args);
+        }
+    }
+}
+
+/*
+ * Loop over all values in the tree and perform the call-back on each value.
+ * Walking stops either when the call-back is called on each value or
+ * when 'pn' is zero. 'pn' will be decremented by one on each successful
+ * call-back.
+ */
+static void CT_values(
+        ct_node_t * node,
+        size_t * pn,
+        ct_val_cb cb,
+        void * args)
+{
+    if (node->data != NULL)
+    {
+        if ((*cb)(node->data, args) && pn != NULL)
+        {
+            (*pn)--;
+        }
+    }
+
+    if (node->nodes != NULL)
+    {
+        ct_node_t * nd;
+
+        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 256; i++)
+        {
+            if ((nd = (*node->nodes)[i]) == NULL)
+            {
+                continue;
+            }
+            CT_values(nd, pn, cb, args);
         }
     }
 }
@@ -703,7 +752,7 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                 if ((*nd)->size == 0)
                 {
                     /* no child nodes, lets clean up this node */
-                    CT_free(node);
+                    CT_free(node, NULL);
 
                     /* make sure to set the node to NULL so the parent
                      * can do its cleanup correctly */
@@ -775,45 +824,26 @@ static ct_node_t * CT_new_node(const char * key, void * data)
 
 /*
  * Destroy ct_tree. (parsing NULL is NOT allowed)
+ * Call-back function will be called on each item in the tree.
  */
-static void CT_free(ct_node_t * node)
+static void CT_free(ct_node_t * node, ct_free_cb cb)
 {
     if (node->nodes != NULL)
     {
-        for (uint_fast16_t i = 256; i--;)
+        for (uint_fast16_t i = 0; i < 256; i++)
         {
             if ((*node->nodes)[i] != NULL)
             {
-                CT_free((*node->nodes)[i]);
+                CT_free((*node->nodes)[i], cb);
             }
         }
         free(node->nodes);
+    }
+    if (cb != NULL && node->data != NULL)
+    {
+        (*cb)(node->data);
     }
     free(node->key);
     free(node);
 }
 
-/*
- * Destroy ct_tree. (parsing NULL is NOT allowed)
- * Call-back function will be called on each item in the tree.
- */
-static void CT_free_cb(ct_node_t * node, ct_free_cb_t cb)
-{
-    if (node->nodes != NULL)
-    {
-        for (uint_fast16_t i = 256; i--;)
-        {
-            if ((*node->nodes)[i] != NULL)
-            {
-                CT_free_cb((*node->nodes)[i], cb);
-            }
-        }
-        free(node->nodes);
-    }
-    if (node->data != NULL)
-    {
-        cb(node->data);
-    }
-    free(node->key);
-    free(node);
-}

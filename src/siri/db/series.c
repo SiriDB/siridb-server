@@ -24,7 +24,6 @@
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
-#define SIRIDB_REPLICATE_FN ".replicate"
 #define SIRIDB_SERIES_SCHEMA 1
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
@@ -38,19 +37,16 @@ static int SERIES_open_store(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
 static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
+static void SERIES_update_overlap(siridb_series_t * series);
+static int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
 
-
-
-static int SERIES_pack(
-        const char * key,
-        siridb_series_t * series,
-        qp_fpacker_t * fpacker);
 
 static siridb_series_t * SERIES_new(
         siridb_t * siridb,
         uint32_t id,
         uint8_t tp,
-        const char * sn);
+        uint16_t pool,
+        const char * name);
 
 const char series_type_map[3][8] = {
         "integer",
@@ -63,67 +59,27 @@ const char series_type_map[3][8] = {
  *
  * Returns 1 when series match or 0 if not.
  */
-int siridb_series_cexpr_cb(
-        siridb_series_walker_t * wseries,
-        cexpr_condition_t * cond)
+int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
 {
     switch (cond->prop)
     {
     case CLERI_GID_K_LENGTH:
-        return cexpr_int_cmp(cond->operator, wseries->series->length, cond->int64);
+        return cexpr_int_cmp(cond->operator, series->length, cond->int64);
     case CLERI_GID_K_START:
-        return cexpr_int_cmp(cond->operator, wseries->series->start, cond->int64);
+        return cexpr_int_cmp(cond->operator, series->start, cond->int64);
     case CLERI_GID_K_END:
-        return cexpr_int_cmp(cond->operator, wseries->series->end, cond->int64);
+        return cexpr_int_cmp(cond->operator, series->end, cond->int64);
     case CLERI_GID_K_POOL:
-        return cexpr_int_cmp(cond->operator, wseries->pool, cond->int64);
+        return cexpr_int_cmp(cond->operator, series->pool, cond->int64);
     case CLERI_GID_K_TYPE:
-        return cexpr_int_cmp(cond->operator, wseries->series->tp, cond->int64);
+        return cexpr_int_cmp(cond->operator, series->tp, cond->int64);
     case CLERI_GID_K_NAME:
-        return cexpr_str_cmp(cond->operator, wseries->series_name, cond->str);
+        return cexpr_str_cmp(cond->operator, series->name, cond->str);
     }
     /* we must NEVER get here */
     log_critical("Unexpected series property received: %d", cond->prop);
     assert (0);
     return -1;
-}
-
-/*
- * Write all series id's to the initial replicate file.
- *
- * Returns 0 if successful or some other value if not.
- */
-int siridb_series_replicate_file(siridb_t * siridb)
-{
-    FILE * fp;
-
-    SIRIDB_GET_FN(fn, SIRIDB_REPLICATE_FN)
-
-    fp = fopen(fn, "w");
-    if (fp == NULL)
-    {
-        return -1;
-    }
-    int rc = imap32_walk(
-            siridb->series_map,
-            (imap32_cb) SERIES_create_repl_cb,
-            fp);
-
-    if (fclose(fp))
-    {
-        rc = -1;
-    }
-    return rc;
-}
-
-/*
- * Typedef: imap32_cb
- *
- * Returns 0 if successful
- */
-static int SERIES_create_repl_cb(siridb_series_t * series, FILE * fp)
-{
-    return fwrite(series->id, sizeof(uint32_t), 1, fp) - 1;
 }
 
 /*
@@ -203,7 +159,12 @@ siridb_series_t * siridb_series_new(
 
     siridb->max_series_id++;
 
-    series = SERIES_new(siridb, siridb->max_series_id, tp, series_name);
+    series = SERIES_new(
+            siridb,
+            siridb->max_series_id,
+            tp,
+            siridb->server->pool,
+            series_name);
 
     if (series != NULL)
     {
@@ -248,6 +209,11 @@ siridb_series_t * siridb_series_new(
  */
 int siridb_series_load(siridb_t * siridb)
 {
+#ifdef DEBUG
+    /* we must have a server because we need to know the pool id */
+    assert (siridb->server != NULL);
+#endif
+
     imap32_t * dropped = imap32_new();
     if (dropped == NULL)
     {
@@ -294,7 +260,7 @@ int siridb_series_load(siridb_t * siridb)
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int siridb_series_add_idx_num32(
-        siridb_series_idx_t * index,
+        siridb_series_t * series,
         siridb_shard_t * shard,
         uint32_t start_ts,
         uint32_t end_ts,
@@ -302,26 +268,26 @@ int siridb_series_add_idx_num32(
         uint16_t len)
 {
     idx_num32_t * idx;
-    uint32_t i = index->len;
-    index->len++;
+    uint32_t i = series->idx_len;
+    series->idx_len++;
 
     idx = (idx_num32_t *) realloc(
-            (idx_num32_t *) index->idx,
-            index->len * sizeof(idx_num32_t));
+            (idx_num32_t *) series->idx,
+            series->idx_len * sizeof(idx_num32_t));
     if (idx == NULL)
     {
         ERR_ALLOC
-        index->len--;
+        series->idx_len--;
         return -1;
     }
-    index->idx = idx;
+    series->idx = idx;
 
-    for (; i && start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts; i--)
+    for (; i && start_ts < ((idx_num32_t *) (series->idx))[i - 1].start_ts; i--)
     {
-        ((idx_num32_t *) index->idx)[i] = ((idx_num32_t *) index->idx)[i - 1];
+        ((idx_num32_t *) series->idx)[i] = ((idx_num32_t *) series->idx)[i - 1];
     }
 
-    idx = ((idx_num32_t *) (index->idx)) + i;
+    idx = ((idx_num32_t *) (series->idx)) + i;
 
     /* Check here for new values since we now can compare the current
      * idx->shard with shard. We only set NEW_VALUES when we already have
@@ -333,8 +299,8 @@ int siridb_series_add_idx_num32(
     if (    ((shard->flags &
                 (SIRIDB_SHARD_HAS_NEW_VALUES |
                         SIRIDB_SHARD_IS_LOADING)) == 0) &&
-            ((i > 0 && ((idx_num32_t *) (index->idx))[i - 1].shard == shard) ||
-            (i < index->len - 1 && idx->shard == shard)))
+            ((i > 0 && ((idx_num32_t *) (series->idx))[i - 1].shard == shard) ||
+            (i < series->idx_len - 1 && idx->shard == shard)))
     {
         shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
         siridb_shard_write_flags(shard);
@@ -350,12 +316,12 @@ int siridb_series_add_idx_num32(
      * reading the shard at startup.
      */
     if (    (i > 0 &&
-            start_ts < ((idx_num32_t *) (index->idx))[i - 1].start_ts) ||
-            (++i < index->len &&
-            end_ts > ((idx_num32_t *) (index->idx))[i].start_ts))
+            start_ts < ((idx_num32_t *) (series->idx))[i - 1].start_ts) ||
+            (++i < series->idx_len &&
+            end_ts > ((idx_num32_t *) (series->idx))[i].start_ts))
     {
         shard->flags |= SIRIDB_SHARD_HAS_OVERLAP;
-        index->has_overlap = 1;
+        series->flags |= SIRIDB_SERIES_HAS_OVERLAP;
     }
 
     return 0;
@@ -375,8 +341,8 @@ void siridb_series_remove_shard_num32(
 
     i = offset = 0;
 
-    for (   idx = (idx_num32_t *) series->index->idx;
-            i < series->index->len;
+    for (   idx = (idx_num32_t *) series->idx;
+            i < series->idx_len;
             i++, idx++)
     {
         if (idx->shard == shard)
@@ -386,16 +352,16 @@ void siridb_series_remove_shard_num32(
         }
         else if (offset)
         {
-            ((idx_num32_t *) series->index->idx)[i - offset] =
-                    ((idx_num32_t *) series->index->idx)[i];
+            ((idx_num32_t *) series->idx)[i - offset] =
+                    ((idx_num32_t *) series->idx)[i];
         }
     }
     if (offset)
     {
-        series->index->len -= offset;
-        series->index->idx = (idx_num32_t *) realloc(
-                    (idx_num32_t *) series->index->idx,
-                    series->index->len * sizeof(idx_num32_t));
+        series->idx_len -= offset;
+        series->idx = (idx_num32_t *) realloc(
+                    (idx_num32_t *) series->idx,
+                    series->idx_len * sizeof(idx_num32_t));
         uint64_t start = shard->id - series->mask;
         uint64_t end = start + siridb->duration_num;
         if (series->start >= start && series->start < end)
@@ -431,12 +397,12 @@ siridb_points_t * siridb_series_get_points_num32(
     siridb_point_t * point;
     size_t len, size;
     uint_fast32_t i;
-    uint32_t indexes[series->index->len];
+    uint32_t indexes[series->idx_len];
 
     len = i = size = 0;
 
-    for (   idx = (idx_num32_t *) series->index->idx;
-            i < series->index->len;
+    for (   idx = (idx_num32_t *) series->idx;
+            i < series->idx_len;
             i++, idx++)
     {
         if (    (start_ts == NULL || idx->end_ts >= *start_ts) &&
@@ -455,10 +421,10 @@ siridb_points_t * siridb_series_get_points_num32(
     {
         siridb_shard_get_points_num32(
                 points,
-                (idx_num32_t *) series->index->idx + indexes[i],
+                (idx_num32_t *) series->idx + indexes[i],
                 start_ts,
                 end_ts,
-                series->index->has_overlap);
+                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
         /* errors can be ignored here */
     }
 
@@ -549,8 +515,8 @@ int siridb_series_optimize_shard_num32(
 
     end = i = size = 0;
 
-    for (   idx = (idx_num32_t *) series->index->idx;
-            i < series->index->len && idx->start_ts < max_ts;
+    for (   idx = (idx_num32_t *) series->idx;
+            i < series->idx_len && idx->start_ts < max_ts;
             i++, idx++)
     {
         if (idx->shard == shard->replacing)
@@ -561,7 +527,8 @@ int siridb_series_optimize_shard_num32(
             }
             size += idx->len;
             end++;
-        } else if (idx->shard == shard && end)
+        }
+        else if (idx->shard == shard && end)
         {
             end++;
         }
@@ -585,14 +552,14 @@ int siridb_series_optimize_shard_num32(
 
     for (i = start; i < end; i++)
     {
-        idx = (idx_num32_t *) series->index->idx + i;
+        idx = (idx_num32_t *) series->idx + i;
         /* we can have indexes for the 'new' shard which we should skip */
         if (idx->shard == shard->replacing && siridb_shard_get_points_num32(
                     points,
                     idx,
                     NULL,
                     NULL,
-                    series->index->has_overlap))
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP))
         {
             /* an error occurred while reading points, logging is done */
             size -= idx->len;
@@ -623,7 +590,7 @@ int siridb_series_optimize_shard_num32(
         }
         else
         {
-            idx = (idx_num32_t *) series->index->idx + start;
+            idx = (idx_num32_t *) series->idx + start;
             idx->shard = shard;
             idx->start_ts = (uint32_t) points->data[pstart].ts;
             idx->end_ts = (uint32_t) points->data[pend - 1].ts;
@@ -641,18 +608,18 @@ int siridb_series_optimize_shard_num32(
         i = end - start;
 
         /* new length is current length minus difference */
-        series->index->len -= i;
+        series->idx_len -= i;
 
-        for (; start < series->index->len; start++)
+        for (; start < series->idx_len; start++)
         {
-            ((idx_num32_t *) series->index->idx)[start] =
-                    ((idx_num32_t *) series->index->idx)[start + i];
+            ((idx_num32_t *) series->idx)[start] =
+                    ((idx_num32_t *) series->idx)[start + i];
         }
 
         /* shrink memory to the new size */
         idx = (idx_num32_t *) realloc(
-                (idx_num32_t *) series->index->idx,
-                series->index->len * sizeof(idx_num32_t));
+                (idx_num32_t *) series->idx,
+                series->idx_len * sizeof(idx_num32_t));
         if (idx == NULL)
         {
             /* this is not critical since the original allocated block still
@@ -662,7 +629,7 @@ int siridb_series_optimize_shard_num32(
         }
         else
         {
-            series->index->idx = idx;
+            series->idx = idx;
         }
     }
 #ifdef DEBUG
@@ -672,7 +639,34 @@ int siridb_series_optimize_shard_num32(
         assert (start == end);
     }
 #endif
+
+    if (series->flags & SIRIDB_SERIES_HAS_OVERLAP)
+    {
+        SERIES_update_overlap(series);
+    }
+
     return rc;
+}
+
+/*
+ * Updates series->flags and remove SIRIDB_SERIES_HAS_OVERLAP if possible.
+ * This function never sets an overlap and therefore should not be called
+ * as long as the overlap flag is not set.
+ */
+static void SERIES_update_overlap(siridb_series_t * series)
+{
+#ifdef DEBUG
+    assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+#endif
+    for (uint_fast32_t i = 1; i < series->idx_len; i++)
+    {
+        if (((idx_num32_t *) series->idx)[i - 1].end_ts >
+                ((idx_num32_t *) series->idx)[i].start_ts)
+        {
+            return;
+        }
+    }
+    series->flags &= ~SIRIDB_SERIES_HAS_OVERLAP;
 }
 
 /*
@@ -685,8 +679,8 @@ static void SERIES_free(siridb_series_t * series)
     {
         siridb_buffer_free(series->buffer);
     }
-    free(series->index->idx);
-    free(series->index);
+    free(series->idx);
+    free(series->name);
     free(series);
 }
 
@@ -697,7 +691,8 @@ static siridb_series_t * SERIES_new(
         siridb_t * siridb,
         uint32_t id,
         uint8_t tp,
-        const char * sn)
+        uint16_t pool,
+        const char * name)
 {
     uint32_t n = 0;
     siridb_series_t * series;
@@ -708,36 +703,38 @@ static siridb_series_t * SERIES_new(
     }
     else
     {
-        series->id = id;
-        series->tp = tp;
-        series->ref = 1;
-        series->length = 0;
-        series->start = -1;
-        series->end = 0;
-        series->buffer = NULL;
-
-        /* get sum series name to calculate series mask (for sharding) */
-        for (; *sn; sn++)
-        {
-            n += *sn;
-        }
-
-        series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
-                siridb->shard_mask_log : siridb->shard_mask_num);
-
-        series->index =
-                (siridb_series_idx_t *) malloc(sizeof(siridb_series_idx_t));
-        if (series->index == NULL)
+        series->name = strdup(name);
+        if (series->name == NULL)
         {
             ERR_ALLOC
             free(series);
+            series = NULL;
         }
         else
         {
-            series->index->len = 0;
-            series->index->has_overlap = 0;
-            series->index->idx = NULL;
+            series->id = id;
+            series->tp = tp;
+            series->ref = 1;
+            series->length = 0;
+            series->start = -1;
+            series->end = 0;
+            series->buffer = NULL;
+            series->pool = pool;
+
+            /* get sum series name to calculate series mask (for sharding) */
+            for (; *name; name++)
+            {
+                n += *name;
+            }
+
+            series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
+                    siridb->shard_mask_log : siridb->shard_mask_num);
+
+            series->idx_len = 0;
+            series->flags = 0;
+            series->idx = NULL;
         }
+
     }
     return series;
 }
@@ -748,13 +745,10 @@ static siridb_series_t * SERIES_new(
  * Returns always 0 but the result will be ignored since this function is used
  * in ct_walk().
  */
-static int SERIES_pack(
-        const char * key,
-        siridb_series_t * series,
-        qp_fpacker_t * fpacker)
+static int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
 {
     if (qp_fadd_type(fpacker, QP_ARRAY3) ||
-        qp_fadd_raw(fpacker, key, strlen(key) + 1) ||
+        qp_fadd_raw(fpacker, series->name, strlen(series->name) + 1) ||
         qp_fadd_int32(fpacker, (int32_t) series->id) ||
         qp_fadd_int8(fpacker, (int8_t) series->tp))
     {
@@ -794,7 +788,7 @@ static int SERIES_save(siridb_t * siridb)
     }
     else
     {
-        ct_walk(siridb->series, (ct_cb_t) &SERIES_pack, fpacker);
+        ct_values(siridb->series, (ct_val_cb) &SERIES_pack, fpacker);
     }
     /* close file pointer */
     if (qp_close(fpacker))
@@ -937,11 +931,12 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
                     siridb,
                     series_id,
                     (uint8_t) qp_series_tp->via->int64,
+                    siridb->server->pool,
                     qp_series_name->via->raw);
             if (series != NULL)
             {
                 /* add series to c-tree */
-                ct_add(siridb->series, qp_series_name->via->raw, series);
+                ct_add(siridb->series, series->name, series);
 
                 /* add series to imap32 */
                 imap32_add(siridb->series_map, series->id, series);
@@ -1092,8 +1087,8 @@ static int SERIES_update_max_id(siridb_t * siridb)
  */
 static void SERIES_update_start_num32(siridb_series_t * series)
 {
-    series->start = (series->index->len) ?
-            ((idx_num32_t *) series->index->idx)->start_ts : -1;
+    series->start = (series->idx_len) ?
+            ((idx_num32_t *) series->idx)->start_ts : -1;
 
     if (series->buffer->points->len)
     {
@@ -1111,13 +1106,13 @@ static void SERIES_update_start_num32(siridb_series_t * series)
  */
 static void SERIES_update_end_num32(siridb_series_t * series)
 {
-    if (series->index->len)
+    if (series->idx_len)
     {
         uint32_t start = 0;
         idx_num32_t * idx;
-        for (uint_fast32_t i = series->index->len; i--;)
+        for (uint_fast32_t i = series->idx_len; i--;)
         {
-            idx = (idx_num32_t *) series->index->idx + i;
+            idx = (idx_num32_t *) series->idx + i;
 
             if (idx->end_ts < start)
             {

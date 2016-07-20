@@ -31,3 +31,4 @@ void siridb_servers_send_flags(llist_t * servers);
 ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb);
 int siridb_servers_online(siridb_t * siridb);
 int siridb_servers_available(siridb_t * siridb);
+int siridb_servers_register(siridb_t * siridb, siridb_server_t * server);

@@ -152,6 +152,10 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
     case BPROTO_INSERT_SERVER:
         on_insert_server(client, pkg);
         break;
+    case BPROTO_REGISTER_SERVER_UPDATE:
+        break;
+    case BPROTO_REGISTER_SERVER:
+        break;
     }
 
 }
@@ -313,8 +317,7 @@ static void on_repl_finished(uv_handle_t * client, sirinet_pkg_t * pkg)
 
     if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
     {
-        siridb->server->flags ^=
-                SERVER_FLAG_SYNCHRONIZING & siridb->server->flags;
+        siridb->server->flags &= ~SERVER_FLAG_SYNCHRONIZING;
 
         siridb_servers_send_flags(siridb->servers);
     }

@@ -29,6 +29,7 @@
 #include <lock/lock.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
+#include <siri/net/promises.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -61,6 +62,7 @@ static void on_reqfile(
         uv_handle_t * client,
         sirinet_pkg_t * pkg,
         sirinet_clserver_getfile getfile);
+static void on_register_server(uv_handle_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -178,7 +180,7 @@ static void on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
             on_loaddb(client, pkg);
             break;
         case CPROTO_REQ_REGISTER_SERVER:
-            /* TODO */
+            on_register_server(client, pkg);
             break;
         case CPROTO_REQ_FILE_SERVERS:
             on_reqfile(client, pkg, siridb_servers_get_file);
@@ -248,11 +250,11 @@ static void CLSERVER_send_server_error(
     int len = (siridb == NULL) ?
             asprintf(
             &err_msg,
-            "error, not accepting the request because the sever is not running")
+            "Not accepting the request because the sever is not running")
             :
             asprintf(
             &err_msg,
-            "error, '%s' is not accepting then request because of having "
+            "Server '%s' is not accepting then request because of having "
             "status: %u",
             siridb->server->name,
             siridb->server->flags);
@@ -589,16 +591,23 @@ static void on_reqfile(
 /*
  * This function can raise a SIGNAL.
  */
-static void on_register_server(
-        uv_handle_t * client,
-        sirinet_pkg_t * pkg,
-        sirinet_clserver_getfile getfile)
+static void on_register_server(uv_handle_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
     siridb_t * siridb = ssocket->siridb;
     sirinet_pkg_t * package = NULL;
+    siridb_server_t * server = NULL;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_server_reg_t * server_reg =
+            (siridb_server_reg_t *) malloc(sizeof(siridb_server_reg_t));
+    if (server_reg == NULL)
+    {
+        ERR_ALLOC
+        return;
+    }
+    server_reg->pid = pkg->pid;
+    server_reg->client = client;
 
     if (siridb->server->flags != SERVER_FLAG_RUNNING)
     {
@@ -635,18 +644,26 @@ static void on_register_server(
     }
     else
     {
-        if (siridb->replica != NULL)
+        server = siridb_server_register(siridb, pkg->data, pkg->len);
+
+        pkg->tp = BPROTO_REGISTER_SERVER;
+
+        if (server == NULL ||
+                (       siridb->replica != NULL &&
+                        siridb->replica != server &&
+                        siridb_fifo_append(siridb->fifo, pkg)))
         {
-            pkg->tp = BPROTO_REGISTER_SERVER;
-            if (siridb_fifo_append(siridb->fifo, pkg))
-            {
-                /* signal is raised */
-                package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
-            }
+            /* a signal might be raised */
+            package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
         }
     }
 
-    if (package == NULL)
+    if (package != NULL)
+    {
+        sirinet_pkg_send((uv_stream_t *) client, package);
+        free(package);
+    }
+    else if (server != NULL)
     {
         pkg->tp = BPROTO_REGISTER_SERVER_UPDATE;
         siridb_pools_send_pkg(
@@ -655,11 +672,6 @@ static void on_register_server(
                 0,
                 (sirinet_promises_cb) CLSERVER_on_register_server_response,
                 client);
-    }
-    else
-    {
-        sirinet_pkg_send((uv_stream_t *) client, package);
-        free(package);
     }
 }
 
@@ -677,12 +689,12 @@ static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer)
  */
 static void CLSERVER_on_register_server_response(
         slist_t * promises,
-        uv_handle_t * client)
+        siridb_server_reg_t * server_reg)
 {
-    if (client == NULL)
+    if (server_reg == NULL)
     {
         sirinet_promises_llist_free(promises);
-        return;  /* signal is raised when client is NULL */
+        return;  /* signal is raised when server_reg is NULL */
     }
 
     sirinet_pkg_t * pkg;
@@ -721,18 +733,19 @@ static void CLSERVER_on_register_server_response(
 
     sirinet_pkg_t * package = (err_count) ?
             sirinet_pkg_err(
-                pkg->pid,
-                strlen(err_msg),
-                CPROTO_ERR_MSG,
-                err_msg) :
+                    server_reg->pid,
+                    strlen(err_msg),
+                    CPROTO_ERR_MSG,
+                    err_msg) :
             sirinet_pkg_new(
-                pkg->pid,
-                0,
-                CPROTO_RES_ACK,
-                NULL);
+                    server_reg->pid,
+                    0,
+                    CPROTO_RES_ACK,
+                    NULL);
+
     if (package != NULL)
     {
-        sirinet_pkg_send((uv_stream_t *) client, package);
+        sirinet_pkg_send((uv_stream_t *) server_reg->client, package);
         free(package);
     }
 }

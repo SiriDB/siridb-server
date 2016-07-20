@@ -191,7 +191,7 @@ static int test_ctree(void)
 
     assert (ct->len == 0);
 
-    ct_free(ct);
+    ct_free(ct, NULL);
 
     return test_end(TEST_OK);
 }
@@ -595,7 +595,7 @@ static int test_access(void)
     siridb_access_to_str(buffer, access_bit);
     assert (strcmp(buffer, "write") == 0);
 
-    access_bit ^= (access_bit & SIRIDB_ACCESS_INSERT);
+    access_bit &= ~SIRIDB_ACCESS_INSERT;
     siridb_access_to_str(buffer, access_bit);
     assert (strcmp(buffer, "read and create") == 0);
 

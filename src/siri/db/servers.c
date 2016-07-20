@@ -208,32 +208,56 @@ ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb)
     return xpath_get_content(buffer, fn);
 }
 
+/*
+ * Returns 0 and increments server->ref by one if successful.
+ *
+ * In case of an error -1 is returned. (and a SIGNAL might be raised if
+ * this is a critical error)
+ */
 int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
 {
+    siridb_pool_t * pool;
+
     if (server->pool < siridb->pools->len)
     {
         /* this is a new server for an existing pool */
-        if (siridb->pools->pool[server->pool]->len != 1)
+        pool = siridb->pools->pool + server->pool;
+        if (pool->len != 1)
         {
             log_error("Cannot register '%s' since pool %d contains %d servers",
                     server->name,
                     server->pool,
-                    siridb->pools->pool[server->pool]->len);
+                    pool->len);
             return -1;
         }
-        else
+
+        if (siridb->server->pool == server->pool)
         {
-            if (siridb->server->pool == server->pool)
+            /* this is a replica for 'this' pool */
+#ifdef DEBUG
+            assert (siridb->replicate == NULL);
+            assert (siridb->fifo == NULL);
+            assert (siridb->replica == NULL);
+#endif
+            siridb->replica = server;
+            siridb->fifo = siridb_fifo_new(siridb);
+
+            if (siridb->fifo == NULL)
             {
-                /* this is a replica for 'this' pool */
-                if (siridb_series_replicate_file(siridb))
-                {
-                    log_error(
-                            "Cannot register '%s' because an initial replica "
-                            "file could not be created",
-                            server->name);
-                    return -1;
-                }
+                log_critical(
+                        "Cannot initialize fifo buffer for replica server");
+                /* signal is set */
+                return -1;
+            }
+
+            if (siridb_replicate_init(siridb) ||
+                siridb_replicate_create(siridb))
+            {
+                log_critical(
+                        "Cannot register '%s' because an initial replica "
+                        "file could not be created",
+                        server->name);
+                return -1;
             }
         }
     }
@@ -242,12 +266,20 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         log_error("Cannot register '%s' since pool %d is unexpected",
                 server->name,
                 server->pool);
+        return -1;
     }
     else
     {
         /* this is a new server for a new pool */
+        assert (0);
+        /* TODO: here the logic for a new pool */
     }
+
+    siridb_pool_add_server(pool, server);
+    siridb_server_incref(server);
+
     return 0;
+
 }
 
 void siridb_servers_send_pkg(

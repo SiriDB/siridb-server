@@ -158,7 +158,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data)
 }
 
 /*
- * Returns item by key.
+ * Returns item by key of NULL if not found.
  */
 void * imap32_get(imap32_t * imap, uint32_t id)
 {
