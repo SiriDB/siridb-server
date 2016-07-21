@@ -33,6 +33,7 @@
 #include <siri/net/socket.h>
 #include <siri/net/promises.h>
 #include <siri/err.h>
+#include <siri/async.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
@@ -1480,6 +1481,8 @@ static void exit_set_log_level(uv_async_t * handle)
                     buffer);
             if (pkg != NULL)
             {
+                /* handle will be bound to a timer so we should increment */
+                siri_async_incref(handle);
                 siridb_server_send_pkg(
                         server,
                         pkg,
@@ -1615,35 +1618,43 @@ static void on_ack_response(
         int status)
 {
     uv_async_t * handle = (uv_async_t *) promise->data;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (status == PROMISE_SUCCESS)
+    /* decrement the handle reference counter */
+    siri_async_decref(&handle);
+
+    if (handle != NULL)
     {
-        switch (pkg->tp)
-        {
-        case BPROTO_ACK_LOG_LEVEL:
-            /* success message is already set */
-            break;
+        siridb_query_t * query = (siridb_query_t *) handle->data;
 
-        default:
-            status = PROMISE_PKG_TYPE_ERROR;
-            break;
+        if (status == PROMISE_SUCCESS)
+        {
+            switch (pkg->tp)
+            {
+            case BPROTO_ACK_LOG_LEVEL:
+                /* success message is already set */
+                break;
+
+            default:
+                status = PROMISE_PKG_TYPE_ERROR;
+                break;
+            }
+        }
+
+        if (status)
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while sending the request to '%s' (%s)",
+                    promise->server->name,
+                    sirinet_promise_strstatus(status));
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
         }
     }
 
-    if (status)
-    {
-        snprintf(query->err_msg,
-                SIRIDB_MAX_SIZE_ERR_MSG,
-                "Error occurred while sending the request to '%s' (%s)",
-                promise->server->name,
-                sirinet_promise_strstatus(status));
-        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-    }
-    else
-    {
-        SIRIPARSER_NEXT_NODE
-    }
 
     /* we must free the promise */
     free(promise);
@@ -1651,9 +1662,12 @@ static void on_ack_response(
 
 /*
  * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
  */
 static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 {
+    siri_async_decref(&handle);
     if (handle == NULL)
     {
         sirinet_promises_llist_free(promises);
@@ -1722,14 +1736,18 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
 
 /*
  * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
  */
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
+    siri_async_decref(&handle);
     if (handle == NULL)
     {
         sirinet_promises_llist_free(promises);
         return;  /* signal is raised when handle is NULL */
     }
+
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t * unpacker;
@@ -1797,9 +1815,12 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
 /*
  * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
  */
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
 {
+    siri_async_decref(&handle);
     if (handle == NULL)
     {
         sirinet_promises_llist_free(promises);

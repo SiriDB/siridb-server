@@ -28,6 +28,7 @@
 #include <siri/net/socket.h>
 #include <siri/db/walker.h>
 #include <siri/db/servers.h>
+#include <siri/async.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -54,7 +55,7 @@ static int QUERY_rebuild(
  */
 void siridb_query_run(
         uint64_t pid,
-        uv_handle_t * client,
+        uv_stream_t * client,
         const char * q,
         size_t q_len,
         siridb_timep_t time_precision,
@@ -88,6 +89,10 @@ void siridb_query_run(
 
     /* bind pid, client and flags so we can send back the result */
     query->pid = pid;
+
+    /* lock the client */
+    sirinet_socket_lock(client);
+
     query->client = client;
     query->flags = flags;
 
@@ -98,6 +103,7 @@ void siridb_query_run(
      * data is linked to the query handle
      */
     query->free_cb = siridb_query_free;
+    query->ref = 1;
 
     /* We should initialize the packer based on query type */
     query->packer = NULL;
@@ -140,6 +146,9 @@ void siridb_query_free(uv_handle_t * handle)
     /* free query result */
     cleri_parser_free(query->pr);
 
+    /* unlock the client */
+    sirinet_socket_unlock(query->client);
+
     /* free query */
     free(query);
 
@@ -171,12 +180,11 @@ void siridb_send_query_result(uv_async_t * handle)
             query->packer->len,
             CPROTO_RES_QUERY,
             query->packer->buffer);
-    /* ignore result code, signal can be raised */
     sirinet_pkg_send((uv_stream_t *) query->client, package);
 
     free(package);
 
-    uv_close((uv_handle_t *) handle, query->free_cb);
+    uv_close((uv_handle_t *) handle, siri_async_close);
 }
 
 /*
@@ -199,14 +207,16 @@ void siridb_query_send_error(
         sirinet_pkg_send((uv_stream_t *) query->client, package);
         free(package);
     }
-
-    uv_close((uv_handle_t *) handle, (uv_close_cb) query->free_cb);
+    uv_close((uv_handle_t *) handle, siri_async_close);
 }
 
 /*
  * This function can raise a SIGNAL.
  *
- * parameter tp should be one of the following:
+ * Reference counter for handle will be incremented since we count the handle
+ * to a timer object. The cb function should perform siri_async_decref(&handle).
+ *
+ * Parameter tp should be one of the following:
  *
  *  BPROTO_QUERY_SERVER: each server is hit directly
  *  BPROTO_QUERY_POOL: one and only one server in each pool is hit
@@ -240,6 +250,9 @@ void siridb_query_forward(
     qp_add_int8(packer, query->time_precision);
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, packer->len, 0, packer->buffer);
+
+    /* increment reference since handle will be bound to a timer */
+    siri_async_incref(handle);
 
     if (pkg != NULL)
     {

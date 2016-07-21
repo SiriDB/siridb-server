@@ -18,7 +18,7 @@
 siridb_walker_t * siridb_walker_new(
         siridb_t * siridb,
         const uint64_t now,
-        int * flags)
+        uint8_t * flags)
 {
     siridb_walker_t * walker =
             (siridb_walker_t *) malloc(sizeof(siridb_walker_t));

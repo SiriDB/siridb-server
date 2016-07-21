@@ -91,7 +91,7 @@ typedef struct siridb_server_walker_s
 typedef struct siridb_server_reg_s
 {
     uint64_t pid;
-    uv_handle_t * client;
+    uv_stream_t * client;
 } siridb_server_reg_t;
 
 siridb_server_t * siridb_server_new(

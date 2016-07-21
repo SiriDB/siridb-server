@@ -53,11 +53,6 @@ typedef struct siri_s
     uint32_t startup_time;
 } siri_t;
 
-typedef struct siri_async_handle_s
-{
-    uv_close_cb free_cb;    /* must be on top */
-} siri_async_handle_t;
-
 void siri_setup_logger(void);
 int siri_start(void);
 void siri_free(void);

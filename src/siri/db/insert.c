@@ -21,6 +21,7 @@
 #include <siri/net/socket.h>
 #include <assert.h>
 #include <siri/net/promises.h>
+#include <siri/async.h>
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
@@ -151,7 +152,7 @@ ssize_t siridb_insert_assign_pools(
  */
 void siridb_insert_init(
         uint64_t pid,
-        uv_handle_t * client,
+        uv_stream_t * client,
         size_t size,
         uint16_t packer_size,
         qp_packer_t * packer[])
@@ -173,7 +174,9 @@ void siridb_insert_init(
     }
 
     insert->free_cb = INSERT_free;
+    insert->ref = 1;
     insert->pid = pid;
+    sirinet_socket_lock(client);
     insert->client = client;
     insert->size = size;
 
@@ -300,11 +303,6 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
  */
 static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 {
-    if (handle == NULL)
-    {
-        sirinet_promises_llist_free(promises);
-        return;  /* signal is raised when handle is NULL */
-    }
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
@@ -383,7 +381,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         }
     }
 
-    uv_close((uv_handle_t *) handle, insert->free_cb);
+    uv_close((uv_handle_t *) handle, siri_async_close);
 }
 
 /*
@@ -720,6 +718,9 @@ static void INSERT_free(uv_handle_t * handle)
     {
         qp_packer_free(insert->packer[n]);
     }
+
+    /* unlock the client */
+    sirinet_socket_unlock(insert->client);
 
     /* free insert */
     free(insert);

@@ -15,6 +15,9 @@
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
 
+#define SOCKET_IN_USE 1
+#define SOCKET_LOCKED 2
+
 typedef enum sirinet_socket_tp
 {
     SOCKET_CLIENT,
@@ -25,12 +28,12 @@ typedef enum sirinet_socket_tp
 typedef struct siridb_s siridb_t;
 typedef struct siridb_user_s siridb_user_t;
 
-typedef void (* on_data_cb_t)(uv_handle_t * client, sirinet_pkg_t * pkg);
+typedef void (* on_data_cb_t)(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 typedef struct sirinet_socket_s
 {
     sirinet_socket_tp_t tp;
-    uint16_t ref;
+    uint8_t flags;
     on_data_cb_t on_data;
     siridb_t * siridb;
     void * origin;  /* can be a user, server or NULL */
@@ -39,8 +42,9 @@ typedef struct sirinet_socket_s
 } sirinet_socket_t;
 
 uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb);
-void sirinet_socket_incref(uv_tcp_t * client);
-void sirinet_socket_decref(uv_tcp_t * client);
+void sirinet_socket_free(uv_stream_t * client);
+void sirinet_socket_lock(uv_stream_t * client);
+void sirinet_socket_unlock(uv_stream_t * client);
 void sirinet_socket_alloc_buffer(
         uv_handle_t * handle,
         size_t suggested_size,

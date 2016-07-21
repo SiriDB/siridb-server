@@ -23,7 +23,7 @@
 #include <assert.h>
 
 cproto_server_t siridb_auth_user_request(
-        uv_handle_t * client,
+        uv_stream_t * client,
         qp_obj_t * qp_username,
         qp_obj_t * qp_password,
         qp_obj_t * qp_dbname)
@@ -61,7 +61,7 @@ cproto_server_t siridb_auth_user_request(
 }
 
 bproto_server_t siridb_auth_server_request(
-        uv_handle_t * client,
+        uv_stream_t * client,
         qp_obj_t * qp_uuid,
         qp_obj_t * qp_dbname,
         qp_obj_t * qp_version,

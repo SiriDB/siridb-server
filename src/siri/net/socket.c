@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <siri/net/socket.h>
 #include <siri/siri.h>
+#include <siri/err.h>
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
@@ -80,7 +81,7 @@ void sirinet_socket_on_data(
             free(buf->base);
         }
 
-        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_decref);
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
 
         return;
     }
@@ -95,7 +96,7 @@ void sirinet_socket_on_data(
             if (nread == total_sz)
             {
                 /* Call on-data function */
-                (*ssocket->on_data)((uv_handle_t *) client, pkg);
+                (*ssocket->on_data)(client, pkg);
                 free(buf->base);
                 return;
             }
@@ -163,7 +164,7 @@ void sirinet_socket_on_data(
     if (ssocket->len == pkg->len + PKG_HEADER_SIZE)
     {
         /* Call on-data function. */
-        (*ssocket->on_data)((uv_handle_t *) client, pkg);
+        (*ssocket->on_data)(client, pkg);
     }
     else
     {
@@ -208,10 +209,11 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
  *  In case a server is destroyed, remaining promises will be cancelled and
  *  the call-back functions will be called.
  */
-void sirinet_socket_decref(uv_tcp_t * client)
+void sirinet_socket_free(uv_stream_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
-    if (--ssocket->ref)
+    ssocket->flags &= ~SOCKET_IN_USE;
+    if (ssocket->flags & SOCKET_LOCKED)
     {
         return;
     }
@@ -244,12 +246,22 @@ void sirinet_socket_decref(uv_tcp_t * client)
     }
     free(ssocket->buf);
     free(ssocket);
-    free(client);
+    free((uv_tcp_t *) client);
 }
 
-inline void sirinet_socket_incref(uv_tcp_t * client)
+inline void sirinet_socket_lock(uv_stream_t * client)
 {
-    ((sirinet_socket_t *) client->data)->ref++;
+    ((sirinet_socket_t *) client->data)->flags |= SOCKET_LOCKED;
+}
+
+void sirinet_socket_unlock(uv_stream_t * client)
+{
+    sirinet_socket_t * ssocket = client->data;
+    ssocket->flags &= ~SOCKET_LOCKED;
+    if (!ssocket->flags)
+    {
+        sirinet_socket_free(client);
+    }
 }
 
 /*
@@ -272,7 +284,7 @@ static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
         ssocket->len = 0;
         ssocket->origin = NULL;
         ssocket->siridb = NULL;
-        ssocket->ref = 1;
+        ssocket->flags = SOCKET_IN_USE;
     }
     return ssocket;
 }

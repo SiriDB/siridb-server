@@ -12,6 +12,7 @@
 #include <siri/db/server.h>
 #include <logger/logger.h>
 #include <siri/db/query.h>
+#include <siri/db/servers.h>
 #include <siri/net/promise.h>
 #include <siri/siri.h>
 #include <assert.h>
@@ -421,7 +422,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
  * on-data call-back function.
  *In case the promise is found, promise->cb() will be called.
  */
-static void SERVER_on_data(uv_handle_t * client, sirinet_pkg_t * pkg)
+static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     sirinet_socket_t * ssocket = client->data;
     siridb_server_t * server = ssocket->origin;

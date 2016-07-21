@@ -34,6 +34,8 @@
 #include <siri/net/socket.h>
 #include <siri/version.h>
 #include <xpath/xpath.h>
+#include <siri/err.h>
+#include <siri/async.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
@@ -413,15 +415,15 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         /* we do not expect any timer object since they should all be closed
          * (or at least closing) at this point.
          */
-#ifdef DEBUG
         if (!uv_is_closing(handle))
         {
+#ifdef DEBUG
             LOGC(   "Found a non closing Timer, all timers should "
-                    "be stopped at this point!!!");
+                    "be stopped at this point.");
+#endif
             uv_timer_stop((uv_timer_t *) handle);
             uv_close(handle, NULL);
         }
-#endif
         break;
 
     case UV_ASYNC:
@@ -430,7 +432,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
                 "not all tasks were closed within the timeout limit, "
                 "or when a critical signal error is raised.");
 #endif
-        uv_close(handle, ((siri_async_handle_t *) handle->data)->free_cb);
+        uv_close(handle, siri_async_close);
         break;
 
     default:

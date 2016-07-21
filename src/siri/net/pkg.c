@@ -100,6 +100,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
             (char *) pkg,
             PKG_HEADER_SIZE + pkg->len);
     uv_write(req, client, &wrbuf, 1, PKG_write_cb);
+
     return 0;
 }
 

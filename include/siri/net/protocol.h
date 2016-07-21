@@ -89,6 +89,7 @@ typedef enum
     BPROTO_AUTH_ERR_VERSION_TOO_NEW,            // empty
     BPROTO_ERR_NOT_AUTHENTICATED,               // empty
     BPROTO_ERR_INSERT,                          // empty
+    BPROTO_ERR_REGISTER_SERVER,                 // empty
 
     BPROTO_AUTH_SUCCESS=192,                    // empty
     BPROTO_ACK_FLAGS,                           // empty
