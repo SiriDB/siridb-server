@@ -257,12 +257,12 @@ siridb_server_t * siridb_server_register(
                     }
                 }
             }
-        }
 
-        qp_object_free(qp_uuid);
-        qp_object_free(qp_address);
-        qp_object_free(qp_port);
-        qp_object_free(qp_pool);
+            qp_object_free(qp_uuid);
+            qp_object_free(qp_address);
+            qp_object_free(qp_port);
+            qp_object_free(qp_pool);
+        }
 
         qp_unpacker_free(unpacker);
     }

@@ -26,6 +26,7 @@ typedef enum
 
 typedef enum
 {
+    /* success */
     CPROTO_RES_QUERY,                           // {query response data}
     CPROTO_RES_INSERT,                          // {"success_msg": ...}
     CPROTO_RES_AUTH_SUCCESS,                    // empty
@@ -33,13 +34,14 @@ typedef enum
     CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
     CPROTO_RES_FILE,                            // file content
 
+    /* errors */
     CPROTO_ERR_MSG=64,                          // {"error_msg": ...}
     CPROTO_ERR_QUERY,                           // {"error_msg": ...}
     CPROTO_ERR_INSERT,                          // {"error_msg": ...}
     CPROTO_ERR_SERVER,                          // {"error_msg": ...}
     CPROTO_ERR_POOL,                            // {"error_msg": ...}
     CPROTO_ERR_USER_ACCESS,                     // {"error_msg": ...}
-    CPROTO_ERR,                                 // empty
+    CPROTO_ERR,                                 // empty (use for unexpected errors)
     CPROTO_ERR_NOT_AUTHENTICATED,               // empty
     CPROTO_ERR_AUTH_CREDENTIALS,                // empty
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
@@ -75,13 +77,16 @@ typedef enum
 typedef enum
 {
     /* Mappings to client protocol messages */
+    /* success */
     BPROTO_RES_QUERY=CPROTO_RES_QUERY,          // {query response data}
 
+    /* errors */
     BPROTO_ERR_QUERY=CPROTO_ERR_QUERY,          // {"error_msg": ...}
     BPROTO_ERR_SERVER=CPROTO_ERR_SERVER,        // {"error_msg": ...}
     BPROTO_ERR_POOL=CPROTO_ERR_POOL,            // {"error_msg": ...}
 
     /* Back-end specific protocol messages */
+    /* errors */
     BPROTO_AUTH_ERR_UNKNOWN_UUID=128,           // empty
     BPROTO_AUTH_ERR_UNKNOWN_DBNAME,             // empty
     BPROTO_AUTH_ERR_INVALID_UUID,               // empty
@@ -91,6 +96,7 @@ typedef enum
     BPROTO_ERR_INSERT,                          // empty
     BPROTO_ERR_REGISTER_SERVER,                 // empty
 
+    /* success */
     BPROTO_AUTH_SUCCESS=192,                    // empty
     BPROTO_ACK_FLAGS,                           // empty
     BPROTO_ACK_LOG_LEVEL,                       // empty

@@ -20,6 +20,7 @@
 #include <siri/db/db.h>
 #include <siri/net/promises.h>
 #include <xpath/xpath.h>
+#include <siri/err.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -421,6 +422,7 @@ int siridb_servers_available(siridb_t * siridb)
         {
             return 0;
         }
+        node = node->next;
     }
     return 1;
 }

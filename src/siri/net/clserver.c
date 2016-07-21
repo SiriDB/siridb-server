@@ -636,6 +636,7 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
+        log_info("Register a new server");
         new_server = siridb_server_register(siridb, pkg->data, pkg->len);
 
         pkg->tp = BPROTO_REGISTER_SERVER;
@@ -649,7 +650,6 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
             package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
         }
     }
-
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
