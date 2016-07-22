@@ -263,7 +263,7 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
         else
         {
             /* signal can be raised by 'siridb_replicate_init' */
-            siridb_replicate_init(siridb);
+            siridb_replicate_init(siridb, 0);
         }
     }
 

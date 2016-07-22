@@ -174,7 +174,8 @@ int siridb_servers_load(siridb_t * siridb)
     {
         log_critical("Could not find my own uuid in '%s'", SIRIDB_SERVERS_FN);
         rc = -1;
-    } else if (tp != QP_END)
+    }
+    else if (tp != QP_END)
     {
         log_critical("Expected end of file '%s'", fn);
         rc = -1;
@@ -251,7 +252,7 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
                 return -1;
             }
 
-            if (siridb_replicate_init(siridb) ||
+            if (siridb_replicate_init(siridb, 1) ||
                 siridb_replicate_create(siridb))
             {
                 log_critical(
@@ -274,6 +275,12 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         /* this is a new server for a new pool */
         assert (0);
         /* TODO: here the logic for a new pool */
+    }
+
+    if (llist_append(siridb->servers, server) || SERVERS_save(siridb))
+    {
+        log_critical("Cannot save server '%s'", server->name);
+        return -1;  /* a signal is raised in this case */
     }
 
     siridb_pool_add_server(pool, server);

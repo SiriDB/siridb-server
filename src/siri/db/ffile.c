@@ -24,6 +24,25 @@
 #define FFILE_NUMBERS 9  // how much numbers are used to generate the file.
 
 /*
+ * Open the fifo file. (set both the file pointer and file descriptor
+ * In case of and error, fifo->fp is set to NULL
+ */
+void siridb_ffile_open(siridb_ffile_t * ffile, const char * opentype)
+{
+    ffile->fp = fopen(ffile->fn, opentype);
+    if (ffile->fp != NULL)
+    {
+        ffile->fd = fileno(ffile->fp);
+        if (ffile->fd == -1)
+        {
+            LOGC("Error reading file descriptor: '%s'", ffile->fn);
+            fclose(ffile->fp);
+            ffile->fp = NULL;
+        }
+    }
+}
+
+/*
  * returns NULL in case an error has occurred and a signal is set if this
  * was a critical error.
  */
@@ -50,12 +69,12 @@ siridb_ffile_t * siridb_ffile_new(
     ffile->id = id;
     ffile->next_size = 0;
 
-    ffile->fp = fopen(ffile->fn, "r+");
+    siridb_ffile_open(ffile, "r+");
 
     if (ffile->fp == NULL)
     {
         /* create a new fifo file */
-        ffile->fp = fopen(ffile->fn, "w+");
+        siridb_ffile_open(ffile, "w+");
 
         if (ffile->fp == NULL)
         {
@@ -66,7 +85,7 @@ siridb_ffile_t * siridb_ffile_new(
 
         if (pkg == NULL)
         {
-            ffile->free_space = FFILE_DEFAULT_SIZE;
+            ffile->size = ffile->free_space = FFILE_DEFAULT_SIZE;
         }
         else
         {
@@ -74,7 +93,7 @@ siridb_ffile_t * siridb_ffile_new(
             size_t size = pkg->len + PKG_HEADER_SIZE + 2 * sizeof(uint32_t);
 
             /* set free space to a value is will always fit */
-            ffile->free_space = (size > FFILE_DEFAULT_SIZE) ?
+            ffile->size = ffile->free_space = (size > FFILE_DEFAULT_SIZE) ?
                     size : FFILE_DEFAULT_SIZE;
 
             /* because we has enough free space, this should always work */
@@ -97,7 +116,7 @@ siridb_ffile_t * siridb_ffile_new(
             return NULL;
         }
 
-        if (ftell(ffile->fp) >= sizeof(uint32_t))
+        if ((ffile->size = ftell(ffile->fp)) >= sizeof(uint32_t))
         {
             ffile->free_space = 0;
             if (    fseek(ffile->fp, -(long int) sizeof(uint32_t), SEEK_END) ||
@@ -231,6 +250,8 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 
 /*
  * returns 0 if successful, -1 in case of an error
+ *
+ * Warning: ffile->size might be incorrect if an error occurred
  */
 int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
 {
@@ -238,17 +259,14 @@ int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
     assert (ffile->next_size && ffile->fp != NULL);
 #endif
 
-    long int pos;
-    int n;
+    ffile->size -= ffile->next_size - sizeof(uint32_t);
 
     return (fseek(
                 ffile->fp,
-                -(long int) ffile->next_size - 2 * sizeof(uint32_t),
-                SEEK_END) ||
+                ffile->size - sizeof(uint32_t),
+                SEEK_SET) ||
             fread(&ffile->next_size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
-            (pos = ftell(ffile->fp)) < 0 ||
-            (n = fileno(ffile->fp)) == -1 ||
-            ftruncate(n, pos)) ?
+            ftruncate(ffile->fd, ffile->size)) ?
                     -1 : 0;
 }
 

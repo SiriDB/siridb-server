@@ -250,7 +250,8 @@ siridb_server_t * siridb_server_register(
 
                 if (server != NULL)
                 {
-                    if (siridb_servers_register(siridb, server))
+                    if (    (server->promises = imap64_new()) == NULL ||
+                            siridb_servers_register(siridb, server))
                     {
                         SERVER_free(server);
                         server = NULL;

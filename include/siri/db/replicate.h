@@ -17,23 +17,30 @@
 
 typedef struct siridb_s siridb_t;
 
-#define REPLICATE_IDLE 0
-#define REPLICATE_RUNNING 1
-#define REPLICATE_PAUSED 2
-#define REPLICATE_STOPPING 3
-#define REPLICATE_CLOSED 4
-#define REPLICATE_INIT 5
+typedef enum
+{
+    REPLICATE_IDLE,
+    REPLICATE_RUNNING,
+    REPLICATE_PAUSED,
+    REPLICATE_STOPPING,
+    REPLICATE_CLOSED
+} siridb_replicate_status_t;
+
 
 typedef struct siridb_replicate_s
 {
-    int status;
+    siridb_replicate_status_t status;
     uv_timer_t * timer;
     FILE * init_fp;
+    char * init_fn;  /* NULL when not initializing */
+    int init_fd;
+    uint32_t * series_id;
 } siridb_replicate_t;
 
-int siridb_replicate_init(siridb_t * siridb);
+int siridb_replicate_init(siridb_t * siridb, int isnew);
 int siridb_replicate_create(siridb_t * siridb);
 void siridb_replicate_destroy(siridb_t * siridb);
+int siridb_replicate_finish_init(siridb_replicate_t * replicate);
 void siridb_replicate_start(siridb_replicate_t * replicate);
 void siridb_replicate_close(siridb_replicate_t * replicate);
 void siridb_replicate_pause(siridb_replicate_t * replicate);

@@ -26,9 +26,11 @@ typedef struct siridb_ffile_s
     uint32_t free_space;
     uint32_t next_size;  // must be uint32_t (4 bytes)
     FILE * fp;
+    int fd;
+    long int size;
 } siridb_ffile_t;
 
-
+void siridb_ffile_open(siridb_ffile_t * ffile, const char * opentype);
 siridb_ffile_t * siridb_ffile_new(
         uint64_t id,
         const char * path,

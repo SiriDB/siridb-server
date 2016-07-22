@@ -93,7 +93,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 
     if (fifo->out->fp == NULL)
     {
-        fifo->out->fp = fopen(fifo->out->fn, "r+");
+        siridb_ffile_open(fifo->out, "r+");
         if (fifo->out->fp == NULL)
         {
             ERR_FILE
@@ -201,7 +201,7 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
         /* fifo->out->fp can be open in case it is equal to fifo->in */
         if (fifo->out->fp == NULL)
         {
-            fifo->out->fp = fopen(fifo->out->fn, "r+");
+            siridb_ffile_open(fifo->out, "r+");
             if (fifo->out->fp == NULL)
             {
                 ERR_FILE
@@ -264,12 +264,12 @@ int siridb_fifo_open(siridb_fifo_t * fifo)
 #endif
 
     /* open fifo 'in' */
-    fifo->in->fp = fopen(fifo->in->fn, "r+");
+    siridb_ffile_open(fifo->in, "r+");
 
     /* if 'out' is not the same as 'in', we also need to open 'out' */
     if (fifo->out->fp == NULL)
     {
-        fifo->out->fp = fopen(fifo->out->fn, "r+");
+        siridb_ffile_open(fifo->out, "r+");
     }
 
     return (fifo->in->fp != NULL && fifo->out->fp != NULL) ? 0 : -1;
