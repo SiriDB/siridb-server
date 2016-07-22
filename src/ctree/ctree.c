@@ -180,8 +180,8 @@ void * ct_get(ct_t * ct, const char * key)
 
 /*
  * Removes and returns an item from the tree or NULL when not found.
- * In case of an error a SIGNAL is raised and should be checked with 'siri_err'.
- * (ct_free or ct_free_cb can still be used when this happens)
+ *
+ * (re-allocation might fail but this is not critical)
  */
 void * ct_pop(ct_t * ct, const char * key)
 {
@@ -644,8 +644,8 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
  * This function should only be called when exactly one node is left and the
  * node itself has no data.
  *
- * A SIGNAL can be raised in case an error occurred. If this happens the tree
- * remains unchanged and therefore can be destroyed using ct_free().
+ * In case re-allocation fails the tree remains unchanged and therefore
+ * can still be used.
  */
 static void CT_merge_node(ct_node_t * node)
 {
@@ -676,9 +676,10 @@ static void CT_merge_node(ct_node_t * node)
     tmp = (char *) realloc(node->key, len_key + len_child_key + 2);
     if (tmp == NULL)
     {
-        ERR_ALLOC
+        log_error("Re-allocation failed while merging nodes in a c-tree");
         return;
     }
+    return; // !!!!! TODO: remove this !!!!!
     node->key = tmp;
 
     /* set node char */
@@ -734,8 +735,6 @@ static void CT_dec_node(ct_node_t * node)
 
 /*
  * Removes and returns an item from the tree or NULL when not found.
- * In case of an error a SIGNAL is raised and should be checked with 'siri_err'.
- * (ct_free or ct_free_cb can still be used when this happens)
  */
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 {

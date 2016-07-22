@@ -51,10 +51,9 @@ inline void slist_free(slist_t * slist)
  * Append data to the list. This functions assumes the list can hold the new
  * data is therefore not safe.
  */
-void slist_append(slist_t * slist, void * data)
+inline void slist_append(slist_t * slist, void * data)
 {
-    slist->data[slist->len] = data;
-    slist->len++;
+    slist->data[slist->len++] = data;
 }
 
 /*

@@ -14,8 +14,10 @@
 
 #include <uv.h>
 #include <siri/db/db.h>
+#include <siri/db/initsync.h>
 
 typedef struct siridb_s siridb_t;
+typedef struct siridb_initsync_s siridb_initsync_t;
 
 typedef enum
 {
@@ -31,15 +33,11 @@ typedef struct siridb_replicate_s
 {
     siridb_replicate_status_t status;
     uv_timer_t * timer;
-    FILE * init_fp;
-    char * init_fn;  /* NULL when not initializing */
-    int init_fd;
-    uint32_t * series_id;
+    siridb_initsync_t * initsync;
 } siridb_replicate_t;
 
-int siridb_replicate_init(siridb_t * siridb, int isnew);
-int siridb_replicate_create(siridb_t * siridb);
-void siridb_replicate_destroy(siridb_t * siridb);
+int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync);
+void siridb_replicate_free(siridb_replicate_t ** replicate);
 int siridb_replicate_finish_init(siridb_replicate_t * replicate);
 void siridb_replicate_start(siridb_replicate_t * replicate);
 void siridb_replicate_close(siridb_replicate_t * replicate);

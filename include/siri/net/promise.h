@@ -17,7 +17,7 @@
 #include <siri/db/server.h>
 #include <siri/net/pkg.h>
 
-#define PROMISE_DEFAULT_TIMEOUT 10000  // 10 seconds
+#define PROMISE_DEFAULT_TIMEOUT 30000  // 30 seconds
 
 typedef struct siridb_server_s siridb_server_t;
 typedef struct sirinet_promise_s sirinet_promise_t;

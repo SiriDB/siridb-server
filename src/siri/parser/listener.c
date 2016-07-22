@@ -996,14 +996,30 @@ static void exit_drop_shard(uv_async_t * handle)
     else
     {
         ((query_drop_t *) query->data)->data = shard;
+        siridb_series_t * series;
 
-        /* We need a series mutex here since we depend on the series index */
+        /*
+         * We need a series mutex here since we depend on the series index
+         * and we create a copy since series might be removed when the length
+         * of series is zero after removing the shard
+         */
         uv_mutex_lock(&siridb->series_mutex);
 
-        imap32_walk(
-                siridb->series_map,
-                (imap32_cb) walk_drop_shard,
-                (void *) handle);
+        slist_t * slist = imap32_2slist(siridb->series_map);
+
+        if (slist != NULL)
+        {
+            for (size_t i = 0; i < slist->len; i++)
+            {
+                series = (siridb_series_t *) slist->data[i];
+                if (shard->id % siridb->duration_num == series->mask)
+                {
+                    /* series might be destroyed after this call */
+                    siridb_series_remove_shard_num32(siridb, series, shard);
+                }
+            }
+            slist_free(slist);
+        }
 
         uv_mutex_unlock(&siridb->series_mutex);
 

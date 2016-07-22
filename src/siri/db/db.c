@@ -220,15 +220,29 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
-    /* generate pools, this can raise a signal */
-    siridb_pools_init(siridb);
-
     /* update series props */
     log_info("Updating series properties");
-    imap32_walk(
-            siridb->series_map,
-            (imap32_cb) siridb_series_update_props,
-            NULL);
+
+    /* create a copy since 'siridb_series_update_props' might drop a series */
+    slist_t * slist = imap32_2slist(siridb->series_map);
+
+    if (slist == NULL)
+    {
+        log_error("Could update series properties for database '%s'",
+                siridb->dbname);
+        siridb_decref(siridb);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < slist->len; i++)
+    {
+        siridb_series_update_props(siridb, (siridb_series_t * )slist->data[i]);
+    }
+
+    slist_free(slist);
+
+    /* generate pools, this can raise a signal */
+    siridb_pools_init(siridb);
 
     siridb->start_ts = time(NULL);
 
@@ -547,7 +561,7 @@ static void SIRIDB_free(siridb_t * siridb)
      */
     if (siridb->replicate != NULL)
     {
-        siridb_replicate_destroy(siridb);
+        siridb_replicate_free(&siridb->replicate);
     }
 
     /* free fifo (in case we have a replica) */

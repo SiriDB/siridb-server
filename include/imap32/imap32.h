@@ -12,6 +12,7 @@
 #pragma once
 
 #include <inttypes.h>
+#include <slist/slist.h>
 
 typedef struct im_store_s
 {
@@ -41,4 +42,4 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data);
 void * imap32_get(imap32_t * imap, uint32_t id);
 void * imap32_pop(imap32_t * imap, uint32_t id);
 int imap32_walk(imap32_t * imap, imap32_cb cb, void * args);
-
+slist_t * imap32_2slist(imap32_t * imap);

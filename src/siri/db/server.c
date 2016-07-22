@@ -23,6 +23,7 @@
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
+#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
 
 static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_free(siridb_server_t * server);
@@ -126,6 +127,8 @@ void siridb_server_decref(siridb_server_t * server)
  * This function can raise a SIGNAL.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
+ *
+ * (default timeout PROMISE_DEFAULT_TIMEOUT is used when timeout 0 is set)
  */
 void siridb_server_send_pkg(
         siridb_server_t * server,
@@ -296,7 +299,7 @@ void siridb_server_send_flags(siridb_server_t * server)
         siridb_server_send_pkg(
                 server,
                 pkg,
-                0,
+                SIRIDB_SERVER_FLAGS_TIMEOUT,
                 SERVER_on_flags_update_response,
                 NULL);
         free(pkg);

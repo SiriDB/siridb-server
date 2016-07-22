@@ -252,12 +252,21 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
                 return -1;
             }
 
-            if (siridb_replicate_init(siridb, 1) ||
-                siridb_replicate_create(siridb))
+            siridb_initsync_t * initsync = siridb_initsync_open(siridb, 1);
+            if (initsync == NULL)
             {
                 log_critical(
-                        "Cannot register '%s' because an initial replica "
-                        "file could not be created",
+                        "Cannot register '%s' because creating initial "
+                        "synchronization file has failed",
+                        server->name);
+                return -1;
+            }
+
+            if (siridb_replicate_init(siridb, initsync))
+            {
+                log_critical(
+                        "Cannot register '%s' because replicate task "
+                        "cannot be initialized",
                         server->name);
                 return -1;
             }

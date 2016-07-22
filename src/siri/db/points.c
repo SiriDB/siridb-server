@@ -79,3 +79,41 @@ void siridb_points_add_point(
     point->val = *val;
 }
 
+/*
+ * This function can raise a SIGNAL in case or an ALLOC error which means
+ * points are probably not completely packed.
+ *
+ * Returns siri_err which is 0 if successful.
+ */
+int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
+{
+    qp_add_type(packer, QP_ARRAY_OPEN);
+
+    if (points->len)
+    {
+        siridb_point_t * point;
+        point = points->data;
+        switch (points->tp)
+        {
+        case SIRIDB_POINTS_TP_INT:
+            for (size_t i = 0; i < points->len; i++, point++)
+            {
+                qp_add_type(packer, QP_ARRAY2);
+                qp_add_int64(packer, (int64_t) point->ts);
+                qp_add_int64(packer, point->val.int64);
+            }
+            break;
+        case SIRIDB_POINTS_TP_DOUBLE:
+            for (size_t i = 0; i < points->len; i++, point++)
+            {
+                qp_add_type(packer, QP_ARRAY2);
+                qp_add_int64(packer, (int64_t) point->ts);
+                qp_add_double(packer, point->val.real);
+            }
+            break;
+        }
+    }
+    qp_add_type(packer, QP_ARRAY_CLOSE);
+
+    return siri_err;
+}

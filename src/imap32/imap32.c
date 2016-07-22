@@ -300,14 +300,16 @@ int imap32_walk(imap32_t * imap, imap32_cb cb, void * args)
     im_grid_t * grid;
     void * data;
     int rc = 0;
-    for (size_t n = 0; n < imap->size; n++)
+    size_t n;
+    uint_fast8_t i, j;
+    for (n = 0; n < imap->size; n++)
     {
         grid = imap->grid + n;
-        for (uint_fast8_t i = 255; i--;)
+        for (i = 255; i--;)
         {
             if ((store = grid->store[i]) != NULL)
             {
-                for (uint_fast8_t j = 255; j--;)
+                for (j = 255; j--;)
                 {
                     if ((data = store->data[j]) != NULL)
                     {
@@ -318,4 +320,42 @@ int imap32_walk(imap32_t * imap, imap32_cb cb, void * args)
         }
     }
     return rc;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+slist_t * imap32_2slist(imap32_t * imap)
+{
+    slist_t * slist = slist_new(imap->len);
+    if (slist == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        im_store_t * store;
+        im_grid_t * grid;
+        void * data;
+        size_t n;
+        uint_fast8_t i, j;
+        for (n = 0; n < imap->size; n++)
+        {
+            grid = imap->grid + n;
+            for (i = 255; i--;)
+            {
+                if ((store = grid->store[i]) != NULL)
+                {
+                    for (j = 255; j--;)
+                    {
+                        if ((data = store->data[j]) != NULL)
+                        {
+                            slist_append(slist, data);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return slist;
 }

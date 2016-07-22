@@ -45,6 +45,8 @@ int siridb_users_load(siridb_t * siridb)
     siridb_user_t * user;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
 
+    log_info("Loading users");
+
     /* we should not have any users at this moment */
     assert(siridb->users == NULL);
 

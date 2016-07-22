@@ -213,6 +213,7 @@ int siridb_series_load(siridb_t * siridb)
     /* we must have a server because we need to know the pool id */
     assert (siridb->server != NULL);
 #endif
+    log_info("Loading series");
 
     imap32_t * dropped = imap32_new();
     if (dropped == NULL)
@@ -327,6 +328,45 @@ int siridb_series_add_idx_num32(
     return 0;
 }
 
+/*
+ * In case we cannot write the series_id to the drop file we log critical but
+ * no other action is taken.
+ *
+ * Warning: do not forget to flush siridb->dropped_fp.
+ *
+ * Return 0 if successful or -1 in case the dropped series was not written
+ * to file. The series is still dropped from memory in the case.
+ */
+int siridb_series_drop(siridb_t * siridb, siridb_series_t * series)
+{
+    int rc = 0;
+
+    /* we are sure the file pointer is at the end of file */
+    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+    {
+        log_critical("Cannot write %d to dropped cache file.", series->id);
+        rc = -1;
+    };
+
+    /* remove series from map */
+    imap32_pop(siridb->series_map, series->id);
+
+    /* remove series from tree */
+    ct_pop(siridb->series, series->name);
+
+    series->flags |= SIRIDB_SERIES_IS_DROPPED;
+
+    /* decrement reference to series */
+    siridb_series_decref(series);
+
+    return rc;
+}
+
+/*
+ * Re-allocations in this function can fail but are not critical.
+ *
+ * Note that 'series' can be destroyed when series->length has reached zero.
+ */
 void siridb_series_remove_shard_num32(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -358,35 +398,68 @@ void siridb_series_remove_shard_num32(
     }
     if (offset)
     {
-        series->idx_len -= offset;
-        series->idx = (idx_num32_t *) realloc(
-                    (idx_num32_t *) series->idx,
-                    series->idx_len * sizeof(idx_num32_t));
-        uint64_t start = shard->id - series->mask;
-        uint64_t end = start + siridb->duration_num;
-        if (series->start >= start && series->start < end)
+        if (!series->length)
         {
-            SERIES_update_start_num32(series);
+            if (siridb_series_drop(siridb, series))
+            {
+                if (fflush(siridb->dropped_fp))
+                {
+                    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
+                    log_critical("Could not flush dropped file: '%s'", fn);
+                }
+            }
         }
-        if (series->end < end && series->end > start)
+        else
         {
-            SERIES_update_end_num32(series);
+            series->idx_len -= offset;
+            idx = (idx_num32_t *) realloc(
+                        (idx_num32_t *) series->idx,
+                        series->idx_len * sizeof(idx_num32_t));
+            if (idx == NULL)
+            {
+                log_error("Re-allocation failed while removing series from "
+                        "shard index");
+            }
+            else
+            {
+                series->idx = idx;
+            }
+            uint64_t start = shard->id - series->mask;
+            uint64_t end = start + siridb->duration_num;
+            if (series->start >= start && series->start < end)
+            {
+                SERIES_update_start_num32(series);
+            }
+            if (series->end < end && series->end > start)
+            {
+                SERIES_update_end_num32(series);
+            }
         }
     }
 }
 
 /*
- * Typedef: imap32_cb
  * Update series properties.
+ *
+ * (series might be destroyed if series->length is zero)
  */
-int siridb_series_update_props(siridb_series_t * series, void * args)
+void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
 {
     SERIES_update_start_num32(series);
     SERIES_update_end_num32(series);
 
-    return 0;
+    if (!series->length)
+    {
+        log_warning("Drop '%s' (%lu) since no data is found for this series",
+                series->name,
+                series->id);
+        siridb_series_drop(siridb, series);
+    }
 }
 
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
 siridb_points_t * siridb_series_get_points_num32(
         siridb_series_t * series,
         uint64_t * start_ts,
@@ -416,6 +489,10 @@ siridb_points_t * siridb_series_get_points_num32(
 
     size += series->buffer->points->len;
     points = siridb_points_new(size, series->tp);
+    if (points == NULL)
+    {
+        return NULL;  /* signal is raised */
+    }
 
     for (i = 0; i < len; i++)
     {
@@ -811,7 +888,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
     int rc = 0;
     FILE * fp;
 
-    log_debug("Read dropped series");
+    log_debug("Loading dropped series");
 
     SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
 

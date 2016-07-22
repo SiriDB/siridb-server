@@ -123,6 +123,7 @@ int siridb_series_optimize_shard_num32(
         siridb_series_t * series,
         siridb_shard_t * shard);
 
-int siridb_series_update_props(siridb_series_t * series, void * args);
+void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond);
 int siridb_series_replicate_file(siridb_t * siridb);
+int siridb_series_drop(siridb_t * siridb, siridb_series_t * series);
