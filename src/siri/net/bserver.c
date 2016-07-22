@@ -403,16 +403,11 @@ static void on_insert_pool(uv_stream_t * client, sirinet_pkg_t * pkg)
         assert (siridb->fifo != NULL);
 #endif
         pkg->tp = BPROTO_INSERT_SERVER;
-        sirinet_pkg_t * repl_pkg;
-        if (siridb->replicate->initsync != NULL)
-        {
-            repl_pkg = pkg;
-        }
-        else
-        {
 
-        }
-        if (siridb_fifo_append(siridb->fifo, pkg))
+        sirinet_pkg_t * repl_pkg = (siridb->replicate->initsync == NULL) ?
+                pkg : siridb_replicate_pkg_filter(siridb, pkg);
+
+        if (repl_pkg == NULL || siridb_fifo_append(siridb->fifo, repl_pkg))
         {
             /* signal is raised */
             sirinet_pkg_t * package =

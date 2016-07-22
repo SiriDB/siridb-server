@@ -243,6 +243,68 @@ static void REPLICATE_work(uv_timer_t * handle)
     }
 }
 
+sirinet_pkg_t * siridb_replicate_pkg_filter(
+        siridb_t * siridb,
+        sirinet_pkg_t * pkg)
+{
+    qp_types_t tp;
+    siridb_series_t * series;
+
+    qp_packer_t * packer = qp_packer_new(pkg->len);
+    if (packer == NULL)
+    {
+        return NULL;  /*signal is raised */
+    }
+    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    if (unpacker == NULL)
+    {
+        qp_packer_free(packer);
+        return NULL;  /*signal is raised */
+    }
+    qp_obj_t * qp_series_name = qp_object_new();
+    if (qp_series_name == NULL)
+    {
+        qp_unpacker_free(unpacker);
+        qp_packer_free(packer);
+        return NULL;  /*signal is raised */
+    }
+
+    qp_next(unpacker, NULL); // map
+    qp_add_type(packer, QP_MAP_OPEN);
+
+    tp = qp_next(unpacker, qp_series_name); // first series or end
+
+    while (tp == QP_RAW)
+    {
+        series = (siridb_series_t *) ct_get(
+                siridb->series,
+                qp_series_name->via->raw);
+        if (series != NULL && (~series->flags & SIRIDB_SERIES_INIT_REPL))
+        {
+            qp_add_raw(packer, qp_series_name->via->raw, qp_series_name->len);
+            qp_packer_extend_fu(packer, unpacker);
+        }
+        else
+        {
+            qp_skip_next(unpacker);
+        }
+
+        tp = qp_next(unpacker, qp_series_name);
+    }
+
+    qp_object_free(qp_series_name);
+    qp_unpacker_free(unpacker);
+
+    sirinet_pkg_t * npkg = sirinet_pkg_new(
+            pkg->pid,
+            packer->len,
+            pkg->tp,
+            packer->buffer);
+
+    qp_packer_free(packer);
+
+    return npkg;
+}
 
 /*
  * Call-back function: sirinet_promise_cb
