@@ -423,11 +423,17 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 #ifdef DEBUG
                 assert (siridb->fifo != NULL);
 #endif
-                pkg = sirinet_pkg_new(
-                        0,
-                        insert->packer[n]->len,
-                        BPROTO_INSERT_SERVER,
-                        insert->packer[n]->buffer);
+
+                pkg = (siridb->replicate->initsync == NULL) ?
+                    sirinet_pkg_new(
+                            0,
+                            insert->packer[n]->len,
+                            BPROTO_INSERT_SERVER,
+                            insert->packer[n]->buffer) :
+                    siridb_replicate_pkg_filter(
+                            siridb,
+                            insert->packer[n]->buffer,
+                            insert->packer[n]->len);
                 if (pkg != NULL)
                 {
                     siridb_fifo_append(siridb->fifo, pkg);

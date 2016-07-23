@@ -259,7 +259,7 @@ int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
     assert (ffile->next_size && ffile->fp != NULL);
 #endif
 
-    ffile->size -= ffile->next_size - sizeof(uint32_t);
+    ffile->size -= ffile->next_size + sizeof(uint32_t);
 
     return (fseek(
                 ffile->fp,

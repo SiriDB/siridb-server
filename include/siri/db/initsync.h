@@ -15,8 +15,10 @@
 #include <inttypes.h>
 #include <siri/db/db.h>
 #include <uv.h>
+#include <siri/db/series.h>
 
 typedef struct siridb_s siridb_t;
+typedef struct siridb_series_s siridb_series_t;
 
 typedef struct siridb_initsync_s
 {
@@ -25,6 +27,7 @@ typedef struct siridb_initsync_s
     int fd;
     long int size;
     uint32_t * next_series_id;
+    siridb_series_t * series;
 } siridb_initsync_t;
 
 siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new);

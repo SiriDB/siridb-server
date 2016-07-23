@@ -27,7 +27,10 @@ typedef struct siri_optimize_s
     int status;
     time_t start;
     uv_work_t work;
+    uint16_t pause;
 } siri_optimize_t;
 
 void siri_optimize_init(siri_t * siri);
 void siri_optimize_stop(siri_t * siri);
+void siri_optimize_pause(siri_optimize_t * optimize);
+void siri_optimize_continue(siri_optimize_t * optimize);

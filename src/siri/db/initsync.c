@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <siri/net/protocol.h>
 #include <stdio.h>
+#include <siri/siri.h>
+#include <siri/optimize.h>
 
 #define INITSYNC_SLEEP 100          // 100 milliseconds
 #define INITSYNC_TIMEOUT 60000      // 1 minute
@@ -56,6 +58,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
         initsync->fn = NULL;
         initsync->fp = NULL;
         initsync->next_series_id = NULL;
+        initsync->series = NULL;
 
         if (INITSYNC_fn(siridb, initsync) < 0)
         {
@@ -134,6 +137,10 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                             ERR_FILE
                             siridb_initsync_free(&initsync);
                         }
+                        else
+                        {
+                            siri_optimize_pause(siri.optimize);
+                        }
                     }
                 }
             }
@@ -168,6 +175,12 @@ void siridb_initsync_run(uv_timer_t * timer)
 /*
  * Read the next series id and truncate the synchronization file to remove
  * the last synchronization id.
+ *
+ * This function might destroy 'replicate->initsync' when initial
+ * synchronization is finished.
+ *
+ * In case the 'current' series is set, remove the flag and decrement the
+ * series reference counter.
  */
 static void INITSYNC_next_series_id(siridb_t * siridb)
 {
@@ -182,6 +195,11 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
 #ifdef DEUBUG
     assert (initsync->size == fseek(initsync->fp, 0, SEEK_END);
 #endif
+    if (initsync->series != NULL)
+    {
+        initsync->series->flags &= ~SIRIDB_SERIES_INIT_REPL;
+        siridb_series_decref(siridb->replicate->initsync->series);
+    }
 
     if (initsync->size >= SIZE2)
     {
@@ -218,6 +236,7 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
                 (siridb->replicate->status == REPLICATE_STOPPING) ?
                 REPLICATE_PAUSED : REPLICATE_IDLE;
         siridb_replicate_start(siridb->replicate);
+        siri_optimize_continue(siri.optimize);
     }
 }
 
@@ -251,16 +270,16 @@ static void INITSYNC_work(uv_timer_t * timer)
     siridb_initsync_t * initsync = siridb->replicate->initsync;
     sirinet_pkg_t * pkg;
 
-    siridb_series_t * series;
+    initsync->series = imap32_get(siridb->series_map, *initsync->next_series_id);
 
-    series = imap32_get(siridb->series_map, *initsync->next_series_id);
-
-    if (series != NULL)
+    if (initsync->series != NULL)
     {
+        siridb_series_incref(initsync->series);
+
         uv_mutex_lock(&siridb->series_mutex);
 
         siridb_points_t * points = siridb_series_get_points_num32(
-                series,
+                initsync->series,
                 NULL,
                 NULL);
 
@@ -272,7 +291,7 @@ static void INITSYNC_work(uv_timer_t * timer)
             if (packer != NULL)
             {
                 qp_add_type(packer, QP_MAP1);
-                qp_add_string_term(packer, series->name);
+                qp_add_string_term(packer, initsync->series->name);
 
                 if (siridb_points_pack(points, packer) == 0)
                 {
@@ -297,10 +316,11 @@ static void INITSYNC_work(uv_timer_t * timer)
             }
             siridb_points_free(points);
         }
-
     }
-
-
+    else
+    {
+        INITSYNC_next_series_id(siridb);
+    }
 }
 
 /*
@@ -321,6 +341,7 @@ static void INITSYNC_on_insert_response(
          */
         if (siridb->replicate->status == REPLICATE_STOPPING)
         {
+            siridb_series_decref(siridb->replicate->initsync->series);
             INITSYNC_pause(siridb->replicate);
         }
         break;
@@ -341,6 +362,7 @@ static void INITSYNC_on_insert_response(
          */
         log_error("Error occurred while sending series to the replica (%d)",
                 status);
+
         INITSYNC_next_series_id(siridb);
         break;
     case PROMISE_SUCCESS:
@@ -350,7 +372,13 @@ static void INITSYNC_on_insert_response(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
         }
+#ifdef DEBUG
+        assert(siridb->replicate->initsync->series != NULL);
+#endif
         INITSYNC_next_series_id(siridb);
+        break;
+    default:
+        assert (0);
         break;
     }
 

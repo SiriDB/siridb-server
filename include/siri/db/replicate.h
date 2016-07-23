@@ -46,6 +46,7 @@ void siridb_replicate_pause(siridb_replicate_t * replicate);
 void siridb_replicate_continue(siridb_replicate_t * replicate);
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
-        sirinet_pkg_t * pkg);
+        const char * data,
+        size_t len);
 
 #define siridb_replicate_is_idle(replicate) (replicate->status == REPLICATE_IDLE)

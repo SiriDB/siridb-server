@@ -245,17 +245,18 @@ static void REPLICATE_work(uv_timer_t * handle)
 
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
-        sirinet_pkg_t * pkg)
+        const char * data,
+        size_t len)
 {
     qp_types_t tp;
     siridb_series_t * series;
 
-    qp_packer_t * packer = qp_packer_new(pkg->len);
+    qp_packer_t * packer = qp_packer_new(len);
     if (packer == NULL)
     {
         return NULL;  /*signal is raised */
     }
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+    qp_unpacker_t * unpacker = qp_unpacker_new(data, len);
     if (unpacker == NULL)
     {
         qp_packer_free(packer);
@@ -281,6 +282,8 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
                 qp_series_name->via->raw);
         if (series != NULL && (~series->flags & SIRIDB_SERIES_INIT_REPL))
         {
+            LOGC("Series: %s", qp_series_name->via->raw);
+            /* raw is terminated so len is included a terminator char */
             qp_add_raw(packer, qp_series_name->via->raw, qp_series_name->len);
             qp_packer_extend_fu(packer, unpacker);
         }
@@ -296,11 +299,11 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_unpacker_free(unpacker);
 
     sirinet_pkg_t * npkg = sirinet_pkg_new(
-            pkg->pid,
+            0,
             packer->len,
-            pkg->tp,
+            BPROTO_INSERT_SERVER,
             packer->buffer);
-
+    qp_packer_print(packer);
     qp_packer_free(packer);
 
     return npkg;

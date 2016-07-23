@@ -253,7 +253,7 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
             }
 
             siridb_initsync_t * initsync = siridb_initsync_open(siridb, 1);
-            if (initsync == NULL)
+            if (initsync == NULL && siridb->series_map->len)
             {
                 log_critical(
                         "Cannot register '%s' because creating initial "

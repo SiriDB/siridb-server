@@ -23,6 +23,7 @@
 #include <siri/db/shard.h>
 #include <unistd.h>
 #include <slist/slist.h>
+#include <assert.h>
 
 static siri_optimize_t optimize;
 
@@ -40,6 +41,7 @@ void siri_optimize_init(siri_t * siri)
     uint64_t timeout = siri->cfg->optimize_interval * 1000;
     siri->optimize = &optimize;
     optimize.status = SIRI_OPTIMIZE_PENDING;
+    optimize.pause = 0;
     uv_timer_init(siri->loop, &optimize.timer);
     uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
 }
@@ -59,6 +61,27 @@ void siri_optimize_stop(siri_t * siri)
     uv_close((uv_handle_t *) &optimize.timer, NULL);
 
     /* keep optimize bound to siri because we still want to check the status */
+}
+
+/*
+ * Increment pause. This is not just a simple boolean because more than one
+ * siridb database can pause the optimize task.
+ */
+inline void siri_optimize_pause(siri_optimize_t * optimize)
+{
+    optimize->pause++;
+}
+
+/*
+ * Decrement pause. This is not just a simple boolean because more than one
+ * siridb database can pause the optimize task.
+ */
+inline void siri_optimize_continue(siri_optimize_t * optimize)
+{
+#ifdef DEBUG
+    assert (optimize->pause);
+#endif
+    optimize->pause--;
 }
 
 static void OPTIMIZE_work(uv_work_t * work)

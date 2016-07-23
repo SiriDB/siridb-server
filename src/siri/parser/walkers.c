@@ -223,11 +223,8 @@ int walk_list_servers(
 
 int walk_select(siridb_series_t * series, uv_async_t * handle)
 {
-    siridb_point_t * point;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
-
-
     siridb_points_t * points = siridb_series_get_points_num32(
             series,
             q_select->start_ts,
