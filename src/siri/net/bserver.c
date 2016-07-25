@@ -22,6 +22,7 @@
 #include <siri/db/query.h>
 #include <siri/db/insert.h>
 #include <siri/db/servers.h>
+#include <siri/optimize.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -323,7 +324,11 @@ static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
     {
+        /* remove synchronization flag */
         siridb->server->flags &= ~SERVER_FLAG_SYNCHRONIZING;
+
+        /* continue optimize */
+        siri_optimize_continue();
 
         siridb_servers_send_flags(siridb->servers);
     }
@@ -417,6 +422,11 @@ static void on_insert_pool(uv_stream_t * client, sirinet_pkg_t * pkg)
                 sirinet_pkg_send(client, package);
                 free(package);
             }
+        }
+
+        if (repl_pkg != pkg)
+        {
+            free(repl_pkg);
         }
     }
     if (!siri_err)

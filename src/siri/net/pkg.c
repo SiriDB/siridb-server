@@ -15,7 +15,6 @@
 #include <string.h>
 #include <logger/logger.h>
 #include <siri/err.h>
-#include <qpack/qpack.h>
 #include <assert.h>
 
 static void PKG_write_cb(uv_write_t * req, int status);
@@ -52,6 +51,57 @@ sirinet_pkg_t * sirinet_pkg_new(
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * Use 'qp_packer_free' to destroy the returned value or use
+ * 'sirinet_packer2pkg' to convert to 'sirinet_pkg_t'.
+ */
+qp_packer_t * sirinet_packer_new(size_t alloc_size)
+{
+#ifdef DEBUG
+    assert (alloc_size >= PKG_HEADER_SIZE);
+#endif
+
+    qp_packer_t * packer = qp_packer_new(alloc_size);
+    if (packer != NULL)
+    {
+        packer->len = PKG_HEADER_SIZE;
+#ifdef DEBUG
+        ((sirinet_pkg_t *) packer->buffer)->tp = PKG___QP_TP;
+#endif
+    }
+
+    return packer;
+}
+
+/*
+ * Returns a 'sirinet_pkg_t' from a packer created with 'sirinet_packer_new'
+ *
+ * Call 'free' to destroy the returned pkg and do not destroy the
+ * packer anymore since this is handled here.
+ */
+sirinet_pkg_t * sirinet_packer2pkg(
+        qp_packer_t * packer,
+        uint64_t pid,
+        uint16_t tp)
+{
+    sirinet_pkg_t * pkg = (sirinet_pkg_t *) packer->buffer;
+
+#ifdef DEBUG
+    assert (pkg->tp == PKG___QP_TP);
+#endif
+
+    pkg->pid = pid;
+    pkg->tp = tp;
+    pkg->len = packer->len - PKG_HEADER_SIZE;
+
+    /* Free the packer, not the buffer */
+    free(packer);
+
+    return pkg;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_err(
@@ -65,21 +115,17 @@ sirinet_pkg_t * sirinet_pkg_err(
 #endif
 
     sirinet_pkg_t * pkg;
-    qp_packer_t * packer = qp_packer_new(len + 20);
+    qp_packer_t * packer = sirinet_packer_new(len + 20 + PKG_HEADER_SIZE);
     if (packer == NULL)
     {
         pkg = NULL;  /* signal is raised */
     }
     else
     {
-
         qp_add_type(packer, QP_MAP_OPEN);
         qp_add_raw(packer, "error_msg", 9);
         qp_add_raw(packer, data, len);
-
-        pkg = sirinet_pkg_new(pid, packer->len, tp, packer->buffer);
-
-        qp_packer_free(packer);
+        pkg = sirinet_packer2pkg(packer, pid, tp);
     }
     return pkg;
 }

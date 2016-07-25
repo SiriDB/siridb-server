@@ -174,15 +174,14 @@ void siridb_send_query_result(uv_async_t * handle)
         return siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
 #endif
-    sirinet_pkg_t * package;
-    package = sirinet_pkg_new(
+    sirinet_pkg_t * pkg = sirinet_packer2pkg(
+            query->packer,
             query->pid,
-            query->packer->len,
-            CPROTO_RES_QUERY,
-            query->packer->buffer);
-    sirinet_pkg_send((uv_stream_t *) query->client, package);
+            CPROTO_RES_QUERY);
+    sirinet_pkg_send((uv_stream_t *) query->client, pkg);
 
-    free(package);
+    free(pkg);
+    query->packer = NULL;
 
     uv_close((uv_handle_t *) handle, siri_async_close);
 }
@@ -198,7 +197,7 @@ void siridb_query_send_error(
     sirinet_pkg_t * package = sirinet_pkg_err(
                 query->pid,
                 strlen(query->err_msg),
-                err,  // usually this is CPROTO_ERR_QUERY
+                err,  // usually this is CPROTO_ERR_QUERY, CPROTO_ERR_POOL etc.
                 query->err_msg);
 
     if (package != NULL)
@@ -216,12 +215,6 @@ void siridb_query_send_error(
  * Reference counter for handle will be incremented since we count the handle
  * to a timer object. The cb function should perform siri_async_decref(&handle).
  *
- * Parameter tp should be one of the following:
- *
- *  BPROTO_QUERY_SERVER: each server is hit directly
- *  BPROTO_QUERY_POOL: one and only one server in each pool is hit
- *  BPROTO_QUERY_ALL: one server in each pool is hit and this server sends the
- *                    query to its optional replica.
  */
 void siridb_query_forward(
         uv_async_t * handle,
@@ -429,7 +422,7 @@ static void siridb_send_motd(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     const char * msg;
 
-    query->packer = qp_packer_new(512);
+    query->packer = sirinet_packer_new(512);
     qp_add_type(query->packer, QP_MAP1);
     qp_add_raw(query->packer, "motd", 4);
     msg = motd_get_random_msg();

@@ -1048,7 +1048,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
         return -1;  /* signal is raised */
     }
 
-    return 0;
+    return siri_err;
 }
 
 /*

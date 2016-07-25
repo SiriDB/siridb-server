@@ -175,13 +175,6 @@ int siridb_pool_send_pkg(
         }
     }
 
-    if (server == NULL)
-    {
-        return -1;
-    }
-    else
-    {
-        siridb_server_send_pkg(server, pkg, timeout, cb, data);
-    }
-    return 0;
+    return (server == NULL) ?
+            -1: siridb_server_send_pkg(server, pkg, timeout, cb, data);
 }

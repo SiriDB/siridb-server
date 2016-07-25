@@ -236,17 +236,20 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
     if (packer == NULL)
     {
         ERR_ALLOC
-        return NULL;
     }
-    packer->alloc_size = alloc_size;
-    packer->buffer_size = packer->alloc_size;
-    packer->len = 0;
-    packer->buffer = (char *) malloc(packer->buffer_size);
-    if (packer->buffer == NULL)
+    else
     {
-        ERR_ALLOC
-        free(packer);
-        return NULL;
+        packer->alloc_size = alloc_size;
+        packer->buffer_size = packer->alloc_size;
+        packer->len = 0;
+
+        packer->buffer = (char *) malloc(packer->buffer_size);
+        if (packer->buffer == NULL)
+        {
+            ERR_ALLOC
+            free(packer);
+            packer = NULL;
+        }
     }
     return packer;
 }

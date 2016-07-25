@@ -27,7 +27,7 @@ typedef struct imap64_node_s
 typedef struct imap64_s
 {
     size_t len;
-    void * data ;
+    void * data;
     imap64_node_t * node[IMAP64_NODE_SZ];
 } imap64_t;
 

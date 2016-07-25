@@ -42,7 +42,7 @@ imap32_t * imap32_new(void)
  */
 void imap32_free(imap32_t * imap)
 {
-    uint_fast16_t i;
+    uint8_t i;
     while (imap->size--)
     {
         im_grid_t * grid = imap->grid + imap->size;
@@ -52,15 +52,16 @@ void imap32_free(imap32_t * imap)
             continue;
         }
 
-        for (i = 0; i < 256; i++)
+        i = 0;
+        do
         {
-
             if (grid->store[i] == NULL)
             {
                 continue;
             }
             free(grid->store[i]);
         }
+        while (++i);
     }
     free(imap->grid);
     free(imap);
@@ -301,23 +302,27 @@ int imap32_walk(imap32_t * imap, imap32_cb cb, void * args)
     void * data;
     int rc = 0;
     size_t n;
-    uint_fast8_t i, j;
+    uint8_t i, j;
     for (n = 0; n < imap->size; n++)
     {
         grid = imap->grid + n;
-        for (i = 255; i--;)
+        i = 0;
+        do
         {
             if ((store = grid->store[i]) != NULL)
             {
-                for (j = 255; j--;)
+                j = 0;
+                do
                 {
                     if ((data = store->data[j]) != NULL)
                     {
                         rc += (*cb)(data, args);
                     }
                 }
+                while (++j);
             }
         }
+        while (++i);
     }
     return rc;
 }
@@ -338,23 +343,27 @@ slist_t * imap32_2slist(imap32_t * imap)
         im_grid_t * grid;
         void * data;
         size_t n;
-        uint_fast8_t i, j;
+        uint8_t i, j;
         for (n = 0; n < imap->size; n++)
         {
             grid = imap->grid + n;
-            for (i = 255; i--;)
+            i = 0;
+            do
             {
                 if ((store = grid->store[i]) != NULL)
                 {
-                    for (j = 255; j--;)
+                    j = 0;
+                    do
                     {
                         if ((data = store->data[j]) != NULL)
                         {
                             slist_append(slist, data);
                         }
                     }
+                    while (++j);
                 }
             }
+            while (++i);
         }
     }
     return slist;

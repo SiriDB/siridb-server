@@ -60,9 +60,12 @@ void siri_fp_decref(siri_fp_t * fp)
  */
 void siri_fp_close(siri_fp_t * fp)
 {
-    if (fclose(fp->fp))
+    if (fp->fp != NULL)
     {
-        ERR_FILE
+        if (fclose(fp->fp))
+        {
+            ERR_FILE
+        }
+        fp->fp = NULL;
     }
-    fp->fp = NULL;
 }

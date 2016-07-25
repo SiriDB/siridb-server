@@ -110,7 +110,7 @@ ssize_t siridb_insert_assign_pools(
     for (size_t n = 0; n < siridb->pools->len; n++)
     {
         /* These packers will be freed either in clserver in case of an error,
-         * or by siridb_free_insert(..) in case of success.
+         * or by INSERT_free(..) in case of success.
          */
         if ((packer[n] = qp_packer_new(psize)) == NULL)
         {

@@ -17,6 +17,7 @@
 #include <logger/logger.h>
 #include <llist/llist.h>
 #include <siri/net/promises.h>
+#include <siri/optimize.h>
 
 static void POOLS_make(
         uint_fast16_t n,
@@ -156,6 +157,8 @@ int siridb_pools_available(siridb_t * siridb)
  *
  * This function can raise a SIGNAL when allocation errors occur.
  *
+ * If promises could not be created, the 'cb' function with cb(NULL, data)
+ *
  * Note that 'pkg->pid' will be overwritten with a new package id.
  */
 void siridb_pools_send_pkg(
@@ -168,7 +171,11 @@ void siridb_pools_send_pkg(
     sirinet_promises_t * promises =
             sirinet_promises_new(siridb->pools->len - 1, cb, data);
 
-    if (promises != NULL)
+    if (promises == NULL)
+    {
+        cb(NULL, data);
+    }
+    else
     {
         siridb_pool_t * pool;
 
@@ -250,7 +257,12 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     if (siridb->server != server && siridb->server->pool == server->pool)
     {
         siridb->replica = server;
+
+        /* set synchronize flag */
         siridb->server->flags |= SERVER_FLAG_SYNCHRONIZING;
+
+        /* pause optimize task while synchronize flag is set */
+        siri_optimize_pause();
 
         /* initialize replica */
         siridb->fifo = siridb_fifo_new(siridb);

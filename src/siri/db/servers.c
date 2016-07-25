@@ -299,6 +299,11 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
 
 }
 
+/*
+ * This function can raise a SIGNAL.
+ *
+ * If promises could not be created, the 'cb' function with cb(NULL, data)
+ */
 void siridb_servers_send_pkg(
         siridb_t * siridb,
         sirinet_pkg_t * pkg,
@@ -308,37 +313,48 @@ void siridb_servers_send_pkg(
 {
     sirinet_promises_t * promises =
             sirinet_promises_new(siridb->servers->len - 1, cb, data);
-
-    siridb_server_t * server;
-
-    for (   llist_node_t * node = siridb->servers->first;
-            node != NULL;
-            node = node->next)
+    if (promises == NULL)
     {
-        server = node->data;
-        if (server == siridb->server)
-        {
-            continue;
-        }
-
-        if (siridb_server_is_online(server))
-        {
-            siridb_server_send_pkg(
-                    server,
-                    pkg,
-                    timeout,
-                    sirinet_promises_on_response,
-                    promises);
-        }
-        else
-        {
-            log_debug("Cannot send package to '%s' (server is offline)",
-                    server->name);
-            slist_append(promises->promises, NULL);
-        }
-
+        cb(NULL, data);
     }
-    SIRINET_PROMISES_CHECK(promises)
+    else
+    {
+        siridb_server_t * server;
+
+        for (   llist_node_t * node = siridb->servers->first;
+                node != NULL;
+                node = node->next)
+        {
+            server = node->data;
+            if (server == siridb->server)
+            {
+                continue;
+            }
+
+            if (siridb_server_is_online(server))
+            {
+                if (siridb_server_send_pkg(
+                        server,
+                        pkg,
+                        timeout,
+                        sirinet_promises_on_response,
+                        promises))
+                {
+                    log_critical("Allocation error while trying to send a package "
+                            "to '%s'", server->name);
+                    slist_append(promises->promises, NULL);
+                }
+            }
+            else
+            {
+                log_debug("Cannot send package to '%s' (server is offline)",
+                        server->name);
+                slist_append(promises->promises, NULL);
+            }
+
+        }
+        SIRINET_PROMISES_CHECK(promises)
+    }
 }
 
 siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid)

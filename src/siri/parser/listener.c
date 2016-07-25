@@ -38,7 +38,7 @@
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
-#define MASTER_CHECK_POOLS_ONLINE(siridb)                                          \
+#define MASTER_CHECK_POOLS_ONLINE(siridb)                                   \
 if (IS_MASTER && !siridb_pools_online(siridb))                              \
 {                                                                           \
     snprintf(query->err_msg,                                                \
@@ -48,7 +48,17 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
     siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
     return;                                                                 \
 }
-
+#define ON_PROMISES                                             \
+    siri_async_decref(&handle);                                 \
+    if (promises == NULL)                                       \
+    {                                                           \
+        return;  /* signal is raised when handle is NULL */     \
+    }                                                           \
+    if (handle == NULL)                                         \
+    {                                                           \
+        sirinet_promises_llist_free(promises);                  \
+        return;  /* signal is raised when handle is NULL */     \
+    }
 static void decref_server_object(uv_handle_t * handle);
 static void decref_user_object(uv_handle_t * handle);
 
@@ -100,7 +110,7 @@ static void on_ack_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
-static void on_count_servers_response(slist_t * promises, uv_async_t * handle);
+static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
@@ -352,7 +362,7 @@ static void enter_count_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(256);
+    query->packer = sirinet_packer_new(256);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_count_new();
@@ -384,7 +394,7 @@ static void enter_drop_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(1024);
+    query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_drop_new();
@@ -464,7 +474,7 @@ static void enter_list_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(QP_SUGGESTED_SIZE);
+    query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     qp_add_raw(query->packer, "columns", 7);
@@ -531,7 +541,7 @@ static void enter_select_stmt(uv_async_t * handle)
     query->data = query_select_new();
     query->free_cb = (uv_close_cb) query_select_free;
 
-    query->packer = qp_packer_new(QP_SUGGESTED_SIZE);
+    query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     SIRIPARSER_NEXT_NODE
@@ -692,7 +702,7 @@ static void exit_alter_user(uv_async_t * handle)
         return;  /* signal is set */
     }
 
-    query->packer = qp_packer_new(1024);
+    query->packer = sirinet_packer_new(1024);
 
     if (query->packer != NULL)
     {
@@ -746,7 +756,7 @@ static void exit_calc_stmt(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * calc_node = query->nodes->node->children->node;
 
-    query->packer = qp_packer_new(64);
+    query->packer = sirinet_packer_new(64);
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "calc", 4);
 
@@ -794,14 +804,18 @@ static void exit_count_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-
+    query_count_t * q_count = (query_count_t *) query->data;
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
     qp_add_raw(query->packer, "series", 6);
 
     if (IS_MASTER)
     {
-
+        q_count->n = siridb->series_map->len;
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_POOLS,
+                (sirinet_promises_cb) on_count_xxx_response);
     }
     else
     {
@@ -856,7 +870,7 @@ static void exit_count_servers(uv_async_t * handle)
         siridb_query_forward(
                 handle,
                 SIRIDB_QUERY_FWD_SERVERS,
-                (sirinet_promises_cb) on_count_servers_response);
+                (sirinet_promises_cb) on_count_xxx_response);
     }
     else
     {
@@ -926,7 +940,7 @@ static void exit_create_user(uv_async_t * handle)
         /* success, we do not need to free the user anymore */
         query->free_cb = (uv_close_cb) siridb_query_free;
 
-        query->packer = qp_packer_new(1024);
+        query->packer = sirinet_packer_new(1024);
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
@@ -1097,7 +1111,7 @@ static void exit_grant_user(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(1024);
+    query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -1381,7 +1395,7 @@ static void exit_revoke_user(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(1024);
+    query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -1464,7 +1478,7 @@ static void exit_set_log_level(uv_async_t * handle)
      */
     if (
         /* create a new packer with success message */
-        (query->packer = qp_packer_new(1024)) == NULL ||
+        (query->packer = sirinet_packer_new(1024)) == NULL ||
 
         qp_add_type(query->packer, QP_MAP_OPEN) ||
 
@@ -1499,12 +1513,19 @@ static void exit_set_log_level(uv_async_t * handle)
             {
                 /* handle will be bound to a timer so we should increment */
                 siri_async_incref(handle);
-                siridb_server_send_pkg(
+                if (siridb_server_send_pkg(
                         server,
                         pkg,
                         0,
-                        (sirinet_promise_cb) on_ack_response,
-                        handle);
+                        on_ack_response,
+                        handle))
+                {
+                    /*
+                     * signal is raised and 'on_ack_response' will not be
+                     * called
+                     */
+                    siri_async_decref(&handle);
+                }
                 free(pkg);
             }
         }
@@ -1533,7 +1554,7 @@ static void exit_show_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = qp_packer_new(4096);
+    query->packer = sirinet_packer_new(4096);
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -1611,7 +1632,10 @@ static void exit_timeit_stmt(uv_async_t * handle)
     {
         /* lets give the new packer the exact size so we do not
          * need a realloc */
-        query->packer = qp_packer_new(query->timeit->len + 1);
+        query->packer = sirinet_packer_new(
+                query->timeit->len +
+                1 +
+                PKG_HEADER_SIZE);
         qp_add_type(query->packer, QP_MAP_OPEN);
     }
 
@@ -1681,14 +1705,10 @@ static void on_ack_response(
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
+static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 {
-    siri_async_decref(&handle);
-    if (handle == NULL)
-    {
-        sirinet_promises_llist_free(promises);
-        return;  /* signal is raised when handle is NULL */
-    }
+    ON_PROMISES
+
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
@@ -1757,12 +1777,7 @@ static void on_count_servers_response(slist_t * promises, uv_async_t * handle)
  */
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
-    siri_async_decref(&handle);
-    if (handle == NULL)
-    {
-        sirinet_promises_llist_free(promises);
-        return;  /* signal is raised when handle is NULL */
-    }
+    ON_PROMISES
 
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
@@ -1836,12 +1851,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
  */
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
 {
-    siri_async_decref(&handle);
-    if (handle == NULL)
-    {
-        sirinet_promises_llist_free(promises);
-        return;  /* signal is raised when handle is NULL */
-    }
+    ON_PROMISES
 
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;

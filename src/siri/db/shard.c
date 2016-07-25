@@ -465,6 +465,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     uv_mutex_lock(&siridb->series_mutex);
 
     slist_t * slist = slist_new(siridb->series_map->len);
+
     if (slist != NULL)
     {
         imap32_walk(

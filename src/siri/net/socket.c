@@ -93,21 +93,28 @@ void sirinet_socket_on_data(
             pkg = (sirinet_pkg_t *) buf->base;
             size_t total_sz = pkg->len + PKG_HEADER_SIZE;
 
-            if (nread == total_sz)
+            if (nread >= total_sz)
             {
                 /* Call on-data function */
                 (*ssocket->on_data)(client, pkg);
-                free(buf->base);
-                return;
-            }
-
-            if (nread > total_sz)
-            {
-                log_error(
-                        "Got more bytes than expected, "
-                        "ignore package (pid: %d, len: %d, tp: %d)",
-                        pkg->pid, pkg->len, pkg->tp);
-                free(buf->base);
+                if (nread == total_sz)
+                {
+                    free(buf->base);
+                }
+                else
+                {
+                    LOGC(   "Got more bytes than expected "
+                            "(pid: %lu, len: %lu, tp: %u) "
+                            "(nread: %ld, total_sz: %lu, buf->len: %lu)",
+                            pkg->pid, pkg->len, pkg->tp,
+                            nread, total_sz, buf->len);
+                    /*
+                     * move rest data to start of buffer and call this function
+                     * again.
+                     */
+                    memmove(buf->base, buf->base + total_sz, nread - total_sz);
+                    sirinet_socket_on_data(client, nread - total_sz, buf);
+                }
                 return;
             }
 

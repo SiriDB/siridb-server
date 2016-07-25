@@ -124,13 +124,17 @@ void siridb_server_decref(siridb_server_t * server)
 }
 
 /*
- * This function can raise a SIGNAL.
+ * This function can return -1 and raise a SIGNAL which means the 'cb' function
+ * will NOT be called. Usually this function should return 0 which means that
+ * we try to send the package and the 'cb' function can be checked for the
+ * result.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
  *
  * (default timeout PROMISE_DEFAULT_TIMEOUT is used when timeout 0 is set)
+ *
  */
-void siridb_server_send_pkg(
+int siridb_server_send_pkg(
         siridb_server_t * server,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
@@ -147,7 +151,7 @@ void siridb_server_send_pkg(
     if (promise == NULL)
     {
         ERR_ALLOC
-        return;
+        return -1;
     }
 
     promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
@@ -155,7 +159,7 @@ void siridb_server_send_pkg(
     {
         ERR_ALLOC
         free(promise);
-        return;
+        return -1;
     }
     promise->timer->data = promise;
     promise->cb = cb;
@@ -173,7 +177,7 @@ void siridb_server_send_pkg(
         ERR_ALLOC
         free(promise->timer);
         free(promise);
-        return;
+        return -1;
     }
 
     if (imap64_add(server->promises, promise->pid, promise))
@@ -181,7 +185,7 @@ void siridb_server_send_pkg(
         free(promise->timer);
         free(promise);
         free(req);
-        return;  /* signal is raised */
+        return -1;  /* signal is raised */
     }
 
     uv_timer_init(siri.loop, promise->timer);
@@ -205,6 +209,8 @@ void siridb_server_send_pkg(
             SERVER_write_cb);
 
     server->pid++;
+
+    return 0;
 }
 
 /*

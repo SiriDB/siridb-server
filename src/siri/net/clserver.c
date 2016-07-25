@@ -449,7 +449,7 @@ static void on_ping(uv_stream_t * client, sirinet_pkg_t * pkg)
 
 static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    qp_packer_t * packer = qp_packer_new(128);
+    qp_packer_t * packer = sirinet_packer_new(128);
     if (packer != NULL)
     {
         qp_add_type(packer, QP_ARRAY_OPEN);
@@ -461,19 +461,20 @@ static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg)
                 (llist_cb) CLSERVER_on_info_cb,
                 packer))
         {
-            sirinet_pkg_t * package;
-            package = sirinet_pkg_new(
+            sirinet_pkg_t * package = sirinet_packer2pkg(
+                    packer,
                     pkg->pid,
-                    packer->len,
-                    CPROTO_RES_INFO,
-                    packer->buffer);
+                    CPROTO_RES_INFO);
 
             /* ignore result code, signal can be raised */
             sirinet_pkg_send(client, package);
 
             free(package);
         }
-        qp_packer_free(packer);
+        else
+        {
+            qp_packer_free(packer);
+        }
     }
 }
 
@@ -700,58 +701,64 @@ static void CLSERVER_on_register_server_response(
         slist_t * promises,
         siridb_server_reg_t * server_reg)
 {
-    sirinet_pkg_t * pkg;
-    sirinet_promise_t * promise;
-    size_t err_count = 0;
-    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
-
-    for (size_t i = 0; i < promises->len; i++)
+    if (promises != NULL)
     {
-        promise = promises->data[i];
+        sirinet_pkg_t * pkg;
+        sirinet_promise_t * promise;
+        size_t err_count = 0;
+        char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
 
-        if (promise == NULL)
+        for (size_t i = 0; i < promises->len; i++)
         {
-            err_count++;
-            snprintf(err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Error occurred while registering the new server on at "
-                    "least one server");
+            promise = promises->data[i];
+
+            if (promise == NULL)
+            {
+                err_count++;
+                snprintf(err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Error occurred while registering the new server on at "
+                        "least one server");
+            }
+
+            pkg = promise->data;
+
+            if (pkg == NULL || pkg->tp != BPROTO_ACK_REGISTER_SERVER)
+            {
+                err_count++;
+                snprintf(err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Error occurred while registering the new server on at "
+                        "least '%s'", promise->server->name);
+            }
+
+            /* make sure we free the promise and data */
+            free(promise->data);
+            free(promise);
         }
 
-        pkg = promise->data;
+        sirinet_pkg_t * package = (err_count) ?
+                sirinet_pkg_err(
+                        server_reg->pid,
+                        strlen(err_msg),
+                        CPROTO_ERR_MSG,
+                        err_msg) :
+                sirinet_pkg_new(
+                        server_reg->pid,
+                        0,
+                        CPROTO_RES_ACK,
+                        NULL);
 
-        if (pkg == NULL || pkg->tp != BPROTO_ACK_REGISTER_SERVER)
+        if (package != NULL)
         {
-            err_count++;
-            snprintf(err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Error occurred while registering the new server on at "
-                    "least '%s'", promise->server->name);
+            sirinet_pkg_send(server_reg->client, package);
+            free(package);
         }
-
-        /* make sure we free the promise and data */
-        free(promise->data);
-        free(promise);
     }
 
-    sirinet_pkg_t * package = (err_count) ?
-            sirinet_pkg_err(
-                    server_reg->pid,
-                    strlen(err_msg),
-                    CPROTO_ERR_MSG,
-                    err_msg) :
-            sirinet_pkg_new(
-                    server_reg->pid,
-                    0,
-                    CPROTO_RES_ACK,
-                    NULL);
-
-    if (package != NULL)
-    {
-        sirinet_pkg_send(server_reg->client, package);
-        free(package);
-    }
-
+    /* unlock the client */
     sirinet_socket_unlock(server_reg->client);
+
+    /* free server register object */
     free(server_reg);
 }

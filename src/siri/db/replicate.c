@@ -216,7 +216,7 @@ static void REPLICATE_work(uv_timer_t * handle)
                 siridb->replica,
                 pkg,
                 REPLICATE_TIMEOUT,
-                (sirinet_promise_cb) REPLICATE_on_repl_response,
+                REPLICATE_on_repl_response,
                 siridb);
         free(pkg);
     }
@@ -232,7 +232,7 @@ static void REPLICATE_work(uv_timer_t * handle)
                         siridb->replica,
                         pkg,
                         0,
-                        (sirinet_promise_cb) REPLICATE_on_repl_finished_response,
+                        REPLICATE_on_repl_finished_response,
                         NULL);
                 free(pkg);
             }
@@ -243,6 +243,11 @@ static void REPLICATE_work(uv_timer_t * handle)
     }
 }
 
+/*
+ * Return a pkg without series which are scheduled for initial synchronization.
+ *
+ * In case of an error, NULL is returned and a SIGNAL is raised.
+ */
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
         const char * data,
@@ -251,27 +256,27 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_types_t tp;
     siridb_series_t * series;
 
-    qp_packer_t * packer = qp_packer_new(len);
-    if (packer == NULL)
+    qp_packer_t * netpacker = sirinet_packer_new(len + PKG_HEADER_SIZE);
+    if (netpacker == NULL)
     {
         return NULL;  /*signal is raised */
     }
     qp_unpacker_t * unpacker = qp_unpacker_new(data, len);
     if (unpacker == NULL)
     {
-        qp_packer_free(packer);
+        qp_packer_free(netpacker);
         return NULL;  /*signal is raised */
     }
     qp_obj_t * qp_series_name = qp_object_new();
     if (qp_series_name == NULL)
     {
         qp_unpacker_free(unpacker);
-        qp_packer_free(packer);
+        qp_packer_free(netpacker);
         return NULL;  /*signal is raised */
     }
 
     qp_next(unpacker, NULL); // map
-    qp_add_type(packer, QP_MAP_OPEN);
+    qp_add_type(netpacker, QP_MAP_OPEN);
 
     tp = qp_next(unpacker, qp_series_name); // first series or end
 
@@ -280,12 +285,14 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
         series = (siridb_series_t *) ct_get(
                 siridb->series,
                 qp_series_name->via->raw);
-        if (series != NULL && (~series->flags & SIRIDB_SERIES_INIT_REPL))
+        if (series == NULL || (~series->flags & SIRIDB_SERIES_INIT_REPL))
         {
-            LOGC("Series: %s", qp_series_name->via->raw);
             /* raw is terminated so len is included a terminator char */
-            qp_add_raw(packer, qp_series_name->via->raw, qp_series_name->len);
-            qp_packer_extend_fu(packer, unpacker);
+            qp_add_raw(
+                    netpacker,
+                    qp_series_name->via->raw,
+                    qp_series_name->len);
+            qp_packer_extend_fu(netpacker, unpacker);
         }
         else
         {
@@ -298,13 +305,8 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_object_free(qp_series_name);
     qp_unpacker_free(unpacker);
 
-    sirinet_pkg_t * npkg = sirinet_pkg_new(
-            0,
-            packer->len,
-            BPROTO_INSERT_SERVER,
-            packer->buffer);
-    qp_packer_print(packer);
-    qp_packer_free(packer);
+    sirinet_pkg_t * npkg =
+            sirinet_packer2pkg(netpacker, 0, BPROTO_INSERT_SERVER);
 
     return npkg;
 }

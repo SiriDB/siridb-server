@@ -116,7 +116,7 @@ static const char * motd_messages[] = {
         "something and knowing something.\n\n"
         "--Richard Feynman",
 
-        "Religion is a culture of faith; science is a culture of doubt."
+        "Religion is a culture of faith; science is a culture of doubt.\n\n"
         "--Richard Feynman",
 
         "I think it's much more interesting to live not knowing than to have "
