@@ -19,7 +19,7 @@
 #include <siri/err.h>
 
 /* initial buffer size, this is not fixed but can grow if needed */
-#define CT_BUFFER_ALLOC_SIZE 256
+#define CT_BUFFER_ALLOC_SIZE 128
 
 static ct_node_t * CT_new_node(const char * key, void * data);
 static int CT_add(
@@ -63,6 +63,7 @@ ct_t * ct_new(void)
     {
         ct->len = 0;
         ct->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+
     }
     return ct;
 }
@@ -75,7 +76,7 @@ void ct_free(ct_t * ct, ct_free_cb cb)
 {
     if (ct->nodes != NULL)
     {
-        for (uint_fast16_t i = 0; i < 256; i++)
+        for (uint_fast16_t i = 0; i < 128; i++)
         {
             if ((*ct->nodes)[i] != NULL)
             {
@@ -140,7 +141,7 @@ int ct_add(ct_t * ct, const char * key, void * data)
     int rc;
     ct_node_t ** nd;
 
-    nd = &(*ct->nodes)[(uint_fast8_t) *key];
+    nd = &(*ct->nodes)[(uint8_t) *key];
 
     if (*nd != NULL)
     {
@@ -235,12 +236,13 @@ void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
     ct_node_t * nd;
     char * buffer = (char *) malloc(buffer_sz);
 
-    for (*buffer = 255; (n == NULL || *n) && (*buffer)--;)
+    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 128; i++)
     {
-        if ((nd = (*ct->nodes)[(uint_fast8_t) *buffer]) == NULL)
+        if ((nd = (*ct->nodes)[i]) == NULL)
         {
             continue;
         }
+        *buffer = (char) i;
         CT_items(nd, n, len, buffer_sz, buffer, cb, args);
     }
     free(buffer);
@@ -256,7 +258,7 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
 
-    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 256; i++)
+    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 128; i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
@@ -302,17 +304,16 @@ static void CT_items(
 
     if (node->nodes != NULL)
     {
-        char * pt;
         ct_node_t * nd;
         len += sz + 1;
-        pt = buffer + len - 1;
 
-        for (*pt = 255; (pn == NULL || *pn) && (*pt)--;)
+        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 128; i++)
         {
-            if ((nd = (*node->nodes)[(uint_fast8_t) *pt]) == NULL)
+            if ((nd = (*node->nodes)[i]) == NULL)
             {
                 continue;
             }
+            *(buffer + len - 1) = (char) i;
             CT_items(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
@@ -342,7 +343,7 @@ static void CT_values(
     {
         ct_node_t * nd;
 
-        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 256; i++)
+        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 128; i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
@@ -386,7 +387,7 @@ static int CT_add(
             if (node->nodes == NULL)
             {
                 node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-                                if (node->nodes == NULL)
+                if (node->nodes == NULL)
                 {
                     ERR_ALLOC
                     return CT_ERR;
@@ -659,7 +660,7 @@ static void CT_merge_node(ct_node_t * node)
     ct_node_t * child_node;
     char * tmp;
 
-    for (i = 0; i < 256; i++)
+    for (i = 0; i < 128; i++)
     {
         if ((*node->nodes)[i] != NULL)
         {
@@ -829,7 +830,7 @@ static void CT_free(ct_node_t * node, ct_free_cb cb)
 {
     if (node->nodes != NULL)
     {
-        for (uint_fast16_t i = 0; i < 256; i++)
+        for (uint_fast16_t i = 0; i < 128; i++)
         {
             if ((*node->nodes)[i] != NULL)
             {

@@ -27,19 +27,21 @@ enum
  * the node does not exist. */
 extern char * CT_EMPTY;
 
-typedef struct ct_node_s * ct_nodes_t[256];
+typedef struct ct_node_s * ct_nodes_t[32];
 
 typedef struct ct_node_s
 {
     char * key;
     void * data;
-    uint_fast8_t size;
+    uint8_t size;
     ct_nodes_t * nodes;
 } ct_node_t;
 
 typedef struct ct_s
 {
     size_t len;
+    uint8_t offset;
+    uint8_t n;
     ct_nodes_t * nodes;
 } ct_t;
 
