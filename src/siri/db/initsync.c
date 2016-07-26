@@ -38,6 +38,8 @@ static void INITSYNC_on_insert_response(
         int status);
 
 static const long int SIZE2 = 2 * sizeof(uint32_t);
+static char sync_progress[30];
+
 
 /*
  * Returns a pointer to initsync. If 'create_new' is zero and an initial
@@ -167,9 +169,50 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
     *initsync = NULL;
 }
 
-void siridb_initsync_run(uv_timer_t * timer)
+/*
+ * Start initial replica work.
+ */
+inline void siridb_initsync_run(uv_timer_t * timer)
 {
     uv_timer_start(timer, INITSYNC_work, INITSYNC_SLEEP, 0);
+}
+
+const char * siridb_initsync_sync_progress(siridb_t * siridb)
+{
+    if (siridb->replica == NULL || siridb->replicate->initsync == NULL)
+    {
+        sprintf(sync_progress, "not available");
+    }
+    else
+    {
+        size_t num = siridb->replicate->initsync->size / sizeof(uint32_t);
+        size_t total = siridb->series_map->len;
+        double percent = 100 * (double) (total - num) / total;
+
+        sprintf(sync_progress,
+                "approximately at %0.2f%%",
+                (0 > percent) ? 0 : percent);
+    }
+    return sync_progress;
+}
+
+/*
+ * Open the initsync file. (set both the file pointer and file descriptor
+ * In case of and error, initsync->fp is set to NULL
+ */
+void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype)
+{
+    initsync->fp = fopen(initsync->fn, opentype);
+    if (initsync->fp != NULL)
+    {
+        initsync->fd = fileno(initsync->fp);
+        if (initsync->fd == -1)
+        {
+            LOGC("Error reading file descriptor: '%s'", initsync->fn);
+            fclose(initsync->fp);
+            initsync->fp = NULL;
+        }
+    }
 }
 
 /*
@@ -178,7 +221,7 @@ void siridb_initsync_run(uv_timer_t * timer)
  *
  * This function might destroy 'replicate->initsync' when initial
  * synchronization is finished.
- * */
+ */
 static void INITSYNC_next_series_id(siridb_t * siridb)
 {
 #ifdef DEBUG
@@ -259,6 +302,20 @@ static void INITSYNC_work(uv_timer_t * timer)
     assert (siridb->replicate->initsync != NULL);
     assert (siridb->replicate->initsync->fp != NULL);
 #endif
+
+    if (!siridb_server_is_synchronizing(siridb->replica))
+    {
+        if (siridb->replicate->status == REPLICATE_STOPPING)
+        {
+            INITSYNC_pause(siridb->replicate);
+        }
+        else
+        {
+            siridb->replicate->status = REPLICATE_IDLE;
+        }
+        return;
+    }
+
     siridb_initsync_t * initsync = siridb->replicate->initsync;
     sirinet_pkg_t * pkg;
 
@@ -302,6 +359,7 @@ static void INITSYNC_work(uv_timer_t * timer)
                             siridb);
 
                     free(pkg);
+
                 }
                 else
                 {
@@ -407,25 +465,6 @@ inline static int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync)
              "%s%s",
              siridb->dbpath,
              INITSYC_FN);
-}
-
-/*
- * Open the initsync file. (set both the file pointer and file descriptor
- * In case of and error, initsync->fp is set to NULL
- */
-void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype)
-{
-    initsync->fp = fopen(initsync->fn, opentype);
-    if (initsync->fp != NULL)
-    {
-        initsync->fd = fileno(initsync->fp);
-        if (initsync->fd == -1)
-        {
-            LOGC("Error reading file descriptor: '%s'", initsync->fn);
-            fclose(initsync->fp);
-            initsync->fp = NULL;
-        }
-    }
 }
 
 /*

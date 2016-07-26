@@ -396,7 +396,6 @@ static void INSERT_points_to_pools(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
     sirinet_pkg_t * pkg;
-
     sirinet_promises_t * promises = sirinet_promises_new(
             siridb->pools->len - 1,
             (sirinet_promises_cb) INSERT_on_response,
@@ -418,12 +417,12 @@ static void INSERT_points_to_pools(uv_async_t * handle)
         }
         if (n == pool)
         {
+
             if (siridb->replica != NULL)
             {
 #ifdef DEBUG
                 assert (siridb->fifo != NULL);
 #endif
-
                 pkg = (siridb->replicate->initsync == NULL) ?
                     sirinet_pkg_new(
                             0,
@@ -434,6 +433,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                             siridb,
                             insert->packer[n]->buffer,
                             insert->packer[n]->len);
+
                 if (pkg != NULL)
                 {
                     siridb_fifo_append(siridb->fifo, pkg);
@@ -450,7 +450,6 @@ static void INSERT_points_to_pools(uv_async_t * handle)
              */
             if (unpacker != NULL)
             {
-
                 siridb_insert_local(siridb, unpacker);
                 qp_unpacker_free(unpacker);
             }

@@ -34,3 +34,4 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new);
 void siridb_initsync_free(siridb_initsync_t ** initsync);
 void siridb_initsync_run(uv_timer_t * timer);
 void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype);
+const char * siridb_initsync_sync_progress(siridb_t * siridb);

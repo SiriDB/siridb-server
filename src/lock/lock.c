@@ -170,12 +170,12 @@ static lock_t LOCK_create(const char * lock_fn, pid_t pid)
     FILE * fp = fopen(lock_fn, "w");
     if (fp == NULL)
     {
-        return -1;
+        return LOCK_WRITE_ERR;
     }
     if (fprintf(fp, "%d", pid) < 0)
     {
         fclose(fp);
-        return -1;
+        return LOCK_WRITE_ERR;
     }
     return (fclose(fp)) ? LOCK_WRITE_ERR : rc_success;
 }

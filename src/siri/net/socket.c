@@ -103,11 +103,6 @@ void sirinet_socket_on_data(
                 }
                 else
                 {
-                    LOGC(   "Got more bytes than expected "
-                            "(pid: %lu, len: %lu, tp: %u) "
-                            "(nread: %ld, total_sz: %lu, buf->len: %lu)",
-                            pkg->pid, pkg->len, pkg->tp,
-                            nread, total_sz, buf->len);
                     /*
                      * move rest data to start of buffer and call this function
                      * again.

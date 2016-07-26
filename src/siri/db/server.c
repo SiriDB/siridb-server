@@ -195,6 +195,9 @@ int siridb_server_send_pkg(
             (timeout) ? timeout : PROMISE_DEFAULT_TIMEOUT,
             0);
 
+    log_debug("Sending (pid: %lu, len: %lu, tp: %u) to '%s'",
+            pkg->pid, pkg->len, pkg->tp, server->name);
+
     req->data = promise;
 
     uv_buf_t wrbuf = uv_buf_init(

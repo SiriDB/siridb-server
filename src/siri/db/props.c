@@ -21,6 +21,7 @@
 #include <procinfo/procinfo.h>
 #include <string.h>
 #include <siri/siri.h>
+#include <siri/db/initsync.h>
 
 #define SIRIDB_PROP_MAP(NAME, LEN)      \
 if (map)                                \
@@ -99,6 +100,10 @@ static void prop_status(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_sync_progress(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_timezone(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -165,6 +170,8 @@ void siridb_init_props(void)
             prop_startup_time;
     siridb_props[CLERI_GID_K_STATUS - KW_OFFSET] =
             prop_status;
+    siridb_props[CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET] =
+            prop_sync_progress;
     siridb_props[CLERI_GID_K_TIMEZONE - KW_OFFSET] =
             prop_timezone;
     siridb_props[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] =
@@ -321,6 +328,7 @@ static void prop_startup_time(
     SIRIDB_PROP_MAP("startup_time", 12)
     qp_add_int32(packer, (int32_t) abs(siri.startup_time));
 }
+
 static void prop_status(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -330,6 +338,15 @@ static void prop_status(
     char * status = siridb_server_str_status(siridb->server);
     qp_add_string(packer, status);
     free(status);
+}
+
+static void prop_sync_progress(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("sync_progress", 13)
+    qp_add_string(packer, siridb_initsync_sync_progress(siridb));
 }
 
 static void prop_timezone(

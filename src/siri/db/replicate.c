@@ -279,7 +279,6 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_add_type(netpacker, QP_MAP_OPEN);
 
     tp = qp_next(unpacker, qp_series_name); // first series or end
-
     while (tp == QP_RAW)
     {
         series = (siridb_series_t *) ct_get(
