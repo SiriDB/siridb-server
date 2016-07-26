@@ -62,8 +62,7 @@ ct_t * ct_new(void)
     else
     {
         ct->len = 0;
-        ct->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-
+        ct->nodes = NULL;
     }
     return ct;
 }
@@ -76,7 +75,7 @@ void ct_free(ct_t * ct, ct_free_cb cb)
 {
     if (ct->nodes != NULL)
     {
-        for (uint_fast16_t i = 0; i < 128; i++)
+        for (uint_fast16_t i = 0, end = ct->n * 32; i < end; i++)
         {
             if ((*ct->nodes)[i] != NULL)
             {
@@ -106,8 +105,8 @@ void ** ct_get_sure(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
     void ** data = NULL;
-
-    nd = &(*ct->nodes)[(uint_fast8_t) *key];
+    uint8_t k = (uint8_t) *key;
+    nd = &(*ct->nodes)[k - ct->offset * 32];
 
     if (*nd != NULL)
     {
@@ -130,6 +129,84 @@ void ** ct_get_sure(ct_t * ct, const char * key)
 }
 
 /*
+ * Returns 0 is successful or -1 and a SIGNAL is raised in case of an error.
+ *
+ * In case of an error, 'ct' remains unchanged.
+ */
+static int CT_node_resize(ct_node_t * node, uint8_t pos)
+{
+#ifdef DEBUG
+    assert (pos < 8);
+#endif
+    int rc = 0;
+
+    if (node->nodes == NULL)
+    {
+        node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
+        if (node->nodes == NULL)
+        {
+            ERR_ALLOC
+            rc = -1;
+        }
+        else
+        {
+            node->offset = pos;
+            node->n = 1;
+        }
+    }
+    else
+    {
+        if (pos < node->offset)
+        {
+            ct_nodes_t * tmp;
+            uint8_t diff = node->offset - pos;
+            uint8_t oldn = node->n;
+            node->n += diff;
+            tmp = (ct_nodes_t *) realloc(
+                    node->nodes,
+                    node->n * sizeof(ct_nodes_t));
+            if (tmp == NULL)
+            {
+                ERR_ALLOC
+                node->n -= diff;
+                rc = -1;
+            }
+            else
+            {
+                node->nodes = tmp;
+                node->offset = pos;
+                memmove(node->nodes + diff,
+                        node->nodes,
+                        oldn * sizeof(ct_nodes_t));
+                memset(node->nodes, 0, diff * sizeof(ct_nodes_t));
+            }
+        }
+        else if (pos >= node->offset + node->n)
+        {
+            ct_nodes_t * tmp;
+            uint8_t diff = pos - node->offset - node->n + 1;
+            uint8_t oldn = node->n;
+            node->n += diff;
+            tmp = (ct_nodes_t *) realloc(
+                    node->nodes,
+                    node->n * sizeof(ct_nodes_t));
+            if (tmp == NULL)
+            {
+                ERR_ALLOC
+                node->n -= diff;
+                rc = -1;
+            }
+            else
+            {
+                node->nodes = tmp;
+                memset(node->nodes + oldn, 0, diff * sizeof(ct_nodes_t));
+            }
+        }
+    }
+    return rc;
+}
+
+/*
  * Add a new key/value. return CT_EXISTS if the key already
  * exists and CT_OK if not. When the key exists the value will not
  * be overwritten.
@@ -140,8 +217,14 @@ int ct_add(ct_t * ct, const char * key, void * data)
 {
     int rc;
     ct_node_t ** nd;
+    uint8_t k = (uint8_t) *key;
 
-    nd = &(*ct->nodes)[(uint8_t) *key];
+    if (CT_node_resize((ct_node_t *) ct, k / 32))
+    {
+        return CT_ERR;
+    }
+
+    nd = &(*ct->nodes)[k - ct->offset * 32];
 
     if (*nd != NULL)
     {
@@ -173,8 +256,8 @@ int ct_add(ct_t * ct, const char * key, void * data)
 void * ct_get(ct_t * ct, const char * key)
 {
     ct_node_t * nd;
-
-    nd = (*ct->nodes)[(uint_fast8_t) *key];
+    uint8_t k = (uint8_t) *key;
+    nd = (*ct->nodes)[k - ct->offset * 32];
 
     return (nd == NULL) ? NULL : CT_get(nd, key + 1);
 }
@@ -188,8 +271,9 @@ void * ct_pop(ct_t * ct, const char * key)
 {
     ct_node_t ** nd;
     void * data;
+    uint8_t k = (uint8_t) *key;
 
-    nd = &(*ct->nodes)[(uint_fast8_t) *key];
+    nd = &(*ct->nodes)[k - ct->offset * 32];
 
     if (*nd == NULL)
     {
@@ -236,13 +320,15 @@ void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
     ct_node_t * nd;
     char * buffer = (char *) malloc(buffer_sz);
 
-    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 128; i++)
+    for (   uint_fast16_t i = 0, end = ct->n * 32;
+            (n == NULL || *n) && i < end;
+            i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
             continue;
         }
-        *buffer = (char) i;
+        *buffer = (char) (i + ct->offset * 32);
         CT_items(nd, n, len, buffer_sz, buffer, cb, args);
     }
     free(buffer);
@@ -258,7 +344,9 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
 
-    for (uint_fast16_t i = 0; (n == NULL || *n) && i < 128; i++)
+    for (   uint_fast16_t i = 0, end = ct->n * 32;
+            (n == NULL || *n) && i < end;
+            i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
@@ -307,13 +395,15 @@ static void CT_items(
         ct_node_t * nd;
         len += sz + 1;
 
-        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 128; i++)
+        for (   uint_fast16_t i = 0, end = node->n * 32;
+                (pn == NULL || *pn) && i < end;
+                i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
                 continue;
             }
-            *(buffer + len - 1) = (char) i;
+            *(buffer + len - 1) = (char) (i + node->offset * 32);
             CT_items(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
@@ -343,7 +433,9 @@ static void CT_values(
     {
         ct_node_t * nd;
 
-        for (uint_fast16_t i = 0; (pn == NULL || *pn) && i < 128; i++)
+        for (   uint_fast16_t i = 0, end = node->n * 32;
+                (pn == NULL || *pn) && i < end;
+                i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
@@ -384,13 +476,13 @@ static int CT_add(
                 return CT_OK;
             }
 
+            uint8_t k = (uint8_t) *key;
+
             if (node->nodes == NULL)
             {
-                node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-                if (node->nodes == NULL)
+                if (CT_node_resize(node, k / 32))
                 {
-                    ERR_ALLOC
-                    return CT_ERR;
+                    return CT_ERR;  /* signal is raised */
                 }
 
                 ct_node_t * nd = CT_new_node(key + 1, data);
@@ -400,12 +492,17 @@ static int CT_add(
                 }
 
                 node->size = 1;
-                (*node->nodes)[(uint_fast8_t) *key] = nd;
+                (*node->nodes)[k - node->offset * 32 ] = nd;
 
                 return CT_OK;
             }
 
-            ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
+            if (CT_node_resize(node, k / 32))
+            {
+                return CT_ERR;  /* signal is raised */
+            }
+
+            ct_node_t ** nd = &(*node->nodes)[k - node->offset * 32];
 
             if (*nd != NULL)
             {
@@ -424,6 +521,7 @@ static int CT_add(
         if (*key != *pt)
         {
             char * tmp;
+            uint8_t k = (uint8_t) *pt;
 
             /* create new nodes */
             ct_nodes_t * new_nodes =
@@ -435,7 +533,7 @@ static int CT_add(
             }
 
             /* create new nodes with rest of node pt */
-            ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
+            ct_node_t * nd = (*new_nodes)[k % 32] =
                     CT_new_node(pt + 1, node->data);
             if (nd == NULL)
             {
@@ -445,9 +543,13 @@ static int CT_add(
             /* bind the -rest- of current node to the new nodes */
             nd->nodes = node->nodes;
             nd->size = node->size;
+            nd->offset = node->offset;
+            nd->n = node->n;
 
             /* the current nodes should become the new nodes */
             node->nodes = new_nodes;
+            node->offset = k / 32;
+            node->n = 1;
 
             if (*key == 0)
             {
@@ -460,14 +562,22 @@ static int CT_add(
                 /* we have more, make sure data for this node is NULL and
                  * add rest of our key to the nodes.
                  */
+                k = (uint8_t) *key;
+
+                if (CT_node_resize(node, k / 32))
+                {
+                    return CT_ERR;  /* signal is raised */
+                }
+
                 nd = CT_new_node(key + 1, data);
                 if (nd == NULL)
                 {
                     return CT_ERR;
                 }
+
                 node->size = 2;
                 node->data = NULL;
-                (*new_nodes)[(uint_fast8_t) *key] = nd;
+                (*node->nodes)[k - node->offset * 32] = nd;
             }
 
             /* write terminator */
@@ -510,8 +620,8 @@ static void * CT_get(ct_node_t * node, const char * key)
             {
                 return NULL;
             }
-
-            ct_node_t * nd = (*node->nodes)[(uint_fast8_t) *key];
+            uint8_t k = (uint8_t) *key;
+            ct_node_t * nd = (*node->nodes)[k - node->offset * 32];
 
             return (nd == NULL) ? NULL : CT_get(nd, key + 1);
         }
@@ -547,22 +657,28 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
                 return &node->data;
             }
 
+            uint8_t k = (uint8_t) *key;
+
             if (node->nodes == NULL)
             {
                 node->size = 1;
-                node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-                if (node->nodes == NULL)
+
+                if (CT_node_resize(node, k / 32))
                 {
-                    ERR_ALLOC
-                    return NULL;
+                    return NULL;  /* signal is raised */
                 }
 
                 ct_node_t * nd = CT_new_node(key + 1, CT_EMPTY);
                 return (nd == NULL) ? NULL :
-                        &((*node->nodes)[(uint_fast8_t) *key] = nd)->data;
+                        &((*node->nodes)[k - node->offset * 32] = nd)->data;
             }
 
-            ct_node_t ** nd = &(*node->nodes)[(uint_fast8_t) *key];
+            if (CT_node_resize(node, k / 32))
+            {
+                return NULL;  /* signal is raised */
+            }
+
+            ct_node_t ** nd = &(*node->nodes)[k - node->offset * 32];
 
             if (*nd != NULL)
             {
@@ -583,6 +699,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
         if (*key != *pt)
         {
             char * tmp;
+            uint8_t k = (uint8_t) *pt;
 
             /* create new nodes */
             ct_nodes_t * new_nodes =
@@ -594,7 +711,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             }
 
             /* bind the -rest- of current node to the new nodes */
-            ct_node_t * nd = (*new_nodes)[(uint_fast8_t) *pt] =
+            ct_node_t * nd = (*new_nodes)[k % 32] =
                     CT_new_node(pt + 1, node->data);
             if (nd == NULL)
             {
@@ -603,12 +720,23 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             nd->size = node->size;
             nd->nodes = node->nodes;
+            nd->offset = node->offset;
+            nd->n = node->n;
 
             /* the current nodes should become the new nodes */
             node->nodes = new_nodes;
+            node->offset = k / 32;
+            node->n = 1;
 
             /* write terminator */
             *pt = 0;
+
+            k = (uint8_t) *key;
+
+            if (CT_node_resize(node, k / 32))
+            {
+                return NULL;  /* signal is raised */
+            }
 
             /* re-allocate the key to free some space */
             tmp = (char *) realloc(node->key, pt - node->key + 1);
@@ -631,7 +759,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             nd = CT_new_node(key + 1, CT_EMPTY);
             return (nd == NULL) ?
-                    NULL : &((*new_nodes)[(uint_fast8_t) *key] = nd)->data;
+                    NULL : &((*node->nodes)[k - node->offset * 32] = nd)->data;
         }
     }
 
@@ -654,13 +782,13 @@ static void CT_merge_node(ct_node_t * node)
     assert(node->size == 1 && node->data == NULL);
 #endif
 
-    int i;
     size_t len_key = strlen(node->key);
     size_t len_child_key;
     ct_node_t * child_node;
     char * tmp;
+    uint_fast16_t i, end;
 
-    for (i = 0; i < 128; i++)
+    for (i = 0, end = node->n * 32; i < end; i++)
     {
         if ((*node->nodes)[i] != NULL)
         {
@@ -693,9 +821,11 @@ static void CT_merge_node(ct_node_t * node)
      * needs cleaning */
     free(node->nodes);
 
-    /* bind child nodes and size to current node */
+    /* bind child nodes properties to the current node */
     node->nodes = child_node->nodes;
     node->size = child_node->size;
+    node->offset = child_node->offset;
+    node->n = child_node->n;
 
     /* free child key */
     free(child_node->key);
@@ -782,7 +912,8 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
                 return NULL;
             }
 
-            ct_node_t ** next = &(*node->nodes)[(uint_fast8_t) *key];
+            uint8_t k = (uint8_t) *key;
+            ct_node_t ** next = &(*node->nodes)[k - node->offset * 32];
 
             return (*next == NULL) ? NULL : CT_pop(node, next, key + 1);
         }
@@ -811,6 +942,8 @@ static ct_node_t * CT_new_node(const char * key, void * data)
     {
         node->data = data;
         node->size = 0;
+        node->offset = 255;
+        node->n = 0;
         node->nodes = NULL;
         if ((node->key = strdup(key)) == NULL)
         {
@@ -830,7 +963,7 @@ static void CT_free(ct_node_t * node, ct_free_cb cb)
 {
     if (node->nodes != NULL)
     {
-        for (uint_fast16_t i = 0; i < 128; i++)
+        for (uint_fast16_t i = 0, end = node->n * 32; i < end; i++)
         {
             if ((*node->nodes)[i] != NULL)
             {
