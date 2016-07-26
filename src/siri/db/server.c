@@ -441,6 +441,9 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     siridb_server_t * server = ssocket->origin;
     sirinet_promise_t * promise = imap64_pop(server->promises, pkg->pid);
 
+    log_debug("Response received (pid: %lu, len: %lu, tp: %u) from '%s'",
+            pkg->pid, pkg->len, pkg->tp, server->name);
+
     if (promise == NULL)
     {
         log_warning(
