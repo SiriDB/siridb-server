@@ -20,6 +20,7 @@
 #include <siri/db/shard.h>
 #include <siri/siri.h>
 #include <xpath/xpath.h>
+#include <siri/err.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
@@ -326,6 +327,35 @@ int siridb_series_add_idx_num32(
     }
 
     return 0;
+}
+
+/* */
+void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
+{
+    /* remove series from map */
+    imap32_pop(siridb->series_map, series->id);
+
+    /* remove series from tree */
+    ct_pop(siridb->series, series->name);
+
+    series->flags |= SIRIDB_SERIES_IS_DROPPED;
+}
+
+int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
+{
+    int rc = 0;
+
+    /* we are sure the file pointer is at the end of file */
+    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+    {
+        log_critical("Cannot write %d to dropped cache file.", series->id);
+        rc = -1;
+    };
+
+    /* decrement reference to series */
+    siridb_series_decref(series);
+
+    return rc;
 }
 
 /*

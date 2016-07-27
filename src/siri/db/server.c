@@ -20,6 +20,7 @@
 #include <string.h>
 #include <siri/version.h>
 #include <procinfo/procinfo.h>
+#include <siri/err.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -73,6 +74,7 @@ siridb_server_t * siridb_server_new(
     server->port = port;
     server->pool = pool;
     server->flags = 0;
+    server->id = 255;
     server->ref = 0;
     server->pid = 0;
     server->version = NULL;

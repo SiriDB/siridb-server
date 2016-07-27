@@ -31,6 +31,7 @@
 
 #define SERVER__IS_ONLINE 33  // RUNNING + AUTHENTICATED
 #define SERVER__IS_SYNCHRONIZING 37  // RUNNING + SYNCHRONIZING + AUTHENTICATED
+#define SERVER__IS_REINDEXING 41  // RUNNING + REINDEXING + AUTHENTICATED
 
 /*
  * A server is  'connected' when at least connected.
@@ -53,6 +54,9 @@
 #define siridb_server_is_synchronizing(server) \
     (server->flags == SERVER__IS_SYNCHRONIZING)
 
+#define siridb_server_is_reindexing(server) \
+    (server->flags == SERVER__IS_REINDEXING)
+
 
 typedef struct siridb_s siridb_t;
 typedef struct sirinet_promise_s sirinet_promise_t;
@@ -70,6 +74,7 @@ typedef struct siridb_server_s
     uint16_t pool;
     uint16_t ref;
     uint8_t flags; /* do not use flags above 16384 */
+    uint8_t id; /* set when added to a pool to either 0 or 1 */
     imap64_t * promises;
     uv_tcp_t * socket;
     uint64_t pid;

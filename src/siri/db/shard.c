@@ -489,16 +489,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         /* its possible that another database is paused, but we wait anyway */
         if (siri.optimize->pause)
         {
-            log_info("Optimize task is paused, wait until we can continue...");
-            sleep(5);
-
-            while (siri.optimize->pause)
-            {
-                log_debug("Optimize task is paused, wait for 5 seconds...");
-                sleep(5);
-            }
-
-            log_info("Continue optimize task...");
+            siri_optimize_wait();
         }
 
         series = slist->data[i];

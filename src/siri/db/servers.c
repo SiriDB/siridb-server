@@ -406,7 +406,7 @@ void siridb_servers_send_flags(llist_t * servers)
         server = node->data;
         /*
          * The AUTHENTICATED flag is never set on 'this' server and therefore
-         * skipped as should.
+         * 'this' server will be skipped as should.
          */
         if (siridb_server_is_online(server))
         {
@@ -439,7 +439,7 @@ int siridb_servers_online(siridb_t * siridb)
 
 /*
  * Returns 1 (true) if all servers are available, 0 (false)
- * if at least one server is available. ('this' server is NOT included)
+ * if at least one server is unavailable. ('this' server is NOT included)
  *
  * A server is  'available' when and ONLY when connected and authenticated.
  */

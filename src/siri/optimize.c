@@ -72,6 +72,10 @@ void siri_optimize_stop(siri_t * siri)
 inline void siri_optimize_pause(void)
 {
     optimize.pause++;
+    if (optimize.status == SIRI_OPTIMIZE_PENDING)
+    {
+        optimize.status = SIRI_OPTIMIZE_PAUSED_MAIN;
+    }
 }
 
 /*
@@ -83,7 +87,54 @@ inline void siri_optimize_continue(void)
 #ifdef DEBUG
     assert (optimize.pause);
 #endif
-    optimize.pause--;
+    if (!--optimize.pause && optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
+    {
+        log_debug("Optimize task was paused by the main thread, continue...");
+        optimize.status = SIRI_OPTIMIZE_PENDING;
+    }
+}
+
+/*
+ * This function should only be called from the optimize thread and waits
+ * if the optimize task is paused. The optimize status after the pause is
+ * returned.
+ */
+int siri_optimize_wait(void)
+{
+    /* its possible that another database is paused, but we wait anyway */
+    if (optimize.pause)
+    {
+#ifdef DEBUG
+        assert (optimize.status == SIRI_OPTIMIZE_RUNNING);
+#endif
+        optimize.status = SIRI_OPTIMIZE_PAUSED;
+        log_info("Optimize task is paused, wait until we can continue...");
+        sleep(5);
+
+        while (optimize.pause)
+        {
+            log_debug("Optimize task is still paused, wait for 5 seconds...");
+            sleep(5);
+        }
+
+        switch (optimize.status)
+        {
+        case SIRI_OPTIMIZE_PAUSED:
+            log_info("Continue optimize task...");
+            optimize.status = SIRI_OPTIMIZE_RUNNING;
+            break;
+
+        case SIRI_OPTIMIZE_CANCELLED:
+            log_info("Optimize task is cancelled.");
+            break;
+
+        default:
+            assert (0);
+            break;
+        }
+
+    }
+    return optimize.status;
 }
 
 static void OPTIMIZE_work(uv_work_t * work)
@@ -98,6 +149,11 @@ static void OPTIMIZE_work(uv_work_t * work)
     siridb_shard_t * shard;
 
     log_info("Start optimize task");
+
+    if (siri_optimize_wait() == SIRI_OPTIMIZE_CANCELLED)
+    {
+        return;
+    }
 
     uv_mutex_lock(&siri.siridb_mutex);
 
@@ -178,9 +234,8 @@ static void OPTIMIZE_work(uv_work_t * work)
 
         slist_free(slshards);
 
-        if (optimize.status == SIRI_OPTIMIZE_CANCELLED)
+        if (siri_optimize_wait() == SIRI_OPTIMIZE_CANCELLED)
         {
-            log_info("Optimize task is cancelled.");
             break;
         }
 #ifdef DEBUG
@@ -231,6 +286,7 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
                 optimize.status);
         return;
     }
+
     /* set status to RUNNING */
     optimize.status = SIRI_OPTIMIZE_RUNNING;
 

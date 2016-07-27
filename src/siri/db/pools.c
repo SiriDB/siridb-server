@@ -74,6 +74,8 @@ void siridb_pools_init(siridb_t * siridb)
     /* signal can be raised if creating a fifo buffer fails */
     llist_walk(siridb->servers, (llist_cb) POOLS_arrange, siridb);
 
+    siridb->pools->prev_lookup = NULL;
+
     /* generate pool lookup for series */
     siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);
     if (siridb->pools->lookup == NULL)
@@ -91,6 +93,7 @@ void siridb_pools_free(siridb_pools_t * pools)
 {
     free(pools->pool);
     free(pools->lookup);
+    free(pools->prev_lookup);
     free(pools);
 }
 

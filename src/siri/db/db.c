@@ -29,7 +29,7 @@
 #include <siri/siri.h>
 #include <xpath/xpath.h>
 #include <lock/lock.h>
-
+#include <siri/err.h>
 
 #define SIRIDB_SHEMA 1
 
@@ -489,6 +489,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->dbname = NULL;
                     siridb->dbpath = NULL;
                     siridb->ref = 1;
+                    siridb->flags = 0;
                     siridb->buffer_path = NULL;
                     siridb->time = NULL;
                     siridb->users = NULL;
@@ -562,6 +563,11 @@ static void SIRIDB_free(siridb_t * siridb)
     if (siridb->replicate != NULL)
     {
         siridb_replicate_free(&siridb->replicate);
+    }
+
+    if (siridb->reindex != NULL)
+    {
+        siridb_reindex_free(&siridb->reindex);
     }
 
     /* free fifo (in case we have a replica) */

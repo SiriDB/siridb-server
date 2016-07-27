@@ -120,6 +120,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
     {
         /* this is the first server found for this pool */
         pool->server[0] = server;
+        pool->server[0]->id = 0;
     }
     else
     {
@@ -131,6 +132,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
         if (siridb_server_cmp(pool->server[0], server) < 0)
         {
             pool->server[1] = server;
+            pool->server[1]->id = 1;
         }
         else
         {
@@ -139,6 +141,10 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
 #endif
             pool->server[1] = pool->server[0];
             pool->server[0] = server;
+
+            /* set server ids */
+            pool->server[0]->id = 0;
+            pool->server[1]->id = 1;
         }
     }
 }

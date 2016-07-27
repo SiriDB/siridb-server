@@ -31,8 +31,9 @@ typedef void (* sirinet_promises_cb)(
 typedef struct siridb_pools_s
 {
     uint16_t len;
-    siridb_lookup_t * lookup;
     siridb_pool_t * pool;
+    siridb_lookup_t * lookup;
+    siridb_lookup_t * prev_lookup;
 } siridb_pools_t;
 
 void siridb_pools_init(siridb_t * siridb);

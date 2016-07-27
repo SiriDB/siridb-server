@@ -23,6 +23,7 @@
 
 #define INITSYNC_SLEEP 100          // 100 milliseconds
 #define INITSYNC_TIMEOUT 60000      // 1 minute
+#define INITSYNC_RETRY 30000        // 30 seconds
 #define INITSYC_FN ".initsync"
 
 void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype);
@@ -32,6 +33,7 @@ static void INITSYNC_next_series_id(siridb_t * siridb);
 static int INITSYNC_unlink(siridb_initsync_t * initsync);
 inline static int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync);
 static void INITSYNC_pause(siridb_replicate_t * replicate);
+static void INITSYNC_send(uv_timer_t * timer);
 static void INITSYNC_on_insert_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -60,7 +62,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
         initsync->fn = NULL;
         initsync->fp = NULL;
         initsync->next_series_id = NULL;
-        initsync->series = NULL;
+        initsync->pkg = NULL;
 
         if (INITSYNC_fn(siridb, initsync) < 0)
         {
@@ -165,6 +167,7 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
     }
     free((*initsync)->fn);
     free((*initsync)->next_series_id);
+    free((*initsync)->pkg);
     free(*initsync);
     *initsync = NULL;
 }
@@ -174,9 +177,17 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
  */
 inline void siridb_initsync_run(uv_timer_t * timer)
 {
-    uv_timer_start(timer, INITSYNC_work, INITSYNC_SLEEP, 0);
+    uv_timer_start(
+            timer,
+            (((siridb_t *) timer->data)->replicate->initsync->pkg == NULL) ?
+                    INITSYNC_work : INITSYNC_send,
+            INITSYNC_SLEEP,
+            0);
 }
 
+/*
+ * Returns a human readable synchronization progress status
+ */
 const char * siridb_initsync_sync_progress(siridb_t * siridb)
 {
     if (siridb->replica == NULL || siridb->replicate->initsync == NULL)
@@ -236,6 +247,10 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
     assert (initsync->size == fseek(initsync->fp, 0, SEEK_END);
 #endif
 
+    /* free the current package (can be NULL already) */
+    free(initsync->pkg);
+    initsync->pkg = NULL;
+
     if (initsync->size >= SIZE2)
     {
         initsync->size -= sizeof(uint32_t);
@@ -293,6 +308,40 @@ static void INITSYNC_pause(siridb_replicate_t * replicate)
     replicate->status = REPLICATE_PAUSED;
 }
 
+static void INITSYNC_send(uv_timer_t * timer)
+{
+    siridb_t * siridb = (siridb_t *) timer->data;
+
+    if (siridb->replicate->status == REPLICATE_STOPPING)
+    {
+        INITSYNC_pause(siridb->replicate);
+    }
+    else
+    {
+        if (siridb_server_is_synchronizing(siridb->replica))
+        {
+            siridb_server_send_pkg(
+                    siridb->replica,
+                    siridb->replicate->initsync->pkg,
+                    INITSYNC_TIMEOUT,
+                    INITSYNC_on_insert_response,
+                    siridb);
+        }
+        else
+        {
+            log_info("Cannot send initial replica package to '%s' "
+                    "(try again in %d seconds)",
+                    siridb->replica->name,
+                    INITSYNC_RETRY / 1000);
+            uv_timer_start(
+                    siridb->replicate->timer,
+                    INITSYNC_send,
+                    INITSYNC_RETRY,
+                    0);
+        }
+    }
+}
+
 static void INITSYNC_work(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
@@ -301,34 +350,20 @@ static void INITSYNC_work(uv_timer_t * timer)
             siridb->replicate->status == REPLICATE_STOPPING);
     assert (siridb->replicate->initsync != NULL);
     assert (siridb->replicate->initsync->fp != NULL);
+    assert (siridb->replicate->initsync->pkg == NULL);
 #endif
 
-    if (!siridb_server_is_synchronizing(siridb->replica))
-    {
-        if (siridb->replicate->status == REPLICATE_STOPPING)
-        {
-            INITSYNC_pause(siridb->replicate);
-        }
-        else
-        {
-            siridb->replicate->status = REPLICATE_IDLE;
-        }
-        return;
-    }
-
     siridb_initsync_t * initsync = siridb->replicate->initsync;
-    sirinet_pkg_t * pkg;
+    siridb_series_t * series;
 
-    initsync->series = imap32_get(siridb->series_map, *initsync->next_series_id);
+    series = imap32_get(siridb->series_map, *initsync->next_series_id);
 
-    if (initsync->series != NULL)
+    if (series != NULL)
     {
-        siridb_series_incref(initsync->series);
-
         uv_mutex_lock(&siridb->series_mutex);
 
         siridb_points_t * points = siridb_series_get_points_num32(
-                initsync->series,
+                series,
                 NULL,
                 NULL);
 
@@ -340,25 +375,22 @@ static void INITSYNC_work(uv_timer_t * timer)
             if (packer != NULL)
             {
                 qp_add_type(packer, QP_MAP1);
-                qp_add_string_term(packer, initsync->series->name);
+                qp_add_string_term(packer, series->name);
 
                 if (siridb_points_pack(points, packer) == 0)
                 {
-                    initsync->series->flags &= ~SIRIDB_SERIES_INIT_REPL;
+                    series->flags &= ~SIRIDB_SERIES_INIT_REPL;
 
-                    pkg = sirinet_packer2pkg(
+                    initsync->pkg = sirinet_packer2pkg(
                             packer,
                             0,
                             BPROTO_INSERT_SERVER);
 
-                    siridb_server_send_pkg(
-                            siridb->replica,
-                            pkg,
-                            INITSYNC_TIMEOUT,
-                            INITSYNC_on_insert_response,
-                            siridb);
-
-                    free(pkg);
+                    uv_timer_start(
+                            siridb->replicate->timer,
+                            INITSYNC_send,
+                            0,
+                            0);
 
                 }
                 else
@@ -384,7 +416,7 @@ static void INITSYNC_on_insert_response(
         int status)
 {
     siridb_t * siridb = (siridb_t *) promise->data;
-    siridb_series_t * series = siridb->replicate->initsync->series;
+    sirinet_pkg_t * package = siridb->replicate->initsync->pkg;
 
     switch ((sirinet_promise_status_t) status)
     {
@@ -392,16 +424,11 @@ static void INITSYNC_on_insert_response(
         /*
          * Write to socket error, data is not send so we should not commit.
          */
-        series->flags |= SIRIDB_SERIES_INIT_REPL;
-
-        if (siridb->replicate->status == REPLICATE_STOPPING)
-        {
-            INITSYNC_pause(siridb->replicate);
-        }
-        else
-        {
-            siridb_initsync_run(siridb->replicate->timer);
-        }
+        uv_timer_start(
+                siridb->replicate->timer,
+                INITSYNC_send,
+                INITSYNC_RETRY,
+                0);
         break;
     case PROMISE_TIMEOUT_ERROR:
         /*
@@ -420,6 +447,7 @@ static void INITSYNC_on_insert_response(
          */
         log_error("Error occurred while sending series to the replica (%d)",
                 status);
+        /* TODO: maybe write pkg to an error queue ? */
         INITSYNC_next_series_id(siridb);
         break;
     case PROMISE_SUCCESS:
@@ -428,16 +456,14 @@ static void INITSYNC_on_insert_response(
             log_error(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
+            /* TODO: maybe write pkg to an error queue ? */
         }
-
         INITSYNC_next_series_id(siridb);
         break;
     default:
         assert (0);
         break;
     }
-
-    siridb_series_decref(series);
     free(promise);
 }
 

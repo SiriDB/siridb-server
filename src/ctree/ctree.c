@@ -20,6 +20,7 @@
 
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUFFER_ALLOC_SIZE 128
+#define BLOCKSZ 32
 
 static ct_node_t * CT_node_new(const char * key, void * data);
 static int CT_node_resize(ct_node_t * node, uint8_t pos);
@@ -78,7 +79,7 @@ void ct_free(ct_t * ct, ct_free_cb cb)
 {
     if (ct->nodes != NULL)
     {
-        for (uint_fast16_t i = 0, end = ct->n * 32; i < end; i++)
+        for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
         {
             if ((*ct->nodes)[i] != NULL)
             {
@@ -110,12 +111,12 @@ void ** ct_get_sure(ct_t * ct, const char * key)
     void ** data = NULL;
     uint8_t k = (uint8_t) *key;
 
-    if (CT_node_resize((ct_node_t *) ct, k / 32))
+    if (CT_node_resize((ct_node_t *) ct, k / BLOCKSZ))
     {
         return NULL;  /* signal is raised */
     }
 
-    nd = &(*ct->nodes)[k - ct->offset * 32];
+    nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
 
     if (*nd != NULL)
     {
@@ -150,12 +151,12 @@ int ct_add(ct_t * ct, const char * key, void * data)
     ct_node_t ** nd;
     uint8_t k = (uint8_t) *key;
 
-    if (CT_node_resize((ct_node_t *) ct, k / 32))
+    if (CT_node_resize((ct_node_t *) ct, k / BLOCKSZ))
     {
         return CT_ERR;
     }
 
-    nd = &(*ct->nodes)[k - ct->offset * 32];
+    nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
 
     if (*nd != NULL)
     {
@@ -188,13 +189,13 @@ void * ct_get(ct_t * ct, const char * key)
 {
     ct_node_t * nd;
     uint8_t k = (uint8_t) *key;
-    uint8_t pos = k / 32;
+    uint8_t pos = k / BLOCKSZ;
 
     if (pos < ct->offset || pos >= ct->offset + ct->n)
     {
         return NULL;
     }
-    nd = (*ct->nodes)[k - ct->offset * 32];
+    nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
 
     return (nd == NULL) ? NULL : CT_get(nd, key + 1);
 }
@@ -210,7 +211,7 @@ void * ct_pop(ct_t * ct, const char * key)
     void * data;
     uint8_t k = (uint8_t) *key;
 
-    nd = &(*ct->nodes)[k - ct->offset * 32];
+    nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
 
     if (*nd == NULL)
     {
@@ -257,7 +258,7 @@ void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
     ct_node_t * nd;
     char * buffer = (char *) malloc(buffer_sz);
 
-    for (   uint_fast16_t i = 0, end = ct->n * 32;
+    for (   uint_fast16_t i = 0, end = ct->n * BLOCKSZ;
             (n == NULL || *n) && i < end;
             i++)
     {
@@ -265,7 +266,7 @@ void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
         {
             continue;
         }
-        *buffer = (char) (i + ct->offset * 32);
+        *buffer = (char) (i + ct->offset * BLOCKSZ);
         CT_items(nd, n, len, buffer_sz, buffer, cb, args);
     }
     free(buffer);
@@ -281,7 +282,7 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
 
-    for (   uint_fast16_t i = 0, end = ct->n * 32;
+    for (   uint_fast16_t i = 0, end = ct->n * BLOCKSZ;
             (n == NULL || *n) && i < end;
             i++)
     {
@@ -332,7 +333,7 @@ static void CT_items(
         ct_node_t * nd;
         len += sz + 1;
 
-        for (   uint_fast16_t i = 0, end = node->n * 32;
+        for (   uint_fast16_t i = 0, end = node->n * BLOCKSZ;
                 (pn == NULL || *pn) && i < end;
                 i++)
         {
@@ -340,7 +341,7 @@ static void CT_items(
             {
                 continue;
             }
-            *(buffer + len - 1) = (char) (i + node->offset * 32);
+            *(buffer + len - 1) = (char) (i + node->offset * BLOCKSZ);
             CT_items(nd, pn, len, buffer_sz, buffer, cb, args);
         }
     }
@@ -370,7 +371,7 @@ static void CT_values(
     {
         ct_node_t * nd;
 
-        for (   uint_fast16_t i = 0, end = node->n * 32;
+        for (   uint_fast16_t i = 0, end = node->n * BLOCKSZ;
                 (pn == NULL || *pn) && i < end;
                 i++)
         {
@@ -417,7 +418,7 @@ static int CT_add(
 
             if (node->nodes == NULL)
             {
-                if (CT_node_resize(node, k / 32))
+                if (CT_node_resize(node, k / BLOCKSZ))
                 {
                     return CT_ERR;  /* signal is raised */
                 }
@@ -429,17 +430,17 @@ static int CT_add(
                 }
 
                 node->size = 1;
-                (*node->nodes)[k - node->offset * 32 ] = nd;
+                (*node->nodes)[k - node->offset * BLOCKSZ ] = nd;
 
                 return CT_OK;
             }
 
-            if (CT_node_resize(node, k / 32))
+            if (CT_node_resize(node, k / BLOCKSZ))
             {
                 return CT_ERR;  /* signal is raised */
             }
 
-            ct_node_t ** nd = &(*node->nodes)[k - node->offset * 32];
+            ct_node_t ** nd = &(*node->nodes)[k - node->offset * BLOCKSZ];
 
             if (*nd != NULL)
             {
@@ -470,7 +471,7 @@ static int CT_add(
             }
 
             /* create new nodes with rest of node pt */
-            ct_node_t * nd = (*new_nodes)[k % 32] =
+            ct_node_t * nd = (*new_nodes)[k % BLOCKSZ] =
                     CT_node_new(pt + 1, node->data);
             if (nd == NULL)
             {
@@ -485,7 +486,7 @@ static int CT_add(
 
             /* the current nodes should become the new nodes */
             node->nodes = new_nodes;
-            node->offset = k / 32;
+            node->offset = k / BLOCKSZ;
             node->n = 1;
 
             if (*key == 0)
@@ -501,7 +502,7 @@ static int CT_add(
                  */
                 k = (uint8_t) *key;
 
-                if (CT_node_resize(node, k / 32))
+                if (CT_node_resize(node, k / BLOCKSZ))
                 {
                     return CT_ERR;  /* signal is raised */
                 }
@@ -514,7 +515,7 @@ static int CT_add(
 
                 node->size = 2;
                 node->data = NULL;
-                (*node->nodes)[k - node->offset * 32] = nd;
+                (*node->nodes)[k - node->offset * BLOCKSZ] = nd;
             }
 
             /* write terminator */
@@ -558,14 +559,14 @@ static void * CT_get(ct_node_t * node, const char * key)
                 return NULL;
             }
             uint8_t k = (uint8_t) *key;
-            uint8_t pos = k / 32;
+            uint8_t pos = k / BLOCKSZ;
 
             if (pos < node->offset || pos >= node->offset + node->n)
             {
                 return NULL;
             }
 
-            ct_node_t * nd = (*node->nodes)[k - node->offset * 32];
+            ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
 
             return (nd == NULL) ? NULL : CT_get(nd, key + 1);
         }
@@ -607,22 +608,23 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             {
                 node->size = 1;
 
-                if (CT_node_resize(node, k / 32))
+                if (CT_node_resize(node, k / BLOCKSZ))
                 {
                     return NULL;  /* signal is raised */
                 }
 
                 ct_node_t * nd = CT_node_new(key + 1, CT_EMPTY);
-                return (nd == NULL) ? NULL :
-                        &((*node->nodes)[k - node->offset * 32] = nd)->data;
+                return (nd == NULL) ?
+                    NULL :
+                    &((*node->nodes)[k - node->offset * BLOCKSZ] = nd)->data;
             }
 
-            if (CT_node_resize(node, k / 32))
+            if (CT_node_resize(node, k / BLOCKSZ))
             {
                 return NULL;  /* signal is raised */
             }
 
-            ct_node_t ** nd = &(*node->nodes)[k - node->offset * 32];
+            ct_node_t ** nd = &(*node->nodes)[k - node->offset * BLOCKSZ];
 
             if (*nd != NULL)
             {
@@ -655,7 +657,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             }
 
             /* bind the -rest- of current node to the new nodes */
-            ct_node_t * nd = (*new_nodes)[k % 32] =
+            ct_node_t * nd = (*new_nodes)[k % BLOCKSZ] =
                     CT_node_new(pt + 1, node->data);
             if (nd == NULL)
             {
@@ -669,7 +671,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             /* the current nodes should become the new nodes */
             node->nodes = new_nodes;
-            node->offset = k / 32;
+            node->offset = k / BLOCKSZ;
             node->n = 1;
 
             /* write terminator */
@@ -677,7 +679,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             k = (uint8_t) *key;
 
-            if (CT_node_resize(node, k / 32))
+            if (CT_node_resize(node, k / BLOCKSZ))
             {
                 return NULL;  /* signal is raised */
             }
@@ -703,7 +705,8 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             nd = CT_node_new(key + 1, CT_EMPTY);
             return (nd == NULL) ?
-                    NULL : &((*node->nodes)[k - node->offset * 32] = nd)->data;
+                NULL :
+                &((*node->nodes)[k - node->offset * BLOCKSZ] = nd)->data;
         }
     }
 
@@ -732,7 +735,7 @@ static void CT_merge_node(ct_node_t * node)
     char * tmp;
     uint_fast16_t i, end;
 
-    for (i = 0, end = node->n * 32; i < end; i++)
+    for (i = 0, end = node->n * BLOCKSZ; i < end; i++)
     {
         if ((*node->nodes)[i] != NULL)
         {
@@ -752,7 +755,6 @@ static void CT_merge_node(ct_node_t * node)
         log_error("Re-allocation failed while merging nodes in a c-tree");
         return;
     }
-    return; // !!!!! TODO: remove this !!!!!
     node->key = tmp;
 
     /* set node char */
@@ -857,7 +859,7 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
             }
 
             uint8_t k = (uint8_t) *key;
-            ct_node_t ** next = &(*node->nodes)[k - node->offset * 32];
+            ct_node_t ** next = &(*node->nodes)[k - node->offset * BLOCKSZ];
 
             return (*next == NULL) ? NULL : CT_pop(node, next, key + 1);
         }
@@ -985,7 +987,7 @@ static void CT_free(ct_node_t * node, ct_free_cb cb)
 {
     if (node->nodes != NULL)
     {
-        for (uint_fast16_t i = 0, end = node->n * 32; i < end; i++)
+        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
             if ((*node->nodes)[i] != NULL)
             {

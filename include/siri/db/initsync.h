@@ -12,13 +12,14 @@
 #pragma once
 
 #include <stdio.h>
+#include <uv.h>
 #include <inttypes.h>
 #include <siri/db/db.h>
-#include <uv.h>
 #include <siri/db/series.h>
+#include <siri/net/pkg.h>
 
 typedef struct siridb_s siridb_t;
-typedef struct siridb_series_s siridb_series_t;
+typedef struct sirinet_pkg_s sirinet_pkg_t;
 
 typedef struct siridb_initsync_s
 {
@@ -27,7 +28,7 @@ typedef struct siridb_initsync_s
     int fd;
     long int size;
     uint32_t * next_series_id;
-    siridb_series_t * series;
+    sirinet_pkg_t * pkg;
 } siridb_initsync_t;
 
 siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new);
