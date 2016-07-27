@@ -244,6 +244,11 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     /* generate pools, this can raise a signal */
     siridb_pools_init(siridb);
 
+    if (!siri_err)
+    {
+        siridb->reindex = siridb_reindex_open(siridb, 0);
+    }
+
     siridb->start_ts = time(NULL);
 
     uv_mutex_lock(&siri.siridb_mutex);
@@ -503,6 +508,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->replica = NULL;
                     siridb->fifo = NULL;
                     siridb->replicate = NULL;
+                    siridb->reindex = NULL;
 
                     /* make file pointers are NULL when file is closed */
                     siridb->buffer_fp = NULL;

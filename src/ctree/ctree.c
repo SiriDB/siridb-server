@@ -758,7 +758,7 @@ static void CT_merge_node(ct_node_t * node)
     node->key = tmp;
 
     /* set node char */
-    node->key[len_key] = i;
+    node->key[len_key] = (char) (i + node->offset * BLOCKSZ);
 
     /* append rest of the child key */
     memcpy(node->key + len_key + 1, child_node->key, len_child_key + 1);
@@ -772,6 +772,7 @@ static void CT_merge_node(ct_node_t * node)
     node->size = child_node->size;
     node->offset = child_node->offset;
     node->n = child_node->n;
+    node->data = child_node->data;
 
     /* free child key */
     free(child_node->key);

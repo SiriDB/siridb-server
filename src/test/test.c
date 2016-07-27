@@ -185,15 +185,14 @@ static int test_ctree(void)
 
     // len should be 2 by now
     assert (ct->len == 4);
-
     assert (ct_get(ct, "Dummy") == NULL);
     assert (strcmp(ct_get(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris1"), "is gewoon Iris1") == 0);
     assert (ct_pop(ct, "Sasha") == CT_EMPTY);
     assert (strcmp(ct_get(ct, "Iris2"), "is gewoon Iris2") == 0);
-
     assert (ct->len == 1);
+
 
     ct_free(ct, NULL);
 

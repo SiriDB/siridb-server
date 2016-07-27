@@ -308,9 +308,17 @@ static void INITSYNC_pause(siridb_replicate_t * replicate)
     replicate->status = REPLICATE_PAUSED;
 }
 
+/*
+ * Type: uv_timer_cb
+ *
+ * This function sends a packed series to the replica server.
+ */
 static void INITSYNC_send(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
+#ifdef DEBUG
+    assert (siridb->replicate->initsync->pkg != NULL);
+#endif
 
     if (siridb->replicate->status == REPLICATE_STOPPING)
     {
@@ -416,7 +424,6 @@ static void INITSYNC_on_insert_response(
         int status)
 {
     siridb_t * siridb = (siridb_t *) promise->data;
-    sirinet_pkg_t * package = siridb->replicate->initsync->pkg;
 
     switch ((sirinet_promise_status_t) status)
     {

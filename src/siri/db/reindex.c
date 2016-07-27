@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <siri/optimize.h>
 #include <siri/db/servers.h>
+#include <siri/net/protocol.h>
 
 #define REINDEX_FN ".reindex"
 #define REINDEX_SLEEP 100           // 100 milliseconds
@@ -35,6 +36,8 @@ inline static int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex);
 static int REINDEX_create_cb(siridb_series_t * series, FILE * fp);
 static int REINDEX_unlink(siridb_reindex_t * reindex);
 static int REINDEX_next_series_id(siridb_reindex_t * reindex);
+static void REINDEX_next(siridb_t * siridb);
+static void REINDEX_work(uv_timer_t * timer);
 static void REINDEX_on_insert_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -104,7 +107,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                     else if (reindex->size == 0)
                     {
                         /* this is the new server, or a finished one */
-                        siridb_reindex_free(&reindex);
+                        log_debug("Nothing to replicate");
                     }
                     else
                     {
@@ -219,6 +222,7 @@ void siridb_reindex_free(siridb_reindex_t ** reindex)
     }
     free((*reindex)->fn);
     free((*reindex)->next_series_id);
+    free((*reindex)->pkg);
     free(*reindex);
     *reindex = NULL;
 }
@@ -243,25 +247,38 @@ void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype)
 }
 
 /*
- * Only call this function when the re-index flag is set and
+ * Only call this function when the re-index flag is set and the server
+ * re-index flag is not set.
+ *
+ * This task can destroy siridb->reindex when all servers are finished with
+ * re-indexing.
  */
-void siridb_reindex_update(siridb_t * siridb)
+void siridb_reindex_status_update(siridb_t * siridb)
 {
 #ifdef DEBUG
     assert (siridb->server->flags & ~SERVER_FLAG_REINDEXING);
     assert (siridb->flags & SIRIDB_FLAG_REINDEXING);
 #endif
-    if (siridb_servers_is_available(siridb))
+    if (siridb_servers_available(siridb))
     {
         siridb->flags &= ~SIRIDB_FLAG_REINDEXING;
-        log_info("Finished re-indexing database '%s'", siridb->dbname);
         REINDEX_unlink(siridb->reindex);
+        siridb_reindex_free(&siridb->reindex);
+        log_info("Finished re-indexing database '%s'", siridb->dbname);
     }
 }
 
+/*
+ * Type: uv_timer_cb
+ *
+ * This function sends a packed series to the new (pool) server.
+ */
 static void REINDEX_send(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
+#ifdef DEBUG
+    assert (siridb->reindex->pkg != NULL);
+#endif
 
     if (siridb_server_is_available(siridb->reindex->server))
     {
@@ -334,6 +351,35 @@ static int REINDEX_next_series_id(siridb_reindex_t * reindex)
     return rc;
 }
 
+/*
+ * This function can raise a SIGNAL
+ */
+static void REINDEX_next(siridb_t * siridb)
+{
+    switch (REINDEX_next_series_id(siridb->reindex))
+    {
+    case NEXT_SERIES_SET:
+        uv_timer_start(siridb->reindex->timer, REINDEX_work, REINDEX_SLEEP, 0);
+        break;
+
+    case NEXT_SERIES_END:
+        /* update and send the flags */
+        siridb->server->flags &= ~SERVER_FLAG_REINDEXING;
+        siridb_servers_send_flags(siridb->servers);
+
+        log_info("Re-indexing has successfully finished on '%s'",
+                siridb->server->name);
+
+        siridb_reindex_status_update(siridb);
+
+        siri_optimize_continue();
+        break;
+
+    case NEXT_SERIES_ERR:
+        break; /* signal is raised */
+    }
+}
+
 static void REINDEX_work(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
@@ -342,42 +388,18 @@ static void REINDEX_work(uv_timer_t * timer)
 #ifdef DEBUG
     assert (SIRI_OPTIMZE_IS_PAUSED);
     assert (reindex != NULL);
+    assert (siridb->reindex->pkg != NULL);
 #endif
 
-    uint16_t pool;
     siridb_series_t * series =
             imap32_get(siridb->series_map, *reindex->next_series_id);
 
     if (    series == NULL ||
-            (pool = siridb_pool_sn(
-                    series->name)) == siridb->server->pool ||
+            siridb_pool_sn(siridb, series->name) == siridb->server->pool ||
             (   siridb->replica != NULL &&
                 (series->mask & 1) == siridb->server->id))
     {
-        switch (REINDEX_next_series_id(reindex))
-        {
-        case NEXT_SERIES_SET:
-            uv_timer_start(reindex->timer, REINDEX_work, REINDEX_SLEEP, 0);
-            break;
-        case NEXT_SERIES_END:
-
-            siridb_reindex_free(&reindex);
-
-            /* update and send the flags */
-            siridb->server->flags &= ~SERVER_FLAG_REINDEXING;
-            siridb_servers_send_flags(siridb->servers);
-
-            log_info("Re-indexing has successfully finished on '%s'",
-                    siridb->server->name);
-
-            siridb_reindex_update(siridb);
-
-            siri_optimize_continue();
-            break;
-        case NEXT_SERIES_ERR:
-            break; /* signal is raised */
-        }
-
+        REINDEX_next(siridb);
     }
     else
     {
@@ -460,7 +482,7 @@ static void REINDEX_on_insert_response(
          */
         log_error("Error occurred while sending series to the replica (%d)",
                 status);
-        REINDEX_next_series_id(siridb);
+        REINDEX_next(siridb);
         break;
     case PROMISE_SUCCESS:
         if (sirinet_protocol_is_error(pkg->tp))
@@ -469,8 +491,7 @@ static void REINDEX_on_insert_response(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
         }
-
-        REINDEX_next_series_id(siridb);
+        REINDEX_next(siridb);
         break;
     default:
         assert (0);

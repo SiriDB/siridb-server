@@ -36,3 +36,5 @@ typedef struct siridb_reindex_s
 siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new);
 void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype);
 void siridb_reindex_free(siridb_reindex_t ** reindex);
+void siridb_reindex_status_update(siridb_t * siridb);
+void siridb_reindex_close(siridb_reindex_t * reindex);
