@@ -540,7 +540,7 @@ int qp_add_int8(qp_packer_t * packer, int8_t integer)
     {
         packer->buffer[packer->len++] = integer;
     }
-    else if (integer > -64 && integer < 0)
+    else if (integer >= -61 && integer < 0)
     {
         packer->buffer[packer->len++] = 63 - integer;
     }

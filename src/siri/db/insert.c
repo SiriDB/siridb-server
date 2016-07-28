@@ -23,6 +23,7 @@
 #include <siri/net/promises.h>
 #include <siri/async.h>
 #include <siri/err.h>
+#include <siri/db/replicate.h>
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
@@ -437,7 +438,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 
                 if (pkg != NULL)
                 {
-                    siridb_fifo_append(siridb->fifo, pkg);
+                    siridb_replicate_pkg(siridb, pkg);
                     free(pkg);
                 }
             }

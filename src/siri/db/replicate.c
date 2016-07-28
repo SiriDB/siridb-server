@@ -114,6 +114,20 @@ void siridb_replicate_free(siridb_replicate_t ** replicate)
 }
 
 /*
+ * Returns 0 if successful or anything else if not.
+ * (signal is set in case of an error)
+ */
+int siridb_replicate_pkg(siridb_t * siridb, sirinet_pkg_t * pkg)
+{
+    int rc = siridb_fifo_append(siridb->fifo, pkg);
+    if (!rc && siridb_replicate_is_idle(siridb->replicate))
+    {
+        siridb_replicate_start(siridb->replicate);
+    }
+    return rc;
+}
+
+/*
  * Start replicate task. Only call this function when status is 'idle'.
  * Idle status can be checked using 'siridb_replicate_is_idle(replicate)'
  */

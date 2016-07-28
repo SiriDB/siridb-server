@@ -9,31 +9,31 @@
  *  - initial version, 10-03-2016
  *
  */
-#include <siri/parser/listener.h>
-#include <siri/parser/walkers.h>
-#include <siri/parser/queries.h>
+#include <assert.h>
+#include <cexpr/cexpr.h>
+#include <inttypes.h>
 #include <logger/logger.h>
-#include <siri/siri.h>
+#include <math.h>
+#include <qpack/qpack.h>
+#include <siri/async.h>
+#include <siri/db/nodes.h>
+#include <siri/db/props.h>
 #include <siri/db/query.h>
 #include <siri/db/series.h>
-#include <siri/db/props.h>
-#include <siri/db/shard.h>
-#include <siri/net/protocol.h>
 #include <siri/db/servers.h>
-#include <inttypes.h>
-#include <sys/time.h>
-#include <qpack/qpack.h>
+#include <siri/db/shard.h>
 #include <siri/db/user.h>
 #include <siri/db/users.h>
-#include <strextra/strextra.h>
-#include <assert.h>
-#include <math.h>
-#include <siri/db/nodes.h>
-#include <cexpr/cexpr.h>
-#include <siri/net/socket.h>
-#include <siri/net/promises.h>
 #include <siri/err.h>
-#include <siri/async.h>
+#include <siri/net/promises.h>
+#include <siri/net/protocol.h>
+#include <siri/net/socket.h>
+#include <siri/parser/listener.h>
+#include <siri/parser/queries.h>
+#include <siri/parser/walkers.h>
+#include <siri/siri.h>
+#include <strextra/strextra.h>
+#include <sys/time.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 8

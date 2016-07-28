@@ -23,6 +23,7 @@
 #include <siri/db/insert.h>
 #include <siri/db/servers.h>
 #include <siri/optimize.h>
+#include <siri/db/replicate.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -371,7 +372,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
         if (siridb->replica != NULL)
         {
             pkg->tp = BPROTO_QUERY_SERVER;
-            siridb_fifo_append(siridb->fifo, pkg);
+            siridb_replicate_pkg(siridb, pkg);
         }
     }
 
@@ -412,7 +413,7 @@ static void on_insert_pool(uv_stream_t * client, sirinet_pkg_t * pkg)
         sirinet_pkg_t * repl_pkg = (siridb->replicate->initsync == NULL) ?
                 pkg : siridb_replicate_pkg_filter(siridb, pkg->data, pkg->len);
 
-        if (repl_pkg == NULL || siridb_fifo_append(siridb->fifo, repl_pkg))
+        if (repl_pkg == NULL || siridb_replicate_pkg(siridb, repl_pkg))
         {
             /* signal is raised */
             sirinet_pkg_t * package =
@@ -491,7 +492,7 @@ static void on_register_server(
                 (       update_replica &&
                         siridb->replica != NULL &&
                         siridb->replica != new_server &&
-                        siridb_fifo_append(siridb->fifo, pkg)))
+                        siridb_replicate_pkg(siridb, pkg)))
         {
             /* a signal might be raised */
             package = sirinet_pkg_new(

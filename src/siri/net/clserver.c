@@ -31,6 +31,7 @@
 #include <siri/db/users.h>
 #include <siri/net/promises.h>
 #include <siri/err.h>
+#include <siri/db/replicate.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -645,7 +646,7 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
         if (new_server == NULL ||
                 (       siridb->replica != NULL &&
                         siridb->replica != new_server &&
-                        siridb_fifo_append(siridb->fifo, pkg)))
+                        siridb_replicate_pkg(siridb, pkg)))
         {
             /* a signal might be raised */
             package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);

@@ -8,7 +8,9 @@ from siriclient import AsyncSiriCluster
 from siriclient.shared.exceptions import (
     InsertError,
     PoolError,
-    AuthenticationError)
+    ServerError,
+    AuthenticationError,
+    UserAuthError)
 
 
 class Client:
@@ -28,6 +30,7 @@ class Client:
             ])
 
         self.query = self.cluster.query
+        self.insert = self.cluster.insert
 
     async def connect(self):
         logging.info('Create client connection to database {}'.format(

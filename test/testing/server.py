@@ -9,6 +9,7 @@ from .constants import TEST_DIR
 
 class Server:
     HOLD_TERM = False
+    GEOMETRY = '140x60'
 
     def __init__(self,
                  n,
@@ -57,25 +58,44 @@ class Server:
     def start(self):
         prev = self._get_pid_set()
         rc = os.system(
-            'xfce4-terminal -e "{} --config {}" --title {}{}'
+            'xfce4-terminal -e "{} --config {}" --title {} --geometry={}{}'
             .format(SIRIDBC,
                     self.cfgfile,
                     self.name,
+                    self.GEOMETRY,
                     ' -H' if self.HOLD_TERM else ''))
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
         self.pid = my_pid.pop()
 
     async def stop(self, timeout=20):
-        os.system('kill {}'.format(self.pid))
-        while (timeout and self.is_active()):
-            await asyncio.sleep(1.0)
-            timeout -= 1
+        if self.is_active():
+            os.system('kill {}'.format(self.pid))
+
+            while (timeout and self.is_active()):
+                await asyncio.sleep(1.0)
+                timeout -= 1
 
         if timeout:
             self.pid = None
             return True
+
         return False
+
+    async def stopstop(self):
+        if self.is_active():
+            os.system('kill {}'.format(self.pid))
+            await asyncio.sleep(0.2)
+
+            if self.is_active():
+                os.system('kill {}'.format(self.pid))
+                await asyncio.sleep(1.0)
+
+                if self.is_active():
+                    return False
+
+        self.pid = None
+        return True
 
     def kill(self):
         os.system('kill -9 {}'.format(self.pid))

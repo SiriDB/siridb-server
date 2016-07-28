@@ -17,8 +17,8 @@
 #include <siri/db/initsync.h>
 #include <siri/net/pkg.h>
 
-typedef struct siridb_s siridb_t;
 typedef struct siridb_initsync_s siridb_initsync_t;
+typedef struct siridb_s siridb_t;
 typedef struct sirinet_pkg_s sirinet_pkg_t;
 
 typedef enum
@@ -44,6 +44,7 @@ void siridb_replicate_start(siridb_replicate_t * replicate);
 void siridb_replicate_close(siridb_replicate_t * replicate);
 void siridb_replicate_pause(siridb_replicate_t * replicate);
 void siridb_replicate_continue(siridb_replicate_t * replicate);
+int siridb_replicate_pkg(siridb_t * siridb, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
         const char * data,
