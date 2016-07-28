@@ -3,6 +3,7 @@ import logging
 import configparser
 import subprocess
 import psutil
+import asyncio
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 
@@ -55,24 +56,30 @@ class Server:
 
     def start(self):
         prev = self._get_pid_set()
-
         rc = os.system(
             'xfce4-terminal -e "{} --config {}" --title {}{}'
             .format(SIRIDBC,
                     self.cfgfile,
                     self.name,
                     ' -H' if self.HOLD_TERM else ''))
-        assert (rc == 0)
-
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
         self.pid = my_pid.pop()
 
-    def stop(self):
+    async def stop(self, timeout=20):
         os.system('kill {}'.format(self.pid))
+        while (timeout and self.is_active()):
+            await asyncio.sleep(1.0)
+            timeout -= 1
+
+        if timeout:
+            self.pid = None
+            return True
+        return False
 
     def kill(self):
         os.system('kill -9 {}'.format(self.pid))
+        self.pid = None
 
     def is_active(self):
         return False if self.pid is None else psutil.pid_exists(self.pid)
