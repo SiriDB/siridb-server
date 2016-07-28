@@ -46,3 +46,6 @@ siridbc.cbp
 siridbc.depend
 siridbc.layout
 
+# Python
+*/__pycache__/*
+*.pyc
