@@ -1,5 +1,6 @@
 import unittest
 import time
+import asyncio
 from .siridb import SiriDB
 from .server import Server
 from .client import Client
@@ -43,6 +44,29 @@ class TestBase(unittest.TestCase):
     async def assertSeries(self, client, series):
         await self.assertAlmostSeries(client, series, allowed_mismatches=0)
 
+    async def assertIsRunning(self, db, client, timeout=None):
+        while timeout or timeout is None:
+            result = await client.query('list servers name, status')
+            result = result['servers']
+            try:
+                assert len(result) == len(self.servers), \
+                    'Server(s) are missing : {}'.format(result)
+            except AssertionError as e:
+                if not timeout:
+                    raise e
+            else:
+                try:
+                    assert all([status == 'running' for name, status in result]), \
+                        'Not all servers have status running: {}'.format(result)
+                except AssertionError as e:
+                    if not timeout:
+                        raise e
+                else:
+                    break
+
+            timeout -= 1
+            await asyncio.sleep(1.0)
+
     async def assertAlmostSeries(self, client, series, allowed_mismatches=1):
         d = {s.name: len(s.points) for s in series}
 
@@ -62,5 +86,5 @@ class TestBase(unittest.TestCase):
                 except AssertionError as e:
                     if allowed_mismatches:
                         allowed_mismatches -= 1
-                    # else:
-                    #     raise e
+                    else:
+                        raise e

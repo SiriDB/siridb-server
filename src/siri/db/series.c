@@ -394,7 +394,7 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series)
      * Therefore a series might already be dropped, for example by a second
      * drop statement or the re-index task.
      */
-    if (series->flags & ~SIRIDB_SERIES_IS_DROPPED)
+    if (~series->flags & SIRIDB_SERIES_IS_DROPPED)
     {
         siridb_series_drop_prepare(siridb, series);
         return siridb_series_drop_commit(siridb, series);

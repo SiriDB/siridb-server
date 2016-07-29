@@ -29,6 +29,7 @@ static int CT_add(
         const char * key,
         void * data);
 static void * CT_get(ct_node_t * node, const char * key);
+static void * CT_getn(ct_node_t * node, const char * key, size_t * n);
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void ** CT_get_sure(ct_node_t * node, const char * key);
 static void CT_dec_node(ct_node_t * node);
@@ -198,6 +199,24 @@ void * ct_get(ct_t * ct, const char * key)
     nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
 
     return (nd == NULL) ? NULL : CT_get(nd, key + 1);
+}
+
+/*
+ * Returns an item or NULL if the key does not exist.
+ */
+void * ct_getn(ct_t * ct, const char * key, size_t n)
+{
+    ct_node_t * nd;
+    uint8_t k = (uint8_t) *key;
+    uint8_t pos = k / BLOCKSZ;
+
+    if (!n || pos < ct->offset || pos >= ct->offset + ct->n)
+    {
+        return NULL;
+    }
+    nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
+
+    return (nd == NULL) ? NULL : CT_getn(nd, key + 1, &n);
 }
 
 /*
@@ -571,6 +590,48 @@ static void * CT_get(ct_node_t * node, const char * key)
             return (nd == NULL) ? NULL : CT_get(nd, key + 1);
         }
         if (*key != *pt)
+        {
+            return NULL;
+        }
+    }
+
+    /* we should never get here */
+    return NULL;
+}
+
+/*
+ * Returns an item or NULL if the key does not exist.
+ */
+static void * CT_getn(ct_node_t * node, const char * key, size_t * n)
+{
+    char * pt = node->key;
+
+    for (;(*n)-- ; key++, pt++)
+    {
+        if (*pt == 0)
+        {
+            if  (!(*n))
+            {
+                return node->data;
+            }
+
+            if (node->nodes == NULL)
+            {
+                return NULL;
+            }
+            uint8_t k = (uint8_t) *key;
+            uint8_t pos = k / BLOCKSZ;
+
+            if (pos < node->offset || pos >= node->offset + node->n)
+            {
+                return NULL;
+            }
+
+            ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
+
+            return (nd == NULL) ? NULL : CT_getn(nd, key + 1, n);
+        }
+        if (!(*n) || *key != *pt)
         {
             return NULL;
         }

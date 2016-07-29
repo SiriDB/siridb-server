@@ -514,7 +514,7 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
     sirinet_pkg_t * package = NULL;
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
 
-    if (    (siridb->server->flags & ~SERVER_FLAG_RUNNING) ||
+    if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
             (siridb->server->flags & SERVER_FLAG_PAUSED))
     {
         log_error("Cannot drop series because of having status %d",

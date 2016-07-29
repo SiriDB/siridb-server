@@ -254,7 +254,7 @@ void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype)
 void siridb_reindex_status_update(siridb_t * siridb)
 {
 #ifdef DEBUG
-    assert (siridb->server->flags & ~SERVER_FLAG_REINDEXING);
+    assert (~siridb->server->flags & SERVER_FLAG_REINDEXING);
     assert (siridb->flags & SIRIDB_FLAG_REINDEXING);
 #endif
     if (siridb_servers_available(siridb))
@@ -428,8 +428,8 @@ static void REINDEX_work(uv_timer_t * timer)
     reindex->series = imap32_get(siridb->series_map, *reindex->next_series_id);
 
     if (    reindex->series == NULL ||
-            siridb_pool_sn(
-                    siridb,
+            siridb_lookup_sn(
+                    siridb->pools->lookup,
                     reindex->series->name) == siridb->server->pool ||
             (   siridb->replica != NULL &&
                 (reindex->series->mask & 1) == siridb->server->id))
@@ -468,7 +468,7 @@ static void REINDEX_work(uv_timer_t * timer)
                     reindex->pkg = sirinet_packer2pkg(
                             packer,
                             0,
-                            BPROTO_INSERT_SERVER);
+                            BPROTO_INSERT_REINDEX_SERVER);
 
                     uv_timer_start(
                             reindex->timer,

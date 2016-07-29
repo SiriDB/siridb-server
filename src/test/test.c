@@ -34,6 +34,7 @@
 #include <siri/db/points.h>
 #include <siri/db/access.h>
 #include <siri/version.h>
+#include <siri/db/lookup.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -209,6 +210,7 @@ static int test_ctree(void)
     // len should be 2 by now
     assert (ct->len == 4);
     assert (ct_get(ct, "Dummy") == NULL);
+    assert (strcmp(ct_getn(ct, "Iris1!", 5), "is gewoon Iris1") == 0);
     assert (strcmp(ct_get(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris1"), "is gewoon Iris1") == 0);
@@ -277,7 +279,7 @@ static int test_gen_pool_lookup(void)
 {
     test_start("Testing test_gen_pool_lookup");
 
-    siridb_lookup_t * lookup = siridb_pools_gen_lookup(4);
+    siridb_lookup_t * lookup = siridb_lookup_new(4);
     uint16_t match[30] = {
             0, 1, 0, 2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0,
             2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0, 2, 3, 1};

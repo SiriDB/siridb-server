@@ -267,9 +267,7 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
         const char * data,
         size_t len)
 {
-    qp_types_t tp;
     siridb_series_t * series;
-
     qp_packer_t * netpacker = sirinet_packer_new(len + PKG_HEADER_SIZE);
     if (netpacker == NULL)
     {
@@ -292,8 +290,8 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_next(unpacker, NULL); // map
     qp_add_type(netpacker, QP_MAP_OPEN);
 
-    tp = qp_next(unpacker, qp_series_name); // first series or end
-    while (tp == QP_RAW)
+    qp_next(unpacker, qp_series_name); // first series or end
+    while (qp_is_raw_term(qp_series_name))
     {
         series = (siridb_series_t *) ct_get(
                 siridb->series,
@@ -312,7 +310,7 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
             qp_skip_next(unpacker);
         }
 
-        tp = qp_next(unpacker, qp_series_name);
+        qp_next(unpacker, qp_series_name);
     }
 
     qp_object_free(qp_series_name);

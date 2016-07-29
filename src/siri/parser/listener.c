@@ -580,7 +580,7 @@ static void enter_series_name(uv_async_t * handle)
     strx_extract_string(series_name, node->str, node->len);
 
     /* get pool for series name */
-    pool = siridb_pool_sn(siridb, series_name);
+    pool = siridb_lookup_sn(siridb->pools->lookup, series_name);
 
     /* check if this series belongs to 'this' pool and if so get the series */
     if (pool == siridb->server->pool)

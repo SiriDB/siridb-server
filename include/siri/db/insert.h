@@ -37,6 +37,7 @@ typedef struct siridb_insert_s
 {
     uv_close_cb free_cb;    /* must be on top */
     uint8_t ref;
+    uint8_t is_reindexing;
     uint64_t pid;
     uv_stream_t * client;
     size_t size;        /* number of points */
@@ -57,6 +58,7 @@ void siridb_insert_init(
         uv_stream_t * client,
         size_t size,
         uint16_t packer_size,
-        qp_packer_t * packer[]);
+        qp_packer_t * packer[],
+        int8_t is_reindexing);
 
 int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker);

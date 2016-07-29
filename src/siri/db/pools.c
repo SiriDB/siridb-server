@@ -10,19 +10,14 @@
  *
  */
 
-#include <siri/db/pools.h>
-#include <stdlib.h>
 #include <assert.h>
-#include <string.h>
-#include <logger/logger.h>
 #include <llist/llist.h>
+#include <logger/logger.h>
+#include <siri/db/pools.h>
 #include <siri/net/promises.h>
 #include <siri/optimize.h>
-
-static void POOLS_make(
-        uint_fast16_t n,
-        uint_fast16_t num_pools,
-        siridb_lookup_t * lookup);
+#include <stdlib.h>
+#include <string.h>
 
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
@@ -77,7 +72,7 @@ void siridb_pools_init(siridb_t * siridb)
     siridb->pools->prev_lookup = NULL;
 
     /* generate pool lookup for series */
-    siridb->pools->lookup = siridb_pools_gen_lookup(siridb->pools->len);
+    siridb->pools->lookup = siridb_lookup_new(siridb->pools->len);
     if (siridb->pools->lookup == NULL)
     {
         siridb_pools_free(siridb->pools);
@@ -92,8 +87,8 @@ void siridb_pools_init(siridb_t * siridb)
 void siridb_pools_free(siridb_pools_t * pools)
 {
     free(pools->pool);
-    free(pools->lookup);
-    free(pools->prev_lookup);
+    siridb_lookup_free(pools->lookup);
+    siridb_lookup_free(pools->prev_lookup);
     free(pools);
 }
 
@@ -111,7 +106,7 @@ siridb_pool_t * siridb_pools_append(
         siridb_server_t * server)
 {
     siridb_pool_t * pool = NULL;
-    siridb_lookup_t * lookup = siridb_pools_gen_lookup(pools->len + 1);
+    siridb_lookup_t * lookup = siridb_lookup_new(pools->len + 1);
     if (lookup != NULL)
     {
         pool = (siridb_pool_t *)
@@ -119,7 +114,7 @@ siridb_pool_t * siridb_pools_append(
         if (pool == NULL)
         {
             ERR_ALLOC
-            free(lookup);
+            siridb_lookup_free(lookup);
         }
         else
         {
@@ -135,23 +130,6 @@ siridb_pool_t * siridb_pools_append(
     return pool;
 }
 
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- */
-siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
-{
-    siridb_lookup_t * lookup =
-            (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
-    if (lookup == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        POOLS_make(1, num_pools, lookup);
-    }
-    return lookup;
-}
 
 /*
  * Returns 1 (true) if at least one server in each pool is online, 0 (false)
@@ -269,35 +247,7 @@ void siridb_pools_send_pkg(
     }
 }
 
-static void POOLS_make(
-        uint_fast16_t n,
-        uint_fast16_t num_pools,
-        siridb_lookup_t * lookup)
-{
-    if (n == num_pools)
-    {
-        return;
-    }
 
-    uint_fast16_t i;
-    uint_fast16_t m;
-    uint_fast16_t counters[n];
-    for (i = 0; i < n; i++)
-    {
-        counters[i] = i;
-    }
-
-    m = n + 1;
-    for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
-    {
-        counters[(*lookup)[i]]++;
-        if (counters[(*lookup)[i]] % m == 0)
-        {
-            (*lookup)[i] = n;
-        }
-    }
-    POOLS_make(m, num_pools, lookup);
-}
 
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
 {

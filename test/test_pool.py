@@ -20,10 +20,9 @@ from testing import UserAuthError
 class TestPool(TestBase):
     title = 'Test pool object'
 
-    async def insert(self, series, n):
+    async def insert(self, series, n, timeout=10):
         for _ in range(n):
             data = some_series(series)
-            timeout = 10
             while timeout:
                 try:
                     await self.client0.insert(data)
@@ -53,7 +52,7 @@ class TestPool(TestBase):
 
         await self.client1.connect()
 
-        await self.db.servers_available(self.client0)
+        await self.assertIsRunning(self.db, self.client0, timeout=2)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)

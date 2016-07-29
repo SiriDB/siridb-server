@@ -11,12 +11,13 @@
  */
 #pragma once
 
-#include <siri/net/promise.h>
-#include <siri/db/server.h>
-#include <siri/db/db.h>
-#include <inttypes.h>
 #include <cexpr/cexpr.h>
+#include <inttypes.h>
+#include <siri/db/db.h>
+#include <siri/db/pools.h>
+#include <siri/db/server.h>
 #include <siri/net/pkg.h>
+#include <siri/net/promise.h>
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_server_s siridb_server_t;
@@ -42,13 +43,6 @@ typedef struct siridb_pool_walker_s
 } siridb_pool_walker_t;
 
 
-uint16_t siridb_pool_sn(
-        siridb_t * siridb,
-        const char * sn);
-uint16_t siridb_pool_sn_raw(
-        siridb_t * siridb,
-        const char * sn,
-        size_t len);
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond);
 int siridb_pool_online(siridb_pool_t * pool);
 int siridb_pool_available(siridb_pool_t * pool);

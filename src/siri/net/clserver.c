@@ -429,7 +429,8 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
                 client,
                 (size_t) rc,
                 siridb->pools->len,
-                packer);
+                packer,
+                siridb->flags & SIRIDB_FLAG_REINDEXING);
         break;
     }
 

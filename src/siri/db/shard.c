@@ -499,7 +499,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
                 shard->id % siridb->duration_num == series->mask &&
-                (series->flags & ~SIRIDB_SERIES_IS_DROPPED))
+                (~series->flags & SIRIDB_SERIES_IS_DROPPED))
         {
             uv_mutex_lock(&siridb->series_mutex);
 

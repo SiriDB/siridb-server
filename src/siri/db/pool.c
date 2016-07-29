@@ -10,45 +10,14 @@
  *
  */
 
+#include <assert.h>
+#include <logger/logger.h>
 #include <siri/db/pool.h>
 #include <siri/db/pools.h>
+#include <siri/grammar/grammar.h>
 #include <stdlib.h>
 #include <string.h>
-#include <logger/logger.h>
-#include <siri/grammar/grammar.h>
-#include <assert.h>
 
-
-/*
- * Returns a pool id based on a terminated string.
- */
-uint16_t siridb_pool_sn(
-        siridb_t * siridb,
-        const char * sn)
-{
-    uint32_t n = 0;
-    for (; *sn; sn++)
-    {
-        n += *sn;
-    }
-    return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
-}
-
-/*
- * Returns a pool id based on a raw string.
- */
-uint16_t siridb_pool_sn_raw(
-        siridb_t * siridb,
-        const char * sn,
-        size_t len)
-{
-    uint32_t n = 0;
-    while (len--)
-    {
-        n += sn[len];
-    }
-    return (*siridb->pools->lookup)[n % SIRIDB_LOOKUP_SZ];
-}
 
 /*
  * Returns 1 (true) if at least one server in the pool is online, 0 (false)

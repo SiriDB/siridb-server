@@ -122,16 +122,4 @@ class SiriDB:
         if sleep:
             await asyncio.sleep(sleep)
 
-    async def servers_available(self, client, timeout=None):
-        while timeout or timeout is None:
-            result = await client.query('list servers name, status')
-            result = result['servers']
-            if len(result) == len(self.servers) and \
-                    all([status == 'running' for name, status in result]):
-                break
 
-            await asyncio.sleep(1.0)
-            if timeout:
-                timeout -= 1
-
-        return True if timeout else False

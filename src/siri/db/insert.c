@@ -28,6 +28,7 @@
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
 static void INSERT_on_response(slist_t * promises, uv_async_t * handle);
+static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name);
 
 static ssize_t INSERT_assign_by_map(
         siridb_t * siridb,
@@ -157,7 +158,8 @@ void siridb_insert_init(
         uv_stream_t * client,
         size_t size,
         uint16_t packer_size,
-        qp_packer_t * packer[])
+        qp_packer_t * packer[],
+        int8_t is_reindexing)
 {
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
     if (handle == NULL)
@@ -177,6 +179,7 @@ void siridb_insert_init(
 
     insert->free_cb = INSERT_free;
     insert->ref = 1;
+    insert->is_reindexing = is_reindexing;
     insert->pid = pid;
     sirinet_socket_lock(client);
     insert->client = client;
@@ -220,14 +223,14 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
     uv_mutex_lock(&siridb->shards_mutex);
 
     qp_next(unpacker, NULL); // map
-    tp = qp_next(unpacker, qp_series_name); // first series or end
+    qp_next(unpacker, qp_series_name); // first series or end
 
     /*
      * we check for siri_err because siridb_series_add_point()
      * should never be called twice on the same series after an
      * error has occurred.
      */
-    while (!siri_err && tp == QP_RAW)
+    while (!siri_err && qp_is_raw_term(qp_series_name))
     {
         series = (siridb_series_t **) ct_get_sure(
                 siridb->series,
@@ -284,7 +287,7 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
         }
         if (tp == QP_ARRAY_CLOSE)
         {
-            tp = qp_next(unpacker, qp_series_name);
+            qp_next(unpacker, qp_series_name);
         }
     }
 
@@ -438,6 +441,10 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 
                 if (pkg != NULL)
                 {
+                    if (insert->is_reindexing)
+                    {
+                        pkg->tp = BPROTO_INSERT_TEST_SERVER;
+                    }
                     siridb_replicate_pkg(siridb, pkg);
                     free(pkg);
                 }
@@ -461,7 +468,8 @@ static void INSERT_points_to_pools(uv_async_t * handle)
             pkg = sirinet_pkg_new(
                     0,
                     insert->packer[n]->len,
-                    BPROTO_INSERT_POOL,
+                    (insert->is_reindexing) ?
+                            BPROTO_INSERT_TEST_SERVER : BPROTO_INSERT_POOL,
                     insert->packer[n]->buffer);
             if (pkg != NULL)
             {
@@ -494,6 +502,60 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 }
 
 /*
+ * Returns the correct pool.
+ */
+static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
+{
+    uint16_t pool;
+
+    if (~siridb->flags & SIRIDB_FLAG_REINDEXING)
+    {
+        /* when not re-indexing, select the correct pool */
+        pool = siridb_lookup_sn_raw(
+                siridb->pools->lookup,
+                qp_series_name->via->raw,
+                qp_series_name->len);
+    }
+    else
+    {
+        if (ct_getn(
+                siridb->series,
+                qp_series_name->via->raw,
+                qp_series_name->len) != NULL)
+        {
+            /* we are re-indexing and at least currently own the series */
+            pool = siridb->server->pool;
+        }
+        else
+        {
+            /*
+             * We are re-indexing and do not have the series.
+             * Select the correct pool BEFORE re-indexing was
+             * started or the new correct pool if this pool is
+             * the previous correct pool. (we can do this now
+             * because we known we don't have the series)
+             */
+#ifdef DEBUG
+            assert (siridb->pools->prev_lookup != NULL);
+#endif
+            pool = siridb_lookup_sn_raw(
+                    siridb->pools->prev_lookup,
+                    qp_series_name->via->raw,
+                    qp_series_name->len);
+
+            if (pool == siridb->server->pool)
+            {
+                pool = siridb_lookup_sn_raw(
+                        siridb->pools->lookup,
+                        qp_series_name->via->raw,
+                        qp_series_name->len);
+            }
+        }
+    }
+    return pool;
+}
+
+/*
  * Returns a negative value in case of an error or a value equal to zero or
  * higher representing the number of points processed.
  *
@@ -514,10 +576,7 @@ static ssize_t INSERT_assign_by_map(
 
     while (tp == QP_RAW && qp_obj->len)
     {
-        pool = siridb_pool_sn_raw(
-                siridb,
-                qp_obj->via->raw,
-                qp_obj->len);
+        pool = INSERT_get_pool(siridb, qp_obj);
 
         qp_add_raw_term(packer[pool],
                 qp_obj->via->raw,
@@ -588,10 +647,7 @@ static ssize_t INSERT_assign_by_array(
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }
 
-            pool = siridb_pool_sn_raw(
-                    siridb,
-                    qp_obj->via->raw,
-                    qp_obj->len);
+            pool = INSERT_get_pool(siridb, qp_obj);
 
             qp_add_raw_term(packer[pool],
                     qp_obj->via->raw,

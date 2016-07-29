@@ -335,7 +335,9 @@ inline int qp_is_double(qp_types_t tp)
 
 inline int qp_is_raw_term(qp_obj_t * qp_obj)
 {
-    return (qp_obj->tp == QP_RAW && qp_obj->via->raw[qp_obj->len - 1] == '\0');
+    return (qp_obj->tp == QP_RAW &&
+            qp_obj->len &&
+            qp_obj->via->raw[qp_obj->len - 1] == '\0');
 }
 
 /*
@@ -482,7 +484,7 @@ int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
     /* now take 1 because we want to copy one less than the new len */
     memcpy(packer->buffer + packer->len, raw, len_raw);
     packer->len += len;
-    packer->buffer[packer->len - 1] = 0;
+    packer->buffer[packer->len - 1] = '\0';
     return 0;
 }
 

@@ -61,6 +61,10 @@ typedef enum
     BPROTO_QUERY_UPDATE,                        // (query, time_precision)
     BPROTO_INSERT_POOL,                         // {series: points, ...}
     BPROTO_INSERT_SERVER,                       // {series: points, ...}
+    BPROTO_INSERT_TEST_POOL,                    // {series: points, ...}
+    BPROTO_INSERT_TEST_SERVER,                  // {series: points, ...}
+    BPROTO_INSERT_REINDEX_POOL,                 // {series: points, ...}
+    BPROTO_INSERT_REINDEX_SERVER,               // {series: points, ...}
     BPROTO_REGISTER_SERVER,                     // (uuid, host, port, pool)
     BPROTO_DROP_SERIES,                         // series_name
 } bproto_client_t;

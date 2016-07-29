@@ -556,8 +556,8 @@ m2=1</panel_attributes>
 size: uint16_t
 server: *siridb_server_t[2]
 --
-siridb_pool_sn(): uint16_t
-siridb_pool_sn_raw(): uint16_t</panel_attributes>
+siridb_lookup_sn(): uint16_t
+siridb_lookup_sn_raw(): uint16_t</panel_attributes>
     <additional_attributes/>
   </element>
   <element>

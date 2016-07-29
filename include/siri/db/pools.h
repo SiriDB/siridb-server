@@ -18,14 +18,12 @@
 #include <siri/net/pkg.h>
 #include <siri/net/promise.h>
 #include <slist/slist.h>
+#include <siri/db/lookup.h>
 
 typedef struct siridb_pool_s siridb_pool_t;
 typedef struct siridb_s siridb_t;
 typedef struct siridb_server_s siridb_server_t;
 
-#define SIRIDB_LOOKUP_SZ 8192
-
-typedef uint_fast16_t siridb_lookup_t[SIRIDB_LOOKUP_SZ];
 typedef void (* sirinet_promises_cb)(
         slist_t * promises,
         void * data);
