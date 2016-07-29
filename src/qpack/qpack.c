@@ -333,6 +333,11 @@ inline int qp_is_double(qp_types_t tp)
     return tp == QP_DOUBLE;
 }
 
+inline int qp_is_raw_term(qp_obj_t * qp_obj)
+{
+    return (qp_obj->tp == QP_RAW && qp_obj->via->raw[qp_obj->len - 1] == '\0');
+}
+
 /*
  * Print qpack content.
  */

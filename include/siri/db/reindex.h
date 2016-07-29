@@ -28,6 +28,7 @@ typedef struct siridb_reindex_s
     long int size;
     uint32_t * next_series_id;
     sirinet_pkg_t * pkg;
+    siridb_series_t * series;
     siridb_server_t * server;
     uv_timer_t * timer;
 
@@ -38,3 +39,4 @@ void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype);
 void siridb_reindex_free(siridb_reindex_t ** reindex);
 void siridb_reindex_status_update(siridb_t * siridb);
 void siridb_reindex_close(siridb_reindex_t * reindex);
+void siridb_reindex_start(uv_timer_t * timer);

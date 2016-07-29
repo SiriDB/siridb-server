@@ -270,6 +270,8 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
                         server->name);
                 return -1;
             }
+
+            siridb_pool_add_server(pool, server);
         }
     }
     else if (server->pool > siridb->pools->len)
@@ -281,9 +283,24 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
     }
     else
     {
+        /* create a new pool and new lookup table */
+        pool = siridb_pools_append(siridb->pools, server);
+        if (pool == NULL)
+        {
+            log_critical(
+                    "Cannot register '%s' because creating a new pool "
+                    "has failed",
+                    server->name);
+            return -1;
+        }
+
         /* this is a new server for a new pool */
-        assert (0);
-        /* TODO: here the logic for a new pool */
+        siridb->reindex = siridb_reindex_open(siridb, 1);
+        if (siridb->reindex != NULL)
+        {
+            siridb_reindex_start(siridb->reindex->timer);
+        }
+
     }
 
     if (llist_append(siridb->servers, server) || SERVERS_save(siridb))
@@ -292,7 +309,6 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         return -1;  /* a signal is raised in this case */
     }
 
-    siridb_pool_add_server(pool, server);
     siridb_server_incref(server);
 
     return 0;
@@ -300,24 +316,16 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
 }
 
 /*
- * This function can raise a SIGNAL.
+ * Return a llist_t object containing all servers except 'this' server.
  *
- * If promises could not be created, the 'cb' function with cb(NULL, data)
+ * Note: this function does not increase the servers reference counter.
+ *
+ * In case of an error, NULL is returned and a SIGNAL is raised.
  */
-void siridb_servers_send_pkg(
-        siridb_t * siridb,
-        sirinet_pkg_t * pkg,
-        uint64_t timeout,
-        sirinet_promises_cb cb,
-        void * data)
+slist_t * siridb_servers_other2slist(siridb_t * siridb)
 {
-    sirinet_promises_t * promises =
-            sirinet_promises_new(siridb->servers->len - 1, cb, data);
-    if (promises == NULL)
-    {
-        cb(NULL, data);
-    }
-    else
+    slist_t * servers = slist_new(siridb->servers->len - 1);
+    if (servers != NULL)
     {
         siridb_server_t * server;
 
@@ -326,10 +334,40 @@ void siridb_servers_send_pkg(
                 node = node->next)
         {
             server = node->data;
-            if (server == siridb->server)
+            if (server != siridb->server)
             {
-                continue;
+                slist_append(servers, server);
             }
+        }
+    }
+    return servers;
+}
+
+/*
+ * This function can raise a SIGNAL.
+ *
+ * If promises could not be created, the 'cb' function with cb(NULL, data)
+ */
+void siridb_servers_send_pkg(
+        slist_t * servers,
+        sirinet_pkg_t * pkg,
+        uint64_t timeout,
+        sirinet_promises_cb cb,
+        void * data)
+{
+    sirinet_promises_t * promises =
+            sirinet_promises_new(servers->len, cb, data);
+    if (promises == NULL)
+    {
+        cb(NULL, data);
+    }
+    else
+    {
+        siridb_server_t * server;
+
+        for (size_t i = 0; i < servers->len; i++)
+        {
+            server = (siridb_server_t *) servers->data[i];
 
             if (siridb_server_is_online(server))
             {

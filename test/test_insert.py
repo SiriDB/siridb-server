@@ -1,7 +1,9 @@
 import random
 import time
 from testing import Client
+from testing import default_test_setup
 from testing import gen_points
+from testing import gen_series
 from testing import InsertError
 from testing import PoolError
 from testing import run_test
@@ -14,88 +16,90 @@ from testing import UserAuthError
 class TestInsert(TestBase):
     title = 'Test inserts and response'
 
-    async def run(self):
-        servers = [Server(i) for i in range(1)]
-        for server in servers:
-            server.create()
-            server.start()
-
-        time.sleep(1.0)
-
-        db = SiriDB()
-        db.create_on(servers[0])
-
-        time.sleep(1.0)
-
-        client = Client(db, servers[0])
-        await client.connect()
-
-        self.assertEqual(
-            await client.insert({}),
-            {'success_msg': 'Inserted 0 point(s) successfully.'})
-
-        self.assertEqual(
-            await client.insert([]),
-            {'success_msg': 'Inserted 0 point(s) successfully.'})
-
-        series_float = gen_points(tp=float)
-        random.shuffle(series_float)
-        series_int = gen_points(tp=int)
-        random.shuffle(series_int)
-
-        self.assertEqual(
-            await client.insert({
-                'series float': series_float,
-                'series int': series_int
-            }), {'success_msg': 'Inserted 2000 point(s) successfully.'})
-
-
-        series_float.sort()
-        series_int.sort()
+    async def _test_series(self, client):
 
         result = await client.query('select * from "series float"')
-        self.assertEqual(result['series float'], series_float)
+        self.assertEqual(result['series float'], self.series_float)
 
         result = await client.query('select * from "series int"')
-        self.assertEqual(result['series int'], series_int)
+        self.assertEqual(result['series int'], self.series_int)
 
         self.assertEqual(
             await client.query('list series name, length, type, start, end'),
             {   'columns': ['name', 'length', 'type', 'start', 'end'],
                 'series': [
-                    ['series float', 1000, 'float', series_float[0][0], series_float[-1][0]],
-                    ['series int', 1000, 'integer', series_int[0][0], series_int[-1][0]],
+                    ['series float', 100, 'float', self.series_float[0][0], self.series_float[-1][0]],
+                    ['series int', 100, 'integer', self.series_int[0][0], self.series_int[-1][0]],
                 ]
             })
 
-        with self.assertRaises(InsertError):
-            await client.insert('[]')
+    @default_test_setup(2)
+    async def run(self):
+        await self.client0.connect()
+
+        self.assertEqual(
+            await self.client0.insert({}),
+            {'success_msg': 'Inserted 0 point(s) successfully.'})
+
+        self.assertEqual(
+            await self.client0.insert([]),
+            {'success_msg': 'Inserted 0 point(s) successfully.'})
+
+        self.series_float = gen_points(tp=float)
+        random.shuffle(self.series_float)
+        self.series_int = gen_points(tp=int)
+        random.shuffle(self.series_int)
+
+        self.assertEqual(
+            await self.client0.insert({
+                'series float': self.series_float,
+                'series int': self.series_int
+            }), {'success_msg': 'Inserted 200 point(s) successfully.'})
+
+
+        self.series_float.sort()
+        self.series_int.sort()
+
+        await self._test_series(self.client0)
 
         with self.assertRaises(InsertError):
-            await client.insert('[]')
+            await self.client0.insert('[]')
 
         with self.assertRaises(InsertError):
-            await client.insert([{}])
+            await self.client0.insert('[]')
 
         with self.assertRaises(InsertError):
-            await client.insert({'no points': []})
+            await self.client0.insert([{}])
 
         with self.assertRaises(InsertError):
-            await client.insert({'no points': [[]]})
+            await self.client0.insert({'no points': []})
 
         with self.assertRaises(InsertError):
-            await client.insert({'no points': [[1213]]})
+            await self.client0.insert({'no points': [[]]})
 
         with self.assertRaises(InsertError):
-            await client.insert({'invalid ts': [[0.5, 6]]})
+            await self.client0.insert([{'name': 'no points', 'points': []}])
 
-        client.close()
+        # timestamps should be interger values
+        with self.assertRaises(InsertError):
+            await self.client0.insert({'invalid ts': [[0.5, 6]]})
 
-        for server in servers:
-            result = await server.stop()
-            self.assertTrue(
-                result,
-                msg='Server {} did not close correctly'.format(server.name))
+        # empty series name is not allowed
+        with self.assertRaises(InsertError):
+            await self.client0.insert({'': [[1, 0]]})
+
+        # empty series name is not allowed
+        with self.assertRaises(InsertError):
+            await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
+
+        self.db.add_replica(self.server1, 0, sleep=15)
+
+        await self.client1.connect()
+
+        await self._test_series(self.client1)
+
+        self.client0.close()
+        self.client1.close()
 
 
 if __name__ == '__main__':

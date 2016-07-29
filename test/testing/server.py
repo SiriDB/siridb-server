@@ -55,7 +55,7 @@ class Server:
             ret = set()
         return ret
 
-    def start(self):
+    async def start(self, sleep=None):
         prev = self._get_pid_set()
         rc = os.system(
             'xfce4-terminal -e "{} --config {}" --title {} --geometry={}{}'
@@ -67,6 +67,8 @@ class Server:
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
         self.pid = my_pid.pop()
+        if sleep:
+            await asyncio.sleep(sleep)
 
     async def stop(self, timeout=20):
         if self.is_active():

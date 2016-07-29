@@ -247,6 +247,10 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     if (!siri_err)
     {
         siridb->reindex = siridb_reindex_open(siridb, 0);
+        if (siridb->reindex != NULL && siridb->replica == NULL)
+        {
+            siridb_reindex_start(siridb->reindex->timer);
+        }
     }
 
     siridb->start_ts = time(NULL);

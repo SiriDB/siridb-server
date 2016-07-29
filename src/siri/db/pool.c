@@ -91,6 +91,27 @@ int siridb_pool_available(siridb_pool_t * pool)
 }
 
 /*
+ * Returns 1 (true) if at least one server in the pool is 're-indexing,
+ * 0 (false) if no server in the pool is re-indexing.
+ *
+ * Warning: this function should not be used on 'this' pool.
+ *
+ * A server is  'available' when exactly running and authenticated and
+ * optionally re-indexing.
+ */
+int siridb_pool_reindexing(siridb_pool_t * pool)
+{
+    for (uint16_t i = 0; i < pool->len; i++)
+    {
+        if (siridb_server_is_reindexing(pool->server[i]))
+        {
+            return 1;  // true
+        }
+    }
+    return 0;  // false
+}
+
+/*
  * Call-back function used to validate pools in a where expression.
  *
  * Returns 0 or 1 (false or true).
@@ -112,6 +133,9 @@ int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
     return -1;
 }
 
+/*
+ * Add a server object to a pool.
+ */
 void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
 {
     pool->len++;
@@ -150,16 +174,17 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
 }
 
 /*
- * Returns 0 if we have send the package to one available
+ * Returns 0 if we have send the package to one 're-indexing'
  * server in the pool. The package will be send only to one server, even if
- * the pool has more servers available.
+ * the pool has more servers 're-indexing'.
  *
  * This function can raise a SIGNAL when allocation errors occur but be aware
  * that 0 can still be returned in this case.
  *
  * The call-back function is not called when -1 is returned.
  *
- * A server is  'available' when and ONLY when connected and authenticated.
+ * A server is  're-indexing' when exactly running and authenticated and
+ * optionally re-indexing.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
  */
@@ -174,7 +199,7 @@ int siridb_pool_send_pkg(
 
     for (uint16_t i = 0; i < pool->len; i++)
     {
-        if (siridb_server_is_available(pool->server[i]))
+        if (siridb_server_is_reindexing(pool->server[i]))
         {
             server = (server == NULL) ?
                     pool->server[i] : pool->server[rand() % 2];

@@ -403,7 +403,7 @@ static void INITSYNC_work(uv_timer_t * timer)
                 }
                 else
                 {
-                    qp_packer_free(packer);
+                    qp_packer_free(packer);  /* signal is raised */
                 }
             }
             siridb_points_free(points);

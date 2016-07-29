@@ -975,7 +975,7 @@ static void exit_drop_series(uv_async_t * handle)
     uv_mutex_unlock(&siridb->series_mutex);
 
     /* flush dropped file change to disk */
-    fflush(siridb->dropped_fp);
+    siridb_series_flush_dropped(siridb);
 
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
@@ -1870,21 +1870,23 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
                     "Error occurred while sending the database change to at "
                     "least one required server");
         }
-
-        pkg = promise->data;
-
-        if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
+        else
         {
-            err_count++;
-            snprintf(query->err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Error occurred while sending the database change to at "
-                    "least '%s'", promise->server->name);
-        }
+            pkg = promise->data;
 
-        /* make sure we free the promise and data */
-        free(promise->data);
-        free(promise);
+            if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
+            {
+                err_count++;
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Error occurred while sending the database change to "
+                        "at least '%s'", promise->server->name);
+            }
+
+            /* make sure we free the promise and data */
+            free(promise->data);
+            free(promise);
+        }
     }
 
     if (err_count)

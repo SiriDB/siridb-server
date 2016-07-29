@@ -4,8 +4,11 @@ import asyncio
 import shutil
 import time
 import random
+import functools
+import string
 from .constants import TEST_DIR
 from .testbase import TestBase
+from .series import Series
 
 _MAP_TS = {
     's': 10**0,
@@ -33,12 +36,12 @@ async def _run_test(test, loglevel):
     try:
         await test.run()
     except Exception as e:
-        print('{:.<76}FAILED ({:.2f} ms)'.format(
+        print('{:.<76}FAILED ({:.2f} seconds)'.format(
             test.title,
             time.time() - start))
         raise e
     else:
-        print('{:.<80}OK ({:.2f} ms)'.format(
+        print('{:.<80}OK ({:.2f} seconds)'.format(
             test.title,
             time.time() - start))
 
@@ -51,10 +54,24 @@ def random_value(tp=float, mi=-100, ma=100):
     elif tp == int:
         return i
 
-def gen_points(n=1000, time_precision='s', tp=float, mi=-100, ma=100):
+def random_series_name(size=12, chars=string.ascii_letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+def gen_points(n=100, time_precision='s', tp=float, mi=-100, ma=100):
     start = int(time.time() * _MAP_TS[time_precision]) - n
     return [[ts, random_value(tp, mi, ma)] for ts in range(start, start + n)]
 
+def gen_data(points=functools.partial(gen_points), n=100):
+    return {random_series_name(): points() for _ in range(n)}
+
+def gen_series(n=10000):
+    return [Series(random_series_name()) for _ in range(n)]
+
+def some_series(series, n=None, points=functools.partial(gen_points, n=1)):
+    random.shuffle(series)
+    if n is None:
+        n = len(series) // 100
+    return {s.name: s.add_points(points()) for s in series[:n]}
 
 def run_test(test, loglevel='CRITICAL'):
     assert isinstance(test, TestBase)

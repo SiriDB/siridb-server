@@ -48,6 +48,9 @@ if (ssocket->siridb == NULL)                                                \
     return;                                                                 \
 }
 
+static const int SERVER_RUNNING_REINDEXING =
+        SERVER_FLAG_RUNNING + SERVER_FLAG_REINDEXING;
+
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in client_addr;
 static uv_tcp_t client_server;
@@ -350,14 +353,16 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     siridb_t * siridb = ssocket->siridb;
 
-    /* only when when the flag is EXACTLY running we can continue */
-    if (siridb->server->flags != SERVER_FLAG_RUNNING)
+    /* only when when the flag is EXACTLY running or
+     * running + re-indexing we can continue */
+    if (    siridb->server->flags != SERVER_FLAG_RUNNING &&
+            siridb->server->flags != SERVER_RUNNING_REINDEXING)
     {
         CLSERVER_send_server_error(siridb, (uv_stream_t *) client, pkg);
         return;
     }
 
-    if (!siridb_pools_available(siridb))
+    if (!siridb_pools_reindexing(siridb))
     {
         CLSERVER_send_pool_error(client, pkg);
         return;
@@ -602,6 +607,8 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     sirinet_pkg_t * package = NULL;
     siridb_server_t * new_server = NULL;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    slist_t * servers = NULL;
+
 
     if (siridb->server->flags != SERVER_FLAG_RUNNING)
     {
@@ -638,20 +645,21 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
+        /* make a copy of the current servers */
+        servers = siridb_servers_other2slist(siridb);
+
         log_info("Register a new server");
         new_server = siridb_server_register(siridb, pkg->data, pkg->len);
 
         pkg->tp = BPROTO_REGISTER_SERVER;
 
-        if (new_server == NULL ||
-                (       siridb->replica != NULL &&
-                        siridb->replica != new_server &&
-                        siridb_replicate_pkg(siridb, pkg)))
+        if (new_server == NULL)
         {
             /* a signal might be raised */
             package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
         }
     }
+
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
@@ -668,22 +676,30 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
         }
         else
         {
+            /* save the client PID so we can respond to the client */
             server_reg->pid = pkg->pid;
             server_reg->client = client;
 
-            pkg->tp = BPROTO_REGISTER_SERVER_UPDATE;
+            pkg->tp = BPROTO_REGISTER_SERVER;
 
             /* make sure to unlock the client in the callback */
             sirinet_socket_lock(client);
 
-            siridb_pools_send_pkg(
-                    siridb,
-                    pkg,
-                    0,
-                    (sirinet_promises_cb) CLSERVER_on_register_server_response,
-                    server_reg);
+            if (servers != NULL)
+            {
+                siridb_servers_send_pkg(
+                        servers,
+                        pkg,
+                        0,
+                        (sirinet_promises_cb)
+                                CLSERVER_on_register_server_response,
+                        server_reg);
+            }
         }
     }
+
+    /* free the servers or NULL */
+    slist_free(servers);
 }
 
 /*
@@ -712,30 +728,31 @@ static void CLSERVER_on_register_server_response(
         for (size_t i = 0; i < promises->len; i++)
         {
             promise = promises->data[i];
-
             if (promise == NULL)
             {
                 err_count++;
                 snprintf(err_msg,
                         SIRIDB_MAX_SIZE_ERR_MSG,
-                        "Error occurred while registering the new server on at "
-                        "least one server");
+                        "Error occurred while registering the new server on "
+                        "at least one server");
             }
-
-            pkg = promise->data;
-
-            if (pkg == NULL || pkg->tp != BPROTO_ACK_REGISTER_SERVER)
+            else
             {
-                err_count++;
-                snprintf(err_msg,
-                        SIRIDB_MAX_SIZE_ERR_MSG,
-                        "Error occurred while registering the new server on at "
-                        "least '%s'", promise->server->name);
-            }
+                pkg = promise->data;
 
-            /* make sure we free the promise and data */
-            free(promise->data);
-            free(promise);
+                if (pkg == NULL || pkg->tp != BPROTO_ACK_REGISTER_SERVER)
+                {
+                    err_count++;
+                    snprintf(err_msg,
+                            SIRIDB_MAX_SIZE_ERR_MSG,
+                            "Error occurred while registering the new server "
+                            "on at least '%s'", promise->server->name);
+                }
+
+                /* make sure we free the promise and data */
+                free(promise->data);
+                free(promise);
+            }
         }
 
         sirinet_pkg_t * package = (err_count) ?

@@ -329,7 +329,11 @@ int siridb_series_add_idx_num32(
     return 0;
 }
 
-/* */
+/*
+ * Remove series from the indexes and mark the series as 'dropped'.
+ *
+ * Do not forget to call 'siridb_series_drop_commit' to commit the drop.
+ */
 void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
 {
     /* remove series from map */
@@ -341,10 +345,24 @@ void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
     series->flags |= SIRIDB_SERIES_IS_DROPPED;
 }
 
+/*
+ * Write dropped series to file and decrement series reference counter.
+ * Function 'siridb_series_drop_prepare' should be called before this function.
+ *
+ * In case we cannot write the series_id to the drop file we log critical and
+ * return -1 but no signal is raised.
+ *
+ * Warning: do not forget to call 'siridb_series_flush_dropped()'
+ *
+ * Return 0 if successful.
+ */
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
 {
-    int rc = 0;
+#ifdef DEBUG
+    assert (series->flags & SIRIDB_SERIES_IS_DROPPED);
+#endif
 
+    int rc = 0;
     /* we are sure the file pointer is at the end of file */
     if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
     {
@@ -362,33 +380,41 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
  * In case we cannot write the series_id to the drop file we log critical but
  * no other action is taken.
  *
- * Warning: do not forget to flush siridb->dropped_fp.
+ * Warning: do not forget to call 'siridb_series_flush_dropped()'
  *
  * Return 0 if successful or -1 in case the dropped series was not written
  * to file. The series is still dropped from memory in the case.
+ *
+ * In case the series is flagged as 'dropped', 0 (successful) is returned.
  */
 int siridb_series_drop(siridb_t * siridb, siridb_series_t * series)
 {
-    int rc = 0;
-
-    /* we are sure the file pointer is at the end of file */
-    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+    /*
+     * This function is used from build series maps in async functions.
+     * Therefore a series might already be dropped, for example by a second
+     * drop statement or the re-index task.
+     */
+    if (series->flags & ~SIRIDB_SERIES_IS_DROPPED)
     {
-        log_critical("Cannot write %d to dropped cache file.", series->id);
-        rc = -1;
-    };
+        siridb_series_drop_prepare(siridb, series);
+        return siridb_series_drop_commit(siridb, series);
+    }
+    return 0;
+}
 
-    /* remove series from map */
-    imap32_pop(siridb->series_map, series->id);
-
-    /* remove series from tree */
-    ct_pop(siridb->series, series->name);
-
-    series->flags |= SIRIDB_SERIES_IS_DROPPED;
-
-    /* decrement reference to series */
-    siridb_series_decref(series);
-
+/*
+ * Return 0 if successful or EOF if not.
+ *
+ * Logging is done but no error is raised in case of failure.
+ */
+int siridb_series_flush_dropped(siridb_t * siridb)
+{
+    int rc = fflush(siridb->dropped_fp);
+    if (rc)
+    {
+        SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
+        log_critical("Could not flush dropped file: '%s'", fn);
+    }
     return rc;
 }
 
@@ -432,11 +458,7 @@ void siridb_series_remove_shard_num32(
         {
             if (siridb_series_drop(siridb, series))
             {
-                if (fflush(siridb->dropped_fp))
-                {
-                    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
-                    log_critical("Could not flush dropped file: '%s'", fn);
-                }
+                siridb_series_flush_dropped(siridb);
             }
         }
         else

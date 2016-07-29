@@ -61,8 +61,8 @@ typedef enum
     BPROTO_QUERY_UPDATE,                        // (query, time_precision)
     BPROTO_INSERT_POOL,                         // {series: points, ...}
     BPROTO_INSERT_SERVER,                       // {series: points, ...}
-    BPROTO_REGISTER_SERVER_UPDATE,              // (uuid, host, port, pool)
     BPROTO_REGISTER_SERVER,                     // (uuid, host, port, pool)
+    BPROTO_DROP_SERIES,                         // series_name
 } bproto_client_t;
 
 /*
@@ -95,6 +95,7 @@ typedef enum
     BPROTO_ERR_NOT_AUTHENTICATED,               // empty
     BPROTO_ERR_INSERT,                          // empty
     BPROTO_ERR_REGISTER_SERVER,                 // empty
+    BPROTO_ERR_DROP_SERIES,                     // empty
 
     /* success */
     BPROTO_AUTH_SUCCESS=192,                    // empty
@@ -103,6 +104,7 @@ typedef enum
     BPROTO_ACK_INSERT,                          // empty
     BPROTO_ACK_REPL_FINISHED,                   // empty
     BPROTO_ACK_REGISTER_SERVER,                 // empty
+    BPROTO_ACK_DROP_SERIES,                     // empty
 
 } bproto_server_t;
 

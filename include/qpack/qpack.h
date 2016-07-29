@@ -143,6 +143,7 @@ extern int qp_is_close(qp_types_t tp);
 extern int qp_is_raw(qp_types_t tp);
 extern int qp_is_int(qp_types_t tp);
 extern int qp_is_double(qp_types_t tp);
+extern int qp_is_raw_term(qp_obj_t * qp_obj);
 
 /* Add to packer functions */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);

@@ -222,7 +222,7 @@ static void REPLICATE_work(uv_timer_t * handle)
 
     if (    siridb->replicate->status == REPLICATE_RUNNING &&
             siridb_fifo_has_data(siridb->fifo) &&
-            (   siridb_server_is_available(siridb->replica) ||
+            (   siridb_server_is_reindexing(siridb->replica) ||
                 siridb_server_is_synchronizing(siridb->replica)) &&
             (pkg = siridb_fifo_pop(siridb->fifo)) != NULL)
     {

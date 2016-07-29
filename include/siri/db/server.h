@@ -43,19 +43,23 @@
  * A server is  'online' when at least running and authenticated.
  */
 #define siridb_server_is_online(server) \
-    ((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
+((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
 
 /*
  * A server is  'available' when exactly running and authenticated.
  */
 #define siridb_server_is_available(server) \
-    (server->flags == SERVER__IS_ONLINE)
+(server->flags == SERVER__IS_ONLINE)
 
 #define siridb_server_is_synchronizing(server) \
-    (server->flags == SERVER__IS_SYNCHRONIZING)
+(server->flags == SERVER__IS_SYNCHRONIZING)
 
+/*
+ * A server is 're-indexing' when exactly running and authenticated and
+ * optionally re-indexing.
+ */
 #define siridb_server_is_reindexing(server) \
-    (server->flags == SERVER__IS_REINDEXING)
+(server->flags == SERVER__IS_ONLINE || server->flags == SERVER__IS_REINDEXING)
 
 
 typedef struct siridb_s siridb_t;

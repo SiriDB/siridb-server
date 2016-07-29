@@ -52,6 +52,7 @@ uint16_t siridb_pool_sn_raw(
 int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond);
 int siridb_pool_online(siridb_pool_t * pool);
 int siridb_pool_available(siridb_pool_t * pool);
+int siridb_pool_reindexing(siridb_pool_t * pool);
 int siridb_pool_send_pkg(
         siridb_pool_t * pool,
         sirinet_pkg_t * pkg,

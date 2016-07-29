@@ -254,12 +254,19 @@ void siridb_query_forward(
         {
         case SIRIDB_QUERY_FWD_SERVERS:
             pkg->tp = BPROTO_QUERY_SERVER;
-            siridb_servers_send_pkg(
-                    siridb,
-                    pkg,
-                    0,
-                    cb,
-                    handle);
+            {
+                slist_t * servers = siridb_servers_other2slist(siridb);
+                if (servers != NULL)
+                {
+                    siridb_servers_send_pkg(
+                            servers,
+                            pkg,
+                            0,
+                            cb,
+                            handle);
+                    slist_free(servers);
+                }
+            }
             break;
 
         case SIRIDB_QUERY_FWD_POOLS:

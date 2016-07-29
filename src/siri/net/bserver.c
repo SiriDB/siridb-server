@@ -47,10 +47,8 @@ static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_insert_pool(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_insert_server(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_register_server(
-        uv_stream_t * client,
-        sirinet_pkg_t * pkg,
-        int update_replica);
+static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -158,11 +156,11 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     case BPROTO_INSERT_SERVER:
         on_insert_server(client, pkg);
         break;
-    case BPROTO_REGISTER_SERVER_UPDATE:
-        on_register_server(client, pkg, 1);
-        break;
     case BPROTO_REGISTER_SERVER:
-        on_register_server(client, pkg, 0);
+        on_register_server(client, pkg);
+        break;
+    case BPROTO_DROP_SERIES:
+        on_drop_series(client, pkg);
         break;
     }
 
@@ -331,6 +329,12 @@ static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
         /* continue optimize */
         siri_optimize_continue();
 
+        /* start re-index task if needed */
+        if (siridb->reindex != NULL)
+        {
+            siridb_reindex_start(siridb->reindex->timer);
+        }
+
         siridb_servers_send_flags(siridb->servers);
     }
 
@@ -460,10 +464,7 @@ static void on_insert_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_register_server(
-        uv_stream_t * client,
-        sirinet_pkg_t * pkg,
-        int update_replica)
+static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     SERVER_CHECK_AUTHENTICATED(server)
 
@@ -485,29 +486,86 @@ static void on_register_server(
     else
     {
         new_server = siridb_server_register(siridb, pkg->data, pkg->len);
+        package = (new_server == NULL) ?
+                /* a signal might be raised */
+                sirinet_pkg_new(
+                        pkg->pid,
+                        0,
+                        BPROTO_ERR_REGISTER_SERVER,
+                        NULL) :
+                sirinet_pkg_new(
+                        pkg->pid,
+                        0,
+                        BPROTO_ACK_REGISTER_SERVER,
+                        NULL);
+    }
 
-        pkg->tp = BPROTO_REGISTER_SERVER;
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+        free(package);
+    }
+}
 
-        if (new_server == NULL ||
-                (       update_replica &&
-                        siridb->replica != NULL &&
-                        siridb->replica != new_server &&
-                        siridb_replicate_pkg(siridb, pkg)))
+static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    sirinet_pkg_t * package = NULL;
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+
+    if (    (siridb->server->flags & ~SERVER_FLAG_RUNNING) ||
+            (siridb->server->flags & SERVER_FLAG_PAUSED))
+    {
+        log_error("Cannot drop series because of having status %d",
+                siridb->server->flags);
+
+        package = sirinet_pkg_err(
+                pkg->pid,
+                0,
+                BPROTO_ERR_DROP_SERIES,
+                NULL);
+    }
+    else
+    {
+        qp_obj_t * qp_series_name = qp_object_new();
+        if (qp_series_name != NULL)
         {
-            /* a signal might be raised */
-            package = sirinet_pkg_new(
-                    pkg->pid,
-                    0,
-                    BPROTO_ERR_REGISTER_SERVER,
-                    NULL);
-        }
-        else
-        {
-            package = sirinet_pkg_new(
-                    pkg->pid,
-                    0,
-                    BPROTO_ACK_REGISTER_SERVER,
-                    NULL);
+            qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+            if (unpacker != NULL)
+            {
+                qp_next(unpacker, qp_series_name);
+                if (qp_is_raw_term(qp_series_name))
+                {
+                    siridb_series_t * series;
+                    series = ct_get(siridb->series, qp_series_name->via->raw);
+                    if (series != NULL)
+                    {
+                        siridb_series_drop(siridb, series);
+                    }
+                    else
+                    {
+                        log_warning(
+                                "Received a request to drop series '%s' but "
+                                "the series is not found (already dropped?)",
+                                qp_series_name->via->raw);
+                    }
+                    package = sirinet_pkg_err(
+                            pkg->pid,
+                            0,
+                            BPROTO_ACK_DROP_SERIES,
+                            NULL);
+                }
+                else
+                {
+                    log_error(
+                            "Illegal back-end dropped series package "
+                            "received, probably the series name was not "
+                            "terminated?");
+                }
+                qp_unpacker_free(unpacker);
+            }
+            qp_object_free(qp_series_name);
         }
     }
 

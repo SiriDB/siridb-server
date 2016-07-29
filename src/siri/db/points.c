@@ -80,10 +80,7 @@ void siridb_points_add_point(
 }
 
 /*
- * This function can raise a SIGNAL in case or an ALLOC error which means
- * points are probably not completely packed.
- *
- * Returns siri_err which is 0 if successful.
+ * Returns siri_err and raises a SIGNAL in case an error has occurred.
  */
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
 {

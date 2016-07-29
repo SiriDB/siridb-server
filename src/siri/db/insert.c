@@ -512,7 +512,7 @@ static ssize_t INSERT_assign_by_map(
 
     tp = qp_next(unpacker, qp_obj);
 
-    while (tp == QP_RAW)
+    while (tp == QP_RAW && qp_obj->len)
     {
         pool = siridb_pool_sn_raw(
                 siridb,
@@ -583,7 +583,7 @@ static ssize_t INSERT_assign_by_array(
 
         if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
         {
-            if (qp_next(unpacker, qp_obj) != QP_RAW)
+            if (qp_next(unpacker, qp_obj) != QP_RAW || !qp_obj->len)
             {
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }

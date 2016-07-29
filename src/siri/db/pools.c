@@ -98,6 +98,44 @@ void siridb_pools_free(siridb_pools_t * pools)
 }
 
 /*
+ * Append a new pool to pools and returns the new created pool object.
+ *
+ * Note: pools->prev_lookup is set to the previous lookup table and a new
+ *       lookup is created and set to pools->lookup.
+ *
+ * Returns NULL and raises a SIGNAL in case an error has occurred and pools
+ * remains unchanged in this case.
+ */
+siridb_pool_t * siridb_pools_append(
+        siridb_pools_t * pools,
+        siridb_server_t * server)
+{
+    siridb_pool_t * pool = NULL;
+    siridb_lookup_t * lookup = siridb_pools_gen_lookup(pools->len + 1);
+    if (lookup != NULL)
+    {
+        pool = (siridb_pool_t *)
+                realloc(pools->pool, sizeof(siridb_pool_t) * pools->len + 1);
+        if (pool == NULL)
+        {
+            ERR_ALLOC
+            free(lookup);
+        }
+        else
+        {
+            pools->pool = pool;
+            pool = &pools->pool[pools->len];
+            pool->len = 0;
+            siridb_pool_add_server(pool, server);
+            pools->len++;
+            pools->prev_lookup = pools->lookup;
+            pools->lookup = lookup;
+        }
+    }
+    return pool;
+}
+
+/*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools)
@@ -146,6 +184,27 @@ int siridb_pools_available(siridb_t * siridb)
     {
         if (    pid != siridb->server->pool &&
                 !siridb_pool_available(siridb->pools->pool + pid))
+        {
+            return 0;  // false
+        }
+    }
+    return 1;  //true
+}
+
+/*
+ * Returns 1 (true) if at least one server in each pool is re-indexing,
+ * 0 (false) if at least one pool has no server re-indexing.
+ * ('this' pool is NOT included)
+ *
+ * A server is  're-indexing' when and exactly running and authenticated and
+ * optionally re-indexing.
+ */
+int siridb_pools_reindexing(siridb_t * siridb)
+{
+    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    {
+        if (    pid != siridb->server->pool &&
+                !siridb_pool_reindexing(siridb->pools->pool + pid))
         {
             return 0;  // false
         }

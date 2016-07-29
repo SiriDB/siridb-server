@@ -23,7 +23,8 @@
 
 #define REINDEX_FN ".reindex"
 #define REINDEX_SLEEP 100           // 100 milliseconds
-#define REINDEX_RETRY 30            // 30 seconds
+#define REINDEX_RETRY 5000          // 5 seconds
+#define REINDEX_INITWAIT 20000      // 20 seconds
 #define REINDEX_TIMEOUT 60000       // 1 minute
 
 #define NEXT_SERIES_ERR -1
@@ -31,6 +32,7 @@
 #define NEXT_SERIES_END 1
 
 static const long int SIZE2 = 2 * sizeof(uint32_t);
+static const size_t PCKSZ = PKG_HEADER_SIZE + 5;
 
 inline static int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex);
 static int REINDEX_create_cb(siridb_series_t * series, FILE * fp);
@@ -38,6 +40,7 @@ static int REINDEX_unlink(siridb_reindex_t * reindex);
 static int REINDEX_next_series_id(siridb_reindex_t * reindex);
 static void REINDEX_next(siridb_t * siridb);
 static void REINDEX_work(uv_timer_t * timer);
+static void REINDEX_commit_series(siridb_t * siridb);
 static void REINDEX_on_insert_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -104,12 +107,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                         ERR_FILE
                         siridb_reindex_free(&reindex);
                     }
-                    else if (reindex->size == 0)
-                    {
-                        /* this is the new server, or a finished one */
-                        log_debug("Nothing to replicate");
-                    }
-                    else
+                    else if (reindex->size)
                     {
                         reindex->next_series_id =
                                 (uint32_t *) malloc(sizeof(uint32_t));
@@ -143,9 +141,9 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                                 reindex->server = siridb->pools->pool[
                                           siridb->pools->len -1].server[0];
                                 siridb->server->flags |= SERVER_FLAG_REINDEXING;
-                                siridb->flags |= SIRIDB_FLAG_REINDEXING;
                                 reindex->timer->data = siridb;
                                 siri_optimize_pause();
+                                uv_timer_init(siri.loop, reindex->timer);
                                 if (create_new)
                                 {
                                     /*
@@ -269,6 +267,36 @@ void siridb_reindex_status_update(siridb_t * siridb)
 }
 
 /*
+ * Make sure the optimize task is set to paused before calling this function.
+ * Its not required that the optimize task is already in PAUSED status.
+ * In that case we just wait for the PAUSED status.
+ */
+void siridb_reindex_start(uv_timer_t * timer)
+{
+    if (timer == NULL)
+    {
+        log_debug("No series are scheduled for re-indexing");
+    }
+    else
+    {
+#ifdef DEBUG
+        assert (siri.optimize->pause);
+#endif
+        if (!SIRI_OPTIMZE_IS_PAUSED)
+        {
+            log_debug("Wait for the optimize task to pause");
+            uv_timer_start(timer, siridb_reindex_start, 1000, 0);
+        }
+        else
+        {
+            log_debug("Start re-indexing task in %u seconds",
+                    REINDEX_INITWAIT / 1000);
+            uv_timer_start(timer, REINDEX_work, REINDEX_INITWAIT, 0);
+        }
+    }
+}
+
+/*
  * Type: uv_timer_cb
  *
  * This function sends a packed series to the new (pool) server.
@@ -279,8 +307,10 @@ static void REINDEX_send(uv_timer_t * timer)
 #ifdef DEBUG
     assert (siridb->reindex->pkg != NULL);
 #endif
-
-    if (siridb_server_is_available(siridb->reindex->server))
+    /* actually 'available' is sufficient since the destination server has
+     * never status 're-indexing' unless one day we support down-scaling.
+     */
+    if (siridb_server_is_reindexing(siridb->reindex->server))
     {
         siridb_server_send_pkg(
                 siridb->reindex->server,
@@ -291,7 +321,7 @@ static void REINDEX_send(uv_timer_t * timer)
     }
     else
     {
-        log_info("Cannot send initial replica package to '%s' "
+        log_info("Cannot send re-index package to '%s' "
                 "(try again in %d seconds)",
                 siridb->reindex->server->name,
                 REINDEX_RETRY / 1000);
@@ -370,6 +400,10 @@ static void REINDEX_next(siridb_t * siridb)
         log_info("Re-indexing has successfully finished on '%s'",
                 siridb->server->name);
 
+        /* we can close the timer */
+        siridb_reindex_close(siridb->reindex);
+
+        /* check if everyone is finished and if so destroy re-index */
         siridb_reindex_status_update(siridb);
 
         siri_optimize_continue();
@@ -388,16 +422,17 @@ static void REINDEX_work(uv_timer_t * timer)
 #ifdef DEBUG
     assert (SIRI_OPTIMZE_IS_PAUSED);
     assert (reindex != NULL);
-    assert (siridb->reindex->pkg != NULL);
+    assert (siridb->reindex->pkg == NULL);
 #endif
 
-    siridb_series_t * series =
-            imap32_get(siridb->series_map, *reindex->next_series_id);
+    reindex->series = imap32_get(siridb->series_map, *reindex->next_series_id);
 
-    if (    series == NULL ||
-            siridb_pool_sn(siridb, series->name) == siridb->server->pool ||
+    if (    reindex->series == NULL ||
+            siridb_pool_sn(
+                    siridb,
+                    reindex->series->name) == siridb->server->pool ||
             (   siridb->replica != NULL &&
-                (series->mask & 1) == siridb->server->id))
+                (reindex->series->mask & 1) == siridb->server->id))
     {
         REINDEX_next(siridb);
     }
@@ -408,17 +443,25 @@ static void REINDEX_work(uv_timer_t * timer)
          * not running
          */
         siridb_points_t * points = siridb_series_get_points_num32(
-                series,
+                reindex->series,
                 NULL,
                 NULL);
 
-        if (points != NULL)
+        if (points != NULL)  /* signal is raised in case NULL */
         {
+            /*
+             * Prepare drop, increasing the reference counter is not needed
+             * since the series can only be decremented when dropped. since
+             * the series is not member of the siridb->series_map it will not
+             * be decremented there either.
+             */
+            siridb_series_drop_prepare(siridb, reindex->series);
+
             qp_packer_t * packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
             if (packer != NULL)
             {
                 qp_add_type(packer, QP_MAP1);
-                qp_add_string_term(packer, series->name);
+                qp_add_string_term(packer, reindex->series->name);
 
                 if (siridb_points_pack(points, packer) == 0)
                 {
@@ -438,11 +481,48 @@ static void REINDEX_work(uv_timer_t * timer)
                     qp_packer_free(packer);  /* signal raised */
                 }
             }
-            siridb_points_free(points);  /* signal raised */
+            siridb_points_free(points);
         }
     }
 }
 
+/*
+ * Sends 'dropped series' to the replica and commit the drop.
+ *
+ * This function can raise an ALLOC error but file errors are only logged.
+ */
+static void REINDEX_commit_series(siridb_t * siridb)
+{
+    /*
+     * Send the dropped series to the replica. The replica server might have
+     * received points between the time we prepared the drop and commit the
+     * drop but this is not an issue because the replica then forwards the
+     * points to this server and this server to the new server since the series
+     * is not in 'this' series store anymore
+     */
+    if (siridb->replica != NULL)
+    {
+        size_t len = strlen(siridb->reindex->series->name) + 1;
+        qp_packer_t * packer = sirinet_packer_new(PCKSZ + len);
+        if (packer != NULL)
+        {
+            /* no need for testing, fits for sure */
+            qp_add_raw(packer, siridb->reindex->series->name, len);
+            sirinet_pkg_t * pkg = sirinet_packer2pkg(
+                    packer,
+                    0,
+                    BPROTO_DROP_SERIES);
+            siridb_replicate_pkg(siridb, pkg);
+            free(pkg);
+        }
+    }
+
+    /* commit the drop */
+    if (siridb_series_drop_commit(siridb, siridb->reindex->series))
+    {
+        siridb_series_flush_dropped(siridb);
+    }
+}
 /*
  * Call-back function: sirinet_promise_cb
  */
@@ -482,6 +562,7 @@ static void REINDEX_on_insert_response(
          */
         log_error("Error occurred while sending series to the replica (%d)",
                 status);
+        REINDEX_commit_series(siridb);
         REINDEX_next(siridb);
         break;
     case PROMISE_SUCCESS:
@@ -491,6 +572,7 @@ static void REINDEX_on_insert_response(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
         }
+        REINDEX_commit_series(siridb);
         REINDEX_next(siridb);
         break;
     default:

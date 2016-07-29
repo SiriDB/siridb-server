@@ -293,7 +293,7 @@ static void SIRI_set_closing_state(void)
         {
             siridb_replicate_close(siridb->replicate);
         }
-        if (siridb->reindex != NULL)
+        if (siridb->reindex != NULL && siridb->reindex->timer != NULL)
         {
             siridb_reindex_close(siridb->reindex);
         }

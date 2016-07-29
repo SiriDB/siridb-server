@@ -140,8 +140,6 @@ void strx_extract_string(char * dest, const char * source, size_t len)
      * string with a single one.
      *
      * The returned string will be terminated.
-     *
-     * TODO: This probably can go wrong with unicode.
      */
     size_t i = 0;
 

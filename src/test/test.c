@@ -81,6 +81,10 @@ static int test_qpack(void)
     test_start("Testing qpack");
 
     qp_packer_t * packer = qp_packer_new(32);
+    qp_unpacker_t * unpacker;
+    qp_obj_t * qpi = qp_object_new();
+    int64_t i;
+
     qp_add_type(packer, QP_MAP_OPEN);
     qp_add_raw(packer, "data", 4);
     qp_add_type(packer, QP_ARRAY_OPEN);
@@ -97,15 +101,11 @@ static int test_qpack(void)
     qp_add_raw(packer, "value", 5);
     qp_add_raw(packer, "2.0.0", 5);
 
-    qp_unpacker_t * unpacker = qp_unpacker_new(packer->buffer, packer->len);
-
-    qp_unpacker_free(unpacker);
     qp_packer_free(packer);
 
     packer = qp_packer_new(512);
+
     qp_add_type(packer, QP_ARRAY_OPEN);
-    int64_t i;
-    qp_obj_t * qpi = qp_object_new();
     for (i =-100; i < 100; i++)
     {
         qp_add_int8(packer, i);
@@ -113,6 +113,7 @@ static int test_qpack(void)
     qp_add_type(packer, QP_ARRAY_CLOSE);
 
     unpacker = qp_unpacker_new(packer->buffer, packer->len);
+
     assert (qp_is_array(qp_next(unpacker, NULL)));
     for (i =-100; i < 100; i++)
     {
