@@ -140,11 +140,11 @@ void ** ct_get_sure(ct_t * ct, const char * key)
 }
 
 /*
- * Add a new key/value. return CT_EXISTS if the key already
- * exists and CT_OK if not. When the key exists the value will not
+ * Add a new key/value. return CT_EXISTS (1) if the key already
+ * exists and CT_OK (0) if not. When the key exists the value will not
  * be overwritten.
  *
- * In case of an error, CT_ERR will be returned and a SIGNAL is raised.
+ * In case of an error, CT_ERR (-1) will be returned and a SIGNAL is raised.
  */
 int ct_add(ct_t * ct, const char * key, void * data)
 {

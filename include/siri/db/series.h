@@ -74,6 +74,7 @@ typedef struct siridb_series_s
     uint16_t pool;
     uint8_t flags;
     uint8_t tp;
+    uint8_t server_id;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
@@ -130,3 +131,4 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series);
 void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
+uint8_t siridb_series_server_id(const char * name);

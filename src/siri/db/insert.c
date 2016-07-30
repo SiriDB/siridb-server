@@ -199,7 +199,128 @@ void siridb_insert_init(
 
 static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
 {
+    qp_types_t tp;
+    siridb_series_t * series;
+    uint16_t pool;
+    qp_obj_t * qp_series_name = qp_object_new();
+    qp_obj_t * qp_series_ts = qp_object_new();
+    qp_obj_t * qp_series_val = qp_object_new();
+    if (qp_series_name == NULL || qp_series_ts == NULL || qp_series_val == NULL)
+    {
+        ERR_ALLOC
+        qp_object_free_safe(qp_series_name);
+        qp_object_free_safe(qp_series_ts);
+        qp_object_free_safe(qp_series_val);
+        return -1;
+    }
 
+    uv_mutex_lock(&siridb->series_mutex);
+    uv_mutex_lock(&siridb->shards_mutex);
+
+    qp_next(unpacker, NULL); // map
+    qp_next(unpacker, qp_series_name); // first series or end
+
+    /*
+     * we check for siri_err because siridb_series_add_point()
+     * should never be called twice on the same series after an
+     * error has occurred.
+     */
+    while (!siri_err && qp_is_raw_term(qp_series_name))
+    {
+        series = (siridb_series_t *) ct_get(
+                siridb->series,
+                qp_series_name->via->raw);
+        if (series == NULL)
+        {
+            /* the series does not exist so check what to do... */
+            pool = siridb_lookup_sn(
+                    siridb->pools->lookup,
+                    qp_series_name->via->raw);
+            if (pool == siridb->server->pool)
+            {
+                /*
+                 * This is the correct pool so create the series and
+                 * add the points.
+                 */
+                series = siridb_series_new(
+                        siridb,
+                        qp_series_name->via->raw,
+                        SIRIDB_QP_MAP2_TP(qp_series_val->tp));
+                if (series == NULL ||
+                    ct_add(siridb->series, series->name, series))
+                {
+                    log_critical(
+                            "Error creating series: '%s'",
+                            qp_series_name->via->raw);
+                    break;  /* signal is raised */
+                }
+            }
+            else if (siridb->replica == NULL ||
+                    siridb_series_server_id(
+                            qp_series_name->via->raw) == siridb->server->id)
+            {
+                /*
+                 * Forward the series to the correct pool because 'this' server
+                 * is responsible for the series.
+                 */
+
+                /* TODO: add to pool array for forwarding */
+                assert (0);
+                continue;
+            }
+            else
+            {
+                /*
+                 * Skip this series since it will forwarded to the correct
+                 * pool by the replica server.
+                 */
+                qp_skip_next(unpacker);  // array
+                qp_next(unpacker, qp_series_name);
+                continue;
+            }
+        }
+
+        qp_next(unpacker, NULL); // array open
+        qp_next(unpacker, NULL); // first point array2
+        qp_next(unpacker, qp_series_ts); // first ts
+        qp_next(unpacker, qp_series_val); // first val
+
+        if (siridb_series_add_point(
+                siridb,
+                series,
+                (uint64_t *) &qp_series_ts->via->int64,
+                qp_series_val->via))
+        {
+            break;  /* signal is raised */
+        }
+
+        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        {
+            qp_next(unpacker, qp_series_ts); // ts
+            qp_next(unpacker, qp_series_val); // val
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    (uint64_t *) &qp_series_ts->via->int64,
+                    qp_series_val->via))
+            {
+                break;  /* signal is raised */
+            }
+        }
+        if (tp == QP_ARRAY_CLOSE)
+        {
+            qp_next(unpacker, qp_series_name);
+        }
+    }
+
+    uv_mutex_unlock(&siridb->series_mutex);
+    uv_mutex_unlock(&siridb->shards_mutex);
+
+    qp_object_free(qp_series_name);
+    qp_object_free(qp_series_ts);
+    qp_object_free(qp_series_val);
+
+    return siri_err;
 }
 
 /*
@@ -210,6 +331,12 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
  */
 int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
 {
+    if ((flags & INSERT_FLAG_TEST) || (
+            (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
+            (~flags & INSERT_FLAG_TESTED)))
+    {
+        return INSERT_local_test(siridb, unpacker);
+    }
     qp_types_t tp;
     siridb_series_t ** series;
     qp_obj_t * qp_series_name = qp_object_new();

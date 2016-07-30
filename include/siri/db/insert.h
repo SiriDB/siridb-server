@@ -64,4 +64,4 @@ void siridb_insert_init(
         qp_packer_t * packer[],
         int8_t is_reindexing);
 
-int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker);
+int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags);

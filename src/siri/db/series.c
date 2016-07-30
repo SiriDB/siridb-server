@@ -619,6 +619,23 @@ void siridb_series_decref(siridb_series_t * series)
 }
 
 /*
+ * Calculate the server id.
+ * Returns 0 or 1, representing a server in a pool)
+ */
+uint8_t siridb_series_server_id(const char * name)
+{
+    uint32_t n;
+
+    /* get sum series name to calculate series mask (for sharding) */
+    for (n = 0; *name; name++)
+    {
+        n += *name;
+    }
+
+   return (uint8_t) ((n / 11) % 2);
+}
+
+/*
  * Returns 0 if successful or -1 and a SIGNAL is raised in case of a critical
  * error.
  * Note that we also return 0 if we had to recover a shard. In this case you
@@ -823,7 +840,7 @@ static siridb_series_t * SERIES_new(
         uint16_t pool,
         const char * name)
 {
-    uint32_t n = 0;
+    uint32_t n;
     siridb_series_t * series;
     series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
     if (series == NULL)
@@ -851,13 +868,21 @@ static siridb_series_t * SERIES_new(
             series->pool = pool;
 
             /* get sum series name to calculate series mask (for sharding) */
-            for (; *name; name++)
+            for (n = 0; *name; name++)
             {
                 n += *name;
             }
 
-            series->mask = (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
+            series->mask =
+                    (uint16_t) (n / 11) % ((tp == SIRIDB_SERIES_TP_STRING) ?
                     siridb->shard_mask_log : siridb->shard_mask_num);
+
+            series->server_id = (uint8_t) ((n / 11) % 2);
+
+#ifdef DEBUG
+            /* make sure these two are exactly the same */
+            assert (series->server_id == siridb_series_server_id(name));
+#endif
 
             series->idx_len = 0;
             series->flags = 0;
