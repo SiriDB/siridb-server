@@ -52,7 +52,7 @@ class TestPool(TestBase):
 
         await self.client1.connect()
 
-        await self.assertIsRunning(self.db, self.client0, timeout=2)
+        await self.assertIsRunning(self.db, self.client0, timeout=20)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)

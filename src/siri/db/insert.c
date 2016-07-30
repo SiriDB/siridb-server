@@ -179,7 +179,7 @@ void siridb_insert_init(
 
     insert->free_cb = INSERT_free;
     insert->ref = 1;
-    insert->is_reindexing = is_reindexing;
+    insert->flags = (is_reindexing) ? INSERT_FLAG_TEST : 0;
     insert->pid = pid;
     sirinet_socket_lock(client);
     insert->client = client;
@@ -197,13 +197,18 @@ void siridb_insert_init(
     uv_async_send(handle);
 }
 
+static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
+{
+
+}
+
 /*
  * Return siri_err which should be 0 if all is successful. Another value is
  * critical so basically this functions should always return 0.
  *
  * (a SIGNAL will be raised in case of an error)
  */
-int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker)
+int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
 {
     qp_types_t tp;
     siridb_series_t ** series;
@@ -441,7 +446,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 
                 if (pkg != NULL)
                 {
-                    if (insert->is_reindexing)
+                    if (insert->flags & INSERT_FLAG_TEST)
                     {
                         pkg->tp = BPROTO_INSERT_TEST_SERVER;
                     }
@@ -468,8 +473,8 @@ static void INSERT_points_to_pools(uv_async_t * handle)
             pkg = sirinet_pkg_new(
                     0,
                     insert->packer[n]->len,
-                    (insert->is_reindexing) ?
-                            BPROTO_INSERT_TEST_SERVER : BPROTO_INSERT_POOL,
+                    (insert->flags & INSERT_FLAG_TEST) ?
+                            BPROTO_INSERT_TEST_POOL : BPROTO_INSERT_POOL,
                     insert->packer[n]->buffer);
             if (pkg != NULL)
             {

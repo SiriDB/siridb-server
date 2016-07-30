@@ -15,6 +15,9 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
+#define INSERT_FLAG_TEST 1
+#define INSERT_FLAG_TESTED 2
+
 typedef enum
 {
     ERR_EXPECTING_ARRAY=-9,
@@ -37,7 +40,7 @@ typedef struct siridb_insert_s
 {
     uv_close_cb free_cb;    /* must be on top */
     uint8_t ref;
-    uint8_t is_reindexing;
+    uint8_t flags;
     uint64_t pid;
     uv_stream_t * client;
     size_t size;        /* number of points */

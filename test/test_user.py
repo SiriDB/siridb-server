@@ -33,7 +33,8 @@ class TestUser(TestBase):
         result = await self.client0.query('grant modify to user "sasientje"')
         self.assertEqual(result.pop('success_msg'), "Successfully granted permissions to user 'sasientje'.")
 
-        self.db.add_replica(self.server1, 0, sleep=10)
+        await self.db.add_replica(self.server1, 0)
+        await self.assertIsRunning(self.db, self.client0, timeout=10)
 
         await self.client1.connect()
 
@@ -51,7 +52,7 @@ class TestUser(TestBase):
 
         result = await self.client1.query('alter user "sasientje" set password "dagdag"')
 
-        self.server0.start(sleep=12)
+        await self.server0.start(sleep=12)
 
         self.client0 = Client(
             self.db,

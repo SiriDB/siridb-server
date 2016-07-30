@@ -19,10 +19,12 @@ class TestSeries(TestBase):
 
     @default_test_setup(2)
     async def run(self):
-        self.db.add_pool(servers[1], sleep=12)
-
+        await self.client0.connect()
+        await self.db.add_pool(self.server1)
+        await self.assertIsRunning(self.db, self.client0, timeout=12)
+        self.client0.close()
 
 if __name__ == '__main__':
     SiriDB.HOLD_TERM = False
-    Server.HOLD_TERM = True
+    Server.HOLD_TERM = False
     run_test(TestSeries())
