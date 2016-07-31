@@ -45,7 +45,7 @@ class TestBase(unittest.TestCase):
         await self.assertAlmostSeries(client, series, allowed_mismatches=0)
 
     async def assertIsRunning(self, db, client, timeout=None):
-        while timeout or timeout is None:
+        while True:
             result = await client.query('list servers name, status')
             result = result['servers']
             try:
@@ -64,13 +64,15 @@ class TestBase(unittest.TestCase):
                 else:
                     break
 
-            timeout -= 1
+            if timeout is not None:
+                timeout -= 1
+
             await asyncio.sleep(1.0)
 
     async def assertAlmostSeries(self, client, series, allowed_mismatches=1):
         d = {s.name: len(s.points) for s in series}
 
-        result = await client.query('list series name, length')
+        result = await client.query('list series name, length limit {}'.format(len(series)))
         result = {name: length for name, length in result['series']}
         for s in series:
             if s.points:
@@ -88,3 +90,5 @@ class TestBase(unittest.TestCase):
                         allowed_mismatches -= 1
                     else:
                         raise e
+
+

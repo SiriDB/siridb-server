@@ -11,16 +11,16 @@
  *
  */
 #define _GNU_SOURCE
-#include <siri/db/replicate.h>
-#include <stddef.h>
-#include <siri/err.h>
-#include <siri/db/fifo.h>
-#include <siri/db/series.h>
-#include <siri/net/protocol.h>
-#include <siri/siri.h>
 #include <assert.h>
 #include <logger/logger.h>
-#include <insert.h>
+#include <siri/db/fifo.h>
+#include <siri/db/insert.h>
+#include <siri/db/replicate.h>
+#include <siri/db/series.h>
+#include <siri/err.h>
+#include <siri/net/protocol.h>
+#include <siri/siri.h>
+#include <stddef.h>
 
 #define REPLICATE_SLEEP 10          // 10 milliseconds
 #define REPLICATE_TIMEOUT 60000     // 1 minute

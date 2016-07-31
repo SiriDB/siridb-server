@@ -13,7 +13,6 @@ from testing import run_test
 from testing import Server
 from testing import ServerError
 from testing import SiriDB
-from testing import some_series
 from testing import TestBase
 from testing import UserAuthError
 
@@ -22,10 +21,9 @@ class TestPool(TestBase):
 
     async def insert(self, series, n, timeout=10):
         for _ in range(n):
-            data = some_series(series)
             while timeout:
                 try:
-                    await self.client0.insert(data)
+                    await self.client0.insert_some_series(series)
                 except PoolError:
                     timeout -= 1
                 else:
@@ -43,16 +41,25 @@ class TestPool(TestBase):
 
         task = asyncio.ensure_future(self.insert(series, 60))
 
-        # wait for some points to insert
         await asyncio.sleep(5)
 
-        await self.db.add_pool(self.server1, sleep=12)
+        await self.db.add_pool(self.server1, sleep=4)
 
-        await asyncio.wait_for(task, None)
+        # task = asyncio.ensure_future(self.insert(series, 60))
 
         await self.client1.connect()
 
-        await self.assertIsRunning(self.db, self.client0, timeout=20)
+        await asyncio.sleep(5)
+
+        await self.assertSeries(self.client0, series)
+        await self.assertSeries(self.client1, series)
+
+        await self.assertIsRunning(self.db, self.client0, timeout=900)
+
+        await self.assertSeries(self.client0, series)
+        await self.assertSeries(self.client1, series)
+
+        await asyncio.wait_for(task, None)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)

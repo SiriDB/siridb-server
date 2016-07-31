@@ -92,7 +92,7 @@ class TestInsert(TestBase):
         with self.assertRaises(InsertError):
             await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
 
-        self.db.add_replica(self.server1, 0, sleep=15)
+        await self.db.add_replica(self.server1, 0, sleep=15)
 
         await self.client1.connect()
 

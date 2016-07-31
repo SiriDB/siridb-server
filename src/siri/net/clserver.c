@@ -373,65 +373,70 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         return;  /* signal is raised */
     }
+
     qp_obj_t * qp_obj = qp_object_new();
     if (qp_obj == NULL)
     {
-        free(unpacker);
-        return;
+        qp_unpacker_free(unpacker);
+        return;  /* signal is raised */
     }
-    qp_packer_t * packer[siridb->pools->len];
-    siridb_insert_err_t rc;
 
-    const char * err_msg;
+    siridb_insert_t * insert = siridb_insert_new(
+            siridb,
+            pkg->pid,
+            client);
 
-    rc = siridb_insert_assign_pools(siridb, unpacker, qp_obj, packer);
-
-    switch (rc)
+    if (insert != NULL)
     {
-    case ERR_EXPECTING_ARRAY:
-    case ERR_EXPECTING_SERIES_NAME:
-    case ERR_EXPECTING_MAP_OR_ARRAY:
-    case ERR_EXPECTING_INTEGER_TS:
-    case ERR_TIMESTAMP_OUT_OF_RANGE:
-    case ERR_UNSUPPORTED_VALUE:
-    case ERR_EXPECTING_AT_LEAST_ONE_POINT:
-    case ERR_EXPECTING_NAME_AND_POINTS:
-        /* something went wrong, get correct err message */
-        err_msg = siridb_insert_err_msg(rc);
+        ssize_t rc = siridb_insert_assign_pools(
+                siridb,
+                unpacker,
+                qp_obj,
+                insert->packer);
 
-        /* create and send package */
-        sirinet_pkg_t * package = sirinet_pkg_err(
-                pkg->pid,
-                strlen(err_msg),
-                CPROTO_ERR_INSERT,
-                err_msg);
-
-        if (package != NULL)
+        switch ((siridb_insert_err_t) rc)
         {
-            /* ignore result code, signal can be raised */
-            sirinet_pkg_send(client, package);
+        case ERR_EXPECTING_ARRAY:
+        case ERR_EXPECTING_SERIES_NAME:
+        case ERR_EXPECTING_MAP_OR_ARRAY:
+        case ERR_EXPECTING_INTEGER_TS:
+        case ERR_TIMESTAMP_OUT_OF_RANGE:
+        case ERR_UNSUPPORTED_VALUE:
+        case ERR_EXPECTING_AT_LEAST_ONE_POINT:
+        case ERR_EXPECTING_NAME_AND_POINTS:
+        case ERR_MEM_ALLOC:
+            {
+                /* something went wrong, get correct err message */
+                const char * err_msg = siridb_insert_err_msg(rc);
 
-            /* free package*/
-            free(package);
-        }
+                /* create and send package */
+                sirinet_pkg_t * package = sirinet_pkg_err(
+                        pkg->pid,
+                        strlen(err_msg),
+                        CPROTO_ERR_INSERT,
+                        err_msg);
 
-        /* free packer */
-        for (size_t n = 0; n < siridb->pools->len; n++)
-        {
-            qp_packer_free(packer[n]);
+                if (package != NULL)
+                {
+                    /* ignore result code, signal can be raised */
+                    sirinet_pkg_send(client, package);
+
+                    /* free package*/
+                    free(package);
+                }
+            }
+
+            /* error, free insert */
+            siridb_insert_free(insert);
+            break;
+
+        default:
+            if (siridb_insert_points_to_pools(insert, (size_t) rc))
+            {
+                siridb_insert_free(insert);  /* signal is raised */
+            }
+            break;
         }
-        break;
-    case ERR_MEM_ALLOC:
-        break;
-    default:
-        siridb_insert_init(
-                pkg->pid,
-                client,
-                (size_t) rc,
-                siridb->pools->len,
-                packer,
-                siridb->flags & SIRIDB_FLAG_REINDEXING);
-        break;
     }
 
     /* free qp_object */

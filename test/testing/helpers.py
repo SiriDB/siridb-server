@@ -1,13 +1,11 @@
 import os
 import logging
-import asyncio
 import shutil
 import time
 import random
 import functools
 import string
 from .constants import TEST_DIR
-from .testbase import TestBase
 from .series import Series
 
 _MAP_TS = {
@@ -27,25 +25,6 @@ def cleanup():
 
     logging.info('Force kill all open siridbc processes')
     os.system('pkill -9 siridbc')
-
-async def _run_test(test, loglevel):
-    logger = logging.getLogger()
-    logger.setLevel(loglevel)
-
-    start = time.time()
-    try:
-        await test.run()
-    except Exception as e:
-        print('{:.<76}FAILED ({:.2f} seconds)'.format(
-            test.title,
-            time.time() - start))
-        raise e
-    else:
-        print('{:.<80}OK ({:.2f} seconds)'.format(
-            test.title,
-            time.time() - start))
-
-    logger.setLevel('CRITICAL')
 
 def random_value(tp=float, mi=-100, ma=100):
     i = random.randrange(mi, ma)
@@ -67,14 +46,3 @@ def gen_data(points=functools.partial(gen_points), n=100):
 def gen_series(n=10000):
     return [Series(random_series_name()) for _ in range(n)]
 
-def some_series(series, n=None, points=functools.partial(gen_points, n=1)):
-    random.shuffle(series)
-    if n is None:
-        n = len(series) // 100
-    return {s.name: s.add_points(points()) for s in series[:n]}
-
-def run_test(test, loglevel='CRITICAL'):
-    assert isinstance(test, TestBase)
-    loop = asyncio.get_event_loop()
-    cleanup()
-    loop.run_until_complete(_run_test(test, loglevel))

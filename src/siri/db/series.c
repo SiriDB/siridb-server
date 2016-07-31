@@ -881,7 +881,7 @@ static siridb_series_t * SERIES_new(
 
 #ifdef DEBUG
             /* make sure these two are exactly the same */
-            assert (series->server_id == siridb_series_server_id(name));
+            assert (series->server_id == siridb_series_server_id(series->name));
 #endif
 
             series->idx_len = 0;
