@@ -146,6 +146,54 @@ ssize_t siridb_insert_assign_pools(
     return (siri_err) ? ERR_MEM_ALLOC : rc;
 }
 
+siridb_insert_t * siridb_insert_new(siridb_t * siridb)
+{
+    siridb_insert_t * insert = (siridb_insert_t *) malloc(
+            sizeof(siridb_insert_t) +
+            siridb->pools->len * sizeof(qp_packer_t *));
+
+    if (insert == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        insert->free_cb = INSERT_free;
+        insert->flags = (siridb->flags & SIRIDB_FLAG_REINDEXING) ?
+                INSERT_FLAG_TEST : 0;
+        insert->size = 0;
+        insert->pid = 0;
+        insert->client = NULL;
+
+        /*
+         * we keep the packer size because the number of pools might change and
+         * at this point the pool->len is equal to when the insert was received
+         */
+        insert->packer_size = siridb->pools->len;
+
+        /*
+         * Allocate packers for sending data to pools. we allocate smaller
+         * sizes in case we have a lot of pools.
+         */
+        uint32_t psize = QP_SUGGESTED_SIZE / ((siridb->pools->len / 4) + 1);
+
+        for (size_t n = 0; n < siridb->pools->len; n++)
+        {
+            /* These packers will be freed either in clserver
+             * in case of an error, or by INSERT_free(..) in case of success.
+             */
+            if ((insert->packer[n] = qp_packer_new(psize)) == NULL)
+            {
+                return NULL;  /* a signal is raised */
+            }
+
+            /* cannot raise a signal since enough space is allocated */
+            qp_add_type(insert->packer[n], QP_MAP_OPEN);
+        }
+    }
+    return insert;
+}
+
 /*
  * Prepare a new insert object an start an async call
  * to 'INSERT_points_to_pools'.
@@ -202,6 +250,7 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
     qp_types_t tp;
     siridb_series_t * series;
     uint16_t pool;
+    const char * series_name;
     qp_obj_t * qp_series_name = qp_object_new();
     qp_obj_t * qp_series_ts = qp_object_new();
     qp_obj_t * qp_series_val = qp_object_new();
@@ -227,15 +276,12 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
      */
     while (!siri_err && qp_is_raw_term(qp_series_name))
     {
-        series = (siridb_series_t *) ct_get(
-                siridb->series,
-                qp_series_name->via->raw);
+        series_name = qp_series_name->via->raw;
+        series = (siridb_series_t *) ct_get(siridb->series, series_name);
         if (series == NULL)
         {
             /* the series does not exist so check what to do... */
-            pool = siridb_lookup_sn(
-                    siridb->pools->lookup,
-                    qp_series_name->via->raw);
+            pool = siridb_lookup_sn(siridb->pools->lookup, series_name);
             if (pool == siridb->server->pool)
             {
                 /*
@@ -244,20 +290,17 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
                  */
                 series = siridb_series_new(
                         siridb,
-                        qp_series_name->via->raw,
+                        series_name,
                         SIRIDB_QP_MAP2_TP(qp_series_val->tp));
                 if (series == NULL ||
                     ct_add(siridb->series, series->name, series))
                 {
-                    log_critical(
-                            "Error creating series: '%s'",
-                            qp_series_name->via->raw);
+                    log_critical("Error creating series: '%s'", series_name);
                     break;  /* signal is raised */
                 }
             }
             else if (siridb->replica == NULL ||
-                    siridb_series_server_id(
-                            qp_series_name->via->raw) == siridb->server->id)
+                    siridb_series_server_id(series_name) == siridb->server->id)
             {
                 /*
                  * Forward the series to the correct pool because 'this' server
@@ -564,19 +607,20 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                     sirinet_pkg_new(
                             0,
                             insert->packer[n]->len,
-                            BPROTO_INSERT_SERVER,
+                            (insert->flags & INSERT_FLAG_TEST) ?
+                                BPROTO_INSERT_TEST_SERVER :
+                            (insert->flags & INSERT_FLAG_TESTED) ?
+                                BPROTO_INSERT_TESTED_SERVER :
+                                BPROTO_INSERT_SERVER,
                             insert->packer[n]->buffer) :
                     siridb_replicate_pkg_filter(
                             siridb,
                             insert->packer[n]->buffer,
-                            insert->packer[n]->len);
+                            insert->packer[n]->len,
+                            insert->flags);
 
                 if (pkg != NULL)
                 {
-                    if (insert->flags & INSERT_FLAG_TEST)
-                    {
-                        pkg->tp = BPROTO_INSERT_TEST_SERVER;
-                    }
                     siridb_replicate_pkg(siridb, pkg);
                     free(pkg);
                 }
@@ -591,7 +635,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
              */
             if (unpacker != NULL)
             {
-                siridb_insert_local(siridb, unpacker);
+                siridb_insert_local(siridb, unpacker, insert->flags);
                 qp_unpacker_free(unpacker);
             }
         }

@@ -468,7 +468,7 @@ static void REINDEX_work(uv_timer_t * timer)
                     reindex->pkg = sirinet_packer2pkg(
                             packer,
                             0,
-                            BPROTO_INSERT_REINDEX_SERVER);
+                            BPROTO_INSERT_TESTED_SERVER);
 
                     uv_timer_start(
                             reindex->timer,

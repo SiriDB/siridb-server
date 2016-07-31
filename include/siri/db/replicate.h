@@ -48,6 +48,7 @@ int siridb_replicate_pkg(siridb_t * siridb, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
         const char * data,
-        size_t len);
+        size_t len,
+        int flags);
 
 #define siridb_replicate_is_idle(replicate) (replicate->status == REPLICATE_IDLE)

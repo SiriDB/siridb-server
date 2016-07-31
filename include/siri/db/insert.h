@@ -17,6 +17,7 @@
 
 #define INSERT_FLAG_TEST 1
 #define INSERT_FLAG_TESTED 2
+#define INSERT_FLAG_POOL 4
 
 typedef enum
 {
@@ -39,7 +40,6 @@ typedef struct qp_obj_s qp_obj_t;
 typedef struct siridb_insert_s
 {
     uv_close_cb free_cb;    /* must be on top */
-    uint8_t ref;
     uint8_t flags;
     uint64_t pid;
     uv_stream_t * client;

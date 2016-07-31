@@ -20,6 +20,7 @@
 #include <siri/siri.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <insert.h>
 
 #define REPLICATE_SLEEP 10          // 10 milliseconds
 #define REPLICATE_TIMEOUT 60000     // 1 minute
@@ -265,7 +266,8 @@ static void REPLICATE_work(uv_timer_t * handle)
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
         const char * data,
-        size_t len)
+        size_t len,
+        int flags)
 {
     siridb_series_t * series;
     qp_packer_t * netpacker = sirinet_packer_new(len + PKG_HEADER_SIZE);
@@ -316,8 +318,12 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     qp_object_free(qp_series_name);
     qp_unpacker_free(unpacker);
 
-    sirinet_pkg_t * npkg =
-            sirinet_packer2pkg(netpacker, 0, BPROTO_INSERT_SERVER);
+    sirinet_pkg_t * npkg = sirinet_packer2pkg(
+            netpacker,
+            0,
+            (flags & INSERT_FLAG_TEST) ?
+                    BPROTO_INSERT_TEST_SERVER : (flags & INSERT_FLAG_TESTED) ?
+                    BPROTO_INSERT_TESTED_SERVER : BPROTO_INSERT_SERVER);
 
     return npkg;
 }
