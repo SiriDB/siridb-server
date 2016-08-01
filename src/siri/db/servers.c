@@ -300,7 +300,6 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         {
             siridb_reindex_start(siridb->reindex->timer);
         }
-
     }
 
     if (llist_append(siridb->servers, server) || SERVERS_save(siridb))

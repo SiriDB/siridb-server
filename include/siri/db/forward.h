@@ -20,6 +20,7 @@ typedef struct siridb_s siridb_t;
 typedef struct siridb_forward_s
 {
     uv_close_cb free_cb;    /* must be on top */
+    uint8_t ref;
     uint16_t size; /* number of packers (one for each pool - 1) */
     siridb_t * siridb;
     qp_packer_t * packer[];

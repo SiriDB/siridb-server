@@ -81,7 +81,7 @@ typedef struct siridb_server_s
     uint8_t id; /* set when added to a pool to either 0 or 1 */
     imap64_t * promises;
     uv_tcp_t * socket;
-    uint64_t pid;
+    uint32_t pid;
     /* fixed server properties */
     char * version;
     char * dbpath;
@@ -99,7 +99,7 @@ typedef struct siridb_server_walker_s
 
 typedef struct siridb_server_reg_s
 {
-    uint64_t pid;
+    uint32_t pid;
     uv_stream_t * client;
 } siridb_server_reg_t;
 

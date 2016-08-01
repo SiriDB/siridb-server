@@ -55,7 +55,7 @@ typedef struct siridb_query_s
     uint8_t ref;
     uint8_t flags;
     void * data;
-    uint64_t pid;
+    uint32_t pid;
     uv_stream_t * client;
     char * q;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
@@ -68,7 +68,7 @@ typedef struct siridb_query_s
 } siridb_query_t;
 
 void siridb_query_run(
-        uint64_t pid,
+        uint32_t pid,
         uv_stream_t * client,
         const char * q,
         size_t q_len,

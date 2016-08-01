@@ -38,6 +38,10 @@ if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
     return;                                                                   \
 }
 
+static void BSERVER_flags_update(
+        siridb_t * siridb,
+        siridb_server_t * server,
+        int64_t flags);
 static void on_new_connection(uv_stream_t * server, int status);
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg);
@@ -120,6 +124,34 @@ static void on_new_connection(uv_stream_t * server, int status)
     {
         uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
     }
+}
+
+static void BSERVER_flags_update(
+        siridb_t * siridb,
+        siridb_server_t * server,
+        int64_t flags)
+{
+    /* update server flags */
+    siridb_server_update_flags(server->flags, flags);
+
+    /* if server is re-indexing, update status */
+    if (    (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
+            (~siridb->server->flags & SERVER_FLAG_REINDEXING) &&
+            (~server->flags & SERVER_FLAG_REINDEXING))
+    {
+        siridb_reindex_status_update(siridb);
+    }
+
+    /* if this is the replica see if we have anything to update */
+    if (    siridb->replica == server &&
+            siridb_replicate_is_idle(siridb->replicate))
+    {
+        siridb_replicate_start(siridb->replicate);
+    }
+
+    log_info("Status received from '%s' (status: %d)",
+            server->name,
+            server->flags);
 }
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -213,9 +245,10 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
         {
             siridb_server_t * server =
                     ((sirinet_socket_t * ) client->data)->origin;
+            siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
 
-            /* update server flags */
-            siridb_server_update_flags(server->flags, qp_flags->via->int64);
+            /* check and update flags */
+            BSERVER_flags_update(siridb, server, qp_flags->via->int64);
 
             /* update other server properties */
             server->dbpath = strdup(qp_dbpath->via->raw);
@@ -264,19 +297,8 @@ static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     if (qp_next(unpacker, qp_flags) == QP_INT64)
     {
-        /* update server flags */
-        siridb_server_update_flags(server->flags, qp_flags->via->int64);
-
-        /* if this is the replica see if we have anything to update */
-        if (    siridb->replica == server &&
-                siridb_replicate_is_idle(siridb->replicate))
-        {
-            siridb_replicate_start(siridb->replicate);
-        }
-
-        log_info("Status received from '%s' (status: %d)",
-                server->name,
-                server->flags);
+        /* check and update flags */
+        BSERVER_flags_update(siridb, server, qp_flags->via->int64);
 
         package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_FLAGS, NULL);
 
@@ -488,12 +510,13 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
     siridb_server_t * new_server;
 
-    if (siridb->server->flags != SERVER_FLAG_RUNNING)
+    if (    siridb->server->flags != SERVER_FLAG_RUNNING ||
+            (siridb->flags & SIRIDB_FLAG_REINDEXING))
     {
         log_error("Cannot register new server because of having status %d",
                 siridb->server->flags);
 
-        package = sirinet_pkg_err(
+        package = sirinet_pkg_new(
                 pkg->pid,
                 0,
                 BPROTO_ERR_REGISTER_SERVER,
@@ -536,7 +559,7 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
         log_error("Cannot drop series because of having status %d",
                 siridb->server->flags);
 
-        package = sirinet_pkg_err(
+        package = sirinet_pkg_new(
                 pkg->pid,
                 0,
                 BPROTO_ERR_DROP_SERIES,
@@ -566,7 +589,7 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
                                 "the series is not found (already dropped?)",
                                 qp_series_name->via->raw);
                     }
-                    package = sirinet_pkg_err(
+                    package = sirinet_pkg_new(
                             pkg->pid,
                             0,
                             BPROTO_ACK_DROP_SERIES,

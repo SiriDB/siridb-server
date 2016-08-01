@@ -55,7 +55,7 @@ static int QUERY_rebuild(
  * This function can raise a SIGNAL.
  */
 void siridb_query_run(
-        uint64_t pid,
+        uint32_t pid,
         uv_stream_t * client,
         const char * q,
         size_t q_len,
@@ -504,7 +504,7 @@ static void QUERY_parse(uv_async_t * handle)
 
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
-    forward->data = (void *) handle->data;
+    forward->data = handle->data;
     uv_async_send(forward);
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 }

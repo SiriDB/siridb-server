@@ -49,7 +49,7 @@ class TestBase(unittest.TestCase):
             result = await client.query('list servers name, status')
             result = result['servers']
             try:
-                assert len(result) == len(self.servers), \
+                assert len(result) == len(self.db.servers), \
                     'Server(s) are missing : {}'.format(result)
             except AssertionError as e:
                 if not timeout:

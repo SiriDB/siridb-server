@@ -755,6 +755,10 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
 
     if (unpacker->pt >= unpacker->end)
     {
+        if (qp_obj != NULL)
+        {
+            qp_obj->tp = QP_END;
+        }
         return QP_END;
     }
     tp = *unpacker->pt;
@@ -763,7 +767,9 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
     if (tp > 236)
     {
         if (qp_obj != NULL)
+        {
             qp_obj->tp = *unpacker->pt;
+        }
         unpacker->pt++;
         return tp;
     }

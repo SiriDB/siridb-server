@@ -37,6 +37,7 @@ siridb_forward_t * siridb_forward_new(siridb_t * siridb)
     else
     {
         forward->free_cb = FORWARD_free;
+        forward->ref = 1; /* used as reference on (siri_async_t) handle */
         forward->siridb = siridb;
 
         /*
@@ -167,31 +168,34 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
  */
 static void FORWARD_on_response(slist_t * promises, uv_async_t * handle)
 {
-    sirinet_pkg_t * pkg;
-    sirinet_promise_t * promise;
-    siridb_forward_t * forward = (siridb_forward_t *) handle->data;
-
-    for (size_t i = 0; i < promises->len; i++)
+    if (promises != NULL)
     {
-        promise = promises->data[i];
-        if (promise == NULL)
-        {
-            log_critical("Critical error occurred on '%s'",
-                    forward->siridb->server->name);
-            continue;
-        }
-        pkg = promise->data;
+        sirinet_pkg_t * pkg;
+        sirinet_promise_t * promise;
+        siridb_forward_t * forward = (siridb_forward_t *) handle->data;
 
-        if (pkg == NULL || pkg->tp != BPROTO_ACK_INSERT)
+        for (size_t i = 0; i < promises->len; i++)
         {
-            log_critical(
-                    "Error occurred while sending points to at least '%s'",
-                    promise->server->name);
-        }
+            promise = promises->data[i];
+            if (promise == NULL)
+            {
+                log_critical("Critical error occurred on '%s'",
+                        forward->siridb->server->name);
+                continue;
+            }
+            pkg = promise->data;
 
-        /* make sure we free the promise and data */
-        free(promise->data);
-        free(promise);
+            if (pkg == NULL || pkg->tp != BPROTO_ACK_INSERT)
+            {
+                log_critical(
+                        "Error occurred while sending points to at least '%s'",
+                        promise->server->name);
+            }
+
+            /* make sure we free the promise and data */
+            free(promise->data);
+            free(promise);
+        }
     }
 
     uv_close((uv_handle_t *) handle, siri_async_close);

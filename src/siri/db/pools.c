@@ -110,7 +110,7 @@ siridb_pool_t * siridb_pools_append(
     if (lookup != NULL)
     {
         pool = (siridb_pool_t *)
-                realloc(pools->pool, sizeof(siridb_pool_t) * pools->len + 1);
+                realloc(pools->pool, sizeof(siridb_pool_t) * (pools->len + 1));
         if (pool == NULL)
         {
             ERR_ALLOC
@@ -123,6 +123,9 @@ siridb_pool_t * siridb_pools_append(
             pool->len = 0;
             siridb_pool_add_server(pool, server);
             pools->len++;
+#ifdef DEBUG
+            assert (pools->prev_lookup == NULL);
+#endif
             pools->prev_lookup = pools->lookup;
             pools->lookup = lookup;
         }

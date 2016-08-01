@@ -24,9 +24,9 @@ static void PKG_write_cb(uv_write_t * req, int status);
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_new(
-        uint64_t pid,
+        uint32_t pid,
         uint32_t len,
-        uint16_t tp,
+        uint8_t tp,
         const char * data)
 {
     sirinet_pkg_t * pkg =
@@ -81,8 +81,8 @@ qp_packer_t * sirinet_packer_new(size_t alloc_size)
  */
 sirinet_pkg_t * sirinet_packer2pkg(
         qp_packer_t * packer,
-        uint64_t pid,
-        uint16_t tp)
+        uint32_t pid,
+        uint8_t tp)
 {
     sirinet_pkg_t * pkg = (sirinet_pkg_t *) packer->buffer;
 
@@ -100,14 +100,15 @@ sirinet_pkg_t * sirinet_packer2pkg(
     return pkg;
 }
 
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_err(
-        uint64_t pid,
+        uint32_t pid,
         uint32_t len,
-        uint16_t tp,
+        uint8_t tp,
         const char * data)
 {
 #ifdef DEBUG
@@ -142,6 +143,10 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
         ERR_ALLOC
         return -1;
     }
+
+    /* set the correct check bit */
+    pkg->checkbit = pkg->tp ^ 255;
+
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
             PKG_HEADER_SIZE + pkg->len);

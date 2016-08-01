@@ -147,8 +147,12 @@ int siridb_series_add_point(
     return rc;
 }
 
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * This function adds the new series to siridb->series_map but not to
+ * the compact tree: siridb->series.
  */
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
@@ -201,6 +205,7 @@ siridb_series_t * siridb_series_new(
             imap32_add(siridb->series_map, series->id, series);
         }
     }
+
     return series;
 }
 
@@ -523,7 +528,6 @@ siridb_points_t * siridb_series_get_points_num32(
     size_t len, size;
     uint_fast32_t i;
     uint32_t indexes[series->idx_len];
-
     len = i = size = 0;
 
     for (   idx = (idx_num32_t *) series->idx;
@@ -541,6 +545,7 @@ siridb_points_t * siridb_series_get_points_num32(
 
     size += series->buffer->points->len;
     points = siridb_points_new(size, series->tp);
+
     if (points == NULL)
     {
         return NULL;  /* signal is raised */

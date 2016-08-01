@@ -91,6 +91,16 @@ void sirinet_socket_on_data(
         if (nread >= PKG_HEADER_SIZE)
         {
             pkg = (sirinet_pkg_t *) buf->base;
+            if ((pkg->tp ^ 255) != pkg->checkbit)
+            {
+                log_error(
+                        "Got an illegal package "
+                        "(pid: %lu, len: %lu, tp: %u)",
+                        pkg->pid, pkg->len, pkg->tp);
+                free(buf->base);
+                return;
+            }
+
             size_t total_sz = pkg->len + PKG_HEADER_SIZE;
 
             if (nread >= total_sz)
@@ -139,8 +149,20 @@ void sirinet_socket_on_data(
             return;
         }
 
-        size_t total_sz =
-                ((sirinet_pkg_t *) ssocket->buf)->len + PKG_HEADER_SIZE;
+        pkg = (sirinet_pkg_t *) ssocket->buf;
+
+        if ((pkg->tp ^ 255) != pkg->checkbit)
+        {
+            log_error(
+                    "Got an illegal package "
+                    "(pid: %lu, len: %lu, tp: %u)",
+                    pkg->pid, pkg->len, pkg->tp);
+            free(ssocket->buf);
+            ssocket->buf = NULL;
+            return;
+        }
+
+        size_t total_sz = pkg->len + PKG_HEADER_SIZE;
 
         if (buf->len < total_sz)
         {
@@ -154,9 +176,8 @@ void sirinet_socket_on_data(
     else
     {
         ssocket->len += nread;
+        pkg = (sirinet_pkg_t *) ssocket->buf;
     }
-
-    pkg = (sirinet_pkg_t *) ssocket->buf;
 
     if (ssocket->len < pkg->len + PKG_HEADER_SIZE)
     {
@@ -205,7 +226,7 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
  *
  * We know three different socket types:
  *  - client: used for clients. a user object might be destroyed.
- *  - backend: used to connect to other servers. a server might be destroyed.
+ *  - back-end: used to connect to other servers. a server might be destroyed.
  *  - server: user for severs connecting to here. a server might be destroyed.
  *
  *  In case a server is destroyed, remaining promises will be cancelled and

@@ -76,7 +76,7 @@ typedef enum
  * Client Success messages in range 0..63
  * Client Error messages in range 64..127
  * Back-end Error messages in range 128..191
- * Back-end Success messages in range 192..255
+ * Back-end Success messages in range 192..254 (exclude 255)
  */
 typedef enum
 {

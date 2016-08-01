@@ -31,7 +31,6 @@ typedef struct siridb_reindex_s
     siridb_series_t * series;
     siridb_server_t * server;
     uv_timer_t * timer;
-
 } siridb_reindex_t;
 
 siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new);

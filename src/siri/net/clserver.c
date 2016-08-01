@@ -615,18 +615,29 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     slist_t * servers = NULL;
 
-
     if (siridb->server->flags != SERVER_FLAG_RUNNING)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
-                "Error getting file because server '%s' having status %d",
+                "Cannot register new server because '%s' is having status %d",
                 siridb->server->name,
                 siridb->server->flags);
         package = sirinet_pkg_err(
                 pkg->pid,
                 strlen(err_msg),
                 CPROTO_ERR_SERVER,
+                err_msg);
+    }
+    if (siridb->flags & SIRIDB_FLAG_REINDEXING)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot register new server because the database has not "
+                "finished re-indexing");
+        package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+                CPROTO_ERR_MSG,
                 err_msg);
     }
     else if (!siridb_user_check_access(
@@ -754,7 +765,6 @@ static void CLSERVER_on_register_server_response(
                             "Error occurred while registering the new server "
                             "on at least '%s'", promise->server->name);
                 }
-
                 /* make sure we free the promise and data */
                 free(promise->data);
                 free(promise);

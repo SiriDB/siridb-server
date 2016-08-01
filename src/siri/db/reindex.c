@@ -70,7 +70,6 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
         reindex->pkg = NULL;
         reindex->timer = NULL;
         reindex->server = NULL;
-
         if (REINDEX_fn(siridb, reindex) < 0)
         {
             ERR_ALLOC
@@ -96,6 +95,15 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                     {
                         ERR_FILE
                         siridb_reindex_free(&reindex);
+                    }
+                }
+                else
+                {
+                    siridb->pools->prev_lookup =
+                            siridb_lookup_new(siridb->pools->len - 1);
+                    if (siridb->pools->prev_lookup == NULL)
+                    {
+                        siridb_reindex_free(&reindex);  /* signal is raised */
                     }
                 }
 
@@ -143,6 +151,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                                 siridb->server->flags |= SERVER_FLAG_REINDEXING;
                                 reindex->timer->data = siridb;
                                 siri_optimize_pause();
+
                                 uv_timer_init(siri.loop, reindex->timer);
                                 if (create_new)
                                 {
@@ -260,6 +269,11 @@ void siridb_reindex_status_update(siridb_t * siridb)
     if (siridb_servers_available(siridb))
     {
         siridb->flags &= ~SIRIDB_FLAG_REINDEXING;
+
+        /* free previous lookup */
+        siridb_lookup_free(siridb->pools->prev_lookup);
+        siridb->pools->prev_lookup = NULL;
+
         REINDEX_unlink(siridb->reindex);
         siridb_reindex_free(&siridb->reindex);
         log_info("Finished re-indexing database '%s'", siridb->dbname);
@@ -442,6 +456,11 @@ static void REINDEX_work(uv_timer_t * timer)
          * lock is not needed since we are sure the optimize task is
          * not running
          */
+#ifdef DEBUG
+        assert (siridb_lookup_sn(
+                    siridb->pools->prev_lookup,
+                    reindex->series->name) == siridb->server->pool);
+#endif
         siridb_points_t * points = siridb_series_get_points_num32(
                 reindex->series,
                 NULL,
@@ -469,7 +488,6 @@ static void REINDEX_work(uv_timer_t * timer)
                             packer,
                             0,
                             BPROTO_INSERT_TESTED_SERVER);
-
                     uv_timer_start(
                             reindex->timer,
                             REINDEX_send,

@@ -361,6 +361,7 @@ int siridb_shard_get_points_num32(
         }
         return -1;
     }
+
     /* set pointer to start */
     pt = temp;
 

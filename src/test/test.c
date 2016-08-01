@@ -238,6 +238,7 @@ static int test_imap32(void)
     assert (strcmp(imap32_get(imap, 1234567), "Sasientje") == 0);
     assert (strcmp(imap32_get(imap, 234567), "Iriske") == 0);
     assert (strcmp(imap32_pop(imap, 234567), "Iriske") == 0);
+    assert (imap32_pop(imap, 234567) == NULL);
     assert (imap32_get(imap, 234567) == NULL);
     assert (strcmp(imap32_pop(imap, 1234567), "Sasientje") == 0);
 
