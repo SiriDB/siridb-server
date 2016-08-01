@@ -12,4 +12,5 @@ class Series:
         if self._points:
             for point in self._points:
                 self.points.append(point)
+            self._points = None
 

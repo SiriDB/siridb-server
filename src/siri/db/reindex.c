@@ -177,7 +177,9 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
  */
 const char * siridb_reindex_progress(siridb_t * siridb)
 {
-    if (siridb->reindex == NULL)
+    if (    siridb->reindex == NULL ||
+            siridb->reindex->timer == NULL ||
+            !siridb->reindex->size)
     {
         sprintf(reindex_progress, "not available");
     }

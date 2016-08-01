@@ -113,3 +113,8 @@ typedef enum
 } bproto_server_t;
 
 #define sirinet_protocol_is_error(tp) (tp >= 64 && tp < 192)
+
+const char * sirinet_cproto_client_str(cproto_client_t n);
+const char * sirinet_cproto_server_str(cproto_server_t n);
+const char * sirinet_bproto_client_str(bproto_client_t n);
+const char * sirinet_bproto_server_str(bproto_server_t n);

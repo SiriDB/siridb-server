@@ -1,0 +1,106 @@
+/*
+ * protocol.c - Protocol for SiriDB.
+ *
+ * author       : Jeroen van der Heijden
+ * email        : jeroen@transceptor.technology
+ * copyright    : 2016, Transceptor Technology
+ *
+ * changes
+ *  - initial version, 01-08-2016
+ *
+ */
+
+#include <siri/net/protocol.h>
+
+const char * sirinet_cproto_client_str(cproto_client_t n)
+{
+    switch (n)
+    {
+    case CPROTO_REQ_QUERY: return "CPROTO_REQ_QUERY";
+    case CPROTO_REQ_INSERT: return "CPROTO_REQ_INSERT";
+    case CPROTO_REQ_AUTH: return "CPROTO_REQ_AUTH";
+    case CPROTO_REQ_PING: return "CPROTO_REQ_PING";
+    case CPROTO_REQ_INFO: return "CPROTO_REQ_INFO";
+    case CPROTO_REQ_LOADDB: return "CPROTO_REQ_LOADDB";
+    case CPROTO_REQ_REGISTER_SERVER: return "CPROTO_REQ_REGISTER_SERVER";
+    case CPROTO_REQ_FILE_SERVERS: return "CPROTO_REQ_FILE_SERVERS";
+    case CPROTO_REQ_FILE_USERS: return "CPROTO_REQ_FILE_USERS";
+    default: return "CPROTO_CLIENT_TYPE_UNKNOWN";
+    }
+}
+
+const char * sirinet_cproto_server_str(cproto_server_t n)
+{
+    switch (n)
+    {
+    case CPROTO_RES_QUERY: return "CPROTO_RES_QUERY";
+    case CPROTO_RES_INSERT: return "CPROTO_RES_INSERT";
+    case CPROTO_RES_AUTH_SUCCESS: return "CPROTO_RES_AUTH_SUCCESS";
+    case CPROTO_RES_ACK: return "CPROTO_RES_ACK";
+    case CPROTO_RES_INFO: return "CPROTO_RES_INFO";
+    case CPROTO_RES_FILE: return "CPROTO_RES_FILE";
+    case CPROTO_ERR_MSG: return "CPROTO_ERR_MSG";
+    case CPROTO_ERR_QUERY: return "CPROTO_ERR_QUERY";
+    case CPROTO_ERR_INSERT: return "CPROTO_ERR_INSERT";
+    case CPROTO_ERR_SERVER: return "CPROTO_ERR_SERVER";
+    case CPROTO_ERR_POOL: return "CPROTO_ERR_POOL";
+    case CPROTO_ERR_USER_ACCESS: return "CPROTO_ERR_USER_ACCESS";
+    case CPROTO_ERR: return "CPROTO_ERR";
+    case CPROTO_ERR_NOT_AUTHENTICATED: return "CPROTO_ERR_NOT_AUTHENTICATED";
+    case CPROTO_ERR_AUTH_CREDENTIALS: return "CPROTO_ERR_AUTH_CREDENTIALS";
+    case CPROTO_ERR_AUTH_UNKNOWN_DB: return "CPROTO_ERR_AUTH_UNKNOWN_DB";
+    case CPROTO_ERR_LOADING_DB: return "CPROTO_ERR_LOADING_DB";
+    case CPROTO_ERR_FILE: return "CPROTO_ERR_FILE";
+    default: return "CPROTO_SERVER_TYPE_UNKNOWN";
+    }
+}
+
+const char * sirinet_bproto_client_str(bproto_client_t n)
+{
+    switch (n)
+    {
+    case BPROTO_AUTH_REQUEST: return "BPROTO_AUTH_REQUEST";
+    case BPROTO_FLAGS_UPDATE: return "BPROTO_FLAGS_UPDATE";
+    case BPROTO_LOG_LEVEL_UPDATE: return "BPROTO_LOG_LEVEL_UPDATE";
+    case BPROTO_REPL_FINISHED: return "BPROTO_REPL_FINISHED";
+    case BPROTO_QUERY_SERVER: return "BPROTO_QUERY_SERVER";
+    case BPROTO_QUERY_UPDATE: return "BPROTO_QUERY_UPDATE";
+    case BPROTO_INSERT_POOL: return "BPROTO_INSERT_POOL";
+    case BPROTO_INSERT_SERVER: return "BPROTO_INSERT_SERVER";
+    case BPROTO_INSERT_TEST_POOL: return "BPROTO_INSERT_TEST_POOL";
+    case BPROTO_INSERT_TEST_SERVER: return "BPROTO_INSERT_TEST_SERVER";
+    case BPROTO_INSERT_TESTED_POOL: return "BPROTO_INSERT_TESTED_POOL";
+    case BPROTO_INSERT_TESTED_SERVER: return "BPROTO_INSERT_TESTED_SERVER";
+    case BPROTO_REGISTER_SERVER: return "BPROTO_REGISTER_SERVER";
+    case BPROTO_DROP_SERIES: return "BPROTO_DROP_SERIES";
+    default: return "BPROTO_CLIENT_TYPE_UNKNOWN";
+    }
+}
+
+const char * sirinet_bproto_server_str(bproto_server_t n)
+{
+    switch (n)
+    {
+    case BPROTO_RES_QUERY: return "BPROTO_RES_QUERY";
+    case BPROTO_ERR_QUERY: return "BPROTO_ERR_QUERY";
+    case BPROTO_ERR_SERVER: return "BPROTO_ERR_SERVER";
+    case BPROTO_ERR_POOL: return "BPROTO_ERR_POOL";
+    case BPROTO_AUTH_ERR_UNKNOWN_UUID: return "BPROTO_AUTH_ERR_UNKNOWN_UUID";
+    case BPROTO_AUTH_ERR_UNKNOWN_DBNAME: return "BPROTO_AUTH_ERR_UNKNOWN_DBNAME";
+    case BPROTO_AUTH_ERR_INVALID_UUID: return "BPROTO_AUTH_ERR_INVALID_UUID";
+    case BPROTO_AUTH_ERR_VERSION_TOO_OLD: return "BPROTO_AUTH_ERR_VERSION_TOO_OLD";
+    case BPROTO_AUTH_ERR_VERSION_TOO_NEW: return "BPROTO_AUTH_ERR_VERSION_TOO_NEW";
+    case BPROTO_ERR_NOT_AUTHENTICATED: return "BPROTO_ERR_NOT_AUTHENTICATED";
+    case BPROTO_ERR_INSERT: return "BPROTO_ERR_INSERT";
+    case BPROTO_ERR_REGISTER_SERVER: return "BPROTO_ERR_REGISTER_SERVER";
+    case BPROTO_ERR_DROP_SERIES: return "BPROTO_ERR_DROP_SERIES";
+    case BPROTO_AUTH_SUCCESS: return "BPROTO_AUTH_SUCCESS";
+    case BPROTO_ACK_FLAGS: return "BPROTO_ACK_FLAGS";
+    case BPROTO_ACK_LOG_LEVEL: return "BPROTO_ACK_LOG_LEVEL";
+    case BPROTO_ACK_INSERT: return "BPROTO_ACK_INSERT";
+    case BPROTO_ACK_REPL_FINISHED: return "BPROTO_ACK_REPL_FINISHED";
+    case BPROTO_ACK_REGISTER_SERVER: return "BPROTO_ACK_REGISTER_SERVER";
+    case BPROTO_ACK_DROP_SERIES: return "BPROTO_ACK_DROP_SERIES";
+    default: return "BPROTO_SERVER_TYPE_UNKNOWN";
+    }
+}

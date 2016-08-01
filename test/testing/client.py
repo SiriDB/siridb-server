@@ -1,10 +1,12 @@
-import sys
-import logging
+import asyncio
 import functools
+import logging
 import random
+import sys
 from .constants import PY_SIRIDB_PATH
-from .server import Server
 from .helpers import gen_points
+from .server import Server
+
 
 sys.path.append(PY_SIRIDB_PATH)
 from siriclient import AsyncSiriCluster
@@ -45,15 +47,33 @@ class Client:
             self.db.dbname))
         self.cluster.close()
 
-    async def insert_some_series(self, series, n=None, points=functools.partial(gen_points, n=1)):
+    async def insert_some_series(self,
+                                 series,
+                                 n=None,
+                                 timeout=None,
+                                 points=functools.partial(gen_points, n=1)):
         random.shuffle(series)
 
         if n is None:
             n = len(series) // 100
 
+        assert (n <= len(series) and n > 0)
+
         data = {s.name: s.add_points(points()) for s in series[:n]}
 
-        await self.insert(data)
+        while True:
+            try:
+                await self.insert(data)
+            except PoolError as e:
+                if not timeout:
+                    raise e
+                timeout -= 1
+                await asyncio.sleep(1.0)
+            else:
+                break
+
+        if timeout is not None:
+            await asyncio.sleep(0.1)
 
         for s in series[:n]:
             s.commit_points()

@@ -159,6 +159,10 @@ siridb_series_t * siridb_series_new(
         const char * series_name,
         uint8_t tp)
 {
+#ifdef DEBUG
+    /* TODO: support string */
+    assert (tp != SIRIDB_SERIES_TP_STRING);
+#endif
     siridb_series_t * series;
     size_t len = strlen(series_name);
 
@@ -825,7 +829,12 @@ static void SERIES_update_overlap(siridb_series_t * series)
  */
 static void SERIES_free(siridb_series_t * series)
 {
-//    log_debug("Free series!");
+#ifdef DEBUG
+    if (siri.status == SIRI_STATUS_RUNNING)
+    {
+        log_debug("Free series!");
+    }
+#endif
     if (series->buffer != NULL)
     {
         siridb_buffer_free(series->buffer);

@@ -19,30 +19,23 @@ from testing import UserAuthError
 class TestPool(TestBase):
     title = 'Test pool object'
 
-    async def insert(self, client, series, n, timeout=10):
+    async def insert(self, client, series, n, timeout=5):
         for _ in range(n):
-            while timeout:
-                try:
-                    await client.insert_some_series(series)
-                except PoolError:
-                    timeout -= 1
-                else:
-                    break
-                finally:
-                    await asyncio.sleep(1.0)
+            await client.insert_some_series(series, timeout=timeout)
+            await asyncio.sleep(1.0)
 
 
     @default_test_setup(3)
     async def run(self):
 
-        series = gen_series(n=2000)
+        series = gen_series(n=4000)
 
         await self.client0.connect()
 
         task0 = asyncio.ensure_future(self.insert(
             self.client0,
             series,
-            30))
+            300))
 
         await asyncio.sleep(2)
 
@@ -52,12 +45,12 @@ class TestPool(TestBase):
         task1 = asyncio.ensure_future(self.insert(
             self.client1,
             series,
-            30))
+            200))
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
 
-        await self.assertIsRunning(self.db, self.client0, timeout=90)
+        await self.assertIsRunning(self.db, self.client0, timeout=200)
 
         await self.db.add_pool(self.server2, remote_server=self.server0, sleep=5)
         await self.client2.connect()
@@ -65,19 +58,21 @@ class TestPool(TestBase):
         task2 = asyncio.ensure_future(self.insert(
             self.client2,
             series,
-            30))
+            100))
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
         await self.assertSeries(self.client2, series)
 
-        await self.assertIsRunning(self.db, self.client0, timeout=300)
+        await self.assertIsRunning(self.db, self.client0, timeout=600)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
         await self.assertSeries(self.client2, series)
 
         await asyncio.wait_for(task0, None)
+        await asyncio.wait_for(task1, None)
+        await asyncio.wait_for(task2, None)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)

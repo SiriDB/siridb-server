@@ -39,3 +39,4 @@ void siridb_reindex_free(siridb_reindex_t ** reindex);
 void siridb_reindex_status_update(siridb_t * siridb);
 void siridb_reindex_close(siridb_reindex_t * reindex);
 void siridb_reindex_start(uv_timer_t * timer);
+const char * siridb_reindex_progress(siridb_t * siridb);

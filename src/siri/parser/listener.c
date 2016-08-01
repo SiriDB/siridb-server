@@ -1136,19 +1136,22 @@ static void exit_list_pools(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    query_list_t * qlist = (query_list_t *) query->data;
-    siridb_pool_t * pool;
-    siridb_pool_walker_t wpool;
-    uint_fast16_t prop, n;
+    query_list_t * q_list = (query_list_t *) query->data;
+    siridb_pool_t * pool = siridb->pools->pool + siridb->server->pool;
+    siridb_pool_walker_t wpool = {
+            .servers=pool->len,
+            .series=siridb->series->len,
+            .pid=siridb->server->pool
+    };
+    uint_fast16_t prop;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
-    cexpr_cb_t cb = (cexpr_cb_t) siridb_pool_cexpr_cb;
 
-    if (qlist->props == NULL)
+    if (q_list->props == NULL)
     {
-        qlist->props = slist_new(3);
-        slist_append(qlist->props, &GID_K_POOL);
-        slist_append(qlist->props, &GID_K_SERVERS);
-        slist_append(qlist->props, &GID_K_SERIES);
+        q_list->props = slist_new(3);
+        slist_append(q_list->props, &GID_K_POOL);
+        slist_append(q_list->props, &GID_K_SERVERS);
+        slist_append(q_list->props, &GID_K_SERIES);
         qp_add_raw(query->packer, "pool", 4);
         qp_add_raw(query->packer, "servers", 7);
         qp_add_raw(query->packer, "series", 6);
@@ -1159,43 +1162,49 @@ static void exit_list_pools(uv_async_t * handle)
     qp_add_raw(query->packer, "pools", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    for (   wpool.pid = 0, n = 0;
-            wpool.pid < siridb->pools->len && n < qlist->limit;
-            wpool.pid++)
+    if (    q_list->limit &&
+            (where_expr == NULL || cexpr_run(
+                    where_expr,
+                    (cexpr_cb_t) siridb_pool_cexpr_cb,
+                    &wpool)))
     {
-        pool = siridb->pools->pool + wpool.pid;
+        qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-        wpool.servers = pool->len;
-        wpool.series = siridb->series->len;
-
-        if (where_expr == NULL || cexpr_run(where_expr, cb, &wpool))
+        for (prop = 0; prop < q_list->props->len; prop++)
         {
-            qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-            for (prop = 0; prop < qlist->props->len; prop++)
+            switch(*((uint32_t *) q_list->props->data[prop]))
             {
-                switch(*((uint32_t *) qlist->props->data[prop]))
-                {
-                case CLERI_GID_K_POOL:
-                    qp_add_int16(query->packer, wpool.pid);
-                    break;
-                case CLERI_GID_K_SERVERS:
-                    qp_add_int16(query->packer, wpool.servers);
-                    break;
-                case CLERI_GID_K_SERIES:
-                    qp_add_int64(query->packer, wpool.series);
-                    break;
-                }
+            case CLERI_GID_K_POOL:
+                qp_add_int16(query->packer, wpool.pid);
+                break;
+            case CLERI_GID_K_SERVERS:
+                qp_add_int16(query->packer, wpool.servers);
+                break;
+            case CLERI_GID_K_SERIES:
+                qp_add_int64(query->packer, wpool.series);
+                break;
             }
-
-            qp_add_type(query->packer, QP_ARRAY_CLOSE);
-            n++;
         }
+
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+        q_list->limit--;
     }
 
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+    if (IS_MASTER && q_list->limit)
+    {
+        /* we have not reached the limit, send the query to other pools */
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_POOLS,
+                (sirinet_promises_cb) on_list_xxx_response);
+    }
+    else
+    {
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+        SIRIPARSER_NEXT_NODE
+    }
+
 }
 
 static void exit_list_series(uv_async_t * handle)
@@ -1253,6 +1262,8 @@ static void exit_list_servers(uv_async_t * handle)
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     query_list_t * q_list = (query_list_t *) query->data;
     int is_local = IS_MASTER;
+
+//    LOGC("Active handlers: %ld", siri.loop->active_handles);
 
     /* if is_local, check if we need ask for 'remote' columns */
     if (is_local && q_list->props != NULL)

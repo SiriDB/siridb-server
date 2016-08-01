@@ -41,9 +41,6 @@ class TestBase(unittest.TestCase):
     async def run():
         raise NotImplementedError()
 
-    async def assertSeries(self, client, series):
-        await self.assertAlmostSeries(client, series, allowed_mismatches=0)
-
     async def assertIsRunning(self, db, client, timeout=None):
         while True:
             result = await client.query('list servers name, status')
@@ -69,7 +66,7 @@ class TestBase(unittest.TestCase):
 
             await asyncio.sleep(1.0)
 
-    async def assertAlmostSeries(self, client, series, allowed_mismatches=1):
+    async def assertSeries(self, client, series):
         d = {s.name: len(s.points) for s in series}
 
         result = await client.query('list series name, length limit {}'.format(len(series)))
@@ -77,18 +74,15 @@ class TestBase(unittest.TestCase):
         for s in series:
             if s.points:
                 length = result.get(s.name, None)
-                try:
+                assert length is not None, \
+                    'series {!r} is missing in the result'.format(s.name)
+                assert length == len(s.points) or \
+                        s.commit_points() or \
+                        length == len(s.points), \
+                    'expected {} point(s) but found {} point(s) ' \
+                    'for series {!r}' \
+                    .format(len(s.points), length, s.name)
 
-                    assert length is not None, \
-                        'series {!r} is missing in the result'.format(s.name)
-                    assert length == len(s.points), \
-                        'expected {} point(s) but found {} point(s) ' \
-                        'for series {!r}' \
-                        .format(len(s.points), length, s.name)
-                except AssertionError as e:
-                    if allowed_mismatches:
-                        allowed_mismatches -= 1
-                    else:
-                        raise e
+
 
 
