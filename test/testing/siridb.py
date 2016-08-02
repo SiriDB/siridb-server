@@ -5,7 +5,6 @@ import asyncio
 from .constants import MANAGE
 
 class SiriDB:
-    HOLD_TERM = False
 
     def __init__(self,
                  dbname='dbtest',
@@ -27,22 +26,22 @@ class SiriDB:
             self.dbname,
             server.name))
 
-        self.servers.append(server)
         rc = os.system(
-            'xfce4-terminal -e "{manage} '
+            '{manage} '
             '--noroot --config {cfgfile} create-new '
             '--dbname {dbname} '
             '--time-precision {time_precision} '
             '--buffer-path {buffer_path} '
             '--duration-log {duration_log} '
             '--duration-num {duration_num} '
-            '--buffer-size {buffer_size}"{hold}'.format(
+            '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 cfgfile=server.cfgfile,
-                **vars(self),
-                hold=' -H' if self.HOLD_TERM else ''))
+                **vars(self)))
 
-        assert (rc == 0)
+        assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
+
+        self.servers.append(server)
 
         if sleep:
             await asyncio.sleep(sleep)
@@ -59,9 +58,8 @@ class SiriDB:
         if remote_server is None:
             remote_server = random.choice(self.servers)
 
-        self.servers.append(server)
         rc = os.system(
-            'xfce4-terminal -e "{manage} '
+            '{manage} '
             '--noroot --config {cfgfile} create-replica '
             '--dbname {dbname} '
             '--remote-address {remote_address} '
@@ -70,7 +68,7 @@ class SiriDB:
             '--password {password} '
             '--pool {pool} '
             '--buffer-path {buffer_path} '
-            '--buffer-size {buffer_size}"{hold}'.format(
+            '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 cfgfile=server.cfgfile,
                 user=username,
@@ -78,10 +76,11 @@ class SiriDB:
                 pool=pool,
                 **vars(self),
                 remote_address=remote_server.listen_client_address,
-                remote_port=remote_server.listen_client_port,
-                hold=' -H' if self.HOLD_TERM else ''))
+                remote_port=remote_server.listen_client_port))
 
-        assert (rc == 0)
+        assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
+
+        self.servers.append(server)
 
         if sleep:
             await asyncio.sleep(sleep)
@@ -97,9 +96,8 @@ class SiriDB:
         if remote_server is None:
             remote_server = random.choice(self.servers)
 
-        self.servers.append(server)
         rc = os.system(
-            'xfce4-terminal -e "{manage} '
+            '{manage} '
             '--noroot --config {cfgfile} create-pool '
             '--dbname {dbname} '
             '--remote-address {remote_address} '
@@ -107,17 +105,18 @@ class SiriDB:
             '--user {user} '
             '--password {password} '
             '--buffer-path {buffer_path} '
-            '--buffer-size {buffer_size}"{hold}'.format(
+            '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 cfgfile=server.cfgfile,
                 user=username,
                 password=password,
                 **vars(self),
                 remote_address=remote_server.listen_client_address,
-                remote_port=remote_server.listen_client_port,
-                hold=' -H' if self.HOLD_TERM else ''))
+                remote_port=remote_server.listen_client_port))
 
-        assert (rc == 0)
+        assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
+
+        self.servers.append(server)
 
         if sleep:
             await asyncio.sleep(sleep)

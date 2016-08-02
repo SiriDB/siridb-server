@@ -20,7 +20,7 @@ class TestPool(TestBase):
     title = 'Test pool object'
 
 
-    @default_test_setup(1)
+    @default_test_setup(4)
     async def run(self):
 
         await self.client0.connect()

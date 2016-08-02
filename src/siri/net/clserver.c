@@ -801,3 +801,4 @@ static void CLSERVER_on_register_server_response(
     /* free server register object */
     free(server_reg);
 }
+

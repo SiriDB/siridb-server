@@ -178,6 +178,8 @@ void sirinet_socket_on_data(
         if (buf->len < total_sz)
         {
             char * tmp = (char *) realloc(ssocket->buf, total_sz);
+
+            /* test re-allocation */
             if (tmp == NULL)
             {
                 log_critical(
@@ -188,15 +190,21 @@ void sirinet_socket_on_data(
                 ssocket->buf = NULL;
                 return;
             }
+
+            /* bind the new allocated buffer */
             ssocket->buf = tmp;
 
-            /* pkg is already checked in this case */
+            /*
+             * Pkg is already checked in this case but we need to bind it
+             * to the re-allocated buffer
+             */
             pkg = (sirinet_pkg_t *) ssocket->buf;
         }
     }
     else
     {
         ssocket->len += nread;
+
         /* pkg is already checked in this case */
         pkg = (sirinet_pkg_t *) ssocket->buf;
 

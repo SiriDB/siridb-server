@@ -39,7 +39,10 @@ class TestPool(TestBase):
 
         await asyncio.sleep(2)
 
-        await self.db.add_pool(self.server1, sleep=5)
+        await self.db.add_pool(self.server1, sleep=3)
+
+        with self.assertRaises(AssertionError):
+            await self.db.add_pool(self.server2, sleep=3)
 
         await self.client1.connect()
         task1 = asyncio.ensure_future(self.insert(
@@ -52,7 +55,7 @@ class TestPool(TestBase):
 
         await self.assertIsRunning(self.db, self.client0, timeout=200)
 
-        await self.db.add_pool(self.server2, remote_server=self.server0, sleep=5)
+        await self.db.add_pool(self.server2, sleep=3)
         await self.client2.connect()
 
         task2 = asyncio.ensure_future(self.insert(
@@ -87,6 +90,5 @@ class TestPool(TestBase):
         return False
 
 if __name__ == '__main__':
-    SiriDB.HOLD_TERM = False
     Server.HOLD_TERM = False
     run_test(TestPool())
