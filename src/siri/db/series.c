@@ -206,7 +206,7 @@ siridb_series_t * siridb_series_new(
          */
         else
         {
-            imap32_add(siridb->series_map, series->id, series);
+            imap32_add(siridb->series_map, series->id, series, 1);
         }
     }
 
@@ -1017,7 +1017,8 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
                 if (imap32_add(
                         dropped,
                         (uint32_t) *((uint32_t *) pt),
-                        (int *) DROPPED_DUMMY))
+                        (int *) DROPPED_DUMMY,
+                        1))
                 {
                     log_critical("Cannot add id to dropped map");
                     rc = -1;
@@ -1107,7 +1108,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
                 ct_add(siridb->series, series->name, series);
 
                 /* add series to imap32 */
-                imap32_add(siridb->series_map, series->id, series);
+                imap32_add(siridb->series_map, series->id, series, 1);
             }
         }
     }

@@ -229,10 +229,10 @@ static int test_imap32(void)
     test_start("Testing imap32");
     imap32_t * imap = imap32_new();
 
-    imap32_add(imap, 1234567, "Sasientje");
+    imap32_add(imap, 1234567, "Sasientje", 1);
     assert (imap->offset == 18);
     assert (imap->size == 1);
-    imap32_add(imap, 234567, "Iriske");
+    imap32_add(imap, 234567, "Iriske", 1);
     assert (imap->offset == 3);
     assert (imap->size == 16);
     assert (strcmp(imap32_get(imap, 1234567), "Sasientje") == 0);
@@ -242,8 +242,8 @@ static int test_imap32(void)
     assert (imap32_get(imap, 234567) == NULL);
     assert (strcmp(imap32_pop(imap, 1234567), "Sasientje") == 0);
 
-    imap32_add(imap, 123456, "Sasientje");
-    imap32_add(imap, 834567, "Iriske");
+    imap32_add(imap, 123456, "Sasientje", 1);
+    imap32_add(imap, 834567, "Iriske", 1);
     assert (strcmp(imap32_pop(imap, 834567), "Iriske") == 0);
     assert (strcmp(imap32_pop(imap, 123456), "Sasientje") == 0);
 

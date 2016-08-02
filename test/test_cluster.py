@@ -30,6 +30,6 @@ class TestPool(TestBase):
         return False
 
 if __name__ == '__main__':
-    SiriDB.HOLD_TERM = False
+    SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     run_test(TestPool())

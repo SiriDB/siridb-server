@@ -31,12 +31,24 @@
  * We do not flush here since we want this function to be as fast as
  * possible.
  */
-inline int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
+int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
 {
-    return siridb_series_drop(
-            ((sirinet_socket_t *) (
-                    (siridb_query_t *) handle->data)->client->data)->siridb,
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
+
+    if (q_drop->where_expr == NULL || cexpr_run(
+            q_drop->where_expr,
+            (cexpr_cb_t) siridb_series_cexpr_cb,
+            series))
+    {
+        siridb_series_drop(
+            ((sirinet_socket_t *) query->client->data)->siridb,
             series);
+
+        q_drop->n++;
+    }
+
+    return 0;
 }
 
 int walk_count_series(siridb_series_t * series, uv_async_t * handle)

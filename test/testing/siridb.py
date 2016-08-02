@@ -6,6 +6,8 @@ from .constants import MANAGE
 
 class SiriDB:
 
+    LOG_LEVEL = 'CRITICAL'
+
     def __init__(self,
                  dbname='dbtest',
                  time_precision='s',
@@ -28,6 +30,7 @@ class SiriDB:
 
         rc = os.system(
             '{manage} '
+            '--log-level {log_level} '
             '--noroot --config {cfgfile} create-new '
             '--dbname {dbname} '
             '--time-precision {time_precision} '
@@ -36,6 +39,7 @@ class SiriDB:
             '--duration-num {duration_num} '
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
+                log_level=self.LOG_LEVEL.lower(),
                 cfgfile=server.cfgfile,
                 **vars(self)))
 
@@ -60,6 +64,7 @@ class SiriDB:
 
         rc = os.system(
             '{manage} '
+            '--log-level {log_level} '
             '--noroot --config {cfgfile} create-replica '
             '--dbname {dbname} '
             '--remote-address {remote_address} '
@@ -70,6 +75,7 @@ class SiriDB:
             '--buffer-path {buffer_path} '
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
+                log_level=self.LOG_LEVEL.lower(),
                 cfgfile=server.cfgfile,
                 user=username,
                 password=password,
@@ -98,6 +104,7 @@ class SiriDB:
 
         rc = os.system(
             '{manage} '
+            '--log-level {log_level} '
             '--noroot --config {cfgfile} create-pool '
             '--dbname {dbname} '
             '--remote-address {remote_address} '
@@ -107,6 +114,7 @@ class SiriDB:
             '--buffer-path {buffer_path} '
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
+                log_level=self.LOG_LEVEL.lower(),
                 cfgfile=server.cfgfile,
                 user=username,
                 password=password,

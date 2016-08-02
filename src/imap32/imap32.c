@@ -68,13 +68,52 @@ void imap32_free(imap32_t * imap)
 }
 
 /*
+ * Destroy imap32 using a call-back function. (parsing NULL not allowed)
+ */
+void imap32_free_cb(imap32_t * imap, imap32_cb cb, void * args)
+{
+    uint8_t i, j;
+    im_store_t * store;
+    im_grid_t * grid;
+    void * data;
+    while (imap->size--)
+    {
+        if ((grid = imap->grid + imap->size) != NULL)
+        {
+            i = 0;
+            do
+            {
+                if ((store = grid->store[i]) != NULL)
+                {
+                    j = 0;
+                    do
+                    {
+                        if ((data = store->data[j]) != NULL)
+                        {
+                            (*cb)(data, args);
+                        }
+                    }
+                    while (++j);
+                    free(grid->store[i]);
+                }
+            }
+            while (++i);
+        }
+    }
+    free(imap->grid);
+    free(imap);
+}
+
+/*
  * Add data by id to the map.
  *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ * Returns IMAP32_OK (0) if successful or IMAP32_ERR (-1) and a SIGNAL is
+ * raised in case an error occurred.
  *
- * Warning: existing data will be overwritten!
+ * When the id already exists in the map, IMAP32_EXISTS when 'overwrite' is
+ * zero or the data will be overwritten when 'overwrite' is some other value.
  */
-int imap32_add(imap32_t * imap, uint32_t id, void * data)
+int imap32_add(imap32_t * imap, uint32_t id, void * data, int overwrite)
 {
     uint32_t key = id / 65536;
     im_grid_t * tmp;
@@ -100,7 +139,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data)
             ERR_ALLOC
             /* restore size */
             imap->size -= diff;
-            return -1;
+            return IMAP32_ERR;
         }
         imap->grid = tmp;
         memmove(imap->grid + diff, imap->grid, temp * sizeof(im_grid_t));
@@ -122,7 +161,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data)
             ERR_ALLOC
             /* restore size */
             imap->size = temp;
-            return -1;
+            return IMAP32_ERR;
         }
         imap->grid = tmp;
 
@@ -139,7 +178,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data)
         if (grid->store[key] == NULL)
         {
             ERR_ALLOC
-            return -1;
+            return IMAP32_ERR;
         }
         grid->size++;
     }
@@ -151,11 +190,17 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data)
     {
         store->size++;
         imap->len++;
+        store->data[id] = data;
     }
-
-    store->data[id] = data;
-
-    return 0;
+    else if (overwrite)
+    {
+        store->data[id] = data;
+    }
+    else
+    {
+        return IMAP32_EXISTS;
+    }
+    return IMAP32_OK;
 }
 
 /*
@@ -325,6 +370,49 @@ int imap32_walk(imap32_t * imap, imap32_cb cb, void * args)
         while (++i);
     }
     return rc;
+}
+
+/*
+ * Walk over all items and perform the call-back on each item.
+ *
+ * Walking stops either when the call-back is called on each value or
+ * when 'n' is zero. 'n' will be decremented by the result of each call-back.
+ */
+void imap32_walkn(imap32_t * imap, size_t * n, imap32_cb cb, void * args)
+{
+    if (!(*n))
+    {
+        return;
+    }
+    im_store_t * store;
+    im_grid_t * grid;
+    void * data;
+    size_t sz;
+    uint8_t i, j;
+    for (sz = 0; sz < imap->size; sz++)
+    {
+        grid = imap->grid + sz;
+        i = 0;
+        do
+        {
+            if ((store = grid->store[i]) != NULL)
+            {
+                j = 0;
+                do
+                {
+                    if ((data = store->data[j]) != NULL)
+                    {
+                        if (!(*n -= (*cb)(data, args)))
+                        {
+                            return;
+                        }
+                    }
+                }
+                while (++j);
+            }
+        }
+        while (++i);
+    }
 }
 
 /*

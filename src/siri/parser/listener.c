@@ -597,9 +597,11 @@ static void enter_series_name(uv_async_t * handle)
         }
 
         /* bind the series to the query, increment ref count if successful */
-        if (ct_add(((query_wrapper_ct_series_t *) query->data)->ct_series,
-                series_name,
-                series) == CT_OK)
+        if (imap32_add(
+                ((query_wrapper_series_t *) query->data)->series_map,
+                series->id,
+                series,
+                0) == IMAP32_OK)
         {
             siridb_series_incref(series);
         }
@@ -612,7 +614,7 @@ static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((query_wrapper_ct_series_t *) query->data)->ct_series = ct_new();
+    ((query_wrapper_series_t *) query->data)->series_map = imap32_new();
 
     SIRIPARSER_NEXT_NODE
 }
@@ -828,20 +830,17 @@ static void exit_count_series(uv_async_t * handle)
 
     if (q_count->where_expr == NULL)
     {
-        q_count->n = (q_count->ct_series == NULL) ?
-                siridb->series->len : q_count->ct_series->len;
+        q_count->n = (q_count->series_map == NULL) ?
+                siridb->series_map->len : q_count->series_map->len;
     }
     else
     {
-        uv_mutex_lock(&siridb->series_mutex);
 
-        ct_values(
-                (q_count->ct_series == NULL) ?
-                            siridb->series : q_count->ct_series,
-                (ct_val_cb) &walk_count_series,
+        imap32_walk(
+                (q_count->series_map == NULL) ?
+                        siridb->series_map : q_count->series_map,
+                (imap32_cb) &walk_count_series,
                 handle);
-
-        uv_mutex_unlock(&siridb->series_mutex);
     }
 
     if (IS_MASTER)
@@ -1004,7 +1003,7 @@ static void exit_drop_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_values(q_drop->ct_series, (ct_val_cb) &walk_drop_series, handle);
+    imap32_walk(q_drop->series_map, (imap32_cb) &walk_drop_series, handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -1013,7 +1012,7 @@ static void exit_drop_series(uv_async_t * handle)
 
     QP_ADD_SUCCESS
     qp_add_fmt(query->packer,
-            "Successfully dropped %ld series.", q_drop->ct_series->len);
+            "Successfully dropped %ld series.", q_drop->series_map->len);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1267,10 +1266,11 @@ static void exit_list_series(uv_async_t * handle)
      */
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_valuesn(
-            (q_list->ct_series == NULL) ? siridb->series : q_list->ct_series,
+    imap32_walkn(
+            (q_list->series_map == NULL) ?
+                    siridb->series_map : q_list->series_map,
             &q_list->limit,
-            (ct_val_cb) &walk_list_series,
+            (imap32_cb) &walk_list_series,
             handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -1470,9 +1470,9 @@ static void exit_select_stmt(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    ct_values(
-            ((query_select_t *) query->data)->ct_series,
-            (ct_val_cb) &walk_select,
+    imap32_walk(
+            ((query_select_t *) query->data)->series_map,
+            (imap32_cb) &walk_select,
             handle);
 
     uv_mutex_unlock(&siridb->series_mutex);

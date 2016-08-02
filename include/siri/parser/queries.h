@@ -14,18 +14,18 @@
 #include <uv.h>
 #include <inttypes.h>
 #include <cleri/parser.h>
-#include <ctree/ctree.h>
+#include <imap32/imap32.h>
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
 
-#define W0_CT_SERIES ct_t * ct_series;
+#define W0_CT_SERIES imap32_t * series_map;
 #define W1_WHERE_EXPR cexpr_t * where_expr;
 
 /* wrappers */
-typedef struct query_wrapper_ct_series_s
+typedef struct query_wrapper_series_s
 {
     W0_CT_SERIES
-} query_wrapper_ct_series_t;
+} query_wrapper_series_t;
 
 typedef struct query_wrapper_where_node_s
 {

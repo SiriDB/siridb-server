@@ -25,6 +25,6 @@ class TestSeries(TestBase):
         self.client0.close()
 
 if __name__ == '__main__':
-    SiriDB.HOLD_TERM = False
+    SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
     run_test(TestSeries())
