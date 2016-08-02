@@ -14,7 +14,7 @@ class Server:
     def __init__(self,
                  n,
                  optimize_interval=30,
-                 heartbeat_interval=5):
+                 heartbeat_interval=30):
         self.n = n
         self.listen_client_address = 'localhost'
         self.listen_client_port = 9000 + n

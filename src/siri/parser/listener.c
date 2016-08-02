@@ -776,28 +776,44 @@ static void exit_count_pools(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
+    query_count_t * q_count = (query_count_t *) query->data;
+    siridb_pool_t * pool = siridb->pools->pool + siridb->server->pool;
+
+    siridb_pool_walker_t wpool = {
+            .servers=pool->len,
+            .series=siridb->series->len,
+            .pid=siridb->server->pool
+    };
 
     qp_add_raw(query->packer, "pools", 5);
 
-    if (where_expr == NULL)
+    if (q_count->where_expr == NULL)
     {
         qp_add_int64(query->packer, siridb->pools->len);
+        SIRIPARSER_NEXT_NODE
     }
     else
     {
-        int n = 0;
-        siridb_pool_walker_t wpool;
-        cexpr_cb_t cb = (cexpr_cb_t) siridb_pool_cexpr_cb;
-        for (wpool.pid = 0; wpool.pid < siridb->pools->len; wpool.pid++)
+        MASTER_CHECK_POOLS_ONLINE(siridb)
+
+        q_count->n = cexpr_run(
+                q_count->where_expr,
+                (cexpr_cb_t) siridb_pool_cexpr_cb,
+                &wpool);
+
+        if (IS_MASTER)
         {
-            wpool.servers = siridb->pools->pool[wpool.pid].len;
-            wpool.series = siridb->series->len;
-            n += cexpr_run(where_expr, cb, &wpool);
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_POOLS,
+                    (sirinet_promises_cb) on_count_xxx_response);
         }
-        qp_add_int64(query->packer, n);
+        else
+        {
+            qp_add_int64(query->packer, q_count->n);
+            SIRIPARSER_NEXT_NODE
+        }
     }
-    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_count_series(uv_async_t * handle)
@@ -805,13 +821,31 @@ static void exit_count_series(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
+
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
     qp_add_raw(query->packer, "series", 6);
 
+    if (q_count->where_expr == NULL)
+    {
+        q_count->n = (q_count->ct_series == NULL) ?
+                siridb->series->len : q_count->ct_series->len;
+    }
+    else
+    {
+        uv_mutex_lock(&siridb->series_mutex);
+
+        ct_values(
+                (q_count->ct_series == NULL) ?
+                            siridb->series : q_count->ct_series,
+                (ct_val_cb) &walk_count_series,
+                handle);
+
+        uv_mutex_unlock(&siridb->series_mutex);
+    }
+
     if (IS_MASTER)
     {
-        q_count->n = siridb->series_map->len;
         siridb_query_forward(
                 handle,
                 SIRIDB_QUERY_FWD_POOLS,
@@ -819,7 +853,7 @@ static void exit_count_series(uv_async_t * handle)
     }
     else
     {
-        qp_add_int64(query->packer, siridb->series_map->len);
+        qp_add_int64(query->packer, q_count->n);
 
         SIRIPARSER_NEXT_NODE
     }
@@ -1145,6 +1179,8 @@ static void exit_list_pools(uv_async_t * handle)
     };
     uint_fast16_t prop;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
 
     if (q_list->props == NULL)
     {

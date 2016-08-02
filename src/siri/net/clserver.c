@@ -10,28 +10,28 @@
  *
  */
 #define _GNU_SOURCE
-#include <siri/net/clserver.h>
-#include <siri/net/protocol.h>
-#include <logger/logger.h>
-#include <stdlib.h>
-#include <string.h>
-#include <msgpack.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <siri/siri.h>
-#include <siri/db/auth.h>
-#include <siri/db/query.h>
-#include <qpack/qpack.h>
-#include <siri/db/insert.h>
-#include <siri/net/socket.h>
 #include <assert.h>
-#include <siri/version.h>
 #include <lock/lock.h>
+#include <logger/logger.h>
+#include <msgpack.h>
+#include <qpack/qpack.h>
+#include <siri/db/auth.h>
+#include <siri/db/insert.h>
+#include <siri/db/query.h>
+#include <siri/db/replicate.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
-#include <siri/net/promises.h>
 #include <siri/err.h>
-#include <siri/db/replicate.h>
+#include <siri/net/clserver.h>
+#include <siri/net/promises.h>
+#include <siri/net/protocol.h>
+#include <siri/net/socket.h>
+#include <siri/siri.h>
+#include <siri/version.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
@@ -516,6 +516,9 @@ static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
                     if (siridb != NULL)
                     {
                         siridb->server->flags |= SERVER_FLAG_RUNNING;
+
+                        /* Force one heart-beat */
+                        siri_heartbeat_force();
                     }
                     sirinet_pkg_t * package = sirinet_pkg_new(
                             pkg->pid,

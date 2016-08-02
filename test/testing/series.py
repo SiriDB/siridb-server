@@ -5,6 +5,7 @@ class Series:
         self._points = None
 
     def add_points(self, points):
+        self.commit_points()
         self._points = points
         return points
 

@@ -39,6 +39,17 @@ inline int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
             series);
 }
 
+int walk_count_series(siridb_series_t * series, uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_count_t * q_count = (query_count_t *) query->data;
+    q_count->n += cexpr_run(
+                q_count->where_expr,
+                (cexpr_cb_t) siridb_series_cexpr_cb,
+                series);
+    return 0;
+}
+
 int walk_list_series(siridb_series_t * series, uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;

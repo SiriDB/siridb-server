@@ -134,6 +134,12 @@ static void BSERVER_flags_update(
     /* update server flags */
     siridb_server_update_flags(server->flags, flags);
 
+    if (server->socket == NULL)
+    {
+        /* connect in case we do not has a connection yet */
+        siridb_server_connect(siridb, server);
+    }
+
     /* if server is re-indexing, update status */
     if (    (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
             (~siridb->server->flags & SERVER_FLAG_REINDEXING) &&

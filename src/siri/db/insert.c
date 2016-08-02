@@ -423,6 +423,10 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
             (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
             (~flags & INSERT_FLAG_TESTED)))
     {
+        /*
+         * We can use INSERT_local_test even if 'this' server has not set
+         * the REINDEXING flag yet, since this does not depend on 'prev_lookup'
+         */
         return INSERT_local_test(siridb, unpacker);
     }
     qp_types_t tp;

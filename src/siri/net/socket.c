@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <siri/net/socket.h>
+#include <siri/net/protocol.h>
 #include <siri/siri.h>
 #include <siri/err.h>
 
@@ -65,6 +66,7 @@ void sirinet_socket_on_data(
 {
     sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
     sirinet_pkg_t * pkg;
+    size_t total_sz;
 
     if (nread < 0)
     {
@@ -91,6 +93,7 @@ void sirinet_socket_on_data(
         if (nread >= PKG_HEADER_SIZE)
         {
             pkg = (sirinet_pkg_t *) buf->base;
+
             if ((pkg->tp ^ 255) != pkg->checkbit)
             {
                 log_error(
@@ -101,12 +104,13 @@ void sirinet_socket_on_data(
                 return;
             }
 
-            size_t total_sz = pkg->len + PKG_HEADER_SIZE;
+            total_sz = pkg->len + PKG_HEADER_SIZE;
 
             if (nread >= total_sz)
             {
                 /* Call on-data function */
                 (*ssocket->on_data)(client, pkg);
+
                 if (nread == total_sz)
                 {
                     free(buf->base);
@@ -120,14 +124,21 @@ void sirinet_socket_on_data(
                     memmove(buf->base, buf->base + total_sz, nread - total_sz);
                     sirinet_socket_on_data(client, nread - total_sz, buf);
                 }
+
                 return;
             }
 
             ssocket->buf = (buf->len < total_sz) ?
                 (char *) realloc(buf->base, total_sz) : buf->base;
+
             if (ssocket->buf == NULL)
             {
-                ERR_ALLOC
+                log_critical(
+                        "Cannot allocate size for package "
+                        "(pid: %lu, len: %lu, tp: %u)",
+                        pkg->pid, pkg->len, pkg->tp);
+                free(buf->base);
+                return;
             }
         }
         else
@@ -162,40 +173,61 @@ void sirinet_socket_on_data(
             return;
         }
 
-        size_t total_sz = pkg->len + PKG_HEADER_SIZE;
+        total_sz = pkg->len + PKG_HEADER_SIZE;
 
         if (buf->len < total_sz)
         {
-            ssocket->buf = (char *) realloc(ssocket->buf, total_sz);
-            if (ssocket->buf == NULL)
+            char * tmp = (char *) realloc(ssocket->buf, total_sz);
+            if (tmp == NULL)
             {
-                ERR_ALLOC
+                log_critical(
+                        "Cannot allocate size for package "
+                        "(pid: %lu, len: %lu, tp: %u)",
+                        pkg->pid, pkg->len, pkg->tp);
+                free(ssocket->buf);
+                ssocket->buf = NULL;
+                return;
             }
+            ssocket->buf = tmp;
+
+            /* pkg is already checked in this case */
+            pkg = (sirinet_pkg_t *) ssocket->buf;
         }
     }
     else
     {
         ssocket->len += nread;
+        /* pkg is already checked in this case */
         pkg = (sirinet_pkg_t *) ssocket->buf;
+
+        total_sz = pkg->len + PKG_HEADER_SIZE;
     }
 
-    if (ssocket->len < pkg->len + PKG_HEADER_SIZE)
+    if (ssocket->len < total_sz)
     {
         return;
     }
 
-    if (ssocket->len == pkg->len + PKG_HEADER_SIZE)
+    if (ssocket->len > total_sz)
     {
         /* Call on-data function. */
         (*ssocket->on_data)(client, pkg);
+
+#ifdef DEBUG
+        LOGC("Got more data than expected");
+#endif
+
+        ssocket->len -= total_sz;
+        memmove(ssocket->buf, ssocket->buf + total_sz, ssocket->len);
+
+        /* call this function again with rest data */
+        sirinet_socket_on_data(client, 0, buf);
+
+        return;
     }
-    else
-    {
-        log_error(
-                "Got more bytes than expected, "
-                "ignore package (pid: %d, len: %d, tp: %d)",
-                pkg->pid, pkg->len, pkg->tp);
-    }
+
+    /* Call on-data function. */
+    (*ssocket->on_data)(client, pkg);
 
     free(ssocket->buf);
     ssocket->buf = NULL;
