@@ -71,9 +71,9 @@ void imap64_free(imap64_t * imap)
     {
         for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (imap->node[i] != NULL)
+            if (imap->nodes[i] != NULL)
             {
-                IMAP64_free_node(imap->node[i]);
+                IMAP64_free_node(imap->nodes[i]);
             }
         }
     }
@@ -94,9 +94,9 @@ void imap64_free_cb(imap64_t * imap, imap64_cb cb, void * args)
     {
         for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (imap->node[i] != NULL)
+            if (imap->nodes[i] != NULL)
             {
-                IMAP64_free_node_cb(imap->node[i], cb, args);
+                IMAP64_free_node_cb(imap->nodes[i], cb, args);
             }
         }
     }
@@ -137,9 +137,9 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data, uint8_t overwrite)
     key = id % IMAP64_NODE_SZ;
     id /= IMAP64_NODE_SZ;
 
-    if (imap->node[key] == NULL)
+    if (imap->nodes[key] == NULL)
     {
-        node = imap->node[key] = IMAP64_new_node();
+        node = imap->nodes[key] = IMAP64_new_node();
         if (node == NULL)
         {
             return IMAP64_ERR;
@@ -147,18 +147,18 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data, uint8_t overwrite)
     }
     else
     {
-        node = imap->node[key];
+        node = imap->nodes[key];
     }
 
     if (id < IMAP64_NODE_SZ)
     {
-        if (node->node[id] == NULL)
+        if (node->nodes[id] == NULL)
         {
             node->size++;
-            node->node[id] = IMAP64_new_node();
+            node->nodes[id] = IMAP64_new_node();
             imap->len++;
         }
-        else if (node->node[id]->data == NULL)
+        else if (node->nodes[id]->data == NULL)
         {
             imap->len++;
         }
@@ -167,7 +167,7 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data, uint8_t overwrite)
             return IMAP64_EXISTS;
         }
 
-        node->node[id]->data = data;
+        node->nodes[id]->data = data;
 
         return IMAP64_OK;
     }
@@ -191,11 +191,11 @@ void * imap64_get(imap64_t * imap, uint64_t id)
     id /= IMAP64_NODE_SZ;
 
     return (id < IMAP64_NODE_SZ) ?
-        ((imap->node[key] == NULL || imap->node[key]->node[id] == NULL) ?
-                NULL : imap->node[key]->node[id]->data) :
+        ((imap->nodes[key] == NULL || imap->nodes[key]->nodes[id] == NULL) ?
+                NULL : imap->nodes[key]->nodes[id]->data) :
 
-        ((imap->node[key] == NULL) ?
-                NULL : IMAP64_get(imap->node[key], id));
+        ((imap->nodes[key] == NULL) ?
+                NULL : IMAP64_get(imap->nodes[key], id));
 }
 
 /*
@@ -223,41 +223,41 @@ void * imap64_pop(imap64_t * imap, uint64_t id)
 
     if (id < IMAP64_NODE_SZ)
     {
-        if (    imap->node[key] == NULL ||
-                imap->node[key]->node[id] == NULL ||
-                (data = imap->node[key]->node[id]->data) == NULL)
+        if (    imap->nodes[key] == NULL ||
+                imap->nodes[key]->nodes[id] == NULL ||
+                (data = imap->nodes[key]->nodes[id]->data) == NULL)
         {
             return NULL;
         }
 
         imap->len--;
-        imap->node[key]->node[id]->data = NULL;
+        imap->nodes[key]->nodes[id]->data = NULL;
 
-        if (!imap->node[key]->node[id]->size)
+        if (!imap->nodes[key]->nodes[id]->size)
         {
-            free(imap->node[key]->node[id]);
-            imap->node[key]->node[id] = NULL;
-            if (!--imap->node[key]->size)
+            free(imap->nodes[key]->nodes[id]);
+            imap->nodes[key]->nodes[id] = NULL;
+            if (!--imap->nodes[key]->size)
             {
-                free(imap->node[key]);
-                imap->node[key] = NULL;
+                free(imap->nodes[key]);
+                imap->nodes[key] = NULL;
             }
         }
         return data;
     }
     else
     {
-        if (imap->node[key] == NULL)
+        if (imap->nodes[key] == NULL)
         {
             return NULL;
         }
 
-        data = IMAP64_pop(imap, imap->node[key], id);
+        data = IMAP64_pop(imap, imap->nodes[key], id);
 
-        if (!imap->node[key]->size)
+        if (!imap->nodes[key]->size)
         {
-            free(imap->node[key]);
-            imap->node[key] = NULL;
+            free(imap->nodes[key]);
+            imap->nodes[key] = NULL;
         }
 
         return data;
@@ -285,7 +285,7 @@ int imap64_walk(imap64_t * imap, imap64_cb cb, void * args)
     {
         for (i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if ((nd = imap->node[i]) != NULL)
+            if ((nd = imap->nodes[i]) != NULL)
             {
                 if (nd->data != NULL)
                 {
@@ -326,7 +326,7 @@ void imap64_walkn(imap64_t * imap, size_t * n, imap64_cb cb, void * args)
     {
         for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ && *n; i++)
         {
-            if ((nd = imap->node[i]) != NULL)
+            if ((nd = imap->nodes[i]) != NULL)
             {
                 if (nd->data != NULL)
                 {
@@ -365,7 +365,7 @@ slist_t * imap64_2slist(imap64_t * imap)
         {
             for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
             {
-                if ((nd = imap->node[i]) != NULL)
+                if ((nd = imap->nodes[i]) != NULL)
                 {
                     if (nd->data != NULL)
                     {
@@ -410,9 +410,9 @@ static void IMAP64_free_node(imap64_node_t * node)
     {
         for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (node->node[i] != NULL)
+            if (node->nodes[i] != NULL)
             {
-                IMAP64_free_node(node->node[i]);
+                IMAP64_free_node(node->nodes[i]);
             }
         }
     }
@@ -436,9 +436,9 @@ static void IMAP64_free_node_cb(
     {
         for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (node->node[i] != NULL)
+            if (node->nodes[i] != NULL)
             {
-                IMAP64_free_node_cb(node->node[i], cb, args);
+                IMAP64_free_node_cb(node->nodes[i], cb, args);
             }
         }
     }
@@ -460,10 +460,10 @@ static int IMAP64_add(
     key = id % IMAP64_NODE_SZ;
     id /= IMAP64_NODE_SZ;
 
-    if (node->node[key] == NULL)
+    if (node->nodes[key] == NULL)
     {
         node->size++;
-        node = node->node[key] = IMAP64_new_node();
+        node = node->nodes[key] = IMAP64_new_node();
         if (node == NULL)
         {
             return IMAP64_ERR;
@@ -471,21 +471,21 @@ static int IMAP64_add(
     }
     else
     {
-        node = node->node[key];
+        node = node->nodes[key];
     }
 
     if (id < IMAP64_NODE_SZ)
     {
-        if (node->node[id] == NULL)
+        if (node->nodes[id] == NULL)
         {
             node->size++;
-            if ((node->node[id] = IMAP64_new_node()) == NULL)
+            if ((node->nodes[id] = IMAP64_new_node()) == NULL)
             {
                 return IMAP64_ERR;
             }
             imap->len++;
         }
-        else if (node->node[id]->data == NULL)
+        else if (node->nodes[id]->data == NULL)
         {
             imap->len++;
         }
@@ -494,7 +494,7 @@ static int IMAP64_add(
             return IMAP64_EXISTS;
         }
 
-        node->node[id]->data = data;
+        node->nodes[id]->data = data;
 
         return IMAP64_OK;
     }
@@ -513,11 +513,11 @@ static void * IMAP64_get(imap64_node_t * node, uint64_t id)
     id /= IMAP64_NODE_SZ;
 
     return (id < IMAP64_NODE_SZ) ?
-         ((node->node[key] == NULL || node->node[key]->node[id] == NULL) ?
-                NULL : node->node[key]->node[id]->data) :
+         ((node->nodes[key] == NULL || node->nodes[key]->nodes[id] == NULL) ?
+                NULL : node->nodes[key]->nodes[id]->data) :
 
-         ((node->node[key] == NULL) ?
-                NULL : IMAP64_get(node->node[key], id));
+         ((node->nodes[key] == NULL) ?
+                NULL : IMAP64_get(node->nodes[key], id));
 }
 
 /*
@@ -533,25 +533,25 @@ static void * IMAP64_pop(imap64_t * imap, imap64_node_t * node, uint64_t id)
 
     if (id < IMAP64_NODE_SZ)
     {
-        if (    node->node[key] == NULL ||
-                node->node[key]->node[id] == NULL ||
-                (data = node->node[key]->node[id]->data) == NULL)
+        if (    node->nodes[key] == NULL ||
+                node->nodes[key]->nodes[id] == NULL ||
+                (data = node->nodes[key]->nodes[id]->data) == NULL)
         {
             return NULL;
         }
 
         imap->len--;
 
-        node->node[key]->node[id]->data = NULL;
+        node->nodes[key]->nodes[id]->data = NULL;
 
-        if (!node->node[key]->node[id]->size)
+        if (!node->nodes[key]->nodes[id]->size)
         {
-            free(node->node[key]->node[id]);
-            node->node[key]->node[id] = NULL;
-            if (!--node->node[key]->size)
+            free(node->nodes[key]->nodes[id]);
+            node->nodes[key]->nodes[id] = NULL;
+            if (!--node->nodes[key]->size)
             {
-                free(node->node[key]);
-                node->node[key] = NULL;
+                free(node->nodes[key]);
+                node->nodes[key] = NULL;
                 node->size--;
             }
         }
@@ -559,17 +559,17 @@ static void * IMAP64_pop(imap64_t * imap, imap64_node_t * node, uint64_t id)
     }
     else
     {
-        if (node->node[key] == NULL)
+        if (node->nodes[key] == NULL)
         {
             return NULL;
         }
 
-        data = IMAP64_pop(imap, node->node[key], id);
+        data = IMAP64_pop(imap, node->nodes[key], id);
 
-        if (!node->node[key]->size)
+        if (!node->nodes[key]->size)
         {
-            free(node->node[key]);
-            node->node[key] = NULL;
+            free(node->nodes[key]);
+            node->nodes[key] = NULL;
             node->size--;
         }
 
@@ -589,7 +589,7 @@ static void IMAP64_walk(
     imap64_node_t * nd;
     for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
     {
-        if ((nd = node->node[i]) != NULL)
+        if ((nd = node->nodes[i]) != NULL)
         {
             if (nd->data != NULL)
             {
@@ -617,7 +617,7 @@ static void IMAP64_walkn(
 
     for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ && *n; i++)
     {
-        if ((nd = node->node[i]) != NULL)
+        if ((nd = node->nodes[i]) != NULL)
         {
             if (nd->data != NULL)
             {
@@ -641,7 +641,7 @@ static void IMAP64_2slist(imap64_node_t * node, slist_t * slist)
 
     for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
     {
-        if ((nd = node->node[i]) != NULL)
+        if ((nd = node->nodes[i]) != NULL)
         {
             if (nd->data != NULL)
             {

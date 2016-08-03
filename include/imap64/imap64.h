@@ -24,11 +24,13 @@ enum
     IMAP64_EXISTS
 };
 
+typedef struct imap64_node_s * imap64_nodes_t[IMAP64_NODE_SZ];
+
 typedef struct imap64_node_s
 {
     size_t size;
     void * data ;
-    struct imap64_node_s * node[IMAP64_NODE_SZ];
+    imap64_nodes_t nodes;
 } imap64_node_t;
 
 
@@ -36,7 +38,7 @@ typedef struct imap64_s
 {
     size_t len;
     void * data;
-    imap64_node_t * node[IMAP64_NODE_SZ];
+    imap64_nodes_t nodes;
 } imap64_t;
 
 typedef int (*imap64_cb)(void * data, void * args);
