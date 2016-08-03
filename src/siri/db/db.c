@@ -224,7 +224,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     log_info("Updating series properties");
 
     /* create a copy since 'siridb_series_update_props' might drop a series */
-    slist_t * slist = imap32_2slist(siridb->series_map);
+    slist_t * slist = imap_2slist(siridb->series_map);
 
     if (slist == NULL)
     {
@@ -475,7 +475,7 @@ static siridb_t * SIRIDB_new(void)
         }
         else
         {
-            siridb->series_map = imap32_new();
+            siridb->series_map = imap_new();
             if (siridb->series_map == NULL)
             {
                 ct_free(siridb->series, NULL);
@@ -484,10 +484,10 @@ static siridb_t * SIRIDB_new(void)
             }
             else
             {
-                siridb->shards = imap64_new();
+                siridb->shards = imap_new();
                 if (siridb->shards == NULL)
                 {
-                    imap32_free(siridb->series_map);
+                    imap_free(siridb->series_map);
                     ct_free(siridb->series, NULL);
                     free(siridb);
                     siridb = NULL;  /* signal is raised */
@@ -592,10 +592,10 @@ static void SIRIDB_free(siridb_t * siridb)
         siridb_pools_free(siridb->pools);
     }
 
-    /* free imap64 (series) */
+    /* free imap (series) */
     if (siridb->series_map != NULL)
     {
-        imap32_free(siridb->series_map);
+        imap_free(siridb->series_map);
     }
 
     /* free c-tree lookup and series */
@@ -604,10 +604,10 @@ static void SIRIDB_free(siridb_t * siridb)
         ct_free(siridb->series, (ct_free_cb) &siridb_series_decref);
     }
 
-    /* free shards using imap64 walk an free the imap64 */
+    /* free shards using imap walk an free the imap */
     if (siridb->shards != NULL)
     {
-        imap64_free_cb(siridb->shards, (imap64_cb) &siridb_shard_decref, NULL);
+        imap_free_cb(siridb->shards, (imap_cb) &siridb_shard_decref, NULL);
     }
 
     /* only free buffer path when not equal to db_path */

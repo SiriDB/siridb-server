@@ -149,7 +149,7 @@ int siridb_servers_load(siridb_t * siridb)
             else
             {
                 /* if this is not me, create promises */
-                server->promises = imap64_new();
+                server->promises = imap_new();
                 if (server->promises == NULL)
                 {
                     rc = -1;  /* signal is raised */

@@ -182,7 +182,7 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-    if (imap64_add(server->promises, promise->pid, promise, 1))
+    if (imap_add(server->promises, promise->pid, promise) == -1)
     {
         free(promise->timer);
         free(promise);
@@ -272,7 +272,7 @@ siridb_server_t * siridb_server_register(
 
                 if (server != NULL)
                 {
-                    if (    (server->promises = imap64_new()) == NULL ||
+                    if (    (server->promises = imap_new()) == NULL ||
                             siridb_servers_register(siridb, server))
                     {
                         SERVER_free(server);
@@ -339,7 +339,7 @@ static void SERVER_write_cb(uv_write_t * req, int status)
                 promise->pid,
                 uv_strerror(status));
 
-        if (imap64_pop(promise->server->promises, promise->pid) == NULL)
+        if (imap_pop(promise->server->promises, promise->pid) == NULL)
         {
             log_critical("Got a socket error but the promise is not found!!");
         }
@@ -359,7 +359,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
 {
     sirinet_promise_t * promise = handle->data;
 
-    if (imap64_pop(promise->server->promises, promise->pid) == NULL)
+    if (imap_pop(promise->server->promises, promise->pid) == NULL)
     {
         log_critical(
                 "Timeout task is called on package (PID %lu) for server '%s' "
@@ -449,7 +449,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     sirinet_socket_t * ssocket = client->data;
     siridb_server_t * server = ssocket->origin;
-    sirinet_promise_t * promise = imap64_pop(server->promises, pkg->pid);
+    sirinet_promise_t * promise = imap_pop(server->promises, pkg->pid);
 
 #ifdef DEBUG
     log_debug("Response received (pid: %lu, len: %lu, tp: %s) from '%s'",
@@ -732,8 +732,8 @@ static void SERVER_free(siridb_server_t * server)
      */
     if (server->promises != NULL)
     {
-        imap64_walk(server->promises, (imap64_cb) SERVER_cancel_promise, NULL);
-        imap64_free(server->promises);
+        imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
+        imap_free(server->promises);
     }
     free(server->name);
     free(server->address);

@@ -597,11 +597,10 @@ static void enter_series_name(uv_async_t * handle)
         }
 
         /* bind the series to the query, increment ref count if successful */
-        if (imap32_add(
+        if (imap_add(
                 ((query_wrapper_series_t *) query->data)->series_map,
                 series->id,
-                series,
-                0) == IMAP32_OK)
+                series) == 1)
         {
             siridb_series_incref(series);
         }
@@ -614,7 +613,7 @@ static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((query_wrapper_series_t *) query->data)->series_map = imap32_new();
+    ((query_wrapper_series_t *) query->data)->series_map = imap_new();
 
     SIRIPARSER_NEXT_NODE
 }
@@ -835,10 +834,10 @@ static void exit_count_series(uv_async_t * handle)
     }
     else
     {
-        imap32_walk(
+        imap_walk(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map,
-                (imap32_cb) &walk_count_series,
+                (imap_cb) &walk_count_series,
                 handle);
     }
 
@@ -1002,7 +1001,7 @@ static void exit_drop_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    imap32_walk(q_drop->series_map, (imap32_cb) &walk_drop_series, handle);
+    imap_walk(q_drop->series_map, (imap_cb) &walk_drop_series, handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -1028,7 +1027,7 @@ static void exit_drop_shard(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    siridb_shard_t * shard = imap64_pop(siridb->shards, shard_id);
+    siridb_shard_t * shard = imap_pop(siridb->shards, shard_id);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -1051,7 +1050,7 @@ static void exit_drop_shard(uv_async_t * handle)
          */
         uv_mutex_lock(&siridb->series_mutex);
 
-        slist_t * slist = imap32_2slist(siridb->series_map);
+        slist_t * slist = imap_2slist(siridb->series_map);
 
         if (slist != NULL)
         {
@@ -1265,11 +1264,11 @@ static void exit_list_series(uv_async_t * handle)
      */
     uv_mutex_lock(&siridb->series_mutex);
 
-    imap32_walkn(
+    imap_walkn(
             (q_list->series_map == NULL) ?
                     siridb->series_map : q_list->series_map,
             &q_list->limit,
-            (imap32_cb) &walk_list_series,
+            (imap_cb) &walk_list_series,
             handle);
 
     uv_mutex_unlock(&siridb->series_mutex);
@@ -1469,9 +1468,9 @@ static void exit_select_stmt(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    imap32_walk(
+    imap_walk(
             ((query_select_t *) query->data)->series_map,
-            (imap32_cb) &walk_select,
+            (imap_cb) &walk_select,
             handle);
 
     uv_mutex_unlock(&siridb->series_mutex);

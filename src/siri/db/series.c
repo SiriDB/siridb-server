@@ -31,8 +31,8 @@
 
 static int SERIES_save(siridb_t * siridb);
 static void SERIES_free(siridb_series_t * series);
-static int SERIES_load(siridb_t * siridb, imap32_t * dropped);
-static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped);
+static int SERIES_load(siridb_t * siridb, imap_t * dropped);
+static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
 static int SERIES_open_new_dropped_file(siridb_t * siridb);
 static int SERIES_open_store(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
@@ -206,7 +206,7 @@ siridb_series_t * siridb_series_new(
          */
         else
         {
-            imap32_add(siridb->series_map, series->id, series, 1);
+            imap_add(siridb->series_map, series->id, series);
         }
     }
 
@@ -225,7 +225,7 @@ int siridb_series_load(siridb_t * siridb)
 #endif
     log_info("Loading series");
 
-    imap32_t * dropped = imap32_new();
+    imap_t * dropped = imap_new();
     if (dropped == NULL)
     {
         return -1;
@@ -233,17 +233,17 @@ int siridb_series_load(siridb_t * siridb)
 
     if (SERIES_read_dropped(siridb, dropped))
     {
-        imap32_free(dropped);
+        imap_free(dropped);
         return -1;
     }
 
     if (SERIES_load(siridb, dropped))
     {
-        imap32_free(dropped);
+        imap_free(dropped);
         return -1;
     }
 
-    imap32_free(dropped);
+    imap_free(dropped);
 
     if (SERIES_update_max_id(siridb))
     {
@@ -346,7 +346,7 @@ int siridb_series_add_idx_num32(
 void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
 {
     /* remove series from map */
-    imap32_pop(siridb->series_map, series->id);
+    imap_pop(siridb->series_map, series->id);
 
     /* remove series from tree */
     ct_pop(siridb->series, series->name);
@@ -971,7 +971,7 @@ static int SERIES_save(siridb_t * siridb)
  * Returns 0 if successful or -1 in case of an error.
  * (a SIGNAL might be raised but -1 should be considered critical in any case)
  */
-static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
+static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
 {
     char * buffer;
     char * pt;
@@ -1014,11 +1014,10 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
                     pt < end;
                     pt += sizeof(uint32_t))
             {
-                if (imap32_add(
+                if (imap_add(
                         dropped,
                         (uint32_t) *((uint32_t *) pt),
-                        (int *) DROPPED_DUMMY,
-                        1))
+                        (int *) DROPPED_DUMMY) == -1)
                 {
                     log_critical("Cannot add id to dropped map");
                     rc = -1;
@@ -1038,7 +1037,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap32_t * dropped)
     return rc;
 }
 
-static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
+static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 {
     qp_unpacker_t * unpacker;
     qp_obj_t * qp_series_name;
@@ -1094,7 +1093,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
             siridb->max_series_id = series_id;
         }
 
-        if (imap32_get(dropped, series_id) == NULL)
+        if (imap_get(dropped, series_id) == NULL)
         {
             series = SERIES_new(
                     siridb,
@@ -1108,7 +1107,7 @@ static int SERIES_load(siridb_t * siridb, imap32_t * dropped)
                 ct_add(siridb->series, series->name, series);
 
                 /* add series to imap32 */
-                imap32_add(siridb->series_map, series->id, series, 1);
+                imap_add(siridb->series_map, series->id, series);
             }
         }
     }

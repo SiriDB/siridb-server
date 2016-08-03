@@ -11,9 +11,9 @@
     siridb_query_t * query = (siridb_query_t *) handle->data;                 \
     q_type * q = (q_type *) query->data;                                      \
     if (q->series_map != NULL)                                                \
-        imap32_free_cb(                                                       \
+        imap_free_cb(                                                       \
                 q->series_map,                                                \
-                (imap32_cb) &siridb_series_decref,                            \
+                (imap_cb) &siridb_series_decref,                            \
                 NULL);                                                        \
     if (q->where_expr != NULL)                                                \
         cexpr_free(q->where_expr);                                            \
@@ -75,9 +75,9 @@ void query_list_free(uv_handle_t * handle)
 
     if (q_list->series_map != NULL)
     {
-        imap32_free_cb(
+        imap_free_cb(
                 q_list->series_map,
-                (imap32_cb) &siridb_series_decref,
+                (imap_cb) &siridb_series_decref,
                 NULL);
     }
 

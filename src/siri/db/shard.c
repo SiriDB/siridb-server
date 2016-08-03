@@ -13,7 +13,7 @@
 #define _GNU_SOURCE
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
-#include <imap64/imap64.h>
+#include <imap/imap.h>
 #include <siri/db/series.h>
 #include <logger/logger.h>
 #include <stdio.h>
@@ -140,7 +140,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
 
-    if (imap64_add(siridb->shards, id, shard, 1))
+    if (imap_add(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
         return -1;  /* signal is raised */
@@ -226,7 +226,7 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    if (imap64_add(siridb->shards, id, shard, 1))
+    if (imap_add(siridb->shards, id, shard) == -1)
     {
         ERR_ALLOC
         siridb_shard_decref(shard);
@@ -416,7 +416,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    if ((siridb_shard_t *) imap64_pop(siridb->shards, shard->id) == shard)
+    if ((siridb_shard_t *) imap_pop(siridb->shards, shard->id) == shard)
     {
         if ((new_shard = siridb_shard_create(
             siridb,
@@ -469,9 +469,9 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (slist != NULL)
     {
-        imap32_walk(
+        imap_walk(
                 siridb->series_map,
-                (imap32_cb) &SHARD_create_slist,
+                (imap_cb) &SHARD_create_slist,
                 (void *) slist);
     }
 
@@ -723,7 +723,7 @@ static int SHARD_load_idx_num32(
             return -1;
         }
 
-        series = imap32_get(siridb->series_map, series_id);
+        series = imap_get(siridb->series_map, series_id);
 
         if (series == NULL)
         {

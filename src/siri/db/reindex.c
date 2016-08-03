@@ -88,9 +88,9 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
 
                 if (create_new)
                 {
-                    if (imap32_walk(
+                    if (imap_walk(
                                 siridb->series_map,
-                                (imap32_cb) REINDEX_create_cb,
+                                (imap_cb) REINDEX_create_cb,
                                 reindex->fp) || fflush(reindex->fp))
                     {
                         ERR_FILE
@@ -441,7 +441,7 @@ static void REINDEX_work(uv_timer_t * timer)
     assert (siridb->reindex->pkg == NULL);
 #endif
 
-    reindex->series = imap32_get(siridb->series_map, *reindex->next_series_id);
+    reindex->series = imap_get(siridb->series_map, *reindex->next_series_id);
 
     if (    reindex->series == NULL ||
             siridb_lookup_sn(
@@ -604,7 +604,7 @@ static void REINDEX_on_insert_response(
 }
 
 /*
- * Typedef: imap32_cb
+ * Typedef: imap_cb
  *
  * Returns 0 if successful
  */

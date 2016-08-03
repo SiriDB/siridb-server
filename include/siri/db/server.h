@@ -14,7 +14,7 @@
 #include <uuid/uuid.h>
 #include <stdint.h>
 #include <siri/db/db.h>
-#include <imap64/imap64.h>
+#include <imap/imap.h>
 #include <cexpr/cexpr.h>
 #include <uv.h>
 #include <siri/net/promise.h>
@@ -79,7 +79,7 @@ typedef struct siridb_server_s
     uint16_t ref;
     uint8_t flags; /* do not use flags above 16384 */
     uint8_t id; /* set when added to a pool to either 0 or 1 */
-    imap64_t * promises;
+    imap_t * promises;
     uv_tcp_t * socket;
     uint32_t pid;
     /* fixed server properties */

@@ -14,11 +14,11 @@
 #include <uv.h>
 #include <inttypes.h>
 #include <cleri/parser.h>
-#include <imap32/imap32.h>
+#include <imap/imap.h>
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
 
-#define W0_CT_SERIES imap32_t * series_map;
+#define W0_CT_SERIES imap_t * series_map;
 #define W1_WHERE_EXPR cexpr_t * where_expr;
 
 /* wrappers */

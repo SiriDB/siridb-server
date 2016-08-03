@@ -18,8 +18,8 @@
 #include <siri/db/server.h>
 #include <siri/db/pools.h>
 #include <ctree/ctree.h>
-#include <imap32/imap32.h>
-#include <imap64/imap64.h>
+#include <imap/imap.h>
+#include <imap/imap.h>
 #include <iso8601/iso8601.h>
 #include <llist/llist.h>
 #include <string.h>
@@ -68,8 +68,8 @@ typedef struct siridb_server_s siridb_server_t;
 typedef struct siridb_users_s siridb_users_t;
 typedef struct siridb_pools_s siridb_pools_t;
 typedef struct ct_node_s ct_node_t;
-typedef struct imap32_s imap32_t;
-typedef struct imap64_s imap64_t;
+typedef struct imap_s imap_t;
+typedef struct imap_s imap_t;
 typedef struct siridb_fifo_s siridb_fifo_t;
 typedef struct siridb_replicate_s siridb_replicate_t;
 typedef struct siridb_reindex_s siridb_reindex_t;
@@ -100,10 +100,10 @@ typedef struct siridb_s
     llist_t * servers;
     siridb_pools_t * pools;
     ct_t * series;
-    imap32_t * series_map;
+    imap_t * series_map;
     uv_mutex_t series_mutex;
     uv_mutex_t shards_mutex;
-    imap64_t * shards;
+    imap_t * shards;
     FILE * buffer_fp;
     FILE * dropped_fp;
     qp_fpacker_t * store;

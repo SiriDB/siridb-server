@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define IMAP_NODE_SZ 16
+#define IMAP_NODE_SZ 32
 
 static void IMAP_node_free(imap_node_t * node);
 static void IMAP_node_free_cb(imap_node_t * node, imap_cb cb, void * data);
@@ -96,9 +96,9 @@ void imap_free_cb(imap_t * imap, imap_cb cb, void * data)
 /*
  * Add data by id to the map.
  *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ * Returns 0 when data is overwritten and 1 if a new id/value is set.
  *
- * Warning: existing data will be overwritten!
+ * In case of an error we return -1 and a SIGNAL is raised.
  */
 int imap_add(imap_t * imap, uint64_t id, void * data)
 {

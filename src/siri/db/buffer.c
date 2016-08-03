@@ -57,7 +57,7 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
         shard_end = shard_start + duration;
         shard_id = shard_start + series->mask;
 
-        if ((shard = imap64_get(siridb->shards, shard_id)) == NULL)
+        if ((shard = imap_get(siridb->shards, shard_id)) == NULL)
         {
             shard = siridb_shard_create(
                     siridb,
@@ -305,7 +305,7 @@ int siridb_buffer_load(siridb_t * siridb)
             pt = buffer + i * siridb->buffer_size;
 
             series = (siridb_series_t *)
-                    imap32_get(siridb->series_map, *((uint32_t *) pt));
+                    imap_get(siridb->series_map, *((uint32_t *) pt));
 
             if (series == NULL)
             {

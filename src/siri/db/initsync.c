@@ -87,9 +87,9 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                 }
                 else if (create_new)
                 {
-                    if (imap32_walk(
+                    if (imap_walk(
                                 siridb->series_map,
-                                (imap32_cb) INITSYNC_create_cb,
+                                (imap_cb) INITSYNC_create_cb,
                                 initsync->fp) || fflush(initsync->fp))
                     {
                         ERR_FILE
@@ -106,7 +106,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                             1,
                             initsync->fp) == 1)
                     {
-                        series = imap32_get(
+                        series = imap_get(
                                 siridb->series_map,
                                 series_id);
 
@@ -364,7 +364,7 @@ static void INITSYNC_work(uv_timer_t * timer)
     siridb_initsync_t * initsync = siridb->replicate->initsync;
     siridb_series_t * series;
 
-    series = imap32_get(siridb->series_map, *initsync->next_series_id);
+    series = imap_get(siridb->series_map, *initsync->next_series_id);
 
     if (series != NULL)
     {
@@ -476,7 +476,7 @@ static void INITSYNC_on_insert_response(
 
 
 /*
- * Typedef: imap32_cb
+ * Typedef: imap_cb
  *
  * Returns 0 if successful
  */

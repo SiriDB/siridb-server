@@ -188,9 +188,9 @@ static void OPTIMIZE_work(uv_work_t * work)
         slshards = slist_new(siridb->shards->len);
         if (slshards != NULL)
         {
-            imap64_walk(
+            imap_walk(
                     siridb->shards,
-                    (imap64_cb) &OPTIMIZE_create_slist,
+                    (imap_cb) &OPTIMIZE_create_slist,
                     (void *) slshards);
         }
 
