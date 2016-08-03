@@ -592,7 +592,7 @@ static void SIRIDB_free(siridb_t * siridb)
         siridb_pools_free(siridb->pools);
     }
 
-    /* free imap32 (series) */
+    /* free imap64 (series) */
     if (siridb->series_map != NULL)
     {
         imap32_free(siridb->series_map);
@@ -607,8 +607,7 @@ static void SIRIDB_free(siridb_t * siridb)
     /* free shards using imap64 walk an free the imap64 */
     if (siridb->shards != NULL)
     {
-        imap64_walk(siridb->shards, (imap64_cb_t) &siridb_shard_decref, NULL);
-        imap64_free(siridb->shards);
+        imap64_free_cb(siridb->shards, (imap64_cb) &siridb_shard_decref, NULL);
     }
 
     /* only free buffer path when not equal to db_path */

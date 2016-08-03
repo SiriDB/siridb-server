@@ -36,7 +36,7 @@
 #include <sys/time.h>
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
-#define DEFAULT_ALLOC_COLUMNS 8
+#define DEFAULT_ALLOC_COLUMNS 6
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
 #define MASTER_CHECK_POOLS_ONLINE(siridb)                                   \
 if (IS_MASTER && !siridb_pools_online(siridb))                              \
@@ -835,7 +835,6 @@ static void exit_count_series(uv_async_t * handle)
     }
     else
     {
-
         imap32_walk(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map,

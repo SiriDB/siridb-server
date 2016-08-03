@@ -13,8 +13,16 @@
 
 #include <inttypes.h>
 #include <stddef.h>
+#include <slist/slist.h>
 
 #define IMAP64_NODE_SZ 16
+
+enum
+{
+    IMAP64_ERR=-1,
+    IMAP64_OK,
+    IMAP64_EXISTS
+};
 
 typedef struct imap64_node_s
 {
@@ -31,12 +39,14 @@ typedef struct imap64_s
     imap64_node_t * node[IMAP64_NODE_SZ];
 } imap64_t;
 
-typedef void (*imap64_cb_t)(void * data, void * args);
+typedef int (*imap64_cb)(void * data, void * args);
 
 imap64_t * imap64_new(void);
 void imap64_free(imap64_t * imap);
-int imap64_add(imap64_t * imap, uint64_t id, void * data);
+void imap64_free_cb(imap64_t * imap, imap64_cb cb, void * args);
+int imap64_add(imap64_t * imap, uint64_t id, void * data, uint8_t overwrite);
 void * imap64_get(imap64_t * imap, uint64_t id);
 void * imap64_pop(imap64_t * imap, uint64_t id);
-void imap64_walk(imap64_t * imap, imap64_cb_t cb, void * args);
-
+int imap64_walk(imap64_t * imap, imap64_cb cb, void * args);
+void imap64_walkn(imap64_t * imap, size_t * n, imap64_cb cb, void * args);
+slist_t * imap64_2slist(imap64_t * imap);

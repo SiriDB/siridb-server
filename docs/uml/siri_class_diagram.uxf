@@ -33,7 +33,7 @@ users: *siridb_users_t
 servers: *siridb_servers_t
 pools: *siridb_pools_t
 series: *ct_node_t
-series_map: *imap32_t
+series_map: *imap64_t
 shards: *imap64_t
 buffer_fp: *FILE
 --

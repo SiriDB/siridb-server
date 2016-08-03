@@ -20,14 +20,29 @@
 
 static imap64_node_t * IMAP64_new_node(void);
 static void IMAP64_free_node(imap64_node_t * node);
+static void IMAP64_free_node_cb(
+        imap64_node_t * node,
+        imap64_cb cb,
+        void * args);
 static int IMAP64_add(
         imap64_t * imap,
         imap64_node_t * node,
         uint64_t id,
-        void * data);
+        void * data,
+        uint8_t overwrite);
 static void * IMAP64_get(imap64_node_t * node, uint64_t id);
 static void * IMAP64_pop(imap64_t * imap, imap64_node_t * node, uint64_t id);
-static void IMAP64_walk(imap64_node_t * node, imap64_cb_t cb, void * args);
+static void IMAP64_walk(
+        imap64_node_t * node,
+        int * rc,
+        imap64_cb cb,
+        void * args);
+static void IMAP64_walkn(
+        imap64_node_t * node,
+        size_t * n,
+        imap64_cb cb,
+        void * args);
+static void IMAP64_2slist(imap64_node_t * node, slist_t * slist);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -52,17 +67,37 @@ imap64_t * imap64_new(void)
  */
 void imap64_free(imap64_t * imap)
 {
-    uint_fast8_t i;
+    if (imap->len)
+    {
+        for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
+        {
+            if (imap->node[i] != NULL)
+            {
+                IMAP64_free_node(imap->node[i]);
+            }
+        }
+    }
+    free(imap);
+}
+
+/*
+ * Destroy imap64 using a call-back function. (parsing NULL is NOT allowed)
+ */
+void imap64_free_cb(imap64_t * imap, imap64_cb cb, void * args)
+{
+    if (imap->data != NULL)
+    {
+        (*cb)(imap->data, args);
+    }
 
     if (imap->len)
     {
-        for (i = 0; i < IMAP64_NODE_SZ; i++)
+        for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (imap->node[i] == NULL)
+            if (imap->node[i] != NULL)
             {
-                continue;
+                IMAP64_free_node_cb(imap->node[i], cb, args);
             }
-            IMAP64_free_node(imap->node[i]);
         }
     }
     free(imap);
@@ -75,7 +110,7 @@ void imap64_free(imap64_t * imap)
  *
  * Warning: existing data will be overwritten!
  */
-int imap64_add(imap64_t * imap, uint64_t id, void * data)
+int imap64_add(imap64_t * imap, uint64_t id, void * data, uint8_t overwrite)
 {
     uint_fast8_t key;
     imap64_node_t * node;
@@ -90,8 +125,13 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data)
         {
             imap->len++;
         }
+        else if (!overwrite)
+        {
+            return IMAP64_EXISTS;
+        }
+
         imap->data = data;
-        return 0;
+        return IMAP64_OK;
     }
 
     key = id % IMAP64_NODE_SZ;
@@ -100,6 +140,10 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data)
     if (imap->node[key] == NULL)
     {
         node = imap->node[key] = IMAP64_new_node();
+        if (node == NULL)
+        {
+            return IMAP64_ERR;
+        }
     }
     else
     {
@@ -118,18 +162,17 @@ int imap64_add(imap64_t * imap, uint64_t id, void * data)
         {
             imap->len++;
         }
+        else if (!overwrite)
+        {
+            return IMAP64_EXISTS;
+        }
 
         node->node[id]->data = data;
-    }
-    else
-    {
-        if (IMAP64_add(imap, node, id, data))
-        {
-            return -1;
-        }
+
+        return IMAP64_OK;
     }
 
-    return 0;
+    return IMAP64_add(imap, node, id, data, overwrite);
 }
 
 /*
@@ -223,27 +266,121 @@ void * imap64_pop(imap64_t * imap, uint64_t id)
 
 /*
  * Run the call-back function on all items in the map.
+ *
+ * All the results are added together and are returned as the result of
+ * this function.
  */
-void imap64_walk(imap64_t * imap, imap64_cb_t cb, void * args)
+int imap64_walk(imap64_t * imap, imap64_cb cb, void * args)
 {
     uint_fast8_t i;
+    imap64_node_t * nd;
+    int rc = 0;
 
     if (imap->data != NULL)
     {
-        (*cb)(imap->data, args);
+        rc += (*cb)(imap->data, args);
     }
 
     if (imap->len)
     {
         for (i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (imap->node[i] == NULL)
+            if ((nd = imap->node[i]) != NULL)
             {
-                continue;
+                if (nd->data != NULL)
+                {
+                    rc += (*cb)(nd->data, args);
+                }
+                if (nd->size)
+                {
+                    IMAP64_walk(nd, &rc, cb, args);
+                }
             }
-            IMAP64_walk(imap->node[i], cb, args);
         }
     }
+
+    return rc;
+}
+
+/*
+ * Recursive function, call-back function will be called on each item.
+ *
+ * Walking stops either when the call-back is called on each value or
+ * when 'n' is zero. 'n' will be decremented by the result of each call-back.
+ */
+void imap64_walkn(imap64_t * imap, size_t * n, imap64_cb cb, void * args)
+{
+    imap64_node_t * nd;
+
+    if (!(*n))
+    {
+        return;
+    }
+
+    if (imap->data != NULL)
+    {
+        *n -= (*cb)(imap->data, args);
+    }
+
+    if (imap->len)
+    {
+        for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ && *n; i++)
+        {
+            if ((nd = imap->node[i]) != NULL)
+            {
+                if (nd->data != NULL)
+                {
+                    *n -= (*cb)(nd->data, args);
+                }
+
+                if (nd->size)
+                {
+                    IMAP64_walkn(nd, n, cb, args);
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+slist_t * imap64_2slist(imap64_t * imap)
+{
+    slist_t * slist = slist_new(imap->len);
+    if (slist == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        imap64_node_t * nd;
+
+        if (imap->data != NULL)
+        {
+            slist_append(slist, imap->data);
+        }
+
+        if (imap->len)
+        {
+            for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
+            {
+                if ((nd = imap->node[i]) != NULL)
+                {
+                    if (nd->data != NULL)
+                    {
+                        slist_append(slist, nd->data);
+                    }
+
+                    if (nd->size)
+                    {
+                        IMAP64_2slist(nd, slist);
+                    }
+                }
+            }
+        }
+    }
+    return slist;
 }
 
 /*
@@ -269,17 +406,40 @@ static imap64_node_t * IMAP64_new_node(void)
  */
 static void IMAP64_free_node(imap64_node_t * node)
 {
-    uint_fast8_t i;
+    if (node->size)
+    {
+        for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
+        {
+            if (node->node[i] != NULL)
+            {
+                IMAP64_free_node(node->node[i]);
+            }
+        }
+    }
+    free(node);
+}
+
+/*
+ * Destroy imap64. (parsing NULL is NOT allowed)
+ */
+static void IMAP64_free_node_cb(
+        imap64_node_t * node,
+        imap64_cb cb,
+        void * args)
+{
+    if (node->data != NULL)
+    {
+        (*cb)(node->data, args);
+    }
 
     if (node->size)
     {
-        for (i = 0; i < IMAP64_NODE_SZ; i++)
+        for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
         {
-            if (node->node[i] == NULL)
+            if (node->node[i] != NULL)
             {
-                continue;
+                IMAP64_free_node_cb(node->node[i], cb, args);
             }
-            IMAP64_free_node(node->node[i]);
         }
     }
     free(node);
@@ -292,7 +452,8 @@ static int IMAP64_add(
         imap64_t * imap,
         imap64_node_t * node,
         uint64_t id,
-        void * data)
+        void * data,
+        uint8_t overwrite)
 {
     uint_fast8_t key;
 
@@ -305,7 +466,7 @@ static int IMAP64_add(
         node = node->node[key] = IMAP64_new_node();
         if (node == NULL)
         {
-            return -1;
+            return IMAP64_ERR;
         }
     }
     else
@@ -320,7 +481,7 @@ static int IMAP64_add(
             node->size++;
             if ((node->node[id] = IMAP64_new_node()) == NULL)
             {
-                return -1;
+                return IMAP64_ERR;
             }
             imap->len++;
         }
@@ -328,18 +489,17 @@ static int IMAP64_add(
         {
             imap->len++;
         }
+        else if (!overwrite)
+        {
+            return IMAP64_EXISTS;
+        }
 
         node->node[id]->data = data;
-    }
-    else
-    {
-        if (IMAP64_add(imap, node, id, data))
-        {
-            return -1;
-        }
+
+        return IMAP64_OK;
     }
 
-    return 0;
+    return IMAP64_add(imap, node, id, data, overwrite);
 }
 
 /*
@@ -420,24 +580,78 @@ static void * IMAP64_pop(imap64_t * imap, imap64_node_t * node, uint64_t id)
 /*
  * Recursive function, call-back function will be called on each item.
  */
-static void IMAP64_walk(imap64_node_t * node, imap64_cb_t cb, void * args)
+static void IMAP64_walk(
+        imap64_node_t * node,
+        int * rc,
+        imap64_cb cb,
+        void * args)
 {
-    uint_fast8_t i;
-
-    if (node->data != NULL)
+    imap64_node_t * nd;
+    for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
     {
-        (*cb)(node->data, args);
-    }
-
-    if (node->size)
-    {
-        for (i = 0; i < IMAP64_NODE_SZ; i++)
+        if ((nd = node->node[i]) != NULL)
         {
-            if (node->node[i] == NULL)
+            if (nd->data != NULL)
             {
-                continue;
+                *rc += (*cb)(nd->data, args);
             }
-            IMAP64_walk(node->node[i], cb, args);
+
+            if (nd->size)
+            {
+                IMAP64_walk(nd, rc, cb, args);
+            }
+        }
+    }
+}
+
+/*
+ * Recursive function, call-back function will be called on each item.
+ */
+static void IMAP64_walkn(
+        imap64_node_t * node,
+        size_t * n,
+        imap64_cb cb,
+        void * args)
+{
+    imap64_node_t * nd;
+
+    for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ && *n; i++)
+    {
+        if ((nd = node->node[i]) != NULL)
+        {
+            if (nd->data != NULL)
+            {
+                *n -= (*cb)(nd->data, args);
+            }
+
+            if (nd->size)
+            {
+                IMAP64_walkn(nd, n, cb, args);
+            }
+        }
+    }
+}
+
+/*
+ * Recursive function to fill a s-list object.
+ */
+static void IMAP64_2slist(imap64_node_t * node, slist_t * slist)
+{
+    imap64_node_t * nd;
+
+    for (uint_fast8_t i = 0; i < IMAP64_NODE_SZ; i++)
+    {
+        if ((nd = node->node[i]) != NULL)
+        {
+            if (nd->data != NULL)
+            {
+                slist_append(slist, nd->data);
+            }
+
+            if (nd->size)
+            {
+                IMAP64_2slist(nd, slist);
+            }
         }
     }
 }

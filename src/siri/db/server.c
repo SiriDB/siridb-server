@@ -182,7 +182,7 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-    if (imap64_add(server->promises, promise->pid, promise))
+    if (imap64_add(server->promises, promise->pid, promise, 1))
     {
         free(promise->timer);
         free(promise);
@@ -732,7 +732,7 @@ static void SERVER_free(siridb_server_t * server)
      */
     if (server->promises != NULL)
     {
-        imap64_walk(server->promises, (imap64_cb_t) SERVER_cancel_promise, NULL);
+        imap64_walk(server->promises, (imap64_cb) SERVER_cancel_promise, NULL);
         imap64_free(server->promises);
     }
     free(server->name);

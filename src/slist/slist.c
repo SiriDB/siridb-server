@@ -16,8 +16,13 @@
 #include <logger/logger.h>
 #include <siri/err.h>
 
+#define SLIST_AUTO_GROW_SIZE 8
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * In case the size is unknown, a default of 6 is recommended since in this
+ * case we can do a re-allocation with multiples of 64K.
  */
 slist_t * slist_new(size_t size)
 {
@@ -67,7 +72,7 @@ int slist_append_safe(slist_t ** slist, void * data)
         slist_t * tmp;
 
         /* increment size */
-        (*slist)->size++;
+        (*slist)->size += SLIST_AUTO_GROW_SIZE;
 
         tmp = realloc(
                 *slist,

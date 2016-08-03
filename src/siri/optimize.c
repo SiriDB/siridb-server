@@ -190,7 +190,7 @@ static void OPTIMIZE_work(uv_work_t * work)
         {
             imap64_walk(
                     siridb->shards,
-                    (imap64_cb_t) &OPTIMIZE_create_slist,
+                    (imap64_cb) &OPTIMIZE_create_slist,
                     (void *) slshards);
         }
 

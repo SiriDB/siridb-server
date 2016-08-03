@@ -256,9 +256,9 @@ static int test_imap64(void)
     test_start("Testing imap64");
     imap64_t * imap = imap64_new();
 
-    imap64_add(imap, 16, "Sasientje");
-    imap64_add(imap, 1676, "Juul");
-    imap64_add(imap, 0, "Iriske");
+    imap64_add(imap, 16, "Sasientje", 1);
+    imap64_add(imap, 1676, "Juul", 1);
+    imap64_add(imap, 0, "Iriske", 1);
     assert (imap->len == 3);
     assert (strcmp(imap64_get(imap, 16), "Sasientje") == 0);
     assert (strcmp(imap64_get(imap, 0), "Iriske") == 0);
@@ -267,8 +267,8 @@ static int test_imap64(void)
     assert (strcmp(imap64_pop(imap, 16), "Sasientje") == 0);
     assert (imap->len == 1);
 
-    imap64_add(imap, 451246163432574, "Sasientje");
-    imap64_add(imap, 23456, "Iriske");
+    imap64_add(imap, 451246163432574, "Sasientje", 1);
+    imap64_add(imap, 23456, "Iriske", 1);
     assert (strcmp(imap64_pop(imap, 23456), "Iriske") == 0);
     assert (strcmp(imap64_pop(imap, 451246163432574), "Sasientje") == 0);
 
