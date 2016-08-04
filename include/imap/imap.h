@@ -15,7 +15,6 @@
 #include <stddef.h>
 #include <slist/slist.h>
 
-
 typedef struct imap_node_s imap_node_t;
 
 typedef struct imap_node_s
@@ -42,4 +41,5 @@ void * imap_pop(imap_t * imap, uint64_t id);
 int imap_walk(imap_t * imap, imap_cb cb, void * data);
 void imap_walkn(imap_t * imap, size_t * n, imap_cb cb, void * data);
 slist_t * imap_2slist(imap_t * imap);
-
+slist_t * imap_2slist_ref(imap_t * imap);
+void imap_union_ref(imap_t * dest, imap_t ** imap);

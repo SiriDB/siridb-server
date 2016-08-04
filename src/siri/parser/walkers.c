@@ -51,64 +51,6 @@ int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
     return 0;
 }
 
-int walk_count_series(siridb_series_t * series, uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_count_t * q_count = (query_count_t *) query->data;
-    q_count->n += cexpr_run(
-                q_count->where_expr,
-                (cexpr_cb_t) siridb_series_cexpr_cb,
-                series);
-    return 0;
-}
-
-int walk_list_series(siridb_series_t * series, uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    slist_t * props = ((query_list_t *) query->data)->props;
-    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
-    size_t i;
-
-    if (where_expr != NULL && !cexpr_run(
-            where_expr,
-            (cexpr_cb_t) siridb_series_cexpr_cb,
-            series))
-    {
-        return 0; // false
-    }
-
-    qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-    for (i = 0; i < props->len; i++)
-    {
-        switch(*((uint32_t *) props->data[i]))
-        {
-        case CLERI_GID_K_NAME:
-            qp_add_string(query->packer, series->name);
-            break;
-        case CLERI_GID_K_LENGTH:
-            qp_add_int32(query->packer, series->length);
-            break;
-        case CLERI_GID_K_TYPE:
-            qp_add_string(query->packer, series_type_map[series->tp]);
-            break;
-        case CLERI_GID_K_POOL:
-            qp_add_int16(query->packer, series->pool);
-            break;
-        case CLERI_GID_K_START:
-            qp_add_int64(query->packer, series->start);
-            break;
-        case CLERI_GID_K_END:
-            qp_add_int64(query->packer, series->end);
-            break;
-        }
-    }
-
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
-
-    return 1; // true
-}
-
 int walk_list_servers(
         siridb_server_t * server,
         uv_async_t * handle)

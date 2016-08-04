@@ -162,5 +162,3 @@ void strx_extract_string(char * dest, const char * source, size_t len)
     /* set final 0 */
     dest[i] = 0;
 }
-
-

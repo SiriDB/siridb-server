@@ -1,5 +1,5 @@
 /*
- * walkers.h - Helpers for listener (walking series, pools etc.)
+ * queries.h - Helpers for listener (walking series, pools etc.)
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -18,41 +18,37 @@
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
 
-#define W0_CT_SERIES imap_t * series_map;
-#define W1_WHERE_EXPR cexpr_t * where_expr;
+#define QUERY_DEF           \
+imap_t * series_map;        \
+imap_t * series_tmp;        \
+slist_t * slist;            \
+size_t slist_index;         \
+cexpr_t * where_expr;       \
+pcre * regex;               \
+pcre_extra * regex_extra;
 
 /* wrappers */
-typedef struct query_wrapper_series_s
+typedef struct query_wrapper_s
 {
-    W0_CT_SERIES
-} query_wrapper_series_t;
-
-typedef struct query_wrapper_where_node_s
-{
-    W0_CT_SERIES    // padding
-    W1_WHERE_EXPR
-} query_wrapper_where_node_t;
+    QUERY_DEF
+} query_wrapper_t;
 
 typedef struct query_list_s
 {
-    W0_CT_SERIES
-    W1_WHERE_EXPR
+    QUERY_DEF
     slist_t * props;  // will be freed
     size_t limit;
 } query_list_t;
 
 typedef struct query_count_s
 {
-    W0_CT_SERIES
-    W1_WHERE_EXPR
+    QUERY_DEF
     size_t n;   // can be used as counter
 } query_count_t;
 
 typedef struct query_drop_s
 {
-    W0_CT_SERIES
-    W1_WHERE_EXPR
-    void * data; // data will NOT be freed, make sure to use it correct.
+    QUERY_DEF
     size_t n;  // keep a counter for number of drops.
 } query_drop_t;
 
@@ -60,8 +56,7 @@ typedef struct query_drop_s
  */
 typedef struct query_select_s
 {
-    W0_CT_SERIES
-    W1_WHERE_EXPR
+    QUERY_DEF
     uint64_t * start_ts;  // will NOT be freed
     uint64_t * end_ts;  // will NOT be freed
 } query_select_t;

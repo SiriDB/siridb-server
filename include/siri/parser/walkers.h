@@ -17,10 +17,8 @@
 typedef struct siridb_series_s siridb_series_t;
 
 int walk_drop_series(siridb_series_t * series, uv_async_t * handle);
-int walk_list_series(siridb_series_t * series, uv_async_t * handle);
 int walk_list_servers(siridb_server_t * server, uv_async_t * handle);
 int walk_select(siridb_series_t * series, uv_async_t * handle);
-int walk_count_series(siridb_series_t * series, uv_async_t * handle);
 
 
 

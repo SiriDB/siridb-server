@@ -71,14 +71,14 @@ typedef void (* sirinet_promise_cb)(
 
 typedef struct siridb_server_s
 {
+    uint16_t ref;  /* keep ref on top */
+    uint16_t port;
+    uint16_t pool;
+    uint8_t flags; /* do not use flags above 16384 */
+    uint8_t id; /* set when added to a pool to either 0 or 1 */
     uuid_t uuid;
     char * name; /* this is a format for address:port but we use it a lot */
     char * address;
-    uint16_t port;
-    uint16_t pool;
-    uint16_t ref;
-    uint8_t flags; /* do not use flags above 16384 */
-    uint8_t id; /* set when added to a pool to either 0 or 1 */
     imap_t * promises;
     uv_tcp_t * socket;
     uint32_t pid;

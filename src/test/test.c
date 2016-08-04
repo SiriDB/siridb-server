@@ -23,8 +23,6 @@
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap/imap.h>
-#include <imap32/imap32.h>
-#include <imap64/imap64.h>
 #include <iso8601/iso8601.h>
 #include <expr/expr.h>
 #include <siri/grammar/grammar.h>
@@ -225,58 +223,6 @@ static int test_ctree(void)
     return test_end(TEST_OK);
 }
 
-static int test_imap32(void)
-{
-    test_start("Testing imap32");
-    imap32_t * imap = imap32_new();
-
-    imap32_add(imap, 1234567, "Sasientje", 1);
-    assert (imap->offset == 18);
-    assert (imap->size == 1);
-    imap32_add(imap, 234567, "Iriske", 1);
-    assert (imap->offset == 3);
-    assert (imap->size == 16);
-    assert (strcmp(imap32_get(imap, 1234567), "Sasientje") == 0);
-    assert (strcmp(imap32_get(imap, 234567), "Iriske") == 0);
-    assert (strcmp(imap32_pop(imap, 234567), "Iriske") == 0);
-    assert (imap32_pop(imap, 234567) == NULL);
-    assert (imap32_get(imap, 234567) == NULL);
-    assert (strcmp(imap32_pop(imap, 1234567), "Sasientje") == 0);
-
-    imap32_add(imap, 123456, "Sasientje", 1);
-    imap32_add(imap, 834567, "Iriske", 1);
-    assert (strcmp(imap32_pop(imap, 834567), "Iriske") == 0);
-    assert (strcmp(imap32_pop(imap, 123456), "Sasientje") == 0);
-
-    imap32_free(imap);
-    return test_end(TEST_OK);
-}
-
-static int test_imap64(void)
-{
-    test_start("Testing imap64");
-    imap64_t * imap = imap64_new();
-
-    imap64_add(imap, 16, "Sasientje", 1);
-    imap64_add(imap, 1676, "Juul", 1);
-    imap64_add(imap, 0, "Iriske", 1);
-    assert (imap->len == 3);
-    assert (strcmp(imap64_get(imap, 16), "Sasientje") == 0);
-    assert (strcmp(imap64_get(imap, 0), "Iriske") == 0);
-    assert (strcmp(imap64_pop(imap, 0), "Iriske") == 0);
-    assert (imap64_get(imap, 0) == NULL);
-    assert (strcmp(imap64_pop(imap, 16), "Sasientje") == 0);
-    assert (imap->len == 1);
-
-    imap64_add(imap, 451246163432574, "Sasientje", 1);
-    imap64_add(imap, 23456, "Iriske", 1);
-    assert (strcmp(imap64_pop(imap, 23456), "Iriske") == 0);
-    assert (strcmp(imap64_pop(imap, 451246163432574), "Sasientje") == 0);
-
-    imap64_free(imap);
-    return test_end(TEST_OK);
-}
-
 int test__imap_cb(char * data, char * cmp)
 {
     assert (strcmp(data, cmp) == 0);
@@ -313,10 +259,46 @@ static int test_imap(void)
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Sasientje");
     assert (n == 42);
     n = 1;
+
     imap_add(imap, 3, "Iriske");
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
     imap_free_cb(imap, (imap_cb) &test__imap_cb, "Sasientje");
+
+    slist_object_t slist_obj_a = {
+        .ref=0
+    };
+    slist_object_t slist_obj_b = {
+        .ref=0
+    };
+    slist_object_t slist_obj_c = {
+        .ref=0
+    };
+
+    imap_t * imap_1 = imap_new();
+    imap_t * imap_2 = imap_new();
+
+    imap_add(imap_1, 100, &slist_obj_a);
+    slist_obj_a.ref++;
+
+    imap_add(imap_1, 200, &slist_obj_b);
+    slist_obj_b.ref++;
+
+    imap_add(imap_2, 200, &slist_obj_b);
+    slist_obj_b.ref++;
+
+    imap_add(imap_2, 300, &slist_obj_c);
+    slist_obj_c.ref++;
+
+    imap_union_ref(imap_1, &imap_2);
+
+    assert (imap_1->len == 3);
+    assert (slist_obj_a.ref == 1);
+    assert (slist_obj_b.ref == 1);
+    assert (slist_obj_c.ref == 1);
+    assert (imap_2 == NULL);
+
+    imap_free(imap_1);
 
     return test_end(TEST_OK);
 }
@@ -707,8 +689,6 @@ int run_tests(int flags)
     rc += test_qpack();
     rc += test_cleri();
     rc += test_ctree();
-    rc += test_imap32();
-    rc += test_imap64();
     rc += test_imap();
     rc += test_gen_pool_lookup();
     rc += test_points();

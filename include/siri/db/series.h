@@ -61,9 +61,9 @@ typedef struct idx_num64_s
 
 typedef struct siridb_series_s
 {
-    uint32_t id;
-    uint16_t ref;
+    uint16_t ref;  /* keep ref on top */
     uint16_t mask;
+    uint32_t id;
     uint64_t start;
     uint64_t end;
     uint32_t length;

@@ -36,10 +36,10 @@ typedef struct siridb_shard_s siridb_shard_t;
 
 typedef struct siridb_shard_s
 {
-    uint64_t id;
+    uint16_t ref;   /* keep ref on top */
     uint8_t tp; /* SIRIDB_SERIES_TP_INT, ...DOUBLE or ...STRING */
     uint8_t flags;
-    uint8_t ref;
+    uint64_t id;
     siri_fp_t * fp;
     char * fn;
     siridb_shard_t * replacing;

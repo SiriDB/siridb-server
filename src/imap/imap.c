@@ -26,6 +26,8 @@ static void * IMAP_pop(imap_node_t * node, uint64_t id);
 static void IMAP_walk(imap_node_t * node, imap_cb cb, void * data, int * rc);
 static void IMAP_walkn(imap_node_t * node, imap_cb cb, void * data, size_t * n);
 static void IMAP_2slist(imap_node_t * node, slist_t * slist);
+static void IMAP_2slist_ref(imap_node_t * node, slist_t * slist);
+static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -269,6 +271,102 @@ slist_t * imap_2slist(imap_t * imap)
     return slist;
 }
 
+/*
+ * Use this function to create a s-list copy and update the ref count
+ * for each object. We expect each object to have object->ref (uint16_t) on
+ * top of the object definition.
+ *
+ * There is no function to handle the decrement for the ref count since they
+ * are different for each object. Best is to handle the decrement while looping
+ * over the returned list.
+ *
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+slist_t * imap_2slist_ref(imap_t * imap)
+{
+    slist_t * slist = slist_new(imap->len);
+
+    if (slist == NULL)
+    {
+        ERR_ALLOC
+    }
+    else if (imap->len)
+    {
+        imap_node_t * nd;
+
+        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+        {
+            nd = imap->nodes + i;
+
+            if (nd->data != NULL)
+            {
+                slist_append(slist, nd->data);
+                slist_object_incref(nd->data);
+            }
+
+            if (nd->nodes != NULL)
+            {
+                IMAP_2slist_ref(nd, slist);
+            }
+        }
+    }
+    return slist;
+}
+
+void imap_union_ref(imap_t * dest, imap_t ** imap)
+{
+    if ((*imap)->len)
+    {
+        imap_node_t * dest_nd;
+        imap_node_t * imap_nd;
+
+        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+        {
+            dest_nd = dest->nodes + i;
+            imap_nd = (*imap)->nodes + i;
+
+            if (imap_nd->data != NULL)
+            {
+                if (dest_nd->data != NULL)
+                {
+#ifdef DEBUG
+                    /* this must be the same object */
+                    assert (imap_nd->data == dest_nd->data);
+#endif
+                    /* we are sure there is a ref left */
+                    slist_object_decref(imap_nd->data);
+                }
+                else
+                {
+                    dest_nd->data = imap_nd->data;
+                    dest->len++;
+                }
+            }
+
+            if (imap_nd->nodes != NULL)
+            {
+                if (dest_nd->nodes != NULL)
+                {
+                    size_t tmp = dest_nd->size;
+                    IMAP_union_ref(dest_nd, imap_nd);
+                    dest->len += dest_nd->size - tmp;
+                }
+                else
+                {
+                    dest_nd->nodes = imap_nd->nodes;
+                    dest_nd->size = imap_nd->size;
+                    imap_nd->nodes = NULL;
+                    dest->len += dest_nd->size;
+                }
+            }
+        }
+    }
+
+    /* cleanup source imap */
+    free(*imap);
+    *imap = NULL;
+}
+
 static void IMAP_node_free(imap_node_t * node)
 {
     imap_node_t * nd;
@@ -457,4 +555,73 @@ static void IMAP_2slist(imap_node_t * node, slist_t * slist)
             IMAP_2slist(nd, slist);
         }
     }
+}
+
+static void IMAP_2slist_ref(imap_node_t * node, slist_t * slist)
+{
+    imap_node_t * nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        nd = node->nodes + i;
+
+        if (nd->data != NULL)
+        {
+            slist_append(slist, nd->data);
+            slist_object_incref(nd->data);
+        }
+
+        if (nd->nodes != NULL)
+        {
+            IMAP_2slist_ref(nd, slist);
+        }
+    }
+}
+
+static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node)
+{
+    imap_node_t * dest_nd;
+    imap_node_t * node_nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        dest_nd = dest->nodes + i;
+        node_nd = node->nodes + i;
+
+        if (node_nd->data != NULL)
+        {
+            if (dest_nd->data != NULL)
+            {
+#ifdef DEBUG
+                /* this must be the same object */
+                assert (node_nd->data == dest_nd->data);
+#endif
+                /* we are sure there is a ref left */
+                slist_object_decref(node_nd->data);
+            }
+            else
+            {
+                dest_nd->data = node_nd->data;
+                dest->size++;
+            }
+        }
+
+        if (node_nd->nodes != NULL)
+        {
+            if (dest_nd->nodes != NULL)
+            {
+                size_t tmp = dest_nd->size;
+                IMAP_union_ref(dest_nd, node_nd);
+                dest->size += dest_nd->size - tmp;
+            }
+            else
+            {
+                dest_nd->nodes = node_nd->nodes;
+                dest_nd->size = node_nd->size;
+                node_nd->nodes = NULL;
+                dest->size += dest_nd->size;
+            }
+        }
+    }
+    free(node->nodes);
 }

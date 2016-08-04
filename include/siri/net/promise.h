@@ -39,10 +39,10 @@ typedef void (* sirinet_promise_cb)(
 /* the callback will always be called and is responsible to free the promise */
 typedef struct sirinet_promise_s
 {
+    uint32_t pid;
     uv_timer_t * timer;
     sirinet_promise_cb cb;
     siridb_server_t * server;
-    uint32_t pid;
     void * data;
 } sirinet_promise_t;
 

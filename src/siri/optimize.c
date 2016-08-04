@@ -33,7 +33,6 @@ static siri_optimize_t optimize = {
 static void OPTIMIZE_work(uv_work_t * work);
 static void OPTIMIZE_work_finish(uv_work_t * work, int status);
 static void OPTIMIZE_cb(uv_timer_t * handle);
-static void OPTIMIZE_create_slist(siridb_shard_t * shard, slist_t * slist);
 
 void siri_optimize_init(siri_t * siri)
 {
@@ -185,21 +184,13 @@ static void OPTIMIZE_work(uv_work_t * work)
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        slshards = slist_new(siridb->shards->len);
-        if (slshards != NULL)
-        {
-            imap_walk(
-                    siridb->shards,
-                    (imap_cb) &OPTIMIZE_create_slist,
-                    (void *) slshards);
-        }
+        slshards = imap_2slist_ref(siridb->shards);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
-        if (siri_err)
+        if (slshards == NULL)
         {
-            /* signal is set when slshards is NULL */
-            return;
+            return;  /* signal is raised */
         }
 
         sleep(1);
@@ -299,13 +290,3 @@ static void OPTIMIZE_cb(uv_timer_t * handle)
             OPTIMIZE_work,
             OPTIMIZE_work_finish);
 }
-
-/*
- * Append shard to simple list. (list must have enough space to hold the shard)
- */
-static void OPTIMIZE_create_slist(siridb_shard_t * shard, slist_t * slist)
-{
-    siridb_shard_incref(shard);
-    slist_append(slist, shard);
-}
-

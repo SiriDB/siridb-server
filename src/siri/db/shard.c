@@ -75,7 +75,6 @@ static int SHARD_load_idx_num32(
         FILE * fp);
 
 static void SHARD_free(siridb_shard_t * shard);
-static int SHARD_create_slist(siridb_series_t * series, slist_t * slist);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
 /*
@@ -465,22 +464,13 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    slist_t * slist = slist_new(siridb->series_map->len);
-
-    if (slist != NULL)
-    {
-        imap_walk(
-                siridb->series_map,
-                (imap_cb) &SHARD_create_slist,
-                (void *) slist);
-    }
+    slist_t * slist = imap_2slist_ref(siridb->series_map);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
-    if (siri_err)
+    if (slist == NULL)
     {
-        /* SIGNAL can be raised only by slist_new() */
-        return -1;
+        return -1;  /* signal is raised */
     }
 
     sleep(1);
@@ -793,18 +783,6 @@ static int SHARD_load_idx_num32(
         log_debug("Size: %lu", size);
     }
     return siri_err;
-}
-
-/*
- * Append series to a list and increment the series reference counter.
- * (this function assumes the list has enough space for all series)
- */
-static int SHARD_create_slist(siridb_series_t * series, slist_t * slist)
-{
-    siridb_series_incref(series);
-    slist_append(slist, series);
-
-    return 0;
 }
 
 /*

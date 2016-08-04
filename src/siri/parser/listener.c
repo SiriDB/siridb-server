@@ -34,7 +34,9 @@
 #include <siri/siri.h>
 #include <strextra/strextra.h>
 #include <sys/time.h>
+#include <siri/db/re.h>
 
+#define MAX_ITERATE_COUNT 1000
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 6
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
@@ -78,6 +80,7 @@ static void enter_select_stmt(uv_async_t * handle);
 static void enter_set_password(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
+static void enter_series_re(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
 static void enter_where_xxx(uv_async_t * handle);
 static void enter_xxx_columns(uv_async_t * handle);
@@ -106,6 +109,11 @@ static void exit_set_log_level(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
+/* async loop functions */
+static void async_count_series(uv_async_t * handle);
+static void async_list_series(uv_async_t * handle);
+
+/* on response functions */
 static void on_ack_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -189,6 +197,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_SERVER_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siriparser_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
+    siriparser_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
     siriparser_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siriparser_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_WHERE_POOL] = enter_where_xxx;
@@ -598,7 +607,7 @@ static void enter_series_name(uv_async_t * handle)
 
         /* bind the series to the query, increment ref count if successful */
         if (imap_add(
-                ((query_wrapper_series_t *) query->data)->series_map,
+                ((query_wrapper_t *) query->data)->series_map,
                 series->id,
                 series) == 1)
         {
@@ -613,9 +622,31 @@ static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((query_wrapper_series_t *) query->data)->series_map = imap_new();
+    ((query_wrapper_t *) query->data)->series_map = imap_new();
 
     SIRIPARSER_NEXT_NODE
+}
+
+static void enter_series_re(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    cleri_node_t * node = query->nodes->node;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+
+    /* extract and compile regular expression */
+    if (siridb_re_compile(
+            &q_wrapper->regex,
+            &q_wrapper->regex_extra,
+            node->str,
+            node->len,
+            query->err_msg))
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void enter_timeit_stmt(uv_async_t * handle)
@@ -643,7 +674,7 @@ static void enter_where_xxx(uv_async_t * handle)
     }
     else
     {
-        ((query_wrapper_where_node_t *) query->data)->where_expr = cexpr;
+        ((query_wrapper_t *) query->data)->where_expr = cexpr;
         SIRIPARSER_NEXT_NODE
     }
 }
@@ -831,28 +862,31 @@ static void exit_count_series(uv_async_t * handle)
     {
         q_count->n = (q_count->series_map == NULL) ?
                 siridb->series_map->len : q_count->series_map->len;
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_POOLS,
+                    (sirinet_promises_cb) on_count_xxx_response);
+        }
+        else
+        {
+            qp_add_int64(query->packer, q_count->n);
+
+            SIRIPARSER_NEXT_NODE
+        }
     }
     else
     {
-        imap_walk(
+        q_count->slist = imap_2slist_ref(
                 (q_count->series_map == NULL) ?
-                        siridb->series_map : q_count->series_map,
-                (imap_cb) &walk_count_series,
-                handle);
-    }
+                        siridb->series_map : q_count->series_map);
 
-    if (IS_MASTER)
-    {
-        siridb_query_forward(
-                handle,
-                SIRIDB_QUERY_FWD_POOLS,
-                (sirinet_promises_cb) on_count_xxx_response);
-    }
-    else
-    {
-        qp_add_int64(query->packer, q_count->n);
-
-        SIRIPARSER_NEXT_NODE
+        if (q_count->slist != NULL)
+        {
+            async_count_series(handle);
+        }
     }
 }
 
@@ -1040,7 +1074,6 @@ static void exit_drop_shard(uv_async_t * handle)
     }
     else
     {
-        ((query_drop_t *) query->data)->data = shard;
         siridb_series_t * series;
 
         /*
@@ -1243,8 +1276,8 @@ static void exit_list_pools(uv_async_t * handle)
 static void exit_list_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * q_list = (query_list_t *) query->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     if (q_list->props == NULL)
     {
@@ -1258,34 +1291,12 @@ static void exit_list_series(uv_async_t * handle)
     qp_add_raw(query->packer, "series", 6);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    /* We only need the mutex for sure when accessing some properties for the
-     * series and when accessing the main series tree although this tree will
-     * not be changed by the optimize thread.
-     */
-    uv_mutex_lock(&siridb->series_mutex);
+    q_list->slist = imap_2slist_ref((q_list->series_map == NULL) ?
+                    siridb->series_map : q_list->series_map);
 
-    imap_walkn(
-            (q_list->series_map == NULL) ?
-                    siridb->series_map : q_list->series_map,
-            &q_list->limit,
-            (imap_cb) &walk_list_series,
-            handle);
-
-    uv_mutex_unlock(&siridb->series_mutex);
-
-    if (IS_MASTER && q_list->limit)
+    if (q_list->slist != NULL)
     {
-        /* we have not reached the limit, send the query to other pools */
-        siridb_query_forward(
-                handle,
-                SIRIDB_QUERY_FWD_POOLS,
-                (sirinet_promises_cb) on_list_xxx_response);
-    }
-    else
-    {
-        qp_add_type(query->packer, QP_ARRAY_CLOSE);
-
-        SIRIPARSER_NEXT_NODE
+        async_list_series(handle);
     }
 }
 
@@ -1689,6 +1700,167 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
     SIRIPARSER_NEXT_NODE
 }
+
+/******************************************************************************
+ * Async loop functions.
+ *****************************************************************************/
+
+static void async_count_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_series_t * series;
+    query_count_t * q_count = (query_count_t *) query->data;
+    uv_async_t * async_more = NULL;
+
+    size_t index_end = q_count->slist_index + MAX_ITERATE_COUNT;
+
+    if (index_end >= q_count->slist->len)
+    {
+        index_end = q_count->slist->len;
+    }
+    else
+    {
+        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (async_more == NULL)
+        {
+            ERR_ALLOC
+        }
+    }
+
+    for (; q_count->slist_index < index_end; q_count->slist_index++)
+    {
+        series = (siridb_series_t *) q_count->slist->data[q_count->slist_index];
+        q_count->n += cexpr_run(
+                    q_count->where_expr,
+                    (cexpr_cb_t) siridb_series_cexpr_cb,
+                    series);
+        siridb_series_decref(series);
+    }
+
+    if (async_more != NULL)
+    {
+        async_more->data = (void *) handle->data;
+        uv_async_init(
+                siri.loop,
+                async_more,
+                (uv_async_cb) &async_count_series);
+        uv_async_send(async_more);
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+    }
+    else if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_POOLS,
+                (sirinet_promises_cb) on_count_xxx_response);
+    }
+    else
+    {
+        qp_add_int64(query->packer, q_count->n);
+
+        SIRIPARSER_NEXT_NODE
+    }
+}
+
+static void async_list_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_list_t * q_list = (query_list_t *) query->data;
+    slist_t * props = q_list->props;
+    cexpr_t * where_expr = q_list->where_expr;
+    uv_async_t * async_more = NULL;
+    siridb_series_t * series;
+    size_t i;
+    size_t index_end = q_list->slist_index + MAX_ITERATE_COUNT;
+
+    if (index_end >= q_list->slist->len)
+    {
+        index_end = q_list->slist->len;
+    }
+    else
+    {
+        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (async_more == NULL)
+        {
+            ERR_ALLOC
+        }
+    }
+
+    for (;  q_list->limit && q_list->slist_index < index_end;
+            q_list->slist_index++)
+    {
+        series = (siridb_series_t *) q_list->slist->data[q_list->slist_index];
+
+        if (where_expr == NULL || cexpr_run(
+                    where_expr,
+                    (cexpr_cb_t) siridb_series_cexpr_cb,
+                    series))
+        {
+            if (!--q_list->limit)
+            {
+                free(async_more);
+                async_more = NULL;
+            }
+
+            qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+            for (i = 0; i < props->len; i++)
+            {
+                switch(*((uint32_t *) props->data[i]))
+                {
+                case CLERI_GID_K_NAME:
+                    qp_add_string(query->packer, series->name);
+                    break;
+                case CLERI_GID_K_LENGTH:
+                    qp_add_int32(query->packer, series->length);
+                    break;
+                case CLERI_GID_K_TYPE:
+                    qp_add_string(query->packer, series_type_map[series->tp]);
+                    break;
+                case CLERI_GID_K_POOL:
+                    qp_add_int16(query->packer, series->pool);
+                    break;
+                case CLERI_GID_K_START:
+                    qp_add_int64(query->packer, series->start);
+                    break;
+                case CLERI_GID_K_END:
+                    qp_add_int64(query->packer, series->end);
+                    break;
+                }
+            }
+
+            qp_add_type(query->packer, QP_ARRAY_CLOSE);
+        }
+
+        siridb_series_decref(series);
+    }
+
+    if (async_more != NULL)
+    {
+        async_more->data = (void *) handle->data;
+        uv_async_init(
+                siri.loop,
+                async_more,
+                (uv_async_cb) &async_list_series);
+        uv_async_send(async_more);
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+    }
+    else if (IS_MASTER && q_list->limit)
+    {
+        /* we have not reached the limit, send the query to other pools */
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_POOLS,
+                (sirinet_promises_cb) on_list_xxx_response);
+    }
+    else
+    {
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+        SIRIPARSER_NEXT_NODE
+    }
+}
+
 
 /******************************************************************************
  * On Response functions
