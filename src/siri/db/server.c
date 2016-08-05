@@ -436,7 +436,12 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 server->name,
                 uv_strerror(status));
 
-        uv_close((uv_handle_t *) req->handle, (uv_close_cb) sirinet_socket_free);
+        if (!uv_is_closing((uv_handle_t *) req->handle))
+        {
+            uv_close(
+                    (uv_handle_t *) req->handle,
+                    (uv_close_cb) sirinet_socket_free);
+        }
     }
     free(req);
 }
@@ -803,8 +808,9 @@ static void SERVER_on_auth_response(
                 pkg->tp);
     }
 
-    if ((status || pkg->tp != BPROTO_AUTH_SUCCESS) &&
-            promise->server->socket != NULL)
+    if (    (status || pkg->tp != BPROTO_AUTH_SUCCESS) &&
+            promise->server->socket != NULL &&
+            !uv_is_closing((uv_handle_t *) promise->server->socket))
     {
         uv_close(
                 (uv_handle_t *) promise->server->socket,

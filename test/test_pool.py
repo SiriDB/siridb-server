@@ -90,6 +90,6 @@ class TestPool(TestBase):
         return False
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
+    SiriDB.LOG_LEVEL = 'DEBUG'
     Server.HOLD_TERM = False
     run_test(TestPool())

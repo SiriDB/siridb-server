@@ -399,6 +399,11 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
 
 static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 {
+    if (uv_is_closing(handle))
+    {
+        return;
+    }
+
     switch (handle->type)
     {
     case UV_SIGNAL:
@@ -418,15 +423,12 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         /* we do not expect any timer object since they should all be closed
          * (or at least closing) at this point.
          */
-        if (!uv_is_closing(handle))
-        {
 #ifdef DEBUG
-            LOGC(   "Found a non closing Timer, all timers should "
-                    "be stopped at this point.");
+        LOGC(   "Found a non closing Timer, all timers should "
+                "be stopped at this point.");
 #endif
-            uv_timer_stop((uv_timer_t *) handle);
-            uv_close(handle, NULL);
-        }
+        uv_timer_stop((uv_timer_t *) handle);
+        uv_close(handle, NULL);
         break;
 
     case UV_ASYNC:

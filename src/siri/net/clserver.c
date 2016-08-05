@@ -139,18 +139,23 @@ static void on_new_connection(uv_stream_t * server, int status)
     uv_tcp_t * client =
             sirinet_socket_new(SOCKET_CLIENT, (on_data_cb_t) &on_data);
 
-    uv_tcp_init(loop, client);
+    if (client != NULL)
+    {
+        uv_tcp_init(loop, client);
 
-    if (uv_accept(server, (uv_stream_t*) client) == 0)
-    {
-        uv_read_start(
-                (uv_stream_t *) client,
-                sirinet_socket_alloc_buffer,
-                sirinet_socket_on_data);
-    }
-    else
-    {
-        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
+        if (uv_accept(server, (uv_stream_t*) client) == 0)
+        {
+            uv_read_start(
+                    (uv_stream_t *) client,
+                    sirinet_socket_alloc_buffer,
+                    sirinet_socket_on_data);
+        }
+        else
+        {
+            uv_close(
+                    (uv_handle_t *) client,
+                    (uv_close_cb) sirinet_socket_free);
+        }
     }
 }
 

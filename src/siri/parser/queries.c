@@ -91,6 +91,8 @@ query_drop_t * query_drop_new(void)
     QUERIES_NEW(q_drop)
 
     q_drop->n = 0;
+    q_drop->flags = 0;
+
     return q_drop;
 }
 

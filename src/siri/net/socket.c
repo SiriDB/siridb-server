@@ -18,6 +18,8 @@
 #include <siri/siri.h>
 #include <siri/err.h>
 
+#define MAX_ALLOWED_PKG_SIZE 104857600  // 100 MB
+
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
 /*
@@ -76,7 +78,7 @@ void sirinet_socket_on_data(
         }
 
         /* the buffer must be destroyed too
-         * (sirinet_free_client will free ssocket->buf if needed)
+         * (sirinet_socket_free will free ssocket->buf if needed)
          */
         if (ssocket->buf == NULL)
         {
@@ -94,13 +96,15 @@ void sirinet_socket_on_data(
         {
             pkg = (sirinet_pkg_t *) buf->base;
 
-            if ((pkg->tp ^ 255) != pkg->checkbit)
+            if (    (pkg->tp ^ 255) != pkg->checkbit ||
+                    pkg->len > MAX_ALLOWED_PKG_SIZE)
             {
                 log_error(
-                        "Got an illegal package "
-                        "(pid: %lu, len: %lu, tp: %u)",
+                        "Got an illegal package or size too large, "
+                        "closing connection (pid: %lu, len: %lu, tp: %u)",
                         pkg->pid, pkg->len, pkg->tp);
                 free(buf->base);
+                uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
                 return;
             }
 
@@ -162,14 +166,15 @@ void sirinet_socket_on_data(
 
         pkg = (sirinet_pkg_t *) ssocket->buf;
 
-        if ((pkg->tp ^ 255) != pkg->checkbit)
+        if (    (pkg->tp ^ 255) != pkg->checkbit ||
+                pkg->len > MAX_ALLOWED_PKG_SIZE)
         {
             log_error(
-                    "Got an illegal package "
-                    "(pid: %lu, len: %lu, tp: %u)",
+                    "Got an illegal package or size too large, "
+                    "closing connection (pid: %lu, len: %lu, tp: %u)",
                     pkg->pid, pkg->len, pkg->tp);
-            free(ssocket->buf);
-            ssocket->buf = NULL;
+
+            uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
             return;
         }
 

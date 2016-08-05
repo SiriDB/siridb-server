@@ -23,6 +23,7 @@ bool strx_is_empty(const char * str);
 bool strx_is_int(const char * str);
 bool strx_is_float(const char * str);
 bool strx_is_graph(const char * str);
+double strx_to_double(const char * src, size_t len);
 
 /* important: 'dest' needs to be freed */
 void strx_extract_string(char * dest, const char * source, size_t len);

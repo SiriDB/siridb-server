@@ -34,6 +34,7 @@
 #include <siri/db/access.h>
 #include <siri/version.h>
 #include <siri/db/lookup.h>
+#include <strextra/strextra.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -832,6 +833,19 @@ static int test_version(void)
     return test_end(TEST_OK);
 }
 
+int test_strx_to_double(void)
+{
+    test_start("Testing strx_to_double");
+
+    assert (strx_to_double("0.5", 3) == 0.5);
+    assert (strx_to_double("0.55", 3) == 0.5);
+    assert (strx_to_double("123.456", 7) == 123.456);
+    assert (strx_to_double("123", 3) == 123);
+    assert (strx_to_double("123.", 4) == 123);
+    assert (strx_to_double("123456.", 3) == 123);
+    return test_end(TEST_OK);
+}
+
 int run_tests(int flags)
 {
     timeit_t start;
@@ -859,6 +873,7 @@ int run_tests(int flags)
     rc += test_expr();
     rc += test_access();
     rc += test_version();
+    rc += test_strx_to_double();
 
     printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
             rc, timeit_stop(&start));

@@ -49,6 +49,10 @@ static void prop_dbpath(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_drop_threshold(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_duration_log(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -149,6 +153,8 @@ void siridb_init_props(void)
             prop_dbname;
     siridb_props[CLERI_GID_K_DBPATH - KW_OFFSET] =
             prop_dbpath;
+    siridb_props[CLERI_GID_K_DROP_THRESHOLD - KW_OFFSET] =
+            prop_drop_threshold;
     siridb_props[CLERI_GID_K_DURATION_LOG - KW_OFFSET] =
             prop_duration_log;
     siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
@@ -227,6 +233,15 @@ static void prop_dbpath(
 {
     SIRIDB_PROP_MAP("dbpath", 6)
     qp_add_string(packer, siridb->dbpath);
+}
+
+static void prop_drop_threshold(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("drop_threshold", 14)
+    qp_add_double(packer, siridb->drop_threshold);
 }
 
 static void prop_duration_log(

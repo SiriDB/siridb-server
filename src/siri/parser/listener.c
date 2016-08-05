@@ -79,6 +79,7 @@ static void enter_list_stmt(uv_async_t * handle);
 static void enter_revoke_stmt(uv_async_t * handle);
 static void enter_revoke_user(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
+static void enter_set_ignore_threshold(uv_async_t * handle);
 static void enter_set_password(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
@@ -108,7 +109,7 @@ static void exit_list_servers(uv_async_t * handle);
 static void exit_list_users(uv_async_t * handle);
 static void exit_revoke_user(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
-static void exit_set_drop_treshold(uv_async_t * handle);
+static void exit_set_drop_threshold(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
@@ -200,6 +201,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_REVOKE_STMT] = enter_revoke_stmt;
     siriparser_listen_enter[CLERI_GID_REVOKE_USER] = enter_revoke_user;
     siriparser_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
+    siriparser_listen_enter[CLERI_GID_SET_IGNORE_THRESHOLD] = enter_set_ignore_threshold;
     siriparser_listen_enter[CLERI_GID_SET_PASSWORD] = enter_set_password;
     siriparser_listen_enter[CLERI_GID_SERIES_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_SERVER_COLUMNS] = enter_xxx_columns;
@@ -235,7 +237,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_LIST_USERS] = exit_list_users;
     siriparser_listen_exit[CLERI_GID_REVOKE_USER] = exit_revoke_user;
     siriparser_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
-    siriparser_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_treshold;
+    siriparser_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
     siriparser_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siriparser_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
@@ -563,6 +565,20 @@ static void enter_select_stmt(uv_async_t * handle)
 
     query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
     qp_add_type(query->packer, QP_MAP_OPEN);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_set_ignore_threshold(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
+
+    if (    query->nodes->node->children->next->next->node->children->node->
+            cl_obj->via.dummy->gid == CLERI_GID_K_TRUE)
+    {
+        q_drop->flags |= QUERIES_IGNORE_DROP_THRESHOLD;
+    }
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1119,7 +1135,7 @@ static void exit_drop_series(uv_async_t * handle)
         if (IS_MASTER &&
             q_drop->series_map->len &&
             (~q_drop->flags & QUERIES_IGNORE_DROP_THRESHOLD) &&
-            percent >= siridb->drop_threshhold)
+            percent >= siridb->drop_threshold)
         {
             snprintf(query->err_msg,
                     SIRIDB_MAX_SIZE_ERR_MSG,
@@ -1453,12 +1469,12 @@ static void exit_list_servers(uv_async_t * handle)
         llist_walkn(
                 siridb->servers,
                 &q_list->limit,
-                (llist_cb) walk_list_servers,
+                (llist_cb) siridb_servers_list,
                 handle);
     }
     else
     {
-        q_list->limit -= walk_list_servers(siridb->server, handle);
+        q_list->limit -= siridb_servers_list(siridb->server, handle);
     }
 
 
@@ -1587,7 +1603,7 @@ static void exit_select_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void exit_set_drop_treshold(uv_async_t * handle)
+static void exit_set_drop_threshold(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
@@ -1598,61 +1614,52 @@ static void exit_set_drop_treshold(uv_async_t * handle)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    char * tmp = strndup(node->str, node->len);
-    if (tmp == NULL)
+    double drop_threshold = strx_to_double(node->str, node->len);
+
+    if (drop_threshold < 0.0 || drop_threshold > 1.0)
     {
-        ERR_ALLOC
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Drop threshold should be a value between or "
+                 "equal to 0 and 1.0 but got %0.3f",
+                 drop_threshold);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
-        double drop_threshold = atof(tmp);
-        free(tmp);
-
-        if (drop_threshold < 0.0 || drop_threshold > 1.0)
+        double old = siridb->drop_threshold;
+        siridb->drop_threshold = drop_threshold;
+        if (siridb_save(siridb))
         {
             snprintf(query->err_msg,
                     SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Drop threshold should be a value between or "
-                     "equal to 0 and 1.0 but got %0.3f",
-                     drop_threshold);
+                    "Error while saving database changes!");
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         }
         else
         {
-            double old = siridb->drop_threshhold;
-            siridb->drop_threshhold = drop_threshold;
-            if (siridb_save(siridb))
+            query->packer = sirinet_packer_new(1024);
+            if (query->packer != NULL)
             {
-                snprintf(query->err_msg,
-                        SIRIDB_MAX_SIZE_ERR_MSG,
-                        "Error while saving database changes!");
-                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            }
-            else
-            {
-                query->packer = sirinet_packer_new(1024);
-                if (query->packer != NULL)
+                qp_add_type(query->packer, QP_MAP_OPEN);
+
+                QP_ADD_SUCCESS
+                qp_add_fmt_safe(query->packer,
+                        "Successful changed drop_threshold from "
+                        "%0.3f to %0.3f.",
+                        old,
+                        siridb->drop_threshold);
+
+                if (IS_MASTER)
                 {
-                    qp_add_type(query->packer, QP_MAP_OPEN);
-
-                    QP_ADD_SUCCESS
-                    qp_add_fmt_safe(query->packer,
-                            "Successful changed drop_threshold from "
-                            "%0.3f to %0.3f.",
-                            old,
-                            siridb->drop_threshhold);
-
-                    if (IS_MASTER)
-                    {
-                        siridb_query_forward(
-                                handle,
-                                SIRIDB_QUERY_FWD_UPDATE,
-                                (sirinet_promises_cb) on_update_xxx_response);
-                    }
-                    else
-                    {
-                        SIRIPARSER_NEXT_NODE
-                    }
+                    siridb_query_forward(
+                            handle,
+                            SIRIDB_QUERY_FWD_UPDATE,
+                            (sirinet_promises_cb) on_update_xxx_response);
+                }
+                else
+                {
+                    SIRIPARSER_NEXT_NODE
                 }
             }
         }

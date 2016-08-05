@@ -104,7 +104,9 @@ siridb_points_t * siridb_aggregate(
             / aggr->group_by + 2;
 
     if (max_sz > source->len)
+    {
         max_sz = source->len;
+    }
 
     /* create new points with max possible size after re-indexing */
     points = siridb_points_new(
@@ -147,13 +149,17 @@ siridb_points_t * siridb_aggregate(
     points->len++;
 
     if (points->len < max_sz)
+    {
         /* shrink points allocation */
         points->data = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+    }
 #ifdef DEBUG
     else
+    {
         /* if not smaller it must be equal */
         assert (points->len == max_sz);
+    }
 #endif
 
     return points;
@@ -189,16 +195,24 @@ static int aggr_max(
     {
         int64_t max = points->data->val.int64;
         for (size_t i = 1; i < points->len; i++)
+        {
             if ((points->data + i)->val.int64 > max)
+            {
                 max = (points->data + i)->val.int64;
+            }
+        }
         point->val.int64 = max;
     }
     else
     {
         double max = points->data->val.real;
         for (size_t i = 1; i < points->len; i++)
+        {
             if ((points->data + i)->val.real > max)
+            {
                 max = (points->data + i)->val.real;
+            }
+        }
         point->val.real = max;
     }
 
@@ -226,12 +240,16 @@ static int aggr_mean(
     if (points->tp == SIRIDB_POINTS_TP_INT)
     {
         for (size_t i = 0; i < points->len; i++)
+        {
             sum += (points->data + i)->val.int64;
+        }
     }
     else
     {
         for (size_t i = 0; i < points->len; i++)
+        {
             sum += (points->data + i)->val.real;
+        }
     }
 
     point->val.real = sum / points->len;
@@ -259,7 +277,9 @@ static int aggr_median(
     {
         siridb_median_find_n(point, points, points->len / 2);
         if (points->tp == SIRIDB_POINTS_TP_INT)
+        {
             point->val.real = (double) point->val.int64;
+        }
     }
     else
         siridb_median_real(point, points, 0.5);
@@ -329,16 +349,24 @@ static int aggr_min(
     {
         int64_t min = points->data->val.int64;
         for (size_t i = 1; i < points->len; i++)
+        {
             if ((points->data + i)->val.int64 < min)
+            {
                 min = (points->data + i)->val.int64;
+            }
+        }
         point->val.int64 = min;
     }
     else
     {
         double min = points->data->val.real;
         for (size_t i = 1; i < points->len; i++)
+        {
             if ((points->data + i)->val.real < min)
+            {
                 min = (points->data + i)->val.real;
+            }
+        }
         point->val.real = min;
     }
 
@@ -365,14 +393,18 @@ static int aggr_sum(
     {
         int64_t sum = 0;
         for (size_t i = 0; i < points->len; i++)
+        {
             sum += (points->data + i)->val.int64;
+        }
         point->val.int64 = sum;
     }
     else
     {
         double sum = 0.0;
         for (size_t i = 0; i < points->len; i++)
+        {
             sum += (points->data + i)->val.real;
+        }
         point->val.real = sum;
     }
 

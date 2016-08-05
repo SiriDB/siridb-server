@@ -422,7 +422,7 @@ int siridb_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read drop threshold.")
     }
 
-    (*siridb)->drop_threshhold = qp_obj->via->real;
+    (*siridb)->drop_threshold = qp_obj->via->real;
 
     /* free qp_object */
     qp_object_free(qp_obj);
@@ -500,7 +500,8 @@ int siridb_save(siridb_t * siridb)
         return -1;
     }
 
-    return (qp_fadd_int8(fpacker, SIRIDB_SHEMA) ||
+    return (qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
+            qp_fadd_int8(fpacker, SIRIDB_SHEMA) ||
             qp_fadd_raw(fpacker, (const char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
             qp_fadd_int8(fpacker, siridb->time->precision) ||
@@ -508,7 +509,8 @@ int siridb_save(siridb_t * siridb)
             qp_fadd_int64(fpacker, siridb->duration_num) ||
             qp_fadd_int64(fpacker, siridb->duration_log) ||
             qp_fadd_string(fpacker, iso8601_tzname(siridb->tz)) ||
-            qp_fadd_double(fpacker, siridb->drop_threshhold) ||
+            qp_fadd_double(fpacker, siridb->drop_threshold) ||
+            qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 }
 
@@ -563,7 +565,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->pools = NULL;
                     siridb->max_series_id = 0;
                     siridb->received_points = 0;
-                    siridb->drop_threshhold = 1.0;
+                    siridb->drop_threshold = 1.0;
                     siridb->buffer_size = -1;
                     siridb->tz = -1;
                     siridb->server = NULL;

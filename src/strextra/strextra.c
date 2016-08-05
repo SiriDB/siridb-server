@@ -14,7 +14,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <inttypes.h>
+#include <math.h>
+#include <logger/logger.h>
 
 void strx_lower_case(char * sptr)
 {
@@ -161,4 +163,33 @@ void strx_extract_string(char * dest, const char * source, size_t len)
 
     /* set final 0 */
     dest[i] = 0;
+}
+
+double strx_to_double(const char * src, size_t len)
+{
+    char * pt = (char *) src;
+    double d = 0;
+
+    uint64_t r1 = *pt - '0';
+
+    while (--len && isdigit(*(++pt)))
+    {
+        r1 = 10 * r1 + *pt - '0';
+    }
+
+    d = (double) r1;
+
+    if (--len && *(pt++) == '.')
+    {
+        uint64_t r2 = *pt - '0';
+        ssize_t i;
+        for (i = -1; --len && isdigit(*(++pt)); i--)
+        {
+             r2 = 10 * r2 + *pt - '0';
+        }
+
+        d += pow(10, i) * (double) r2;
+    }
+
+    return d;
 }
