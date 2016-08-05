@@ -11,6 +11,7 @@ q->series_map = NULL;   \
 q->series_tmp = NULL;   \
 q->slist = NULL;        \
 q->slist_index = 0;     \
+q->update_cb = NULL;    \
 q->where_expr = NULL;   \
 q->regex = NULL;        \
 q->regex_extra = NULL;

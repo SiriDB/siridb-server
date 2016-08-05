@@ -33,6 +33,9 @@ typedef struct siridb_shard_s siridb_shard_t;
 #define SIRIDB_SERIES_IS_DROPPED 2
 #define SIRIDB_SERIES_INIT_REPL 4
 
+/* the max length including terminator char */
+#define SIRIDB_SERIES_NAME_LEN_MAX 65535
+
 #define siridb_series_isnum(series) (series->tp != SIRIDB_SERIES_TP_STRING)
 
 #define SIRIDB_QP_MAP2_TP(TP)                                               \
@@ -72,9 +75,11 @@ typedef struct siridb_series_s
     char * name;
     siridb_buffer_t * buffer;
     uint16_t pool;
+    uint16_t name_len;
     uint8_t flags;
     uint8_t tp;
     uint8_t server_id;
+    uint8_t pad0;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);

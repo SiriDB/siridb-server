@@ -738,6 +738,31 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 }
 
 /*
+ * Returns 0 if successful and EOF in case an error occurred.
+ */
+int qp_fadd_double(qp_fpacker_t * fpacker, double real)
+{
+    if (real == 0.0)
+    {
+        return (fputc(QP_DOUBLE_0, fpacker) != EOF) ? 0 : EOF;
+    }
+    else if (real == 1.0)
+    {
+        return (fputc(QP_DOUBLE_1, fpacker) != EOF) ? 0 : EOF;
+    }
+    else if (real == -1.0)
+    {
+        return (fputc(QP_DOUBLE_N1, fpacker) != EOF) ? 0 : EOF;
+    }
+    else
+    {
+        return (fputc(QP_DOUBLE, fpacker) != EOF &&
+                fwrite(&real, sizeof(double), 1, fpacker) == 1) ? 0 : EOF;
+    }
+    return 0;
+}
+
+/*
  * Jump to the next object. If 'qp_obj' is not NULL, the object will be stored
  * in qp_obj so you can use it later.
  *

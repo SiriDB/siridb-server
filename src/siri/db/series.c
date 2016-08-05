@@ -872,6 +872,8 @@ static siridb_series_t * SERIES_new(
         }
         else
         {
+            /* we use the length a lot and we have room so store this info */
+            series->name_len = strlen(series->name);
             series->id = id;
             series->tp = tp;
             series->ref = 1;
@@ -916,7 +918,7 @@ static siridb_series_t * SERIES_new(
 static int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
 {
     if (qp_fadd_type(fpacker, QP_ARRAY3) ||
-        qp_fadd_raw(fpacker, series->name, strlen(series->name) + 1) ||
+        qp_fadd_raw(fpacker, series->name, series->name_len + 1) ||
         qp_fadd_int32(fpacker, (int32_t) series->id) ||
         qp_fadd_int8(fpacker, (int8_t) series->tp))
     {

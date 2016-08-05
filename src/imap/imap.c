@@ -28,6 +28,21 @@ static void IMAP_walkn(imap_node_t * node, imap_cb cb, void * data, size_t * n);
 static void IMAP_2slist(imap_node_t * node, slist_t * slist);
 static void IMAP_2slist_ref(imap_node_t * node, slist_t * slist);
 static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node);
+static void IMAP_intersection_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data);
+static void IMAP_difference_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data);
+static void IMAP_symmetric_difference_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -94,6 +109,7 @@ void imap_free_cb(imap_t * imap, imap_cb cb, void * data)
     }
     free(imap);
 }
+
 
 /*
  * Add data by id to the map.
@@ -313,9 +329,22 @@ slist_t * imap_2slist_ref(imap_t * imap)
     return slist;
 }
 
-void imap_union_ref(imap_t * dest, imap_t ** imap)
+/*
+ * Map 'dest' will be the union between the two maps. Map 'imap' will be
+ * destroyed so it cannot be used anymore.
+ *
+ * This function can call 'decref_cb' when an item is removed from the map.
+ * We only call the function for sure when the item is removed from both maps.
+ * When we are sure the item still exists in the 'dest' map and is only removed
+ * from the 'imap', we simply decrement the ref counter.
+ */
+void imap_union_ref(
+        imap_t * dest,
+        imap_t * imap,
+        imap_cb decref_cb,
+        void * data)
 {
-    if ((*imap)->len)
+    if (imap->len)
     {
         imap_node_t * dest_nd;
         imap_node_t * imap_nd;
@@ -323,7 +352,7 @@ void imap_union_ref(imap_t * dest, imap_t ** imap)
         for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
         {
             dest_nd = dest->nodes + i;
-            imap_nd = (*imap)->nodes + i;
+            imap_nd = imap->nodes + i;
 
             if (imap_nd->data != NULL)
             {
@@ -355,7 +384,6 @@ void imap_union_ref(imap_t * dest, imap_t ** imap)
                 {
                     dest_nd->nodes = imap_nd->nodes;
                     dest_nd->size = imap_nd->size;
-                    imap_nd->nodes = NULL;
                     dest->len += dest_nd->size;
                 }
             }
@@ -363,8 +391,202 @@ void imap_union_ref(imap_t * dest, imap_t ** imap)
     }
 
     /* cleanup source imap */
-    free(*imap);
-    *imap = NULL;
+    free(imap);
+}
+
+/*
+ * Map 'dest' will be the intersection between the two maps. Map 'imap' will be
+ * destroyed so it cannot be used anymore.
+ *
+ * This function can call 'decref_cb' when an item is removed from the map.
+ * We only call the function for sure when the item is removed from both maps.
+ * When we are sure the item still exists in the 'dest' map and is only removed
+ * from the 'imap', we simply decrement the ref counter.
+ */
+void imap_intersection_ref(
+        imap_t * dest,
+        imap_t * imap,
+        imap_cb decref_cb,
+        void * data)
+{
+    imap_node_t * dest_nd;
+    imap_node_t * imap_nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        dest_nd = dest->nodes + i;
+        imap_nd = imap->nodes + i;
+        if (imap_nd->data != NULL)
+        {
+            (*decref_cb)(imap_nd->data, data);
+        }
+        else if (dest_nd->data != NULL)
+        {
+            (*decref_cb)(dest_nd->data, data);
+            dest_nd->data = NULL;
+            dest->len--;
+        }
+
+        if (imap_nd->nodes != NULL)
+        {
+            if (dest_nd->nodes != NULL)
+            {
+                size_t tmp = dest_nd->size;
+                IMAP_intersection_ref(dest_nd, imap_nd, decref_cb, data);
+                dest->len -= tmp - dest_nd->size;
+            }
+            else
+            {
+                IMAP_node_free_cb(imap_nd, decref_cb, data);
+            }
+        }
+        else if (dest_nd->nodes != NULL)
+        {
+            dest->len -= dest_nd->size;
+            IMAP_node_free_cb(dest_nd, decref_cb, data);
+        }
+    }
+
+    /* cleanup source imap */
+    free(imap);
+}
+
+/*
+ * Map 'dest' will be the difference between the two maps. Map 'imap' will be
+ * destroyed so it cannot be used anymore.
+ *
+ * This function can call 'decref_cb' when an item is removed from the map.
+ * We only call the function for sure when the item is removed from both maps.
+ * When we are sure the item still exists in the 'dest' map and is only removed
+ * from the 'imap', we simply decrement the ref counter.
+ */
+void imap_difference_ref(
+        imap_t * dest,
+        imap_t * imap,
+        imap_cb decref_cb,
+        void * data)
+{
+    if (imap->len)
+    {
+        imap_node_t * dest_nd;
+        imap_node_t * imap_nd;
+
+        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+        {
+            dest_nd = dest->nodes + i;
+            imap_nd = imap->nodes + i;
+
+            if (imap_nd->data != NULL)
+            {
+                if (dest_nd->data != NULL)
+                {
+#ifdef DEBUG
+                    /* this must be the same object */
+                    assert (imap_nd->data == dest_nd->data);
+#endif
+                    /* we are sure to have one ref left */
+                    slist_object_decref(dest_nd->data);
+                    dest_nd->data = NULL;
+                    dest->len--;
+
+                }
+                /* now we are not sure anymore if we have ref left */
+                (*decref_cb)(imap_nd->data, data);
+            }
+
+            if (imap_nd->nodes != NULL)
+            {
+                if (dest_nd->nodes != NULL)
+                {
+                    size_t tmp = dest_nd->size;
+                    IMAP_difference_ref(dest_nd, imap_nd, decref_cb, data);
+                    dest->len -= tmp - dest_nd->size;
+                }
+                else
+                {
+                    IMAP_node_free_cb(imap_nd, decref_cb, data);
+                }
+            }
+        }
+    }
+
+    /* cleanup source imap */
+    free(imap);
+}
+
+/*
+ * Map 'dest' will be the symmetric difference between the two maps. Map 'imap'
+ * will be destroyed so it cannot be used anymore.
+ *
+ * This function can call 'decref_cb' when an item is removed from the map.
+ * We only call the function for sure when the item is removed from both maps.
+ * When we are sure the item still exists in the 'dest' map and is only removed
+ * from the 'imap', we simply decrement the ref counter.
+ */
+void imap_symmetric_difference_ref(
+        imap_t * dest,
+        imap_t * imap,
+        imap_cb decref_cb,
+        void * data)
+{
+    if (imap->len)
+    {
+        imap_node_t * dest_nd;
+        imap_node_t * imap_nd;
+
+        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+        {
+            dest_nd = dest->nodes + i;
+            imap_nd = imap->nodes + i;
+
+            if (imap_nd->data != NULL)
+            {
+                if (dest_nd->data != NULL)
+                {
+#ifdef DEBUG
+                    /* this must be the same object */
+                    assert (imap_nd->data == dest_nd->data);
+#endif
+                    /* we are sure to have one ref left */
+                    slist_object_decref(dest_nd->data);
+
+                    /* but now we are not sure anymore */
+                    (*decref_cb)(imap_nd->data, data);
+
+                    dest_nd->data = NULL;
+                    dest->len--;
+                }
+                else
+                {
+                    dest_nd->data = imap_nd->data;
+                    dest->len++;
+                }
+            }
+
+            if (imap_nd->nodes != NULL)
+            {
+                if (dest_nd->nodes != NULL)
+                {
+                    size_t tmp = dest_nd->size;
+                    IMAP_symmetric_difference_ref(
+                            dest_nd,
+                            imap_nd,
+                            decref_cb,
+                            data);
+                    dest->len += dest_nd->size - tmp;
+                }
+                else
+                {
+                    dest_nd->nodes = imap_nd->nodes;
+                    dest_nd->size = imap_nd->size;
+                    dest->len += dest_nd->size;
+                }
+            }
+        }
+    }
+
+    /* cleanup source imap */
+    free(imap);
 }
 
 static void IMAP_node_free(imap_node_t * node)
@@ -618,7 +840,164 @@ static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node)
             {
                 dest_nd->nodes = node_nd->nodes;
                 dest_nd->size = node_nd->size;
-                node_nd->nodes = NULL;
+                dest->size += dest_nd->size;
+            }
+        }
+    }
+    free(node->nodes);
+}
+
+static void IMAP_intersection_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data)
+{
+    imap_node_t * dest_nd;
+    imap_node_t * node_nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        dest_nd = dest->nodes + i;
+        node_nd = node->nodes + i;
+
+        if (node_nd->data != NULL)
+        {
+            (*decref_cb)(node_nd->data, data);
+        }
+        else if (dest_nd->data != NULL)
+        {
+            (*decref_cb)(dest_nd->data, data);
+            dest_nd->data = NULL;
+            dest->size--;
+        }
+
+        if (node_nd->nodes != NULL)
+        {
+            if (dest_nd->nodes != NULL)
+            {
+                size_t tmp = dest_nd->size;
+                IMAP_intersection_ref(dest_nd, node_nd, decref_cb, data);
+                dest->size -= tmp - dest_nd->size;
+            }
+            else
+            {
+                IMAP_node_free_cb(node_nd, decref_cb, data);
+            }
+        }
+        else if (dest_nd->nodes != NULL)
+        {
+            dest->size -= dest_nd->size;
+            IMAP_node_free_cb(dest_nd, decref_cb, data);
+        }
+
+    }
+    free(node->nodes);
+}
+
+static void IMAP_difference_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data)
+{
+    imap_node_t * dest_nd;
+    imap_node_t * node_nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        dest_nd = dest->nodes + i;
+        node_nd = node->nodes + i;
+
+        if (node_nd->data != NULL)
+        {
+            if (dest_nd->data != NULL)
+            {
+#ifdef DEBUG
+                /* this must be the same object */
+                assert (node_nd->data == dest_nd->data);
+#endif
+                /* we are sure to have one ref left */
+                slist_object_decref(dest_nd->data);
+                dest_nd->data = NULL;
+                dest->size--;
+
+            }
+            /* now we are not sure anymore if we have ref left */
+            (*decref_cb)(node_nd->data, data);
+        }
+
+        if (node_nd->nodes != NULL)
+        {
+            if (dest_nd->nodes != NULL)
+            {
+                size_t tmp = dest_nd->size;
+                IMAP_difference_ref(dest_nd, node_nd, decref_cb, data);
+                dest->size -= tmp - dest_nd->size;
+            }
+            else
+            {
+                IMAP_node_free_cb(node_nd, decref_cb, data);
+            }
+        }
+    }
+    free(node->nodes);
+}
+
+static void IMAP_symmetric_difference_ref(
+        imap_node_t * dest,
+        imap_node_t * node,
+        imap_cb decref_cb,
+        void * data)
+{
+    imap_node_t * dest_nd;
+    imap_node_t * node_nd;
+
+    for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+    {
+        dest_nd = dest->nodes + i;
+        node_nd = node->nodes + i;
+
+        if (node_nd->data != NULL)
+        {
+            if (dest_nd->data != NULL)
+            {
+#ifdef DEBUG
+                /* this must be the same object */
+                assert (node_nd->data == dest_nd->data);
+#endif
+                /* we are sure to have one ref left */
+                slist_object_decref(dest_nd->data);
+
+                /* but now we are not sure anymore */
+                (*decref_cb)(node_nd->data, data);
+
+                dest_nd->data = NULL;
+                dest->size--;
+            }
+            else
+            {
+                dest_nd->data = node_nd->data;
+                dest->size++;
+            }
+        }
+
+        if (node_nd->nodes != NULL)
+        {
+            if (dest_nd->nodes != NULL)
+            {
+                size_t tmp = dest_nd->size;
+                IMAP_symmetric_difference_ref(
+                        dest_nd,
+                        node_nd,
+                        decref_cb,
+                        data);
+                dest->size += dest_nd->size - tmp;
+            }
+            else
+            {
+                dest_nd->nodes = node_nd->nodes;
+                dest_nd->size = node_nd->size;
                 dest->size += dest_nd->size;
             }
         }

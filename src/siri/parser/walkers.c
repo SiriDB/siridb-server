@@ -25,32 +25,6 @@
 #include <siri/siri.h>
 #include <siri/version.h>
 
-/*
- * Do not forget to flush the dropped file.
- *  using: fflush(siridb->dropped_fp);
- * We do not flush here since we want this function to be as fast as
- * possible.
- */
-int walk_drop_series(siridb_series_t * series, uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_drop_t * q_drop = (query_drop_t *) query->data;
-
-    if (q_drop->where_expr == NULL || cexpr_run(
-            q_drop->where_expr,
-            (cexpr_cb_t) siridb_series_cexpr_cb,
-            series))
-    {
-        siridb_series_drop(
-            ((sirinet_socket_t *) query->client->data)->siridb,
-            series);
-
-        q_drop->n++;
-    }
-
-    return 0;
-}
-
 int walk_list_servers(
         siridb_server_t * server,
         uv_async_t * handle)
@@ -205,7 +179,7 @@ int walk_select(siridb_series_t * series, uv_async_t * handle)
 
     if (points != NULL)
     {
-        qp_add_string(query->packer, series->name);
+        qp_add_raw(query->packer, series->name, series->name_len);
         siridb_points_pack(points, query->packer);
         siridb_points_free(points);
     }

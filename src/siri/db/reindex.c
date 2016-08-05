@@ -476,13 +476,19 @@ static void REINDEX_work(uv_timer_t * timer)
              * the series is not member of the siridb->series_map it will not
              * be decremented there either.
              */
+
             siridb_series_drop_prepare(siridb, reindex->series);
 
             qp_packer_t * packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
             if (packer != NULL)
             {
                 qp_add_type(packer, QP_MAP1);
-                qp_add_string_term(packer, reindex->series->name);
+
+                /* add series name including terminator char */
+                qp_add_raw(
+                        packer,
+                        reindex->series->name,
+                        reindex->series->name_len + 1);
 
                 if (siridb_points_pack(points, packer) == 0)
                 {
@@ -522,7 +528,7 @@ static void REINDEX_commit_series(siridb_t * siridb)
      */
     if (siridb->replica != NULL)
     {
-        size_t len = strlen(siridb->reindex->series->name) + 1;
+        size_t len = siridb->reindex->series->name_len + 1;
         qp_packer_t * packer = sirinet_packer_new(PCKSZ + len);
         if (packer != NULL)
         {

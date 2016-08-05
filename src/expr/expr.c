@@ -33,7 +33,9 @@ static int64_t expr_number(const char ** expression)
 {
     int result = *(*expression)++ - '0';
     while (**expression >= '0' && **expression <= '9')
+    {
         result = 10 * result + *(*expression)++ - '0';
+    }
 
     return result;
 }
@@ -41,7 +43,9 @@ static int64_t expr_number(const char ** expression)
 static int64_t expr_factor(const char ** expression)
 {
     if (**expression >= '0' && **expression <= '9')
+    {
         return expr_number(expression);
+    }
     else if (**expression == '(')
     {
         (*expression)++; // '('
@@ -88,14 +92,16 @@ static int64_t expr_term(const char ** expression)
 static int64_t expr_expression(const char ** expression)
 {
     int64_t result = expr_term(expression);
-//    printf("Char: %c\n", **expression);
     while (**expression == '+' || **expression == '-')
     {
-//        printf("Here...\n");
         if (*(*expression)++ == '+')
+        {
             result += expr_term(expression);
+        }
         else
+        {
             result -= expr_term(expression);
+        }
     }
     return result;
 }

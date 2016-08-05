@@ -18,11 +18,14 @@
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
 
+#define QUERIES_IGNORE_DROP_THRESHOLD 1
+
 #define QUERY_DEF           \
 imap_t * series_map;        \
 imap_t * series_tmp;        \
 slist_t * slist;            \
 size_t slist_index;         \
+imap_update_cb update_cb;   \
 cexpr_t * where_expr;       \
 pcre * regex;               \
 pcre_extra * regex_extra;
@@ -50,6 +53,7 @@ typedef struct query_drop_s
 {
     QUERY_DEF
     size_t n;  // keep a counter for number of drops.
+    uint8_t flags;  // flags like ignore threshold
 } query_drop_t;
 
 /* TODO: probably we need to add ct_results or something to store the results

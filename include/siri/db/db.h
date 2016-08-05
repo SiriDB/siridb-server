@@ -76,11 +76,11 @@ typedef struct siridb_reindex_s siridb_reindex_t;
 
 typedef struct siridb_s
 {
+    uint16_t ref;
     uuid_t uuid;
     iso8601_tz_t tz;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
-    uint8_t ref;
     uint8_t flags;
     size_t buffer_size;
     size_t buffer_len;
@@ -91,6 +91,7 @@ typedef struct siridb_s
     char * dbname;
     char * dbpath;
     char * buffer_path;
+    double drop_threshhold;
     size_t index_size;
     size_t received_points;
     siridb_time_t * time;

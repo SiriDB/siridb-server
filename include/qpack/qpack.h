@@ -170,6 +170,7 @@ int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
 int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer);
 int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
+int qp_fadd_double(qp_fpacker_t * fpacker, double real);
 
 /* creates a valid qpack buffer of length 3 holding an int16 type. */
 #define QP_PACK_INT16(buffer, n) \

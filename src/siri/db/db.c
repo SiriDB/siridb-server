@@ -37,13 +37,11 @@ static siridb_t * SIRIDB_new(void);
 static void SIRIDB_free(siridb_t * siridb);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
-{                                           \
     sprintf(err_msg, "error: " ERROR_MSG);  \
     SIRIDB_free(*siridb);                   \
     *siridb = NULL;                         \
     qp_object_free(qp_obj);                 \
-    return -1;                              \
-}
+    return -1;
 
 siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
@@ -317,7 +315,9 @@ int siridb_from_unpacker(
 
     /* read uuid */
     if (qp_next(unpacker, qp_obj) != QP_RAW || qp_obj->len != 16)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read uuid.")
+    }
 
     /* copy uuid */
     memcpy(&(*siridb)->uuid, qp_obj->via->raw, qp_obj->len);
@@ -325,28 +325,38 @@ int siridb_from_unpacker(
     /* read database name */
     if (qp_next(unpacker, qp_obj) != QP_RAW ||
             qp_obj->len >= SIRIDB_MAX_DBNAME_LEN)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read database name.")
+    }
 
     /* alloc mem for database name */
     (*siridb)->dbname = strndup(qp_obj->via->raw, qp_obj->len);
     if ((*siridb)->dbname == NULL)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
+    }
 
     /* read time precision */
     if (qp_next(unpacker, qp_obj) != QP_INT64 ||
             qp_obj->via->int64 < SIRIDB_TIME_SECONDS ||
             qp_obj->via->int64 > SIRIDB_TIME_NANOSECONDS)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read time-precision.")
+    }
 
     /* bind time precision to SiriDB */
     (*siridb)->time =
             siridb_time_new((siridb_timep_t) qp_obj->via->int64);
     if ((*siridb)->time == NULL)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot create time instance.")
+    }
 
     /* read buffer size */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
+    }
 
     /* bind buffer size and len to SiriDB */
     (*siridb)->buffer_size = (size_t) qp_obj->via->int64;
@@ -354,7 +364,9 @@ int siridb_from_unpacker(
 
     /* read number duration  */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read number duration.")
+    }
 
     /* bind number duration to SiriDB */
     (*siridb)->duration_num = (uint64_t) qp_obj->via->int64;
@@ -366,7 +378,9 @@ int siridb_from_unpacker(
 
     /* read log duration  */
     if (qp_next(unpacker, qp_obj) != QP_INT64)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read log duration.")
+    }
 
     /* bind log duration to SiriDB */
     (*siridb)->duration_log = (uint64_t) qp_obj->via->int64;
@@ -381,13 +395,17 @@ int siridb_from_unpacker(
 
     /* read timezone */
     if (qp_next(unpacker, qp_obj) != QP_RAW)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
+    }
 
     /* bind timezone to SiriDB */
     char * tzname = strndup(qp_obj->via->raw, qp_obj->len);
 
     if (tzname == NULL)
+    {
         READ_DB_EXIT_WITH_ERROR("cannot allocate timezone name.")
+    }
 
     if (((*siridb)->tz = iso8601_tz(tzname)) < 0)
     {
@@ -396,6 +414,15 @@ int siridb_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
     }
     free(tzname);
+
+    /* read drop threshold */
+    if (qp_next(unpacker, qp_obj) != QP_DOUBLE ||
+            qp_obj->via->real < 0.0 || qp_obj->via->real > 1.0)
+    {
+        READ_DB_EXIT_WITH_ERROR("cannot read drop threshold.")
+    }
+
+    (*siridb)->drop_threshhold = qp_obj->via->real;
 
     /* free qp_object */
     qp_object_free(qp_obj);
@@ -456,6 +483,36 @@ int siridb_open_files(siridb_t * siridb)
 }
 
 /*
+ * Returns 0 if successful or -1 in case of an error.
+ */
+int siridb_save(siridb_t * siridb)
+{
+    char buffer[PATH_MAX];
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.dat",
+            siridb->dbpath);
+
+    qp_fpacker_t * fpacker;
+
+    if ((fpacker = qp_open(buffer, "w")) == NULL)
+    {
+        return -1;
+    }
+
+    return (qp_fadd_int8(fpacker, SIRIDB_SHEMA) ||
+            qp_fadd_raw(fpacker, siridb->uuid, 16) ||
+            qp_fadd_string(fpacker, siridb->dbname) ||
+            qp_fadd_int8(fpacker, siridb->time->precision) ||
+            qp_fadd_int64(fpacker, siridb->buffer_size) ||
+            qp_fadd_int64(fpacker, siridb->duration_num) ||
+            qp_fadd_int64(fpacker, siridb->duration_log) ||
+            qp_fadd_string(fpacker, iso8601_tzname(siridb->tz)) ||
+            qp_fadd_double(fpacker, siridb->drop_threshhold) ||
+            qp_close(fpacker));
+}
+
+/*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 static siridb_t * SIRIDB_new(void)
@@ -506,6 +563,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->pools = NULL;
                     siridb->max_series_id = 0;
                     siridb->received_points = 0;
+                    siridb->drop_threshhold = 1.0;
                     siridb->buffer_size = -1;
                     siridb->tz = -1;
                     siridb->server = NULL;

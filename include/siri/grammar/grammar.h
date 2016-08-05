@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-07-02 14:57:56
+ * Created at: 2016-08-05 14:27:46
  */
 
 #pragma once
@@ -50,7 +50,6 @@ enum cleri_grammar_ids {
     CLERI_GID_CREATE_STMT,
     CLERI_GID_CREATE_USER,
     CLERI_GID_C_DIFFERENCE,
-    CLERI_GID_DELIMITER_MATCH,
     CLERI_GID_DERIVATIVE_EXPR,
     CLERI_GID_DIFFERENCE_EXPR,
     CLERI_GID_DROP_GROUP,
@@ -286,6 +285,7 @@ enum cleri_grammar_ids {
     CLERI_GID_SERIES_NAME,
     CLERI_GID_SERIES_PROPS,
     CLERI_GID_SERIES_RE,
+    CLERI_GID_SERIES_SEP,
     CLERI_GID_SERVER_COLUMNS,
     CLERI_GID_SERVER_PROPS,
     CLERI_GID_SET_ADDRESS,

@@ -819,7 +819,9 @@ static ssize_t INSERT_assign_by_map(
 
     tp = qp_next(unpacker, qp_obj);
 
-    while (tp == QP_RAW && qp_obj->len)
+    while ( tp == QP_RAW &&
+            qp_obj->len &&
+            qp_obj->len < SIRIDB_SERIES_NAME_LEN_MAX)
     {
         pool = INSERT_get_pool(siridb, qp_obj);
 
@@ -887,7 +889,9 @@ static ssize_t INSERT_assign_by_array(
 
         if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
         {
-            if (qp_next(unpacker, qp_obj) != QP_RAW || !qp_obj->len)
+            if (    qp_next(unpacker, qp_obj) != QP_RAW ||
+                    !qp_obj->len ||
+                    qp_obj->len >= SIRIDB_SERIES_NAME_LEN_MAX)
             {
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }

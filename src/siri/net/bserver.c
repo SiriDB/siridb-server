@@ -588,7 +588,13 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
                     series = ct_get(siridb->series, qp_series_name->via->raw);
                     if (series != NULL)
                     {
+                        uv_mutex_lock(&siridb->series_mutex);
+
                         siridb_series_drop(siridb, series);
+
+                        uv_mutex_unlock(&siridb->series_mutex);
+
+                        siridb_series_flush_dropped(siridb);
                     }
                     else
                     {

@@ -223,7 +223,7 @@ static int test_ctree(void)
     return test_end(TEST_OK);
 }
 
-int test__imap_cb(char * data, char * cmp)
+static int test__imap_cb(char * data, char * cmp)
 {
     assert (strcmp(data, cmp) == 0);
     return 1;
@@ -263,42 +263,193 @@ static int test_imap(void)
     imap_add(imap, 3, "Iriske");
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
+
     imap_free_cb(imap, (imap_cb) &test__imap_cb, "Sasientje");
 
-    slist_object_t slist_obj_a = {
-        .ref=0
-    };
-    slist_object_t slist_obj_b = {
-        .ref=0
-    };
-    slist_object_t slist_obj_c = {
-        .ref=0
-    };
+    return test_end(TEST_OK);
+}
 
-    imap_t * imap_1 = imap_new();
-    imap_t * imap_2 = imap_new();
+static int test__imap_decref_cb(char * series, void * data)
+{
+    ((slist_object_t *) series)->ref--;
+    return 1;
+}
 
-    imap_add(imap_1, 100, &slist_obj_a);
-    slist_obj_a.ref++;
+static int test__imap_id_count_cb(char * series, void * data)
+{
+    return ((siridb_series_t *) series)->id;
+}
 
-    imap_add(imap_1, 200, &slist_obj_b);
-    slist_obj_b.ref++;
+static siridb_series_t series_a = {
+    .ref=0,
+    .id=11
+};
+static siridb_series_t series_b = {
+    .ref=0,
+    .id=987
+};
+static siridb_series_t series_c = {
+    .ref=0,
+    .id=219
+};
+static siridb_series_t series_d = {
+    .ref=0,
+    .id=9
+};
+static siridb_series_t series_e = {
+    .ref=0,
+    .id=988
+};
 
-    imap_add(imap_2, 200, &slist_obj_b);
-    slist_obj_b.ref++;
+static imap_t * imap_dst;
+static imap_t * imap_tmp;
 
-    imap_add(imap_2, 300, &slist_obj_c);
-    slist_obj_c.ref++;
 
-    imap_union_ref(imap_1, &imap_2);
+static void test__imap_setup(void)
+{
+    imap_dst = imap_new();
+    imap_tmp = imap_new();
 
-    assert (imap_1->len == 3);
-    assert (slist_obj_a.ref == 1);
-    assert (slist_obj_b.ref == 1);
-    assert (slist_obj_c.ref == 1);
-    assert (imap_2 == NULL);
+    imap_add(imap_dst, series_a.id, &series_a);
+    series_a.ref++;
 
-    imap_free(imap_1);
+    imap_add(imap_dst, series_b.id, &series_b);
+    series_b.ref++;
+
+    imap_add(imap_dst, series_c.id, &series_c);
+    series_c.ref++;
+
+    imap_add(imap_tmp, series_b.id, &series_b);
+    series_b.ref++;
+
+    imap_add(imap_tmp, series_c.id, &series_c);
+    series_c.ref++;
+
+    imap_add(imap_tmp, series_d.id, &series_d);
+    series_d.ref++;
+
+    imap_add(imap_tmp, series_e.id, &series_e);
+    series_e.ref++;
+}
+
+static int test_imap_union(void)
+{
+    test_start("Testing imap union");
+
+    test__imap_setup();
+
+    imap_union_ref(
+            imap_dst,
+            imap_tmp,
+            (imap_cb) test__imap_decref_cb,
+            NULL);
+
+    assert (imap_dst->len == 5);
+    assert (imap_walk(
+                imap_dst,
+                (imap_cb) &test__imap_id_count_cb,
+                NULL) == (
+            series_a.id +
+            series_b.id +
+            series_c.id +
+            series_d.id +
+            series_e.id));
+
+    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    assert (series_a.ref == 0);
+    assert (series_b.ref == 0);
+    assert (series_c.ref == 0);
+    assert (series_d.ref == 0);
+    assert (series_e.ref == 0);
+
+    return test_end(TEST_OK);
+}
+
+static int test_imap_intersection(void)
+{
+    test_start("Testing imap intersection");
+
+    test__imap_setup();
+
+    imap_intersection_ref(
+            imap_dst,
+            imap_tmp,
+            (imap_cb) test__imap_decref_cb,
+            NULL);
+
+    assert (imap_dst->len == 2);
+    assert (imap_walk(
+                imap_dst,
+                (imap_cb) &test__imap_id_count_cb,
+                NULL) == (
+            series_b.id +
+            series_c.id));
+
+    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    assert (series_a.ref == 0);
+    assert (series_b.ref == 0);
+    assert (series_c.ref == 0);
+    assert (series_d.ref == 0);
+    assert (series_e.ref == 0);
+
+    return test_end(TEST_OK);
+}
+
+static int test_imap_difference(void)
+{
+    test_start("Testing imap difference");
+
+    test__imap_setup();
+
+    imap_difference_ref(
+            imap_dst,
+            imap_tmp,
+            (imap_cb) test__imap_decref_cb,
+            NULL);
+
+    assert (imap_dst->len == 1);
+    assert (imap_walk(
+                imap_dst,
+                (imap_cb) &test__imap_id_count_cb,
+                NULL) == series_a.id);
+
+    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    assert (series_a.ref == 0);
+    assert (series_b.ref == 0);
+    assert (series_c.ref == 0);
+    assert (series_d.ref == 0);
+    assert (series_e.ref == 0);
+
+    return test_end(TEST_OK);
+}
+
+static int test_imap_symmetric_difference(void)
+{
+    test_start("Testing imap symmetric_difference");
+
+    test__imap_setup();
+
+    imap_symmetric_difference_ref(
+            imap_dst,
+            imap_tmp,
+            (imap_cb) test__imap_decref_cb,
+            NULL);
+
+    assert (imap_dst->len == 3);
+    assert (imap_walk(
+                imap_dst,
+                (imap_cb) &test__imap_id_count_cb,
+                NULL) == (
+            series_a.id +
+            series_d.id +
+            series_e.id));
+
+    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    assert (series_a.ref == 0);
+    assert (series_b.ref == 0);
+    assert (series_c.ref == 0);
+    assert (series_d.ref == 0);
+    assert (series_e.ref == 0);
 
     return test_end(TEST_OK);
 }
@@ -690,6 +841,10 @@ int run_tests(int flags)
     rc += test_cleri();
     rc += test_ctree();
     rc += test_imap();
+    rc += test_imap_union();
+    rc += test_imap_intersection();
+    rc += test_imap_difference();
+    rc += test_imap_symmetric_difference();
     rc += test_gen_pool_lookup();
     rc += test_points();
     rc += test_aggr_count();
