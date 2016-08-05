@@ -501,7 +501,7 @@ int siridb_save(siridb_t * siridb)
     }
 
     return (qp_fadd_int8(fpacker, SIRIDB_SHEMA) ||
-            qp_fadd_raw(fpacker, siridb->uuid, 16) ||
+            qp_fadd_raw(fpacker, (const char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
             qp_fadd_int8(fpacker, siridb->time->precision) ||
             qp_fadd_int64(fpacker, siridb->buffer_size) ||

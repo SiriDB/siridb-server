@@ -124,5 +124,6 @@ void siridb_free_cb(siridb_t * siridb, void * args);
 void siridb_incref(siridb_t * siridb);
 void siridb_decref(siridb_t * siridb);
 int siridb_open_files(siridb_t * siridb);
+int siridb_save(siridb_t * siridb);
 
 #define siridb_is_reindexing(siridb) (siridb->flags & SIRIDB_FLAG_REINDEXING)

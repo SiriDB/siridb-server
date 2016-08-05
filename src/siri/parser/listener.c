@@ -1596,8 +1596,7 @@ static void exit_set_drop_treshold(uv_async_t * handle)
 
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
-    cleri_node_t * node =
-            query->nodes->node->children->next->next->node->children->node;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
 
     char * tmp = strndup(node->str, node->len);
     if (tmp == NULL)
@@ -1614,7 +1613,7 @@ static void exit_set_drop_treshold(uv_async_t * handle)
             snprintf(query->err_msg,
                     SIRIDB_MAX_SIZE_ERR_MSG,
                     "Drop threshold should be a value between or "
-                     "equal to 0 and 1.0 but got %0.2f",
+                     "equal to 0 and 1.0 but got %0.3f",
                      drop_threshold);
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         }
@@ -1622,7 +1621,7 @@ static void exit_set_drop_treshold(uv_async_t * handle)
         {
             double old = siridb->drop_threshhold;
             siridb->drop_threshhold = drop_threshold;
-            if (siridb_save())
+            if (siridb_save(siridb))
             {
                 snprintf(query->err_msg,
                         SIRIDB_MAX_SIZE_ERR_MSG,
@@ -1638,7 +1637,8 @@ static void exit_set_drop_treshold(uv_async_t * handle)
 
                     QP_ADD_SUCCESS
                     qp_add_fmt_safe(query->packer,
-                            "Successful changed drop_threshold from {} to {}.",
+                            "Successful changed drop_threshold from "
+                            "%0.3f to %0.3f.",
                             old,
                             siridb->drop_threshhold);
 
