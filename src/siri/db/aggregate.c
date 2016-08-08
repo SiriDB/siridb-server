@@ -79,7 +79,6 @@ void siridb_init_aggregates(void)
     siridb_aggregates[CLERI_GID_K_MEDIAN_LOW - KW_OFFSET] = aggr_median_low;
     siridb_aggregates[CLERI_GID_K_MIN - KW_OFFSET] = aggr_min;
     siridb_aggregates[CLERI_GID_K_SUM - KW_OFFSET] = aggr_sum;
-
 }
 
 siridb_points_t * siridb_aggregate(

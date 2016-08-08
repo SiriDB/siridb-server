@@ -26,5 +26,4 @@ typedef struct siridb_nodes_s
 } siridb_nodes_t;
 
 void siridb_nodes_free(siridb_nodes_t * nodes);
-
 void siridb_nodes_next(siridb_nodes_t ** nodes);

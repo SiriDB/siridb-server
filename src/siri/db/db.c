@@ -667,7 +667,7 @@ static void SIRIDB_free(siridb_t * siridb)
     /* free shards using imap walk an free the imap */
     if (siridb->shards != NULL)
     {
-        imap_free_cb(siridb->shards, (imap_cb) &siridb_shard_decref, NULL);
+        imap_free_cb(siridb->shards, (imap_cb) &siridb_shard_decref);
     }
 
     /* only free buffer path when not equal to db_path */

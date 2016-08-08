@@ -35,6 +35,7 @@ uint8_t tp;                 \
 imap_t * series_map;        \
 imap_t * series_tmp;        \
 slist_t * slist;            \
+slist_t * plist;            \
 size_t slist_index;         \
 imap_update_cb update_cb;   \
 cexpr_t * where_expr;       \
@@ -71,11 +72,13 @@ typedef struct query_drop_s
 typedef struct query_select_s
 {
     QUERY_DEF
+    size_t n;
     uint64_t * start_ts;  // will NOT be freed
     uint64_t * end_ts;  // will NOT be freed
     siridb_presuf_t * presuf;
     char * merge_as;
     ct_t * result;
+    imap_t * points_map;
 } query_select_t;
 
 

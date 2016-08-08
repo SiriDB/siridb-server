@@ -21,7 +21,7 @@
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
- * In case the size is unknown, a default of 6 is recommended since in this
+ * In case the size is unknown, SLIST_DEFAULT_SIZE is recommended since in this
  * case we can do a re-allocation with multiples of 64K.
  */
 slist_t * slist_new(size_t size)

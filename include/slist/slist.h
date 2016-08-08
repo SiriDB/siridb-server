@@ -15,6 +15,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 
+#define SLIST_DEFAULT_SIZE 6
+
 typedef struct slist_object_s
 {
     uint16_t ref;

@@ -31,15 +31,15 @@ typedef struct imap_s
 } imap_t;
 
 typedef int (*imap_cb)(void * data, void * args);
+typedef int (*imap_free_cb)(void * data);
+
 typedef void (*imap_update_cb)(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data);
+        imap_free_cb decref_cb);
 
 imap_t * imap_new(void);
-void imap_free(imap_t * imap);
-void imap_free_cb(imap_t * imap, imap_cb cb, void * data);
+void imap_free(imap_t * imap, imap_free_cb cb);
 int imap_add(imap_t * imap, uint64_t id, void * data);
 void * imap_get(imap_t * imap, uint64_t id);
 void * imap_pop(imap_t * imap, uint64_t id);
@@ -50,20 +50,16 @@ slist_t * imap_2slist_ref(imap_t * imap);
 void imap_union_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data);
+        imap_free_cb decref_cb);
 void imap_intersection_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data);
+        imap_free_cb decref_cb);
 void imap_difference_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data);
+        imap_free_cb decref_cb);
 void imap_symmetric_difference_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data);
+        imap_free_cb decref_cb);

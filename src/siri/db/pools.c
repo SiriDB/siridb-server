@@ -250,6 +250,59 @@ void siridb_pools_send_pkg(
     }
 }
 
+/*
+ * This function will send a package to one available server in the pools
+ * provided by the 'slist'. The promises call-back function should be
+ * used to check if the package has been send successfully to all pools.
+ *
+ * The 'slist' can be destroyed after this function has returned.
+ *
+ * This function can raise a SIGNAL when allocation errors occur.
+ *
+ * If promises could not be created, the 'cb' function with cb(NULL, data)
+ *
+ * Note that 'pkg->pid' will be overwritten with a new package id.
+ */
+void siridb_pools_send_pkg_2some(
+        siridb_t * siridb,
+        slist_t * slist,
+        sirinet_pkg_t * pkg,
+        uint64_t timeout,
+        sirinet_promises_cb cb,
+        void * data)
+{
+    sirinet_promises_t * promises =
+            sirinet_promises_new(slist->len, cb, data);
+
+    if (promises == NULL)
+    {
+        cb(NULL, data);
+    }
+    else
+    {
+        siridb_pool_t * pool;
+
+        for (size_t i = 0; i < slist->len; i++)
+        {
+            pool = slist->data[i];
+
+            if (siridb_pool_send_pkg(
+                    pool,
+                    pkg,
+                    timeout,
+                    sirinet_promises_on_response,
+                    promises))
+            {
+                log_debug(
+                        "Cannot send package to at least on pool "
+                        "(no available server found)");
+                slist_append(promises->promises, NULL);
+            }
+        }
+
+        SIRINET_PROMISES_CHECK(promises)
+    }
+}
 
 
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)

@@ -251,7 +251,7 @@ static int test_imap(void)
 
     assert (imap->len == 4);
 
-    imap_free(imap);
+    imap_free(imap, NULL);
 
     imap = imap_new();
     imap_add(imap, 42, "Sasientje");
@@ -265,12 +265,12 @@ static int test_imap(void)
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
 
-    imap_free_cb(imap, (imap_cb) &test__imap_cb, "Sasientje");
+    imap_free(imap, NULL);
 
     return test_end(TEST_OK);
 }
 
-static int test__imap_decref_cb(char * series, void * data)
+static int test__imap_decref_cb(char * series)
 {
     ((slist_object_t *) series)->ref--;
     return 1;
@@ -342,8 +342,7 @@ static int test_imap_union(void)
     imap_union_ref(
             imap_dst,
             imap_tmp,
-            (imap_cb) test__imap_decref_cb,
-            NULL);
+            (imap_free_cb) test__imap_decref_cb);
 
     assert (imap_dst->len == 5);
     assert (imap_walk(
@@ -356,7 +355,7 @@ static int test_imap_union(void)
             series_d.id +
             series_e.id));
 
-    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
     assert (series_b.ref == 0);
     assert (series_c.ref == 0);
@@ -375,8 +374,7 @@ static int test_imap_intersection(void)
     imap_intersection_ref(
             imap_dst,
             imap_tmp,
-            (imap_cb) test__imap_decref_cb,
-            NULL);
+            (imap_free_cb) test__imap_decref_cb);
 
     assert (imap_dst->len == 2);
     assert (imap_walk(
@@ -386,7 +384,7 @@ static int test_imap_intersection(void)
             series_b.id +
             series_c.id));
 
-    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
     assert (series_b.ref == 0);
     assert (series_c.ref == 0);
@@ -405,8 +403,7 @@ static int test_imap_difference(void)
     imap_difference_ref(
             imap_dst,
             imap_tmp,
-            (imap_cb) test__imap_decref_cb,
-            NULL);
+            (imap_free_cb) test__imap_decref_cb);
 
     assert (imap_dst->len == 1);
     assert (imap_walk(
@@ -414,7 +411,7 @@ static int test_imap_difference(void)
                 (imap_cb) &test__imap_id_count_cb,
                 NULL) == series_a.id);
 
-    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
     assert (series_b.ref == 0);
     assert (series_c.ref == 0);
@@ -433,8 +430,7 @@ static int test_imap_symmetric_difference(void)
     imap_symmetric_difference_ref(
             imap_dst,
             imap_tmp,
-            (imap_cb) test__imap_decref_cb,
-            NULL);
+            (imap_free_cb) test__imap_decref_cb);
 
     assert (imap_dst->len == 3);
     assert (imap_walk(
@@ -445,7 +441,7 @@ static int test_imap_symmetric_difference(void)
             series_d.id +
             series_e.id));
 
-    imap_free_cb(imap_dst, (imap_cb) test__imap_decref_cb, NULL);
+    imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
     assert (series_b.ref == 0);
     assert (series_c.ref == 0);

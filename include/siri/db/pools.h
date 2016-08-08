@@ -51,4 +51,10 @@ void siridb_pools_send_pkg(
         uint64_t timeout,
         sirinet_promises_cb cb,
         void * data);
-
+void siridb_pools_send_pkg_2some(
+        siridb_t * siridb,
+        slist_t * slist,
+        sirinet_pkg_t * pkg,
+        uint64_t timeout,
+        sirinet_promises_cb cb,
+        void * data);
