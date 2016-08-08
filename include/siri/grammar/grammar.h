@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-08-05 14:27:46
+ * Created at: 2016-08-08 16:12:31
  */
 
 #pragma once
@@ -256,7 +256,7 @@ enum cleri_grammar_ids {
     CLERI_GID_MEDIAN_EXPR,
     CLERI_GID_MEDIAN_HIGH_EXPR,
     CLERI_GID_MEDIAN_LOW_EXPR,
-    CLERI_GID_MERGE_EXPR,
+    CLERI_GID_MERGE_AS,
     CLERI_GID_MIN_EXPR,
     CLERI_GID_NETWORK_COLUMNS,
     CLERI_GID_NETWORK_PROPS,
@@ -278,7 +278,7 @@ enum cleri_grammar_ids {
     CLERI_GID_R_SINGLEQ_STR,
     CLERI_GID_R_TIME_STR,
     CLERI_GID_R_UUID_STR,
-    CLERI_GID_SELECT_AGGREGATE_EXPR,
+    CLERI_GID_SELECT_AGGREGATE,
     CLERI_GID_SELECT_STMT,
     CLERI_GID_SERIES_COLUMNS,
     CLERI_GID_SERIES_MATCH,

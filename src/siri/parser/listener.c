@@ -35,6 +35,7 @@
 #include <strextra/strextra.h>
 #include <sys/time.h>
 #include <siri/db/re.h>
+#include <siri/db/presuf.h>
 
 #define MAX_ITERATE_COUNT 1000
 #define MAX_LIST_LIMIT 10000
@@ -76,6 +77,7 @@ static void enter_grant_stmt(uv_async_t * handle);
 static void enter_grant_user(uv_async_t * handle);
 static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
+static void enter_merge_as(uv_async_t * handle);
 static void enter_revoke_stmt(uv_async_t * handle);
 static void enter_revoke_user(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
@@ -108,6 +110,7 @@ static void exit_list_series(uv_async_t * handle);
 static void exit_list_servers(uv_async_t * handle);
 static void exit_list_users(uv_async_t * handle);
 static void exit_revoke_user(uv_async_t * handle);
+static void exit_select_aggregate(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
@@ -117,7 +120,7 @@ static void exit_timeit_stmt(uv_async_t * handle);
 /* async loop functions */
 static void async_count_series(uv_async_t * handle);
 static void async_drop_series(uv_async_t * handle);
-static void async_filter_drop_series(uv_async_t * handle);
+static void async_filter_series(uv_async_t * handle);
 static void async_list_series(uv_async_t * handle);
 static void async_series_re(uv_async_t * handle);
 
@@ -197,6 +200,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
     siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
+    siriparser_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
     siriparser_listen_enter[CLERI_GID_POOL_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_REVOKE_STMT] = enter_revoke_stmt;
     siriparser_listen_enter[CLERI_GID_REVOKE_USER] = enter_revoke_user;
@@ -236,6 +240,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_LIST_SERVERS] = exit_list_servers;
     siriparser_listen_exit[CLERI_GID_LIST_USERS] = exit_list_users;
     siriparser_listen_exit[CLERI_GID_REVOKE_USER] = exit_revoke_user;
+    siriparser_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
     siriparser_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siriparser_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
     siriparser_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
@@ -504,6 +509,31 @@ static void enter_list_stmt(uv_async_t * handle)
 
     query->data = query_list_new();
     query->free_cb = (uv_close_cb) query_list_free;
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_merge_as(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+    q_select->merge_as = (char *) malloc(node->len + 1);
+
+    if (q_select->merge_as == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        strx_extract_string(q_select->merge_as, node->str, node->len);
+    }
+
+    if (IS_MASTER)
+    {
+        /* TODO: master: see listener.py: enter_merge_expr */
+
+    }
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1123,7 +1153,7 @@ static void exit_drop_series(uv_async_t * handle)
 
             if (q_drop->series_map != NULL)
             {
-                async_filter_drop_series(handle);
+                async_filter_series(handle);
             }
         }
     }
@@ -1586,6 +1616,55 @@ static void exit_revoke_user(uv_async_t * handle)
     }
 }
 
+static void exit_select_aggregate(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
+    if (q_select->where_expr != NULL)
+    {
+        /* we transform the references from imap to slist */
+        q_select->slist = imap_2slist(q_select->series_map);
+
+        if (q_select->slist != NULL)
+        {
+            /* now we can simply destroy the imap */
+            imap_free(q_select->series_map);
+
+            /* create a new one */
+            q_select->series_map = imap_new();
+
+            if (q_select->series_map != NULL)
+            {
+                async_filter_series(handle);
+            }
+        }
+    }
+    else if (siridb_presuf_add(&q_select->presuf, query->nodes->node) != NULL)
+    {
+        if (!siridb_presuf_is_unique(q_select->presuf))
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "When using multiple select methods, add a prefix "
+                    "and/or suffix to the selection to make them unique");
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        }
+        else
+        {
+
+            if (q_select->merge_as != NULL)
+            {
+                /* TODO: create an array of points */
+                LOGC("Prefix: '%s', Suffix: '%s'",
+                        siridb_presuf_prefix_get(q_select->presuf),
+                        siridb_presuf_suffix_get(q_select->presuf));
+            }
+            q_select->slist = imap_2slist_ref(q_select->series_map);
+            SIRIPARSER_NEXT_NODE
+        }
+    }
+}
+
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -2004,18 +2083,18 @@ static void async_drop_series(uv_async_t * handle)
     }
 }
 
-static void async_filter_drop_series(uv_async_t * handle)
+static void async_filter_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_drop_t * q_drop = (query_drop_t *) query->data;
-    cexpr_t * where_expr = q_drop->where_expr;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    cexpr_t * where_expr = q_wrapper->where_expr;
     uv_async_t * async_more = NULL;
     siridb_series_t * series;
-    size_t index_end = q_drop->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_drop->slist->len)
+    if (index_end >= q_wrapper->slist->len)
     {
-        index_end = q_drop->slist->len;
+        index_end = q_wrapper->slist->len;
     }
     else
     {
@@ -2026,16 +2105,17 @@ static void async_filter_drop_series(uv_async_t * handle)
         }
     }
 
-    for (; q_drop->slist_index < index_end; q_drop->slist_index++)
+    for (; q_wrapper->slist_index < index_end; q_wrapper->slist_index++)
     {
-        series = (siridb_series_t *) q_drop->slist->data[q_drop->slist_index];
+        series = (siridb_series_t *)
+                q_wrapper->slist->data[q_wrapper->slist_index];
 
         if (cexpr_run(
                 where_expr,
                 (cexpr_cb_t) siridb_series_cexpr_cb,
                 series))
         {
-            imap_add(q_drop->series_map, series->id, series);
+            imap_add(q_wrapper->series_map, series->id, series);
         }
         else
         {
@@ -2049,23 +2129,36 @@ static void async_filter_drop_series(uv_async_t * handle)
         uv_async_init(
                 siri.loop,
                 async_more,
-                (uv_async_cb) &async_series_re);
+                (uv_async_cb) &async_filter_series);
         uv_async_send(async_more);
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
     else
     {
         /* free the s-list object and reset index */
-        slist_free(q_drop->slist);
+        slist_free(q_wrapper->slist);
 
-        q_drop->slist = NULL;
-        q_drop->slist_index = 0;
+        q_wrapper->slist = NULL;
+        q_wrapper->slist_index = 0;
 
-        /* we now processed the where statement, continue drop series */
-        cexpr_free(q_drop->where_expr);
-        q_drop->where_expr = NULL;
+        /* cleanup where statement since we do not need it anymore */
+        cexpr_free(q_wrapper->where_expr);
+        q_wrapper->where_expr = NULL;
 
-        exit_drop_series(handle);
+        /* we now processed the where statement, continue... */
+        switch (q_wrapper->tp)
+        {
+        case QUERIES_DROP:
+            exit_drop_series(handle);
+            break;
+        case QUERIES_SELECT:
+            exit_select_aggregate(handle);
+            break;
+        default:
+            assert (0);
+            break;
+        }
+
     }
 }
 

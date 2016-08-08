@@ -17,10 +17,21 @@
 #include <imap/imap.h>
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
+#include <ctree/ctree.h>
+#include <siri/db/presuf.h>
 
 #define QUERIES_IGNORE_DROP_THRESHOLD 1
 
+enum
+{
+    QUERIES_LIST,
+    QUERIES_COUNT,
+    QUERIES_DROP,
+    QUERIES_SELECT
+};
+
 #define QUERY_DEF           \
+uint8_t tp;                 \
 imap_t * series_map;        \
 imap_t * series_tmp;        \
 slist_t * slist;            \
@@ -29,6 +40,7 @@ imap_update_cb update_cb;   \
 cexpr_t * where_expr;       \
 pcre * regex;               \
 pcre_extra * regex_extra;
+
 
 /* wrappers */
 typedef struct query_wrapper_s
@@ -56,13 +68,14 @@ typedef struct query_drop_s
     uint8_t flags;  // flags like ignore threshold
 } query_drop_t;
 
-/* TODO: probably we need to add ct_results or something to store the results
- */
 typedef struct query_select_s
 {
     QUERY_DEF
     uint64_t * start_ts;  // will NOT be freed
     uint64_t * end_ts;  // will NOT be freed
+    siridb_presuf_t * presuf;
+    char * merge_as;
+    ct_t * result;
 } query_select_t;
 
 

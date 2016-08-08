@@ -4,17 +4,19 @@
 #include <siri/db/query.h>
 #include <logger/logger.h>
 
+
 #define DEFAULT_LIST_LIMIT 1000
 
-#define QUERIES_NEW(q)  \
-q->series_map = NULL;   \
-q->series_tmp = NULL;   \
-q->slist = NULL;        \
-q->slist_index = 0;     \
-q->update_cb = NULL;    \
-q->where_expr = NULL;   \
-q->regex = NULL;        \
+#define QUERIES_NEW(q)              \
+q->series_map = NULL;               \
+q->series_tmp = NULL;               \
+q->slist = NULL;                    \
+q->slist_index = 0;                 \
+q->update_cb = NULL;                \
+q->where_expr = NULL;               \
+q->regex = NULL;                    \
 q->regex_extra = NULL;
+
 
 #define QUERIES_FREE(q, handle)                                 \
 if (q->series_map != NULL)                                      \
@@ -55,8 +57,11 @@ query_select_t * query_select_new(void)
 
     QUERIES_NEW(q_select)
 
+    q_select->tp = QUERIES_SELECT;
     q_select->start_ts = NULL;
     q_select->end_ts = NULL;
+    q_select->presuf = siridb_presuf_new();
+    q_select->merge_as = NULL;
     return q_select;
 }
 
@@ -67,6 +72,7 @@ query_list_t * query_list_new(void)
 
     QUERIES_NEW(q_list)
 
+    q_list->tp = QUERIES_LIST;
     q_list->props = NULL;
     q_list->limit = DEFAULT_LIST_LIMIT;
     return q_list;
@@ -79,6 +85,7 @@ query_count_t * query_count_new(void)
 
     QUERIES_NEW(q_count)
 
+    q_count->tp = QUERIES_COUNT;
     q_count->n = 0;
     return q_count;
 }
@@ -90,6 +97,7 @@ query_drop_t * query_drop_new(void)
 
     QUERIES_NEW(q_drop)
 
+    q_drop->tp = QUERIES_DROP;
     q_drop->n = 0;
     q_drop->flags = 0;
 
@@ -100,6 +108,13 @@ void query_select_free(uv_handle_t * handle)
 {
     query_select_t * q_select =
             (query_select_t *) ((siridb_query_t *) handle->data)->data;
+
+    siridb_presuf_free(q_select->presuf);
+    free(q_select->merge_as);
+    if (q_select->result != NULL)
+    {
+        ct_free(q_select->result, (ct_free_cb) &siridb_points_free);
+    }
 
     QUERIES_FREE(q_select, handle)
 }

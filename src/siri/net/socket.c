@@ -18,7 +18,7 @@
 #include <siri/siri.h>
 #include <siri/err.h>
 
-#define MAX_ALLOWED_PKG_SIZE 104857600  // 100 MB
+#define MAX_ALLOWED_PKG_SIZE 209715200  // 200 MB
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
