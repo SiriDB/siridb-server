@@ -233,17 +233,17 @@ int siridb_series_load(siridb_t * siridb)
 
     if (SERIES_read_dropped(siridb, dropped))
     {
-        imap_free(dropped);
+        imap_free(dropped, NULL);
         return -1;
     }
 
     if (SERIES_load(siridb, dropped))
     {
-        imap_free(dropped);
+        imap_free(dropped, NULL);
         return -1;
     }
 
-    imap_free(dropped);
+    imap_free(dropped, NULL);
 
     if (SERIES_update_max_id(siridb))
     {

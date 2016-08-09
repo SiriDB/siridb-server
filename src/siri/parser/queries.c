@@ -70,6 +70,8 @@ query_select_t * query_select_new(void)
         q_select->merge_as = NULL;
         q_select->n = 0;
         q_select->points_map = NULL;
+        q_select->result = ct_new();  // a signal is raised in case of failure
+        q_select->alist = NULL;
     }
     return q_select;
 }
@@ -140,12 +142,25 @@ void query_select_free(uv_handle_t * handle)
 
     siridb_presuf_free(q_select->presuf);
     free(q_select->merge_as);
+
+    if (q_select->points_map != NULL)
+    {
+        imap_free(q_select->points_map, (imap_free_cb) &siridb_points_free);
+    }
+
     if (q_select->result != NULL)
     {
         ct_free(q_select->result, (ct_free_cb) &siridb_points_free);
     }
 
-    imap_free(q_select->points_map, (imap_free_cb) siridb_points_free);
+    if (q_select->alist != NULL)
+    {
+        for (size_t i = 0; i < q_select->alist->len; i++)
+        {
+            free(q_select->alist->data[i]);
+        }
+        free(q_select->alist);
+    }
 
     QUERIES_FREE(q_select, handle)
 }

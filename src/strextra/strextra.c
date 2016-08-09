@@ -134,15 +134,16 @@ bool strx_is_graph(const char * str)
     return true;
 }
 
-void strx_extract_string(char * dest, const char * source, size_t len)
+/*
+ * This function is used to extra a SiriDB string. These strings start
+ * with " or with ' and we should replace double this character in the
+ * string with a single one.
+ *
+ * 'dest' string will be terminated and the return value is the new
+ * length of 'dest'.
+ */
+size_t strx_extract_string(char * dest, const char * source, size_t len)
 {
-    /*
-     * This function is used to extra a SiriDB string. These strings start
-     * with " or with ' and we should replace double this character in the
-     * string with a single one.
-     *
-     * The returned string will be terminated.
-     */
     size_t i = 0;
 
     /* take the first character, this is " or ' */
@@ -163,6 +164,8 @@ void strx_extract_string(char * dest, const char * source, size_t len)
 
     /* set final 0 */
     dest[i] = 0;
+
+    return i;
 }
 
 double strx_to_double(const char * src, size_t len)

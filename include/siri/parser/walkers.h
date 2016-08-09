@@ -16,7 +16,7 @@
 
 typedef struct siridb_series_s siridb_series_t;
 
-int walk_select(siridb_series_t * series, uv_async_t * handle);
+int walk_select_master(const char * name, siridb_points_t * points, uv_async_t * handle);
 
 
 

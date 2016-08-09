@@ -18,6 +18,7 @@
 #include <siri/err.h>
 #include <siri/siri.h>
 #include <siri/version.h>
+#include <siri/db/presuf.h>
 
 #ifdef DEBUG
 #include <test/test.h>
@@ -81,6 +82,9 @@ int main(int argc, char * argv[])
 
     /* destroy SiriDB mutex */
     uv_mutex_destroy(&siri.siridb_mutex);
+
+    /* cleanup prefix-suffix allocation */
+    siridb_presuf_cleanup();
 
     log_info("Bye! (%d)\n", siri_err);
 

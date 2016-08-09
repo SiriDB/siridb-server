@@ -114,3 +114,20 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
 
     return siri_err;
 }
+
+/*
+ * Returns siri_err and raises a SIGNAL in case an error has occurred.
+ */
+inline int siridb_points_raw_pack(
+        siridb_points_t * points,
+        qp_packer_t * packer)
+{
+    return (qp_add_type(packer, QP_ARRAY_OPEN) ||
+            qp_add_int8(packer, points->tp) ||
+            qp_add_int32(packer, points->len) ||
+            qp_add_raw(
+                packer,
+                (char *) points->data,
+                points->len * sizeof(siridb_point_t)) ||
+            qp_add_type(packer, QP_ARRAY_CLOSE));
+}

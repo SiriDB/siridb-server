@@ -12,6 +12,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 
 void strx_upper_case(char * sptr);
 void strx_lower_case(char * sptr);
@@ -26,4 +27,4 @@ bool strx_is_graph(const char * str);
 double strx_to_double(const char * src, size_t len);
 
 /* important: 'dest' needs to be freed */
-void strx_extract_string(char * dest, const char * source, size_t len);
+size_t strx_extract_string(char * dest, const char * source, size_t len);

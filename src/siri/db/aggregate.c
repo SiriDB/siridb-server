@@ -14,9 +14,13 @@
 #include <siri/db/median.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
+#include <slist/slist.h>
 
 #define GROUP_TS(point) \
     (point->ts + aggr->group_by - 1) / aggr->group_by * aggr->group_by
+
+static siridb_aggr_cb AGGREGATES[F_OFFSET];
 
 static int aggr_count(
         siridb_point_t * point,
@@ -68,20 +72,96 @@ static int aggr_sum(
 
 void siridb_init_aggregates(void)
 {
-    for (uint_fast16_t i = 0; i < KW_COUNT; i++)
-        siridb_aggregates[i] = NULL;
+    for (uint_fast16_t i = 0; i < F_OFFSET; i++)
+    {
+        AGGREGATES[i] = NULL;
+    }
 
-    siridb_aggregates[CLERI_GID_K_COUNT - KW_OFFSET] = aggr_count;
-    siridb_aggregates[CLERI_GID_K_MAX - KW_OFFSET] = aggr_max;
-    siridb_aggregates[CLERI_GID_K_MEAN - KW_OFFSET] = aggr_mean;
-    siridb_aggregates[CLERI_GID_K_MEDIAN - KW_OFFSET] = aggr_median;
-    siridb_aggregates[CLERI_GID_K_MEDIAN_HIGH - KW_OFFSET] = aggr_median_high;
-    siridb_aggregates[CLERI_GID_K_MEDIAN_LOW - KW_OFFSET] = aggr_median_low;
-    siridb_aggregates[CLERI_GID_K_MIN - KW_OFFSET] = aggr_min;
-    siridb_aggregates[CLERI_GID_K_SUM - KW_OFFSET] = aggr_sum;
+    AGGREGATES[CLERI_GID_F_COUNT - F_OFFSET] = aggr_count;
+    AGGREGATES[CLERI_GID_F_MAX - F_OFFSET] = aggr_max;
+    AGGREGATES[CLERI_GID_F_MEAN - F_OFFSET] = aggr_mean;
+    AGGREGATES[CLERI_GID_F_MEDIAN - F_OFFSET] = aggr_median;
+    AGGREGATES[CLERI_GID_F_MEDIAN_HIGH - F_OFFSET] = aggr_median_high;
+    AGGREGATES[CLERI_GID_F_MEDIAN_LOW - F_OFFSET] = aggr_median_low;
+    AGGREGATES[CLERI_GID_F_MIN - F_OFFSET] = aggr_min;
+    AGGREGATES[CLERI_GID_F_SUM - F_OFFSET] = aggr_sum;
+
+#ifdef DEBUG
+    for (uint_fast16_t i = 0; i < F_OFFSET; i++)
+    {
+        siridb_aggregates[i] = AGGREGATES[i];
+    }
+#endif
 }
 
-siridb_points_t * siridb_aggregate(
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
+{
+    siridb_aggr_t * aggr = (siridb_aggr_t *) malloc(sizeof(siridb_aggr_t));
+    if (aggr == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        aggr->gid = gid;
+        aggr->cb = AGGREGATES[gid - F_OFFSET];
+    }
+    return aggr;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+slist_t * siridb_aggregate_list(cleri_node_t * node)
+{
+    cleri_children_t * children = node->children->node->children;
+    uint32_t gid;
+    slist_t * slist = slist_new(SLIST_DEFAULT_SIZE);
+    if (slist != NULL)
+    {
+        siridb_aggr_t * aggr;
+        if (slist != NULL)
+        {
+            while (1)
+            {
+                gid = children->node->children->node->cl_obj->via.dummy->gid;
+
+                switch (gid)
+                {
+                case CLERI_GID_F_COUNT:
+                case CLERI_GID_F_MEAN:
+                case CLERI_GID_F_SUM:
+                    aggr = AGGREGATE_new(gid);
+                    if (aggr != NULL)
+                    {
+                        aggr->group_by =
+                                children->node->children->node->children->
+                                next->next->node->result;
+
+                        if (slist_append_safe(&slist, aggr))
+                        {
+                            ERR_ALLOC
+                        }
+                    }
+                    break;
+                }
+
+                if (children->next == NULL)
+                {
+                    break;
+                }
+
+                children = children->next->next;
+            }
+        }
+    }
+    return slist;
+}
+
+siridb_points_t * siridb_aggregate_run(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
         char * err_msg)
@@ -113,6 +193,11 @@ siridb_points_t * siridb_aggregate(
             (aggr->cb == aggr_mean || aggr->cb == aggr_median) ?
                     SIRIDB_POINTS_TP_DOUBLE :
             (aggr->cb == aggr_count) ? SIRIDB_POINTS_TP_INT : group.tp);
+
+    if (points == NULL)
+    {
+        return NULL;
+    }
 
     goup_ts = GROUP_TS(source->data);
 
@@ -150,8 +235,17 @@ siridb_points_t * siridb_aggregate(
     if (points->len < max_sz)
     {
         /* shrink points allocation */
-        points->data = (siridb_point_t *)
+        point = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+        if (point == NULL)
+        {
+            /* not critical */
+            log_error("Re-allocation points failed.");
+        }
+        else
+        {
+            points->data = point;
+        }
     }
 #ifdef DEBUG
     else

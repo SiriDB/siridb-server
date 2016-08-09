@@ -79,6 +79,7 @@ typedef struct query_select_s
     char * merge_as;
     ct_t * result;
     imap_t * points_map;
+    slist_t * alist;
 } query_select_t;
 
 

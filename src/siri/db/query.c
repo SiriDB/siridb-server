@@ -30,6 +30,7 @@
 #include <siri/db/servers.h>
 #include <siri/async.h>
 #include <siri/db/replicate.h>
+#include <siri/parser/queries.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -273,6 +274,25 @@ void siridb_query_forward(
             pkg->tp = BPROTO_QUERY_SERVER;
             siridb_pools_send_pkg(
                     siridb,
+                    pkg,
+                    0,
+                    cb,
+                    handle);
+            break;
+
+        case SIRIDB_QUERY_FWD_SOME_POOLS:
+#ifdef DEBUG
+
+            assert (((query_select_t *) ((siridb_query_t *)
+                    handle->data)->data)->tp == QUERIES_SELECT);
+            assert (((query_select_t *) ((siridb_query_t *)
+                    handle->data)->data)->plist != NULL);
+#endif
+            pkg->tp = BPROTO_QUERY_SERVER;
+            siridb_pools_send_pkg_2some(
+                    siridb,
+                    ((query_select_t *) (
+                            (siridb_query_t *) handle->data)->data)->plist,
                     pkg,
                     0,
                     cb,

@@ -36,9 +36,10 @@
 #include <sys/time.h>
 #include <siri/db/re.h>
 #include <siri/db/presuf.h>
+#include <siri/db/aggregate.h>
 
 #define MAX_ITERATE_COUNT 1000
-#define MAX_SELECT_POINTS 10
+#define MAX_SELECT_POINTS 1000000  // 1 million
 #define MAX_LIST_LIMIT 10000
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
@@ -135,6 +136,7 @@ static void on_ack_response(
 static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
+static void on_select_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
 static uint32_t GID_K_NAME = CLERI_GID_K_NAME;
@@ -669,30 +671,31 @@ static void enter_series_name(uv_async_t * handle)
     {
         if ((series = ct_get(siridb->series, series_name)) == NULL)
         {
-            /* the series does not exist */
-            snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Cannot find series: '%s'", series_name);
+            if (!siridb_is_reindexing(siridb))
+            {
+                /* the series does not exist */
+                snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Cannot find series: '%s'", series_name);
 
-            /* free series_name and return with send_errror.. */
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
+                /* free series_name and return with send_errror.. */
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
         }
-
-        /* bind the series to the query, increment ref count if successful */
-        if (imap_add(q_wrapper->series_map, series->id, series) == 1)
+        else if (imap_add(q_wrapper->series_map, series->id, series) == 1)
         {
+            /* bind the series to the query, increment ref count if successful */
             siridb_series_incref(series);
         }
     }
     else
     {
         if (q_wrapper->plist != NULL && slist_append_safe(
-                q_wrapper->plist,
+                &q_wrapper->plist,
                 (siridb_pool_t *) (siridb->pools->pool + pool)))
         {
             log_critical("Cannot pool to list");
         }
-
     }
 
     SIRIPARSER_NEXT_NODE
@@ -1643,6 +1646,7 @@ static void exit_select_aggregate(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
+
     if (q_select->where_expr != NULL)
     {
         /* we transform the references from imap to slist */
@@ -1674,37 +1678,66 @@ static void exit_select_aggregate(uv_async_t * handle)
         }
         else
         {
-
             if (q_select->merge_as != NULL)
             {
-                /* TODO: create an array of points */
-                LOGC("Prefix: '%s', Suffix: '%s'",
-                        siridb_presuf_prefix_get(q_select->presuf),
-                        siridb_presuf_suffix_get(q_select->presuf));
+                /* TODO: array of points? */
+                LOGC("MERGE AS....");
             }
+
+            q_select->alist = siridb_aggregate_list(query->nodes->node);
             q_select->slist = imap_2slist_ref(q_select->series_map);
-            if (q_select->slist != NULL)
+
+            if (q_select->alist != NULL && q_select->slist != NULL)
             {
                 async_select_aggregate(handle);
             }
-            SIRIPARSER_NEXT_NODE
         }
     }
+}
+
+
+static int items_select_master(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    qp_add_string(query->packer, name);
+    siridb_points_pack(points, query->packer);
+
+    return 0;
+}
+
+int items_select_other(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    qp_add_string(query->packer, name);
+    siridb_points_raw_pack(points, query->packer);
+
+    return 0;
 }
 
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_select_t * q_select = (query_select_t *) query->data;
 
-    uv_mutex_lock(&siridb->series_mutex);
-
-    imap_walk(
-            ((query_select_t *) query->data)->series_map,
-            (imap_cb) &walk_select,
-            handle);
-
-    uv_mutex_unlock(&siridb->series_mutex);
+    if (IS_MASTER)
+    {
+        ct_items(q_select->result, (ct_item_cb) &items_select_master, handle);
+    }
+    else
+    {
+        qp_add_raw(query->packer, "select", 6);
+        qp_add_type(query->packer, QP_MAP_OPEN);
+        ct_items(q_select->result, (ct_item_cb) &items_select_other, handle);
+        qp_add_type(query->packer, QP_MAP_CLOSE);
+    }
 
     SIRIPARSER_NEXT_NODE
 }
@@ -2185,7 +2218,6 @@ static void async_filter_series(uv_async_t * handle)
             assert (0);
             break;
         }
-
     }
 }
 
@@ -2296,6 +2328,22 @@ static void async_select_aggregate(uv_async_t * handle)
     uv_async_t * async_more = NULL;
     siridb_series_t * series;
     siridb_points_t * points;
+    siridb_points_t * aggr_points;
+    uint32_t gid;
+
+    if (q_select->n > MAX_SELECT_POINTS)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Query has reached the maximum number of selected points "
+                "(%u). Please use another time window, an aggregation "
+                "function or select less series to reduce the number of "
+                "points.",
+                MAX_SELECT_POINTS);
+
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
 
     series = (siridb_series_t *)
             q_select->slist->data[q_select->slist_index];
@@ -2318,7 +2366,6 @@ static void async_select_aggregate(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-
     points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
             NULL : siridb_series_get_points_num32(
                     series,
@@ -2329,18 +2376,30 @@ static void async_select_aggregate(uv_async_t * handle)
 
     if (points != NULL)
     {
-        if ((q_select->n += points->len) > MAX_SELECT_POINTS)
+        for (size_t i = 0; i < q_select->alist->len; i++)
         {
-            snprintf(query->err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Query has reached the maximum number of selected points "
-                    "(%lu). Please use another time window, an aggregation "
-                    "function or select less series to reduce the number of "
-                    "points.",
-                    MAX_SELECT_POINTS);
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            aggr_points = siridb_aggregate_run(
+                    points,
+                    q_select->alist->data[i],
+                    query->err_msg);
+
+            if (aggr_points == NULL)
+            {
+                log_critical("Aggregation failed (aggregation: %lu)", gid);
+            }
+            else
+            {
+                siridb_points_free(points);
+                points = aggr_points;
+            }
         }
 
+        q_select->n += points->len;
+
+        ct_add(q_select->result, siridb_presuf_name(
+                q_select->presuf,
+                series->name,
+                series->name_len), points);
     }
 
     if (async_more != NULL)
@@ -2353,15 +2412,17 @@ static void async_select_aggregate(uv_async_t * handle)
         uv_async_send(async_more);
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
+    else if (IS_MASTER)
+    {
+        /* we have not reached the limit, send the query to other pools */
+        siridb_query_forward(
+                handle,
+                (q_select->plist == NULL) ?
+                        SIRIDB_QUERY_FWD_POOLS : SIRIDB_QUERY_FWD_SOME_POOLS,
+                (sirinet_promises_cb) on_select_response);
+    }
     else
     {
-        /* free the s-list object and reset index */
-        slist_free(q_select->slist);
-
-        q_select->slist = NULL;
-        q_select->slist_index = 0;
-
-
         SIRIPARSER_NEXT_NODE
     }
 }
@@ -2715,6 +2776,104 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     SIRIPARSER_NEXT_NODE
+}
+
+/*
+ * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
+ */
+static void on_select_response(slist_t * promises, uv_async_t * handle)
+{
+    ON_PROMISES
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t * unpacker;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    size_t err_count = 0;
+    query_select_t * q_select = (query_select_t *) query->data;
+    qp_obj_t * qp_name = qp_object_new();
+
+    if (qp_name == NULL)
+    {
+        return;  /* critical error, signal is set */
+    }
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            err_count++;
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Error occurred while sending the select query to at "
+                    "least one required server");
+        }
+        else
+        {
+            pkg = promise->data;
+
+            if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
+            {
+                err_count++;
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Error occurred while sending the database change to "
+                        "at least '%s'", promise->server->name);
+            }
+            else
+            {
+                unpacker = qp_unpacker_new(pkg->data, pkg->len);
+
+                if (unpacker != NULL)
+                {
+
+                    if (    qp_is_map(qp_next(unpacker, NULL)) &&
+                            qp_is_raw(qp_next(unpacker, NULL)) && // select
+                            qp_is_map(qp_next(unpacker, NULL)))
+                    {
+
+                        while (qp_is_array(qp_current(unpacker)))
+                        {
+                            if (q_list->limit)
+                            {
+                                qp_packer_extend_fu(query->packer, unpacker);
+                                q_list->limit--;
+                            }
+                            else
+                            {
+                                qp_skip_next(unpacker);
+                            }
+                        }
+
+                        /* extract time-it info if needed */
+                        if (query->timeit != NULL)
+                        {
+                            siridb_query_timeit_from_unpacker(query, unpacker);
+                        }
+
+                    }
+                    /* free the unpacker */
+                    qp_unpacker_free(unpacker);
+                }
+            }
+
+            /* make sure we free the promise and data */
+            free(promise->data);
+            free(promise);
+        }
+    }
+
+    if (err_count)
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 /*

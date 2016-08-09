@@ -503,10 +503,10 @@ static int test_aggr_count(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_COUNT - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_COUNT - F_OFFSET];
     aggr.group_by = 6;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 4);
@@ -530,10 +530,10 @@ static int test_aggr_max(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MAX - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MAX - F_OFFSET];
     aggr.group_by = 10;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 3);
@@ -557,10 +557,10 @@ static int test_aggr_mean(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MEAN - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MEAN - F_OFFSET];
     aggr.group_by = 4;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 5);
@@ -584,10 +584,10 @@ static int test_aggr_median(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MEDIAN - F_OFFSET];
     aggr.group_by = 7;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 4);
@@ -611,10 +611,10 @@ static int test_aggr_median_high(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN_HIGH - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MEDIAN_HIGH - F_OFFSET];
     aggr.group_by = 7;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 4);
@@ -638,10 +638,10 @@ static int test_aggr_median_low(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MEDIAN_LOW - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MEDIAN_LOW - F_OFFSET];
     aggr.group_by = 7;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 4);
@@ -665,10 +665,10 @@ static int test_aggr_min(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_MIN - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_MIN - F_OFFSET];
     aggr.group_by = 2;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 9);
@@ -692,10 +692,10 @@ static int test_aggr_sum(void)
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     siridb_points_t * points = prepare_points();
 
-    aggr.cb = siridb_aggregates[CLERI_GID_K_SUM - KW_OFFSET];
+    aggr.cb = siridb_aggregates[CLERI_GID_F_SUM - F_OFFSET];
     aggr.group_by = 5;
 
-    result = siridb_aggregate(points, &aggr, err_msg);
+    result = siridb_aggregate_run(points, &aggr, err_msg);
 
     assert (result != NULL);
     assert (result->len == 5);

@@ -713,7 +713,7 @@ int siridb_server_cexpr_cb(
 /*
  * Cancel promise. The promise->cb will be called.
  */
-static void SERVER_cancel_promise(sirinet_promise_t * promise, void * args)
+static void SERVER_cancel_promise(sirinet_promise_t * promise)
 {
     if (!uv_is_closing((uv_handle_t *) promise->timer))
     {
@@ -738,7 +738,7 @@ static void SERVER_free(siridb_server_t * server)
     if (server->promises != NULL)
     {
         imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
-        imap_free(server->promises);
+        imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
     }
     free(server->name);
     free(server->address);

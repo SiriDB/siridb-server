@@ -23,6 +23,20 @@
 siridb_presuf_t * PRESUF_add(siridb_presuf_t ** presuf);
 int PRESUF_is_equal(const char * a, const char * b);
 
+static char * presuffed_name = NULL;
+static size_t presuffed_size = 0;
+
+/*
+ * Memory will be allocated for 'presuffed_name' using malloc.
+ * This function must be called once to free the memory.
+ */
+void siridb_presuf_cleanup(void)
+{
+    free(presuffed_name);
+    presuffed_name = NULL;
+    presuffed_size = 0;
+}
+
 /*
  * A new prefix-suffix object is simple a NULL pointer.
  */
@@ -78,7 +92,7 @@ siridb_presuf_t * siridb_presuf_add(
                 if (nps->prefix != NULL)
                 {
                     /* not critical if suffix is still NULL */
-                    strx_extract_string(
+                    nps->len += strx_extract_string(
                             nps->prefix,
                             ps_children->next->node->str,
                             ps_children->next->node->len);
@@ -93,7 +107,7 @@ siridb_presuf_t * siridb_presuf_add(
                 if (nps->suffix != NULL)
                 {
                     /* not critical if suffix is still NULL */
-                    strx_extract_string(
+                    nps->len += strx_extract_string(
                             nps->suffix,
                             ps_children->next->node->str,
                             ps_children->next->node->len);
@@ -107,22 +121,6 @@ siridb_presuf_t * siridb_presuf_add(
         }
     }
     return nps;
-}
-
-/*
- * Get the current prefix. (or "" is no prefix is set)
- */
-inline const char * siridb_presuf_prefix_get(siridb_presuf_t * presuf)
-{
-    return (presuf->prefix == NULL) ? "" : presuf->prefix;
-}
-
-/*
- * Get the current suffix. (or "" is no suffix is set)
- */
-inline const char * siridb_presuf_suffix_get(siridb_presuf_t * presuf)
-{
-    return (presuf->suffix == NULL) ? "" : presuf->suffix;
 }
 
 /*
@@ -144,6 +142,34 @@ int siridb_presuf_is_unique(siridb_presuf_t * presuf)
     return 1;  /* true, unique */
 }
 
+
+
+const char * siridb_presuf_name(
+        siridb_presuf_t * presuf,
+        const char * name,
+        size_t len)
+{
+    size_t size = len + presuf->len;
+    if (size > presuffed_size)
+    {
+        char * tmp;
+        tmp = (char *) realloc(presuffed_name, size);
+        if (tmp == NULL)
+        {
+            ERR_ALLOC
+            return NULL;
+        }
+        presuffed_size = size;
+        presuffed_name = tmp;
+    }
+    sprintf(presuffed_name,
+            "%s%s%s",
+            (presuf->prefix == NULL) ? "" : presuf->prefix,
+            name,
+            (presuf->suffix == NULL) ? "" : presuf->suffix);
+    return presuffed_name;
+}
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
@@ -162,6 +188,7 @@ siridb_presuf_t * PRESUF_add(siridb_presuf_t ** presuf)
     {
         newps->prefix = NULL;
         newps->suffix = NULL;
+        newps->len = 1;  /* we include the terminator char in the length */
         newps->prev = *presuf;
         *presuf = newps;
     }

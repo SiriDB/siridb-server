@@ -334,8 +334,7 @@ slist_t * imap_2slist_ref(imap_t * imap)
 void imap_union_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data)
+        imap_free_cb decref_cb)
 {
     if (imap->len)
     {
@@ -399,8 +398,7 @@ void imap_union_ref(
 void imap_intersection_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data)
+        imap_free_cb decref_cb)
 {
     imap_node_t * dest_nd;
     imap_node_t * imap_nd;
@@ -411,11 +409,11 @@ void imap_intersection_ref(
         imap_nd = imap->nodes + i;
         if (imap_nd->data != NULL)
         {
-            (*decref_cb)(imap_nd->data, data);
+            (*decref_cb)(imap_nd->data);
         }
         else if (dest_nd->data != NULL)
         {
-            (*decref_cb)(dest_nd->data, data);
+            (*decref_cb)(dest_nd->data);
             dest_nd->data = NULL;
             dest->len--;
         }
@@ -425,18 +423,18 @@ void imap_intersection_ref(
             if (dest_nd->nodes != NULL)
             {
                 size_t tmp = dest_nd->size;
-                IMAP_intersection_ref(dest_nd, imap_nd, decref_cb, data);
+                IMAP_intersection_ref(dest_nd, imap_nd, decref_cb);
                 dest->len -= tmp - dest_nd->size;
             }
             else
             {
-                IMAP_node_free_cb(imap_nd, decref_cb, data);
+                IMAP_node_free_cb(imap_nd, decref_cb);
             }
         }
         else if (dest_nd->nodes != NULL)
         {
             dest->len -= dest_nd->size;
-            IMAP_node_free_cb(dest_nd, decref_cb, data);
+            IMAP_node_free_cb(dest_nd, decref_cb);
         }
     }
 
@@ -456,8 +454,7 @@ void imap_intersection_ref(
 void imap_difference_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data)
+        imap_free_cb decref_cb)
 {
     if (imap->len)
     {
@@ -484,7 +481,7 @@ void imap_difference_ref(
 
                 }
                 /* now we are not sure anymore if we have ref left */
-                (*decref_cb)(imap_nd->data, data);
+                (*decref_cb)(imap_nd->data);
             }
 
             if (imap_nd->nodes != NULL)
@@ -492,12 +489,12 @@ void imap_difference_ref(
                 if (dest_nd->nodes != NULL)
                 {
                     size_t tmp = dest_nd->size;
-                    IMAP_difference_ref(dest_nd, imap_nd, decref_cb, data);
+                    IMAP_difference_ref(dest_nd, imap_nd, decref_cb);
                     dest->len -= tmp - dest_nd->size;
                 }
                 else
                 {
-                    IMAP_node_free_cb(imap_nd, decref_cb, data);
+                    IMAP_node_free_cb(imap_nd, decref_cb);
                 }
             }
         }
@@ -519,8 +516,7 @@ void imap_difference_ref(
 void imap_symmetric_difference_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_cb decref_cb,
-        void * data)
+        imap_free_cb decref_cb)
 {
     if (imap->len)
     {
@@ -544,7 +540,7 @@ void imap_symmetric_difference_ref(
                     slist_object_decref(dest_nd->data);
 
                     /* but now we are not sure anymore */
-                    (*decref_cb)(imap_nd->data, data);
+                    (*decref_cb)(imap_nd->data);
 
                     dest_nd->data = NULL;
                     dest->len--;
@@ -564,8 +560,7 @@ void imap_symmetric_difference_ref(
                     IMAP_symmetric_difference_ref(
                             dest_nd,
                             imap_nd,
-                            decref_cb,
-                            data);
+                            decref_cb);
                     dest->len += dest_nd->size - tmp;
                 }
                 else
