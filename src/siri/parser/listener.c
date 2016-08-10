@@ -38,9 +38,9 @@
 #include <siri/db/presuf.h>
 #include <siri/db/aggregate.h>
 
-#define MAX_ITERATE_COUNT 1000
-#define MAX_SELECT_POINTS 1000000 // 1 million
-#define MAX_LIST_LIMIT 10000
+#define MAX_ITERATE_COUNT 1000      // thousand
+#define MAX_SELECT_POINTS 1000000   // one million
+#define MAX_LIST_LIMIT 10000        // ten thousand
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 6
@@ -2407,7 +2407,7 @@ static void async_select_aggregate(uv_async_t * handle)
 
     if (points != NULL)
     {
-        for (size_t i = 0; i < q_select->alist->len; i++)
+        for (size_t i = 0; points->len && i < q_select->alist->len; i++)
         {
             aggr_points = siridb_aggregate_run(
                     points,

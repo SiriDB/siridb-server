@@ -18,7 +18,7 @@
 #include <siri/siri.h>
 #include <siri/err.h>
 
-#define MAX_ALLOWED_PKG_SIZE 209715200  // 200 MB
+#define MAX_ALLOWED_PKG_SIZE 1048576  // 1 MB
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 
@@ -97,7 +97,8 @@ void sirinet_socket_on_data(
             pkg = (sirinet_pkg_t *) buf->base;
 
             if (    (pkg->tp ^ 255) != pkg->checkbit ||
-                    pkg->len > MAX_ALLOWED_PKG_SIZE)
+                    (ssocket->tp == SOCKET_CLIENT &&
+                            pkg->len > MAX_ALLOWED_PKG_SIZE))
             {
                 log_error(
                         "Got an illegal package or size too large, "
@@ -167,7 +168,8 @@ void sirinet_socket_on_data(
         pkg = (sirinet_pkg_t *) ssocket->buf;
 
         if (    (pkg->tp ^ 255) != pkg->checkbit ||
-                pkg->len > MAX_ALLOWED_PKG_SIZE)
+                (ssocket->tp == SOCKET_CLIENT &&
+                        pkg->len > MAX_ALLOWED_PKG_SIZE))
         {
             log_error(
                     "Got an illegal package or size too large, "

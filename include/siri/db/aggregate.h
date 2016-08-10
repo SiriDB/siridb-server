@@ -22,8 +22,8 @@ typedef struct siridb_aggr_s siridb_aggr_t;
 typedef struct siridb_aggr_s
 {
     uint32_t gid;
-    int64_t group_by;
-    int64_t timespan;  // used for derivative
+    uint64_t group_by;
+    double timespan;  // used for derivative
 } siridb_aggr_t;
 
 siridb_points_t * siridb_aggregate_run(
