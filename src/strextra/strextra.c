@@ -103,8 +103,10 @@ bool strx_is_int(const char * str)
 bool strx_is_float(const char * str)
 {
    // Handle negative numbers.
-   if (*str == '-')
+   if (*str == '-' || *str == '+')
+   {
        ++str;
+   }
 
    size_t dots = 0;
 
@@ -116,9 +118,13 @@ bool strx_is_float(const char * str)
    while (*str)
    {
        if (*str == '.')
+       {
            ++dots;
+       }
        else if (!isdigit(*str))
+       {
            return false;
+       }
 
        ++str;
    }
@@ -129,8 +135,12 @@ bool strx_is_float(const char * str)
 bool strx_is_graph(const char * str)
 {
     for (; *str; str++)
+    {
         if (!isgraph(*str))
+        {
             return false;
+        }
+    }
     return true;
 }
 
@@ -172,6 +182,20 @@ double strx_to_double(const char * src, size_t len)
 {
     char * pt = (char *) src;
     double d = 0;
+    double convert;
+
+    switch (*pt)
+    {
+    case '-':
+        convert = -1.0;
+        pt++;
+        break;
+    case '+':
+        pt++;
+        /* no break */
+    default:
+        convert = 1.0;
+    }
 
     uint64_t r1 = *pt - '0';
 
@@ -194,5 +218,5 @@ double strx_to_double(const char * src, size_t len)
         d += pow(10, i) * (double) r2;
     }
 
-    return d;
+    return convert * d;
 }

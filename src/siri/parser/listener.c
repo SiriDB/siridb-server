@@ -1693,11 +1693,20 @@ static void exit_select_aggregate(uv_async_t * handle)
 
             if (q_select->series_map->len)
             {
-                q_select->alist = siridb_aggregate_list(query->nodes->node);
-                q_select->slist = imap_2slist_ref(q_select->series_map);
-                if (q_select->alist != NULL && q_select->slist != NULL)
+                q_select->alist = siridb_aggregate_list(
+                        query->nodes->node,
+                        query->err_msg);
+                if (q_select->alist == NULL)
                 {
-                    async_select_aggregate(handle);
+                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                }
+                else
+                {
+                    q_select->slist = imap_2slist_ref(q_select->series_map);
+                    if (q_select->slist != NULL)
+                    {
+                        async_select_aggregate(handle);
+                    }
                 }
             }
             else if (IS_MASTER &&
@@ -1718,7 +1727,6 @@ static void exit_select_aggregate(uv_async_t * handle)
         }
     }
 }
-
 
 static int items_select_master(
         const char * name,
@@ -1809,7 +1817,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
                 QP_ADD_SUCCESS
                 qp_add_fmt_safe(query->packer,
                         "Successful changed drop_threshold from "
-                        "%0.3f to %0.3f.",
+                        "%g to %g.",
                         old,
                         siridb->drop_threshold);
 

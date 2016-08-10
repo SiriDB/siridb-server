@@ -155,11 +155,7 @@ void query_select_free(uv_handle_t * handle)
 
     if (q_select->alist != NULL)
     {
-        for (size_t i = 0; i < q_select->alist->len; i++)
-        {
-            free(q_select->alist->data[i]);
-        }
-        free(q_select->alist);
+        siridb_aggregate_list_free(q_select->alist);
     }
 
     QUERIES_FREE(q_select, handle)
