@@ -50,6 +50,8 @@ free(q->regex_extra);                                           \
 free(q);                                                        \
 siridb_query_free(handle);
 
+static QUERIES_free_merge_result(slist_t * plist);
+
 query_select_t * query_select_new(void)
 {
     query_select_t * q_select =
@@ -72,6 +74,7 @@ query_select_t * query_select_new(void)
         q_select->points_map = NULL;
         q_select->result = ct_new();  // a signal is raised in case of failure
         q_select->alist = NULL;
+        q_select->mlist = NULL;
     }
     return q_select;
 }
@@ -135,13 +138,14 @@ query_drop_t * query_drop_new(void)
     return q_drop;
 }
 
+
+
 void query_select_free(uv_handle_t * handle)
 {
     query_select_t * q_select =
             (query_select_t *) ((siridb_query_t *) handle->data)->data;
 
     siridb_presuf_free(q_select->presuf);
-    free(q_select->merge_as);
 
     if (q_select->points_map != NULL)
     {
@@ -150,12 +154,26 @@ void query_select_free(uv_handle_t * handle)
 
     if (q_select->result != NULL)
     {
-        ct_free(q_select->result, (ct_free_cb) &siridb_points_free);
+        if (q_select->merge_as == NULL)
+        {
+            ct_free(q_select->result, (ct_free_cb) &siridb_points_free);
+        }
+        else
+        {
+            ct_free(q_select->result, (ct_free_cb) &QUERIES_free_merge_result);
+        }
     }
+
+    free(q_select->merge_as);
 
     if (q_select->alist != NULL)
     {
         siridb_aggregate_list_free(q_select->alist);
+    }
+
+    if (q_select->mlist != NULL)
+    {
+        siridb_aggregate_list_free(q_select->mlist);
     }
 
     QUERIES_FREE(q_select, handle)
@@ -190,4 +208,13 @@ void query_drop_free(uv_handle_t * handle)
             (query_drop_t *) ((siridb_query_t *) handle->data)->data;
 
     QUERIES_FREE(q_drop, handle)
+}
+
+static QUERIES_free_merge_result(slist_t * plist)
+{
+    for (size_t i = 0; i < plist->len; i ++)
+    {
+        siridb_points_free(plist->data[i]);
+    }
+    free(plist);
 }

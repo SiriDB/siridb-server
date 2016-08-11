@@ -74,7 +74,7 @@ typedef union qp_via_u
 {
     int64_t int64;
     double real;
-    const char * raw;
+    char * raw;
 } qp_via_t;
 
 typedef struct qp_obj_s
@@ -87,8 +87,8 @@ typedef struct qp_obj_s
 typedef struct qp_unpacker_s
 {
     char * source; // can be NULL or a copy or the source
-    const char * pt;
-    const char * end;
+    char * pt;
+    char * end;
 } qp_unpacker_t;
 
 typedef struct qp_packer_s
@@ -116,7 +116,7 @@ void qp_object_free(qp_obj_t * qp_obj);
 void qp_object_free_safe(qp_obj_t * qp_obj);
 
 /* unpacker: create and destroy functions */
-qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len);
+qp_unpacker_t * qp_unpacker_new(char * pt, size_t len);
 void qp_unpacker_free(qp_unpacker_t * unpacker);
 qp_unpacker_t * qp_unpacker_from_file(const char * fn);
 
@@ -126,7 +126,7 @@ qp_types_t qp_current(qp_unpacker_t * unpacker);
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
 
 /* print function */
-void qp_print(const char * pt, size_t len);
+void qp_print(char * pt, size_t len);
 
 /* Shortcut to print a packer object */
 #define qp_packer_print(packer) \

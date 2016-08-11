@@ -121,6 +121,36 @@ int cexpr_int_cmp(
 /*
  * Returns 0 or 1 (false or true).
  */
+int cexpr_double_cmp(
+        const cexpr_operator_t operator,
+        const double a,
+        const double b)
+{
+    switch (operator)
+    {
+    case CEXPR_EQ:
+        return a == b;
+    case CEXPR_NE:
+        return a != b;
+    case CEXPR_GT:
+        return a > b;
+    case CEXPR_LT:
+        return a < b;
+    case CEXPR_GE:
+        return a >= b;
+    case CEXPR_LE:
+        return a <= b;
+    default:
+        log_critical("Got an unexpected operator (int type): %d", operator);
+        assert (0);
+    }
+    /* we should NEVER get here */
+    return -1;
+}
+
+/*
+ * Returns 0 or 1 (false or true).
+ */
 int cexpr_str_cmp(
         const cexpr_operator_t operator,
         const char * a,
@@ -259,6 +289,39 @@ void cexpr_free(cexpr_t * cexpr)
     free(cexpr);
 }
 
+/*
+ * Get operator from cleri node
+ */
+cexpr_operator_t cexpr_operator_fn(cleri_node_t * node)
+{
+    if (node->len == 1)
+    {
+        switch (*node->str)
+        {
+        case '>': return CEXPR_GT;
+        case '<': return CEXPR_LT;
+        case '~': return CEXPR_IN;
+        }
+    }
+    else
+    {
+#ifdef DEBUG
+        assert (node->len == 2);
+#endif
+        switch (*node->str)
+        {
+        case '=': return CEXPR_EQ;
+        case '!': return (*(node->str + 1) == '=') ?
+                    CEXPR_NE : CEXPR_NI;
+        case '>': return CEXPR_GE;
+        case '<': return CEXPR_LE;
+        }
+    }
+
+    assert (0);
+    return 0;
+}
+
 static cexpr_t * CEXPR_walk_node(
         cleri_node_t * node,
         cexpr_t * cexpr,
@@ -295,29 +358,7 @@ static cexpr_t * CEXPR_walk_node(
             /* this one of the following operators:
              *      ==  <  <=  >  >=  !=  ~  !~
              */
-            if (node->len == 1)
-            {
-                switch (*node->str)
-                {
-                case '>': (*condition)->operator = CEXPR_GT; break;
-                case '<': (*condition)->operator = CEXPR_LT; break;
-                case '~': (*condition)->operator = CEXPR_IN; break;
-                }
-            }
-            else
-            {
-#ifdef DEBUG
-                assert (node->len == 2);
-#endif
-                switch (*node->str)
-                {
-                case '=': (*condition)->operator = CEXPR_EQ; break;
-                case '!': (*condition)->operator = (*(node->str + 1) == '=') ?
-                            CEXPR_NE : CEXPR_NI; break;
-                case '>': (*condition)->operator = CEXPR_GE; break;
-                case '<': (*condition)->operator = CEXPR_LE; break;
-                }
-            }
+            (*condition)->operator = cexpr_operator_fn(node);
             (*expecting) = EXPECTING_VAL;
             return cexpr;
 

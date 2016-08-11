@@ -79,7 +79,8 @@ typedef struct query_select_s
     char * merge_as;
     ct_t * result;
     imap_t * points_map;
-    slist_t * alist;
+    slist_t * alist;        // aggregation list (can be used multiple times)
+    slist_t * mlist;        // merge aggregation list
 } query_select_t;
 
 

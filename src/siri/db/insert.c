@@ -245,7 +245,7 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
     uint16_t pool;
     const char * series_name;
     int do_forward = 0;
-    const char * pt;
+    char * pt;
 
     siridb_forward_t * forward = siridb_forward_new(siridb);
     if (forward == NULL)

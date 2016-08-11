@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-08-10 15:11:00
+ * Created at: 2016-08-11 14:08:50
  */
 
 #pragma once
@@ -70,7 +70,6 @@ enum cleri_grammar_ids {
     CLERI_GID_F_MIN,
     CLERI_GID_F_POINTS,
     CLERI_GID_F_PVARIANCE,
-    CLERI_GID_F_REJECT,
     CLERI_GID_F_SUM,
     CLERI_GID_F_VARIANCE,
     CLERI_GID_GRANT_NETWORK,
@@ -129,6 +128,7 @@ enum cleri_grammar_ids {
     CLERI_GID_INT_EXPR,
     CLERI_GID_INT_OPERATOR,
     CLERI_GID_K_ACCESS,
+    CLERI_GID_K_ACTIVE_HANDLES,
     CLERI_GID_K_ADDRESS,
     CLERI_GID_K_AFTER,
     CLERI_GID_K_ALTER,
@@ -211,7 +211,6 @@ enum cleri_grammar_ids {
     CLERI_GID_K_READ,
     CLERI_GID_K_RECEIVED_POINTS,
     CLERI_GID_K_REINDEX_PROGRESS,
-    CLERI_GID_K_REJECT,
     CLERI_GID_K_REVOKE,
     CLERI_GID_K_SELECT,
     CLERI_GID_K_SERIES,
@@ -232,7 +231,6 @@ enum cleri_grammar_ids {
     CLERI_GID_K_SUM,
     CLERI_GID_K_SYMMETRIC_DIFFERENCE,
     CLERI_GID_K_SYNC_PROGRESS,
-    CLERI_GID_K_TASK_QUEUE,
     CLERI_GID_K_TIMEIT,
     CLERI_GID_K_TIMEZONE,
     CLERI_GID_K_TIME_PRECISION,

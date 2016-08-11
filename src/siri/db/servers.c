@@ -606,10 +606,15 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
          * is detected we should perform the query on each server and only for
          * that specific server.
          */
-        case CLERI_GID_K_LOG_LEVEL:
+        case CLERI_GID_K_ACTIVE_HANDLES:
 #ifdef DEBUG
             assert (siridb->server == server);
 #endif
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) abs(siri.loop->active_handles));
+            break;
+        case CLERI_GID_K_LOG_LEVEL:
             qp_add_string(query->packer, Logger.level_name);
             break;
         case CLERI_GID_K_MAX_OPEN_FILES:

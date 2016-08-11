@@ -235,7 +235,7 @@ int siridb_server_send_pkg(
  */
 siridb_server_t * siridb_server_register(
         siridb_t * siridb,
-        const char * data,
+        char * data,
         size_t len)
 {
     siridb_server_t * server = NULL;
@@ -549,6 +549,7 @@ int siridb_server_is_remote_prop(uint32_t prop)
 {
     switch (prop)
     {
+    /* these are the local props */
     case CLERI_GID_K_ADDRESS:
     case CLERI_GID_K_BUFFER_PATH:
     case CLERI_GID_K_BUFFER_SIZE:

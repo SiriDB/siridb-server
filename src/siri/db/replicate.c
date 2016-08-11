@@ -265,7 +265,7 @@ static void REPLICATE_work(uv_timer_t * handle)
  */
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
-        const char * data,
+        char * data,
         size_t len,
         int flags)
 {

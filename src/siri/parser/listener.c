@@ -523,7 +523,7 @@ static void enter_merge_as(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
-    q_select->merge_as = (char *) malloc(node->len + 1);
+    q_select->merge_as = (char *) malloc(node->len - 1);
 
     if (q_select->merge_as == NULL)
     {
@@ -534,10 +534,12 @@ static void enter_merge_as(uv_async_t * handle)
         strx_extract_string(q_select->merge_as, node->str, node->len);
     }
 
-    if (IS_MASTER)
+    if (IS_MASTER && query->nodes->node->children->next->next->next != NULL)
     {
-        /* TODO: master: see listener.py: enter_merge_expr */
-
+        q_select->mlist = siridb_aggregate_list(
+                query->nodes->node->children->next->next->next->node->
+                    children->node->children->next->node->children,
+                query->err_msg);
     }
 
     SIRIPARSER_NEXT_NODE
@@ -1687,14 +1689,27 @@ static void exit_select_aggregate(uv_async_t * handle)
         {
             if (q_select->merge_as != NULL)
             {
-                /* TODO: array of points? */
-                LOGC("MERGE AS....");
+                slist_t * points = slist_new(SLIST_DEFAULT_SIZE);
+
+                if (points != NULL || ct_add(
+                        q_select->result,
+                        siridb_presuf_name(
+                            q_select->presuf,
+                            q_select->merge_as,
+                            strlen(q_select->merge_as)),
+                        points))
+                {
+                    sprintf(query->err_msg,
+                            "Critical error while adding points to map");
+                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                    return;
+                }
             }
 
             if (q_select->series_map->len)
             {
                 q_select->alist = siridb_aggregate_list(
-                        query->nodes->node,
+                        query->nodes->node->children->node->children,
                         query->err_msg);
                 if (q_select->alist == NULL)
                 {
@@ -1712,7 +1727,6 @@ static void exit_select_aggregate(uv_async_t * handle)
             else if (IS_MASTER &&
                     (q_select->plist == NULL || q_select->plist->len))
             {
-                /* we have not reached the limit, send the query to other pools */
                 siridb_query_forward(
                         handle,
                         (q_select->plist == NULL) ?
@@ -1762,6 +1776,17 @@ static void exit_select_stmt(uv_async_t * handle)
     if (IS_MASTER)
     {
         ct_items(q_select->result, (ct_item_cb) &items_select_master, handle);
+
+//        if (IS_MASTER &&
+//                    (q_select->plist == NULL || q_select->plist->len))
+//            {
+//                /* we have not reached the limit, send the query to other pools */
+//                siridb_query_forward(
+//                        handle,
+//                        (q_select->plist == NULL) ?
+//                                SIRIDB_QUERY_FWD_POOLS : SIRIDB_QUERY_FWD_SOME_POOLS,
+//                        (sirinet_promises_cb) on_select_response);
+
     }
     else
     {
@@ -2407,6 +2432,8 @@ static void async_select_aggregate(uv_async_t * handle)
 
     if (points != NULL)
     {
+        char * name;
+
         for (size_t i = 0; points->len && i < q_select->alist->len; i++)
         {
             aggr_points = siridb_aggregate_run(
@@ -2414,24 +2441,54 @@ static void async_select_aggregate(uv_async_t * handle)
                     (siridb_aggr_t *) q_select->alist->data[i],
                     query->err_msg);
 
+            siridb_points_free(points);
+
             if (aggr_points == NULL)
             {
-                log_critical("Aggregation failed (aggregation: %lu)",
-                        ((siridb_aggr_t *) q_select->alist->data[i])->gid);
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
             }
-            else
-            {
-                siridb_points_free(points);
-                points = aggr_points;
-            }
+
+            points = aggr_points;
         }
 
         q_select->n += points->len;
 
-        ct_add(q_select->result, siridb_presuf_name(
-                q_select->presuf,
-                series->name,
-                series->name_len), points);
+        if (q_select->merge_as == NULL)
+        {
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    series->name,
+                    series->name_len);
+            if (name != NULL || ct_add(q_select->result, name, points))
+            {
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
+        }
+        else
+        {
+            slist_t * plist = ct_get(
+                    q_select->result,
+                    siridb_presuf_name(
+                        q_select->presuf,
+                        q_select->merge_as,
+                        strlen(q_select->merge_as)));
+#ifdef DEBUG
+            assert (plist != NULL);
+#endif
+            if (slist_append_safe(&plist, points))
+            {
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
+        }
     }
 
     if (async_more != NULL)
@@ -2444,18 +2501,15 @@ static void async_select_aggregate(uv_async_t * handle)
         uv_async_send(async_more);
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
-    else if (IS_MASTER &&
-            (q_select->plist == NULL || q_select->plist->len))
-    {
-        /* we have not reached the limit, send the query to other pools */
-        siridb_query_forward(
-                handle,
-                (q_select->plist == NULL) ?
-                        SIRIDB_QUERY_FWD_POOLS : SIRIDB_QUERY_FWD_SOME_POOLS,
-                (sirinet_promises_cb) on_select_response);
-    }
     else
     {
+        siridb_aggregate_list_free(q_select->alist);
+        q_select->alist = NULL;
+
+        slist_free(q_select->slist);
+        q_select->slist = NULL;
+        q_select->slist_index = 0;
+
         SIRIPARSER_NEXT_NODE
     }
 }

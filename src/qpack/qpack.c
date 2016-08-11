@@ -86,7 +86,7 @@ static qp_types_t QP_print_unpacker(
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
-qp_unpacker_t * qp_unpacker_new(const char * pt, size_t len)
+qp_unpacker_t * qp_unpacker_new(char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
     if (unpacker == NULL)
@@ -343,7 +343,7 @@ inline int qp_is_raw_term(qp_obj_t * qp_obj)
 /*
  * Print qpack content.
  */
-void qp_print(const char * pt, size_t len)
+void qp_print(char * pt, size_t len)
 {
     qp_unpacker_t * unpacker = qp_unpacker_new(pt, len);
     qp_obj_t * qp_obj = qp_object_new();

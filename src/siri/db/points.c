@@ -19,7 +19,7 @@
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
-siridb_points_t * siridb_points_new(size_t size, uint8_t tp)
+siridb_points_t * siridb_points_new(size_t size, siridb_points_tp tp)
 {
     siridb_points_t * points =
             (siridb_points_t *) malloc(sizeof(siridb_points_t));

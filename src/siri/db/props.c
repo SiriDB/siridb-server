@@ -33,6 +33,10 @@ if (map)                                \
     qp_add_raw(packer, "value", 5);     \
 }
 
+static void prop_active_handles(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_buffer_path(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -145,6 +149,8 @@ void siridb_init_props(void)
     for (uint_fast16_t i = 0; i < KW_COUNT; i++)
         siridb_props[i] = NULL;
 
+    siridb_props[CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET] =
+            prop_active_handles;
     siridb_props[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] =
             prop_buffer_path;
     siridb_props[CLERI_GID_K_BUFFER_SIZE - KW_OFFSET] =
@@ -197,6 +203,15 @@ void siridb_init_props(void)
             prop_version;
     siridb_props[CLERI_GID_K_WHO_AM_I - KW_OFFSET] =
             prop_who_am_i;
+}
+
+static void prop_active_handles(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("active_handles", 14)
+    qp_add_int32(packer, (int32_t) abs(siri.loop->active_handles));
 }
 
 static void prop_buffer_path(

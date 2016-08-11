@@ -18,6 +18,7 @@
 #include <slist/slist.h>
 #include <siri/db/variance.h>
 #include <limits.h>
+#include <strextra/strextra.h>
 
 #define AGGR_NEW                                    \
 if ((aggr = AGGREGATE_new(gid)) == NULL)            \
@@ -32,7 +33,7 @@ if (slist_append_safe(&slist, aggr))                \
 {                                                   \
     ERR_ALLOC                                       \
     sprintf(err_msg, "Memory allocation error.");   \
-    free(aggr);                                     \
+    AGGREGATE_free(aggr);                           \
     siridb_aggregate_list_free(slist);              \
     return NULL;                                    \
 }
@@ -49,15 +50,22 @@ typedef int (* AGGR_cb)(
 static AGGR_cb AGGREGATES[F_OFFSET];
 
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid);
+static void AGGREGATE_free(siridb_aggr_t * aggr);
+static int AGGREGATE_init_filter(
+        siridb_aggr_t * aggr,
+        cleri_node_t * node,
+        char * err_msg);
 static siridb_points_t * AGGREGATE_derivative(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
         char * err_msg);
-
 static siridb_points_t * AGGREGATE_difference(
         siridb_points_t * source,
         char * err_msg);
-
+static siridb_points_t * AGGREGATE_filter(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
+        char * err_msg);
 static siridb_points_t * AGGREGATE_group_by(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -145,6 +153,7 @@ void siridb_init_aggregates(void)
         AGGREGATES[i] = NULL;
     }
 
+    /* filter is not included since we only use these for group_by functions */
     AGGREGATES[CLERI_GID_F_COUNT - F_OFFSET] = aggr_count;
     AGGREGATES[CLERI_GID_F_DERIVATIVE - F_OFFSET] = aggr_derivative;
     AGGREGATES[CLERI_GID_F_DIFFERENCE - F_OFFSET] = aggr_difference;
@@ -162,9 +171,8 @@ void siridb_init_aggregates(void)
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
-slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
+slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 {
-    cleri_children_t * children = node->children->node->children;
     uint32_t gid;
     slist_t * slist = slist_new(SLIST_DEFAULT_SIZE);
     if (slist == NULL)
@@ -183,6 +191,40 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
 
                 switch (gid)
                 {
+                case CLERI_GID_F_FILTER:
+                    AGGR_NEW
+                    {
+                        cleri_node_t * onode;
+                        if (    children->node->children->node->children->
+                                next->next->next->next == NULL)
+                        {
+                            aggr->filter_opr = CEXPR_EQ;
+                            onode = children->node->children->node->
+                                    children->next->next->node->
+                                    children->node;
+                        }
+                        else
+                        {
+                            aggr->filter_opr = cexpr_operator_fn(
+                                    children->node->children->node->
+                                    children->next->next->node->
+                                    children->node);
+                            onode = children->node->children->node->
+                                    children->next->next->next->node->
+                                    children->node;
+                        }
+                        if (AGGREGATE_init_filter(aggr, onode, err_msg))
+                        {
+                            AGGREGATE_free(aggr);
+                            siridb_aggregate_list_free(slist);
+                            return NULL;
+                        }
+                    }
+
+                    SLIST_APPEND
+
+                    break;
+
                 case CLERI_GID_F_DERIVATIVE:
                     AGGR_NEW
                     {
@@ -191,7 +233,6 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
 
                         if (dlist->children->node != NULL)
                         {
-                            LOGC("Here1...");
                             /* result is at least positive, checked earlier */
                             aggr->timespan =
                                     (double) dlist->children->node->result;
@@ -201,15 +242,13 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
                                 sprintf(err_msg,
                                         "Time-span must be an integer value "
                                         "larger than zero.");
-                                free(aggr);
+                                AGGREGATE_free(aggr);
                                 siridb_aggregate_list_free(slist);
                                 return NULL;
                             }
 
                             if (dlist->children->next != NULL)
                             {
-                                LOGC("Here2...");
-
                                 /* result is always positive */
                                 aggr->group_by = dlist->children->next->next->
                                         node->result;
@@ -219,18 +258,16 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
                                     sprintf(err_msg,
                                             "Group by time must be an integer "
                                             "value larger than zero.");
-                                    free(aggr);
+                                    AGGREGATE_free(aggr);
                                     siridb_aggregate_list_free(slist);
                                     return NULL;
                                 }
-                                LOGC("TIMESPAN: %g, GOUP_BY: %lu", aggr->timespan, aggr->group_by);
+
                                 aggr->timespan /= (double) aggr->group_by;
                             }
-                            LOGC("Here3...");
-
                         }
                     }
-                    LOGC("Here4...");
+
                     SLIST_APPEND
 
                     break;
@@ -250,7 +287,7 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
                             sprintf(err_msg,
                                     "Group by time must be an integer value "
                                     "larger than zero.");
-                            free(aggr);
+                            AGGREGATE_free(aggr);
                             siridb_aggregate_list_free(slist);
                             return NULL;
                         }
@@ -279,7 +316,7 @@ slist_t * siridb_aggregate_list(cleri_node_t * node, char * err_msg)
                         sprintf(err_msg,
                                 "Group by time must be an integer value "
                                 "larger than zero.");
-                        free(aggr);
+                        AGGREGATE_free(aggr);
                         siridb_aggregate_list_free(slist);
                         return NULL;
                     }
@@ -315,7 +352,7 @@ void siridb_aggregate_list_free(slist_t * alist)
 {
     for (size_t i = 0; i < alist->len; i++)
     {
-        free(alist->data[i]);
+        AGGREGATE_free(alist->data[i]);
     }
     free(alist);
 }
@@ -342,6 +379,9 @@ siridb_points_t * siridb_aggregate_run(
     case CLERI_GID_F_DERIVATIVE:
         return AGGREGATE_derivative(source, aggr, err_msg);
 
+    case CLERI_GID_F_FILTER:
+        return AGGREGATE_filter(source, aggr, err_msg);
+
     default:
         assert (0);
         break;
@@ -365,8 +405,72 @@ static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
         aggr->gid = gid;
         aggr->group_by = 0;
         aggr->timespan = 1.0;
+        aggr->filter_tp = SIRIDB_POINTS_TP_INT;  /* when string we malloc/free
+                                                  * aggr->filter_via.raw */
     }
     return aggr;
+}
+
+/*
+ * Destroy aggregate object. (parsing NULL is not allowed)
+ */
+static void AGGREGATE_free(siridb_aggr_t * aggr)
+{
+    if (aggr->filter_tp == SIRIDB_POINTS_TP_STRING)
+    {
+        free(aggr->filter_via.raw);
+    }
+    free(aggr);
+}
+
+/*
+ * Returns 0 if successful or -1 in case or an error.
+ * A signal is raised in case of an allocation error and the err_msg is set
+ * for any error.
+ */
+static int AGGREGATE_init_filter(
+        siridb_aggr_t * aggr,
+        cleri_node_t * node,
+        char * err_msg)
+{
+    switch (node->cl_obj->via.dummy->gid)
+    {
+    case CLERI_GID_R_INTEGER:
+        aggr->filter_tp = SIRIDB_POINTS_TP_INT;
+        aggr->filter_via.int64 = atoll(node->str);
+        break;
+
+    case CLERI_GID_R_FLOAT:
+        aggr->filter_tp = SIRIDB_POINTS_TP_DOUBLE;
+        aggr->filter_via.real = strx_to_double(node->str, node->len);
+        break;
+
+    case CLERI_GID_STRING:
+        aggr->filter_tp = SIRIDB_POINTS_TP_STRING;
+        aggr->filter_via.raw = (char *) malloc(node->len - 1);
+        if (aggr->filter_via.raw == NULL)
+        {
+            ERR_ALLOC
+            sprintf(err_msg, "Memory allocation error.");
+            return -1;
+        }
+        strx_extract_string(aggr->filter_via.raw, node->str, node->len);
+        return 0;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    if (aggr->filter_opr == CEXPR_IN || aggr->filter_opr == CEXPR_NI)
+    {
+        sprintf(err_msg,
+                "Operator '%s' can only be used with strings.",
+                (aggr->filter_opr == CEXPR_IN) ? "~" : "!~");
+        return -1;
+    }
+
+    return 0;
 }
 
 static siridb_points_t * AGGREGATE_derivative(
@@ -496,6 +600,133 @@ static siridb_points_t * AGGREGATE_difference(
             }
         }
     }
+    return points;
+}
+
+static siridb_points_t * AGGREGATE_filter(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    qp_via_t value = aggr->filter_via;
+
+    if (source->tp != aggr->filter_tp)
+    {
+        if (source->tp == SIRIDB_POINTS_TP_STRING)
+        {
+            sprintf(err_msg, "Cannot use a number filter on string type.");
+            return NULL;
+        }
+
+        switch (aggr->filter_tp)
+        {
+        case SIRIDB_POINTS_TP_STRING:
+            sprintf(err_msg, "Cannot use a string filter on number type.");
+            return NULL;
+
+        case SIRIDB_POINTS_TP_INT:
+            value.real = (double) value.int64;
+            break;
+
+        case SIRIDB_POINTS_TP_DOUBLE:
+            value.int64 = (int64_t) value.real;
+            break;
+
+        default:
+            assert (0);
+            break;
+        }
+    }
+
+    siridb_points_t * points = siridb_points_new(source->len, source->tp);
+
+
+    if (points == NULL)
+    {
+        sprintf(err_msg, "Memory allocation error.");
+    }
+    else
+    {
+        size_t i;
+        siridb_point_t * spt;
+        siridb_point_t * dpt;
+        switch ((siridb_points_tp) source->tp)
+        {
+        case SIRIDB_POINTS_TP_STRING:
+            for (   i = 0, spt = source->data, dpt = points->data;
+                    i < source->len;
+                    i++, spt++)
+            {
+                if (cexpr_str_cmp(
+                        aggr->filter_opr,
+                        spt->val.raw,
+                        value.raw))
+                {
+                    dpt->ts = spt->ts;
+                    dpt->val = spt->val;
+                    dpt++;
+                }
+            }
+            break;
+
+        case SIRIDB_POINTS_TP_INT:
+            for (   i = 0, spt = source->data, dpt = points->data;
+                    i < source->len;
+                    i++, spt++)
+            {
+                if (cexpr_int_cmp(
+                        aggr->filter_opr,
+                        spt->val.int64,
+                        value.int64))
+                {
+                    dpt->ts = spt->ts;
+                    dpt->val = spt->val;
+                    dpt++;
+                }
+            }
+            break;
+
+        case SIRIDB_POINTS_TP_DOUBLE:
+            for (   i = 0, spt = source->data, dpt = points->data;
+                    i < source->len;
+                    i++, spt++)
+            {
+                if (cexpr_double_cmp(
+                        aggr->filter_opr,
+                        spt->val.real,
+                        value.real))
+                {
+                    dpt->ts = spt->ts;
+                    dpt->val = spt->val;
+                    dpt++;
+                }
+            }
+            break;
+
+        default:
+            assert (0);
+            break;
+        }
+
+        points->len = dpt - points->data;
+
+        if (source->len > points->len)
+        {
+            dpt = (siridb_point_t *) realloc(
+                    points->data,
+                    points->len * sizeof(siridb_point_t));
+            if (dpt == NULL)
+            {
+                /* not critical */
+                log_error("Error while re-allocating memory for points");
+            }
+            else
+            {
+                points->data = dpt;
+            }
+        }
+    }
+
     return points;
 }
 

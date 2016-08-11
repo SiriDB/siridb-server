@@ -69,6 +69,10 @@ int cexpr_int_cmp(
         const cexpr_operator_t operator,
         const int64_t a,
         const int64_t b);
+int cexpr_double_cmp(
+        const cexpr_operator_t operator,
+        const double a,
+        const double b);
 int cexpr_str_cmp(
         const cexpr_operator_t operator,
         const char * a,
@@ -80,3 +84,4 @@ int cexpr_bool_cmp(
 int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj);
 int cexpr_contains(cexpr_t * cexpr, cexpr_cb_prop_t cb);
 void cexpr_free(cexpr_t * cexpr);
+cexpr_operator_t cexpr_operator_fn(cleri_node_t * node);

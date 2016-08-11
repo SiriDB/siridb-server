@@ -14,9 +14,13 @@
 #include <inttypes.h>
 #include <qpack/qpack.h>
 
-#define SIRIDB_POINTS_TP_INT 0  //SIRIDB_SERIES_TP_INT
-#define SIRIDB_POINTS_TP_DOUBLE 1  //SIRIDB_SERIES_TP_DOUBLE
-#define SIRIDB_POINTS_TP_STRING 2  //SIRIDB_SERIES_TP_STRING
+typedef enum
+{
+    SIRIDB_POINTS_TP_INT,
+    SIRIDB_POINTS_TP_DOUBLE,
+    SIRIDB_POINTS_TP_STRING
+} siridb_points_tp;
+
 
 typedef struct siridb_point_s
 {
@@ -27,11 +31,11 @@ typedef struct siridb_point_s
 typedef struct siridb_points_s
 {
     size_t len;
-    uint8_t tp;
+    siridb_points_tp tp;
     siridb_point_t * data;
 } siridb_points_t;
 
-siridb_points_t * siridb_points_new(size_t size, uint8_t tp);
+siridb_points_t * siridb_points_new(size_t size, siridb_points_tp tp);
 void siridb_points_free(siridb_points_t * points);
 void siridb_points_add_point(
         siridb_points_t * points,

@@ -128,7 +128,7 @@ int siridb_server_cexpr_cb(
         cexpr_condition_t * cond);
 siridb_server_t * siridb_server_register(
         siridb_t * siridb,
-        const char * data,
+        char * data,
         size_t len);
 
 #define siridb_server_update_flags(org, new) \

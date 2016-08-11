@@ -503,7 +503,9 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
             uv_mutex_unlock(&siridb->series_mutex);
 
-            usleep(10000);
+            /* make this sleep depending on the active handles */
+            usleep( siri.loop->active_handles *
+                    siri.loop->active_handles * 50);
         }
 
         siridb_series_decref(series);
