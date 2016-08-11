@@ -1689,18 +1689,19 @@ static void exit_select_aggregate(uv_async_t * handle)
         {
             if (q_select->merge_as != NULL)
             {
-                slist_t * points = slist_new(SLIST_DEFAULT_SIZE);
+                slist_t * plist = slist_new(SLIST_DEFAULT_SIZE);
 
-                if (points != NULL || ct_add(
+                if (plist == NULL || ct_add(
                         q_select->result,
                         siridb_presuf_name(
-                            q_select->presuf,
-                            q_select->merge_as,
-                            strlen(q_select->merge_as)),
-                        points))
+                                q_select->presuf,
+                                q_select->merge_as,
+                                strlen(q_select->merge_as)),
+                        plist))
                 {
                     sprintf(query->err_msg,
                             "Critical error while adding points to map");
+                    slist_free(plist);
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                     return;
                 }
@@ -1744,13 +1745,32 @@ static void exit_select_aggregate(uv_async_t * handle)
 
 static int items_select_master(
         const char * name,
-        siridb_points_t * points,
+        void * data,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
 
     qp_add_string(query->packer, name);
-    siridb_points_pack(points, query->packer);
+    if (q_select->merge_as == NULL)
+    {
+        siridb_points_pack((siridb_points_t * ) data, query->packer);
+    }
+    else
+    {
+        siridb_points_t * points = siridb_points_merge(
+                (slist_t *) data,
+                query->err_msg);
+
+        if (points == NULL)
+        {
+            /*
+             * The list will be cleared including the points since 'merge_as'
+             * is still not NULL
+             */
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -1768,6 +1788,7 @@ int items_select_other(
     return 0;
 }
 
+
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1775,7 +1796,20 @@ static void exit_select_stmt(uv_async_t * handle)
 
     if (IS_MASTER)
     {
-        ct_items(q_select->result, (ct_item_cb) &items_select_master, handle);
+        int rc = ct_items(
+                q_select->result,
+                (ct_item_cb) &items_select_master,
+                handle);
+
+        switch (rc)
+        {
+        case -1:
+            sprintf(query->err_msg, "Memory allocation error.");
+            /* no break */
+        case 1:
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
 
 //        if (IS_MASTER &&
 //                    (q_select->plist == NULL || q_select->plist->len))
@@ -2432,7 +2466,7 @@ static void async_select_aggregate(uv_async_t * handle)
 
     if (points != NULL)
     {
-        char * name;
+        const char * name;
 
         for (size_t i = 0; points->len && i < q_select->alist->len; i++)
         {
@@ -2460,7 +2494,8 @@ static void async_select_aggregate(uv_async_t * handle)
                     q_select->presuf,
                     series->name,
                     series->name_len);
-            if (name != NULL || ct_add(q_select->result, name, points))
+
+            if (name == NULL || ct_add(q_select->result, name, points))
             {
                 sprintf(query->err_msg, "Error adding points to map.");
                 siridb_points_free(points);
@@ -2471,16 +2506,16 @@ static void async_select_aggregate(uv_async_t * handle)
         }
         else
         {
-            slist_t * plist = ct_get(
-                    q_select->result,
-                    siridb_presuf_name(
-                        q_select->presuf,
-                        q_select->merge_as,
-                        strlen(q_select->merge_as)));
-#ifdef DEBUG
-            assert (plist != NULL);
-#endif
-            if (slist_append_safe(&plist, points))
+            slist_t * plist;
+
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    q_select->merge_as,
+                    strlen(q_select->merge_as));
+
+            if (    name == NULL ||
+                    (plist = ct_get(q_select->result, name)) == NULL ||
+                    slist_append_safe(&plist, points))
             {
                 sprintf(query->err_msg, "Error adding points to map.");
                 siridb_points_free(points);

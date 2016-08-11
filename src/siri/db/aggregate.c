@@ -405,7 +405,7 @@ static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
         aggr->gid = gid;
         aggr->group_by = 0;
         aggr->timespan = 1.0;
-        aggr->filter_tp = SIRIDB_POINTS_TP_INT;  /* when string we malloc/free
+        aggr->filter_tp = TP_INT;  /* when string we malloc/free
                                                   * aggr->filter_via.raw */
     }
     return aggr;
@@ -416,7 +416,7 @@ static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
  */
 static void AGGREGATE_free(siridb_aggr_t * aggr)
 {
-    if (aggr->filter_tp == SIRIDB_POINTS_TP_STRING)
+    if (aggr->filter_tp == TP_STRING)
     {
         free(aggr->filter_via.raw);
     }
@@ -436,17 +436,17 @@ static int AGGREGATE_init_filter(
     switch (node->cl_obj->via.dummy->gid)
     {
     case CLERI_GID_R_INTEGER:
-        aggr->filter_tp = SIRIDB_POINTS_TP_INT;
+        aggr->filter_tp = TP_INT;
         aggr->filter_via.int64 = atoll(node->str);
         break;
 
     case CLERI_GID_R_FLOAT:
-        aggr->filter_tp = SIRIDB_POINTS_TP_DOUBLE;
+        aggr->filter_tp = TP_DOUBLE;
         aggr->filter_via.real = strx_to_double(node->str, node->len);
         break;
 
     case CLERI_GID_STRING:
-        aggr->filter_tp = SIRIDB_POINTS_TP_STRING;
+        aggr->filter_tp = TP_STRING;
         aggr->filter_via.raw = (char *) malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
@@ -479,7 +479,7 @@ static siridb_points_t * AGGREGATE_derivative(
         char * err_msg)
 {
     size_t len = source->len - 1;
-    siridb_points_t * points = siridb_points_new(len, SIRIDB_POINTS_TP_DOUBLE);
+    siridb_points_t * points = siridb_points_new(len, TP_DOUBLE);
 
     if (points == NULL)
     {
@@ -498,7 +498,7 @@ static siridb_points_t * AGGREGATE_derivative(
 
             switch (source->tp)
             {
-            case SIRIDB_POINTS_TP_INT:
+            case TP_INT:
                 for (   i = 0, spt= prev + 1, dpt = points->data;
                         i < len;
                         i++, spt++, dpt++)
@@ -510,7 +510,7 @@ static siridb_points_t * AGGREGATE_derivative(
                 }
                 break;
 
-            case SIRIDB_POINTS_TP_DOUBLE:
+            case TP_DOUBLE:
                 for (   i = 0, spt= prev + 1, dpt = points->data;
                         i < len;
                         i++, spt++, dpt++)
@@ -555,7 +555,7 @@ static siridb_points_t * AGGREGATE_difference(
 
             switch (source->tp)
             {
-            case SIRIDB_POINTS_TP_INT:
+            case TP_INT:
                 {
                     int64_t first = prev->val.int64;
                     int64_t last;
@@ -583,7 +583,7 @@ static siridb_points_t * AGGREGATE_difference(
                 }
                 break;
 
-            case SIRIDB_POINTS_TP_DOUBLE:
+            case TP_DOUBLE:
                 for (   i = 0, spt= prev + 1, dpt = points->data;
                         i < len;
                         i++, spt++, dpt++)
@@ -612,7 +612,7 @@ static siridb_points_t * AGGREGATE_filter(
 
     if (source->tp != aggr->filter_tp)
     {
-        if (source->tp == SIRIDB_POINTS_TP_STRING)
+        if (source->tp == TP_STRING)
         {
             sprintf(err_msg, "Cannot use a number filter on string type.");
             return NULL;
@@ -620,15 +620,15 @@ static siridb_points_t * AGGREGATE_filter(
 
         switch (aggr->filter_tp)
         {
-        case SIRIDB_POINTS_TP_STRING:
+        case TP_STRING:
             sprintf(err_msg, "Cannot use a string filter on number type.");
             return NULL;
 
-        case SIRIDB_POINTS_TP_INT:
+        case TP_INT:
             value.real = (double) value.int64;
             break;
 
-        case SIRIDB_POINTS_TP_DOUBLE:
+        case TP_DOUBLE:
             value.int64 = (int64_t) value.real;
             break;
 
@@ -652,7 +652,7 @@ static siridb_points_t * AGGREGATE_filter(
         siridb_point_t * dpt;
         switch ((siridb_points_tp) source->tp)
         {
-        case SIRIDB_POINTS_TP_STRING:
+        case TP_STRING:
             for (   i = 0, spt = source->data, dpt = points->data;
                     i < source->len;
                     i++, spt++)
@@ -669,7 +669,7 @@ static siridb_points_t * AGGREGATE_filter(
             }
             break;
 
-        case SIRIDB_POINTS_TP_INT:
+        case TP_INT:
             for (   i = 0, spt = source->data, dpt = points->data;
                     i < source->len;
                     i++, spt++)
@@ -686,7 +686,7 @@ static siridb_points_t * AGGREGATE_filter(
             }
             break;
 
-        case SIRIDB_POINTS_TP_DOUBLE:
+        case TP_DOUBLE:
             for (   i = 0, spt = source->data, dpt = points->data;
                     i < source->len;
                     i++, spt++)
@@ -763,10 +763,10 @@ static siridb_points_t * AGGREGATE_group_by(
     case CLERI_GID_F_PVARIANCE:
     case CLERI_GID_F_VARIANCE:
     case CLERI_GID_F_DERIVATIVE:
-        points = siridb_points_new(max_sz, SIRIDB_POINTS_TP_DOUBLE);
+        points = siridb_points_new(max_sz, TP_DOUBLE);
         break;
     case CLERI_GID_F_COUNT:
-        points = siridb_points_new(max_sz, SIRIDB_POINTS_TP_INT);
+        points = siridb_points_new(max_sz, TP_INT);
         break;
     case CLERI_GID_F_MEDIAN_HIGH:
     case CLERI_GID_F_MAX:
@@ -863,7 +863,7 @@ static int aggr_derivative(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use difference() on string type.");
         return -1;
@@ -879,11 +879,11 @@ static int aggr_derivative(
 
         switch (points->tp)
         {
-        case SIRIDB_POINTS_TP_INT:
+        case TP_INT:
             first = (double) points->data->val.int64;
             last = (double) (points->data + points->len - 1)->val.int64;
             break;
-        case SIRIDB_POINTS_TP_DOUBLE:
+        case TP_DOUBLE:
             first = points->data->val.real;
             last = (points->data + points->len - 1)->val.real;
             break;
@@ -911,11 +911,11 @@ static int aggr_difference(
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_STRING:
+    case TP_STRING:
         sprintf(err_msg, "Cannot use difference() on string type.");
         return -1;
 
-    case SIRIDB_POINTS_TP_INT:
+    case TP_INT:
         if (points->len == 1)
         {
             point->val.int64 = 0;
@@ -936,7 +936,7 @@ static int aggr_difference(
         }
         break;
 
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_DOUBLE:
         if (points->len == 1)
         {
             point->val.real = 0.0;
@@ -967,13 +967,13 @@ static int aggr_max(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use max() on string type.");
         return -1;
     }
 
-    if (points->tp == SIRIDB_POINTS_TP_INT)
+    if (points->tp == TP_INT)
     {
         int64_t max = points->data->val.int64;
         for (size_t i = 1; i < points->len; i++)
@@ -1015,18 +1015,18 @@ static int aggr_mean(
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_STRING:
+    case TP_STRING:
         sprintf(err_msg, "Cannot use mean() on string type.");
         return -1;
 
-    case SIRIDB_POINTS_TP_INT:
+    case TP_INT:
         for (size_t i = 0; i < points->len; i++)
         {
             sum += (points->data + i)->val.int64;
         }
         break;
 
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_DOUBLE:
         for (size_t i = 0; i < points->len; i++)
         {
             sum += (points->data + i)->val.real;
@@ -1053,7 +1053,7 @@ static int aggr_median(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use median() on string type.");
         return -1;
@@ -1062,7 +1062,7 @@ static int aggr_median(
     if (points->len % 2 == 1)
     {
         siridb_median_find_n(point, points, points->len / 2);
-        if (points->tp == SIRIDB_POINTS_TP_INT)
+        if (points->tp == TP_INT)
         {
             point->val.real = (double) point->val.int64;
         }
@@ -1085,7 +1085,7 @@ static int aggr_median_high(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use median_high() on string type.");
         return -1;
@@ -1106,7 +1106,7 @@ static int aggr_median_low(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use median_low() on string type.");
         return -1;
@@ -1127,13 +1127,13 @@ static int aggr_min(
     assert (points->len);
 #endif
 
-    if (points->tp == SIRIDB_POINTS_TP_STRING)
+    if (points->tp == TP_STRING)
     {
         sprintf(err_msg, "Cannot use min() on string type.");
         return -1;
     }
 
-    if (points->tp == SIRIDB_POINTS_TP_INT)
+    if (points->tp == TP_INT)
     {
         int64_t min = points->data->val.int64;
         for (size_t i = 1; i < points->len; i++)
@@ -1173,12 +1173,12 @@ static int aggr_pvariance(
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_STRING:
+    case TP_STRING:
         sprintf(err_msg, "Cannot use pvariance() on string type.");
         return -1;
 
-    case SIRIDB_POINTS_TP_INT:
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_INT:
+    case TP_DOUBLE:
         point->val.real = siridb_variance(points) / points->len;
         break;
 
@@ -1202,11 +1202,11 @@ static int aggr_sum(
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_STRING:
+    case TP_STRING:
         sprintf(err_msg, "Cannot use sum() on string type.");
         return -1;
 
-    case SIRIDB_POINTS_TP_INT:
+    case TP_INT:
         {
             int64_t sum = 0;
             int64_t tmp;
@@ -1225,7 +1225,7 @@ static int aggr_sum(
         }
         break;
 
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_DOUBLE:
         {
             double sum = 0.0;
             for (size_t i = 0; i < points->len; i++)
@@ -1256,12 +1256,12 @@ static int aggr_variance(
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_STRING:
+    case TP_STRING:
         sprintf(err_msg, "Cannot use variance() on string type.");
         return -1;
 
-    case SIRIDB_POINTS_TP_INT:
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_INT:
+    case TP_DOUBLE:
         point->val.real = (points->len > 1) ?
                 siridb_variance(points) / (points->len - 1) : 0.0;
         break;

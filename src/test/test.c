@@ -61,7 +61,7 @@ static int test_end(int status)
 
 static siridb_points_t * prepare_points(void)
 {
-    siridb_points_t * points = siridb_points_new(10, SIRIDB_POINTS_TP_INT);
+    siridb_points_t * points = siridb_points_new(10, TP_INT);
     uint64_t timestamps[10] =   {3, 6, 7, 10, 11, 13, 14, 15, 25, 27};
     int64_t values[10] =        {1, 3, 0, 2,  4,  8,  3,  5,  6,  3};
     qp_via_t val;
@@ -471,7 +471,7 @@ static int test_points(void)
 {
     test_start("Testing points");
 
-    siridb_points_t * points = siridb_points_new(5, SIRIDB_POINTS_TP_INT);
+    siridb_points_t * points = siridb_points_new(5, TP_INT);
     siridb_point_t * point;
     qp_via_t val;
     uint64_t timestamps[5] = {4, 6, 3, 5, 7};
@@ -510,7 +510,7 @@ static int test_aggr_count(void)
 
     assert (result != NULL);
     assert (result->len == 4);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 6 && result->data->val.int64 == 2);
     assert ((result->data + 3)->ts == 30 &&
             (result->data + 3)->val.int64 == 2);
@@ -537,7 +537,7 @@ static int test_aggr_max(void)
 
     assert (result != NULL);
     assert (result->len == 3);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 10 && result->data->val.int64 == 3);
     assert ((result->data + 2)->ts == 30 &&
             (result->data + 2)->val.int64 == 6);
@@ -564,7 +564,7 @@ static int test_aggr_mean(void)
 
     assert (result != NULL);
     assert (result->len == 5);
-    assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
+    assert (result->tp == TP_DOUBLE);
     assert (result->data->ts == 4 && result->data->val.real == 1.0);
     assert ((result->data + 4)->ts == 28 &&
             (result->data + 4)->val.real == 4.5);
@@ -591,7 +591,7 @@ static int test_aggr_median(void)
 
     assert (result != NULL);
     assert (result->len == 4);
-    assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
+    assert (result->tp == TP_DOUBLE);
     assert (result->data->ts == 7 && result->data->val.real == 1.0);
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.real == 3.5);
@@ -618,7 +618,7 @@ static int test_aggr_median_high(void)
 
     assert (result != NULL);
     assert (result->len == 4);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 7 && result->data->val.int64 == 1);
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.int64 == 4);
@@ -645,7 +645,7 @@ static int test_aggr_median_low(void)
 
     assert (result != NULL);
     assert (result->len == 4);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 7 && result->data->val.int64 == 1);
     assert ((result->data + 1)->ts == 14 &&
             (result->data + 1)->val.int64 == 3);
@@ -672,7 +672,7 @@ static int test_aggr_min(void)
 
     assert (result != NULL);
     assert (result->len == 9);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 4 && result->data->val.int64 == 1);
     assert ((result->data + 5)->ts == 14 &&
             (result->data + 5)->val.int64 == 3);
@@ -699,7 +699,7 @@ static int test_aggr_pvariance(void)
 
     assert (result != NULL);
     assert (result->len == 5);
-    assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
+    assert (result->tp == TP_DOUBLE);
     assert (result->data->ts == 5 && result->data->val.real == 0.0);
     assert ((result->data + 2)->ts == 15 &&
             (result->data + 2)->val.real == 3.5);
@@ -726,7 +726,7 @@ static int test_aggr_sum(void)
 
     assert (result != NULL);
     assert (result->len == 5);
-    assert (result->tp == SIRIDB_POINTS_TP_INT);
+    assert (result->tp == TP_INT);
     assert (result->data->ts == 5 && result->data->val.int64 == 1);
     assert ((result->data + 2)->ts == 15 &&
             (result->data + 2)->val.int64 == 20);
@@ -753,7 +753,7 @@ static int test_aggr_variance(void)
 
     assert (result != NULL);
     assert (result->len == 4);
-    assert (result->tp == SIRIDB_POINTS_TP_DOUBLE);
+    assert (result->tp == TP_DOUBLE);
     assert (result->data->ts == 6 && result->data->val.real == 2.0);
     assert ((result->data + 1)->ts == 12 &&
             (result->data + 1)->val.real == 4.0);

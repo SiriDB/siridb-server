@@ -21,7 +21,7 @@ double siridb_variance(siridb_points_t * points)
 
     switch (points->tp)
     {
-    case SIRIDB_POINTS_TP_INT:
+    case TP_INT:
         for (size_t i = 0; i < points->len; i++)
         {
            mean += (points->data + i)->val.int64;
@@ -36,7 +36,7 @@ double siridb_variance(siridb_points_t * points)
                    2);
         }
         break;\
-    case SIRIDB_POINTS_TP_DOUBLE:
+    case TP_DOUBLE:
         for (size_t i = 0; i < points->len; i++)
         {
            mean += (points->data + i)->val.real;

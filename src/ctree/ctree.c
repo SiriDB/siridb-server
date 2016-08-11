@@ -34,7 +34,7 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void ** CT_get_sure(ct_node_t * node, const char * key);
 static void CT_dec_node(ct_node_t * node);
 static void CT_merge_node(ct_node_t * node);
-static void CT_items(
+static int CT_items(
         ct_node_t * node,
         size_t * pn,
         size_t len,
@@ -250,10 +250,20 @@ void * ct_pop(ct_t * ct, const char * key)
 
 /*
  * Loop over all items in the tree and perform the call-back on each item.
+ *
+ * Looping stops on the first call-back returning a non-zero value.
+ *
+ * Returns 0 when the call-back is called on all items, -1 in case of
+ * an allocation error, or 1 when looping did not finish because of a non
+ * zero return value.
+ *
+ * (in case of -1 (allocation error) a SIGNAL is raised)
  */
-inline void ct_items(ct_t * ct, ct_item_cb cb, void * args)
+inline int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 {
-    ct_itemsn(ct, NULL, cb, args);
+    size_t n = 1;
+    int rc = ct_itemsn(ct, &n, cb, args);
+    return (n == 0) ? 1 : rc;
 }
 
 /*
@@ -269,16 +279,27 @@ inline void ct_values(ct_t * ct, ct_val_cb cb, void * args)
  * Walking stops either when the call-back is called on each item or
  * when 'n' is zero. 'n' will be decremented by one on each successful
  * call-back.
+ *
+ * Returns 0 when successful or -1 and a SIGNAL is raised in case of an error.
  */
-void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
+int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
 {
+#ifdef DEBUG
+    assert (n != NULL);
+#endif
+
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
     ct_node_t * nd;
+    int rc;
     char * buffer = (char *) malloc(buffer_sz);
-
+    if (buffer == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
     for (   uint_fast16_t i = 0, end = ct->n * BLOCKSZ;
-            (n == NULL || *n) && i < end;
+            *n && i < end;
             i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
@@ -286,9 +307,10 @@ void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
             continue;
         }
         *buffer = (char) (i + ct->offset * BLOCKSZ);
-        CT_items(nd, n, len, buffer_sz, buffer, cb, args);
+        rc = CT_items(nd, n, len, buffer_sz, buffer, cb, args);
     }
     free(buffer);
+    return rc;
 }
 
 /*
@@ -318,8 +340,10 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
  * Walking stops either when the call-back is called on each item or
  * when 'pn' is zero. 'pn' will be decremented by one on each successful
  * call-back.
+ *
+ * Returns 0 when successful or -1 and a SIGNAL is raised in case of an error.
  */
-static void CT_items(
+static int CT_items(
         ct_node_t * node,
         size_t * pn,
         size_t len,
@@ -332,16 +356,24 @@ static void CT_items(
 
     if (sz + len + 1 > buffer_sz)
     {
+        char * tmp;
         buffer_sz =
                 ((sz + len) / CT_BUFFER_ALLOC_SIZE + 1) * CT_BUFFER_ALLOC_SIZE;
-        buffer = (char *) realloc(buffer, buffer_sz);
+        tmp = (char *) realloc(buffer, buffer_sz);
+        if (tmp == NULL)
+        {
+            ERR_ALLOC;
+            *pn = 0;
+            return -1;
+        }
+        buffer = tmp;
     }
 
     memcpy(buffer + len, node->key, sz + 1);
 
     if (node->data != NULL)
     {
-        if ((*cb)(buffer, node->data, args) && pn != NULL)
+        if ((*cb)(buffer, node->data, args))
         {
             (*pn)--;
         }
@@ -353,7 +385,7 @@ static void CT_items(
         len += sz + 1;
 
         for (   uint_fast16_t i = 0, end = node->n * BLOCKSZ;
-                (pn == NULL || *pn) && i < end;
+                *pn && i < end;
                 i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
@@ -361,9 +393,14 @@ static void CT_items(
                 continue;
             }
             *(buffer + len - 1) = (char) (i + node->offset * BLOCKSZ);
-            CT_items(nd, pn, len, buffer_sz, buffer, cb, args);
+            if (CT_items(nd, pn, len, buffer_sz, buffer, cb, args))
+            {
+                return -1;
+            }
         }
     }
+
+    return 0;
 }
 
 /*

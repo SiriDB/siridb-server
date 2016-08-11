@@ -62,8 +62,8 @@ int ct_add(ct_t * ct, const char * key, void * data);
 void * ct_get(ct_t * node, const char * key);
 void * ct_getn(ct_t * ct, const char * key, size_t n);
 void * ct_pop(ct_t * ct, const char * key);
-void ct_items(ct_t * ct, ct_item_cb cb, void * args);
-void ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args);
+int ct_items(ct_t * ct, ct_item_cb cb, void * args);
+int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args);
 void ct_values(ct_t * ct, ct_val_cb cb, void * args);
 void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
 

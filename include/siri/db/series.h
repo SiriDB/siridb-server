@@ -24,9 +24,9 @@ typedef struct siridb_points_s siridb_points_t;
 typedef struct siridb_shard_s siridb_shard_t;
 
 /* Series Types */
-#define SIRIDB_SERIES_TP_INT 0  // SIRIDB_POINTS_TP_INT
-#define SIRIDB_SERIES_TP_DOUBLE 1  // SIRIDB_POINTS_TP_DOUBLE
-#define SIRIDB_SERIES_TP_STRING 2  // SIRIDB_POINTS_TP_STRING
+#define SIRIDB_SERIES_TP_INT 0  // TP_INT
+#define SIRIDB_SERIES_TP_DOUBLE 1  // TP_DOUBLE
+#define SIRIDB_SERIES_TP_STRING 2  // TP_STRING
 
 /* Series Flags */
 #define SIRIDB_SERIES_HAS_OVERLAP 1

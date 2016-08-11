@@ -409,7 +409,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_shard_t * new_shard = NULL;
 
-    uint64_t duration = (shard->tp == SIRIDB_POINTS_TP_STRING) ?
+    uint64_t duration = (shard->tp == TP_STRING) ?
             siridb->duration_log : siridb->duration_num;
     siridb_series_t * series;
 

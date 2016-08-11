@@ -52,7 +52,7 @@ void siridb_median_find_n(
 
     size_l = size_r = 0;
 
-    if (points->tp == SIRIDB_POINTS_TP_INT)
+    if (points->tp == TP_INT)
     {
         int64_t pivot, v;
         int64_t arr_l[points->len - 1];
@@ -116,7 +116,7 @@ void siridb_median_real(
 
     size_l = size_r = 0;
 
-    if (points->tp == SIRIDB_POINTS_TP_INT)
+    if (points->tp == TP_INT)
     {
         int64_t pivot, v, a, b;
         int64_t arr_l[points->len - 1];

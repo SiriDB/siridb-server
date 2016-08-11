@@ -13,12 +13,13 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <qpack/qpack.h>
+#include <slist/slist.h>
 
 typedef enum
 {
-    SIRIDB_POINTS_TP_INT,
-    SIRIDB_POINTS_TP_DOUBLE,
-    SIRIDB_POINTS_TP_STRING
+    TP_INT,
+    TP_DOUBLE,
+    TP_STRING
 } siridb_points_tp;
 
 
@@ -43,3 +44,4 @@ void siridb_points_add_point(
         qp_via_t * val);
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer);
 int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer);
+siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg);
