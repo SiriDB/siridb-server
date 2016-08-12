@@ -180,9 +180,9 @@ void siridb_send_query_result(uv_async_t * handle)
             query->packer,
             query->pid,
             CPROTO_RES_QUERY);
+
     sirinet_pkg_send((uv_stream_t *) query->client, pkg);
 
-    free(pkg);
     query->packer = NULL;
 
     uv_close((uv_handle_t *) handle, siri_async_close);
@@ -206,7 +206,6 @@ void siridb_query_send_error(
     {
         /* ignore result code, signal can be raised */
         sirinet_pkg_send((uv_stream_t *) query->client, package);
-        free(package);
     }
     uv_close((uv_handle_t *) handle, siri_async_close);
 }

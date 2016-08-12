@@ -604,8 +604,6 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                     tp);
 
             sirinet_pkg_send((uv_stream_t *) insert->client, response_pkg);
-
-            free(response_pkg);
         }
     }
 

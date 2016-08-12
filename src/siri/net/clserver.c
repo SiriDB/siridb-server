@@ -43,7 +43,6 @@ if (ssocket->siridb == NULL)                                                \
     if (package != NULL)                                                    \
     {                                                                       \
         sirinet_pkg_send((uv_stream_t *) client, package);                  \
-        free(package);                                                      \
     }                                                                       \
     return;                                                                 \
 }
@@ -236,7 +235,6 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
-        free(package);
     }
     else
     {
@@ -288,9 +286,6 @@ static void CLSERVER_send_server_error(
         {
             /* ignore result code, signal can be raised */
             sirinet_pkg_send(stream, package);
-
-            /* free package and err_msg*/
-            free(package);
         }
         free(err_msg);
     }
@@ -316,8 +311,6 @@ static void CLSERVER_send_pool_error(
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(stream, package);
 
-        /* free package and err_msg*/
-        free(package);
     }
 }
 
@@ -427,9 +420,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
                 {
                     /* ignore result code, signal can be raised */
                     sirinet_pkg_send(client, package);
-
-                    /* free package*/
-                    free(package);
                 }
             }
 
@@ -462,7 +452,6 @@ static void on_ping(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
-        free(package);
     }
 }
 
@@ -487,8 +476,6 @@ static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             /* ignore result code, signal can be raised */
             sirinet_pkg_send(client, package);
-
-            free(package);
         }
         else
         {
@@ -534,7 +521,6 @@ static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
                     if (package != NULL)
                     {
                         sirinet_pkg_send(client, package);
-                        free(package);
                     }
                     free(dbpath);
                 }
@@ -608,7 +594,6 @@ static void on_reqfile(
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
-        free(package);
     }
 }
 
@@ -690,7 +675,6 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
-        free(package);
     }
     else if (new_server != NULL)
     {
@@ -796,7 +780,6 @@ static void CLSERVER_on_register_server_response(
         if (package != NULL)
         {
             sirinet_pkg_send(server_reg->client, package);
-            free(package);
         }
     }
 

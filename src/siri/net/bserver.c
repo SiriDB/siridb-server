@@ -34,7 +34,6 @@ if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
     sirinet_pkg_t * package;                                                  \
     package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_NOT_AUTHENTICATED, NULL); \
     sirinet_pkg_send((uv_stream_t *) client, package);                        \
-    free(package);                                                            \
     return;                                                                   \
 }
 
@@ -280,7 +279,6 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
-        free(package);
     }
     else
     {
@@ -316,7 +314,6 @@ static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
 
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
-        free(package);
     }
     else
     {
@@ -348,7 +345,6 @@ static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
         {
             /* ignore result code, signal can be raised */
             sirinet_pkg_send(client, package);
-            free(package);
         }
     }
     else
@@ -388,7 +384,6 @@ static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
-        free(package);
     }
 }
 
@@ -484,7 +479,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
             if (package != NULL)
             {
                 sirinet_pkg_send(client, package);
-                free(package);
             }
         }
 
@@ -507,7 +501,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
             if (package != NULL)
             {
                 sirinet_pkg_send(client, package);
-                free(package);
             }
             qp_unpacker_free(unpacker);
         }
@@ -554,7 +547,6 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
-        free(package);
     }
 }
 
@@ -629,6 +621,5 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
-        free(package);
     }
 }

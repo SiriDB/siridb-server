@@ -141,8 +141,11 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
     if (req == NULL)
     {
         ERR_ALLOC
+        free(pkg);
         return -1;
     }
+
+    req->data = pkg;
 
     /* set the correct check bit */
     pkg->checkbit = pkg->tp ^ 255;
@@ -180,5 +183,6 @@ static void PKG_write_cb(uv_write_t * req, int status)
     {
         log_error("Socket write error: %s", uv_strerror(status));
     }
+    free(req->data); /* pkg */
     free(req);
 }

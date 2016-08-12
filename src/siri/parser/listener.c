@@ -2884,7 +2884,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 static void on_select_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
-
+    LOGC("START ON RESPONSE");
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t * unpacker;
@@ -3007,6 +3007,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
     {
         master_select_finished(handle);
     }
+    LOGC("FINIDHED ON RESPONSE");
 }
 
 /*
@@ -3114,6 +3115,7 @@ static int items_select_master_merge(
         slist_t * plist,
         uv_async_t * handle)
 {
+    LOGC("START MERGE");
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_points_t * points;
@@ -3142,7 +3144,7 @@ static int items_select_master_merge(
                                 query->err_msg);
         break;
     }
-
+    LOGC("CONTINUE MERGE");
     if (q_select->mlist != NULL && points != NULL)
     {
         siridb_points_t * aggr_points;
@@ -3182,6 +3184,7 @@ static int items_select_master_merge(
     }
 
     siridb_points_free(points);
+    LOGC("FINISHED MERGE");
     return 0;
 }
 
@@ -3203,7 +3206,6 @@ int items_select_other_merge(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    LOGC("Blabla");
     int rc;
 
     rc = qp_add_string_term(query->packer, name);
@@ -3275,6 +3277,7 @@ static void on_select_unpack_merged_points(
         qp_obj_t * qp_points)
 {
     siridb_points_t * points;
+    LOGC("START UNPACK");
 
     while ( qp_is_raw(qp_next(unpacker, qp_name)) &&
 #ifdef DEBUG
@@ -3320,4 +3323,5 @@ static void on_select_unpack_merged_points(
             qp_next(unpacker, NULL);  // QP_ARRAY_CLOSE
         }
     }
+    LOGC("FINIGH UNPACK");
 }
