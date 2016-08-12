@@ -34,8 +34,8 @@ enum
 uint8_t tp;                 \
 imap_t * series_map;        \
 imap_t * series_tmp;        \
+imap_t * pmap;              \
 slist_t * slist;            \
-slist_t * plist;            \
 size_t slist_index;         \
 imap_update_cb update_cb;   \
 cexpr_t * where_expr;       \
@@ -78,7 +78,7 @@ typedef struct query_select_s
     siridb_presuf_t * presuf;
     char * merge_as;
     ct_t * result;
-    imap_t * points_map;
+    imap_t * points_map;    // TODO: use points_map for caching
     slist_t * alist;        // aggregation list (can be used multiple times)
     slist_t * mlist;        // merge aggregation list
 } query_select_t;

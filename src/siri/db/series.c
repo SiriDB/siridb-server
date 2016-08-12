@@ -661,7 +661,7 @@ int siridb_series_optimize_shard_num32(
 #endif
 
     idx_num32_t * idx;
-    uint_fast32_t i, start, end, max_ts;
+    uint_fast32_t i, end, max_ts, start = 0;
     size_t size;
     siridb_points_t * points;
     int rc = 0;

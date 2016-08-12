@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <siri/db/query.h>
 #include <logger/logger.h>
-
+#include <siri/db/aggregate.h>
 
 #define DEFAULT_LIST_LIMIT 1000
 
@@ -12,7 +12,7 @@ q->series_map = NULL;               \
 q->series_tmp = NULL;               \
 q->slist = NULL;                    \
 q->slist_index = 0;                 \
-q->plist = NULL;                    \
+q->pmap = NULL;                     \
 q->update_cb = NULL;                \
 q->where_expr = NULL;               \
 q->regex = NULL;                    \
@@ -44,13 +44,16 @@ if (q->where_expr != NULL)                                      \
 {                                                               \
     cexpr_free(q->where_expr);                                  \
 }                                                               \
-slist_free(q->plist);                                           \
+if (q->pmap != NULL)                                            \
+{                                                               \
+    imap_free(q->pmap, NULL);                                   \
+}                                                               \
 free(q->regex);                                                 \
 free(q->regex_extra);                                           \
 free(q);                                                        \
 siridb_query_free(handle);
 
-static QUERIES_free_merge_result(slist_t * plist);
+static void QUERIES_free_merge_result(slist_t * plist);
 
 query_select_t * query_select_new(void)
 {
@@ -210,7 +213,7 @@ void query_drop_free(uv_handle_t * handle)
     QUERIES_FREE(q_drop, handle)
 }
 
-static QUERIES_free_merge_result(slist_t * plist)
+static void QUERIES_free_merge_result(slist_t * plist)
 {
     for (size_t i = 0; i < plist->len; i ++)
     {

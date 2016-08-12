@@ -24,8 +24,10 @@ class TestInsert(TestBase):
         result = await client.query('select * from "series int"')
         self.assertEqual(result['series int'], self.series_int)
 
+        result = await client.query('list series name, length, type, start, end')
+        result['series'].sort()
         self.assertEqual(
-            await client.query('list series name, length, type, start, end'),
+            result,
             {   'columns': ['name', 'length', 'type', 'start', 'end'],
                 'series': [
                     ['series float', 100, 'float', self.series_float[0][0], self.series_float[-1][0]],
@@ -92,7 +94,9 @@ class TestInsert(TestBase):
         with self.assertRaises(InsertError):
             await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
 
-        await self.db.add_replica(self.server1, 0, sleep=15)
+        await self.db.add_replica(self.server1, 0, sleep=3)
+
+        await self.assertIsRunning(self.db, self.client0, timeout=3)
 
         await self.client1.connect()
 

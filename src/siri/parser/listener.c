@@ -39,7 +39,7 @@
 #include <siri/db/aggregate.h>
 
 #define MAX_ITERATE_COUNT 1000      // thousand
-#define MAX_SELECT_POINTS 1000000   // one million
+#define MAX_SELECT_POINTS 100000   // one hundred thousand
 #define MAX_LIST_LIMIT 10000        // ten thousand
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
@@ -127,7 +127,6 @@ static void async_list_series(uv_async_t * handle);
 static void async_select_aggregate(uv_async_t * handle);
 static void async_series_re(uv_async_t * handle);
 
-
 /* on response functions */
 static void on_ack_response(
         sirinet_promise_t * promise,
@@ -139,6 +138,40 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_select_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
+/* helper functions */
+static void master_select_finished(uv_async_t * handle);
+static int items_select_master(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle);
+static int items_select_master_merge(
+        const char * name,
+        slist_t * plist,
+        uv_async_t * handle);
+int items_select_other(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle);
+int items_select_other_merge(
+        const char * name,
+        slist_t * plist,
+        uv_async_t * handle);
+static void on_select_unpack_points(
+        qp_unpacker_t * unpacker,
+        query_select_t * q_select,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_tp,
+        qp_obj_t * qp_len,
+        qp_obj_t * qp_points);
+static void on_select_unpack_merged_points(
+        qp_unpacker_t * unpacker,
+        query_select_t * q_select,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_tp,
+        qp_obj_t * qp_len,
+        qp_obj_t * qp_points);
+
+/* address bindings for default list properties */
 static uint32_t GID_K_NAME = CLERI_GID_K_NAME;
 static uint32_t GID_K_POOL = CLERI_GID_K_POOL;
 static uint32_t GID_K_VERSION = CLERI_GID_K_VERSION;
@@ -185,7 +218,6 @@ if (    IS_MASTER &&                                                        \
     siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                \
     return;                                                                 \
 }
-
 
 void siriparser_init_listener(void)
 {
@@ -324,7 +356,6 @@ static void enter_alter_server(uv_async_t * handle)
         break;
 
     default:
-        /* we should NEVER get here */
         assert (0);
         break;
     }
@@ -601,10 +632,10 @@ static void enter_select_stmt(uv_async_t * handle)
     query->data = query_select_new();
     if (query->data != NULL)
     {
-        /* this is not critical since plist is allowed to be NULL */
-        ((query_select_t *) query->data)->plist =
+        /* this is not critical since pmap is allowed to be NULL */
+        ((query_select_t *) query->data)->pmap =
                 (!IS_MASTER || siridb_is_reindexing(siridb)) ?
-                        NULL : slist_new(SLIST_DEFAULT_SIZE);
+                        NULL : imap_new();
 
         query->free_cb = (uv_close_cb) query_select_free;
     }
@@ -686,18 +717,19 @@ static void enter_series_name(uv_async_t * handle)
         }
         else if (imap_add(q_wrapper->series_map, series->id, series) == 1)
         {
-            /* bind the series to the query, increment ref count if successful */
+            /*
+             * Bind the series to the query,
+             * increment ref count if successful
+             */
             siridb_series_incref(series);
         }
     }
-    else
+    else if (q_wrapper->pmap != NULL && imap_add(
+            q_wrapper->pmap,
+            pool,
+            (siridb_pool_t *) (siridb->pools->pool + pool)) < 0)
     {
-        if (q_wrapper->plist != NULL && slist_append_safe(
-                &q_wrapper->plist,
-                (siridb_pool_t *) (siridb->pools->pool + pool)))
-        {
-            log_critical("Cannot pool to list");
-        }
+        log_critical("Cannot pool to pool map.");
     }
 
     SIRIPARSER_NEXT_NODE
@@ -720,10 +752,10 @@ static void enter_series_re(uv_async_t * handle)
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
     /* we must send this query to all pools */
-    if (q_wrapper->plist != NULL)
+    if (q_wrapper->pmap != NULL)
     {
-        slist_free(q_wrapper->plist);
-        q_wrapper->plist = NULL;
+        imap_free(q_wrapper->pmap, NULL);
+        q_wrapper->pmap = NULL;
     }
 
     /* extract and compile regular expression */
@@ -1176,7 +1208,7 @@ static void exit_drop_series(uv_async_t * handle)
     if (q_drop->where_expr != NULL)
     {
         /* we transform the references from imap to slist */
-        q_drop->slist = imap_2slist(q_drop->series_map);
+        q_drop->slist = imap_slist_pop(q_drop->series_map);
 
         if (q_drop->slist != NULL)
         {
@@ -1262,6 +1294,7 @@ static void exit_drop_shard(uv_async_t * handle)
          */
         uv_mutex_lock(&siridb->series_mutex);
 
+        /* create a copy since series might be removed */
         slist_t * slist = imap_2slist(siridb->series_map);
 
         if (slist != NULL)
@@ -1487,8 +1520,6 @@ static void exit_list_servers(uv_async_t * handle)
     query_list_t * q_list = (query_list_t *) query->data;
     int is_local = IS_MASTER;
 
-//    LOGC("Active handlers: %ld", siri.loop->active_handles);
-
     /* if is_local, check if we need ask for 'remote' columns */
     if (is_local && q_list->props != NULL)
     {
@@ -1659,7 +1690,7 @@ static void exit_select_aggregate(uv_async_t * handle)
     if (q_select->where_expr != NULL)
     {
         /* we transform the references from imap to slist */
-        q_select->slist = imap_2slist(q_select->series_map);
+        q_select->slist = imap_slist_pop(q_select->series_map);
 
         if (q_select->slist != NULL)
         {
@@ -1682,7 +1713,7 @@ static void exit_select_aggregate(uv_async_t * handle)
             snprintf(query->err_msg,
                     SIRIDB_MAX_SIZE_ERR_MSG,
                     "When using multiple select methods, add a prefix "
-                    "and/or suffix to the selection to make them unique");
+                    "and/or suffix to the selection to make them unique.");
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         }
         else
@@ -1700,7 +1731,7 @@ static void exit_select_aggregate(uv_async_t * handle)
                         plist))
                 {
                     sprintf(query->err_msg,
-                            "Critical error while adding points to map");
+                            "Critical error while adding points to map.");
                     slist_free(plist);
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                     return;
@@ -1725,16 +1756,6 @@ static void exit_select_aggregate(uv_async_t * handle)
                     }
                 }
             }
-            else if (IS_MASTER &&
-                    (q_select->plist == NULL || q_select->plist->len))
-            {
-                siridb_query_forward(
-                        handle,
-                        (q_select->plist == NULL) ?
-                                SIRIDB_QUERY_FWD_POOLS :
-                                SIRIDB_QUERY_FWD_SOME_POOLS,
-                        (sirinet_promises_cb) on_select_response);
-            }
             else
             {
                 SIRIPARSER_NEXT_NODE
@@ -1743,52 +1764,6 @@ static void exit_select_aggregate(uv_async_t * handle)
     }
 }
 
-static int items_select_master(
-        const char * name,
-        void * data,
-        uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
-
-    qp_add_string(query->packer, name);
-    if (q_select->merge_as == NULL)
-    {
-        siridb_points_pack((siridb_points_t * ) data, query->packer);
-    }
-    else
-    {
-        siridb_points_t * points = siridb_points_merge(
-                (slist_t *) data,
-                query->err_msg);
-
-        if (points == NULL)
-        {
-            /*
-             * The list will be cleared including the points since 'merge_as'
-             * is still not NULL
-             */
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-int items_select_other(
-        const char * name,
-        siridb_points_t * points,
-        uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    qp_add_string_term(query->packer, name);
-    siridb_points_raw_pack(points, query->packer);
-
-    return 0;
-}
-
-
 static void exit_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1796,41 +1771,42 @@ static void exit_select_stmt(uv_async_t * handle)
 
     if (IS_MASTER)
     {
-        int rc = ct_items(
-                q_select->result,
-                (ct_item_cb) &items_select_master,
-                handle);
-
-        switch (rc)
+        if (q_select->pmap == NULL || q_select->pmap->len)
         {
-        case -1:
-            sprintf(query->err_msg, "Memory allocation error.");
-            /* no break */
-        case 1:
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
+            /* we have not reached the limit, send the query to other pools */
+            siridb_query_forward(
+                    handle,
+                    (q_select->pmap == NULL) ?
+                            SIRIDB_QUERY_FWD_POOLS :
+                            SIRIDB_QUERY_FWD_SOME_POOLS,
+                    (sirinet_promises_cb) on_select_response);
         }
-
-//        if (IS_MASTER &&
-//                    (q_select->plist == NULL || q_select->plist->len))
-//            {
-//                /* we have not reached the limit, send the query to other pools */
-//                siridb_query_forward(
-//                        handle,
-//                        (q_select->plist == NULL) ?
-//                                SIRIDB_QUERY_FWD_POOLS : SIRIDB_QUERY_FWD_SOME_POOLS,
-//                        (sirinet_promises_cb) on_select_response);
-
+        else
+        {
+            master_select_finished(handle);
+        }
     }
     else
     {
-        qp_add_raw(query->packer, "select", 6);
-        qp_add_type(query->packer, QP_MAP_OPEN);
-        ct_items(q_select->result, (ct_item_cb) &items_select_other, handle);
-        qp_add_type(query->packer, QP_MAP_CLOSE);
+        if (    qp_add_raw(query->packer, "select", 6) ||
+                qp_add_type(query->packer, QP_MAP_OPEN) ||
+                ct_items(
+                        q_select->result,
+                        (q_select->merge_as == NULL) ?
+                                (ct_item_cb) &items_select_other
+                                :
+                                (ct_item_cb) &items_select_other_merge,
+                        handle) ||
+                qp_add_type(query->packer, QP_MAP_CLOSE))
+        {
+            sprintf(query->err_msg, "Memory allocation error.");
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
     }
-
-    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_set_drop_threshold(uv_async_t * handle)
@@ -1930,8 +1906,7 @@ static void exit_set_log_level(uv_async_t * handle)
         log_level = LOGGER_CRITICAL;
         break;
     default:
-        /* we should NEVER get here */
-        assert(0);
+        assert (0);
         break;
     }
 
@@ -2506,16 +2481,17 @@ static void async_select_aggregate(uv_async_t * handle)
         }
         else
         {
-            slist_t * plist;
+            slist_t ** plist;
 
             name = siridb_presuf_name(
                     q_select->presuf,
                     q_select->merge_as,
                     strlen(q_select->merge_as));
+            plist = (slist_t **) ct_getaddr(q_select->result, name);
 
             if (    name == NULL ||
-                    (plist = ct_get(q_select->result, name)) == NULL ||
-                    slist_append_safe(&plist, points))
+                    *plist == NULL ||
+                    slist_append_safe(plist, points))
             {
                 sprintf(query->err_msg, "Error adding points to map.");
                 siridb_points_free(points);
@@ -2862,8 +2838,8 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
                 if (    qp_is_map(qp_next(unpacker, NULL)) &&
                         qp_is_raw(qp_next(unpacker, NULL)) && // columns
                         qp_is_array(qp_skip_next(unpacker)) &&
-                        qp_is_raw(qp_next(unpacker, NULL)) && // series/servers/...
-                        qp_is_array(qp_next(unpacker, NULL)))  // holding results
+                        qp_is_raw(qp_next(unpacker, NULL)) && // series/...
+                        qp_is_array(qp_next(unpacker, NULL)))  // results
                 {
                     while (qp_is_array(qp_current(unpacker)))
                     {
@@ -2919,9 +2895,11 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
     qp_obj_t * qp_tp = qp_object_new();
     qp_obj_t * qp_len = qp_object_new();
     qp_obj_t * qp_points = qp_object_new();
-    siridb_points_t * points;
 
-    if (qp_name == NULL || qp_tp == NULL || qp_len == NULL || qp_points == NULL)
+    if (    qp_name == NULL ||
+            qp_tp == NULL ||
+            qp_len == NULL ||
+            qp_points == NULL)
     {
         qp_object_free_safe(qp_name);
         qp_object_free_safe(qp_tp);
@@ -2965,47 +2943,27 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
                             qp_is_raw(qp_next(unpacker, NULL)) && // select
                             qp_is_map(qp_next(unpacker, NULL)))
                     {
-
-                        while ( q_select->n <= MAX_SELECT_POINTS &&
-                                qp_is_raw(qp_next(unpacker, qp_name)) &&
-#ifdef DEBUG
-                                qp_is_raw_term(qp_name) &&
-#endif
-                                qp_is_array(qp_next(unpacker, NULL)) &&
-                                qp_is_int(qp_next(unpacker, qp_tp)) &&
-                                qp_is_int(qp_next(unpacker, qp_len)) &&
-                                qp_is_raw(qp_next(unpacker, qp_points)))
+                        if (q_select->merge_as == NULL)
                         {
-                            points = siridb_points_new(
-                                    qp_len->via->int64,
-                                    qp_tp->via->int64);
-
-                            if (points != NULL)
-                            {
-#ifdef DEBUG
-                                assert (qp_len->via->int64 *
-                                        sizeof(siridb_point_t) ==
-                                        qp_points->len);
-#endif
-                                points->len = qp_len->via->int64;
-
-                                memcpy( points->data,
-                                        qp_points->via->raw,
-                                        qp_points->len);
-
-                                if (ct_add(
-                                        q_select->result,
-                                        qp_name->via->raw,
-                                        points))
-                                {
-                                    siridb_points_free(points);
-                                }
-                                else
-                                {
-                                    q_select->n += points->len;
-                                }
-                            }
+                            on_select_unpack_points(
+                                    unpacker,
+                                    q_select,
+                                    qp_name,
+                                    qp_tp,
+                                    qp_len,
+                                    qp_points);
                         }
+                        else
+                        {
+                            on_select_unpack_merged_points(
+                                    unpacker,
+                                    q_select,
+                                    qp_name,
+                                    qp_tp,
+                                    qp_len,
+                                    qp_points);
+                        }
+
 
                         /* extract time-it info if needed */
                         if (query->timeit != NULL)
@@ -3025,6 +2983,11 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
         }
     }
 
+    qp_object_free(qp_name);
+    qp_object_free(qp_tp);
+    qp_object_free(qp_len);
+    qp_object_free(qp_points);
+
     if (q_select->n > MAX_SELECT_POINTS)
     {
         snprintf(query->err_msg,
@@ -3042,7 +3005,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        master_select_finished(handle);
     }
 }
 
@@ -3101,3 +3064,260 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
     }
 }
 
+/******************************************************************************
+ * Helper functions
+ *****************************************************************************/
+
+static void master_select_finished(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
+    int rc = ct_items(
+            q_select->result,
+            (q_select->merge_as == NULL) ?
+                    (ct_item_cb) &items_select_master
+                    :
+                    (ct_item_cb) &items_select_master_merge,
+            handle);
+    switch (rc)
+    {
+    case -1:
+        sprintf(query->err_msg, "Memory allocation error.");
+        /* no break */
+    case 1:
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static int items_select_master(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    if (    qp_add_string(query->packer, name) ||
+            siridb_points_pack(points, query->packer))
+    {
+        sprintf(query->err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int items_select_master_merge(
+        const char * name,
+        slist_t * plist,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_points_t * points;
+
+    if (qp_add_string(query->packer, name))
+    {
+        sprintf(query->err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    switch (plist->len)
+    {
+    case 0:
+        points = siridb_points_new(0, TP_INT);
+        if (points == NULL)
+        {
+            sprintf(query->err_msg, "Memory allocation error.");
+        }
+        break;
+    case 1:
+        points = slist_pop(plist);
+        break;
+    default:
+        points = siridb_points_merge(
+                                plist,
+                                query->err_msg);
+        break;
+    }
+
+    if (q_select->mlist != NULL && points != NULL)
+    {
+        siridb_points_t * aggr_points;
+        for (size_t i = 0; points->len && i < q_select->mlist->len; i++)
+        {
+            aggr_points = siridb_aggregate_run(
+                    points,
+                    (siridb_aggr_t *) q_select->mlist->data[i],
+                    query->err_msg);
+
+            siridb_points_free(points);
+
+            if (aggr_points == NULL)
+            {
+                return -1;  // (error message is set)
+            }
+
+            points = aggr_points;
+        }
+    }
+
+    if (points == NULL)
+    {
+        /*
+         * The list will be cleared including the points since 'merge_as'
+         * is still not NULL. (error message is set)
+         */
+        return -1;
+    }
+
+    if (siridb_points_pack(points, query->packer))
+    {
+        sprintf(query->err_msg, "Memory allocation error.");
+
+        siridb_points_free(points);
+        return -1;
+    }
+
+    siridb_points_free(points);
+    return 0;
+}
+
+int items_select_other(
+        const char * name,
+        siridb_points_t * points,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    return (
+            qp_add_string_term(query->packer, name) ||
+            siridb_points_raw_pack(points, query->packer));
+}
+
+int items_select_other_merge(
+        const char * name,
+        slist_t * plist,
+        uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    LOGC("Blabla");
+    int rc;
+
+    rc = qp_add_string_term(query->packer, name);
+
+    rc += qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+    for (size_t i = 0; i < plist->len; i++)
+    {
+        rc += siridb_points_raw_pack(
+                (siridb_points_t * ) plist->data[i],
+                query->packer);
+    }
+    rc += qp_add_type(query->packer, QP_ARRAY_CLOSE);
+    return rc;
+}
+
+static void on_select_unpack_points(
+        qp_unpacker_t * unpacker,
+        query_select_t * q_select,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_tp,
+        qp_obj_t * qp_len,
+        qp_obj_t * qp_points)
+{
+    siridb_points_t * points;
+
+    while ( q_select->n <= MAX_SELECT_POINTS &&
+            qp_is_raw(qp_next(unpacker, qp_name)) &&
+#ifdef DEBUG
+            qp_is_raw_term(qp_name) &&
+#endif
+            qp_is_array(qp_next(unpacker, NULL)) &&
+            qp_is_int(qp_next(unpacker, qp_tp)) &&
+            qp_is_int(qp_next(unpacker, qp_len)) &&
+            qp_is_raw(qp_next(unpacker, qp_points)))
+    {
+        points = siridb_points_new(qp_len->via->int64, qp_tp->via->int64);
+
+        if (points != NULL)
+        {
+#ifdef DEBUG
+            assert (qp_len->via->int64 * sizeof(siridb_point_t) ==
+                    qp_points->len);
+#endif
+            points->len = qp_len->via->int64;
+
+            memcpy(points->data, qp_points->via->raw, qp_points->len);
+
+            if (ct_add(q_select->result, qp_name->via->raw, points))
+            {
+                siridb_points_free(points);
+            }
+            else
+            {
+                q_select->n += points->len;
+            }
+        }
+
+        qp_next(unpacker, NULL);  // QP_ARRAY_CLOSE
+    }
+}
+
+static void on_select_unpack_merged_points(
+        qp_unpacker_t * unpacker,
+        query_select_t * q_select,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_tp,
+        qp_obj_t * qp_len,
+        qp_obj_t * qp_points)
+{
+    siridb_points_t * points;
+
+    while ( qp_is_raw(qp_next(unpacker, qp_name)) &&
+#ifdef DEBUG
+            qp_is_raw_term(qp_name) &&
+#endif
+            qp_is_array(qp_next(unpacker, NULL)))
+
+    {
+        slist_t ** plist = (slist_t **) ct_getaddr(
+                q_select->result,
+                qp_name->via->raw);
+
+        while ( q_select->n <= MAX_SELECT_POINTS &&
+                qp_is_array(qp_next(unpacker, NULL)) &&
+                qp_is_int(qp_next(unpacker, qp_tp)) &&
+                qp_is_int(qp_next(unpacker, qp_len)) &&
+                qp_is_raw(qp_next(unpacker, qp_points)))
+        {
+
+            points = siridb_points_new(qp_len->via->int64, qp_tp->via->int64);
+
+            if (points != NULL)
+            {
+    #ifdef DEBUG
+                assert (qp_len->via->int64 * sizeof(siridb_point_t) ==
+                        qp_points->len);
+    #endif
+                points->len = qp_len->via->int64;
+
+                memcpy(points->data, qp_points->via->raw, qp_points->len);
+
+
+                if (slist_append_safe(plist, points))
+                {
+                    siridb_points_free(points);
+                }
+                else
+                {
+                    q_select->n += points->len;
+                }
+            }
+
+            qp_next(unpacker, NULL);  // QP_ARRAY_CLOSE
+        }
+    }
+}

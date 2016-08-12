@@ -29,6 +29,7 @@ static int CT_add(
         const char * key,
         void * data);
 static void * CT_get(ct_node_t * node, const char * key);
+static void ** CT_getaddr(ct_node_t * node, const char * key);
 static void * CT_getn(ct_node_t * node, const char * key, size_t * n);
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void ** CT_get_sure(ct_node_t * node, const char * key);
@@ -39,7 +40,7 @@ static int CT_items(
         size_t * pn,
         size_t len,
         size_t buffer_sz,
-        char * buffer,
+        char ** buffer,
         ct_item_cb cb,
         void * args);
 static void CT_values(
@@ -202,6 +203,24 @@ void * ct_get(ct_t * ct, const char * key)
 }
 
 /*
+ * Returns the address of an item or NULL if the key does not exist.
+ */
+void ** ct_getaddr(ct_t * ct, const char * key)
+{
+    ct_node_t * nd;
+    uint8_t k = (uint8_t) *key;
+    uint8_t pos = k / BLOCKSZ;
+
+    if (pos < ct->offset || pos >= ct->offset + ct->n)
+    {
+        return NULL;
+    }
+    nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
+
+    return (nd == NULL) ? NULL : CT_getaddr(nd, key + 1);
+}
+
+/*
  * Returns an item or NULL if the key does not exist.
  */
 void * ct_getn(ct_t * ct, const char * key, size_t n)
@@ -291,7 +310,7 @@ int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
     size_t buffer_sz = CT_BUFFER_ALLOC_SIZE;
     size_t len = 1;
     ct_node_t * nd;
-    int rc;
+    int rc = 0;
     char * buffer = (char *) malloc(buffer_sz);
     if (buffer == NULL)
     {
@@ -307,7 +326,7 @@ int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
             continue;
         }
         *buffer = (char) (i + ct->offset * BLOCKSZ);
-        rc = CT_items(nd, n, len, buffer_sz, buffer, cb, args);
+        rc = CT_items(nd, n, len, buffer_sz, &buffer, cb, args);
     }
     free(buffer);
     return rc;
@@ -348,7 +367,7 @@ static int CT_items(
         size_t * pn,
         size_t len,
         size_t buffer_sz,
-        char * buffer,
+        char ** buffer,
         ct_item_cb cb,
         void * args)
 {
@@ -359,21 +378,21 @@ static int CT_items(
         char * tmp;
         buffer_sz =
                 ((sz + len) / CT_BUFFER_ALLOC_SIZE + 1) * CT_BUFFER_ALLOC_SIZE;
-        tmp = (char *) realloc(buffer, buffer_sz);
+        tmp = (char *) realloc(*buffer, buffer_sz);
         if (tmp == NULL)
         {
             ERR_ALLOC;
             *pn = 0;
             return -1;
         }
-        buffer = tmp;
+        *buffer = tmp;
     }
 
-    memcpy(buffer + len, node->key, sz + 1);
+    memcpy(*buffer + len, node->key, sz + 1);
 
     if (node->data != NULL)
     {
-        if ((*cb)(buffer, node->data, args))
+        if ((*cb)(*buffer, node->data, args))
         {
             (*pn)--;
         }
@@ -392,7 +411,7 @@ static int CT_items(
             {
                 continue;
             }
-            *(buffer + len - 1) = (char) (i + node->offset * BLOCKSZ);
+            *(*buffer + len - 1) = (char) (i + node->offset * BLOCKSZ);
             if (CT_items(nd, pn, len, buffer_sz, buffer, cb, args))
             {
                 return -1;
@@ -608,6 +627,48 @@ static void * CT_get(ct_node_t * node, const char * key)
             if  (*key == 0)
             {
                 return node->data;
+            }
+
+            if (node->nodes == NULL)
+            {
+                return NULL;
+            }
+            uint8_t k = (uint8_t) *key;
+            uint8_t pos = k / BLOCKSZ;
+
+            if (pos < node->offset || pos >= node->offset + node->n)
+            {
+                return NULL;
+            }
+
+            ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
+
+            return (nd == NULL) ? NULL : CT_get(nd, key + 1);
+        }
+        if (*key != *pt)
+        {
+            return NULL;
+        }
+    }
+
+    /* we should never get here */
+    return NULL;
+}
+
+/*
+ * Returns an address of an item or NULL if the key does not exist.
+ */
+static void ** CT_getaddr(ct_node_t * node, const char * key)
+{
+    char * pt = node->key;
+
+    for (;; key++, pt++)
+    {
+        if (*pt == 0)
+        {
+            if  (*key == 0)
+            {
+                return &node->data;
             }
 
             if (node->nodes == NULL)

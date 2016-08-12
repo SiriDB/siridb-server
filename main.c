@@ -26,8 +26,6 @@
 
 int main(int argc, char * argv[])
 {
-    int rc;
-
     #ifdef DEBUG
     printf( "*******************************\n"
             "*     Start DEBUG Release     *\n"
@@ -54,6 +52,7 @@ int main(int argc, char * argv[])
     siri_setup_logger();
 
     #ifdef DEBUG
+    int rc;
     /* run tests when we are in debug mode */
     rc = run_tests(0);
     if (rc)

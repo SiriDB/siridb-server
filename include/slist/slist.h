@@ -30,8 +30,10 @@ typedef struct slist_s
 } slist_t;
 
 slist_t * slist_new(size_t size);
+slist_t * slist_copy(slist_t * source);
 void slist_free(slist_t * slist);
 void slist_append(slist_t * slist, void * data);
+void * slist_pop(slist_t * slist);
 int slist_append_safe(slist_t ** slist, void * data);
 
 /*

@@ -56,6 +56,7 @@ imap_t * imap_new(void)
     else
     {
         imap->len = 0;
+        imap->slist = NULL;
     }
     return imap;
 }
@@ -99,6 +100,8 @@ void imap_free(imap_t * imap, imap_free_cb cb)
             }
         }
     }
+
+    slist_free(imap->slist);
     free(imap);
 }
 
@@ -117,27 +120,32 @@ int imap_add(imap_t * imap, uint64_t id, void * data)
     /* insert NULL is not allowed */
     assert (data != NULL);
 #endif
-
+    int rc;
     imap_node_t * nd = imap->nodes + (id % IMAP_NODE_SZ);
     id /= IMAP_NODE_SZ;
 
     if (!id)
     {
-        if (nd->data == NULL)
+        rc = (nd->data == NULL);
+
+        imap->len += rc;
+        nd->data = data;
+    }
+    else
+    {
+        rc = IMAP_add(nd, id - 1, data);
+
+        if (rc > 0)
         {
             imap->len++;
         }
-
-        nd->data = data;
-
-        return 0;
     }
 
-    int rc = IMAP_add(nd, id - 1, data);
-
-    if (rc > 0)
+    if (imap->slist != NULL && (
+            rc < 1 || slist_append_safe(&imap->slist, data)))
     {
-        imap->len++;
+        slist_free(imap->slist);
+        imap->slist = NULL;
     }
 
     return rc;
@@ -168,19 +176,25 @@ void * imap_pop(imap_t * imap, uint64_t id)
     imap_node_t * nd = imap->nodes + (id % IMAP_NODE_SZ);
     id /= IMAP_NODE_SZ;
 
-    if (!id)
+    if (id)
     {
-        if ((data = nd->data) != NULL)
-        {
-            nd->data = NULL;
-            imap->len--;
-        }
-
-        return data;
+        data = (nd->nodes == NULL) ? NULL : IMAP_pop(nd, id - 1);
+    }
+    else if ((data = nd->data) != NULL)
+    {
+        nd->data = NULL;
     }
 
-    data = (nd->nodes == NULL) ? NULL : IMAP_pop(nd, id - 1);
-    imap->len -= (data != NULL);
+    if (data != NULL)
+    {
+        imap->len--;
+
+        if (imap->slist != NULL)
+        {
+            slist_free(imap->slist);
+            imap->slist = NULL;
+        }
+    }
 
     return data;
 }
@@ -249,33 +263,64 @@ void imap_walkn(imap_t * imap, size_t * n, imap_cb cb, void * data)
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * When successful a BORROWED pointer to slist is returned.
+ */
+slist_t * imap_slist(imap_t * imap)
+{
+    if (imap->slist == NULL)
+    {
+        imap->slist = slist_new(imap->len);
+
+        if (imap->slist != NULL && imap->len)
+        {
+            imap_node_t * nd;
+
+            for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+            {
+                nd = imap->nodes + i;
+
+                if (nd->data != NULL)
+                {
+                    slist_append(imap->slist, nd->data);
+                }
+
+                if (nd->nodes != NULL)
+                {
+                    IMAP_2slist(nd, imap->slist);
+                }
+            }
+        }
+    }
+    return imap->slist;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * When successful a the slist is returned and imap->slist is set to NULL.
+ *
+ * This can be used when being sure this is the only time you need the list
+ * and prevents making a copy.
+ */
+slist_t * imap_slist_pop(imap_t * imap)
+{
+    slist_t * slist = imap_slist(imap);
+    imap->slist = NULL;
+    return slist;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * When successful a NEW slist is returned.
  */
 slist_t * imap_2slist(imap_t * imap)
 {
-    slist_t * slist = slist_new(imap->len);
-
-    if (slist == NULL)
+    slist_t * slist = imap_slist(imap);
+    if (slist != NULL)
     {
-        ERR_ALLOC
-    }
-    else if (imap->len)
-    {
-        imap_node_t * nd;
-
-        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
-        {
-            nd = imap->nodes + i;
-
-            if (nd->data != NULL)
-            {
-                slist_append(slist, nd->data);
-            }
-
-            if (nd->nodes != NULL)
-            {
-                IMAP_2slist(nd, slist);
-            }
-        }
+        slist = slist_copy(slist);
     }
     return slist;
 }
@@ -293,33 +338,40 @@ slist_t * imap_2slist(imap_t * imap)
  */
 slist_t * imap_2slist_ref(imap_t * imap)
 {
-    slist_t * slist = slist_new(imap->len);
-
-    if (slist == NULL)
+    if (imap->slist == NULL)
     {
-        ERR_ALLOC
-    }
-    else if (imap->len)
-    {
-        imap_node_t * nd;
+        imap->slist = slist_new(imap->len);
 
-        for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
+        if (imap->slist != NULL && imap->len)
         {
-            nd = imap->nodes + i;
+            imap_node_t * nd;
 
-            if (nd->data != NULL)
+            for (uint8_t i = 0; i < IMAP_NODE_SZ; i++)
             {
-                slist_append(slist, nd->data);
-                slist_object_incref(nd->data);
-            }
+                nd = imap->nodes + i;
 
-            if (nd->nodes != NULL)
-            {
-                IMAP_2slist_ref(nd, slist);
+                if (nd->data != NULL)
+                {
+                    slist_append(imap->slist, nd->data);
+                    slist_object_incref(nd->data);
+                }
+
+                if (nd->nodes != NULL)
+                {
+                    IMAP_2slist_ref(nd, imap->slist);
+                }
             }
         }
     }
-    return slist;
+    else
+    {
+        for (size_t i = 0; i < imap->slist->len; i++)
+        {
+            slist_object_incref(imap->slist->data[i]);
+        }
+    }
+
+    return (imap->slist == NULL) ? NULL : slist_copy(imap->slist);
 }
 
 /*
@@ -383,6 +435,7 @@ void imap_union_ref(
     }
 
     /* cleanup source imap */
+    slist_free(imap->slist);
     free(imap);
 }
 
@@ -439,6 +492,7 @@ void imap_intersection_ref(
     }
 
     /* cleanup source imap */
+    slist_free(imap->slist);
     free(imap);
 }
 
@@ -501,6 +555,7 @@ void imap_difference_ref(
     }
 
     /* cleanup source imap */
+    slist_free(imap->slist);
     free(imap);
 }
 
@@ -574,6 +629,7 @@ void imap_symmetric_difference_ref(
     }
 
     /* cleanup source imap */
+    slist_free(imap->slist);
     free(imap);
 }
 

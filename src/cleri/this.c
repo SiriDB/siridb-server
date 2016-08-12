@@ -16,6 +16,7 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <cleri/expecting.h>
+#include <assert.h>
 
 static cleri_node_t * cleri_parse_this(
         cleri_parser_t * pr,
@@ -76,6 +77,10 @@ static cleri_node_t * cleri_parse_this(
         break;
     case CLERI_RULE_ERROR:
         return NULL;
+
+    default:
+        assert (0);
+        node = NULL;
     }
 
     parent->len += tested->node->len;

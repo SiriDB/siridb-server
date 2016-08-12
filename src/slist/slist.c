@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <string.h>
 
 #define SLIST_AUTO_GROW_SIZE 8
 
@@ -35,12 +36,30 @@ slist_t * slist_new(size_t size)
     if (slist == NULL)
     {
         ERR_ALLOC
-        return NULL;
     }
+    else
+    {
+        slist->size = size;
+        slist->len = 0;
+    }
+    return slist;
+}
 
-    slist->size = size;
-    slist->len = 0;
-
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+slist_t * slist_copy(slist_t * source)
+{
+    size_t size = sizeof(slist_t) + sizeof(void *) * source->size;
+    slist_t * slist = (slist_t *) malloc(size);
+    if (slist == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        memcpy(slist, source, size);
+    }
     return slist;
 }
 
@@ -62,6 +81,14 @@ inline void slist_append(slist_t * slist, void * data)
 }
 
 /*
+ * Pop the last item from the list
+ */
+inline void * slist_pop(slist_t * slist)
+{
+    return slist->data[--slist->len];
+}
+
+/*
  * Returns 0 if successful or -1 in case of an error.
  * (in case of an error the list is unchanged)
  */
@@ -73,15 +100,14 @@ int slist_append_safe(slist_t ** slist, void * data)
 
         /* increment size */
         (*slist)->size += SLIST_AUTO_GROW_SIZE;
-
-        tmp = realloc(
+        tmp = (slist_t *) realloc(
                 *slist,
                 sizeof(slist_t) + sizeof(void *) * (*slist)->size);
 
         if (tmp == NULL)
         {
             /* an error has occurred */
-            (*slist)->size--;
+            (*slist)->size -= SLIST_AUTO_GROW_SIZE;
             return -1;
         }
 
@@ -89,8 +115,7 @@ int slist_append_safe(slist_t ** slist, void * data)
         *slist = tmp;
     }
 
-    (*slist)->data[(*slist)->len] = data;
-    (*slist)->len++;
+    (*slist)->data[(*slist)->len++] = data;
 
     return 0;
 }

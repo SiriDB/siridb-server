@@ -85,7 +85,6 @@ void siridb_points_add_point(
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
 {
     qp_add_type(packer, QP_ARRAY_OPEN);
-
     if (points->len)
     {
         siridb_point_t * point;
@@ -205,7 +204,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
          * list length to 0. We do have to restore the points length since
          * this is decremented by one.
          */
-        points = (siridb_points_t *) plist->data[--plist->len];
+        points = (siridb_points_t *) slist_pop(plist);
         points->len++;
         return points;
     }

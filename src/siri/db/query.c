@@ -286,17 +286,24 @@ void siridb_query_forward(
             assert (((query_select_t *) ((siridb_query_t *)
                     handle->data)->data)->tp == QUERIES_SELECT);
             assert (((query_select_t *) ((siridb_query_t *)
-                    handle->data)->data)->plist != NULL);
+                    handle->data)->data)->pmap != NULL);
 #endif
             pkg->tp = BPROTO_QUERY_SERVER;
-            siridb_pools_send_pkg_2some(
-                    siridb,
-                    ((query_select_t *) (
-                            (siridb_query_t *) handle->data)->data)->plist,
-                    pkg,
-                    0,
-                    cb,
-                    handle);
+            {
+                slist_t * borrow_list = imap_slist(((query_select_t *) (
+                        (siridb_query_t *) handle->data)->data)->pmap);
+                if (borrow_list != NULL)
+                {
+                    /* if slist is NULL, a signal is raised */
+                    siridb_pools_send_pkg_2some(
+                            siridb,
+                            borrow_list,
+                            pkg,
+                            0,
+                            cb,
+                            handle);
+                }
+            }
             break;
 
         case SIRIDB_QUERY_FWD_UPDATE:

@@ -776,6 +776,9 @@ static siridb_points_t * AGGREGATE_group_by(
     case CLERI_GID_F_DIFFERENCE:
         points = siridb_points_new(max_sz, group.tp);
         break;
+    default:
+        assert (0);
+        points = NULL;
     }
 
     if (points == NULL)

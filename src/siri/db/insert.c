@@ -124,7 +124,7 @@ ssize_t siridb_insert_assign_pools(
         qp_obj_t * qp_obj,
         qp_packer_t * packer[])
 {
-    ssize_t rc;
+    ssize_t rc = 0;
     qp_types_t tp;
 
     tp = qp_next(unpacker, NULL);

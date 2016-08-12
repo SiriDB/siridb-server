@@ -73,7 +73,7 @@ int cleri_expecting_update(
         cleri_object_t * cl_obj,
         const char * str)
 {
-    int rc;
+    int rc = 0;
 
     if (str > expecting->str)
     {
@@ -81,6 +81,7 @@ int cleri_expecting_update(
         expecting->str = str;
         EXPECTING_shift_modes(&(expecting->modes), str);
     }
+
     if (expecting->str == str)
     {
         if (EXPECTING_get_mode(expecting->modes, str))
@@ -94,6 +95,7 @@ int cleri_expecting_update(
             rc = cleri_olist_append_nref(expecting->optional, cl_obj);
         }
     }
+
     return rc;
 }
 

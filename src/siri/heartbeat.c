@@ -71,6 +71,27 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     {
         siridb = (siridb_t *) siridb_node->data;
 
+#ifdef DEBUG
+        /*
+         * Test series with overlap
+         */
+        uint32_t tcount = 0;
+        slist_t * temp = imap_slist(siridb->series_map);
+        for (size_t j = 0; j < temp->len; j++)
+        {
+            if (((siridb_series_t *) temp->data[j])->flags &
+                    SIRIDB_SERIES_HAS_OVERLAP)
+            {
+                tcount++;
+            }
+        }
+        log_debug("Series with overlap: %lu", tcount);
+        /*
+         * Finish series with overlap
+         */
+
+#endif
+
         server_node = siridb->servers->first;
         while (server_node != NULL)
         {

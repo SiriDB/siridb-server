@@ -309,14 +309,14 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
 
     siridb_server_incref(server);
 
+    /*
+     * Force one heart-beat to connect to the new server and
+     * sending the updated flags to the other servers.
+     */
+    siri_heartbeat_force();
+
     if (siridb->reindex != NULL)
     {
-        /*
-         * Force one heart-beat to connect to the new server and
-         * sending the updated flags to the other servers.
-         */
-        siri_heartbeat_force();
-
         siridb_reindex_start(siridb->reindex->timer);
     }
 
