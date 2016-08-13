@@ -51,6 +51,26 @@ sirinet_pkg_t * sirinet_pkg_new(
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * (do not forget to run free(...) on the result. )
+ */
+sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source)
+{
+    size_t size = sizeof(sirinet_pkg_t) + source->len;
+    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(size);
+
+    if (pkg == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        memcpy(source, pkg, size);
+    }
+    return pkg;
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
  * Use 'qp_packer_free' to destroy the returned value or use
  * 'sirinet_packer2pkg' to convert to 'sirinet_pkg_t'.

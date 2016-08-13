@@ -22,7 +22,8 @@
 sirinet_promises_t * sirinet_promises_new(
         size_t size,
         sirinet_promises_cb cb,
-        void * data)
+        void * data,
+        sirinet_pkg_t * pkg)
 {
     sirinet_promises_t * promises =
             (sirinet_promises_t *) malloc(sizeof(sirinet_promises_t));
@@ -32,9 +33,12 @@ sirinet_promises_t * sirinet_promises_new(
     }
     else
     {
+
         promises->cb = cb;
         promises->data = data;
         promises->promises = slist_new(size);
+        promises->pkg = pkg;
+
         if (promises->promises == NULL)
         {
             free(promises);

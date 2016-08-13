@@ -365,9 +365,10 @@ void siridb_servers_send_pkg(
         void * data)
 {
     sirinet_promises_t * promises =
-            sirinet_promises_new(servers->len, cb, data);
+            sirinet_promises_new(servers->len, cb, data, pkg);
     if (promises == NULL)
     {
+        free(pkg);
         cb(NULL, data);
     }
     else
@@ -385,7 +386,8 @@ void siridb_servers_send_pkg(
                         pkg,
                         timeout,
                         sirinet_promises_on_response,
-                        promises))
+                        promises,
+                        FLAG_KEEP_PKG))
                 {
                     log_critical("Allocation error while trying to send a package "
                             "to '%s'", server->name);

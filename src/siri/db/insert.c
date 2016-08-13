@@ -718,8 +718,10 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                     pkg,
                     0,
                     sirinet_promises_on_response,
-                    promises))
+                    promises,
+                    0))
             {
+                free(pkg);
                 log_error(
                     "Although we have checked and validated each pool "
                     "had at least one server available, it seems that the "
@@ -730,7 +732,6 @@ static void INSERT_points_to_pools(uv_async_t * handle)
             {
                 pool_count++;
             }
-            free(pkg);
         }
         insert->packer[n] = NULL;
     }

@@ -43,6 +43,7 @@ typedef struct sirinet_promise_s
     uv_timer_t * timer;
     sirinet_promise_cb cb;
     siridb_server_t * server;
+    sirinet_pkg_t * pkg;
     void * data;
 } sirinet_promise_t;
 

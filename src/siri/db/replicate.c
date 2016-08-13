@@ -241,14 +241,14 @@ static void REPLICATE_work(uv_timer_t * handle)
                         !siridb_fifo_has_data(siridb->fifo))
         {
             pkg = sirinet_pkg_new(0, 0, BPROTO_REPL_FINISHED, NULL);
-            if (pkg != NULL)
+            if (pkg != NULL && siridb_server_send_pkg(
+                    siridb->replica,
+                    pkg,
+                    0,
+                    REPLICATE_on_repl_finished_response,
+                    NULL,
+                    0))
             {
-                siridb_server_send_pkg(
-                        siridb->replica,
-                        pkg,
-                        0,
-                        REPLICATE_on_repl_finished_response,
-                        NULL);
                 free(pkg);
             }
         }

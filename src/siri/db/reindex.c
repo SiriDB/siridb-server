@@ -333,7 +333,8 @@ static void REINDEX_send(uv_timer_t * timer)
                 siridb->reindex->pkg,
                 REINDEX_TIMEOUT,
                 REINDEX_on_insert_response,
-                siridb);
+                siridb,
+                FLAG_KEEP_PKG);
     }
     else
     {

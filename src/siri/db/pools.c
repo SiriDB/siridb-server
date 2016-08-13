@@ -202,7 +202,8 @@ int siridb_pools_reindexing(siridb_t * siridb)
  *
  * If promises could not be created, the 'cb' function with cb(NULL, data)
  *
- * Note that 'pkg->pid' will be overwritten with a new package id.
+ * Note that 'pkg->pid' will be overwritten with a new package id and pkg
+ * will always be destroyed.
  */
 void siridb_pools_send_pkg(
         siridb_t * siridb,
@@ -212,10 +213,11 @@ void siridb_pools_send_pkg(
         void * data)
 {
     sirinet_promises_t * promises =
-            sirinet_promises_new(siridb->pools->len - 1, cb, data);
+            sirinet_promises_new(siridb->pools->len - 1, cb, data, pkg);
 
     if (promises == NULL)
     {
+        free(pkg);
         cb(NULL, data);
     }
     else
@@ -236,7 +238,8 @@ void siridb_pools_send_pkg(
                     pkg,
                     timeout,
                     sirinet_promises_on_response,
-                    promises))
+                    promises,
+                    FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to pool '%u' "
@@ -261,7 +264,8 @@ void siridb_pools_send_pkg(
  *
  * If promises could not be created, the 'cb' function with cb(NULL, data)
  *
- * Note that 'pkg->pid' will be overwritten with a new package id.
+ * Note that 'pkg->pid' will be overwritten with a new package id and pkg
+ * will always be destroyed.
  */
 void siridb_pools_send_pkg_2some(
         siridb_t * siridb,
@@ -272,10 +276,11 @@ void siridb_pools_send_pkg_2some(
         void * data)
 {
     sirinet_promises_t * promises =
-            sirinet_promises_new(slist->len, cb, data);
+            sirinet_promises_new(slist->len, cb, data, pkg);
 
     if (promises == NULL)
     {
+        free(pkg);
         cb(NULL, data);
     }
     else
@@ -291,7 +296,8 @@ void siridb_pools_send_pkg_2some(
                     pkg,
                     timeout,
                     sirinet_promises_on_response,
-                    promises))
+                    promises,
+                    FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to at least on pool "

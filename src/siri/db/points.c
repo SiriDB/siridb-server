@@ -150,7 +150,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     size_t n = 0;
     size_t i;
     uint8_t int2double = 0;
-
+    LOGC("START MERGING");
     for (i = 0; i < plist->len; )
     {
         points = (siridb_points_t *) plist->data[i];
@@ -192,6 +192,8 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
         i++;
     }
 
+    LOGC("MERGING STEP 1");
+
 #ifdef DEBUG
     /* we have at least one series left */
     assert (plist->len >= 1);
@@ -218,6 +220,8 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     }
     else
     {
+        LOGC("MERGING STEP 2");
+
         if (int2double)
         {
             size_t j;
@@ -234,6 +238,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                 }
             }
         }
+        LOGC("MERGING STEP 3");
 
         points->len = n;
 
@@ -265,6 +270,9 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                 }
             }
         }
+
+        LOGC("MERGING FINISHED...");
+
 
 #ifdef DEBUG
         /* size should be exactly zero */

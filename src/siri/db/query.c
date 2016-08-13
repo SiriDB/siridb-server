@@ -266,6 +266,10 @@ void siridb_query_forward(
                             handle);
                     slist_free(servers);
                 }
+                else
+                {
+                    free(pkg);
+                }
             }
             break;
 
@@ -302,6 +306,10 @@ void siridb_query_forward(
                             cb,
                             handle);
                 }
+                else
+                {
+                    free(pkg);
+                }
             }
             break;
 
@@ -322,10 +330,9 @@ void siridb_query_forward(
 
         default:
             assert (0);
+            free(pkg);
             break;
         }
-
-        free(pkg);
     }
     qp_packer_free(packer);
 }

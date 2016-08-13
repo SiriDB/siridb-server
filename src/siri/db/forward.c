@@ -140,9 +140,11 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
                 pkg,
                 0,
                 sirinet_promises_on_response,
-                promises))
+                promises,
+                0))
         {
             log_critical("One pool is unreachable while re-indexing!");
+            free(pkg);
             /*
              * TODO: we can add the package to some retry queue for this pool
              */
@@ -151,8 +153,6 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
         {
             pool_count++;
         }
-
-        free(pkg);
     }
 
     /* pool_count is always smaller than the initial promises->size */

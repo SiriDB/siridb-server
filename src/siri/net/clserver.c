@@ -696,11 +696,11 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
             /* make sure to unlock the client in the callback */
             sirinet_socket_lock(client);
 
-            if (servers != NULL)
+            if (servers != NULL && (package = sirinet_pkg_copy(pkg)) != NULL)
             {
                 siridb_servers_send_pkg(
                         servers,
-                        pkg,
+                        package,
                         0,
                         (sirinet_promises_cb)
                                 CLSERVER_on_register_server_response,

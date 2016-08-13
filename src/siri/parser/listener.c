@@ -139,7 +139,8 @@ static void on_select_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
 /* helper functions */
-static void master_select_finished(uv_async_t * handle);
+static void master_select_work(uv_async_t * handle);
+static void master_select_work_finish(uv_work_t * work, int status);
 static int items_select_master(
         const char * name,
         siridb_points_t * points,
@@ -1783,7 +1784,16 @@ static void exit_select_stmt(uv_async_t * handle)
         }
         else
         {
-            master_select_finished(handle);
+            uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
+            if (work != NULL)
+            {
+                uv_queue_work(
+                            siri.loop,
+                            &work,
+                            master_select_finished,
+                            work_finished);
+                (handle);
+            }
         }
     }
     else
@@ -2190,7 +2200,7 @@ static void async_drop_series(uv_async_t * handle)
         uv_async_init(
                 siri.loop,
                 async_more,
-                (uv_async_cb) &async_count_series);
+                (uv_async_cb) &async_drop_series);
         uv_async_send(async_more);
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
@@ -3069,7 +3079,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
  * Helper functions
  *****************************************************************************/
 
-static void master_select_finished(uv_async_t * handle)
+static void master_select_work(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
@@ -3091,6 +3101,13 @@ static void master_select_finished(uv_async_t * handle)
     }
 
     SIRIPARSER_NEXT_NODE
+}
+
+static void master_select_work_finish(uv_work_t * work, int status)
+{
+    if (!status)
+    siridb_query_t * query = (siridb_query_t *) work->data;
+    free(work);
 }
 
 static int items_select_master(

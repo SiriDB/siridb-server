@@ -333,7 +333,8 @@ static void INITSYNC_send(uv_timer_t * timer)
                     siridb->replicate->initsync->pkg,
                     INITSYNC_TIMEOUT,
                     INITSYNC_on_insert_response,
-                    siridb);
+                    siridb,
+                    FLAG_KEEP_PKG);
         }
         else
         {

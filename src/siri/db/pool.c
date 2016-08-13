@@ -156,13 +156,17 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
  * optionally re-indexing.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
+ *
+ * pkg will be destroyed when and ONLY when 0 is returned. (Except when
+ * FLAG_KEEP_PKG is set)
  */
 int siridb_pool_send_pkg(
         siridb_pool_t * pool,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
-        void * data)
+        void * data,
+        int flags)
 {
     siridb_server_t * server = NULL;
 
@@ -176,5 +180,5 @@ int siridb_pool_send_pkg(
     }
 
     return (server == NULL) ?
-            -1: siridb_server_send_pkg(server, pkg, timeout, cb, data);
+            -1: siridb_server_send_pkg(server, pkg, timeout, cb, data, flags);
 }

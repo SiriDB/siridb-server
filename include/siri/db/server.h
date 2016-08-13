@@ -20,6 +20,8 @@
 #include <siri/net/promise.h>
 #include <siri/net/pkg.h>
 
+#define FLAG_KEEP_PKG 1
+
 #define SERVER_FLAG_RUNNING 1
 #define SERVER_FLAG_PAUSED 2
 #define SERVER_FLAG_SYNCHRONIZING 4
@@ -119,7 +121,8 @@ int siridb_server_send_pkg(
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
-        void * data);
+        void * data,
+        int_flags);
 void siridb_server_send_flags(siridb_server_t * server);
 char * siridb_server_str_status(siridb_server_t * server);
 int siridb_server_is_remote_prop(uint32_t prop);

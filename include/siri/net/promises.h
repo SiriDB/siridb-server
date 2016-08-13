@@ -27,12 +27,14 @@ typedef struct sirinet_promises_s
     sirinet_promises_cb cb;
     slist_t * promises;
     void * data;
+    sirinet_pkg_t * pkg;
 } sirinet_promises_t;
 
 sirinet_promises_t * sirinet_promises_new(
         size_t size,
         sirinet_promises_cb cb,
-        void * data);
+        void * data,
+        sirinet_pkg_t * pkg);
 void sirinet_promises_llist_free(slist_t * promises);
 void sirinet_promises_on_response(
         sirinet_promise_t * promise,
@@ -42,6 +44,7 @@ void sirinet_promises_on_response(
 #define SIRINET_PROMISES_CHECK(promises)                    \
 if (promises->promises->len == promises->promises->size)    \
 {                                                           \
+    free(promises->pkg);                                    \
     promises->cb(promises->promises, promises->data);       \
     slist_free(promises->promises);                         \
     free(promises);                                         \

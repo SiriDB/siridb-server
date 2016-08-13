@@ -52,5 +52,6 @@ int siridb_pool_send_pkg(
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
-        void * data);
+        void * data,
+        int flags);
 void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server);

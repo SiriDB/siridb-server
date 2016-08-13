@@ -141,7 +141,8 @@ int siridb_server_send_pkg(
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promise_cb cb,
-        void * data)
+        void * data,
+        int flags)
 {
 #ifdef DEBUG
     assert (server->socket != NULL);
@@ -165,6 +166,7 @@ int siridb_server_send_pkg(
     }
     promise->timer->data = promise;
     promise->cb = cb;
+    promise->pkg = (flags & FLAG_KEEP_PKG) ? NULL : pkg;
     /*
      * we do not need to increment the server reference counter since promises
      * will be destroyed before the server is destroyed.
@@ -313,14 +315,14 @@ void siridb_server_send_flags(siridb_server_t * server)
     QP_PACK_INT16(buffer, n)
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, 3, BPROTO_FLAGS_UPDATE, buffer);
-    if (pkg != NULL)
+    if (pkg != NULL && siridb_server_send_pkg(
+            server,
+            pkg,
+            SIRIDB_SERVER_FLAGS_TIMEOUT,
+            SERVER_on_flags_update_response,
+            NULL,
+            0))
     {
-        siridb_server_send_pkg(
-                server,
-                pkg,
-                SIRIDB_SERVER_FLAGS_TIMEOUT,
-                SERVER_on_flags_update_response,
-                NULL);
         free(pkg);
     }
 }
@@ -330,10 +332,9 @@ void siridb_server_send_flags(siridb_server_t * server)
  */
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
+    sirinet_promise_t * promise = (sirinet_promise_t *) req->data;
     if (status)
     {
-        sirinet_promise_t * promise = req->data;
-
         log_error("Socket write error to server '%s' (pid: %lu, error: %s)",
                 promise->server->name,
                 promise->pid,
@@ -349,6 +350,7 @@ static void SERVER_write_cb(uv_write_t * req, int status)
 
         promise->cb(promise, NULL, PROMISE_WRITE_ERROR);
     }
+    free(promise->pkg); /* NULL when FLAG_KEEP_PKG is set */
     free(req);
 }
 
