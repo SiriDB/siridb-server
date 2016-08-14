@@ -155,7 +155,7 @@ void siridb_query_free(uv_handle_t * handle)
     free(query);
 
     /* free handle */
-    free((uv_async_t *) handle);
+    free(handle);
 
     #ifdef DEBUG
     log_debug("Free query!, hooray!");

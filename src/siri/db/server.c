@@ -421,13 +421,16 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                             BPROTO_AUTH_REQUEST,
                             packer->buffer)) != NULL)
             {
-                siridb_server_send_pkg(
+                if (siridb_server_send_pkg(
                         server,
                         pkg,
                         0,
                         SERVER_on_auth_response,
-                        NULL);
-                free(pkg);
+                        NULL,
+                        0))
+                {
+                    free(pkg);
+                }
             }
             qp_packer_free(packer);
         }

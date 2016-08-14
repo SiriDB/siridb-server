@@ -625,7 +625,8 @@ static void INSERT_points_to_pools(uv_async_t * handle)
     sirinet_promises_t * promises = sirinet_promises_new(
             siridb->pools->len - 1,
             (sirinet_promises_cb) INSERT_on_response,
-            handle);
+            handle,
+            NULL);
 
     if (promises == NULL)
     {

@@ -15,6 +15,9 @@
 #include <stdio.h>
 #include <assert.h>
 #include <siri/err.h>
+#include <unistd.h>
+
+#define MAX_ITERATE_MERGE_COUNT 1000
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -150,7 +153,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     size_t n = 0;
     size_t i;
     uint8_t int2double = 0;
-    LOGC("START MERGING");
+
     for (i = 0; i < plist->len; )
     {
         points = (siridb_points_t *) plist->data[i];
@@ -192,8 +195,6 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
         i++;
     }
 
-    LOGC("MERGING STEP 1");
-
 #ifdef DEBUG
     /* we have at least one series left */
     assert (plist->len >= 1);
@@ -220,7 +221,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     }
     else
     {
-        LOGC("MERGING STEP 2");
+        usleep(1000);
 
         if (int2double)
         {
@@ -235,10 +236,10 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                         tpts->data[j].val.real =
                                 (double) tpts->data[j].val.int64;
                     }
+                    usleep(1000);
                 }
             }
         }
-        LOGC("MERGING STEP 3");
 
         points->len = n;
 
@@ -269,10 +270,12 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                     *m = (siridb_points_t *) plist->data[plist->len];
                 }
             }
+
+            if (!(n % MAX_ITERATE_MERGE_COUNT))
+            {
+                usleep(5000);
+            }
         }
-
-        LOGC("MERGING FINISHED...");
-
 
 #ifdef DEBUG
         /* size should be exactly zero */

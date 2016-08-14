@@ -139,7 +139,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
 
 /* helper functions */
-static void master_select_work(uv_async_t * handle);
+static void master_select_work(uv_work_t * handle);
 static void master_select_work_finish(uv_work_t * work, int status);
 static int items_select_master(
         const char * name,
@@ -1785,14 +1785,19 @@ static void exit_select_stmt(uv_async_t * handle)
         else
         {
             uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
-            if (work != NULL)
+            if (work == NULL)
             {
+                ERR_ALLOC
+            }
+            else
+            {
+                siri_async_incref(handle);
+                work->data = handle;
                 uv_queue_work(
                             siri.loop,
-                            &work,
-                            master_select_finished,
-                            work_finished);
-                (handle);
+                            work,
+                            &master_select_work,
+                            &master_select_work_finish);
             }
         }
     }
@@ -1966,15 +1971,16 @@ static void exit_set_log_level(uv_async_t * handle)
                         pkg,
                         0,
                         on_ack_response,
-                        handle))
+                        handle,
+                        0))
                 {
                     /*
                      * signal is raised and 'on_ack_response' will not be
                      * called
                      */
+                    free(pkg);
                     siri_async_decref(&handle);
                 }
-                free(pkg);
             }
         }
         else
@@ -2894,7 +2900,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 static void on_select_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
-    LOGC("START ON RESPONSE");
+
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t * unpacker;
@@ -3015,9 +3021,22 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
     }
     else
     {
-        master_select_finished(handle);
+        uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
+        if (work == NULL)
+        {
+            ERR_ALLOC
+        }
+        else
+        {
+            siri_async_incref(handle);
+            work->data = handle;
+            uv_queue_work(
+                        siri.loop,
+                        work,
+                        &master_select_work,
+                        &master_select_work_finish);
+        }
     }
-    LOGC("FINIDHED ON RESPONSE");
 }
 
 /*
@@ -3079,8 +3098,9 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
  * Helper functions
  *****************************************************************************/
 
-static void master_select_work(uv_async_t * handle)
+static void master_select_work(uv_work_t * work)
 {
+    uv_async_t * handle = (uv_async_t *) work->data;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
     int rc = ct_items(
@@ -3090,23 +3110,38 @@ static void master_select_work(uv_async_t * handle)
                     :
                     (ct_item_cb) &items_select_master_merge,
             handle);
-    switch (rc)
-    {
-    case -1:
-        sprintf(query->err_msg, "Memory allocation error.");
-        /* no break */
-    case 1:
-        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-        return;
-    }
 
-    SIRIPARSER_NEXT_NODE
+    /*
+     * We need to check for SiriDB errors because this task is running in
+     * another thread. In case a siri_err is set, this means we are in forced
+     * closing state and we should not use the handle but let siri close it.
+     */
+    if (!siri_err)
+    {
+        switch (rc)
+        {
+        case -1:
+            sprintf(query->err_msg, "Memory allocation error.");
+            /* no break */
+        case 1:
+            siridb_query_send_error((uv_async_t *) handle, CPROTO_ERR_QUERY);
+            return;
+        }
+
+        SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void master_select_work_finish(uv_work_t * work, int status)
 {
-    if (!status)
-    siridb_query_t * query = (siridb_query_t *) work->data;
+    if (status)
+    {
+        log_error("Select work failed (error: %s)",
+                uv_strerror(status));
+    }
+
+    siri_async_decref((uv_async_t **) &work->data);
+
     free(work);
 }
 
@@ -3132,7 +3167,6 @@ static int items_select_master_merge(
         slist_t * plist,
         uv_async_t * handle)
 {
-    LOGC("START MERGE");
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_points_t * points;
@@ -3161,7 +3195,7 @@ static int items_select_master_merge(
                                 query->err_msg);
         break;
     }
-    LOGC("CONTINUE MERGE");
+
     if (q_select->mlist != NULL && points != NULL)
     {
         siridb_points_t * aggr_points;
@@ -3201,7 +3235,7 @@ static int items_select_master_merge(
     }
 
     siridb_points_free(points);
-    LOGC("FINISHED MERGE");
+
     return 0;
 }
 
@@ -3294,7 +3328,6 @@ static void on_select_unpack_merged_points(
         qp_obj_t * qp_points)
 {
     siridb_points_t * points;
-    LOGC("START UNPACK");
 
     while ( qp_is_raw(qp_next(unpacker, qp_name)) &&
 #ifdef DEBUG
@@ -3340,5 +3373,4 @@ static void on_select_unpack_merged_points(
             qp_next(unpacker, NULL);  // QP_ARRAY_CLOSE
         }
     }
-    LOGC("FINIGH UNPACK");
 }

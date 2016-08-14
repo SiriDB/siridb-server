@@ -122,7 +122,7 @@ int siridb_server_send_pkg(
         uint64_t timeout,
         sirinet_promise_cb cb,
         void * data,
-        int_flags);
+        int flags);
 void siridb_server_send_flags(siridb_server_t * server);
 char * siridb_server_str_status(siridb_server_t * server);
 int siridb_server_is_remote_prop(uint32_t prop);

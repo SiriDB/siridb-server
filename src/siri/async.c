@@ -11,6 +11,7 @@
  *
  */
 #include <siri/async.h>
+#include <logger/logger.h>
 
 inline void siri_async_incref(uv_async_t * handle)
 {

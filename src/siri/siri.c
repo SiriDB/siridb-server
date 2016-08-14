@@ -370,7 +370,7 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
 
         if (signum == SIGINT || signum == SIGTERM)
         {
-            log_info("Asked SiriDB Server to stop (%d)", signum);
+            log_warning("Asked SiriDB Server to stop (%d)", signum);
 
             /* set SiriDB in closing mode and start a timer to check if
              * we can finish open tasks before really closing
@@ -406,6 +406,8 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
 
     switch (handle->type)
     {
+    case UV_WORK:
+        break;
     case UV_SIGNAL:
         /* this is where we cleanup the signal handlers */
         uv_close(handle, NULL);

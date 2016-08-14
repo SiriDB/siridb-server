@@ -107,7 +107,8 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
     sirinet_promises_t * promises = sirinet_promises_new(
             forward->size - 1,
             (sirinet_promises_cb) FORWARD_on_response,
-            handle);
+            handle,
+            NULL);
 
     if (promises == NULL)
     {

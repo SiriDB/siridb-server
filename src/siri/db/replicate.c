@@ -227,13 +227,16 @@ static void REPLICATE_work(uv_timer_t * handle)
                 siridb_server_is_synchronizing(siridb->replica)) &&
             (pkg = siridb_fifo_pop(siridb->fifo)) != NULL)
     {
-        siridb_server_send_pkg(
+        if (siridb_server_send_pkg(
                 siridb->replica,
                 pkg,
                 REPLICATE_TIMEOUT,
                 REPLICATE_on_repl_response,
-                siridb);
-        free(pkg);
+                siridb,
+                0))
+        {
+            free(pkg);
+        }
     }
     else
     {
