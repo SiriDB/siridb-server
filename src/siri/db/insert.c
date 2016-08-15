@@ -159,7 +159,7 @@ ssize_t siridb_insert_assign_pools(
  */
 siridb_insert_t * siridb_insert_new(
         siridb_t * siridb,
-        uint32_t pid,
+        uint16_t pid,
         uv_stream_t * client)
 {
     siridb_insert_t * insert = (siridb_insert_t *) malloc(

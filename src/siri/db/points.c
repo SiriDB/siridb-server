@@ -221,8 +221,12 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     }
     else
     {
-        usleep(1000);
+        usleep(8000);
 
+        /*
+         * When both series from type double and type integer are merged
+         * we need to promote the integer series to double.
+         */
         if (int2double)
         {
             size_t j;

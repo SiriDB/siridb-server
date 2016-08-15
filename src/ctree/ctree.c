@@ -1098,7 +1098,7 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
             tmp = (ct_nodes_t *) realloc(
                     node->nodes,
                     node->n * sizeof(ct_nodes_t));
-            if (tmp == NULL)
+            if (tmp == NULL && node->n)
             {
                 ERR_ALLOC
                 node->n -= diff;
@@ -1123,7 +1123,7 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
             tmp = (ct_nodes_t *) realloc(
                     node->nodes,
                     node->n * sizeof(ct_nodes_t));
-            if (tmp == NULL)
+            if (tmp == NULL && node->n)
             {
                 ERR_ALLOC
                 node->n -= diff;

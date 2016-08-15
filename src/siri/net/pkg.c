@@ -24,7 +24,7 @@ static void PKG_write_cb(uv_write_t * req, int status);
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_new(
-        uint32_t pid,
+        uint16_t pid,
         uint32_t len,
         uint8_t tp,
         const char * data)
@@ -32,14 +32,18 @@ sirinet_pkg_t * sirinet_pkg_new(
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
 
+#ifdef DEBUG
+    assert (sizeof(sirinet_pkg_t) == PKG_HEADER_SIZE);
+#endif
+
     if (pkg == NULL)
     {
         ERR_ALLOC
     }
     else
     {
-        pkg->pid = pid;
         pkg->len = len;
+        pkg->pid = pid;
         pkg->tp = tp;
         if (data != NULL)
         {
@@ -64,7 +68,7 @@ sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source)
     }
     else
     {
-        memcpy(source, pkg, size);
+        memcpy(pkg, source, size);
     }
     return pkg;
 }
@@ -101,7 +105,7 @@ qp_packer_t * sirinet_packer_new(size_t alloc_size)
  */
 sirinet_pkg_t * sirinet_packer2pkg(
         qp_packer_t * packer,
-        uint32_t pid,
+        uint16_t pid,
         uint8_t tp)
 {
     sirinet_pkg_t * pkg = (sirinet_pkg_t *) packer->buffer;
@@ -126,7 +130,7 @@ sirinet_pkg_t * sirinet_packer2pkg(
  * (do not forget to run free(...) on the result. )
  */
 sirinet_pkg_t * sirinet_pkg_err(
-        uint32_t pid,
+        uint16_t pid,
         uint32_t len,
         uint8_t tp,
         const char * data)

@@ -282,6 +282,7 @@ int siridb_series_add_idx_num32(
     uint32_t i = series->idx_len;
     series->idx_len++;
 
+    /* never zero */
     idx = (idx_num32_t *) realloc(
             (idx_num32_t *) series->idx,
             series->idx_len * sizeof(idx_num32_t));
@@ -476,7 +477,7 @@ void siridb_series_remove_shard_num32(
             idx = (idx_num32_t *) realloc(
                         (idx_num32_t *) series->idx,
                         series->idx_len * sizeof(idx_num32_t));
-            if (idx == NULL)
+            if (idx == NULL && series->idx_len)
             {
                 log_error("Re-allocation failed while removing series from "
                         "shard index");
@@ -593,8 +594,16 @@ siridb_points_t * siridb_series_get_points_num32(
     if (points->len < size)
     {
         /* shrink allocation size */
-        points->data = (siridb_point_t *)
+        point = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
+        if (point == NULL && points->len)
+        {
+            log_error("Re-allocation points has failed");
+        }
+        else
+        {
+            points->data = point;
+        }
     }
 #ifdef DEBUG
     else
@@ -775,7 +784,7 @@ int siridb_series_optimize_shard_num32(
         idx = (idx_num32_t *) realloc(
                 (idx_num32_t *) series->idx,
                 series->idx_len * sizeof(idx_num32_t));
-        if (idx == NULL)
+        if (idx == NULL && series->idx_len)
         {
             /* this is not critical since the original allocated block still
              * works.

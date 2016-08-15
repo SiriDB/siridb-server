@@ -715,7 +715,7 @@ static siridb_points_t * AGGREGATE_filter(
             dpt = (siridb_point_t *) realloc(
                     points->data,
                     points->len * sizeof(siridb_point_t));
-            if (dpt == NULL)
+            if (dpt == NULL && points->len)
             {
                 /* not critical */
                 log_error("Error while re-allocating memory for points");
@@ -825,7 +825,7 @@ static siridb_points_t * AGGREGATE_group_by(
         /* shrink points allocation */
         point = (siridb_point_t *)
                 realloc(points->data, points->len * sizeof(siridb_point_t));
-        if (point == NULL)
+        if (point == NULL && points->len)
         {
             /* not critical */
             log_error("Re-allocation points failed.");

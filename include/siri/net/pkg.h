@@ -15,20 +15,20 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
-#define PKG_HEADER_SIZE 10
+#define PKG_HEADER_SIZE 8
 #define PKG___QP_TP 255
 
 typedef struct sirinet_pkg_s
 {
-    uint32_t pid;
     uint32_t len;   // length of data (SN_PKG_HEADER_SIZE excluded)
+    uint16_t pid;
     uint8_t tp;
     uint8_t checkbit;
     char data[];
 } sirinet_pkg_t;
 
 sirinet_pkg_t * sirinet_pkg_new(
-        uint32_t pid,
+        uint16_t pid,
         uint32_t len,
         uint8_t tp,
         const char * data);
@@ -36,10 +36,10 @@ sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source);
 qp_packer_t * sirinet_packer_new(size_t alloc_size);
 sirinet_pkg_t * sirinet_packer2pkg(
         qp_packer_t * packer,
-        uint32_t pid,
+        uint16_t pid,
         uint8_t tp);
 sirinet_pkg_t * sirinet_pkg_err(
-        uint32_t pid,
+        uint16_t pid,
         uint32_t len,
         uint8_t tp,
         const char * data);

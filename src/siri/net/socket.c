@@ -133,6 +133,7 @@ void sirinet_socket_on_data(
                 return;
             }
 
+            /* total size > 0 */
             ssocket->buf = (buf->len < total_sz) ?
                 (char *) realloc(buf->base, total_sz) : buf->base;
 
@@ -184,6 +185,7 @@ void sirinet_socket_on_data(
 
         if (buf->len < total_sz)
         {
+            /* total sz > 0 */
             char * tmp = (char *) realloc(ssocket->buf, total_sz);
 
             /* test re-allocation */

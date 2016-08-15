@@ -765,7 +765,7 @@ static int SERVER_update_name(siridb_server_t * server)
     char * tmp;
 
 #ifdef DEBUG
-    assert(server->port > 0);
+    assert (server->port > 0);
 #endif
 
     /* append 'string' length for server->port */
@@ -773,6 +773,10 @@ static int SERVER_update_name(siridb_server_t * server)
 
     /* append 'address' length */
     len += strlen(server->address);
+
+#ifdef DEBUG
+    assert (len > 0);
+#endif
 
     /* allocate enough space */
     tmp = (char *) realloc(server->name, len);

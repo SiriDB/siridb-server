@@ -134,7 +134,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data, int overwrite)
         tmp = (im_grid_t *) realloc(
                 imap->grid,
                 imap->size * sizeof(im_grid_t));
-        if (tmp == NULL)
+        if (tmp == NULL && imap->size)
         {
             ERR_ALLOC
             /* restore size */
@@ -156,7 +156,7 @@ int imap32_add(imap32_t * imap, uint32_t id, void * data, int overwrite)
         tmp = (im_grid_t *) realloc(
                 imap->grid,
                 imap->size * sizeof(im_grid_t));
-        if (tmp == NULL)
+        if (tmp == NULL && imap->size)
         {
             ERR_ALLOC
             /* restore size */
@@ -289,7 +289,7 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
             tmp = (im_grid_t *) realloc(
                     imap->grid,
                     imap->size * sizeof(im_grid_t));
-            if (tmp == NULL)
+            if (tmp == NULL && imap->size)
             {
                 log_error("Non-critical re-allocation has failed");
             }
@@ -315,7 +315,7 @@ void * imap32_pop(imap32_t * imap, uint32_t id)
             tmp = (im_grid_t *) realloc(
                     imap->grid,
                     imap->size * sizeof(im_grid_t));
-            if (tmp == NULL)
+            if (tmp == NULL && imap->size)
             {
                 log_error("Non-critical re-allocation has failed");
             }

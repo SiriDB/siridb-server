@@ -83,7 +83,7 @@ typedef struct siridb_server_s
     char * address;
     imap_t * promises;
     uv_tcp_t * socket;
-    uint32_t pid;
+    uint16_t pid;
     /* fixed server properties */
     char * version;
     char * dbpath;
@@ -101,7 +101,7 @@ typedef struct siridb_server_walker_s
 
 typedef struct siridb_server_reg_s
 {
-    uint32_t pid;
+    uint16_t pid;
     uv_stream_t * client;
 } siridb_server_reg_t;
 

@@ -56,7 +56,7 @@ static int QUERY_rebuild(
  * This function can raise a SIGNAL.
  */
 void siridb_query_run(
-        uint32_t pid,
+        uint16_t pid,
         uv_stream_t * client,
         const char * q,
         size_t q_len,

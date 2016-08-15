@@ -389,7 +389,8 @@ void siridb_servers_send_pkg(
                         promises,
                         FLAG_KEEP_PKG))
                 {
-                    log_critical("Allocation error while trying to send a package "
+                    log_critical(
+                            "Allocation error while trying to send a package "
                             "to '%s'", server->name);
                     slist_append(promises->promises, NULL);
                 }
