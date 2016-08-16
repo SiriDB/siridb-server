@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 
-#define SLIST_DEFAULT_SIZE 6
+#define SLIST_DEFAULT_SIZE 8
 
 typedef struct slist_object_s
 {
@@ -34,6 +34,7 @@ slist_t * slist_copy(slist_t * source);
 void slist_free(slist_t * slist);
 void slist_append(slist_t * slist, void * data);
 void * slist_pop(slist_t * slist);
+void slist_compact(slist_t ** slist);
 int slist_append_safe(slist_t ** slist, void * data);
 
 /*

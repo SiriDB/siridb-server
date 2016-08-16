@@ -17,7 +17,7 @@
 #include <siri/err.h>
 #include <string.h>
 
-#define SLIST_AUTO_GROW_SIZE 8
+#define SLIST_MAX_SZ 512
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -98,8 +98,11 @@ int slist_append_safe(slist_t ** slist, void * data)
     {
         slist_t * tmp;
 
-        /* increment size */
-        (*slist)->size += SLIST_AUTO_GROW_SIZE;
+        size_t sz = (*slist)->size;
+
+        /* double the size when > 0 and <  SLIST_MAX_SZ */
+        (*slist)->size = sz ? (sz < SLIST_MAX_SZ) ? sz * sz : SLIST_MAX_SZ : 1;
+
         tmp = (slist_t *) realloc(
                 *slist,
                 sizeof(slist_t) + sizeof(void *) * (*slist)->size);
@@ -107,7 +110,7 @@ int slist_append_safe(slist_t ** slist, void * data)
         if (tmp == NULL)
         {
             /* an error has occurred */
-            (*slist)->size -= SLIST_AUTO_GROW_SIZE;
+            (*slist)->size = sz;
             return -1;
         }
 
@@ -118,4 +121,37 @@ int slist_append_safe(slist_t ** slist, void * data)
     (*slist)->data[(*slist)->len++] = data;
 
     return 0;
+}
+
+/*
+ * Compact memory used for the slist object when the list has more than
+ * SLIST_DEFAULT_SIZE free space. After the compact the list has
+ * a size which is SLIST_DEFAULT_SIZE greater than its length.
+ */
+void slist_compact(slist_t ** slist)
+{
+    size_t sz = (*slist)->size;
+
+    if (sz - (*slist)->len > SLIST_DEFAULT_SIZE)
+    {
+        slist_t * tmp;
+
+        (*slist)->size = (*slist)->len + SLIST_DEFAULT_SIZE;
+
+        tmp = (slist_t *) realloc(
+                *slist,
+                sizeof(slist_t) + sizeof(void *) * (*slist)->size);
+
+        if (tmp == NULL)
+        {
+            /* an error has occurred; log and restore size */
+            log_error("Error has occurred while re-allocating less space");
+            (*slist)->size = sz;
+        }
+        else
+        {
+            /* overwrite the original value with the new one */
+            *slist = tmp;
+        }
+    }
 }

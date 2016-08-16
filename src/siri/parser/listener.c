@@ -2707,7 +2707,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
             continue;
         }
 
-        pkg = promise->data;
+        pkg = (sirinet_pkg_t *) promise->data;
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
@@ -2777,7 +2777,7 @@ static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle)
             continue;
         }
 
-        pkg = promise->data;
+        pkg = (sirinet_pkg_t *) promise->data;
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
@@ -2842,7 +2842,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
             continue;
         }
 
-        pkg = promise->data;
+        pkg = (sirinet_pkg_t *) promise->data;
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
@@ -2938,7 +2938,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
         }
         else
         {
-            pkg = promise->data;
+            pkg = (sirinet_pkg_t *) promise->data;
 
             if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
             {
@@ -3067,7 +3067,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
         }
         else
         {
-            pkg = promise->data;
+            pkg = (sirinet_pkg_t *) promise->data;
 
             if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
             {
