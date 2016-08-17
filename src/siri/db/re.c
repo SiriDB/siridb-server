@@ -31,7 +31,6 @@ int siridb_re_compile(
         size_t len,
         char * err_msg)
 {
-    LOGC("HERE1");
     int options = 0;
     const char * pcre_error_str;
     int pcre_error_offset;
@@ -95,6 +94,6 @@ int siridb_re_compile(
 
         return -1;
     }
-    LOGC("HERE2");
+
     return 0;
 }

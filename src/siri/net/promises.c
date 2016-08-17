@@ -90,10 +90,10 @@ void sirinet_promises_on_response(
     else
     {
         /* we can ignore errors from sirinet_pkg_dup() */
-        promise->data = sirinet_pkg_dup(pkg);
+        promise->data = (void *) sirinet_pkg_dup(pkg);
     }
 
-    slist_append(promises->promises, promise);
+    slist_append(promises->promises, (void *) promise);
 
     SIRINET_PROMISES_CHECK(promises)
 }

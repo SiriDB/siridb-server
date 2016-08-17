@@ -55,14 +55,17 @@ class TestInsert(TestBase):
 
         self.assertEqual(
             await self.client0.query(
-                'select * from /.*/ merge as "mean" using median_low({})'
+                'select * from /.*/ merge as "median_low" using median_low({})'
                 .format(now)),
-            {'mean': [[now, -3.5]]})
+            {'median_low': [[now, -3.5]]})
 
+        self.assertEqual(
+            await self.client0.query(
+                'select * from /.*/ merge as "median_high" using median_high({})'
+                .format(now)),
+            {'median_high': [[now, -3.0]]})
 
         self.client0.close()
-
-        return False
 
 
 if __name__ == '__main__':

@@ -349,7 +349,6 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
     qp_object_free(qp_series_ts);
     qp_object_free(qp_series_val);
 
-    LOGC("FINISHED INSERT LOCAL");
     return siri_err;
 }
 

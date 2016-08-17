@@ -24,6 +24,7 @@ class TestSeries(TestBase):
         await self.assertIsRunning(self.db, self.client0, timeout=12)
         self.client0.close()
 
+
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
