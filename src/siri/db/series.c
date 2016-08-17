@@ -167,7 +167,6 @@ siridb_series_t * siridb_series_new(
     size_t len = strlen(series_name);
 
     siridb->max_series_id++;
-
     series = SERIES_new(
             siridb,
             siridb->max_series_id,

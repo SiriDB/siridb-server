@@ -388,6 +388,12 @@ void imap_union_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
+    if (imap->slist != NULL)
+    {
+        slist_free(imap->slist);
+        imap->slist = NULL;
+    }
+
     if (imap->len)
     {
         imap_node_t * dest_nd;
@@ -453,6 +459,12 @@ void imap_intersection_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
+    if (imap->slist != NULL)
+    {
+        slist_free(imap->slist);
+        imap->slist = NULL;
+    }
+
     imap_node_t * dest_nd;
     imap_node_t * imap_nd;
 
@@ -510,6 +522,12 @@ void imap_difference_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
+    if (imap->slist != NULL)
+    {
+        slist_free(imap->slist);
+        imap->slist = NULL;
+    }
+
     if (imap->len)
     {
         imap_node_t * dest_nd;
@@ -573,6 +591,12 @@ void imap_symmetric_difference_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
+    if (imap->slist != NULL)
+    {
+        slist_free(imap->slist);
+        imap->slist = NULL;
+    }
+
     if (imap->len)
     {
         imap_node_t * dest_nd;

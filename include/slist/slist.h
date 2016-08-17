@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 
-#define SLIST_DEFAULT_SIZE 8
+#define SLIST_DEFAULT_SIZE 8000
 
 typedef struct slist_object_s
 {

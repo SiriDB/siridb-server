@@ -221,7 +221,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     }
     else
     {
-        usleep(8000);
+        usleep(1000);
 
         /*
          * When both series from type double and type integer are merged
@@ -240,7 +240,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                         tpts->data[j].val.real =
                                 (double) tpts->data[j].val.int64;
                     }
-                    usleep(1000);
+                    usleep(100);
                 }
             }
         }

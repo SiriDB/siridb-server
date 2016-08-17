@@ -192,18 +192,18 @@ if (query->nodes == NULL)                                                   \
 }                                                                           \
 else                                                                        \
 {                                                                           \
-    uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));       \
-    if (forward == NULL)                                                    \
+    uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
+    handle = (uv_async_t *) malloc(sizeof(uv_async_t));                     \
+    if (handle == NULL)                                                     \
     {                                                                       \
         ERR_ALLOC                                                           \
     }                                                                       \
     else                                                                    \
     {                                                                       \
-        forward->data = (void *) handle->data;                              \
-        uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);  \
-        uv_async_send(forward);                                             \
+        handle->data = query;                                               \
+        uv_async_init(siri.loop, handle, (uv_async_cb) query->nodes->cb);   \
+        uv_async_send(handle);                                              \
     }                                                                       \
-    uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
 }
 
 /*
@@ -1791,6 +1791,24 @@ static void exit_select_stmt(uv_async_t * handle)
             }
             else
             {
+                siridb_nodes_next(&query->nodes);
+
+                if (query->nodes != NULL)
+                {
+                    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+                    handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+
+                    if (handle == NULL)
+                    {
+                        ERR_ALLOC
+                    }
+                    else
+                    {
+                        handle->data = query;
+                        uv_async_init(siri.loop, handle, (uv_async_cb) query->nodes->cb);
+                    }
+                }
+
                 siri_async_incref(handle);
                 work->data = handle;
                 uv_queue_work(
@@ -3028,6 +3046,24 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
         }
         else
         {
+            siridb_nodes_next(&query->nodes);
+
+            if (query->nodes != NULL)
+            {
+                uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+                handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+
+                if (handle == NULL)
+                {
+                    ERR_ALLOC
+                }
+                else
+                {
+                    handle->data = query;
+                    uv_async_init(siri.loop, handle, (uv_async_cb) query->nodes->cb);
+                }
+            }
+
             siri_async_incref(handle);
             work->data = handle;
             uv_queue_work(
@@ -3128,7 +3164,14 @@ static void master_select_work(uv_work_t * work)
             return;
         }
 
-        SIRIPARSER_NEXT_NODE
+        if (query->nodes == NULL)
+        {
+            siridb_send_query_result(handle);
+        }
+        else
+        {
+            uv_async_send(handle);
+        }
     }
 }
 
@@ -3139,7 +3182,6 @@ static void master_select_work_finish(uv_work_t * work, int status)
         log_error("Select work failed (error: %s)",
                 uv_strerror(status));
     }
-
     siri_async_decref((uv_async_t **) &work->data);
 
     free(work);

@@ -127,7 +127,6 @@ ssize_t siridb_insert_assign_pools(
 {
     ssize_t rc = 0;
     qp_types_t tp;
-    LOGC("ASSIGN POOLS");
     tp = qp_next(unpacker, NULL);
 
     if (qp_is_map(tp))
@@ -152,7 +151,6 @@ ssize_t siridb_insert_assign_pools(
     {
         rc = ERR_EXPECTING_MAP_OR_ARRAY;
     }
-    LOGC("FINISHED ASSIGN POOLS");
     return (siri_err) ? ERR_MEM_ALLOC : rc;
 }
 
@@ -248,7 +246,6 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
  */
 int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
 {
-    LOGC("START INSERT LOCAL");
     if ((flags & INSERT_FLAG_TEST) || (
             (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
             (~flags & INSERT_FLAG_TESTED)))
