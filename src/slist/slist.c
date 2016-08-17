@@ -101,8 +101,9 @@ int slist_append_safe(slist_t ** slist, void * data)
         size_t sz = (*slist)->size;
 
         /* double the size when > 0 and <  SLIST_MAX_SZ */
-        (*slist)->size =
-                sz ? (sz < SLIST_MAX_SZ) ? sz * sz : sz + SLIST_MAX_SZ : 2;
+        (*slist)->size = (sz >= SLIST_DEFAULT_SIZE) ?
+                (sz <= SLIST_MAX_SZ) ?
+                        sz * 2 : sz + SLIST_MAX_SZ : SLIST_DEFAULT_SIZE;
 
         tmp = (slist_t *) realloc(
                 *slist,

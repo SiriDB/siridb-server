@@ -15,6 +15,11 @@
 #include <siri/db/series.h>
 #include <siri/db/re.h>
 
+/*
+ * Returns a group or NULL in case of an error. When this error is critical,
+ * a SIGNAL is raised but in any case err_msg is set with an appropriate
+ * error message.
+ */
 siridb_group_t * siridb_group_new(
         const char * name,
         const char * source,
@@ -25,6 +30,7 @@ siridb_group_t * siridb_group_new(
     if (group == NULL)
     {
         ERR_ALLOC
+        sprintf(err_msg, "Memory allocation error.");
     }
     else
     {
@@ -38,6 +44,7 @@ siridb_group_t * siridb_group_new(
                 group->source == NULL ||
                 group->series == NULL)
         {
+            ERR_ALLOC
             sprintf(err_msg, "Memory allocation error.");
             siridb_group_free(group);
             group = NULL;
@@ -49,6 +56,7 @@ siridb_group_t * siridb_group_new(
                 source_len,
                 err_msg))
         {
+            /* not critical, err_msg is set */
             siridb_group_free(group);
             group = NULL;
         }
@@ -56,6 +64,9 @@ siridb_group_t * siridb_group_new(
     return group;
 }
 
+/*
+ * Destroy a group object. Parsing NULL is not allowed.
+ */
 void siridb_group_free(siridb_group_t * group)
 {
     free(group->name);

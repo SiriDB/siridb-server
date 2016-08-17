@@ -12,10 +12,12 @@
 #pragma once
 
 #include <ctree/ctree.h>
-
+#include <slist/slist.h>
 
 typedef struct siridb_groups_s
 {
     ct_t * groups;
     char * fn;
+    uv_mutex_t mutex;
+    slist_t * series;  /* list of series we need to assign to groups */
 } siridb_groups_t;
