@@ -34,6 +34,7 @@ siridb_group_t * siridb_group_new(
     }
     else
     {
+        group->flags = GROUPS_FLAG_NEW_GROUP;
         group->name = strdup(name);
         group->source = strndup(source, source_len);
         group->series = slist_new(SLIST_DEFAULT_SIZE);

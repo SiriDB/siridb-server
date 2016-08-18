@@ -14,9 +14,13 @@
 #include <slist/slist.h>
 #include <pcre.h>
 
+#define GROUP_FLAG_NEW 1
+
+
 typedef struct siridb_group_s
 {
     uint16_t ref;
+    uint8_t flags;
     char * name;
     char * source;  /* pattern/flags representation */
     slist_t * series;
