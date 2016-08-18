@@ -39,7 +39,7 @@ static int SERIES_update_max_id(siridb_t * siridb);
 static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
 static void SERIES_update_overlap(siridb_series_t * series);
-static int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
+static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
 
 
 static siridb_series_t * SERIES_new(
@@ -923,16 +923,12 @@ static siridb_series_t * SERIES_new(
  * Returns always 0 but the result will be ignored since this function is used
  * in ct_walk().
  */
-static int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
+static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
 {
-    if (qp_fadd_type(fpacker, QP_ARRAY3) ||
-        qp_fadd_raw(fpacker, series->name, series->name_len + 1) ||
-        qp_fadd_int32(fpacker, (int32_t) series->id) ||
-        qp_fadd_int8(fpacker, (int8_t) series->tp))
-    {
-        ERR_FILE
-    }
-    return 0;  /* return code will be ignored */
+    return (qp_fadd_type(fpacker, QP_ARRAY3) ||
+            qp_fadd_raw(fpacker, series->name, series->name_len + 1) ||
+            qp_fadd_int32(fpacker, (int32_t) series->id) ||
+            qp_fadd_int8(fpacker, (int8_t) series->tp));
 }
 
 /*
@@ -966,7 +962,10 @@ static int SERIES_save(siridb_t * siridb)
     }
     else
     {
-        ct_values(siridb->series, (ct_val_cb) &SERIES_pack, fpacker);
+        if (imap_walk(siridb->series, (imap_cb) &SERIES_pack, fpacker))
+        {
+            ERR_FILE
+        }
     }
     /* close file pointer */
     if (qp_close(fpacker))

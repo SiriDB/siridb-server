@@ -20,6 +20,7 @@
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
 
+inline int GROUPS_free(siridb_group_t * group, void * args);
 
 siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 {
@@ -146,7 +147,6 @@ void siridb_groups_free(siridb_groups_t * groups)
 {
     free(groups->fn);
 
-    /* TODO: decref series */
     if (groups->nseries != NULL)
     {
         for (size_t i = 0; i < groups->nseries->len; i++)
@@ -155,4 +155,10 @@ void siridb_groups_free(siridb_groups_t * groups)
         }
         slist_free(groups->nseries);
     }
+
+    if (groups->groups != NULL)
+    {
+        ct_free(groups->groups, (ct_free_cb) siridb_group_free);
+    }
 }
+

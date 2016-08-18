@@ -24,9 +24,9 @@
 typedef struct siridb_groups_s
 {
     uint8_t flags;
-    ct_t * groups;
     char * fn;
-    uv_mutex_t mutex;
+    ct_t * groups;
     slist_t * nseries;  /* list of series we need to assign to groups */
     slist_t * ngroups;  /* list of groups which need initialization */
+    uv_mutex_t mutex;
 } siridb_groups_t;

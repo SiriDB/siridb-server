@@ -51,7 +51,7 @@ typedef struct ct_s
 } ct_t;
 
 typedef int (*ct_item_cb)(const char * key, void * data, void * args);
-typedef int (*ct_val_cb)(void * data, void * args);
+typedef void (*ct_val_cb)(void * data);
 typedef void (*ct_free_cb)(void * data);
 
 ct_t * ct_new(void);
@@ -65,6 +65,5 @@ void * ct_getn(ct_t * ct, const char * key, size_t n);
 void * ct_pop(ct_t * ct, const char * key);
 int ct_items(ct_t * ct, ct_item_cb cb, void * args);
 int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args);
-void ct_values(ct_t * ct, ct_val_cb cb, void * args);
-void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
+void ct_values(ct_t * ct, ct_val_cb cb);
 

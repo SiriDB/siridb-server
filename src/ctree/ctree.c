@@ -45,9 +45,7 @@ static int CT_items(
         void * args);
 static void CT_values(
         ct_node_t * node,
-        size_t * pn,
-        ct_val_cb cb,
-        void * args);
+        ct_val_cb cb);
 static void CT_free(ct_node_t * node, ct_free_cb cb);
 
 static char dummy = '\0';
@@ -288,9 +286,18 @@ inline int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 /*
  * Loop over all values in the tree and perform the call-back on each value.
  */
-inline void ct_values(ct_t * ct, ct_val_cb cb, void * args)
+void ct_values(ct_t * ct, ct_val_cb cb)
 {
-    ct_valuesn(ct, NULL, cb, args);
+    ct_node_t * nd;
+
+    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
+    {
+        if ((nd = (*ct->nodes)[i]) == NULL)
+        {
+            continue;
+        }
+        CT_values(nd, cb);
+    }
 }
 
 /*
@@ -330,28 +337,6 @@ int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args)
     }
     free(buffer);
     return rc;
-}
-
-/*
- * Loop over all values in the tree and perform the call-back on each value.
- * Walking stops either when the call-back is called on each value or
- * when 'n' is zero. 'n' will be decremented by one on each successful
- * call-back.
- */
-void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
-{
-    ct_node_t * nd;
-
-    for (   uint_fast16_t i = 0, end = ct->n * BLOCKSZ;
-            (n == NULL || *n) && i < end;
-            i++)
-    {
-        if ((nd = (*ct->nodes)[i]) == NULL)
-        {
-            continue;
-        }
-        CT_values(nd, n, cb, args);
-    }
 }
 
 /*
@@ -424,37 +409,27 @@ static int CT_items(
 
 /*
  * Loop over all values in the tree and perform the call-back on each value.
- * Walking stops either when the call-back is called on each value or
- * when 'pn' is zero. 'pn' will be decremented by one on each successful
- * call-back.
  */
 static void CT_values(
         ct_node_t * node,
-        size_t * pn,
-        ct_val_cb cb,
-        void * args)
+        ct_val_cb cb)
 {
     if (node->data != NULL)
     {
-        if ((*cb)(node->data, args) && pn != NULL)
-        {
-            (*pn)--;
-        }
+        (*cb)(node->data);
     }
 
     if (node->nodes != NULL)
     {
         ct_node_t * nd;
 
-        for (   uint_fast16_t i = 0, end = node->n * BLOCKSZ;
-                (pn == NULL || *pn) && i < end;
-                i++)
+        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
                 continue;
             }
-            CT_values(nd, pn, cb, args);
+            CT_values(nd, cb);
         }
     }
 }
