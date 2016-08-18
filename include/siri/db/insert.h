@@ -52,7 +52,6 @@ typedef struct siridb_insert_s
 ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_obj_t * qp_obj,
         qp_packer_t * packer[]);
 
 const char * siridb_insert_err_msg(siridb_insert_err_t err);

@@ -1050,9 +1050,9 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
 static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t * qp_series_name;
-    qp_obj_t * qp_series_id;
-    qp_obj_t * qp_series_tp;
+    qp_obj_t qp_series_name;
+    qp_obj_t qp_series_id;
+    qp_obj_t qp_series_tp;
     siridb_series_t * series;
     qp_types_t tp;
     uint32_t series_id;
@@ -1069,7 +1069,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
         return SERIES_save(siridb);
     }
 
-    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
+    if ((unpacker = qp_unpacker_ff(fn)) == NULL)
     {
         return -1;
     }
@@ -1077,25 +1077,12 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     /* unpacker will be freed in case schema check fails */
     siridb_schema_check(SIRIDB_SERIES_SCHEMA)
 
-    qp_series_name = qp_object_new();
-    qp_series_id = qp_object_new();
-    qp_series_tp = qp_object_new();
-    if (siri_err)
-    {
-        /* free objects */
-        qp_object_free_safe(qp_series_name);
-        qp_object_free_safe(qp_series_id);
-        qp_object_free_safe(qp_series_tp);
-        qp_unpacker_free(unpacker);
-        return -1;  /* signal is raised */
-    }
-
     while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
-            qp_next(unpacker, qp_series_name) == QP_RAW &&
-            qp_next(unpacker, qp_series_id) == QP_INT64 &&
-            qp_next(unpacker, qp_series_tp) == QP_INT64)
+            qp_next(unpacker, &qp_series_name) == QP_RAW &&
+            qp_next(unpacker, &qp_series_id) == QP_INT64 &&
+            qp_next(unpacker, &qp_series_tp) == QP_INT64)
     {
-        series_id = (uint32_t) qp_series_id->via->int64;
+        series_id = (uint32_t) qp_series_id.via.int64;
 
         /* update max_series_id */
         if (series_id > siridb->max_series_id)
@@ -1108,9 +1095,9 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
             series = SERIES_new(
                     siridb,
                     series_id,
-                    (uint8_t) qp_series_tp->via->int64,
+                    (uint8_t) qp_series_tp.via.int64,
                     siridb->server->pool,
-                    qp_series_name->via->raw);
+                    qp_series_name.via.raw);
             if (series != NULL)
             {
                 /* add series to c-tree */
@@ -1125,13 +1112,8 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     /* save last object, should be QP_END */
     tp = qp_next(unpacker, NULL);
 
-    /* free objects */
-    qp_object_free(qp_series_name);
-    qp_object_free(qp_series_id);
-    qp_object_free(qp_series_tp);
-
     /* free unpacker */
-    qp_unpacker_free(unpacker);
+    qp_unpacker_ff_free(unpacker);
 
     if (tp != QP_END)
     {

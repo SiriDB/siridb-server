@@ -14,6 +14,7 @@
 #include <siri/err.h>
 #include <stdlib.h>
 #include <slist/slist.h>
+#include <siri/db/misc.h>
 
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
@@ -63,11 +64,6 @@ int siridb_groups_init(siridb_t * siridb)
         return -1;
     }
 
-    qp_obj_t * qp_name = qp_object_new();
-    qp_obj_t * qp_source = qp_object_new();
-
-    qp_object_free(qp_name);
-    qp_object_free(qp_source);
 
     return 0;
 }

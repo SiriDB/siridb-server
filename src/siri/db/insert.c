@@ -35,14 +35,12 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker);
 static ssize_t INSERT_assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_packer_t * packer[],
-        qp_obj_t * qp_obj);
+        qp_packer_t * packer[]);
 
 static ssize_t INSERT_assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
-        qp_obj_t * qp_obj,
         qp_packer_t * tmp_packer);
 
 static int INSERT_read_points(
@@ -122,7 +120,6 @@ void siridb_insert_free(siridb_insert_t * insert)
 ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_obj_t * qp_obj,
         qp_packer_t * packer[])
 {
     ssize_t rc = 0;
@@ -131,7 +128,7 @@ ssize_t siridb_insert_assign_pools(
 
     if (qp_is_map(tp))
     {
-        rc = INSERT_assign_by_map(siridb, unpacker, packer, qp_obj);
+        rc = INSERT_assign_by_map(siridb, unpacker, packer);
     }
     else if (qp_is_array(tp))
     {
@@ -142,7 +139,6 @@ ssize_t siridb_insert_assign_pools(
                     siridb,
                     unpacker,
                     packer,
-                    qp_obj,
                     tmp_packer);
             qp_packer_free(tmp_packer);
         }
@@ -258,58 +254,52 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
     }
     qp_types_t tp;
     siridb_series_t ** series;
-    qp_obj_t * qp_series_name = qp_object_new();
-    qp_obj_t * qp_series_ts = qp_object_new();
-    qp_obj_t * qp_series_val = qp_object_new();
-    if (qp_series_name == NULL || qp_series_ts == NULL || qp_series_val == NULL)
-    {
-        ERR_ALLOC
-        qp_object_free_safe(qp_series_name);
-        qp_object_free_safe(qp_series_ts);
-        qp_object_free_safe(qp_series_val);
-        return -1;
-    }
+
+    qp_obj_t qp_series_name;
+    qp_obj_t qp_series_ts;
+    qp_obj_t qp_series_val;
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
     qp_next(unpacker, NULL); // map
-    qp_next(unpacker, qp_series_name); // first series or end
+    qp_next(unpacker, &qp_series_name); // first series or end
 
     /*
      * we check for siri_err because siridb_series_add_point()
      * should never be called twice on the same series after an
      * error has occurred.
      */
-    while (!siri_err && qp_is_raw_term(qp_series_name))
+    while (!siri_err && qp_is_raw_term(&qp_series_name))
     {
         series = (siridb_series_t **) ct_get_sure(
                 siridb->series,
-                qp_series_name->via->raw);
+                qp_series_name.via.raw);
         if (series == NULL)
         {
             log_critical(
                     "Error getting or create series: '%s'",
-                    qp_series_name->via->raw);
+                    qp_series_name.via.raw);
             break;  /* signal is raised */
         }
 
         qp_next(unpacker, NULL); // array open
         qp_next(unpacker, NULL); // first point array2
-        qp_next(unpacker, qp_series_ts); // first ts
-        qp_next(unpacker, qp_series_val); // first val
+        qp_next(unpacker, &qp_series_ts); // first ts
+        qp_next(unpacker, &qp_series_val); // first val
 
         if (ct_is_empty(*series))
         {
             *series = siridb_series_new(
                     siridb,
-                    qp_series_name->via->raw,
-                    SIRIDB_QP_MAP2_TP(qp_series_val->tp));
+                    qp_series_name.via.raw,
+                    SIRIDB_QP_MAP2_TP(qp_series_val.tp));
+
             if (*series == NULL)
             {
                 log_critical(
                         "Error creating series: '%s'",
-                        qp_series_name->via->raw);
+                        qp_series_name.via.raw);
                 break;  /* signal is raised */
             }
         }
@@ -317,37 +307,33 @@ int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
         if (siridb_series_add_point(
                 siridb,
                 *series,
-                (uint64_t *) &qp_series_ts->via->int64,
-                qp_series_val->via))
+                (uint64_t *) &qp_series_ts.via.int64,
+                &qp_series_val.via))
         {
             break;  /* signal is raised */
         }
 
-        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        while ((tp = qp_next(unpacker, &qp_series_name)) == QP_ARRAY2)
         {
-            qp_next(unpacker, qp_series_ts); // ts
-            qp_next(unpacker, qp_series_val); // val
+            qp_next(unpacker, &qp_series_ts); // ts
+            qp_next(unpacker, &qp_series_val); // val
             if (siridb_series_add_point(
                     siridb,
                     *series,
-                    (uint64_t *) &qp_series_ts->via->int64,
-                    qp_series_val->via))
+                    (uint64_t *) &qp_series_ts.via.int64,
+                    &qp_series_val.via))
             {
                 break;  /* signal is raised */
             }
         }
         if (tp == QP_ARRAY_CLOSE)
         {
-            qp_next(unpacker, qp_series_name);
+            qp_next(unpacker, &qp_series_name);
         }
     }
 
     uv_mutex_unlock(&siridb->series_mutex);
     uv_mutex_unlock(&siridb->shards_mutex);
-
-    qp_object_free(qp_series_name);
-    qp_object_free(qp_series_ts);
-    qp_object_free(qp_series_val);
 
     return siri_err;
 }
@@ -452,33 +438,23 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
         return -1;  /* signal is raised */
     }
 
-    qp_obj_t * qp_series_name = qp_object_new();
-    qp_obj_t * qp_series_ts = qp_object_new();
-    qp_obj_t * qp_series_val = qp_object_new();
-    if (    qp_series_name == NULL ||
-            qp_series_ts == NULL ||
-            qp_series_val == NULL)
-    {
-        qp_object_free_safe(qp_series_name);
-        qp_object_free_safe(qp_series_ts);
-        qp_object_free_safe(qp_series_val);
-        siridb_forward_free(forward);
-        return -1;
-    }
+    qp_obj_t qp_series_name;
+    qp_obj_t qp_series_ts;
+    qp_obj_t qp_series_val;
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
     qp_next(unpacker, NULL); // map
-    qp_next(unpacker, qp_series_name); // first series or end
+    qp_next(unpacker, &qp_series_name); // first series or end
     /*
      * we check for siri_err because siridb_series_add_point()
      * should never be called twice on the same series after an
      * error has occurred.
      */
-    while (!siri_err && qp_is_raw_term(qp_series_name))
+    while (!siri_err && qp_is_raw_term(&qp_series_name))
     {
-        series_name = qp_series_name->via->raw;
+        series_name = qp_series_name.via.raw;
         series = (siridb_series_t *) ct_get(siridb->series, series_name);
         if (series == NULL)
         {
@@ -497,7 +473,7 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
                 qp_next(unpacker, NULL); // array open
                 qp_next(unpacker, NULL); // first point array2
                 qp_next(unpacker, NULL); // first ts
-                qp_next(unpacker, qp_series_val); // first val
+                qp_next(unpacker, &qp_series_val); // first val
 
                 /* restore pointer position */
                 unpacker->pt = pt;
@@ -505,7 +481,7 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
                 series = siridb_series_new(
                         siridb,
                         series_name,
-                        SIRIDB_QP_MAP2_TP(qp_series_val->tp));
+                        SIRIDB_QP_MAP2_TP(qp_series_val.tp));
 
                 if (series == NULL ||
                     ct_add(siridb->series, series->name, series))
@@ -527,9 +503,9 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
                 qp_add_raw(
                         forward->packer[pool],
                         series_name,
-                        qp_series_name->len);
+                        qp_series_name.len);
                 qp_packer_extend_fu(forward->packer[pool], unpacker);
-                qp_next(unpacker, qp_series_name);
+                qp_next(unpacker, &qp_series_name);
                 continue;
             }
             else
@@ -539,34 +515,34 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
                  * pool by the replica server.
                  */
                 qp_skip_next(unpacker);  // array
-                qp_next(unpacker, qp_series_name);
+                qp_next(unpacker, &qp_series_name);
                 continue;
             }
         }
 
         qp_next(unpacker, NULL); // array open
         qp_next(unpacker, NULL); // first point array2
-        qp_next(unpacker, qp_series_ts); // first ts
-        qp_next(unpacker, qp_series_val); // first val
+        qp_next(unpacker, &qp_series_ts); // first ts
+        qp_next(unpacker, &qp_series_val); // first val
         if (siridb_series_add_point(
                 siridb,
                 series,
-                (uint64_t *) &qp_series_ts->via->int64,
-                qp_series_val->via))
+                (uint64_t *) &qp_series_ts.via.int64,
+                &qp_series_val.via))
         {
             break;  /* signal is raised */
         }
 
-        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        while ((tp = qp_next(unpacker, &qp_series_name)) == QP_ARRAY2)
         {
-            qp_next(unpacker, qp_series_ts); // ts
-            qp_next(unpacker, qp_series_val); // val
+            qp_next(unpacker, &qp_series_ts); // ts
+            qp_next(unpacker, &qp_series_val); // val
 
             if (siridb_series_add_point(
                     siridb,
                     series,
-                    (uint64_t *) &qp_series_ts->via->int64,
-                    qp_series_val->via))
+                    (uint64_t *) &qp_series_ts.via.int64,
+                    &qp_series_val.via))
             {
                 break;  /* signal is raised */
             }
@@ -574,16 +550,12 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
 
         if (tp == QP_ARRAY_CLOSE)
         {
-            qp_next(unpacker, qp_series_name);
+            qp_next(unpacker, &qp_series_name);
         }
     }
 
     uv_mutex_unlock(&siridb->series_mutex);
     uv_mutex_unlock(&siridb->shards_mutex);
-
-    qp_object_free(qp_series_name);
-    qp_object_free(qp_series_ts);
-    qp_object_free(qp_series_val);
 
     if (!do_forward)
     {
@@ -622,6 +594,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
     sirinet_pkg_t * pkg;
+    qp_unpacker_t unpacker;
     sirinet_promises_t * promises = sirinet_promises_new(
             siridb->pools->len - 1,
             (sirinet_promises_cb) INSERT_on_response,
@@ -652,7 +625,6 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 #ifdef DEBUG
                 assert (siridb->fifo != NULL);
 #endif
-                qp_unpacker_t * unpacker;
 
                 if (siridb->replicate->initsync == NULL)
                 {
@@ -680,29 +652,22 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                 if (pkg != NULL)
                 {
                     siridb_replicate_pkg(siridb, pkg);
-                    unpacker = qp_unpacker_new(pkg->data, pkg->len);
-                    if (unpacker != NULL)
-                    {
-                        siridb_insert_local(siridb, unpacker, insert->flags);
-                        qp_unpacker_free(unpacker);
-                    }
+                    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+                    siridb_insert_local(siridb, &unpacker, insert->flags);
                     free(pkg);
                 }
             }
             else
             {
-                qp_unpacker_t * unpacker = qp_unpacker_new(
+                qp_unpacker_init(
+                        &unpacker,
                         insert->packer[n]->buffer + PKG_HEADER_SIZE,
                         insert->packer[n]->len - PKG_HEADER_SIZE);
 
                 /* a signal is set in case creating the unpacker fails and this
                  * signal is handled in the promises->cb function.
                  */
-                if (unpacker != NULL)
-                {
-                    siridb_insert_local(siridb, unpacker, insert->flags);
-                    qp_unpacker_free(unpacker);
-                }
+                siridb_insert_local(siridb, &unpacker, insert->flags);
 
                 qp_packer_free(insert->packer[n]);
             }
@@ -755,14 +720,14 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
         /* when not re-indexing, select the correct pool */
         pool = siridb_lookup_sn_raw(
                 siridb->pools->lookup,
-                qp_series_name->via->raw,
+                qp_series_name->via.raw,
                 qp_series_name->len);
     }
     else
     {
         if (ct_getn(
                 siridb->series,
-                qp_series_name->via->raw,
+                qp_series_name->via.raw,
                 qp_series_name->len) != NULL)
         {
             /*
@@ -785,14 +750,14 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
 #endif
             pool = siridb_lookup_sn_raw(
                     siridb->pools->prev_lookup,
-                    qp_series_name->via->raw,
+                    qp_series_name->via.raw,
                     qp_series_name->len);
 
             if (pool == siridb->server->pool)
             {
                 pool = siridb_lookup_sn_raw(
                         siridb->pools->lookup,
-                        qp_series_name->via->raw,
+                        qp_series_name->via.raw,
                         qp_series_name->len);
             }
         }
@@ -810,30 +775,30 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
 static ssize_t INSERT_assign_by_map(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_packer_t * packer[],
-        qp_obj_t * qp_obj)
+        qp_packer_t * packer[])
 {
     int tp;  /* use int instead of qp_types_t for negative values */
     uint16_t pool;
     ssize_t count = 0;
+    qp_obj_t qp_obj;
 
-    tp = qp_next(unpacker, qp_obj);
+    tp = qp_next(unpacker, &qp_obj);
 
     while ( tp == QP_RAW &&
-            qp_obj->len &&
-            qp_obj->len < SIRIDB_SERIES_NAME_LEN_MAX)
+            qp_obj.len &&
+            qp_obj.len < SIRIDB_SERIES_NAME_LEN_MAX)
     {
-        pool = INSERT_get_pool(siridb, qp_obj);
+        pool = INSERT_get_pool(siridb, &qp_obj);
 
         qp_add_raw_term(packer[pool],
-                qp_obj->via->raw,
-                qp_obj->len);
+                qp_obj.via.raw,
+                qp_obj.len);
 
         if ((tp = INSERT_read_points(
                 siridb,
                 packer[pool],
                 unpacker,
-                qp_obj,
+                &qp_obj,
                 &count)) < 0)
         {
             return tp;
@@ -859,48 +824,48 @@ static ssize_t INSERT_assign_by_array(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_packer_t * packer[],
-        qp_obj_t * qp_obj,
         qp_packer_t * tmp_packer)
 {
     int tp;  /* use int instead of qp_types_t for negative values */
     uint16_t pool;
     ssize_t count = 0;
-    tp = qp_next(unpacker, qp_obj);
+    qp_obj_t qp_obj;
+    tp = qp_next(unpacker, &qp_obj);
 
     while (tp == QP_MAP2)
     {
-        if (qp_next(unpacker, qp_obj) != QP_RAW)
+        if (qp_next(unpacker, &qp_obj) != QP_RAW)
         {
             return ERR_EXPECTING_NAME_AND_POINTS;
         }
 
-        if (strncmp(qp_obj->via->raw, "points", qp_obj->len) == 0)
+        if (strncmp(qp_obj.via.raw, "points", qp_obj.len) == 0)
         {
             if ((tp = INSERT_read_points(
                     siridb,
                     tmp_packer,
                     unpacker,
-                    qp_obj,
+                    &qp_obj,
                     &count)) < 0 || tp != QP_RAW)
             {
                 return (tp < 0) ? tp : ERR_EXPECTING_NAME_AND_POINTS;
             }
         }
 
-        if (strncmp(qp_obj->via->raw, "name", qp_obj->len) == 0)
+        if (strncmp(qp_obj.via.raw, "name", qp_obj.len) == 0)
         {
-            if (    qp_next(unpacker, qp_obj) != QP_RAW ||
-                    !qp_obj->len ||
-                    qp_obj->len >= SIRIDB_SERIES_NAME_LEN_MAX)
+            if (    qp_next(unpacker, &qp_obj) != QP_RAW ||
+                    !qp_obj.len ||
+                    qp_obj.len >= SIRIDB_SERIES_NAME_LEN_MAX)
             {
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }
 
-            pool = INSERT_get_pool(siridb, qp_obj);
+            pool = INSERT_get_pool(siridb, &qp_obj);
 
             qp_add_raw_term(packer[pool],
-                    qp_obj->via->raw,
-                    qp_obj->len);
+                    qp_obj.via.raw,
+                    qp_obj.len);
         }
         else
         {
@@ -911,12 +876,12 @@ static ssize_t INSERT_assign_by_array(
         {
             qp_packer_extend(packer[pool], tmp_packer);
             tmp_packer->len = 0;
-            tp = qp_next(unpacker, qp_obj);
+            tp = qp_next(unpacker, &qp_obj);
         }
         else
         {
-            if (qp_next(unpacker, qp_obj) != QP_RAW ||
-                    strncmp(qp_obj->via->raw, "points", qp_obj->len))
+            if (qp_next(unpacker, &qp_obj) != QP_RAW ||
+                    strncmp(qp_obj.via.raw, "points", qp_obj.len))
             {
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }
@@ -925,7 +890,7 @@ static ssize_t INSERT_assign_by_array(
                     siridb,
                     packer[pool],
                     unpacker,
-                    qp_obj,
+                    &qp_obj,
                     &count)) < 0)
             {
                 return tp;
@@ -978,29 +943,25 @@ static int INSERT_read_points(
             return ERR_EXPECTING_INTEGER_TS;
         }
 
-        if (!siridb_int64_valid_ts(siridb, qp_obj->via->int64))
+        if (!siridb_int64_valid_ts(siridb, qp_obj->via.int64))
         {
             return ERR_TIMESTAMP_OUT_OF_RANGE;
         }
 
-        qp_add_int64(packer, qp_obj->via->int64);
+        qp_add_int64(packer, qp_obj->via.int64);
 
         switch (qp_next(unpacker, qp_obj))
         {
         case QP_RAW:
-            qp_add_raw(packer,
-                    qp_obj->via->raw,
-                    qp_obj->len);
+            qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
             break;
 
         case QP_INT64:
-            qp_add_int64(packer,
-                    qp_obj->via->int64);
+            qp_add_int64(packer, qp_obj->via.int64);
             break;
 
         case QP_DOUBLE:
-            qp_add_double(packer,
-                    qp_obj->via->real);
+            qp_add_double(packer, qp_obj->via.real);
             break;
 
         default:

@@ -2706,13 +2706,8 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
-    qp_unpacker_t * unpacker;
-    qp_obj_t * qp_count = qp_object_new();
-
-    if (qp_count == NULL)
-    {
-        return;  /* critical error, signal is set */
-    }
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_count;
 
     query_count_t * q_count = query->data;
 
@@ -2729,28 +2724,20 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
-            unpacker = qp_unpacker_new(pkg->data, pkg->len);
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-            if (unpacker == NULL)
+            if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) &&  // servers etc.
+                    qp_is_int(qp_next(&unpacker, &qp_count))) // one result
             {
-                return;  /* critical error, signal is set */
-            }
-
-            if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                    qp_is_raw(qp_next(unpacker, NULL)) &&  // servers etc.
-                    qp_is_int(qp_next(unpacker, qp_count))) // one result
-            {
-                q_count->n += qp_count->via->int64;
+                q_count->n += qp_count.via.int64;
 
                 /* extract time-it info if needed */
                 if (query->timeit != NULL)
                 {
-                    siridb_query_timeit_from_unpacker(query, unpacker);
+                    siridb_query_timeit_from_unpacker(query, &unpacker);
                 }
             }
-
-            /* free the unpacker */
-            qp_unpacker_free(unpacker);
         }
 
         /* make sure we free the promise and data */
@@ -2758,7 +2745,6 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
         free(promise);
     }
 
-    qp_object_free(qp_count);
     qp_add_int64(query->packer, q_count->n);
 
     SIRIPARSER_NEXT_NODE
@@ -2776,13 +2762,8 @@ static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
-    qp_unpacker_t * unpacker;
-    qp_obj_t * qp_drop = qp_object_new();
-
-    if (qp_drop == NULL)
-    {
-        return;  /* critical error, signal is set */
-    }
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_drop;
 
     query_drop_t * q_drop = query->data;
 
@@ -2799,36 +2780,26 @@ static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle)
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
-            unpacker = qp_unpacker_new(pkg->data, pkg->len);
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-            if (unpacker == NULL)
+            if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) &&  // servers etc.
+                    qp_is_int(qp_next(&unpacker, &qp_drop))) // one result
             {
-                return;  /* critical error, signal is set */
-            }
-
-            if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                    qp_is_raw(qp_next(unpacker, NULL)) &&  // servers etc.
-                    qp_is_int(qp_next(unpacker, qp_drop))) // one result
-            {
-                q_drop->n += qp_drop->via->int64;
+                q_drop->n += qp_drop.via.int64;
 
                 /* extract time-it info if needed */
                 if (query->timeit != NULL)
                 {
-                    siridb_query_timeit_from_unpacker(query, unpacker);
+                    siridb_query_timeit_from_unpacker(query, &unpacker);
                 }
             }
-
-            /* free the unpacker */
-            qp_unpacker_free(unpacker);
         }
 
         /* make sure we free the promise and data */
         free(promise->data);
         free(promise);
     }
-
-    qp_object_free(qp_drop);
 
     qp_add_fmt(query->packer,
             "Successfully dropped %lu series.", q_drop->n);
@@ -2847,7 +2818,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
-    qp_unpacker_t * unpacker;
+    qp_unpacker_t unpacker;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
 
@@ -2864,39 +2835,32 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
         if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
         {
-            unpacker = qp_unpacker_new(pkg->data, pkg->len);
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-            if (unpacker != NULL)
+            if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) && // columns
+                    qp_is_array(qp_skip_next(&unpacker)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) && // series/...
+                    qp_is_array(qp_next(&unpacker, NULL)))  // results
             {
-
-                if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                        qp_is_raw(qp_next(unpacker, NULL)) && // columns
-                        qp_is_array(qp_skip_next(unpacker)) &&
-                        qp_is_raw(qp_next(unpacker, NULL)) && // series/...
-                        qp_is_array(qp_next(unpacker, NULL)))  // results
+                while (qp_is_array(qp_current(&unpacker)))
                 {
-                    while (qp_is_array(qp_current(unpacker)))
+                    if (q_list->limit)
                     {
-                        if (q_list->limit)
-                        {
-                            qp_packer_extend_fu(query->packer, unpacker);
-                            q_list->limit--;
-                        }
-                        else
-                        {
-                            qp_skip_next(unpacker);
-                        }
+                        qp_packer_extend_fu(query->packer, &unpacker);
+                        q_list->limit--;
                     }
-
-                    /* extract time-it info if needed */
-                    if (query->timeit != NULL)
+                    else
                     {
-                        siridb_query_timeit_from_unpacker(query, unpacker);
+                        qp_skip_next(&unpacker);
                     }
-
                 }
-                /* free the unpacker */
-                qp_unpacker_free(unpacker);
+
+                /* extract time-it info if needed */
+                if (query->timeit != NULL)
+                {
+                    siridb_query_timeit_from_unpacker(query, &unpacker);
+                }
             }
         }
 
@@ -2921,26 +2885,14 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
 
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
-    qp_unpacker_t * unpacker;
+    qp_unpacker_t unpacker;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     size_t err_count = 0;
     query_select_t * q_select = (query_select_t *) query->data;
-    qp_obj_t * qp_name = qp_object_new();
-    qp_obj_t * qp_tp = qp_object_new();
-    qp_obj_t * qp_len = qp_object_new();
-    qp_obj_t * qp_points = qp_object_new();
-
-    if (    qp_name == NULL ||
-            qp_tp == NULL ||
-            qp_len == NULL ||
-            qp_points == NULL)
-    {
-        qp_object_free_safe(qp_name);
-        qp_object_free_safe(qp_tp);
-        qp_object_free_safe(qp_len);
-        qp_object_free_safe(qp_points);
-        return;  /* critical error, signal is set */
-    }
+    qp_obj_t qp_name;
+    qp_obj_t qp_tp;
+    qp_obj_t qp_len;
+    qp_obj_t qp_points;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -2968,46 +2920,39 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
             }
             else
             {
-                unpacker = qp_unpacker_new(pkg->data, pkg->len);
+                qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-                if (unpacker != NULL)
+                if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                        qp_is_raw(qp_next(&unpacker, NULL)) && // select
+                        qp_is_map(qp_next(&unpacker, NULL)))
                 {
-
-                    if (    qp_is_map(qp_next(unpacker, NULL)) &&
-                            qp_is_raw(qp_next(unpacker, NULL)) && // select
-                            qp_is_map(qp_next(unpacker, NULL)))
+                    if (q_select->merge_as == NULL)
                     {
-                        if (q_select->merge_as == NULL)
-                        {
-                            on_select_unpack_points(
-                                    unpacker,
-                                    q_select,
-                                    qp_name,
-                                    qp_tp,
-                                    qp_len,
-                                    qp_points);
-                        }
-                        else
-                        {
-                            on_select_unpack_merged_points(
-                                    unpacker,
-                                    q_select,
-                                    qp_name,
-                                    qp_tp,
-                                    qp_len,
-                                    qp_points);
-                        }
-
-
-                        /* extract time-it info if needed */
-                        if (query->timeit != NULL)
-                        {
-                            siridb_query_timeit_from_unpacker(query, unpacker);
-                        }
-
+                        on_select_unpack_points(
+                                &unpacker,
+                                q_select,
+                                &qp_name,
+                                &qp_tp,
+                                &qp_len,
+                                &qp_points);
                     }
-                    /* free the unpacker */
-                    qp_unpacker_free(unpacker);
+                    else
+                    {
+                        on_select_unpack_merged_points(
+                                &unpacker,
+                                q_select,
+                                &qp_name,
+                                &qp_tp,
+                                &qp_len,
+                                &qp_points);
+                    }
+
+
+                    /* extract time-it info if needed */
+                    if (query->timeit != NULL)
+                    {
+                        siridb_query_timeit_from_unpacker(query, &unpacker);
+                    }
                 }
             }
 
@@ -3016,11 +2961,6 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
             free(promise);
         }
     }
-
-    qp_object_free(qp_name);
-    qp_object_free(qp_tp);
-    qp_object_free(qp_len);
-    qp_object_free(qp_points);
 
     if (q_select->n > MAX_SELECT_POINTS)
     {
@@ -3335,19 +3275,19 @@ static void on_select_unpack_points(
             qp_is_int(qp_next(unpacker, qp_len)) &&
             qp_is_raw(qp_next(unpacker, qp_points)))
     {
-        points = siridb_points_new(qp_len->via->int64, qp_tp->via->int64);
+        points = siridb_points_new(qp_len->via.int64, qp_tp->via.int64);
 
         if (points != NULL)
         {
 #ifdef DEBUG
-            assert (qp_len->via->int64 * sizeof(siridb_point_t) ==
+            assert (qp_len->via.int64 * sizeof(siridb_point_t) ==
                     qp_points->len);
 #endif
-            points->len = qp_len->via->int64;
+            points->len = qp_len->via.int64;
 
-            memcpy(points->data, qp_points->via->raw, qp_points->len);
+            memcpy(points->data, qp_points->via.raw, qp_points->len);
 
-            if (ct_add(q_select->result, qp_name->via->raw, points))
+            if (ct_add(q_select->result, qp_name->via.raw, points))
             {
                 siridb_points_free(points);
             }
@@ -3380,7 +3320,7 @@ static void on_select_unpack_merged_points(
     {
         slist_t ** plist = (slist_t **) ct_getaddr(
                 q_select->result,
-                qp_name->via->raw);
+                qp_name->via.raw);
 
         while ( q_select->n <= MAX_SELECT_POINTS &&
                 qp_is_array(qp_next(unpacker, NULL)) &&
@@ -3389,17 +3329,17 @@ static void on_select_unpack_merged_points(
                 qp_is_raw(qp_next(unpacker, qp_points)))
         {
 
-            points = siridb_points_new(qp_len->via->int64, qp_tp->via->int64);
+            points = siridb_points_new(qp_len->via.int64, qp_tp->via.int64);
 
             if (points != NULL)
             {
     #ifdef DEBUG
-                assert (qp_len->via->int64 * sizeof(siridb_point_t) ==
+                assert (qp_len->via.int64 * sizeof(siridb_point_t) ==
                         qp_points->len);
     #endif
-                points->len = qp_len->via->int64;
+                points->len = qp_len->via.int64;
 
-                memcpy(points->data, qp_points->via->raw, qp_points->len);
+                memcpy(points->data, qp_points->via.raw, qp_points->len);
 
 
                 if (slist_append_safe(plist, points))

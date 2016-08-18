@@ -32,15 +32,15 @@ cproto_server_t siridb_auth_user_request(
     siridb_user_t * user;
 
     char dbname[qp_dbname->len + 1];
-    memcpy(dbname, qp_dbname->via->raw, qp_dbname->len);
+    memcpy(dbname, qp_dbname->via.raw, qp_dbname->len);
     dbname[qp_dbname->len] = 0;
 
     char username[qp_username->len + 1];
-    memcpy(username, qp_username->via->raw, qp_username->len);
+    memcpy(username, qp_username->via.raw, qp_username->len);
     username[qp_username->len] = 0;
 
     char password[qp_password->len + 1];
-    memcpy(password, qp_password->via->raw, qp_password->len);
+    memcpy(password, qp_password->via.raw, qp_password->len);
     password[qp_password->len] = 0;
 
     if ((siridb = siridb_get(siri.siridb_list, dbname)) == NULL)
@@ -73,9 +73,9 @@ bproto_server_t siridb_auth_server_request(
 
 #ifdef DEBUG
     /* test if all are terminated */
-    assert (*(qp_dbname->via->raw + qp_dbname->len - 1) == 0);
-    assert (*(qp_version->via->raw + qp_version->len - 1) == 0);
-    assert (*(qp_min_version->via->raw + qp_min_version->len - 1) == 0);
+    assert (*(qp_dbname->via.raw + qp_dbname->len - 1) == 0);
+    assert (*(qp_version->via.raw + qp_version->len - 1) == 0);
+    assert (*(qp_min_version->via.raw + qp_min_version->len - 1) == 0);
 #endif
 
     if (qp_uuid->len != 16)
@@ -83,19 +83,19 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_INVALID_UUID;
     }
 
-    if (siri_version_cmp(qp_version->via->raw, SIRIDB_MINIMAL_VERSION) < 0)
+    if (siri_version_cmp(qp_version->via.raw, SIRIDB_MINIMAL_VERSION) < 0)
     {
         return BPROTO_AUTH_ERR_VERSION_TOO_OLD;
     }
 
-    if (siri_version_cmp(qp_min_version->via->raw, SIRIDB_VERSION) > 0)
+    if (siri_version_cmp(qp_min_version->via.raw, SIRIDB_VERSION) > 0)
     {
         return BPROTO_AUTH_ERR_VERSION_TOO_NEW;
     }
 
-    memcpy(uuid, qp_uuid->via->raw, 16);
+    memcpy(uuid, qp_uuid->via.raw, 16);
 
-    if ((siridb = siridb_get(siri.siridb_list, qp_dbname->via->raw)) == NULL)
+    if ((siridb = siridb_get(siri.siridb_list, qp_dbname->via.raw)) == NULL)
     {
         return BPROTO_AUTH_ERR_UNKNOWN_DBNAME;
     }
@@ -108,7 +108,7 @@ bproto_server_t siridb_auth_server_request(
     ((sirinet_socket_t *) client->data)->siridb = siridb;
     ((sirinet_socket_t *) client->data)->origin = server;
 
-    server->version = strdup(qp_version->via->raw);
+    server->version = strdup(qp_version->via.raw);
 
     /* we must increment the server reference counter */
     siridb_server_incref(server);

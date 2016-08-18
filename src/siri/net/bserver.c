@@ -224,34 +224,35 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     bproto_server_t rc;
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    qp_obj_t * qp_uuid = qp_object_new();
-    qp_obj_t * qp_dbname = qp_object_new();
-    qp_obj_t * qp_flags = qp_object_new();
-    qp_obj_t * qp_version = qp_object_new();
-    qp_obj_t * qp_min_version = qp_object_new();
-    qp_obj_t * qp_dbpath = qp_object_new();
-    qp_obj_t * qp_buffer_path = qp_object_new();
-    qp_obj_t * qp_buffer_size = qp_object_new();
-    qp_obj_t * qp_startup_time = qp_object_new();
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_uuid;
+    qp_obj_t qp_dbname;
+    qp_obj_t qp_flags;
+    qp_obj_t qp_version;
+    qp_obj_t qp_min_version;
+    qp_obj_t qp_dbpath;
+    qp_obj_t qp_buffer_path;
+    qp_obj_t qp_buffer_size;
+    qp_obj_t qp_startup_time;
 
-    if (    qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, qp_uuid) == QP_RAW &&
-            qp_next(unpacker, qp_dbname) == QP_RAW &&
-            qp_next(unpacker, qp_flags) == QP_INT64 &&
-            qp_next(unpacker, qp_version) == QP_RAW &&
-            qp_next(unpacker, qp_min_version) == QP_RAW &&
-            qp_next(unpacker, qp_dbpath) == QP_RAW &&
-            qp_next(unpacker, qp_buffer_path) == QP_RAW &&
-            qp_next(unpacker, qp_buffer_size) == QP_INT64 &&
-            qp_next(unpacker, qp_startup_time) == QP_INT64)
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_uuid) == QP_RAW &&
+            qp_next(&unpacker, &qp_dbname) == QP_RAW &&
+            qp_next(&unpacker, &qp_flags) == QP_INT64 &&
+            qp_next(&unpacker, &qp_version) == QP_RAW &&
+            qp_next(&unpacker, &qp_min_version) == QP_RAW &&
+            qp_next(&unpacker, &qp_dbpath) == QP_RAW &&
+            qp_next(&unpacker, &qp_buffer_path) == QP_RAW &&
+            qp_next(&unpacker, &qp_buffer_size) == QP_INT64 &&
+            qp_next(&unpacker, &qp_startup_time) == QP_INT64)
     {
         rc = siridb_auth_server_request(
                 client,
-                qp_uuid,
-                qp_dbname,
-                qp_version,
-                qp_min_version);
+                &qp_uuid,
+                &qp_dbname,
+                &qp_version,
+                &qp_min_version);
         if (rc == BPROTO_AUTH_SUCCESS)
         {
             siridb_server_t * server =
@@ -259,13 +260,13 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
 
             /* check and update flags */
-            BSERVER_flags_update(siridb, server, qp_flags->via->int64);
+            BSERVER_flags_update(siridb, server, qp_flags.via.int64);
 
             /* update other server properties */
-            server->dbpath = strdup(qp_dbpath->via->raw);
-            server->buffer_path = strdup(qp_buffer_path->via->raw);
-            server->buffer_size = qp_buffer_size->via->int64;
-            server->startup_time = qp_startup_time->via->int64;
+            server->dbpath = strdup(qp_dbpath.via.raw);
+            server->buffer_path = strdup(qp_buffer_path.via.raw);
+            server->buffer_size = qp_buffer_size.via.int64;
+            server->startup_time = qp_startup_time.via.int64;
 
             log_info("Accepting back-end server connection: '%s'",
                     server->name);
@@ -284,16 +285,6 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         log_error("Invalid back-end 'on_auth_request' received.");
     }
-    qp_object_free(qp_uuid);
-    qp_object_free(qp_dbname);
-    qp_object_free(qp_flags);
-    qp_object_free(qp_version);
-    qp_object_free(qp_min_version);
-    qp_object_free(qp_dbpath);
-    qp_object_free(qp_buffer_path);
-    qp_object_free(qp_buffer_size);
-    qp_object_free(qp_startup_time);
-    qp_unpacker_free(unpacker);
 }
 
 static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -302,13 +293,14 @@ static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     sirinet_pkg_t * package;
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    qp_obj_t * qp_flags = qp_object_new();
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_flags;
 
-    if (qp_next(unpacker, qp_flags) == QP_INT64)
+    if (qp_next(&unpacker, &qp_flags) == QP_INT64)
     {
         /* check and update flags */
-        BSERVER_flags_update(siridb, server, qp_flags->via->int64);
+        BSERVER_flags_update(siridb, server, qp_flags.via.int64);
 
         package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_FLAGS, NULL);
 
@@ -319,8 +311,6 @@ static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         log_error("Invalid back-end 'on_flags_update' received.");
     }
-    qp_object_free(qp_flags);
-    qp_unpacker_free(unpacker);
 }
 
 static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -328,13 +318,14 @@ static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
     SERVER_CHECK_AUTHENTICATED(server)
 
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    qp_obj_t * qp_log_level = qp_object_new();
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_log_level;
 
-    if (qp_next(unpacker, qp_log_level) == QP_INT64)
+    if (qp_next(&unpacker, &qp_log_level) == QP_INT64)
     {
         /* update log level */
-        logger_set_level(qp_log_level->via->int64);
+        logger_set_level(qp_log_level.via.int64);
 
         log_info("Log level update received from '%s' (%s)",
                 server->name,
@@ -351,8 +342,6 @@ static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         log_error("Invalid back-end 'on_log_level_update' received.");
     }
-    qp_object_free(qp_log_level);
-    qp_unpacker_free(unpacker);
 }
 
 static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -391,24 +380,11 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
 {
     SERVER_CHECK_AUTHENTICATED(server)
 
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    if (unpacker == NULL)
-    {
-        return;  /* signal is raised */
-    }
-    qp_obj_t * qp_query = qp_object_new();
-    if (qp_query == NULL)
-    {
-        qp_unpacker_free(unpacker);
-        return;  /* signal is raised */
-    }
-    qp_obj_t * qp_time_precision = qp_object_new();
-    if (qp_time_precision == NULL)
-    {
-        qp_object_free(qp_query);
-        qp_unpacker_free(unpacker);
-        return;  /* signal is raised */
-    }
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+    qp_obj_t qp_query;
+    qp_obj_t qp_time_precision;
 
     if (flags & SIRIDB_QUERY_FLAG_UPDATE_REPLICA)
     {
@@ -420,25 +396,22 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
         }
     }
 
-    if (    qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, qp_query) == QP_RAW &&
-            qp_next(unpacker, qp_time_precision) == QP_INT64)
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_query) == QP_RAW &&
+            qp_next(&unpacker, &qp_time_precision) == QP_INT64)
     {
         siridb_query_run(
                 pkg->pid,
                 client,
-                qp_query->via->raw,
-                qp_query->len,
-                (siridb_timep_t) qp_time_precision->via->int64,
+                qp_query.via.raw,
+                qp_query.len,
+                (siridb_timep_t) qp_time_precision.via.int64,
                 0);
     }
     else
     {
         log_error("Invalid back-end 'on_query_server' received.");
     }
-    qp_object_free(qp_query);
-    qp_object_free(qp_time_precision);
-    qp_unpacker_free(unpacker);
 }
 
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
@@ -489,20 +462,17 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     }
     if (!siri_err)
     {
-        qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
+        qp_unpacker_t unpacker;
+        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-        if (unpacker != NULL)
+        package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
+                    (siridb->server->flags & SERVER_FLAG_PAUSED) ||
+                    siridb_insert_local(siridb, &unpacker, flags)) ?
+                sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
+                sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
+        if (package != NULL)
         {
-            package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
-                        (siridb->server->flags & SERVER_FLAG_PAUSED) ||
-                        siridb_insert_local(siridb, unpacker, flags)) ?
-                    sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
-                    sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
-            if (package != NULL)
-            {
-                sirinet_pkg_send(client, package);
-            }
-            qp_unpacker_free(unpacker);
+            sirinet_pkg_send(client, package);
         }
     }
 }
@@ -571,50 +541,44 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
-        qp_obj_t * qp_series_name = qp_object_new();
-        if (qp_series_name != NULL)
+        qp_obj_t qp_series_name;
+
+        qp_unpacker_t unpacker;
+        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+        qp_next(&unpacker, &qp_series_name);
+        if (qp_is_raw_term(&qp_series_name))
         {
-            qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-            if (unpacker != NULL)
+            siridb_series_t * series;
+            series = ct_get(siridb->series, qp_series_name.via.raw);
+            if (series != NULL)
             {
-                qp_next(unpacker, qp_series_name);
-                if (qp_is_raw_term(qp_series_name))
-                {
-                    siridb_series_t * series;
-                    series = ct_get(siridb->series, qp_series_name->via->raw);
-                    if (series != NULL)
-                    {
-                        uv_mutex_lock(&siridb->series_mutex);
+                uv_mutex_lock(&siridb->series_mutex);
 
-                        siridb_series_drop(siridb, series);
+                siridb_series_drop(siridb, series);
 
-                        uv_mutex_unlock(&siridb->series_mutex);
+                uv_mutex_unlock(&siridb->series_mutex);
 
-                        siridb_series_flush_dropped(siridb);
-                    }
-                    else
-                    {
-                        log_warning(
-                                "Received a request to drop series '%s' but "
-                                "the series is not found (already dropped?)",
-                                qp_series_name->via->raw);
-                    }
-                    package = sirinet_pkg_new(
-                            pkg->pid,
-                            0,
-                            BPROTO_ACK_DROP_SERIES,
-                            NULL);
-                }
-                else
-                {
-                    log_error(
-                            "Illegal back-end dropped series package "
-                            "received, probably the series name was not "
-                            "terminated?");
-                }
-                qp_unpacker_free(unpacker);
+                siridb_series_flush_dropped(siridb);
             }
-            qp_object_free(qp_series_name);
+            else
+            {
+                log_warning(
+                        "Received a request to drop series '%s' but "
+                        "the series is not found (already dropped?)",
+                        qp_series_name.via.raw);
+            }
+            package = sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    BPROTO_ACK_DROP_SERIES,
+                    NULL);
+        }
+        else
+        {
+            log_error(
+                    "Illegal back-end dropped series package "
+                    "received, probably the series name was not "
+                    "terminated?");
         }
     }
 

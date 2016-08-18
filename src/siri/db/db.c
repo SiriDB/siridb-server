@@ -40,7 +40,6 @@ static void SIRIDB_free(siridb_t * siridb);
     sprintf(err_msg, "error: " ERROR_MSG);  \
     SIRIDB_free(*siridb);                   \
     *siridb = NULL;                         \
-    qp_object_free(qp_obj);                 \
     return -1;
 
 siridb_t * siridb_new(const char * dbpath, int lock_flags)
@@ -115,7 +114,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
             "%sdatabase.dat",
             dbpath);
 
-    if ((unpacker = qp_unpacker_from_file(buffer)) == NULL)
+    if ((unpacker = qp_unpacker_ff(buffer)) == NULL)
     {
         /* qp_unpacker has done some logging */
         cfgparser_free(cfgparser);
@@ -128,12 +127,12 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
             err_msg))
     {
         log_error("Could not read '%s': %s", buffer, err_msg);
-        qp_unpacker_free(unpacker);
+        qp_unpacker_ff_free(unpacker);
         cfgparser_free(cfgparser);
         return NULL;
     }
 
-    qp_unpacker_free(unpacker);
+    qp_unpacker_ff_free(unpacker);
 
     log_info("Start loading database: '%s'", siridb->dbname);
 
@@ -281,26 +280,20 @@ int siridb_from_unpacker(
         char * err_msg)
 {
     *siridb = NULL;
-    qp_obj_t * qp_obj = qp_object_new();
-    if (qp_obj == NULL)
-    {
-        sprintf(err_msg, "error: allocation error.");
-        return -1;
-    }
+    qp_obj_t qp_obj;
+
     if (!qp_is_array(qp_next(unpacker, NULL)) ||
-            qp_next(unpacker, qp_obj) != QP_INT64)
+            qp_next(unpacker, &qp_obj) != QP_INT64)
     {
         sprintf(err_msg, "error: corrupted database file.");
-        qp_object_free(qp_obj);
         return -1;
     }
 
     /* check schema */
-    if (qp_obj->via->int64 != SIRIDB_SHEMA)
+    if (qp_obj.via.int64 != SIRIDB_SHEMA)
     {
         sprintf(err_msg, "error: unsupported schema found: %ld",
-                qp_obj->via->int64);
-        qp_object_free(qp_obj);
+                qp_obj.via.int64);
         return -1;
     }
 
@@ -309,67 +302,66 @@ int siridb_from_unpacker(
     if (*siridb == NULL)
     {
         sprintf(err_msg, "error: cannot create SiriDB instance");
-        qp_object_free(qp_obj);
         return -1;
     }
 
     /* read uuid */
-    if (qp_next(unpacker, qp_obj) != QP_RAW || qp_obj->len != 16)
+    if (qp_next(unpacker, &qp_obj) != QP_RAW || qp_obj.len != 16)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read uuid.")
     }
 
     /* copy uuid */
-    memcpy(&(*siridb)->uuid, qp_obj->via->raw, qp_obj->len);
+    memcpy(&(*siridb)->uuid, qp_obj.via.raw, qp_obj.len);
 
     /* read database name */
-    if (qp_next(unpacker, qp_obj) != QP_RAW ||
-            qp_obj->len >= SIRIDB_MAX_DBNAME_LEN)
+    if (qp_next(unpacker, &qp_obj) != QP_RAW ||
+            qp_obj.len >= SIRIDB_MAX_DBNAME_LEN)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read database name.")
     }
 
     /* alloc mem for database name */
-    (*siridb)->dbname = strndup(qp_obj->via->raw, qp_obj->len);
+    (*siridb)->dbname = strndup(qp_obj.via.raw, qp_obj.len);
     if ((*siridb)->dbname == NULL)
     {
         READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
     }
 
     /* read time precision */
-    if (qp_next(unpacker, qp_obj) != QP_INT64 ||
-            qp_obj->via->int64 < SIRIDB_TIME_SECONDS ||
-            qp_obj->via->int64 > SIRIDB_TIME_NANOSECONDS)
+    if (qp_next(unpacker, &qp_obj) != QP_INT64 ||
+            qp_obj.via.int64 < SIRIDB_TIME_SECONDS ||
+            qp_obj.via.int64 > SIRIDB_TIME_NANOSECONDS)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read time-precision.")
     }
 
     /* bind time precision to SiriDB */
     (*siridb)->time =
-            siridb_time_new((siridb_timep_t) qp_obj->via->int64);
+            siridb_time_new((siridb_timep_t) qp_obj.via.int64);
     if ((*siridb)->time == NULL)
     {
         READ_DB_EXIT_WITH_ERROR("cannot create time instance.")
     }
 
     /* read buffer size */
-    if (qp_next(unpacker, qp_obj) != QP_INT64)
+    if (qp_next(unpacker, &qp_obj) != QP_INT64)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
     }
 
     /* bind buffer size and len to SiriDB */
-    (*siridb)->buffer_size = (size_t) qp_obj->via->int64;
+    (*siridb)->buffer_size = (size_t) qp_obj.via.int64;
     (*siridb)->buffer_len = (*siridb)->buffer_size / sizeof(siridb_point_t);
 
     /* read number duration  */
-    if (qp_next(unpacker, qp_obj) != QP_INT64)
+    if (qp_next(unpacker, &qp_obj) != QP_INT64)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read number duration.")
     }
 
     /* bind number duration to SiriDB */
-    (*siridb)->duration_num = (uint64_t) qp_obj->via->int64;
+    (*siridb)->duration_num = (uint64_t) qp_obj.via.int64;
 
     /* calculate 'shard_mask_num' based on number duration */
     (*siridb)->shard_mask_num =
@@ -377,13 +369,13 @@ int siridb_from_unpacker(
                     *siridb, (*siridb)->duration_num)) / 24;
 
     /* read log duration  */
-    if (qp_next(unpacker, qp_obj) != QP_INT64)
+    if (qp_next(unpacker, &qp_obj) != QP_INT64)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read log duration.")
     }
 
     /* bind log duration to SiriDB */
-    (*siridb)->duration_log = (uint64_t) qp_obj->via->int64;
+    (*siridb)->duration_log = (uint64_t) qp_obj.via.int64;
 
     /* calculate 'shard_mask_log' based on log duration */
     (*siridb)->shard_mask_log =
@@ -394,13 +386,13 @@ int siridb_from_unpacker(
     log_debug("Set log duration mask to %d", (*siridb)->shard_mask_log);
 
     /* read timezone */
-    if (qp_next(unpacker, qp_obj) != QP_RAW)
+    if (qp_next(unpacker, &qp_obj) != QP_RAW)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
     }
 
     /* bind timezone to SiriDB */
-    char * tzname = strndup(qp_obj->via->raw, qp_obj->len);
+    char * tzname = strndup(qp_obj.via.raw, qp_obj.len);
 
     if (tzname == NULL)
     {
@@ -416,16 +408,13 @@ int siridb_from_unpacker(
     free(tzname);
 
     /* read drop threshold */
-    if (qp_next(unpacker, qp_obj) != QP_DOUBLE ||
-            qp_obj->via->real < 0.0 || qp_obj->via->real > 1.0)
+    if (qp_next(unpacker, &qp_obj) != QP_DOUBLE ||
+            qp_obj.via.real < 0.0 || qp_obj.via.real > 1.0)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read drop threshold.")
     }
 
-    (*siridb)->drop_threshold = qp_obj->via->real;
-
-    /* free qp_object */
-    qp_object_free(qp_obj);
+    (*siridb)->drop_threshold = qp_obj.via.real;
 
     return 0;
 }

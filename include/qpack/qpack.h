@@ -81,7 +81,7 @@ typedef struct qp_obj_s
 {
     uint8_t tp;
     size_t len;
-    qp_via_t * via;
+    qp_via_t via;
 } qp_obj_t;
 
 typedef struct qp_unpacker_s
@@ -110,15 +110,10 @@ void qp_packer_free(qp_packer_t * packer);
 int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source);
 int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker);
 
-/* qp object: create and destroy functions */
-qp_obj_t * qp_object_new(void);
-void qp_object_free(qp_obj_t * qp_obj);
-void qp_object_free_safe(qp_obj_t * qp_obj);
-
 /* unpacker: create and destroy functions */
-qp_unpacker_t * qp_unpacker_new(char * pt, size_t len);
-void qp_unpacker_free(qp_unpacker_t * unpacker);
-qp_unpacker_t * qp_unpacker_from_file(const char * fn);
+void qp_unpacker_init(qp_unpacker_t * unpacker, char * pt, size_t len);
+void qp_unpacker_ff_free(qp_unpacker_t * unpacker);
+qp_unpacker_t * qp_unpacker_ff(const char * fn);
 
 /* step functions to be used with an unpacker */
 qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj);

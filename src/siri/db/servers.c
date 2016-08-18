@@ -41,10 +41,10 @@ int siridb_servers_load(siridb_t * siridb)
     log_info("Loading servers");
 
     qp_unpacker_t * unpacker;
-    qp_obj_t * qp_uuid;
-    qp_obj_t * qp_address;
-    qp_obj_t * qp_port;
-    qp_obj_t * qp_pool;
+    qp_obj_t qp_uuid;
+    qp_obj_t qp_address;
+    qp_obj_t qp_port;
+    qp_obj_t qp_pool;
     siridb_server_t * server;
     qp_types_t tp;
 
@@ -94,7 +94,7 @@ int siridb_servers_load(siridb_t * siridb)
         return 0;
     }
 
-    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
+    if ((unpacker = qp_unpacker_ff(fn)) == NULL)
     {
         return -1;  /* a signal is raised in case of memory allocation errors */
     }
@@ -102,34 +102,22 @@ int siridb_servers_load(siridb_t * siridb)
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_SERVERS_SCHEMA)
 
-    qp_uuid = qp_object_new();
-    qp_address = qp_object_new();
-    qp_port = qp_object_new();
-    qp_pool = qp_object_new();
-
-    if (    qp_uuid == NULL ||
-            qp_address == NULL ||
-            qp_port == NULL ||
-            qp_pool == NULL)
-    {
-        return -1;  /* signal is raised */
-    }
 
     int rc = 0;
 
     while (qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, qp_uuid) == QP_RAW &&
-            qp_uuid->len == 16 &&
-            qp_next(unpacker, qp_address) == QP_RAW &&
-            qp_next(unpacker, qp_port) == QP_INT64 &&
-            qp_next(unpacker, qp_pool) == QP_INT64)
+            qp_next(unpacker, &qp_uuid) == QP_RAW &&
+            qp_uuid.len == 16 &&
+            qp_next(unpacker, &qp_address) == QP_RAW &&
+            qp_next(unpacker, &qp_port) == QP_INT64 &&
+            qp_next(unpacker, &qp_pool) == QP_INT64)
     {
         server = siridb_server_new(
-                qp_uuid->via->raw,
-                qp_address->via->raw,
-                qp_address->len,
-                (uint16_t) qp_port->via->int64,
-                (uint16_t) qp_pool->via->int64);
+                qp_uuid.via.raw,
+                qp_address.via.raw,
+                qp_address.len,
+                (uint16_t) qp_port.via.int64,
+                (uint16_t) qp_pool.via.int64);
         if (server == NULL)
         {
             rc = -1;  /* signal is raised */
@@ -164,14 +152,8 @@ int siridb_servers_load(siridb_t * siridb)
     /* save last object, should be QP_END */
     tp = qp_next(unpacker, NULL);
 
-    /* free objects */
-    qp_object_free(qp_uuid);
-    qp_object_free(qp_address);
-    qp_object_free(qp_port);
-    qp_object_free(qp_pool);
-
     /* free unpacker */
-    qp_unpacker_free(unpacker);
+    qp_unpacker_ff_free(unpacker);
 
     if (siridb->server == NULL)
     {

@@ -86,24 +86,17 @@ static qp_types_t QP_print_unpacker(
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
-qp_unpacker_t * qp_unpacker_new(char * pt, size_t len)
+void qp_unpacker_init(qp_unpacker_t * unpacker, char * pt, size_t len)
 {
-    qp_unpacker_t * unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
-    if (unpacker == NULL)
-    {
-        ERR_ALLOC
-        return NULL;
-    }
     unpacker->source = NULL;
     unpacker->pt = pt;
     unpacker->end = pt + len;
-    return unpacker;
 }
 
 /*
  * Destroy unpacker object. (parsing NULL is not allowed)
  */
-void qp_unpacker_free(qp_unpacker_t * unpacker)
+void qp_unpacker_ff_free(qp_unpacker_t * unpacker)
 {
 #ifdef DEBUG
     assert(unpacker != NULL);
@@ -118,7 +111,7 @@ void qp_unpacker_free(qp_unpacker_t * unpacker)
  *
  * In case and only in case of a memory (malloc) error, a signal will be raised.
  */
-qp_unpacker_t * qp_unpacker_from_file(const char * fn)
+qp_unpacker_t * qp_unpacker_ff(const char * fn)
 {
     FILE * fp;
     size_t size;
@@ -153,7 +146,7 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
             if (unpacker->source == NULL)
             {
                 ERR_ALLOC
-                qp_unpacker_free(unpacker);
+                qp_unpacker_ff_free(unpacker);
                 unpacker = NULL;
             }
             else if (fread(unpacker->source, size, 1, fp) == 1)
@@ -164,7 +157,7 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
             else
             {
                 log_error("Cannot not read from file '%s'", fn);
-                qp_unpacker_free(unpacker);
+                qp_unpacker_ff_free(unpacker);
                 unpacker = NULL;
             }
         }
@@ -180,51 +173,6 @@ qp_unpacker_t * qp_unpacker_from_file(const char * fn)
     }
 
     return unpacker;
-}
-
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- */
-qp_obj_t * qp_object_new(void)
-{
-    qp_obj_t * qp_obj;
-    qp_obj = (qp_obj_t *) malloc(sizeof(qp_obj_t));
-    if (qp_obj == NULL)
-    {
-        ERR_ALLOC
-        return NULL;
-    }
-    qp_obj->via = (qp_via_t *) malloc(sizeof(qp_via_t));
-    if (qp_obj->via == NULL)
-    {
-        ERR_ALLOC
-        free(qp_obj);
-        return NULL;
-    }
-    return qp_obj;
-}
-
-/*
- * Destroy object object. (parsing NULL is not allowed)
- */
-void qp_object_free(qp_obj_t * qp_obj)
-{
-#ifdef DEBUG
-    assert(qp_obj != NULL);
-#endif
-    free(qp_obj->via);
-    free(qp_obj);
-}
-
-/*
- * Destroy object object. (parsing NULL is allowed)
- */
-void qp_object_free_safe(qp_obj_t * qp_obj)
-{
-    if (qp_obj != NULL)
-    {
-        qp_object_free(qp_obj);
-    }
 }
 
 /*
@@ -337,7 +285,7 @@ inline int qp_is_raw_term(qp_obj_t * qp_obj)
 {
     return (qp_obj->tp == QP_RAW &&
             qp_obj->len &&
-            qp_obj->via->raw[qp_obj->len - 1] == '\0');
+            qp_obj->via.raw[qp_obj->len - 1] == '\0');
 }
 
 /*
@@ -345,12 +293,11 @@ inline int qp_is_raw_term(qp_obj_t * qp_obj)
  */
 void qp_print(char * pt, size_t len)
 {
-    qp_unpacker_t * unpacker = qp_unpacker_new(pt, len);
-    qp_obj_t * qp_obj = qp_object_new();
-    QP_print_unpacker(qp_next(unpacker, qp_obj), unpacker, qp_obj);
+    qp_obj_t qp_obj;
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pt, len);
+    QP_print_unpacker(qp_next(&unpacker, &qp_obj), &unpacker, &qp_obj);
     printf("\n");
-    qp_object_free(qp_obj);
-    qp_unpacker_free(unpacker);
 }
 
 /*
@@ -807,7 +754,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_INT64;
-            qp_obj->via->int64 =  (tp < 64) ?
+            qp_obj->via.int64 =  (tp < 64) ?
                     (int64_t) tp :
                     (int64_t) 63 - tp;
         }
@@ -820,7 +767,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            qp_obj->via->real = (double) (tp - 126);
+            qp_obj->via.real = (double) (tp - 126);
         }
         return QP_DOUBLE;
     }
@@ -831,7 +778,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_RAW;
-            qp_obj->via->raw = unpacker->pt;
+            qp_obj->via.raw = unpacker->pt;
             qp_obj->len = (size_t) (tp - 128);
         }
         unpacker->pt += tp - 128;
@@ -850,7 +797,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_RAW;
-            qp_obj->via->raw = unpacker->pt;
+            qp_obj->via.raw = unpacker->pt;
             qp_obj->len = sz;
         }
         unpacker->pt += sz;
@@ -864,7 +811,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_INT64;
-            qp_obj->via->int64 =
+            qp_obj->via.int64 =
                     (tp == QP_INT8)  ? (int64_t) *((int8_t *) unpacker->pt):
                     (tp == QP_INT16) ? (int64_t) *((int16_t *) unpacker->pt):
                     (tp == QP_INT32) ? (int64_t) *((int32_t *) unpacker->pt):
@@ -879,7 +826,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            qp_obj->via->real =
+            qp_obj->via.real =
                     (double) *((double *) unpacker->pt);
         }
         unpacker->pt += 8;
@@ -1062,13 +1009,13 @@ static qp_types_t QP_print_unpacker(
     switch (tp)
     {
     case QP_INT64:
-        printf("%ld", qp_obj->via->int64);
+        printf("%ld", qp_obj->via.int64);
         break;
     case QP_DOUBLE:
-        printf("%f", qp_obj->via->real);
+        printf("%f", qp_obj->via.real);
         break;
     case QP_RAW:
-        printf("\"%.*s\"", (int) qp_obj->len, qp_obj->via->raw);
+        printf("\"%.*s\"", (int) qp_obj->len, qp_obj->via.raw);
         break;
     case QP_TRUE:
         printf("true");

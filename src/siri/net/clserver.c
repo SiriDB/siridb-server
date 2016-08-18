@@ -215,22 +215,22 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     cproto_server_t rc;
     sirinet_pkg_t * package;
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    qp_obj_t * qp_username = qp_object_new();
-    qp_obj_t * qp_password = qp_object_new();
-    qp_obj_t * qp_dbname = qp_object_new();
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_username;
+    qp_obj_t qp_password;
+    qp_obj_t qp_dbname;
 
-
-    if (    qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, qp_username) == QP_RAW &&
-            qp_next(unpacker, qp_password) == QP_RAW &&
-            qp_next(unpacker, qp_dbname) == QP_RAW)
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_username) == QP_RAW &&
+            qp_next(&unpacker, &qp_password) == QP_RAW &&
+            qp_next(&unpacker, &qp_dbname) == QP_RAW)
     {
         rc = siridb_auth_user_request(
                 client,
-                qp_username,
-                qp_password,
-                qp_dbname);
+                &qp_username,
+                &qp_password,
+                &qp_dbname);
         package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
 
         /* ignore result code, signal can be raised */
@@ -240,10 +240,6 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         log_error("Invalid 'on_auth_request' received.");
     }
-    qp_object_free(qp_username);
-    qp_object_free(qp_password);
-    qp_object_free(qp_dbname);
-    qp_unpacker_free(unpacker);
 }
 
 /*
@@ -318,17 +314,18 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    qp_obj_t * qp_query = qp_object_new();
-    qp_obj_t * qp_time_precision = qp_object_new();
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_query;
+    qp_obj_t qp_time_precision;
     siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-    if (    qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, qp_query) == QP_RAW &&
-            qp_next(unpacker, qp_time_precision))
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_query) == QP_RAW &&
+            qp_next(&unpacker, &qp_time_precision))
     {
-        if (qp_time_precision->tp == QP_INT64 &&
-                (tp = (siridb_timep_t) qp_time_precision->via->int64) !=
+        if (qp_time_precision.tp == QP_INT64 &&
+                (tp = (siridb_timep_t) qp_time_precision.via.int64) !=
                 ssocket->siridb->time->precision)
         {
             tp %= SIRIDB_TIME_END;
@@ -337,14 +334,11 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
         siridb_query_run(
                 pkg->pid,
                 client,
-                qp_query->via->raw,
-                qp_query->len,
+                qp_query.via.raw,
+                qp_query.len,
                 tp,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
-    qp_object_free(qp_query);
-    qp_object_free(qp_time_precision);
-    qp_unpacker_free(unpacker);
 }
 
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -368,18 +362,8 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
         return;
     }
 
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    if (unpacker == NULL)
-    {
-        return;  /* signal is raised */
-    }
-
-    qp_obj_t * qp_obj = qp_object_new();
-    if (qp_obj == NULL)
-    {
-        qp_unpacker_free(unpacker);
-        return;  /* signal is raised */
-    }
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     siridb_insert_t * insert = siridb_insert_new(
             siridb,
@@ -390,8 +374,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         ssize_t rc = siridb_insert_assign_pools(
                 siridb,
-                unpacker,
-                qp_obj,
+                &unpacker,
                 insert->packer);
 
         switch ((siridb_insert_err_t) rc)
@@ -435,12 +418,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
             break;
         }
     }
-
-    /* free qp_object */
-    qp_object_free(qp_obj);
-
-    /* free unpacker */
-    qp_unpacker_free(unpacker);
 }
 
 static void on_ping(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -489,49 +466,43 @@ static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg)
  */
 static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    qp_unpacker_t * unpacker = qp_unpacker_new(pkg->data, pkg->len);
-    if (unpacker != NULL)
-    {
-        qp_obj_t * qp_dbpath = qp_object_new();
-        if (qp_dbpath != NULL)
-        {
-            if (qp_next(unpacker, qp_dbpath) == QP_RAW)
-            {
-                char * dbpath = strndup(qp_dbpath->via->raw, qp_dbpath->len);
-                if (dbpath == NULL)
-                {
-                    ERR_ALLOC
-                }
-                else
-                {
-                    siridb_t * siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
-                    if (siridb != NULL)
-                    {
-                        siridb->server->flags |= SERVER_FLAG_RUNNING;
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-                        /* Force one heart-beat */
-                        siri_heartbeat_force();
-                    }
-                    sirinet_pkg_t * package = sirinet_pkg_new(
-                            pkg->pid,
-                            0,
-                            (siridb == NULL) ?
-                                    CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK,
-                            NULL);
-                    if (package != NULL)
-                    {
-                        sirinet_pkg_send(client, package);
-                    }
-                    free(dbpath);
-                }
-            }
-            else
-            {
-                log_error("Incorrect package received: 'on_loaddb'");
-            }
-            qp_object_free(qp_dbpath);
+    qp_obj_t qp_dbpath;
+    if (qp_next(&unpacker, &qp_dbpath) == QP_RAW)
+    {
+        char * dbpath = strndup(qp_dbpath.via.raw, qp_dbpath.len);
+        if (dbpath == NULL)
+        {
+            ERR_ALLOC
         }
-        qp_unpacker_free(unpacker);
+        else
+        {
+            siridb_t * siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
+            if (siridb != NULL)
+            {
+                siridb->server->flags |= SERVER_FLAG_RUNNING;
+
+                /* Force one heart-beat */
+                siri_heartbeat_force();
+            }
+            sirinet_pkg_t * package = sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    (siridb == NULL) ?
+                            CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK,
+                    NULL);
+            if (package != NULL)
+            {
+                sirinet_pkg_send(client, package);
+            }
+            free(dbpath);
+        }
+    }
+    else
+    {
+        log_error("Incorrect package received: 'on_loaddb'");
     }
 }
 

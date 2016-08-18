@@ -274,52 +274,42 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
 {
     siridb_series_t * series;
     qp_packer_t * netpacker = sirinet_packer_new(len + PKG_HEADER_SIZE);
+
     if (netpacker == NULL)
     {
         return NULL;  /*signal is raised */
     }
-    qp_unpacker_t * unpacker = qp_unpacker_new(data, len);
-    if (unpacker == NULL)
-    {
-        qp_packer_free(netpacker);
-        return NULL;  /*signal is raised */
-    }
-    qp_obj_t * qp_series_name = qp_object_new();
-    if (qp_series_name == NULL)
-    {
-        qp_unpacker_free(unpacker);
-        qp_packer_free(netpacker);
-        return NULL;  /*signal is raised */
-    }
 
-    qp_next(unpacker, NULL); // map
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, data, len);
+
+    qp_obj_t qp_series_name;
+
+    qp_next(&unpacker, NULL); // map
     qp_add_type(netpacker, QP_MAP_OPEN);
 
-    qp_next(unpacker, qp_series_name); // first series or end
-    while (qp_is_raw_term(qp_series_name))
+    qp_next(&unpacker, &qp_series_name); // first series or end
+    while (qp_is_raw_term(&qp_series_name))
     {
         series = (siridb_series_t *) ct_get(
                 siridb->series,
-                qp_series_name->via->raw);
+                qp_series_name.via.raw);
         if (series == NULL || (~series->flags & SIRIDB_SERIES_INIT_REPL))
         {
             /* raw is terminated so len is included a terminator char */
             qp_add_raw(
                     netpacker,
-                    qp_series_name->via->raw,
-                    qp_series_name->len);
-            qp_packer_extend_fu(netpacker, unpacker);
+                    qp_series_name.via.raw,
+                    qp_series_name.len);
+            qp_packer_extend_fu(netpacker, &unpacker);
         }
         else
         {
-            qp_skip_next(unpacker);
+            qp_skip_next(&unpacker);
         }
 
-        qp_next(unpacker, qp_series_name);
+        qp_next(&unpacker, &qp_series_name);
     }
-
-    qp_object_free(qp_series_name);
-    qp_unpacker_free(unpacker);
 
     sirinet_pkg_t * npkg = sirinet_packer2pkg(
             netpacker,

@@ -39,9 +39,9 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker);
 int siridb_users_load(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t * username;
-    qp_obj_t * password;
-    qp_obj_t * access_bit;
+    qp_obj_t qp_username;
+    qp_obj_t qp_password;
+    qp_obj_t qp_access_bit;
     siridb_user_t * user;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
 
@@ -89,7 +89,7 @@ int siridb_users_load(siridb_t * siridb)
         return 0;
     }
 
-    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
+    if ((unpacker = qp_unpacker_ff(fn)) == NULL)
     {
         return -1;  /* a signal is raised is case of a memory error */
     }
@@ -97,24 +97,11 @@ int siridb_users_load(siridb_t * siridb)
     /* unpacker will be freed in case macro fails */
     siridb_schema_check(SIRIDB_USERS_SCHEMA)
 
-    username = qp_object_new();
-    password = qp_object_new();
-    access_bit = qp_object_new();
-
-    if (username == NULL || password == NULL || access_bit == NULL)
-    {
-        qp_object_free_safe(username);
-        qp_object_free_safe(password);
-        qp_object_free_safe(access_bit);
-        qp_unpacker_free(unpacker);
-        return -1;  /* signal is raised */
-    }
-
     int rc = 0;
     while (qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, username) == QP_RAW &&
-            qp_next(unpacker, password) == QP_RAW &&
-            qp_next(unpacker, access_bit) == QP_INT64)
+            qp_next(unpacker, &qp_username) == QP_RAW &&
+            qp_next(unpacker, &qp_password) == QP_RAW &&
+            qp_next(unpacker, &qp_access_bit) == QP_INT64)
     {
         user = siridb_user_new();
         if (user == NULL)
@@ -125,8 +112,8 @@ int siridb_users_load(siridb_t * siridb)
         {
             siridb_user_incref(user);
 
-            user->username = strndup(username->via->raw, username->len);
-            user->password = strndup(password->via->raw, password->len);
+            user->username = strndup(qp_username.via.raw, qp_username.len);
+            user->password = strndup(qp_password.via.raw, qp_password.len);
 
             if (user->username == NULL || user->password == NULL)
             {
@@ -136,7 +123,7 @@ int siridb_users_load(siridb_t * siridb)
             }
             else
             {
-                user->access_bit = (uint32_t) access_bit->via->int64;
+                user->access_bit = (uint32_t) qp_access_bit.via.int64;
                 if (llist_append(siridb->users, user))
                 {
                     siridb_user_decref(user);
@@ -146,13 +133,8 @@ int siridb_users_load(siridb_t * siridb)
         }
     }
 
-    /* free objects */
-    qp_object_free(username);
-    qp_object_free(password);
-    qp_object_free(access_bit);
-
     /* free unpacker */
-    qp_unpacker_free(unpacker);
+    qp_unpacker_ff_free(unpacker);
 
     return rc;
 }
