@@ -44,18 +44,30 @@ int siridb_groups_init(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
 
-    asprintf(&siridb->groups->fn, "%s%s", siridb->dbpath, SIRIDB_GROUPS_FN);
-
-    if (siridb->groups == NULL)
+    if (asprintf(
+            &siridb->groups->fn,
+            "%s%s",
+            siridb->dbpath,
+            SIRIDB_GROUPS_FN) < 0)
     {
         ERR_ALLOC
         return -1;
     }
 
-    if ((unpacker = qp_unpacker_from_file(fn)) == NULL)
+    unpacker = siridb_misc_open_schema_file(
+            SIRIDB_GROUPS_SCHEMA,
+            siridb->groups->fn);
+
+    if (unpacker == NULL)
     {
-        return -1;  /* a signal is raised is case of a memory error */
+        return -1;
     }
+
+    qp_obj_t * qp_name = qp_object_new();
+    qp_obj_t * qp_source = qp_object_new();
+
+    qp_object_free(qp_name);
+    qp_object_free(qp_source);
 
     return 0;
 }
@@ -64,5 +76,7 @@ int siridb_groups_init(siridb_t * siridb)
 void siridb_groups_free(siridb_groups_t * groups)
 {
     free(groups->fn);
-    slist_free()
+
+    /* TODO: decref series */
+    slist_free(groups->series);
 }

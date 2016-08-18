@@ -13,6 +13,8 @@
 
 #include <ctree/ctree.h>
 #include <slist/slist.h>
+#include <uv.h>
+#include <siri/db/db.h>
 
 typedef struct siridb_groups_s
 {
