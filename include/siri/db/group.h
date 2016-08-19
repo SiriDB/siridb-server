@@ -33,5 +33,6 @@ siridb_group_t * siridb_group_new(
         const char * source,
         size_t source_len,
         char * err_msg);
-void siridb_group_free(siridb_group_t * group);
+void siridb_group_incref(siridb_group_t * group);
+void siridb_group_decref(siridb_group_t * group);
 void siridb_group_cleanup(siridb_group_t * group);

@@ -15,6 +15,8 @@
 #include <siri/db/series.h>
 #include <siri/db/re.h>
 
+static void GROUP_free(siridb_group_t * group);
+
 /*
  * Returns a group or NULL in case of an error. When this error is critical,
  * a SIGNAL is raised but in any case err_msg is set with an appropriate
@@ -34,6 +36,7 @@ siridb_group_t * siridb_group_new(
     }
     else
     {
+        group->ref = 1;
         group->flags = GROUPS_FLAG_NEW_GROUP;
         group->name = strdup(name);
         group->source = strndup(source, source_len);
@@ -65,27 +68,17 @@ siridb_group_t * siridb_group_new(
     return group;
 }
 
-/*
- * Destroy a group object. Parsing NULL is not allowed.
- */
-void siridb_group_free(siridb_group_t * group)
+inline void siridb_group_incref(siridb_group_t * group)
 {
-    free(group->name);
-    free(group->source);
+    group->ref++;
+}
 
-    if (group->series != NULL)
+void siridb_group_decref(siridb_group_t * group)
+{
+    if (!--group->ref)
     {
-        for (size_t i = 0; i < group->series->len; i++)
-        {
-            siridb_series_decref((siridb_series_t *) group->series->data[i]);
-        }
-        slist_free(group->series);
+        GROUP_free(siridb_group_t * group);
     }
-
-    free(group->regex);
-    free(group->regex_extra);
-
-    free(group);
 }
 
 /*
@@ -115,4 +108,30 @@ void siridb_group_cleanup(siridb_group_t * group)
     group->series->len -= dropped;
 
     slist_compact(&group->series);
+}
+
+
+/*
+ * Destroy a group object. Parsing NULL is not allowed.
+ */
+static void GROUP_free(siridb_group_t * group)
+{
+#ifdef DEBUG
+    LOGC("Free group '%s'", group->name);
+#endif
+    free(group->name);
+    free(group->source);
+
+    if (group->series != NULL)
+    {
+        for (size_t i = 0; i < group->series->len; i++)
+        {
+            siridb_series_decref((siridb_series_t *) group->series->data[i]);
+        }
+        slist_free(group->series);
+    }
+
+    free(group->regex);
+    free(group->regex_extra);
+    free(group);
 }
