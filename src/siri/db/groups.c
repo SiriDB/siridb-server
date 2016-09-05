@@ -11,18 +11,24 @@
  */
 #define _GNU_SOURCE
 #include <siri/db/groups.h>
+#include <siri/db/group.h>
 #include <siri/err.h>
 #include <stdlib.h>
 #include <slist/slist.h>
 #include <siri/db/misc.h>
 #include <siri/db/db.h>
+#include <unistd.h>
+#include <siri/siri.h>
+#include <assert.h>
+#include <logger/logger.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
 #define GROUPS_LOOP_SLEEP 2
 
 static int GROUPS_load(siridb_groups_t * groups);
-static void GOUPS_free(siridb_groups_t * groups);
+static void GROUPS_free(siridb_groups_t * groups);
 static void GROUPS_loop(uv_work_t * work);
 static void GROUPS_loop_finish(uv_work_t * work, int status);
 
@@ -42,7 +48,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 
         if (groups->groups == NULL || groups->nseries == NULL)
         {
-            siridb_groups_free(groups);
+            GROUPS_free(groups);
             groups = NULL; /* signal is raised */
         }
         else if (asprintf(
@@ -52,7 +58,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
                     SIRIDB_GROUPS_FN) < 0 || GROUPS_load(groups))
         {
             ERR_ALLOC
-            siridb_groups_free(groups);
+            GROUPS_free(groups);
             groups = NULL;
         }
         else
@@ -73,7 +79,7 @@ int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series)
 {
-    if (slist_append_safe(groups->nseries, series))
+    if (slist_append_safe(&groups->nseries, series))
     {
         return -1;
     }
@@ -119,7 +125,7 @@ int siridb_groups_add_group(
         break;
 
     case CT_OK:
-        if (slist_append_safe(groups->ngroups, group))
+        if (slist_append_safe(&groups->ngroups, group))
         {
             sprintf(err_msg, "Memory allocation error.");
             rc = -1;
@@ -149,10 +155,10 @@ inline void siridb_groups_destroy(siridb_groups_t * groups)
     groups->status = GROUPS_STOPPING;
 }
 
-static void GOUPS_free(siridb_groups_t * groups)
+static void GROUPS_free(siridb_groups_t * groups)
 {
 #ifdef DEBUG
-    LOC("Free groups");
+    LOGC("Free groups");
 #endif
     free(groups->fn);
 
@@ -219,7 +225,7 @@ static void GROUPS_loop_finish(uv_work_t * work, int status)
     siridb_t * siridb = (siridb_t *) work->data;
 
     /* free groups */
-    GOUPS_free(siridb->groups);
+    GROUPS_free(siridb->groups);
 }
 
 static int GROUPS_load(siridb_groups_t * groups)

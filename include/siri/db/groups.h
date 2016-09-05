@@ -16,7 +16,7 @@
 #include <uv.h>
 #include <siri/db/db.h>
 
-enum
+typedef enum
 {
     GROUPS_INIT,
     GROUPS_RUNNING,

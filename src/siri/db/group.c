@@ -50,7 +50,7 @@ siridb_group_t * siridb_group_new(
         {
             ERR_ALLOC
             sprintf(err_msg, "Memory allocation error.");
-            siridb_group_free(group);
+            GROUP_free(group);
             group = NULL;
         }
         else if (siridb_re_compile(
@@ -61,7 +61,7 @@ siridb_group_t * siridb_group_new(
                 err_msg))
         {
             /* not critical, err_msg is set */
-            siridb_group_free(group);
+            GROUP_free(group);
             group = NULL;
         }
     }
@@ -77,7 +77,7 @@ void siridb_group_decref(siridb_group_t * group)
 {
     if (!--group->ref)
     {
-        GROUP_free(siridb_group_t * group);
+        GROUP_free(group);
     }
 }
 

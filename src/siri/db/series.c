@@ -962,7 +962,7 @@ static int SERIES_save(siridb_t * siridb)
     }
     else
     {
-        if (imap_walk(siridb->series, (imap_cb) &SERIES_pack, fpacker))
+        if (imap_walk(siridb->series_map, (imap_cb) &SERIES_pack, fpacker))
         {
             ERR_FILE
         }
