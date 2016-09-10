@@ -32,8 +32,13 @@ static void GROUPS_free(siridb_groups_t * groups);
 static void GROUPS_loop(uv_work_t * work);
 static void GROUPS_loop_finish(uv_work_t * work, int status);
 
+/*
+ * In case of an error the return value is NULL and a SIGNAL is raised.
+ */
 siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 {
+    log_info("Loading groups");
+
     siridb_groups_t * groups =
             (siridb_groups_t *) malloc(sizeof(siridb_groups_t));
     if (groups == NULL)
@@ -45,11 +50,12 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         groups->fn = NULL;
         groups->groups = ct_new();
         groups->nseries = slist_new(SLIST_DEFAULT_SIZE);
+        groups->work.data = (siridb_t *) siridb;
 
         if (groups->groups == NULL || groups->nseries == NULL)
         {
             GROUPS_free(groups);
-            groups = NULL; /* signal is raised */
+            groups = NULL;  /* signal is raised */
         }
         else if (asprintf(
                     &groups->fn,
@@ -72,9 +78,13 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
                     GROUPS_loop_finish);
         }
     }
+
     return groups;
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ */
 int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series)
@@ -226,6 +236,9 @@ static void GROUPS_loop_finish(uv_work_t * work, int status)
 
     /* free groups */
     GROUPS_free(siridb->groups);
+
+    /* set groups to NULL */
+    siridb->groups = NULL;
 }
 
 static int GROUPS_load(siridb_groups_t * groups)

@@ -41,3 +41,6 @@ typedef struct siridb_groups_s
     uv_mutex_t mutex;
     uv_work_t work;
 } siridb_groups_t;
+
+siridb_groups_t * siridb_groups_new(siridb_t * siridb);
+void siridb_groups_destroy(siridb_groups_t * groups);

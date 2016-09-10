@@ -36,6 +36,7 @@
 #include <xpath/xpath.h>
 #include <siri/err.h>
 #include <siri/async.h>
+#include <siri/db/groups.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
@@ -297,6 +298,10 @@ static void SIRI_set_closing_state(void)
         {
             siridb_reindex_close(siridb->reindex);
         }
+        if (siridb->groups != NULL)
+        {
+            siridb_groups_destroy(siridb->groups);
+        }
         siridb->server->flags &= ~SERVER_FLAG_RUNNING;
         siridb_servers_send_flags(siridb->servers);
 
@@ -314,7 +319,7 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num)
 
 static void SIRI_try_close(uv_timer_t * handle)
 {
-    int num = -1;  /* minus one because we should not incluse 'this' timer */
+    int num = -1;  /* minus one because we should not include 'this' timer */
 
     uv_walk(siri.loop, (uv_walk_cb) SIRI_walk_try_close, &num);
 

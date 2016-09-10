@@ -18,6 +18,7 @@
 #include <siri/optimize.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/err.h>
 
 static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
 static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);

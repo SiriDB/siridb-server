@@ -217,6 +217,14 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
+    /* load groups */
+    if ((siridb->groups = siridb_groups_new(siridb)) == NULL)
+    {
+        log_error("Cannot read groups for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return NULL;
+    }
+
     /* update series props */
     log_info("Updating series properties");
 
@@ -562,6 +570,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->fifo = NULL;
                     siridb->replicate = NULL;
                     siridb->reindex = NULL;
+                    siridb->groups = NULL;
 
                     /* make file pointers are NULL when file is closed */
                     siridb->buffer_fp = NULL;
