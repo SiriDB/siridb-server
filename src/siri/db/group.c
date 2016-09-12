@@ -117,7 +117,7 @@ void siridb_group_cleanup(siridb_group_t * group)
 static void GROUP_free(siridb_group_t * group)
 {
 #ifdef DEBUG
-    LOGC("Free group '%s'", group->name);
+    log_debug("Free group '%s'", group->name);
 #endif
     free(group->name);
     free(group->source);

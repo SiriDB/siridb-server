@@ -31,6 +31,7 @@ static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
 static void GROUPS_loop(uv_work_t * work);
 static void GROUPS_loop_finish(uv_work_t * work, int status);
+static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
 
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
@@ -50,6 +51,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         groups->fn = NULL;
         groups->groups = ct_new();
         groups->nseries = slist_new(SLIST_DEFAULT_SIZE);
+        groups->ngroups = slist_new(SLIST_DEFAULT_SIZE);
         groups->work.data = (siridb_t *) siridb;
 
         if (groups->groups == NULL || groups->nseries == NULL)
@@ -108,6 +110,7 @@ int siridb_groups_add_group(
         char * err_msg)
 {
     int rc;
+
     siridb_group_t * group = siridb_group_new(
             name,
             source,
@@ -168,7 +171,7 @@ inline void siridb_groups_destroy(siridb_groups_t * groups)
 static void GROUPS_free(siridb_groups_t * groups)
 {
 #ifdef DEBUG
-    LOGC("Free groups");
+    log_debug("Free groups");
 #endif
     free(groups->fn);
 
@@ -192,7 +195,7 @@ static void GROUPS_free(siridb_groups_t * groups)
         {
             siridb_group_decref((siridb_group_t *) groups->ngroups->data[i]);
         }
-        slist_free(groups->nseries);
+        slist_free(groups->ngroups);
     }
 }
 
@@ -219,7 +222,6 @@ static void GROUPS_loop(uv_work_t * work)
         default:
             assert (0);
             break;
-
 
         }
     }
@@ -278,6 +280,38 @@ static int GROUPS_load(siridb_groups_t * groups)
         }
         qp_unpacker_ff_free(unpacker);
     }
+
+    return rc;
+}
+
+int siridb_groups_save(siridb_groups_t * groups)
+{
+    qp_fpacker_t * fpacker;
+
+    return (
+        /* open a new user file */
+        (fpacker = qp_open(groups->fn, "w")) == NULL ||
+
+        /* open a new array */
+        qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
+
+        /* write the current schema */
+        qp_fadd_int16(fpacker, SIRIDB_GROUPS_SCHEMA) ||
+
+        /* we can and should skip this if we have no users to save */
+        ct_values(groups->groups, (ct_val_cb) GROUPS_write, fpacker) ||
+
+        /* close file pointer */
+        qp_close(fpacker)) ? EOF : 0;
+}
+
+static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker)
+{
+    int rc = 0;
+
+    rc += qp_fadd_type(fpacker, QP_ARRAY2);
+    rc += qp_fadd_raw(fpacker, group->name, strlen(group->name) + 1);
+    rc += qp_fadd_string(fpacker, group->source);
 
     return rc;
 }

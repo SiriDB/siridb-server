@@ -73,6 +73,7 @@ static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
 static void enter_alter_user(uv_async_t * handle);
 static void enter_count_stmt(uv_async_t * handle);
+static void enter_create_stmt(uv_async_t * handle);
 static void enter_create_user(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_stmt(uv_async_t * handle);
@@ -102,6 +103,7 @@ static void exit_count_pools(uv_async_t * handle);
 static void exit_count_series(uv_async_t * handle);
 static void exit_count_servers(uv_async_t * handle);
 static void exit_count_users(uv_async_t * handle);
+static void exit_create_group(uv_async_t * handle);
 static void exit_create_user(uv_async_t * handle);
 static void exit_drop_series(uv_async_t * handle);
 static void exit_drop_shard(uv_async_t * handle);
@@ -232,6 +234,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_ALTER_SERVER] = enter_alter_server;
     siriparser_listen_enter[CLERI_GID_ALTER_USER] = enter_alter_user;
     siriparser_listen_enter[CLERI_GID_COUNT_STMT] = enter_count_stmt;
+    siriparser_listen_enter[CLERI_GID_CREATE_STMT] = enter_create_stmt;
     siriparser_listen_enter[CLERI_GID_CREATE_USER] = enter_create_user;
     siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
@@ -268,6 +271,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_COUNT_SERIES] = exit_count_series;
     siriparser_listen_exit[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
     siriparser_listen_exit[CLERI_GID_COUNT_USERS] = exit_count_users;
+    siriparser_listen_exit[CLERI_GID_CREATE_GROUP] = exit_create_group;
     siriparser_listen_exit[CLERI_GID_CREATE_USER] = exit_create_user;
     siriparser_listen_exit[CLERI_GID_DROP_SERIES] = exit_drop_series;
     siriparser_listen_exit[CLERI_GID_DROP_SHARD] = exit_drop_shard;
@@ -434,11 +438,18 @@ static void enter_count_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void enter_create_user(uv_async_t * handle)
+static void enter_create_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_CREATE)
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void enter_create_user(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
 
     /* bind user object to data and set correct free call */
     query->data = (siridb_user_t *) siridb_user_new();
@@ -1132,6 +1143,36 @@ static void exit_count_users(uv_async_t * handle)
     }
 
     qp_add_int64(query->packer, n);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_create_group(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cleri_node_t * name_nd =
+            query->nodes->node->children->next->node;
+
+    cleri_node_t * for_nd =
+            query->nodes->node->children->next->next->next->node;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
+    char group_name[name_nd->len - 1];
+    strx_extract_string(group_name, name_nd->str, name_nd->len);
+
+    siridb_groups_add_group(
+            siridb->groups,
+            group_name,
+            for_nd->str,
+            for_nd->len,
+            query->err_msg);
+
+    if (siridb_groups_save(siridb->groups))
+    {
+        log_critical("Cannot write groups to file: %s", siridb->groups->fn);
+    }
 
     SIRIPARSER_NEXT_NODE
 }

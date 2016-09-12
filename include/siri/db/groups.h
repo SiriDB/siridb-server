@@ -43,4 +43,5 @@ typedef struct siridb_groups_s
 } siridb_groups_t;
 
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
+int siridb_groups_save(siridb_groups_t * groups);
 void siridb_groups_destroy(siridb_groups_t * groups);

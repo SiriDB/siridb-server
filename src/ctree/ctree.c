@@ -43,9 +43,10 @@ static int CT_items(
         char ** buffer,
         ct_item_cb cb,
         void * args);
-static void CT_values(
+static int CT_values(
         ct_node_t * node,
-        ct_val_cb cb);
+        ct_val_cb cb,
+        void * args);
 static void CT_free(ct_node_t * node, ct_free_cb cb);
 
 static char dummy = '\0';
@@ -285,10 +286,15 @@ inline int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 
 /*
  * Loop over all values in the tree and perform the call-back on each value.
+ *
+ * Returns 0 if the call-back is successful called on all items. Looping
+ * stops at the first call-back returning non-zero. This result will be the
+ * return value.
  */
-void ct_values(ct_t * ct, ct_val_cb cb)
+int ct_values(ct_t * ct, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
+    int rc = 0;
 
     for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
     {
@@ -296,8 +302,13 @@ void ct_values(ct_t * ct, ct_val_cb cb)
         {
             continue;
         }
-        CT_values(nd, cb);
+        if ((rc = CT_values(nd, cb, args)))
+        {
+            break;
+        }
     }
+
+    return rc;
 }
 
 /*
@@ -410,13 +421,16 @@ static int CT_items(
 /*
  * Loop over all values in the tree and perform the call-back on each value.
  */
-static void CT_values(
+static int CT_values(
         ct_node_t * node,
-        ct_val_cb cb)
+        ct_val_cb cb,
+        void * args)
 {
-    if (node->data != NULL)
+    int rc = 0;
+
+    if (node->data != NULL && (rc = (*cb)(node->data, args)))
     {
-        (*cb)(node->data);
+        return rc;
     }
 
     if (node->nodes != NULL)
@@ -429,9 +443,14 @@ static void CT_values(
             {
                 continue;
             }
-            CT_values(nd, cb);
+            if ((rc = CT_values(nd, cb, args)))
+            {
+                break;
+            }
         }
     }
+
+    return rc;
 }
 
 
