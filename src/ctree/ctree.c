@@ -287,9 +287,7 @@ inline int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 /*
  * Loop over all values in the tree and perform the call-back on each value.
  *
- * Returns 0 if the call-back is successful called on all items. Looping
- * stops at the first call-back returning non-zero. This result will be the
- * return value.
+ * Returns the sum of all the call-backs.
  */
 int ct_values(ct_t * ct, ct_val_cb cb, void * args)
 {
@@ -302,10 +300,7 @@ int ct_values(ct_t * ct, ct_val_cb cb, void * args)
         {
             continue;
         }
-        if ((rc = CT_values(nd, cb, args)))
-        {
-            break;
-        }
+        rc += CT_values(nd, cb, args);
     }
 
     return rc;
@@ -420,6 +415,8 @@ static int CT_items(
 
 /*
  * Loop over all values in the tree and perform the call-back on each value.
+ *
+ * The value returned is the sum of all the call-backs.
  */
 static int CT_values(
         ct_node_t * node,
@@ -428,9 +425,9 @@ static int CT_values(
 {
     int rc = 0;
 
-    if (node->data != NULL && (rc = (*cb)(node->data, args)))
+    if (node->data != NULL)
     {
-        return rc;
+        rc += (*cb)(node->data, args);
     }
 
     if (node->nodes != NULL)
@@ -443,10 +440,7 @@ static int CT_values(
             {
                 continue;
             }
-            if ((rc = CT_values(nd, cb, args)))
-            {
-                break;
-            }
+            rc += CT_values(nd, cb, args);
         }
     }
 

@@ -37,6 +37,7 @@
 #include <siri/db/re.h>
 #include <siri/db/presuf.h>
 #include <siri/db/aggregate.h>
+#include <siri/db/groups.h>
 
 #define MAX_ITERATE_COUNT 1000      // thousand
 #define MAX_SELECT_POINTS 100000   // one hundred thousand
@@ -78,6 +79,7 @@ static void enter_create_user(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_stmt(uv_async_t * handle);
 static void enter_grant_user(uv_async_t * handle);
+static void enter_group_match(uv_async_t * handle);
 static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
 static void enter_merge_as(uv_async_t * handle);
@@ -109,6 +111,7 @@ static void exit_drop_series(uv_async_t * handle);
 static void exit_drop_shard(uv_async_t * handle);
 static void exit_drop_user(uv_async_t * handle);
 static void exit_grant_user(uv_async_t * handle);
+static void exit_list_groups(uv_async_t * handle);
 static void exit_list_pools(uv_async_t * handle);
 static void exit_list_series(uv_async_t * handle);
 static void exit_list_servers(uv_async_t * handle);
@@ -239,6 +242,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
+    siriparser_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
     siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
     siriparser_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
@@ -517,7 +521,66 @@ static void enter_grant_user(uv_async_t * handle)
         SIRIPARSER_NEXT_NODE
     }
 }
+static void enter_group_match(uv_async_t * handle)
+{
 
+    /*
+     *         series, group_index = self.siridb.groups.get_series_and_index(
+            group_name)
+        if group_index is not None and (
+                not self._series or
+                self._series_update_func == set.intersection_update) and (
+                    self._search_index is None or
+                    len(group_index) < len(self._search_index)):
+            self._search_index = group_index
+        self._series_update_func(self._series, series)
+        self._pools = self.siridb.servers.other_pools
+     */
+
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cleri_node_t * node = query->nodes->node;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+
+    /* we must send this query to all pools */
+    if (q_wrapper->pmap != NULL)
+    {
+        imap_free(q_wrapper->pmap, NULL);
+        q_wrapper->pmap = NULL;
+    }
+
+    char group_name[node->len - 1];
+
+    /* extract series name */
+    strx_extract_string(group_name, node->str, node->len);
+
+    siridb_group_t * group =
+            (siridb_group_t *) ct_get(siridb->groups, group_name);
+    if (group == NULL)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot find group '%s'",
+                group_name);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        q_wrapper->slist = imap_2slist_ref(
+                (   q_wrapper->update_cb == NULL ||
+                    q_wrapper->update_cb == &imap_union_ref ||
+                    q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
+                        siridb->series_map : q_wrapper->series_map);
+
+        q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
+                q_wrapper->series_map : imap_new();
+
+        if (q_wrapper->slist != NULL && q_wrapper->series_tmp != NULL)
+        {
+            async_series_re(handle);
+        }
+    }
+}
 static void enter_limit_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1162,19 +1225,45 @@ static void exit_create_group(uv_async_t * handle)
     char group_name[name_nd->len - 1];
     strx_extract_string(group_name, name_nd->str, name_nd->len);
 
-    siridb_groups_add_group(
+    if (siridb_groups_add_group(
             siridb->groups,
             group_name,
             for_nd->str,
             for_nd->len,
-            query->err_msg);
-
-    if (siridb_groups_save(siridb->groups))
+            query->err_msg))
     {
-        log_critical("Cannot write groups to file: %s", siridb->groups->fn);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
+    else if (siridb_groups_save(siridb->groups))
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot write groups to file: %s",
+                siridb->groups->fn);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        log_critical("%s", query->err_msg);
+    }
+    else
+    {
+        query->packer = sirinet_packer_new(1024);
+        qp_add_type(query->packer, QP_MAP_OPEN);
 
-    SIRIPARSER_NEXT_NODE
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                "Group '%s' is created successfully.", group_name);
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
+    }
 }
 
 static void exit_create_user(uv_async_t * handle)
@@ -1448,6 +1537,59 @@ static void exit_grant_user(uv_async_t * handle)
     {
         SIRIPARSER_NEXT_NODE
     }
+}
+
+static void walk_groups(siridb_group_t * group, uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+}
+
+static void exit_list_groups(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_list_t * q_list = (query_list_t *) query->data;
+    uint_fast16_t prop;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
+    if (q_list->props == NULL)
+    {
+        q_list->props = slist_new(2);
+        slist_append(q_list->props, &GID_K_NAME);
+        slist_append(q_list->props, &GID_K_SERIES);
+        qp_add_raw(query->packer, "name", 4);
+        qp_add_raw(query->packer, "series", 6);
+    }
+
+    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+    qp_add_raw(query->packer, "groups", 6);
+    qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+    if (    q_list->limit)
+    {
+        qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+        for (prop = 0; prop < q_list->props->len; prop++)
+        {
+            switch(*((uint32_t *) q_list->props->data[prop]))
+            {
+            case CLERI_GID_K_NAME:
+                qp_add_int16(query->packer, wpool.pid);
+                break;
+            case CLERI_GID_K_SERIES:
+                qp_add_int64(query->packer, wpool.series);
+                break;
+            }
+        }
+
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+        q_list->limit--;
+    }
+
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_list_pools(uv_async_t * handle)
@@ -2359,6 +2501,67 @@ static void async_filter_series(uv_async_t * handle)
             assert (0);
             break;
         }
+    }
+}
+
+static void async_group_match(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    uv_async_t * async_more = NULL;
+    siridb_series_t * series;
+    size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
+
+    if (index_end >= q_wrapper->slist->len)
+    {
+        index_end = q_wrapper->slist->len;
+    }
+    else
+    {
+        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (async_more == NULL)
+        {
+            ERR_ALLOC
+        }
+    }
+
+    for (; q_wrapper->slist_index < index_end; q_wrapper->slist_index++)
+    {
+        series = (siridb_series_t *)
+                q_wrapper->slist->data[q_wrapper->slist_index];
+
+        imap_add(q_wrapper->series_tmp, series->id, series);
+    }
+
+    if (async_more != NULL)
+    {
+        async_more->data = (void *) handle->data;
+        uv_async_init(
+                siri.loop,
+                async_more,
+                (uv_async_cb) &async_series_re);
+        uv_async_send(async_more);
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+    }
+    else
+    {
+        /* free the s-list object and reset index */
+        slist_free(q_wrapper->slist);
+
+        q_wrapper->slist = NULL;
+        q_wrapper->slist_index = 0;
+
+        if (q_wrapper->update_cb != NULL)
+        {
+            (*q_wrapper->update_cb)(
+                    q_wrapper->series_map,
+                    q_wrapper->series_tmp,
+                    (imap_free_cb) &siridb_series_decref);
+        }
+
+        q_wrapper->series_tmp = NULL;
+
+        SIRIPARSER_NEXT_NODE
     }
 }
 

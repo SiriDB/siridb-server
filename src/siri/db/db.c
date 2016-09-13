@@ -674,6 +674,11 @@ static void SIRIDB_free(siridb_t * siridb)
         free(siridb->buffer_path);
     }
 
+    if (siridb->groups != NULL)
+    {
+        siridb_groups_decref(siridb->groups);
+    }
+
     /* unlock the database in case no siri_err occurred */
     if (!siri_err)
     {

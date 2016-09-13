@@ -12,10 +12,13 @@
 #pragma once
 
 #include <slist/slist.h>
+#include <siri/db/series.h>
 #include <pcre.h>
 
 #define GROUP_FLAG_NEW 1
+#define GROUP_FLAG_DROPPED 2
 
+typedef struct siridb_series_s siridb_series_t;
 
 typedef struct siridb_group_s
 {
@@ -36,3 +39,4 @@ siridb_group_t * siridb_group_new(
 void siridb_group_incref(siridb_group_t * group);
 void siridb_group_decref(siridb_group_t * group);
 void siridb_group_cleanup(siridb_group_t * group);
+int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series);

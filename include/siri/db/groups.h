@@ -18,15 +18,12 @@
 
 typedef enum
 {
-    GROUPS_INIT,
     GROUPS_RUNNING,
     GROUPS_STOPPING,
     GROUPS_CLOSED
 } siridb_groups_status_t;
 
 
-#define GROUPS_FLAG_NEW_GROUP 1
-#define GROUPS_FLAG_NEW_SERIES 2
 #define GROUPS_FLAG_DROPPED_SERIES 4
 
 
@@ -34,6 +31,7 @@ typedef struct siridb_groups_s
 {
     uint8_t status;
     uint8_t flags;
+    uint8_t ref;
     char * fn;
     ct_t * groups;
     slist_t * nseries;  /* list of series we need to assign to groups */
@@ -45,3 +43,13 @@ typedef struct siridb_groups_s
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
 int siridb_groups_save(siridb_groups_t * groups);
 void siridb_groups_destroy(siridb_groups_t * groups);
+void siridb_groups_decref(siridb_groups_t * groups);
+int siridb_groups_add_group(
+        siridb_groups_t * groups,
+        const char * name,
+        const char * source,
+        size_t source_len,
+        char * err_msg);
+int siridb_groups_add_series(
+        siridb_groups_t * groups,
+        siridb_series_t * series);

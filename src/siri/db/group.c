@@ -12,7 +12,7 @@
 #include <siri/db/group.h>
 #include <siri/err.h>
 #include <stdlib.h>
-#include <siri/db/series.h>
+
 #include <siri/db/re.h>
 
 static void GROUP_free(siridb_group_t * group);
@@ -37,7 +37,7 @@ siridb_group_t * siridb_group_new(
     else
     {
         group->ref = 1;
-        group->flags = GROUPS_FLAG_NEW_GROUP;
+        group->flags = GROUP_FLAG_NEW;
         group->name = strdup(name);
         group->source = strndup(source, source_len);
         group->series = slist_new(SLIST_DEFAULT_SIZE);
@@ -108,6 +108,38 @@ void siridb_group_cleanup(siridb_group_t * group)
     group->series->len -= dropped;
 
     slist_compact(&group->series);
+}
+
+int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
+{
+    /* skip if group has flags set. (DROPPED or NEW) */
+    int rc = (group->flags) ? -2 : pcre_exec(
+            group->regex,
+            group->regex_extra,
+            series->name,
+            series->name_len,
+            0,                     // start looking at this point
+            0,                     // OPTIONS
+            NULL,
+            0);                    // length of sub_str_vec
+
+    if (!rc)
+    {
+        if (slist_append_safe(&group->series, series))
+        {
+            log_critical(
+                    "Cannot append series '%s' to group '%s'",
+                    series->name,
+                    group->name);
+            rc = -1;
+        }
+        else
+        {
+            siridb_series_incref(series);
+        }
+    }
+
+    return rc;
 }
 
 

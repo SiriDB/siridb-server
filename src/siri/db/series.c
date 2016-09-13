@@ -206,6 +206,7 @@ siridb_series_t * siridb_series_new(
         else
         {
             imap_add(siridb->series_map, series->id, series);
+            siridb_groups_add_series(siridb->groups, series);
         }
     }
 
@@ -415,6 +416,9 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series)
  * Return 0 if successful or EOF if not.
  *
  * Logging is done but no error is raised in case of failure.
+ *
+ * This function flushes the dropped file and sets the dropped series flag
+ * for groups update thread.
  */
 int siridb_series_flush_dropped(siridb_t * siridb)
 {
@@ -424,6 +428,9 @@ int siridb_series_flush_dropped(siridb_t * siridb)
         SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
         log_critical("Could not flush dropped file: '%s'", fn);
     }
+
+    siridb->groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
+
     return rc;
 }
 
