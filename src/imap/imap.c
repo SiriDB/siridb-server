@@ -62,7 +62,7 @@ imap_t * imap_new(void)
 }
 
 /*
- * Destroy imap with optional call-back function (parsing NULL is NOT allowed)
+ * Destroy imap with optional call-back function.
  */
 void imap_free(imap_t * imap, imap_free_cb cb)
 {
@@ -388,10 +388,10 @@ void imap_union_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
-    if (imap->slist != NULL)
+    if (dest->slist != NULL)
     {
-        slist_free(imap->slist);
-        imap->slist = NULL;
+        slist_free(dest->slist);
+        dest->slist = NULL;
     }
 
     if (imap->len)
@@ -459,10 +459,10 @@ void imap_intersection_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
-    if (imap->slist != NULL)
+    if (dest->slist != NULL)
     {
-        slist_free(imap->slist);
-        imap->slist = NULL;
+        slist_free(dest->slist);
+        dest->slist = NULL;
     }
 
     imap_node_t * dest_nd;
@@ -522,10 +522,10 @@ void imap_difference_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
-    if (imap->slist != NULL)
+    if (dest->slist != NULL)
     {
-        slist_free(imap->slist);
-        imap->slist = NULL;
+        slist_free(dest->slist);
+        dest->slist = NULL;
     }
 
     if (imap->len)
@@ -591,10 +591,10 @@ void imap_symmetric_difference_ref(
         imap_t * imap,
         imap_free_cb decref_cb)
 {
-    if (imap->slist != NULL)
+    if (dest->slist != NULL)
     {
-        slist_free(imap->slist);
-        imap->slist = NULL;
+        slist_free(dest->slist);
+        dest->slist = NULL;
     }
 
     if (imap->len)

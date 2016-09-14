@@ -589,7 +589,7 @@ static siridb_t * SIRIDB_new(void)
 static void SIRIDB_free(siridb_t * siridb)
 {
 #ifdef DEBUG
-    log_debug("Free database: %s", siridb->dbname);
+    log_debug("Free database: '%s'", siridb->dbname);
 #endif
 
     /* first we should close all open files */

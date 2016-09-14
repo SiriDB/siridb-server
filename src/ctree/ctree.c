@@ -47,6 +47,11 @@ static int CT_values(
         ct_node_t * node,
         ct_val_cb cb,
         void * args);
+static void CT_valuesn(
+        ct_node_t * node,
+        size_t * n,
+        ct_val_cb cb,
+        void * args);
 static void CT_free(ct_node_t * node, ct_free_cb cb);
 
 static char dummy = '\0';
@@ -307,6 +312,24 @@ int ct_values(ct_t * ct, ct_val_cb cb, void * args)
 }
 
 /*
+ * Walking stops either when the call-back is called on each value or
+ * when 'n' is zero. 'n' will be decremented by the result of each call-back.
+ */
+void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
+{
+    ct_node_t * nd;
+
+    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; *n && i < end; i++)
+    {
+        if ((nd = (*ct->nodes)[i]) == NULL)
+        {
+            continue;
+        }
+        CT_valuesn(nd, n, cb, args);
+    }
+}
+
+/*
  * Loop over all items in the tree and perform the call-back on each item.
  * Walking stops either when the call-back is called on each item or
  * when 'n' is zero. 'n' will be decremented by one on each successful
@@ -445,6 +468,35 @@ static int CT_values(
     }
 
     return rc;
+}
+
+/*
+ * Loop over all values in the tree and perform the call-back on each value.
+ * */
+static void CT_valuesn(
+        ct_node_t * node,
+        size_t * n,
+        ct_val_cb cb,
+        void * args)
+{
+    if (node->data != NULL)
+    {
+        *n -= (*cb)(node->data, args);
+    }
+
+    if (node->nodes != NULL)
+    {
+        ct_node_t * nd;
+
+        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; *n && i < end; i++)
+        {
+            if ((nd = (*node->nodes)[i]) == NULL)
+            {
+                continue;
+            }
+            CT_valuesn(nd, n, cb, args);
+        }
+    }
 }
 
 

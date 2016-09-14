@@ -197,7 +197,7 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
 static void USER_free(siridb_user_t * user)
 {
 #ifdef DEBUG
-    log_debug("Free user: %s", user->username);
+    log_debug("Free user: '%s'", user->username);
 #endif
     free(user->username);
     free(user->password);

@@ -456,8 +456,12 @@ static void GROUPS_new_groups(siridb_t * siridb)
         /* we must be sure this group is empty */
         assert (group->series->len == 0);
 #endif
+
         if (~group->flags & GROUP_FLAG_DROPPED)
         {
+            /* remove NEW flag from group */
+            group->flags &= ~GROUP_FLAG_NEW;
+
             for (size_t i = 0; i < series_list->len; i++)
             {
                 series = (siridb_series_t *) series_list->data[i];
@@ -470,8 +474,7 @@ static void GROUPS_new_groups(siridb_t * siridb)
                 }
             }
 
-            /* remove NEW flag from group */
-            group->flags &= ~GROUP_FLAG_NEW;
+
         }
 
         siridb_group_decref(group);

@@ -845,9 +845,9 @@ static void SERIES_update_overlap(siridb_series_t * series)
 static void SERIES_free(siridb_series_t * series)
 {
 #ifdef DEBUG
-    if (siri.status == SIRI_STATUS_RUNNING)
+    if (siri.status == SIRI_STATUS_RUNNING || 1)
     {
-        log_debug("Free series!");
+        log_debug("Free series: '%s'", series->name);
     }
 #endif
     if (series->buffer != NULL)

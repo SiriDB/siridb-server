@@ -12,8 +12,10 @@
 #include <siri/db/group.h>
 #include <siri/err.h>
 #include <stdlib.h>
-
 #include <siri/db/re.h>
+#include <siri/db/series.h>
+#include <siri/grammar/grammar.h>
+#include <assert.h>
 
 static void GROUP_free(siridb_group_t * group);
 
@@ -142,6 +144,42 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
     return rc;
 }
 
+int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_NAME:
+        return cexpr_str_cmp(cond->operator, group->name, cond->str);
+    case CLERI_GID_K_SERIES:
+        return cexpr_int_cmp(cond->operator, group->series->len, cond->int64);
+    case CLERI_GID_K_EXPRESSION:
+        return cexpr_str_cmp(cond->operator, group->source, cond->str);
+    }
+
+    /* this must NEVER happen */
+    log_critical("Unknown group property received: %d", cond->prop);
+    assert (0);
+    return -1;
+}
+
+/*
+ * This function can raise a SIGNAL. In this case the packer is not filled
+ * with the correct values.
+ */
+void siridb_group_prop(siridb_group_t * group, qp_packer_t * packer, int prop)
+{
+    switch (prop)
+    {
+    case CLERI_GID_K_NAME:
+        qp_add_string(packer, group->name);
+        break;
+    case CLERI_GID_K_SERIES:
+        qp_add_int64(packer, (int64_t) group->series->len);
+        break;
+    case CLERI_GID_K_EXPRESSION:
+        qp_add_string(packer, group->source);
+    }
+}
 
 /*
  * Destroy a group object. Parsing NULL is not allowed.
@@ -149,7 +187,7 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
 static void GROUP_free(siridb_group_t * group)
 {
 #ifdef DEBUG
-    log_debug("Free group '%s'", group->name);
+    log_debug("Free group: '%s'", group->name);
 #endif
     free(group->name);
     free(group->source);
