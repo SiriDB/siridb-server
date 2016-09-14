@@ -39,6 +39,7 @@ siridb_group_t * siridb_group_new(
     else
     {
         group->ref = 1;
+        group->n = 0;
         group->flags = GROUP_FLAG_NEW;
         group->name = strdup(name);
         group->source = strndup(source, source_len);
@@ -151,7 +152,7 @@ int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond)
     case CLERI_GID_K_NAME:
         return cexpr_str_cmp(cond->operator, group->name, cond->str);
     case CLERI_GID_K_SERIES:
-        return cexpr_int_cmp(cond->operator, group->series->len, cond->int64);
+        return cexpr_int_cmp(cond->operator, group->n, cond->int64);
     case CLERI_GID_K_EXPRESSION:
         return cexpr_str_cmp(cond->operator, group->source, cond->str);
     }
@@ -174,11 +175,19 @@ void siridb_group_prop(siridb_group_t * group, qp_packer_t * packer, int prop)
         qp_add_string(packer, group->name);
         break;
     case CLERI_GID_K_SERIES:
-        qp_add_int64(packer, (int64_t) group->series->len);
+        qp_add_int64(packer, (int64_t) group->n);
         break;
     case CLERI_GID_K_EXPRESSION:
         qp_add_string(packer, group->source);
     }
+}
+
+/*
+ * Returns true when the given property (CLERI keyword) needs a remote query
+ */
+int siridb_group_is_remote_prop(uint32_t prop)
+{
+    return (prop == CLERI_GID_K_SERIES) ? 1 : 0;
 }
 
 /*

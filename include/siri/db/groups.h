@@ -15,6 +15,7 @@
 #include <slist/slist.h>
 #include <uv.h>
 #include <siri/db/db.h>
+#include <siri/net/pkg.h>
 
 typedef enum
 {
@@ -24,8 +25,7 @@ typedef enum
 } siridb_groups_status_t;
 
 
-#define GROUPS_FLAG_DROPPED_SERIES 4
-
+#define GROUPS_FLAG_DROPPED_SERIES 1
 
 typedef struct siridb_groups_s
 {
@@ -41,7 +41,14 @@ typedef struct siridb_groups_s
 } siridb_groups_t;
 
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
+void siridb_groups_start(siridb_groups_t * groups);
 int siridb_groups_save(siridb_groups_t * groups);
+void siridb_groups_init_nseries(siridb_groups_t * groups);
+sirinet_pkg_t * siridb_groups_pkg(siridb_groups_t * groups, uint16_t pid);
+int siridb_groups_drop_group(
+        siridb_groups_t * groups,
+        const char * name,
+        char * err_msg);
 void siridb_groups_destroy(siridb_groups_t * groups);
 void siridb_groups_decref(siridb_groups_t * groups);
 int siridb_groups_add_group(

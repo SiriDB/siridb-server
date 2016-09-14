@@ -24,7 +24,7 @@ typedef struct siridb_group_s
 {
     uint16_t ref;
     uint16_t flags;
-    uint32_t nseries;  /* total series (needs an update from all pools) */
+    uint32_t n;  /* total series (needs an update from all pools) */
     char * name;
     char * source;  /* pattern/flags representation */
     slist_t * series;
@@ -43,3 +43,4 @@ void siridb_group_cleanup(siridb_group_t * group);
 int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series);
 int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond);
 void siridb_group_prop(siridb_group_t * group, qp_packer_t * packer, int prop);
+int siridb_group_is_remote_prop(uint32_t prop);

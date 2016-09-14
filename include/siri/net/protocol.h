@@ -67,6 +67,7 @@ typedef enum
     BPROTO_INSERT_TESTED_SERVER,                // {series: points, ...}
     BPROTO_REGISTER_SERVER,                     // (uuid, host, port, pool)
     BPROTO_DROP_SERIES,                         // series_name
+    BPROTO_REQ_GROUPS,                          // empty
 } bproto_client_t;
 
 /*
@@ -109,6 +110,7 @@ typedef enum
     BPROTO_ACK_REPL_FINISHED,                   // empty
     BPROTO_ACK_REGISTER_SERVER,                 // empty
     BPROTO_ACK_DROP_SERIES,                     // empty
+    BPROTO_RES_GROUPS                           // [[name, series], ...]
 
 } bproto_server_t;
 

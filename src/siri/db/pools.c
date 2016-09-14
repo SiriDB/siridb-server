@@ -14,6 +14,7 @@
 #include <llist/llist.h>
 #include <logger/logger.h>
 #include <siri/db/pools.h>
+#include <siri/db/server.h>
 #include <siri/net/promises.h>
 #include <siri/optimize.h>
 #include <stdlib.h>

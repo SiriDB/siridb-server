@@ -24,6 +24,7 @@
 #include <siri/db/servers.h>
 #include <siri/optimize.h>
 #include <siri/db/replicate.h>
+#include <siri/db/groups.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -51,6 +52,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -215,6 +217,9 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         break;
     case BPROTO_DROP_SERIES:
         on_drop_series(client, pkg);
+        break;
+    case BPROTO_REQ_GROUPS:
+        on_req_groups(client, pkg);
         break;
     }
 
@@ -582,6 +587,18 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
         }
     }
 
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    sirinet_pkg_t * package = siridb_groups_pkg(siridb->groups, pkg->pid);
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);

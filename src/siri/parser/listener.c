@@ -109,6 +109,7 @@ static void exit_count_servers(uv_async_t * handle);
 static void exit_count_users(uv_async_t * handle);
 static void exit_create_group(uv_async_t * handle);
 static void exit_create_user(uv_async_t * handle);
+static void exit_drop_group(uv_async_t * handle);
 static void exit_drop_series(uv_async_t * handle);
 static void exit_drop_shard(uv_async_t * handle);
 static void exit_drop_user(uv_async_t * handle);
@@ -140,7 +141,8 @@ static void on_ack_response(
         sirinet_pkg_t * pkg,
         int status);
 static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
-static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle);
+static void on_drop_series_response(slist_t * promises, uv_async_t * handle);
+static void on_groups_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_select_response(slist_t * promises, uv_async_t * handle);
 static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
@@ -181,6 +183,8 @@ static void on_select_unpack_merged_points(
 
 static int values_list_groups(siridb_group_t * group, uv_async_t * handle);
 static int values_count_groups(siridb_group_t * group, uv_async_t * handle);
+static void finish_list_groups(uv_async_t * handle);
+static void finish_count_groups(uv_async_t * handle);
 
 /* address bindings for default list properties */
 static uint32_t GID_K_NAME = CLERI_GID_K_NAME;
@@ -285,6 +289,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_COUNT_USERS] = exit_count_users;
     siriparser_listen_exit[CLERI_GID_CREATE_GROUP] = exit_create_group;
     siriparser_listen_exit[CLERI_GID_CREATE_USER] = exit_create_user;
+    siriparser_listen_exit[CLERI_GID_DROP_GROUP] = exit_drop_group;
     siriparser_listen_exit[CLERI_GID_DROP_SERIES] = exit_drop_series;
     siriparser_listen_exit[CLERI_GID_DROP_SHARD] = exit_drop_shard;
     siriparser_listen_exit[CLERI_GID_DROP_USER] = exit_drop_user;
@@ -488,6 +493,7 @@ static void enter_drop_stmt(uv_async_t * handle)
     query->free_cb = (uv_close_cb) query_drop_free;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
+
     SIRIPARSER_NEXT_NODE
 }
 
@@ -1136,18 +1142,30 @@ static void exit_count_groups(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    size_t n = (q_count->where_expr == NULL) ?
-            siridb->groups->groups->len :
-            ct_values(
-                        siridb->groups->groups,
-                        (ct_val_cb) values_count_groups,
-                        handle);
+    if (q_count->where_expr == NULL || !cexpr_contains(
+            q_count->where_expr,
+            siridb_group_is_remote_prop))
+    {
+        finish_count_groups(handle);
+    }
+    else
+    {
+        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_GROUPS, NULL);
 
-    qp_add_raw(query->packer, "groups", 6);
+        if (pkg != NULL)
+        {
+            siri_async_incref(handle);
 
-    qp_add_int64(query->packer, n);
+            query->nodes->cb = (uv_async_cb) finish_count_groups;
 
-    SIRIPARSER_NEXT_NODE
+            siridb_pools_send_pkg(
+                    siridb,
+                    pkg,
+                    0,
+                    (sirinet_promises_cb) on_groups_response,
+                    handle);
+        }
+    }
 }
 
 static void exit_count_pools(uv_async_t * handle)
@@ -1428,6 +1446,44 @@ static void exit_create_user(uv_async_t * handle)
     }
 }
 
+static void exit_drop_group(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+    MASTER_CHECK_POOLS_ONLINE(siridb)
+
+    cleri_node_t * group_node =
+            query->nodes->node->children->next->node;
+
+    char name[group_node->len - 1];
+
+    strx_extract_string(name, group_node->str, group_node->len);
+
+    if (siridb_groups_drop_group(siridb->groups, name, query->err_msg))
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                "Group '%s' is dropped successfully.", name);
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
+    }
+}
+
 static void exit_drop_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1577,7 +1633,6 @@ static void exit_drop_user(uv_async_t * handle)
             query->nodes->node->children->next->node;
     char username[user_node->len - 1];
 
-    /* we need to free user-name */
     strx_extract_string(username, user_node->str, user_node->len);
 
     if (siridb_users_drop_user(
@@ -1647,37 +1702,56 @@ static void exit_grant_user(uv_async_t * handle)
 static void exit_list_groups(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_groups_t * groups =
-            ((sirinet_socket_t *) query->client->data)->siridb->groups;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * q_list = (query_list_t *) query->data;
 
-    if (q_list->props == NULL)
+    int is_local = (q_list->props == NULL);
+
+    /* if not is_local check for 'remote' columns */
+    if (!is_local)
     {
-        q_list->props = slist_new(1);
-        if (q_list->props == NULL)
+        is_local = 1;
+        for (int i = 0; i < q_list->props->len; i++)
         {
-            sprintf(query->err_msg, "Memory allocation error.");
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
+            if (siridb_group_is_remote_prop(
+                    *((uint32_t *) q_list->props->data[i])))
+            {
+                is_local = 0;
+                break;
+            }
         }
-        slist_append(q_list->props, &GID_K_NAME);
-        qp_add_raw(query->packer, "name", 4);
     }
 
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+    /* if is_local, check if we use 'remote' props in where expression */
+    if (is_local && q_list->where_expr != NULL)
+    {
+        is_local = !cexpr_contains(
+                q_list->where_expr,
+                siridb_group_is_remote_prop);
+    }
 
-    qp_add_raw(query->packer, "groups", 6);
-    qp_add_type(query->packer, QP_ARRAY_OPEN);
+    if (is_local)
+    {
+        finish_list_groups(handle);
+    }
+    else
+    {
+        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_GROUPS, NULL);
 
-    ct_valuesn(
-            groups->groups,
-            &q_list->limit,
-            (ct_val_cb) values_list_groups,
-            handle);
+        if (pkg != NULL)
+        {
+            siri_async_incref(handle);
 
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
+            query->nodes->cb = (uv_async_cb) finish_list_groups;
 
-    SIRIPARSER_NEXT_NODE
+            siridb_pools_send_pkg(
+                    siridb,
+                    pkg,
+                    0,
+                    (sirinet_promises_cb) on_groups_response,
+                    handle);
+        }
+    }
 }
 
 static void exit_list_pools(uv_async_t * handle)
@@ -2518,7 +2592,7 @@ static void async_drop_series(uv_async_t * handle)
         siridb_query_forward(
                 handle,
                 SIRIDB_QUERY_FWD_UPDATE,
-                (sirinet_promises_cb) on_drop_xxx_response);
+                (sirinet_promises_cb) on_drop_series_response);
     }
     else
     {
@@ -3040,7 +3114,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle)
+static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -3090,6 +3164,65 @@ static void on_drop_xxx_response(slist_t * promises, uv_async_t * handle)
             "Successfully dropped %lu series.", q_drop->n);
 
     SIRIPARSER_NEXT_NODE
+}
+
+/*
+ * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
+ */
+static void on_groups_response(slist_t * promises, uv_async_t * handle)
+{
+    ON_PROMISES
+
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t unpacker;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb_group_t * group;
+    qp_obj_t qp_name;
+    qp_obj_t qp_series;
+
+    siridb_groups_init_nseries(siridb->groups);
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            continue;
+        }
+
+        pkg = (sirinet_pkg_t *) promise->data;
+
+        if (pkg != NULL && pkg->tp == BPROTO_RES_GROUPS)
+        {
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+            if (    qp_is_array(qp_next(&unpacker, NULL)))
+            {
+                while ( qp_is_array(qp_next(&unpacker, NULL)) &&
+                        qp_is_raw(qp_next(&unpacker, &qp_name)) &&
+                        qp_is_raw_term(&qp_name) &&
+                        qp_is_int(qp_next(&unpacker, &qp_series)))
+                {
+                    group = ct_get(siridb->groups->groups, qp_name.via.raw);
+                    if (group != NULL)
+                    {
+                        group->n += qp_series.via.int64;
+                    }
+                }
+            }
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    query->nodes->cb(handle);
 }
 
 /*
@@ -3677,4 +3810,59 @@ static int values_count_groups(siridb_group_t * group, uv_async_t * handle)
             ((query_list_t *) query->data)->where_expr,
             (cexpr_cb_t) siridb_group_cexpr_cb,
             group);
+}
+
+static void finish_list_groups(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_list_t * q_list = (query_list_t *) query->data;
+
+    if (q_list->props == NULL)
+        {
+            q_list->props = slist_new(1);
+            if (q_list->props == NULL)
+            {
+                sprintf(query->err_msg, "Memory allocation error.");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
+            slist_append(q_list->props, &GID_K_NAME);
+            qp_add_raw(query->packer, "name", 4);
+        }
+
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+        qp_add_raw(query->packer, "groups", 6);
+        qp_add_type(query->packer, QP_ARRAY_OPEN);
+
+        ct_valuesn(
+                siridb->groups->groups,
+                &q_list->limit,
+                (ct_val_cb) values_list_groups,
+                handle);
+
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+
+        SIRIPARSER_NEXT_NODE
+}
+
+static void finish_count_groups(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_count_t * q_count = (query_count_t *) query->data;
+
+    size_t n = (q_count->where_expr == NULL) ?
+            siridb->groups->groups->len :
+            ct_values(
+                        siridb->groups->groups,
+                        (ct_val_cb) values_count_groups,
+                        handle);
+
+    qp_add_raw(query->packer, "groups", 6);
+
+    qp_add_int64(query->packer, n);
+
+    SIRIPARSER_NEXT_NODE
 }

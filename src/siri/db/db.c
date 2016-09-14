@@ -271,6 +271,9 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 
     uv_mutex_unlock(&siri.siridb_mutex);
 
+    /* start groups update thread */
+    siridb_groups_start(siridb->groups);
+
     log_info("Finished loading database: '%s'", siridb->dbname);
 
     return siridb;

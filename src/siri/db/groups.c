@@ -22,13 +22,18 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <xpath/xpath.h>
+#include <siri/net/protocol.h>
+
 
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
-#define GROUPS_LOOP_SLEEP 2
+#define GROUPS_LOOP_SLEEP 2  // 2 seconds
+#define GROUPS_LOOP_DEEP_SLEEP 30  // 30 seconds (used when re-indexing)
 
 static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
+static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
+static int GROUPS_nseries(siridb_group_t * group, void * data);
 static void GROUPS_loop(uv_work_t * work);
 static void GROUPS_loop_finish(uv_work_t * work, int status);
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
@@ -78,15 +83,20 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         {
             groups->status = GROUPS_RUNNING;
             groups->flags = 0;
-            uv_queue_work(
-                    siri.loop,
-                    &groups->work,
-                    GROUPS_loop,
-                    GROUPS_loop_finish);
+
         }
     }
 
     return groups;
+}
+
+void siridb_groups_start(siridb_groups_t * groups)
+{
+    uv_queue_work(
+            siri.loop,
+            &groups->work,
+            GROUPS_loop,
+            GROUPS_loop_finish);
 }
 
 /*
@@ -208,6 +218,86 @@ int siridb_groups_save(siridb_groups_t * groups)
     return rc;
 }
 
+/*
+ * Initialize each 'n' group property with the local value.
+ */
+void siridb_groups_init_nseries(siridb_groups_t * groups)
+{
+    ct_values(groups->groups, (ct_val_cb) GROUPS_nseries, NULL);
+}
+
+/*
+ * Returns NULL and raises a signal in case of an error.
+ */
+sirinet_pkg_t * siridb_groups_pkg(siridb_groups_t * groups, uint16_t pid)
+{
+    qp_packer_t * packer = sirinet_packer_new(8192);
+
+
+    if (packer == NULL || qp_add_type(packer, QP_ARRAY_OPEN))
+    {
+        return NULL;  /* signal is raised */
+    }
+
+    if (ct_values(groups->groups, (ct_val_cb) GROUPS_pkg, packer))
+    {
+        /*  signal is raised when not 0 */
+        qp_packer_free(packer);
+        return NULL;
+    }
+
+    return sirinet_packer2pkg(packer, pid, BPROTO_RES_GROUPS);
+}
+
+/*
+ * Returns 0 if successful or -1 when the group is not found.
+ * (in case not found an error message is set)
+ *
+ * Note: when saving the groups to disk has failed, we log critical but
+ * the function still returns 0;
+ */
+int siridb_groups_drop_group(
+        siridb_groups_t * groups,
+        const char * name,
+        char * err_msg)
+{
+    siridb_group_t * group = (siridb_group_t *) ct_pop(groups->groups, name);
+
+    if (group == NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Group '%s' does not exist.",
+                name);
+        return -1;
+    }
+
+    group->flags |= GROUP_FLAG_DROPPED;
+    siridb_group_decref(group);
+
+    if (siridb_groups_save(groups))
+    {
+        log_critical("Cannot save groups to file: '%s'", groups->fn);
+    }
+
+    return 0;
+}
+
+static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
+{
+    int rc = 0;
+    rc += qp_add_type(packer, QP_ARRAY2);
+    rc += qp_add_string_term(packer, group->name);
+    rc += qp_add_int64(packer, group->series->len);
+    return rc;
+}
+
+static int GROUPS_nseries(siridb_group_t * group, void * data)
+{
+    group->n = group->series->len;
+    return 0;
+}
+
 static void GROUPS_free(siridb_groups_t * groups)
 {
 #ifdef DEBUG
@@ -286,7 +376,8 @@ static void GROUPS_loop(uv_work_t * work)
 
     while (groups->status != GROUPS_STOPPING)
     {
-        sleep(GROUPS_LOOP_SLEEP);
+        sleep(siridb_is_reindexing(siridb) ?
+                GROUPS_LOOP_DEEP_SLEEP : GROUPS_LOOP_SLEEP);
 
         switch((siridb_groups_status_t) groups->status)
         {

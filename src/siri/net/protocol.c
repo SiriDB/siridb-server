@@ -11,6 +11,9 @@
  */
 
 #include <siri/net/protocol.h>
+#include <stdio.h>
+
+char protocol_str[512];
 
 const char * sirinet_cproto_client_str(cproto_client_t n)
 {
@@ -25,7 +28,9 @@ const char * sirinet_cproto_client_str(cproto_client_t n)
     case CPROTO_REQ_REGISTER_SERVER: return "CPROTO_REQ_REGISTER_SERVER";
     case CPROTO_REQ_FILE_SERVERS: return "CPROTO_REQ_FILE_SERVERS";
     case CPROTO_REQ_FILE_USERS: return "CPROTO_REQ_FILE_USERS";
-    default: return "CPROTO_CLIENT_TYPE_UNKNOWN";
+    default:
+        sprintf(protocol_str, "CPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
+        return protocol_str;
     }
 }
 
@@ -51,7 +56,9 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_ERR_AUTH_UNKNOWN_DB: return "CPROTO_ERR_AUTH_UNKNOWN_DB";
     case CPROTO_ERR_LOADING_DB: return "CPROTO_ERR_LOADING_DB";
     case CPROTO_ERR_FILE: return "CPROTO_ERR_FILE";
-    default: return "CPROTO_SERVER_TYPE_UNKNOWN";
+    default:
+        sprintf(protocol_str, "CPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
+        return protocol_str;
     }
 }
 
@@ -73,7 +80,10 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_INSERT_TESTED_SERVER: return "BPROTO_INSERT_TESTED_SERVER";
     case BPROTO_REGISTER_SERVER: return "BPROTO_REGISTER_SERVER";
     case BPROTO_DROP_SERIES: return "BPROTO_DROP_SERIES";
-    default: return "BPROTO_CLIENT_TYPE_UNKNOWN";
+    case BPROTO_REQ_GROUPS: return "BPROTO_REQ_GROUPS";
+    default:
+        sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
+        return protocol_str;
     }
 }
 
@@ -101,6 +111,9 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ACK_REPL_FINISHED: return "BPROTO_ACK_REPL_FINISHED";
     case BPROTO_ACK_REGISTER_SERVER: return "BPROTO_ACK_REGISTER_SERVER";
     case BPROTO_ACK_DROP_SERIES: return "BPROTO_ACK_DROP_SERIES";
-    default: return "BPROTO_SERVER_TYPE_UNKNOWN";
+    case BPROTO_RES_GROUPS: return "BPROTO_RES_GROUPS";
+    default:
+        sprintf(protocol_str, "BPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
+        return protocol_str;
     }
 }
