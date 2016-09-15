@@ -22,9 +22,6 @@
 #include <strextra/strextra.h>
 #include <logger/logger.h>
 
-#define SIRIDB_MIN_USER_LEN 2
-#define SIRIDB_MAX_USER_LEN 60
-
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"
 
@@ -166,7 +163,7 @@ void siridb_users_free(llist_t * users)
 /*
  * Returns 0 when successful, a value greater then zero for expected errors
  * like invalid user, password etc, and -1 is returned in case of a critical
- * error. (a critical error also raises a signal). The err_msg will cantain
+ * error. (a critical error also raises a signal). The err_msg will contain
  * the error in any case.
  */
 int siridb_users_add_user(
@@ -174,37 +171,6 @@ int siridb_users_add_user(
         siridb_user_t * user,
         char * err_msg)
 {
-    if (strlen(user->name) < SIRIDB_MIN_USER_LEN)
-    {
-        sprintf(err_msg, "User name should be at least %d characters.",
-                SIRIDB_MIN_USER_LEN);
-        return 1;
-    }
-
-    if (strlen(user->name) > SIRIDB_MAX_USER_LEN)
-    {
-        sprintf(err_msg, "User name should be at least %d characters.",
-                SIRIDB_MAX_USER_LEN);
-        return 1;
-    }
-
-    if (!strx_is_graph(user->name))
-    {
-        sprintf(err_msg,
-                "User name contains illegal characters. (only graphical "
-                "characters are allowed, no spaces, tabs etc.)");
-        return 1;
-    }
-
-    if (llist_get(siridb->users, (llist_cb) USERS_cmp, user->name) != NULL)
-    {
-        snprintf(err_msg,
-                SIRIDB_MAX_SIZE_ERR_MSG,
-                "User name '%s' already exists.",
-                user->name);
-        return 1;
-    }
-
     /* add the user to the users */
     if (llist_append(siridb->users, user))
     {

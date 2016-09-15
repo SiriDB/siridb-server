@@ -77,13 +77,11 @@ static void enter_count_stmt(uv_async_t * handle);
 static void enter_create_stmt(uv_async_t * handle);
 static void enter_create_user(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
-static void enter_grant_stmt(uv_async_t * handle);
 static void enter_grant_user(uv_async_t * handle);
 static void enter_group_match(uv_async_t * handle);
 static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
 static void enter_merge_as(uv_async_t * handle);
-static void enter_revoke_stmt(uv_async_t * handle);
 static void enter_revoke_user(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
 static void enter_set_ignore_threshold(uv_async_t * handle);
@@ -252,7 +250,6 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_CREATE_STMT] = enter_create_stmt;
     siriparser_listen_enter[CLERI_GID_CREATE_USER] = enter_create_user;
     siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
-    siriparser_listen_enter[CLERI_GID_GRANT_STMT] = enter_grant_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
     siriparser_listen_enter[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
@@ -260,7 +257,6 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
     siriparser_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
     siriparser_listen_enter[CLERI_GID_POOL_COLUMNS] = enter_xxx_columns;
-    siriparser_listen_enter[CLERI_GID_REVOKE_STMT] = enter_revoke_stmt;
     siriparser_listen_enter[CLERI_GID_REVOKE_USER] = enter_revoke_user;
     siriparser_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
     siriparser_listen_enter[CLERI_GID_SET_IGNORE_THRESHOLD] = enter_set_ignore_threshold;
@@ -498,12 +494,21 @@ static void enter_create_user(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     /* bind user object to data and set correct free call */
-    query->data = (siridb_user_t *) siridb_user_new();
-    siridb_user_incref((siridb_user_t *) query->data);
+    query_alter_t * q_alter = query->data = query_alter_new();
+    if (q_alter != NULL)
+    {
+        query->free_cb = (uv_close_cb) query_alter_free;
 
-    query->free_cb = (uv_close_cb) decref_user_object;
+        q_alter->alter_tp = QUERY_ALTER_USER;
+        q_alter->via.user = siridb_user_new();
 
-    SIRIPARSER_NEXT_NODE
+        if (q_alter->via.user != NULL)
+        {
+            siridb_user_incref(q_alter->via.user);
+
+            SIRIPARSER_NEXT_NODE
+        }
+    }
 }
 
 static void enter_drop_stmt(uv_async_t * handle)
@@ -525,19 +530,12 @@ static void enter_drop_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void enter_grant_stmt(uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_GRANT)
-    SIRIPARSER_NEXT_NODE
-}
-
 static void enter_grant_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
+    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_GRANT)
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
     cleri_node_t * user_node =
@@ -557,11 +555,17 @@ static void enter_grant_user(uv_async_t * handle)
         user->access_bit |=
                 siridb_access_from_children((cleri_children_t *) query->data);
 
-        query->data = user;
-        siridb_user_incref(user);
-        query->free_cb = (uv_close_cb) decref_user_object;
+        query_alter_t * q_alter = query->data = query_alter_new();
+        if (q_alter != NULL)
+        {
+            siridb_user_incref(user);
 
-        SIRIPARSER_NEXT_NODE
+            query->free_cb = (uv_close_cb) query_alter_free;
+            q_alter->alter_tp = QUERY_ALTER_USER;
+            q_alter->via.user = user;
+
+            SIRIPARSER_NEXT_NODE
+        }
     }
 }
 static void enter_group_match(uv_async_t * handle)
@@ -698,19 +702,12 @@ static void enter_merge_as(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void enter_revoke_stmt(uv_async_t * handle)
-{
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_REVOKE)
-    SIRIPARSER_NEXT_NODE
-}
-
 static void enter_revoke_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
+    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_REVOKE)
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
     cleri_node_t * user_node =
@@ -732,11 +729,17 @@ static void enter_revoke_user(uv_async_t * handle)
         user->access_bit &=
                 ~siridb_access_from_children((cleri_children_t *) query->data);
 
-        query->data = user;
-        siridb_user_incref(user);
-        query->free_cb = (uv_close_cb) decref_user_object;
+        query_alter_t * q_alter = query->data = query_alter_new();
+        if (q_alter != NULL)
+        {
+            siridb_user_incref(user);
 
-        SIRIPARSER_NEXT_NODE
+            query->free_cb = (uv_close_cb) query_alter_free;
+            q_alter->alter_tp = QUERY_ALTER_USER;
+            q_alter->via.user = user;
+
+            SIRIPARSER_NEXT_NODE
+        }
     }
 }
 
@@ -788,27 +791,46 @@ static void enter_set_ignore_threshold(uv_async_t * handle)
 static void enter_set_name(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * name_node =
                 query->nodes->node->children->next->next->node;
 
-    /*
-     * Wrapper for user, series and group
-     */
-    struct name_wrapper
-    {
-        uint64_t pad;
-        char * name;
-    };
+    char * name = (char *) malloc(name_node->len - 1);
 
-    struct name_wrapper * name_obj = (struct name_wrapper *) query->data;
-    name_obj->name = (char *) malloc(name_node->len - 1);
-
-    if (name_obj->name == NULL)
+    if (name == NULL)
     {
         ERR_ALLOC
         sprintf(query->err_msg, "Memory allocation error.");
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
+    }
+
+    strx_extract_string(name, name_node->str, name_node->len);
+
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+    switch (q_alter->alter_tp)
+    {
+    case QUERY_ALTER_USER:
+        /* check if this user already exists. */
+        if (siridb_users_get_user(siridb->users, name, NULL) != NULL)
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "User '%s' already exists.", name);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+        free(q_alter->via.user->name);
+        q_alter->via.user->name = name;
+        break;
+    case QUERY_ALTER_NONE:
+    case QUERY_ALTER_DATABASE:
+    case QUERY_ALTER_GROUP:
+    case QUERY_ALTER_SERIES:
+    case QUERY_ALTER_SERVER:
+    default:
+        free(name);
+        assert (0);
     }
 
     SIRIPARSER_NEXT_NODE
@@ -1485,7 +1507,7 @@ static void exit_create_user(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    siridb_user_t * user = (siridb_user_t *) query->data;
+    siridb_user_t * user = ((query_alter_t *) query->data)->via.user;
     cleri_node_t * user_node =
             query->nodes->node->children->next->node;
 
@@ -1777,7 +1799,7 @@ static void exit_grant_user(uv_async_t * handle)
     QP_ADD_SUCCESS
     qp_add_fmt_safe(query->packer,
             "Successfully granted permissions to user '%s'.",
-            ((siridb_user_t *) query->data)->name);
+            ((query_alter_t *) query->data)->via.user->name);
 
     if (IS_MASTER)
     {
@@ -2117,7 +2139,7 @@ static void exit_revoke_user(uv_async_t * handle)
     QP_ADD_SUCCESS
     qp_add_fmt_safe(query->packer,
             "Successfully revoked permissions from user '%s'.",
-            ((siridb_user_t *) query->data)->name);
+            ((query_alter_t *) query->data)->via.user->name);
 
     if (IS_MASTER)
     {

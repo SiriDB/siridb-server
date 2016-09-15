@@ -24,18 +24,18 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
         {.repr="read", .access_bit=SIRIDB_ACCESS_PROFILE_READ},
 
         /* access bits, order here is not important */
+        {.repr="alter", .access_bit=SIRIDB_ACCESS_ALTER},
+        {.repr="continue", .access_bit=SIRIDB_ACCESS_CONTINUE},
+        {.repr="count", .access_bit=SIRIDB_ACCESS_COUNT},
+        {.repr="create", .access_bit=SIRIDB_ACCESS_CREATE},
+        {.repr="drop", .access_bit=SIRIDB_ACCESS_DROP},
+        {.repr="grant", .access_bit=SIRIDB_ACCESS_GRANT},
+        {.repr="insert", .access_bit=SIRIDB_ACCESS_INSERT},
+        {.repr="list", .access_bit=SIRIDB_ACCESS_LIST},
+        {.repr="pause", .access_bit=SIRIDB_ACCESS_PAUSE},
+        {.repr="revoke", .access_bit=SIRIDB_ACCESS_REVOKE},
         {.repr="select", .access_bit=SIRIDB_ACCESS_SELECT},
         {.repr="show", .access_bit=SIRIDB_ACCESS_SHOW},
-        {.repr="list", .access_bit=SIRIDB_ACCESS_LIST},
-        {.repr="create", .access_bit=SIRIDB_ACCESS_CREATE},
-        {.repr="insert", .access_bit=SIRIDB_ACCESS_INSERT},
-        {.repr="drop", .access_bit=SIRIDB_ACCESS_DROP},
-        {.repr="count", .access_bit=SIRIDB_ACCESS_COUNT},
-        {.repr="grant", .access_bit=SIRIDB_ACCESS_GRANT},
-        {.repr="revoke", .access_bit=SIRIDB_ACCESS_REVOKE},
-        {.repr="alter", .access_bit=SIRIDB_ACCESS_ALTER},
-        {.repr="pause", .access_bit=SIRIDB_ACCESS_PAUSE},
-        {.repr="continue", .access_bit=SIRIDB_ACCESS_CONTINUE},
 };
 
 /*

@@ -43,6 +43,13 @@ class TestUser(TestBase):
         result = await self.client1.query('list users where access < full')
         self.assertEqual(result.pop('users'), [['sasientje', 'modify']])
 
+        result = await self.client1.query('revoke write from user "sasientje"')
+        self.assertEqual(result.pop('success_msg'), "Successfully revoked permissions from user 'sasientje'.")
+
+        result = await self.client1.query('grant show, count to user "sasientje"')
+        result = await self.client1.query('list users where access < modify')
+        self.assertEqual(result.pop('users'), [['sasientje', 'alter, count, drop and show']])
+
         result = await self.client1.query('create user "pee" set password "hihihaha"')
         time.sleep(0.1)
         result = await self.client0.query('list users where name ~ "p"')
@@ -86,7 +93,7 @@ class TestUser(TestBase):
         self.client1.close()
         self.client2.close()
 
-        # return False
+        return False
 
 
 if __name__ == '__main__':

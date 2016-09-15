@@ -19,9 +19,12 @@
 #include <siri/db/db.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 #define SIRIDB_MIN_PASSWORD_LEN 4
 #define SIRIDB_MAX_PASSWORD_LEN 128
+#define SIRIDB_MIN_USER_LEN 2
+#define SIRIDB_MAX_USER_LEN 60
 
 #define SEED_CHARS "./0123456789" \
     "abcdefghijklmnopqrstuvwxyz"  \
@@ -134,6 +137,7 @@ int siridb_user_set_password(
     encrypted = crypt(password, salt);
 
     /* replace user password with encrypted password */
+    free(user->password);
     user->password = strdup(encrypted);
     if (user->password == NULL)
     {
@@ -142,6 +146,43 @@ int siridb_user_set_password(
     }
 
     return 0;
+}
+
+int siridb_user_set_name(
+        siridb_t * siridb,
+        siridb_user_t * user,
+        char * err_msg)
+{
+    if (strlen(user->name) < SIRIDB_MIN_USER_LEN)
+    {
+        sprintf(err_msg, "User name should be at least %d characters.",
+                SIRIDB_MIN_USER_LEN);
+        return 1;
+    }
+
+    if (strlen(user->name) > SIRIDB_MAX_USER_LEN)
+    {
+        sprintf(err_msg, "User name should be at least %d characters.",
+                SIRIDB_MAX_USER_LEN);
+        return 1;
+    }
+
+    if (!strx_is_graph(user->name))
+    {
+        sprintf(err_msg,
+                "User name contains illegal characters. (only graphical "
+                "characters are allowed, no spaces, tabs etc.)");
+        return 1;
+    }
+
+    if (siridb_users_get_user(siridb->users, user->name, NULL) != NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "User '%s' already exists.",
+                user->name);
+        return 1;
+    }
 }
 
 /*

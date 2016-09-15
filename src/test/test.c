@@ -845,7 +845,7 @@ static int test_access(void)
 
     access_bit |= SIRIDB_ACCESS_LIST;
     siridb_access_to_str(buffer, access_bit);
-    assert (strcmp(buffer, "select, show and list") == 0);
+    assert (strcmp(buffer, "list, select and show") == 0);
 
     access_bit |= SIRIDB_ACCESS_PROFILE_WRITE;
     siridb_access_to_str(buffer, access_bit);
