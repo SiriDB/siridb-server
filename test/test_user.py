@@ -17,7 +17,7 @@ from testing import UserAuthError
 class TestUser(TestBase):
     title = 'Test user object'
 
-    @default_test_setup(2)
+    @default_test_setup(3)
     async def run(self):
         await self.client0.connect()
 
@@ -35,15 +35,17 @@ class TestUser(TestBase):
 
         await self.db.add_replica(self.server1, 0)
         await self.assertIsRunning(self.db, self.client0, timeout=10)
+        await self.db.add_pool(self.server2)
 
         await self.client1.connect()
+        await self.client2.connect()
 
         result = await self.client1.query('list users where access < full')
         self.assertEqual(result.pop('users'), [['sasientje', 'modify']])
 
         result = await self.client1.query('create user "pee" set password "hihihaha"')
         time.sleep(0.1)
-        result = await self.client0.query('list users where user ~ "p"')
+        result = await self.client0.query('list users where name ~ "p"')
         self.assertEqual(result.pop('users'), [['pee', 'no access']])
 
         self.client0.close()
@@ -68,8 +70,12 @@ class TestUser(TestBase):
         self.assertEqual(result.pop('success_msg'), "User 'sasientje' is dropped successfully.")
         time.sleep(0.1)
 
-        result = await self.client0.query('count users')
-        self.assertEqual(result.pop('users'), 2, msg='Expecting 2 users (iris and pee)')
+        for client in (self.client0, self.client1, self.client2):
+            result = await client.query('count users')
+            self.assertEqual(result.pop('users'), 2, msg='Expecting 2 users (iris and pee)')
+
+        result = await self.client0.query('count users where name == "pee"')
+        self.assertEqual(result.pop('users'), 1, msg='Expecting 1 user (pee)')
 
         with self.assertRaisesRegexp(
                 UserAuthError,
@@ -78,6 +84,9 @@ class TestUser(TestBase):
 
         self.client0.close()
         self.client1.close()
+        self.client2.close()
+
+        # return False
 
 
 if __name__ == '__main__':

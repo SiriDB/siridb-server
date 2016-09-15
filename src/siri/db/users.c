@@ -39,7 +39,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker);
 int siridb_users_load(siridb_t * siridb)
 {
     qp_unpacker_t * unpacker;
-    qp_obj_t qp_username;
+    qp_obj_t qp_name;
     qp_obj_t qp_password;
     qp_obj_t qp_access_bit;
     siridb_user_t * user;
@@ -69,8 +69,8 @@ int siridb_users_load(siridb_t * siridb)
             return -1;  /* signal is raised */
         }
         siridb_user_incref(user);
-        user->username = strdup("iris");
-        if (user->username == NULL)
+        user->name = strdup("iris");
+        if (user->name == NULL)
         {
             ERR_ALLOC
             siridb_user_decref(user);
@@ -99,7 +99,7 @@ int siridb_users_load(siridb_t * siridb)
 
     int rc = 0;
     while (qp_is_array(qp_next(unpacker, NULL)) &&
-            qp_next(unpacker, &qp_username) == QP_RAW &&
+            qp_next(unpacker, &qp_name) == QP_RAW &&
             qp_next(unpacker, &qp_password) == QP_RAW &&
             qp_next(unpacker, &qp_access_bit) == QP_INT64)
     {
@@ -112,10 +112,10 @@ int siridb_users_load(siridb_t * siridb)
         {
             siridb_user_incref(user);
 
-            user->username = strndup(qp_username.via.raw, qp_username.len);
+            user->name = strndup(qp_name.via.raw, qp_name.len);
             user->password = strndup(qp_password.via.raw, qp_password.len);
 
-            if (user->username == NULL || user->password == NULL)
+            if (user->name == NULL || user->password == NULL)
             {
                 ERR_ALLOC
                 siridb_user_decref(user);
@@ -174,21 +174,21 @@ int siridb_users_add_user(
         siridb_user_t * user,
         char * err_msg)
 {
-    if (strlen(user->username) < SIRIDB_MIN_USER_LEN)
+    if (strlen(user->name) < SIRIDB_MIN_USER_LEN)
     {
         sprintf(err_msg, "User name should be at least %d characters.",
                 SIRIDB_MIN_USER_LEN);
         return 1;
     }
 
-    if (strlen(user->username) > SIRIDB_MAX_USER_LEN)
+    if (strlen(user->name) > SIRIDB_MAX_USER_LEN)
     {
         sprintf(err_msg, "User name should be at least %d characters.",
                 SIRIDB_MAX_USER_LEN);
         return 1;
     }
 
-    if (!strx_is_graph(user->username))
+    if (!strx_is_graph(user->name))
     {
         sprintf(err_msg,
                 "User name contains illegal characters. (only graphical "
@@ -196,12 +196,12 @@ int siridb_users_add_user(
         return 1;
     }
 
-    if (llist_get(siridb->users, (llist_cb) USERS_cmp, user->username) != NULL)
+    if (llist_get(siridb->users, (llist_cb) USERS_cmp, user->name) != NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "User name '%s' already exists.",
-                user->username);
+                user->name);
         return 1;
     }
 
@@ -218,7 +218,7 @@ int siridb_users_add_user(
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Could not save user '%s' to file.",
-                user->username);
+                user->name);
         log_critical(err_msg);
         return -1;
     }
@@ -233,7 +233,7 @@ int siridb_users_add_user(
  */
 siridb_user_t * siridb_users_get_user(
         llist_t * users,
-        const char * username,
+        const char * name,
         const char * password)
 {
     siridb_user_t * user;
@@ -242,7 +242,7 @@ siridb_user_t * siridb_users_get_user(
     if ((user = llist_get(
             users,
             (llist_cb) USERS_cmp,
-            (void *) username)) == NULL)
+            (void *) name)) == NULL)
     {
         return NULL;
     }
@@ -259,7 +259,7 @@ siridb_user_t * siridb_users_get_user(
 
 int siridb_users_drop_user(
         siridb_t * siridb,
-        const char * username,
+        const char * name,
         char * err_msg)
 {
     siridb_user_t * user;
@@ -267,12 +267,12 @@ int siridb_users_drop_user(
     if ((user = llist_remove(
             siridb->users,
             (llist_cb) USERS_cmp,
-            (void *) username)) == NULL)
+            (void *) name)) == NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "User '%s' does not exist.",
-                username);
+                name);
         return 1;
     }
 
@@ -328,7 +328,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     int rc = 0;
 
     rc += qp_fadd_type(fpacker, QP_ARRAY3);
-    rc += qp_fadd_string(fpacker, user->username);
+    rc += qp_fadd_string(fpacker, user->name);
     rc += qp_fadd_string(fpacker, user->password);
     rc += qp_fadd_int32(fpacker, (int32_t) user->access_bit);
     return rc;
@@ -336,7 +336,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
 
 inline static int USERS_cmp(siridb_user_t * user, const char * name)
 {
-    return (strcmp(user->username, name) == 0);
+    return (strcmp(user->name, name) == 0);
 }
 
 static int USERS_free(siridb_user_t * user, void * args)

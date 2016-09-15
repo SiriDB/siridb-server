@@ -157,7 +157,6 @@ int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond)
         return cexpr_str_cmp(cond->operator, group->source, cond->str);
     }
 
-    /* this must NEVER happen */
     log_critical("Unknown group property received: %d", cond->prop);
     assert (0);
     return -1;

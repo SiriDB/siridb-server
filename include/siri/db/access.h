@@ -53,22 +53,21 @@
     SIRIDB_ACCESS_GRANT |               \
     SIRIDB_ACCESS_REVOKE
 
-typedef uint32_t siridb_access_t;
 
 typedef struct siridb_access_repr_s
 {
     const char * repr;
-    siridb_access_t access_bit;
+    uint32_t access_bit;
 } siridb_access_repr_t;
 
 
-siridb_access_t siridb_access_from_strn(const char * str, size_t n);
+uint32_t siridb_access_from_strn(const char * str, size_t n);
 
 /* children must be children from a cleri_list where values are comma
  * separated. The children node must be valid and contain at least one access
  * string.
  */
-siridb_access_t siridb_access_from_children(cleri_children_t * children);
+uint32_t siridb_access_from_children(cleri_children_t * children);
 
-void siridb_access_to_str(char * str, siridb_access_t access_bit);
+void siridb_access_to_str(char * str, uint32_t access_bit);
 

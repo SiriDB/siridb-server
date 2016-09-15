@@ -392,6 +392,9 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
                 /* something went wrong, get correct err message */
                 const char * err_msg = siridb_insert_err_msg(rc);
 
+                log_error("Insert error: '%s' at position %lu",
+                        err_msg, unpacker.pt - pkg->data);
+
                 /* create and send package */
                 sirinet_pkg_t * package = sirinet_pkg_err(
                         pkg->pid,

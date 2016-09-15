@@ -45,7 +45,7 @@ siridb_user_t * siridb_user_new(void)
     {
         user->access_bit = 0;
         user->password = NULL;
-        user->username = NULL;
+        user->name = NULL;
         user->ref = 0;
     }
     return user;
@@ -78,8 +78,8 @@ void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop)
 {
     switch (prop)
     {
-    case CLERI_GID_K_USER:
-        qp_add_string(packer, user->username);
+    case CLERI_GID_K_NAME:
+        qp_add_string(packer, user->name);
         break;
     case CLERI_GID_K_ACCESS:
         {
@@ -153,7 +153,7 @@ int siridb_user_set_password(
  */
 int siridb_user_check_access(
         siridb_user_t * user,
-        siridb_access_t access_bit,
+        uint32_t access_bit,
         char * err_msg)
 {
     if ((user->access_bit & access_bit) == access_bit)
@@ -167,7 +167,7 @@ int siridb_user_check_access(
             err_msg,
             SIRIDB_MAX_SIZE_ERR_MSG,
             "Access denied. User '%s' has no '%s' privileges.",
-            user->username,
+            user->name,
             buffer);
 
     return 0;   // false
@@ -181,8 +181,8 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
     {
     case CLERI_GID_K_ACCESS:
         return cexpr_int_cmp(cond->operator, user->access_bit, cond->int64);
-    case CLERI_GID_K_USER:
-        return cexpr_str_cmp(cond->operator, user->username, cond->str);
+    case CLERI_GID_K_NAME:
+        return cexpr_str_cmp(cond->operator, user->name, cond->str);
     }
 
     /* this must NEVER happen */
@@ -197,9 +197,9 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
 static void USER_free(siridb_user_t * user)
 {
 #ifdef DEBUG
-    log_debug("Free user: '%s'", user->username);
+    log_debug("Free user: '%s'", user->name);
 #endif
-    free(user->username);
+    free(user->name);
     free(user->password);
     free(user);
 }

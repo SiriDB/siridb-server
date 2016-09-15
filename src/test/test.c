@@ -830,7 +830,7 @@ static int test_access(void)
 {
     test_start("Testing access");
     char buffer[SIRIDB_ACCESS_STR_MAX];
-    siridb_access_t access_bit = 0;
+    uint32_t access_bit = 0;
 
     siridb_access_to_str(buffer, access_bit);
     assert (strcmp(buffer, "no access") == 0);

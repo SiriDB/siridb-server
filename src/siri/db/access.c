@@ -39,9 +39,9 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
 };
 
 /*
- * Returns siridb_access_t by string.
+ * Returns access bit by string.
  */
-siridb_access_t siridb_access_from_strn(const char * str, size_t n)
+uint32_t siridb_access_from_strn(const char * str, size_t n)
 {
     for (int i = 0; i < ACCESS_SIZE; i++)
     {
@@ -54,11 +54,11 @@ siridb_access_t siridb_access_from_strn(const char * str, size_t n)
 }
 
 /*
- * Returns a siridb_access_t bit flag from a Cleri children object.
+ * Returns a access bit flag from a Cleri children object.
  */
-siridb_access_t siridb_access_from_children(cleri_children_t * children)
+uint32_t siridb_access_from_children(cleri_children_t * children)
 {
-    siridb_access_t access_bit = 0;
+    uint32_t access_bit = 0;
 
     while (children != NULL)
     {
@@ -77,7 +77,7 @@ siridb_access_t siridb_access_from_children(cleri_children_t * children)
  * Make sure 'str' is a pointer to a string which can hold at least
  * SIRIDB_ACCESS_STR_MAX.
  */
-void siridb_access_to_str(char * str, siridb_access_t access_bit)
+void siridb_access_to_str(char * str, uint32_t access_bit)
 {
     char * pt = str;
 

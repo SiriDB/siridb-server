@@ -19,16 +19,30 @@
 #include <cexpr/cexpr.h>
 #include <ctree/ctree.h>
 #include <siri/db/presuf.h>
+#include <siri/db/group.h>
+#include <siri/db/series.h>
+#include <siri/db/user.h>
 
 #define QUERIES_IGNORE_DROP_THRESHOLD 1
 
 enum
 {
-    QUERIES_LIST,
+    QUERIES_ALTER,
     QUERIES_COUNT,
     QUERIES_DROP,
+    QUERIES_LIST,
     QUERIES_SELECT
 };
+
+typedef enum
+{
+    QUERY_ALTER_NONE,
+    QUERY_ALTER_DATABASE,
+    QUERY_ALTER_GROUP,
+    QUERY_ALTER_SERIES,
+    QUERY_ALTER_SERVER,
+    QUERY_ALTER_USER
+} query_alter_tp;
 
 #define QUERY_DEF           \
 uint8_t tp;                 \
@@ -49,12 +63,22 @@ typedef struct query_wrapper_s
     QUERY_DEF
 } query_wrapper_t;
 
-typedef struct query_list_s
+union query_alter_u
+{
+    siridb_group_t * group;
+    siridb_series_t * series;
+    siridb_server_t * server;
+    siridb_user_t * user;
+    void * dummy;
+};
+
+typedef struct query_alter_s
 {
     QUERY_DEF
-    slist_t * props;  // will be freed
-    size_t limit;
-} query_list_t;
+    query_alter_tp alter_tp;
+    union query_alter_u via;
+    char * tmp;     /* temporary string value */
+} query_alter_t;
 
 typedef struct query_count_s
 {
@@ -68,6 +92,13 @@ typedef struct query_drop_s
     size_t n;  // keep a counter for number of drops.
     uint8_t flags;  // flags like ignore threshold
 } query_drop_t;
+
+typedef struct query_list_s
+{
+    QUERY_DEF
+    slist_t * props;  // will be freed
+    size_t limit;
+} query_list_t;
 
 typedef struct query_select_s
 {
@@ -83,15 +114,20 @@ typedef struct query_select_s
     slist_t * mlist;        // merge aggregation list
 } query_select_t;
 
-
-query_select_t * query_select_new(void);
-void query_select_free(uv_handle_t * handle);
-
-query_list_t * query_list_new(void);
-void query_list_free(uv_handle_t * handle);
+query_alter_t * query_alter_new(void);
+void query_alter_free(uv_handle_t * handle);
 
 query_count_t * query_count_new(void);
 void query_count_free(uv_handle_t * handle);
 
 query_drop_t * query_drop_new(void);
 void query_drop_free(uv_handle_t * handle);
+
+query_list_t * query_list_new(void);
+void query_list_free(uv_handle_t * handle);
+
+query_select_t * query_select_new(void);
+void query_select_free(uv_handle_t * handle);
+
+
+

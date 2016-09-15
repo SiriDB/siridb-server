@@ -21,10 +21,11 @@ typedef struct siridb_s siridb_t;
 
 typedef struct siridb_user_s
 {
-    char * username;
-    char * password; /* keeps an encrypted password */
-    siridb_access_t access_bit;
     uint16_t ref;
+    uint16_t flags;     /* not used (only for padding) */
+    uint32_t access_bit;
+    char * name;
+    char * password; /* keeps an encrypted password */
 } siridb_user_t;
 
 siridb_user_t * siridb_user_new(void);
@@ -38,7 +39,7 @@ int siridb_user_set_password(
 
 int siridb_user_check_access(
         siridb_user_t * user,
-        siridb_access_t access_bit,
+        uint32_t access_bit,
         char * err_msg);
 
 int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond);

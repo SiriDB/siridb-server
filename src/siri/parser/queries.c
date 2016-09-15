@@ -4,6 +4,7 @@
 #include <siri/db/query.h>
 #include <logger/logger.h>
 #include <siri/db/aggregate.h>
+#include <assert.h>
 
 #define DEFAULT_LIST_LIMIT 1000
 
@@ -82,24 +83,25 @@ query_select_t * query_select_new(void)
     return q_select;
 }
 
-query_list_t * query_list_new(void)
-{
-    query_list_t * q_list =
-            (query_list_t *) malloc(sizeof(query_list_t));
 
-    if (q_list == NULL)
+query_alter_t * query_alter_new(void)
+{
+    query_alter_t * q_alter =
+            (query_alter_t *) malloc(sizeof(query_alter_t));
+
+    if (q_alter == NULL)
     {
         ERR_ALLOC
     }
     else
     {
-        QUERIES_NEW(q_list)
+        QUERIES_NEW(q_alter)
 
-        q_list->tp = QUERIES_LIST;
-        q_list->props = NULL;
-        q_list->limit = DEFAULT_LIST_LIMIT;
+        q_alter->tp = QUERY_ALTER_NONE;
+        q_alter->via.dummy = NULL;
     }
-    return q_list;
+
+    return q_alter;
 }
 
 query_count_t * query_count_new(void)
@@ -141,7 +143,83 @@ query_drop_t * query_drop_new(void)
     return q_drop;
 }
 
+query_list_t * query_list_new(void)
+{
+    query_list_t * q_list =
+            (query_list_t *) malloc(sizeof(query_list_t));
 
+    if (q_list == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        QUERIES_NEW(q_list)
+
+        q_list->tp = QUERIES_LIST;
+        q_list->props = NULL;
+        q_list->limit = DEFAULT_LIST_LIMIT;
+    }
+    return q_list;
+}
+
+void query_alter_free(uv_handle_t * handle)
+{
+    query_alter_t * q_alter =
+            (query_alter_t *) ((siridb_query_t *) handle->data)->data;
+
+    switch (q_alter->alter_tp)
+    {
+    case QUERY_ALTER_NONE:
+    case QUERY_ALTER_DATABASE:
+        break;
+    case QUERY_ALTER_GROUP:
+        siridb_group_decref(q_alter->via.group);
+        break;
+    case QUERY_ALTER_SERIES:
+        siridb_series_decref(q_alter->via.series);
+        break;
+    case QUERY_ALTER_SERVER:
+        siridb_server_decref(q_alter->via.server);
+        break;
+    case QUERY_ALTER_USER:
+        siridb_user_decref(q_alter->via.user);
+        break;
+    default:
+        assert(0);
+    }
+
+    QUERIES_FREE(q_alter, handle)
+}
+
+void query_count_free(uv_handle_t * handle)
+{
+    query_count_t * q_count =
+            (query_count_t *) ((siridb_query_t *) handle->data)->data;
+
+    QUERIES_FREE(q_count, handle)
+}
+
+void query_drop_free(uv_handle_t * handle)
+{
+    query_drop_t * q_drop =
+            (query_drop_t *) ((siridb_query_t *) handle->data)->data;
+
+    QUERIES_FREE(q_drop, handle)
+}
+
+void query_list_free(uv_handle_t * handle)
+{
+    query_list_t * q_list =
+            (query_list_t *) ((siridb_query_t *) handle->data)->data;
+
+    if (q_list->props != NULL)
+    {
+        slist_free(q_list->props);
+    }
+
+    QUERIES_FREE(q_list, handle)
+}
 
 void query_select_free(uv_handle_t * handle)
 {
@@ -182,36 +260,6 @@ void query_select_free(uv_handle_t * handle)
     QUERIES_FREE(q_select, handle)
 }
 
-void query_list_free(uv_handle_t * handle)
-{
-    query_list_t * q_list =
-            (query_list_t *) ((siridb_query_t *) handle->data)->data;
-
-    if (q_list->props != NULL)
-    {
-        slist_free(q_list->props);
-    }
-
-    QUERIES_FREE(q_list, handle)
-}
-
-
-void query_count_free(uv_handle_t * handle)
-{
-    query_count_t * q_count =
-            (query_count_t *) ((siridb_query_t *) handle->data)->data;
-
-    QUERIES_FREE(q_count, handle)
-}
-
-
-void query_drop_free(uv_handle_t * handle)
-{
-    query_drop_t * q_drop =
-            (query_drop_t *) ((siridb_query_t *) handle->data)->data;
-
-    QUERIES_FREE(q_drop, handle)
-}
 
 static void QUERIES_free_merge_result(slist_t * plist)
 {

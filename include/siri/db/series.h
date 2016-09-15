@@ -67,12 +67,12 @@ typedef struct siridb_series_s
     uint16_t ref;  /* keep ref on top */
     uint16_t mask;
     uint32_t id;
+    char * name;
     uint64_t start;
     uint64_t end;
     uint32_t length;
     uint32_t idx_len;
     void * idx;
-    char * name;
     siridb_buffer_t * buffer;
     uint16_t pool;
     uint16_t name_len;

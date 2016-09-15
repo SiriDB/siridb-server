@@ -8,6 +8,22 @@
  * changes
  *  - initial version, 16-08-2016
  *
+ * Info groups->mutex:
+ *
+ *  Main thread:
+ *      groups->groups :    read (no lock)      write (lock)
+ *      groups->nseries :   read (lock)         write (lock)
+ *      groups->ngroups :   read (lock)         write (lock)
+ *      group->series :     read (lock)         write (not allowed)
+
+ *  Other threads:
+ *      groups->groups :    read (lock)         write (not allowed)
+ *      groups->nseries :   read (lock)         write (lock)
+ *      groups->ngroups :   read (lock)         write (lock)
+ *      group->series :     read (no lock)      write (lock)
+ *
+ *  Note:   One exception to 'not allowed' are the free functions
+ *          since they only run when no other references to the object exist.
  */
 #define _GNU_SOURCE
 #include <siri/db/groups.h>
@@ -37,8 +53,8 @@ static int GROUPS_nseries(siridb_group_t * group, void * data);
 static void GROUPS_loop(uv_work_t * work);
 static void GROUPS_loop_finish(uv_work_t * work, int status);
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
-static void GROUPS_new_groups(siridb_t * siridb);
-static void GROUPS_new_series(siridb_t * siridb);
+static void GROUPS_init_groups(siridb_t * siridb);
+static void GROUPS_init_series(siridb_t * siridb);
 static int GROUPS_2slist(siridb_group_t * group, slist_t * groups_list);
 static void GROUPS_cleanup(siridb_groups_t * groups);
 /*
@@ -90,6 +106,9 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
     return groups;
 }
 
+/*
+ * Start group thread.
+ */
 void siridb_groups_start(siridb_groups_t * groups)
 {
     uv_queue_work(
@@ -191,13 +210,14 @@ inline void siridb_groups_destroy(siridb_groups_t * groups)
     groups->status = GROUPS_STOPPING;
 }
 
+/*
+ * Main thread.
+ */
 int siridb_groups_save(siridb_groups_t * groups)
 {
     qp_fpacker_t * fpacker;
 
-    uv_mutex_lock(&groups->mutex);
-
-    int rc = (
+    return (
         /* open a new user file */
         (fpacker = qp_open(groups->fn, "w")) == NULL ||
 
@@ -213,9 +233,6 @@ int siridb_groups_save(siridb_groups_t * groups)
         /* close file pointer */
         qp_close(fpacker)) ? EOF : 0;
 
-    uv_mutex_unlock(&groups->mutex);
-
-    return rc;
 }
 
 /*
@@ -227,19 +244,23 @@ void siridb_groups_init_nseries(siridb_groups_t * groups)
 }
 
 /*
+ * Main thread.
+ *
  * Returns NULL and raises a signal in case of an error.
  */
 sirinet_pkg_t * siridb_groups_pkg(siridb_groups_t * groups, uint16_t pid)
 {
     qp_packer_t * packer = sirinet_packer_new(8192);
-
+    int rc;
 
     if (packer == NULL || qp_add_type(packer, QP_ARRAY_OPEN))
     {
         return NULL;  /* signal is raised */
     }
 
-    if (ct_values(groups->groups, (ct_val_cb) GROUPS_pkg, packer))
+    rc = ct_values(groups->groups, (ct_val_cb) GROUPS_pkg, packer);
+
+    if (rc)
     {
         /*  signal is raised when not 0 */
         qp_packer_free(packer);
@@ -250,6 +271,8 @@ sirinet_pkg_t * siridb_groups_pkg(siridb_groups_t * groups, uint16_t pid)
 }
 
 /*
+ * Main thread.
+ *
  * Returns 0 if successful or -1 when the group is not found.
  * (in case not found an error message is set)
  *
@@ -261,7 +284,11 @@ int siridb_groups_drop_group(
         const char * name,
         char * err_msg)
 {
+    uv_mutex_lock(&groups->mutex);
+
     siridb_group_t * group = (siridb_group_t *) ct_pop(groups->groups, name);
+
+    uv_mutex_unlock(&groups->mutex);
 
     if (group == NULL)
     {
@@ -283,6 +310,9 @@ int siridb_groups_drop_group(
     return 0;
 }
 
+/*
+ * Main thread.
+ */
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
 {
     int rc = 0;
@@ -292,6 +322,9 @@ static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
     return rc;
 }
 
+/*
+ * Main thread.
+ */
 static int GROUPS_nseries(siridb_group_t * group, void * data)
 {
     group->n = group->series->len;
@@ -331,6 +364,9 @@ static void GROUPS_free(siridb_groups_t * groups)
     uv_mutex_destroy(&groups->mutex);
 }
 
+/*
+ * Group thread.
+ */
 static int GROUPS_2slist(siridb_group_t * group, slist_t * groups_list)
 {
     siridb_group_incref(group);
@@ -338,6 +374,9 @@ static int GROUPS_2slist(siridb_group_t * group, slist_t * groups_list)
     return 0;
 }
 
+/*
+ * Group thread.
+ */
 static void GROUPS_cleanup(siridb_groups_t * groups)
 {
     uv_mutex_lock(&groups->mutex);
@@ -369,6 +408,9 @@ static void GROUPS_cleanup(siridb_groups_t * groups)
     slist_free(groups_list);
 }
 
+/*
+ * Group thread.
+ */
 static void GROUPS_loop(uv_work_t * work)
 {
     siridb_t * siridb = (siridb_t *) work->data;
@@ -382,13 +424,17 @@ static void GROUPS_loop(uv_work_t * work)
         switch((siridb_groups_status_t) groups->status)
         {
         case GROUPS_RUNNING:
+            /*
+             * Order of the steps below is important. Series must be handled
+             * before groups.
+             */
             if (groups->nseries->len)
             {
-                GROUPS_new_series(siridb);
+                GROUPS_init_series(siridb);
             }
             if (groups->ngroups->len)
             {
-                GROUPS_new_groups(siridb);
+                GROUPS_init_groups(siridb);
             }
             if (groups->flags & GROUPS_FLAG_DROPPED_SERIES)
             {
@@ -402,7 +448,6 @@ static void GROUPS_loop(uv_work_t * work)
         default:
             assert (0);
             break;
-
         }
     }
 
@@ -469,7 +514,9 @@ static int GROUPS_load(siridb_groups_t * groups)
     return rc;
 }
 
-
+/*
+ * Main thread.
+ */
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker)
 {
     int rc = 0;
@@ -481,7 +528,10 @@ static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker)
     return rc;
 }
 
-static void GROUPS_new_series(siridb_t * siridb)
+/*
+ * Group thread.
+ */
+static void GROUPS_init_series(siridb_t * siridb)
 {
     siridb_groups_t * groups = siridb->groups;
     siridb_series_t * series;
@@ -510,7 +560,10 @@ static void GROUPS_new_series(siridb_t * siridb)
     uv_mutex_unlock(&groups->mutex);
 }
 
-static void GROUPS_new_groups(siridb_t * siridb)
+/*
+ * Group thread.
+ */
+static void GROUPS_init_groups(siridb_t * siridb)
 {
 #ifdef DEBUG
     /* do not run this function when no groups need initialization */
@@ -564,8 +617,6 @@ static void GROUPS_new_groups(siridb_t * siridb)
                     usleep(10000);  // 10ms
                 }
             }
-
-
         }
 
         siridb_group_decref(group);

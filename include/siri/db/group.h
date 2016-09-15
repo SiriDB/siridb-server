@@ -24,7 +24,7 @@ typedef struct siridb_group_s
 {
     uint16_t ref;
     uint16_t flags;
-    uint32_t n;  /* total series (needs an update from all pools) */
+    uint32_t n;     /* total series (needs an update from all pools) */
     char * name;
     char * source;  /* pattern/flags representation */
     slist_t * series;
