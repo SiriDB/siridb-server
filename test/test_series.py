@@ -6,6 +6,7 @@ from testing import gen_points
 from testing import gen_series
 from testing import InsertError
 from testing import PoolError
+from testing import QueryError
 from testing import run_test
 from testing import Server
 from testing import ServerError

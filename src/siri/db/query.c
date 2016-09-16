@@ -202,6 +202,8 @@ void siridb_query_send_error(
                 err,  // usually this is CPROTO_ERR_QUERY, CPROTO_ERR_POOL etc.
                 query->err_msg);
 
+    log_warning("(%s) %s", sirinet_cproto_server_str(err), query->err_msg);
+
     if (package != NULL)
     {
         /* ignore result code, signal can be raised */

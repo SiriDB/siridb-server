@@ -97,7 +97,8 @@ query_alter_t * query_alter_new(void)
     {
         QUERIES_NEW(q_alter)
 
-        q_alter->tp = QUERY_ALTER_NONE;
+        q_alter->tp = QUERIES_ALTER;
+        q_alter->alter_tp = QUERY_ALTER_NONE;
         q_alter->via.dummy = NULL;
     }
 

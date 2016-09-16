@@ -6,6 +6,7 @@ from testing import gen_points
 from testing import gen_series
 from testing import InsertError
 from testing import PoolError
+from testing import QueryError
 from testing import run_test
 from testing import Server
 from testing import ServerError
@@ -59,6 +60,11 @@ class TestUser(TestBase):
         result = await self.server0.stop()
         self.assertTrue(result)
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                "Password should be at least 4 characters."):
+            result = await self.client1.query('alter user "sasientje" set password "dag"')
+
         result = await self.client1.query('alter user "sasientje" set password "dagdag"')
 
         await self.server0.start(sleep=12)
@@ -89,6 +95,38 @@ class TestUser(TestBase):
                 "Access denied. User 'sasientje' has no 'grant' privileges."):
             result = await self.client0.query('grant full to user "pee"')
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                "User name should be at least 2 characters."):
+            result = await self.client1.query('alter user "pee" set name "p"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "^User name contains illegal characters.*"):
+            result = await self.client1.query('alter user "pee" set name " p "')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "User 'iris' already exists."):
+            result = await self.client1.query('alter user "pee" set name "iris"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "User 'iris' already exists."):
+            result = await self.client1.query('alter user "pee" set name "iris"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "Cannot find user: 'Pee'"):
+            result = await self.client1.query('alter user "Pee" set name "PPP"')
+
+        result = await self.client1.query('alter user "pee" set name "Pee"')
+        self.assertEqual(result.pop('success_msg'), "Successful changed user 'Pee'.")
+
+        time.sleep(0.1)
+        result = await self.client2.query('list users where name == "Pee"')
+        self.assertEqual(result.pop('users'), [['Pee', 'no access']])
+
         self.client0.close()
         self.client1.close()
         self.client2.close()
@@ -100,3 +138,6 @@ if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
     run_test(TestUser())
+
+"User name contains illegal characters. (only graphical characters are allowed, no spaces, tabs etc.)"
+"User name contains illegal characters. (only graphical characters are allowed, no spaces, tabs etc.)"

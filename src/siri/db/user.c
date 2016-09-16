@@ -17,6 +17,7 @@
 #include <strextra/strextra.h>
 #include <siri/db/access.h>
 #include <siri/db/db.h>
+#include <siri/db/users.h>
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
@@ -148,26 +149,34 @@ int siridb_user_set_password(
     return 0;
 }
 
+/*
+ * Returns 0 when successful or a positive value in case the name is not valid.
+ * A negative value is returned and a signal is raised in case a critical error
+ * has occurred.
+ *
+ * (err_msg is set in case of all errors)
+ */
 int siridb_user_set_name(
         siridb_t * siridb,
         siridb_user_t * user,
+        char * name,
         char * err_msg)
 {
-    if (strlen(user->name) < SIRIDB_MIN_USER_LEN)
+    if (strlen(name) < SIRIDB_MIN_USER_LEN)
     {
         sprintf(err_msg, "User name should be at least %d characters.",
                 SIRIDB_MIN_USER_LEN);
         return 1;
     }
 
-    if (strlen(user->name) > SIRIDB_MAX_USER_LEN)
+    if (strlen(name) > SIRIDB_MAX_USER_LEN)
     {
         sprintf(err_msg, "User name should be at least %d characters.",
                 SIRIDB_MAX_USER_LEN);
         return 1;
     }
 
-    if (!strx_is_graph(user->name))
+    if (!strx_is_graph(name))
     {
         sprintf(err_msg,
                 "User name contains illegal characters. (only graphical "
@@ -175,14 +184,26 @@ int siridb_user_set_name(
         return 1;
     }
 
-    if (siridb_users_get_user(siridb->users, user->name, NULL) != NULL)
+    if (siridb_users_get_user(siridb->users, name, NULL) != NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "User '%s' already exists.",
-                user->name);
+                name);
         return 1;
     }
+
+    free(user->name);
+    user->name = strdup(name);
+
+    if (user->name == NULL)
+    {
+        ERR_ALLOC
+        sprintf(err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    return 0;
 }
 
 /*

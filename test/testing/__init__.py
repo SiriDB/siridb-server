@@ -4,6 +4,7 @@ import time
 from .client import Client
 from .client import InsertError
 from .client import PoolError
+from .client import QueryError
 from .client import ServerError
 from .client import UserAuthError
 from .helpers import cleanup

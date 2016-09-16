@@ -32,6 +32,11 @@ siridb_user_t * siridb_user_new(void);
 void siridb_user_incref(siridb_user_t * user);
 void siridb_user_decref(siridb_user_t * user);
 void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop);
+int siridb_user_set_name(
+        siridb_t * siridb,
+        siridb_user_t * user,
+        char * name,
+        char * err_msg);
 int siridb_user_set_password(
         siridb_user_t * user,
         const char * password,

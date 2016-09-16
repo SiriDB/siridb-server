@@ -13,6 +13,7 @@ from siriclient import AsyncSiriCluster
 from siriclient.shared.exceptions import (
     InsertError,
     PoolError,
+    QueryError,
     ServerError,
     AuthenticationError,
     UserAuthError)

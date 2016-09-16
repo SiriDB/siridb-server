@@ -68,6 +68,12 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
         sirinet_promises_llist_free(promises);                  \
         return;  /* signal is raised when handle is NULL */     \
     }
+
+#define MEM_ALLOC_RET                                           \
+        sprintf(query->err_msg, "Memory allocation error.");    \
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
+        return;
+
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
@@ -419,7 +425,7 @@ static void enter_alter_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
-    query->packer = sirinet_packer_new(512);
+    query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_alter_new();
@@ -795,16 +801,7 @@ static void enter_set_name(uv_async_t * handle)
     cleri_node_t * name_node =
                 query->nodes->node->children->next->next->node;
 
-    char * name = (char *) malloc(name_node->len - 1);
-
-    if (name == NULL)
-    {
-        ERR_ALLOC
-        sprintf(query->err_msg, "Memory allocation error.");
-        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-        return;
-    }
-
+    char name[name_node->len - 1];
     strx_extract_string(name, name_node->str, name_node->len);
 
     query_alter_t * q_alter = (query_alter_t *) query->data;
@@ -812,16 +809,15 @@ static void enter_set_name(uv_async_t * handle)
     {
     case QUERY_ALTER_USER:
         /* check if this user already exists. */
-        if (siridb_users_get_user(siridb->users, name, NULL) != NULL)
+        if (siridb_user_set_name(
+                    siridb,
+                    q_alter->via.user,
+                    name,
+                    query->err_msg))
         {
-            snprintf(query->err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "User '%s' already exists.", name);
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
             return;
         }
-        free(q_alter->via.user->name);
-        q_alter->via.user->name = name;
         break;
     case QUERY_ALTER_NONE:
     case QUERY_ALTER_DATABASE:
@@ -829,7 +825,6 @@ static void enter_set_name(uv_async_t * handle)
     case QUERY_ALTER_SERIES:
     case QUERY_ALTER_SERVER:
     default:
-        free(name);
         assert (0);
     }
 
@@ -948,9 +943,7 @@ static void enter_series_name(uv_async_t * handle)
                 if (imap_add(q_wrapper->series_map, series->id, series) != 1)
                 {
                     siridb_series_decref(series);
-                    sprintf(query->err_msg, "Memory allocation error.");
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
+                    MEM_ALLOC_RET
                 }
             }
         }
@@ -1177,20 +1170,13 @@ static void exit_alter_user(uv_async_t * handle)
 
     if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
-        return;  /* signal is set */
+        MEM_ALLOC_RET
     }
 
-    query->packer = sirinet_packer_new(1024);
-
-    if (query->packer != NULL)
-    {
-        qp_add_type(query->packer, QP_MAP_OPEN);
-
-        QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                "Successful changed password for user '%s'.",
-                ((query_alter_t *) query->data)->via.user->name);
-    }
+    QP_ADD_SUCCESS
+    qp_add_fmt_safe(query->packer,
+            "Successful changed user '%s'.",
+            ((query_alter_t *) query->data)->via.user->name);
 
     if (IS_MASTER)
     {
@@ -1519,15 +1505,15 @@ static void exit_create_user(uv_async_t * handle)
 
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
-    user->name = (char *) malloc(user_node->len - 1);
-    if (user->name == NULL)
-    {
-        ERR_ALLOC
-        return;
-    }
-    strx_extract_string(user->name, user_node->str, user_node->len);
+    char name[user_node->len - 1];
+    strx_extract_string(name, user_node->str, user_node->len);
 
-    if (siridb_users_add_user(
+    if (siridb_user_set_name(
+            siridb,
+            user,
+            name,
+            query->err_msg) ||
+        siridb_users_add_user(
             siridb,
             user,
             query->err_msg))
@@ -1958,9 +1944,7 @@ static void exit_list_series(uv_async_t * handle)
 
         if (q_list->props == NULL)
         {
-            sprintf(query->err_msg, "Memory allocation error.");
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
+            MEM_ALLOC_RET
         }
 
         slist_append(q_list->props, &GID_K_NAME);
@@ -2303,8 +2287,7 @@ static void exit_select_stmt(uv_async_t * handle)
                         handle) ||
                 qp_add_type(query->packer, QP_MAP_CLOSE))
         {
-            sprintf(query->err_msg, "Memory allocation error.");
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            MEM_ALLOC_RET
         }
         else
         {
@@ -2418,21 +2401,12 @@ static void exit_set_log_level(uv_async_t * handle)
      * we can set the success message, we just ignore the message in case an
      * error occurs.
      */
-    if (
-        /* create a new packer with success message */
-        (query->packer = sirinet_packer_new(1024)) == NULL ||
 
-        qp_add_type(query->packer, QP_MAP_OPEN) ||
-
-        qp_add_raw(query->packer, "success_msg", 11) ||
-
-        qp_add_fmt_safe(query->packer,
-                    "Successful set log level to '%s' on '%s'.",
-                    logger_level_name(log_level),
-                    server->name))
-    {
-        return;  /* signal is raised */
-    }
+    QP_ADD_SUCCESS
+    qp_add_fmt_safe(query->packer,
+                "Successful set log level to '%s' on '%s'.",
+                logger_level_name(log_level),
+                server->name);
 
     if (server == siridb->server)
     {
@@ -3940,9 +3914,7 @@ static void finish_list_groups(uv_async_t * handle)
         q_list->props = slist_new(1);
         if (q_list->props == NULL)
         {
-            sprintf(query->err_msg, "Memory allocation error.");
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
+            MEM_ALLOC_RET
         }
         slist_append(q_list->props, &GID_K_NAME);
         qp_add_raw(query->packer, "name", 4);

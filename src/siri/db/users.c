@@ -66,16 +66,11 @@ int siridb_users_load(siridb_t * siridb)
             return -1;  /* signal is raised */
         }
         siridb_user_incref(user);
-        user->name = strdup("iris");
-        if (user->name == NULL)
-        {
-            ERR_ALLOC
-            siridb_user_decref(user);
-            return -1;
-        }
+
         user->access_bit = SIRIDB_ACCESS_PROFILE_FULL;
 
-        if (    siridb_user_set_password(user, "siri", err_msg) ||
+        if (    siridb_user_set_name(siridb, user, "iris", err_msg) ||
+                siridb_user_set_password(user, "siri", err_msg) ||
                 siridb_users_add_user(siridb, user, err_msg))
         {
             log_error("%s", err_msg);
@@ -161,8 +156,7 @@ void siridb_users_free(llist_t * users)
 }
 
 /*
- * Returns 0 when successful, a value greater then zero for expected errors
- * like invalid user, password etc, and -1 is returned in case of a critical
+ * Returns 0 when successful,or -1 is returned in case of a critical
  * error. (a critical error also raises a signal). The err_msg will contain
  * the error in any case.
  */
@@ -174,13 +168,14 @@ int siridb_users_add_user(
     /* add the user to the users */
     if (llist_append(siridb->users, user))
     {
-        /* this is critical, a signal is raises */
+        /* this is critical, a signal is raised */
+        sprintf(err_msg, "Memory allocation error.");
         return -1;
     }
 
     if (siridb_users_save(siridb))
     {
-        /* this is critical, a signal is raises */
+        /* this is critical, a signal is raised */
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Could not save user '%s' to file.",
