@@ -69,7 +69,7 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
         return;  /* signal is raised when handle is NULL */     \
     }
 
-#define MEM_ALLOC_RET                                           \
+#define MEM_ERR_ALLOC_RET                                           \
         sprintf(query->err_msg, "Memory allocation error.");    \
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
         return;
@@ -943,7 +943,7 @@ static void enter_series_name(uv_async_t * handle)
                 if (imap_add(q_wrapper->series_map, series->id, series) != 1)
                 {
                     siridb_series_decref(series);
-                    MEM_ALLOC_RET
+                    MEM_ERR_ALLOC_RET
                 }
             }
         }
@@ -1139,17 +1139,10 @@ static void exit_alter_group(uv_async_t * handle)
         return;  /* signal is set */
     }
 
-    query->packer = sirinet_packer_new(1024);
-
-    if (query->packer != NULL)
-    {
-        qp_add_type(query->packer, QP_MAP_OPEN);
-
-        QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                "Successful changed password for user '%s'.",
-                ((siridb_user_t *) query->data)->name);
-    }
+    QP_ADD_SUCCESS
+    qp_add_fmt_safe(query->packer,
+            "Successful changed password for user '%s'.",
+            ((siridb_user_t *) query->data)->name);
 
     if (IS_MASTER)
     {
@@ -1170,7 +1163,7 @@ static void exit_alter_user(uv_async_t * handle)
 
     if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
-        MEM_ALLOC_RET
+        MEM_ERR_ALLOC_RET
     }
 
     QP_ADD_SUCCESS
@@ -1219,6 +1212,10 @@ static void exit_calc_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * calc_node = query->nodes->node->children->node;
+
+#ifdef DEBUG
+    assert (query->packer == NULL);
+#endif
 
     query->packer = sirinet_packer_new(64);
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -1468,7 +1465,14 @@ static void exit_create_group(uv_async_t * handle)
     }
     else
     {
+#ifdef DEBUG
+        assert (query->packer == NULL);
+#endif
         query->packer = sirinet_packer_new(1024);
+        if (query->packer == NULL)
+        {
+            MEM_ERR_ALLOC_RET
+        }
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
@@ -1524,7 +1528,9 @@ static void exit_create_user(uv_async_t * handle)
     {
         /* success, we do not need to free the user anymore */
         query->free_cb = (uv_close_cb) siridb_query_free;
-
+#ifdef DEBUG
+        assert (query->packer == NULL);
+#endif
         query->packer = sirinet_packer_new(1024);
         qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -1944,7 +1950,7 @@ static void exit_list_series(uv_async_t * handle)
 
         if (q_list->props == NULL)
         {
-            MEM_ALLOC_RET
+            MEM_ERR_ALLOC_RET
         }
 
         slist_append(q_list->props, &GID_K_NAME);
@@ -2287,7 +2293,7 @@ static void exit_select_stmt(uv_async_t * handle)
                         handle) ||
                 qp_add_type(query->packer, QP_MAP_CLOSE))
         {
-            MEM_ALLOC_RET
+            MEM_ERR_ALLOC_RET
         }
         else
         {
@@ -2300,8 +2306,6 @@ static void exit_set_drop_threshold(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-
-    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_ALTER)
 
     MASTER_CHECK_POOLS_ONLINE(siridb)
 
@@ -2331,29 +2335,23 @@ static void exit_set_drop_threshold(uv_async_t * handle)
         }
         else
         {
-            query->packer = sirinet_packer_new(1024);
-            if (query->packer != NULL)
+            QP_ADD_SUCCESS
+            qp_add_fmt_safe(query->packer,
+                    "Successful changed drop_threshold from "
+                    "%g to %g.",
+                    old,
+                    siridb->drop_threshold);
+
+            if (IS_MASTER)
             {
-                qp_add_type(query->packer, QP_MAP_OPEN);
-
-                QP_ADD_SUCCESS
-                qp_add_fmt_safe(query->packer,
-                        "Successful changed drop_threshold from "
-                        "%g to %g.",
-                        old,
-                        siridb->drop_threshold);
-
-                if (IS_MASTER)
-                {
-                    siridb_query_forward(
-                            handle,
-                            SIRIDB_QUERY_FWD_UPDATE,
-                            (sirinet_promises_cb) on_update_xxx_response);
-                }
-                else
-                {
-                    SIRIPARSER_NEXT_NODE
-                }
+                siridb_query_forward(
+                        handle,
+                        SIRIDB_QUERY_FWD_UPDATE,
+                        (sirinet_promises_cb) on_update_xxx_response);
+            }
+            else
+            {
+                SIRIPARSER_NEXT_NODE
             }
         }
     }
@@ -3914,7 +3912,7 @@ static void finish_list_groups(uv_async_t * handle)
         q_list->props = slist_new(1);
         if (q_list->props == NULL)
         {
-            MEM_ALLOC_RET
+            MEM_ERR_ALLOC_RET
         }
         slist_append(q_list->props, &GID_K_NAME);
         qp_add_raw(query->packer, "name", 4);

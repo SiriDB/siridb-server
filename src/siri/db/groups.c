@@ -44,7 +44,7 @@
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
 #define GROUPS_LOOP_SLEEP 2  // 2 seconds
-#define GROUPS_LOOP_DEEP_SLEEP 30  // 30 seconds (used when re-indexing)
+#define GROUPS_LOOP_DEEP 15  // x times -> 30 seconds (used when re-indexing)
 
 static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
@@ -415,11 +415,16 @@ static void GROUPS_loop(uv_work_t * work)
 {
     siridb_t * siridb = (siridb_t *) work->data;
     siridb_groups_t * groups = siridb->groups;
+    uint64_t mod_test = 0;
 
     while (groups->status != GROUPS_STOPPING)
     {
-        sleep(siridb_is_reindexing(siridb) ?
-                GROUPS_LOOP_DEEP_SLEEP : GROUPS_LOOP_SLEEP);
+        sleep(GROUPS_LOOP_SLEEP);
+
+        if (siridb_is_reindexing(siridb) && (++mod_test % GROUPS_LOOP_DEEP))
+        {
+            continue;
+        }
 
         switch((siridb_groups_status_t) groups->status)
         {

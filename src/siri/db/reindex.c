@@ -8,6 +8,18 @@
  * changes
  *  - initial version, 27-07-2016
  *
+ * Differences while re-indexing:
+ *
+ *  - Group information like number of series will be updated at a lower
+ *    interval which leads to probably incorrect number of series per group.
+ *    Selections for series in a group or a list of series per group are still
+ *    correct and can only lack of brand new series. (newer than 30 seconds)
+ *
+ *  - Selecting an unknown series usually raises a QueryError but we do not
+ *    raise this error during re-indexing since the series might be in either
+ *    the old- or new pool. (selecting series during re-indexing has therefore
+ *    the same behavior as a regular expression selection)
+ *
  */
 #define _GNU_SOURCE
 #include <siri/db/reindex.h>
@@ -18,7 +30,9 @@
 #include <assert.h>
 #include <unistd.h>
 #include <siri/optimize.h>
+#include <siri/db/db.h>
 #include <siri/db/servers.h>
+#include <qpack/qpack.h>
 #include <siri/net/protocol.h>
 
 #define REINDEX_FN ".reindex"
