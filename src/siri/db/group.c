@@ -12,10 +12,16 @@
 #include <siri/db/group.h>
 #include <siri/err.h>
 #include <stdlib.h>
+#include <siri/db/db.h>
 #include <siri/db/re.h>
 #include <siri/db/series.h>
 #include <siri/grammar/grammar.h>
 #include <assert.h>
+#include <slist/slist.h>
+#include <strextra/strextra.h>
+
+#define SIRIDB_MIN_GROUP_LEN 1
+#define SIRIDB_MAX_GROUP_LEN 255
 
 static void GROUP_free(siridb_group_t * group);
 
@@ -25,7 +31,6 @@ static void GROUP_free(siridb_group_t * group);
  * error message.
  */
 siridb_group_t * siridb_group_new(
-        const char * name,
         const char * source,
         size_t source_len,
         char * err_msg)
@@ -40,15 +45,14 @@ siridb_group_t * siridb_group_new(
     {
         group->ref = 1;
         group->n = 0;
-        group->flags = GROUP_FLAG_NEW;
-        group->name = strdup(name);
+        group->flags = GROUP_FLAG_INIT;
+        group->name = NULL;
         group->source = strndup(source, source_len);
         group->series = slist_new(SLIST_DEFAULT_SIZE);
         group->regex = NULL;
         group->regex_extra = NULL;
 
-        if (    group->name == NULL ||
-                group->source == NULL ||
+        if (    group->source == NULL ||
                 group->series == NULL)
         {
             ERR_ALLOC
@@ -71,6 +75,80 @@ siridb_group_t * siridb_group_new(
     return group;
 }
 
+/*
+ * Returns 0 when successful or a positive value in case the name is not valid.
+ * A negative value is returned and a signal is raised in case a critical error
+ * has occurred.
+ *
+ * (err_msg is set in case of all errors)
+ */
+int siridb_group_set_name(
+        siridb_groups_t * groups,
+        siridb_group_t * group,
+        const char * name,
+        char * err_msg)
+{
+    if (strlen(name) < SIRIDB_MIN_GROUP_LEN)
+    {
+        sprintf(err_msg, "Gruop name should be at least %d characters.",
+                SIRIDB_MIN_GROUP_LEN);
+        return 1;
+    }
+
+    if (strlen(name) > SIRIDB_MAX_GROUP_LEN)
+    {
+        sprintf(err_msg, "Group name should be at least %d characters.",
+                SIRIDB_MAX_GROUP_LEN);
+        return 1;
+    }
+
+    if (ct_get(groups->groups, name) != NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Group '%s' already exists.",
+                name);
+        return 1;
+    }
+
+    if (group->name != NULL)
+    {
+        int rc;
+
+        /* group already exists */
+        uv_mutex_lock(&groups->mutex);
+
+        rc  = ( ct_pop(groups->groups, group->name) == NULL ||
+                ct_add(groups->groups, name, group));
+
+        uv_mutex_unlock(&groups->mutex);
+
+        if (rc)
+        {
+            ERR_C
+            snprintf(err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Critical error while replacing group name '%s' with '%s' "
+                    "in tree.",
+                    group->name,
+                    name);
+            return -1;
+        }
+    }
+
+    free(group->name);
+    group->name = strdup(name);
+
+    if (group->name == NULL)
+    {
+        ERR_ALLOC
+        sprintf(err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    return 0;
+}
+
 inline void siridb_group_incref(siridb_group_t * group)
 {
     group->ref++;
@@ -87,6 +165,8 @@ void siridb_group_decref(siridb_group_t * group)
 /*
  * Remove dropped series from the group and shrink memory usage the the
  * series list.
+ *
+ * (Group thread)
  */
 void siridb_group_cleanup(siridb_group_t * group)
 {
@@ -113,9 +193,12 @@ void siridb_group_cleanup(siridb_group_t * group)
     slist_compact(&group->series);
 }
 
+/*
+ * Group thread.
+ */
 int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
 {
-    /* skip if group has flags set. (DROPPED or NEW) */
+    /* skip if group has flags set. (DROPPED or INIT) */
     int rc = (group->flags) ? -2 : pcre_exec(
             group->regex,
             group->regex_extra,
@@ -143,6 +226,78 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
     }
 
     return rc;
+}
+
+/*
+ * Returns 0 when successful or -1 in case or an error.
+ *
+ * Signal might be raised in case of a memory error;
+ * (err_msg is always set in case of an error)
+ */
+int siridb_group_update_expression(
+        siridb_groups_t * groups,
+        siridb_group_t * group,
+        const char * source,
+        size_t source_len,
+        char * err_msg)
+{
+    char * new_source = strdup(source);
+    pcre * new_regex;
+    pcre_extra * new_regex_extra;
+
+    if (new_source == NULL)
+    {
+        ERR_ALLOC
+        sprintf(err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    if (siridb_re_compile(
+            &new_regex,
+            &new_regex_extra,
+            source,
+            source_len,
+            err_msg))
+    {
+        free(new_source);
+        return -1;  /* err_msg is set */
+    }
+
+    uv_mutex_lock(&groups->mutex);
+
+    /* replace group expression */
+    free(group->source);
+    free(group->regex);
+    free(group->regex_extra);
+
+    group->source = new_source;
+    group->regex = new_regex;
+    group->regex_extra = new_regex_extra;
+
+    group->series->len = 0;
+    slist_compact(&group->series);
+
+    if (~group->flags & GROUP_FLAG_INIT)
+    {
+        group->flags |= GROUP_FLAG_INIT;
+
+        if (slist_append_safe(&groups->ngroups, group))
+        {
+            /* we log critical since allocation errors are critical, this does
+             * however not influence the running SiriDB in is not critical in that
+             * perspective.
+             */
+            log_critical("Cannot add group to list for initialization.");
+        }
+        else
+        {
+            siridb_group_incref(group);
+        }
+    }
+
+    uv_mutex_unlock(&groups->mutex);
+
+    return 0;
 }
 
 int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond)

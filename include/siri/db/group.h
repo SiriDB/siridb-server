@@ -15,7 +15,7 @@
 #include <siri/db/series.h>
 #include <pcre.h>
 
-#define GROUP_FLAG_NEW 1
+#define GROUP_FLAG_INIT 1
 #define GROUP_FLAG_DROPPED 2
 
 typedef struct siridb_series_s siridb_series_t;
@@ -33,7 +33,17 @@ typedef struct siridb_group_s
 } siridb_group_t;
 
 siridb_group_t * siridb_group_new(
+        const char * source,
+        size_t source_len,
+        char * err_msg);
+int siridb_group_set_name(
+        siridb_groups_t * groups,
+        siridb_group_t * group,
         const char * name,
+        char * err_msg);
+int siridb_group_update_expression(
+        siridb_groups_t * groups,
+        siridb_group_t * group,
         const char * source,
         size_t source_len,
         char * err_msg);

@@ -69,8 +69,13 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
         return;  /* signal is raised when handle is NULL */     \
     }
 
-#define MEM_ERR_ALLOC_RET                                           \
+#define MEM_ERR_RET                                             \
         sprintf(query->err_msg, "Memory allocation error.");    \
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
+        return;
+
+#define FILE_ERR_RET                                            \
+        sprintf(query->err_msg, "File error occurred.");        \
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
         return;
 
@@ -90,6 +95,7 @@ static void enter_list_stmt(uv_async_t * handle);
 static void enter_merge_as(uv_async_t * handle);
 static void enter_revoke_user(uv_async_t * handle);
 static void enter_select_stmt(uv_async_t * handle);
+static void enter_set_expression(uv_async_t * handle);
 static void enter_set_ignore_threshold(uv_async_t * handle);
 static void enter_set_name(uv_async_t * handle);
 static void enter_set_password(uv_async_t * handle);
@@ -265,6 +271,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_POOL_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_REVOKE_USER] = enter_revoke_user;
     siriparser_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
+    siriparser_listen_enter[CLERI_GID_SET_EXPRESSION] = enter_set_expression;
     siriparser_listen_enter[CLERI_GID_SET_IGNORE_THRESHOLD] = enter_set_ignore_threshold;
     siriparser_listen_enter[CLERI_GID_SET_NAME] = enter_set_name;
     siriparser_listen_enter[CLERI_GID_SET_PASSWORD] = enter_set_password;
@@ -780,6 +787,28 @@ static void enter_select_stmt(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
+static void enter_set_expression(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+
+    if (siridb_group_update_expression(
+            siridb->groups,
+            q_alter->via.group,
+            node->str,
+            node->len,
+            query->err_msg))
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        SIRIPARSER_NEXT_NODE
+    }
+}
+
 static void enter_set_ignore_threshold(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -808,7 +837,6 @@ static void enter_set_name(uv_async_t * handle)
     switch (q_alter->alter_tp)
     {
     case QUERY_ALTER_USER:
-        /* check if this user already exists. */
         if (siridb_user_set_name(
                     siridb,
                     q_alter->via.user,
@@ -819,9 +847,19 @@ static void enter_set_name(uv_async_t * handle)
             return;
         }
         break;
+    case QUERY_ALTER_GROUP:
+        if (siridb_group_set_name(
+                    siridb->groups,
+                    q_alter->via.group,
+                    name,
+                    query->err_msg))
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+        break;
     case QUERY_ALTER_NONE:
     case QUERY_ALTER_DATABASE:
-    case QUERY_ALTER_GROUP:
     case QUERY_ALTER_SERIES:
     case QUERY_ALTER_SERVER:
     default:
@@ -943,7 +981,7 @@ static void enter_series_name(uv_async_t * handle)
                 if (imap_add(q_wrapper->series_map, series->id, series) != 1)
                 {
                     siridb_series_decref(series);
-                    MEM_ERR_ALLOC_RET
+                    MEM_ERR_RET
                 }
             }
         }
@@ -1134,15 +1172,16 @@ static void exit_alter_group(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
+    if (siridb_groups_save(
+            ((sirinet_socket_t *) query->client->data)->siridb->groups))
     {
-        return;  /* signal is set */
+        FILE_ERR_RET
     }
 
     QP_ADD_SUCCESS
     qp_add_fmt_safe(query->packer,
-            "Successful changed password for user '%s'.",
-            ((siridb_user_t *) query->data)->name);
+            "Successful updated group '%s'.",
+            ((query_alter_t *) query->data)->via.group->name);
 
     if (IS_MASTER)
     {
@@ -1163,12 +1202,12 @@ static void exit_alter_user(uv_async_t * handle)
 
     if (siridb_users_save(((sirinet_socket_t *) query->client->data)->siridb))
     {
-        MEM_ERR_ALLOC_RET
+        FILE_ERR_RET
     }
 
     QP_ADD_SUCCESS
     qp_add_fmt_safe(query->packer,
-            "Successful changed user '%s'.",
+            "Successful updated user '%s'.",
             ((query_alter_t *) query->data)->via.user->name);
 
     if (IS_MASTER)
@@ -1471,7 +1510,7 @@ static void exit_create_group(uv_async_t * handle)
         query->packer = sirinet_packer_new(1024);
         if (query->packer == NULL)
         {
-            MEM_ERR_ALLOC_RET
+            MEM_ERR_RET
         }
         qp_add_type(query->packer, QP_MAP_OPEN);
 
@@ -1950,7 +1989,7 @@ static void exit_list_series(uv_async_t * handle)
 
         if (q_list->props == NULL)
         {
-            MEM_ERR_ALLOC_RET
+            MEM_ERR_RET
         }
 
         slist_append(q_list->props, &GID_K_NAME);
@@ -2293,7 +2332,7 @@ static void exit_select_stmt(uv_async_t * handle)
                         handle) ||
                 qp_add_type(query->packer, QP_MAP_CLOSE))
         {
-            MEM_ERR_ALLOC_RET
+            MEM_ERR_RET
         }
         else
         {
@@ -3912,7 +3951,7 @@ static void finish_list_groups(uv_async_t * handle)
         q_list->props = slist_new(1);
         if (q_list->props == NULL)
         {
-            MEM_ERR_ALLOC_RET
+            MEM_ERR_RET
         }
         slist_append(q_list->props, &GID_K_NAME);
         qp_add_raw(query->packer, "name", 4);

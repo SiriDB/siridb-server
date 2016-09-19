@@ -121,7 +121,7 @@ class TestUser(TestBase):
             result = await self.client1.query('alter user "Pee" set name "PPP"')
 
         result = await self.client1.query('alter user "pee" set name "Pee"')
-        self.assertEqual(result.pop('success_msg'), "Successful changed user 'Pee'.")
+        self.assertEqual(result.pop('success_msg'), "Successful updated user 'Pee'.")
 
         time.sleep(0.1)
         result = await self.client2.query('list users where name == "Pee"')
@@ -138,6 +138,3 @@ if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
     run_test(TestUser())
-
-"User name contains illegal characters. (only graphical characters are allowed, no spaces, tabs etc.)"
-"User name contains illegal characters. (only graphical characters are allowed, no spaces, tabs etc.)"

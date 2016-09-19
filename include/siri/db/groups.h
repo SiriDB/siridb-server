@@ -43,6 +43,7 @@ typedef struct siridb_groups_s
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
 void siridb_groups_start(siridb_groups_t * groups);
 int siridb_groups_save(siridb_groups_t * groups);
+ssize_t siridb_groups_get_file(char ** buffer, siridb_t * siridb);
 void siridb_groups_init_nseries(siridb_groups_t * groups);
 sirinet_pkg_t * siridb_groups_pkg(siridb_groups_t * groups, uint16_t pid);
 int siridb_groups_drop_group(

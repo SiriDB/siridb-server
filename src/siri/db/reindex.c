@@ -559,7 +559,7 @@ static void REINDEX_commit_series(siridb_t * siridb)
     }
 
     /* commit the drop */
-    if (siridb_series_drop_commit(siridb, siridb->reindex->series))
+    if (siridb_series_drop_commit(siridb, siridb->reindex->series) == 0)
     {
         siridb_series_flush_dropped(siridb);
     }

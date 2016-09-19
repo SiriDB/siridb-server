@@ -35,7 +35,7 @@ void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop);
 int siridb_user_set_name(
         siridb_t * siridb,
         siridb_user_t * user,
-        char * name,
+        const char * name,
         char * err_msg);
 int siridb_user_set_password(
         siridb_user_t * user,

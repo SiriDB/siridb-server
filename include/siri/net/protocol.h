@@ -22,6 +22,7 @@ typedef enum
     CPROTO_REQ_REGISTER_SERVER,                 // (uuid, host, port, pool)
     CPROTO_REQ_FILE_SERVERS,                    // empty
     CPROTO_REQ_FILE_USERS,                      // empty
+    CPROTO_REQ_FILE_GROUPS,                     // empty
 } cproto_client_t;
 
 typedef enum

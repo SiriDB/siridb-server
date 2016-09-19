@@ -159,7 +159,7 @@ int siridb_user_set_password(
 int siridb_user_set_name(
         siridb_t * siridb,
         siridb_user_t * user,
-        char * name,
+        const char * name,
         char * err_msg)
 {
     if (strlen(name) < SIRIDB_MIN_USER_LEN)

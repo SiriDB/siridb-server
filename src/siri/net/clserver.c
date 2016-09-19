@@ -199,6 +199,9 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         case CPROTO_REQ_FILE_USERS:
             on_reqfile(client, pkg, siridb_users_get_file);
             break;
+        case CPROTO_REQ_FILE_GROUPS:
+            on_reqfile(client, pkg, siridb_groups_get_file);
+            break;
         }
     }
     else

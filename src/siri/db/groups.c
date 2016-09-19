@@ -40,11 +40,11 @@
 #include <xpath/xpath.h>
 #include <siri/net/protocol.h>
 
-
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
 #define GROUPS_LOOP_SLEEP 2  // 2 seconds
 #define GROUPS_LOOP_DEEP 15  // x times -> 30 seconds (used when re-indexing)
+#define GROUPS_RE_BATCH_SZ 1000
 
 static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
@@ -141,6 +141,10 @@ int siridb_groups_add_series(
     return rc;
 }
 
+/*
+ * Returns 0 if successful or -1 in case of an error.
+ * (a signal might be raised)
+ */
 int siridb_groups_add_group(
         siridb_groups_t * groups,
         const char * name,
@@ -151,12 +155,11 @@ int siridb_groups_add_group(
     int rc;
 
     siridb_group_t * group = siridb_group_new(
-            name,
             source,
             source_len,
             err_msg);
 
-    if (group == NULL)
+    if (group == NULL || siridb_group_set_name(groups, group, name, err_msg))
     {
         return -1;  /* err_msg is set and a SIGNAL is possibly raised */
     }
@@ -217,6 +220,8 @@ int siridb_groups_save(siridb_groups_t * groups)
 {
     qp_fpacker_t * fpacker;
 
+    log_debug("Write groups to file: '%s'", groups->fn);
+
     return (
         /* open a new user file */
         (fpacker = qp_open(groups->fn, "w")) == NULL ||
@@ -233,6 +238,19 @@ int siridb_groups_save(siridb_groups_t * groups)
         /* close file pointer */
         qp_close(fpacker)) ? EOF : 0;
 
+}
+
+/*
+ * Typedef: sirinet_clserver_get_file
+ *
+ * Returns the length of the content for a file and set buffer with the file
+ * content. Note that malloc is used to allocate memory for the buffer.
+ *
+ * In case of an error -1 is returned and buffer will be set to NULL.
+ */
+ssize_t siridb_groups_get_file(char ** buffer, siridb_t * siridb)
+{
+    return xpath_get_content(buffer, siridb->groups->fn);
 }
 
 /*
@@ -308,6 +326,14 @@ int siridb_groups_drop_group(
     }
 
     return 0;
+}
+
+void siridb_groups_decref(siridb_groups_t * groups)
+{
+    if (!--groups->ref)
+    {
+        GROUPS_free(groups);
+    }
 }
 
 /*
@@ -397,7 +423,11 @@ static void GROUPS_cleanup(siridb_groups_t * groups)
 
         if (!group->flags)
         {
+            uv_mutex_lock(&groups->mutex);
+
             siridb_group_cleanup(group);
+
+            uv_mutex_unlock(&groups->mutex);
         }
 
         siridb_group_decref(group);
@@ -457,14 +487,6 @@ static void GROUPS_loop(uv_work_t * work)
     }
 
     groups->status = GROUPS_CLOSED;
-}
-
-void siridb_groups_decref(siridb_groups_t * groups)
-{
-    if (!--groups->ref)
-    {
-        GROUPS_free(groups);
-    }
 }
 
 static void GROUPS_loop_finish(uv_work_t * work, int status)
@@ -599,7 +621,6 @@ static void GROUPS_init_groups(siridb_t * siridb)
     while (groups->ngroups->len)
     {
         group = (siridb_group_t *) slist_pop(groups->ngroups);
-        uv_mutex_unlock(&groups->mutex);
 
 #ifdef DEBUG
         /* we must be sure this group is empty */
@@ -608,8 +629,8 @@ static void GROUPS_init_groups(siridb_t * siridb)
 
         if (~group->flags & GROUP_FLAG_DROPPED)
         {
-            /* remove NEW flag from group */
-            group->flags &= ~GROUP_FLAG_NEW;
+            /* remove INIT flag from group */
+            group->flags &= ~GROUP_FLAG_INIT;
 
             for (size_t i = 0; i < series_list->len; i++)
             {
@@ -617,14 +638,20 @@ static void GROUPS_init_groups(siridb_t * siridb)
 
                 siridb_group_test_series(group, series);
 
-                if (i % 1000 == 0)
+                if (i % GROUPS_RE_BATCH_SZ == 0)
                 {
+                    uv_mutex_unlock(&groups->mutex);
+
                     usleep(10000);  // 10ms
+
+                    uv_mutex_lock(&groups->mutex);
                 }
             }
         }
 
         siridb_group_decref(group);
+
+        uv_mutex_unlock(&groups->mutex);
 
         usleep(10000);  // 10ms
 
