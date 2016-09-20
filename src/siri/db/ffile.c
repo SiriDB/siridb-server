@@ -109,17 +109,17 @@ siridb_ffile_t * siridb_ffile_new(
     {
         /* reading existing fifo file */
 
-        if (fseek(ffile->fp, 0, SEEK_END))
+        if (fseeko(ffile->fp, 0, SEEK_END))
         {
             ERR_FILE
             siridb_ffile_free(ffile);
             return NULL;
         }
 
-        if ((ffile->size = ftell(ffile->fp)) >= sizeof(uint32_t))
+        if ((ffile->size = ftello(ffile->fp)) >= sizeof(uint32_t))
         {
             ffile->free_space = 0;
-            if (    fseek(ffile->fp, -(long int) sizeof(uint32_t), SEEK_END) ||
+            if (    fseeko(ffile->fp, -(long int) sizeof(uint32_t), SEEK_END) ||
                     fread(  &ffile->next_size,
                             sizeof(uint32_t),
                             1,
@@ -174,7 +174,7 @@ siridb_ffile_result_t siridb_ffile_append(
     }
     ffile->free_space -= size + sizeof(uint32_t);
 
-    if (    fseek(ffile->fp, ffile->free_space, SEEK_SET) ||
+    if (    fseeko(ffile->fp, ffile->free_space, SEEK_SET) ||
             fwrite((unsigned char *) pkg, size, 1, ffile->fp) != 1 ||
             fwrite(&size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
             fflush(ffile->fp))
@@ -210,7 +210,7 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
     assert (ffile->next_size);
     assert (ffile->fp != NULL);
 #endif
-    if (fseek(
+    if (fseeko(
             ffile->fp,
             -(long int) (ffile->next_size + sizeof(uint32_t)),
             SEEK_END))
@@ -261,7 +261,7 @@ int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
 
     ffile->size -= ffile->next_size + sizeof(uint32_t);
 
-    return (fseek(
+    return (fseeko(
                 ffile->fp,
                 ffile->size - sizeof(uint32_t),
                 SEEK_SET) ||

@@ -8,6 +8,14 @@
  * changes
  *  - initial version, 04-04-2016
  *
+ * Info shards->mutex:
+ *
+ *  Main thread:
+ *      siridb->shards :    read (lock)         write (lock)
+
+ *  Other threads:
+ *      siridb->shards :    read (lock)         write (lock)
+ *
  */
 
 #include <siri/db/shards.h>

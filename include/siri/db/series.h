@@ -44,22 +44,32 @@ typedef struct siridb_shard_s siridb_shard_t;
 
 extern const char series_type_map[3][8];
 
-typedef struct idx_num32_s
+typedef struct idx_xxx_s
 {
-    uint32_t start_ts;
-    uint32_t end_ts;
     siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
+    uint16_t pad;
+} idx_xxx_t;
+
+typedef struct idx_num32_s
+{
+    siridb_shard_t * shard;
+    uint32_t pos;
+    uint16_t len;
+    uint16_t pad;
+    uint32_t start_ts;
+    uint32_t end_ts;
 } idx_num32_t;
 
 typedef struct idx_num64_s
 {
-    uint64_t start_ts;
-    uint64_t end_ts;
     siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
+    uint16_t pad;
+    uint64_t start_ts;
+    uint64_t end_ts;
 } idx_num64_t;
 
 typedef struct siridb_series_s

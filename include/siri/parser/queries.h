@@ -91,6 +91,7 @@ typedef struct query_drop_s
     QUERY_DEF
     size_t n;  // keep a counter for number of drops.
     uint8_t flags;  // flags like ignore threshold
+    slist_t * shards_list;
 } query_drop_t;
 
 typedef struct query_list_s

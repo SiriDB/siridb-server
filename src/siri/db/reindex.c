@@ -123,7 +123,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
 
                 if (reindex != NULL)
                 {
-                    reindex->size = ftell(reindex->fp);
+                    reindex->size = ftello(reindex->fp);
                     if (reindex->size == -1)
                     {
                         ERR_FILE
@@ -140,7 +140,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                             siridb_reindex_free(&reindex);
                         }
                         else if (
-                            fseek(reindex->fp, -sizeof(uint32_t), SEEK_END) ||
+                            fseeko(reindex->fp, -sizeof(uint32_t), SEEK_END) ||
                             fread(  reindex->next_series_id,
                                     sizeof(uint32_t),
                                     1,
@@ -374,7 +374,7 @@ static void REINDEX_send(uv_timer_t * timer)
 static int REINDEX_next_series_id(siridb_reindex_t * reindex)
 {
 #ifdef DEUBUG
-    assert (reindex->size == fseek(reindex->fp, 0, SEEK_END);
+    assert (reindex->size == fseeko(reindex->fp, 0, SEEK_END);
 #endif
 
     /* free re-index package */
@@ -390,7 +390,7 @@ static int REINDEX_next_series_id(siridb_reindex_t * reindex)
     }
     else
     {
-        if (fseek(reindex->fp, -SIZE2, SEEK_END) ||
+        if (fseeko(reindex->fp, -SIZE2, SEEK_END) ||
             fread(  reindex->next_series_id,
                     sizeof(uint32_t),
                     1,

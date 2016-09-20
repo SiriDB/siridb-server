@@ -380,6 +380,13 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
         rc = -1;
     };
 
+    /* mark shards with dropped series flag */
+    for (uint32_t i = 0; i < series->idx_len; i++)
+    {
+        ((idx_xxx_t *) series->idx)[i].shard->flags |=
+                SIRIDB_SHARD_HAS_DROPPED_SERIES;
+    }
+
     /* decrement reference to series */
     siridb_series_decref(series);
 
@@ -1006,9 +1013,9 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
     }
 
     /* get file size */
-    if (fseek(fp, 0, SEEK_END) ||
-        (size = ftell(fp)) < 0 ||
-        fseek(fp, 0, SEEK_SET))
+    if (fseeko(fp, 0, SEEK_END) ||
+        (size = ftello(fp)) < 0 ||
+        fseeko(fp, 0, SEEK_SET))
     {
         fclose(fp);
         log_critical("Cannot read size of file '%s'", fn);

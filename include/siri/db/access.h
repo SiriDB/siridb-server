@@ -22,10 +22,8 @@
 #define SIRIDB_ACCESS_CREATE    32
 #define SIRIDB_ACCESS_ALTER     64
 #define SIRIDB_ACCESS_DROP      128
-#define SIRIDB_ACCESS_PAUSE     256
-#define SIRIDB_ACCESS_CONTINUE  512
-#define SIRIDB_ACCESS_GRANT     1024
-#define SIRIDB_ACCESS_REVOKE    2048
+#define SIRIDB_ACCESS_GRANT     256
+#define SIRIDB_ACCESS_REVOKE    512
 
 /* this is a save size since access string cannot contain double items */
 #define SIRIDB_ACCESS_STR_MAX 128
@@ -48,8 +46,6 @@
 
 #define SIRIDB_ACCESS_PROFILE_FULL      \
     SIRIDB_ACCESS_PROFILE_MODIFY |      \
-    SIRIDB_ACCESS_PAUSE |               \
-    SIRIDB_ACCESS_CONTINUE |            \
     SIRIDB_ACCESS_GRANT |               \
     SIRIDB_ACCESS_REVOKE
 

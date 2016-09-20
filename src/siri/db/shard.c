@@ -69,6 +69,23 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
  */
 #define IDX_NUM64_SZ 22
 
+#define SHARD_STATUS_SIZE 7
+
+static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
+        {.repr="optimize-scheduled", .flag=SIRIDB_SHARD_MANUAL_OPTIMIZE},
+        {.repr="overlap", .flag=SIRIDB_SHARD_HAS_OVERLAP},
+        {.repr="new-values", .flag=SIRIDB_SHARD_HAS_NEW_VALUES},
+        {.repr="dropped-series", .flag=SIRIDB_SHARD_HAS_DROPPED_SERIES},
+        {.repr="dropped", .flag=SIRIDB_SHARD_WILL_BE_REMOVED},
+        {.repr="loading", .flag=SIRIDB_SHARD_IS_LOADING},
+        {.repr="corrupt", .flag=SIRIDB_SHARD_IS_CORRUPT},
+};
+
+const char shard_type_map[2][7] = {
+        "number",
+        "log"
+};
+
 static int SHARD_load_idx_num32(
         siridb_t * siridb,
         siridb_shard_t * shard,
@@ -242,6 +259,92 @@ siridb_shard_t *  siridb_shard_create(
 }
 
 /*
+ * Call-back function used to validate shards in a where expression.
+ *
+ * Returns 0 or 1 (false or true).
+ */
+int siridb_shard_cexpr_cb(
+        siridb_shard_view_t * vshard,
+        cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_SID:
+        return cexpr_int_cmp(cond->operator, vshard->shard->id, cond->int64);
+    case CLERI_GID_K_POOL:
+        return cexpr_int_cmp(cond->operator, vshard->server->pool, cond->int64);
+    case CLERI_GID_K_SIZE:
+        {
+            ssize_t size = siridb_shard_get_size(vshard->shard);
+            return cexpr_int_cmp(cond->operator, size, cond->int64);
+        }
+    case CLERI_GID_K_START:
+        return cexpr_int_cmp(cond->operator, vshard->start, cond->int64);
+    case CLERI_GID_K_END:
+        return cexpr_int_cmp(cond->operator, vshard->end, cond->int64);
+    case CLERI_GID_K_TYPE:
+        return cexpr_int_cmp(cond->operator, vshard->shard->tp, cond->int64);
+    case CLERI_GID_K_SERVER:
+        return cexpr_str_cmp(cond->operator, vshard->server->name, cond->str);
+    case CLERI_GID_K_STATUS:
+        {
+            char buffer[SIRIDB_SHARD_STATUS_STR_MAX];
+            siridb_shard_status(buffer, vshard->shard);
+            return cexpr_str_cmp(cond->operator, buffer, cond->str);
+        }
+    }
+    log_critical("Unexpected shard property received: %d", cond->prop);
+    assert (0);
+    return -1;
+}
+
+/*
+ * Make sure 'str' is a pointer to a string which can hold at least
+ * SIRIDB_SHARD_STR_MAX.
+ */
+void siridb_shard_status(char * str, siridb_shard_t * shard)
+{
+    char * pt = str;
+
+    if (shard->replacing != NULL)
+    {
+        pt += sprintf(pt, "optimizing");
+    }
+
+    uint8_t flags = shard->flags;
+
+    for (int i = 0; i < SHARD_STATUS_SIZE && flags; i++)
+    {
+        if ((flags & flags_map[i].flag) == flags_map[i].flag)
+        {
+            flags -= flags_map[i].flag;
+            pt += (pt == str) ? sprintf(pt, "%s", flags_map[i].repr) :
+                    sprintf(pt, " | %s", flags_map[i].repr);
+        }
+    }
+
+    if (pt == str)
+    {
+        sprintf(pt, "ok");
+    }
+}
+
+/*
+ * Return the size or -1 in case of an error;
+ */
+ssize_t siridb_shard_get_size(siridb_shard_t * shard)
+{
+    if (shard->fp->fp == NULL)
+    {
+        struct stat st;
+        return (stat(shard->fn, &st) == 0) ? st.st_size : -1;
+    }
+
+    fseeko(shard->fp->fp, 0, SEEK_END);
+    return ftello(shard->fp->fp);
+}
+
+/*
  * Writes an index and points to a shard. The return value is the position
  * where the points start in the shard file.
  *
@@ -272,12 +375,12 @@ long int siridb_shard_write_points(
     fp = shard->fp->fp;
 
     if (
-        fseek(fp, 0, SEEK_END) ||
+        fseeko(fp, 0, SEEK_END) ||
         fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1 ||
         fwrite(&points->data[start].ts, siridb->time->ts_sz, 1, fp) != 1 ||
         fwrite(&points->data[end - 1].ts, siridb->time->ts_sz, 1, fp) != 1 ||
         fwrite(&len, sizeof(uint16_t), 1, fp) != 1 ||
-        (pos = ftell(fp)) < 0)
+        (pos = ftello(fp)) < 0)
     {
         ERR_FILE
         log_critical("Cannot write index header to file '%s'", shard->fn);
@@ -338,15 +441,14 @@ int siridb_shard_get_points_num32(
         }
     }
 
-    if (fseek(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+    if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
         fread(
             temp,
             12,
             idx->len,
             idx->shard->fp->fp) != idx->len)
     {
-        if (idx->shard->flags & (
-                SIRIDB_SHARD_IS_CORRUPT | SIRIDB_SHARD_WILL_BE_REPLACED))
+        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
         {
             log_error("Cannot read from shard id %lu", idx->shard->id);
         }
@@ -409,8 +511,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_shard_t * new_shard = NULL;
 
-    uint64_t duration = (shard->tp == TP_STRING) ?
-            siridb->duration_log : siridb->duration_num;
+    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
+            siridb->duration_num : siridb->duration_log;
     siridb_series_t * series;
 
     uv_mutex_lock(&siridb->shards_mutex);
@@ -604,7 +706,7 @@ int siridb_shard_write_flags(siridb_shard_t * shard)
             return EOF;
         }
     }
-    return (fseek(shard->fp->fp, HEADER_FLAGS, SEEK_SET) ||
+    return (fseeko(shard->fp->fp, HEADER_FLAGS, SEEK_SET) ||
             fputc(shard->flags, shard->fp->fp) == EOF ||
             fflush(shard->fp->fp)) ? EOF : 0;
 }
@@ -702,7 +804,7 @@ static int SHARD_load_idx_num32(
         pt = idx;
         series_id = *((uint32_t *) pt);
         len = *((uint16_t *) (idx + 12));
-        pos = ftell(fp);
+        pos = ftello(fp);
 
         if (pos < 0)
         {
@@ -735,7 +837,7 @@ static int SHARD_load_idx_num32(
             }
 
             /* this shard has remove series, make sure the flag is set */
-            if (!(shard->flags & SIRIDB_SHARD_HAS_REMOVED_SERIES))
+            if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
             {
                 log_debug(
                         "At least Series ID %u is found in shard %lu (%s) but "
@@ -744,7 +846,7 @@ static int SHARD_load_idx_num32(
                         series_id,
                         shard->id,
                         shard->fn);
-                shard->flags |= SIRIDB_SHARD_HAS_REMOVED_SERIES;
+                shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
             }
         }
         else
@@ -767,7 +869,7 @@ static int SHARD_load_idx_num32(
             }
         }
 
-        rc = fseek(fp, len * 12, SEEK_CUR);
+        rc = fseeko(fp, len * 12, SEEK_CUR);
         if (rc != 0)
         {
             log_error("Seek error in shard %lu (%s) at position %ld. Mark this "

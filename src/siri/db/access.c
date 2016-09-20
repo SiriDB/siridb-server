@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define ACCESS_SIZE 16
+#define ACCESS_SIZE 14
 
 static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
 
@@ -25,14 +25,12 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
 
         /* access bits, order here is not important */
         {.repr="alter", .access_bit=SIRIDB_ACCESS_ALTER},
-        {.repr="continue", .access_bit=SIRIDB_ACCESS_CONTINUE},
         {.repr="count", .access_bit=SIRIDB_ACCESS_COUNT},
         {.repr="create", .access_bit=SIRIDB_ACCESS_CREATE},
         {.repr="drop", .access_bit=SIRIDB_ACCESS_DROP},
         {.repr="grant", .access_bit=SIRIDB_ACCESS_GRANT},
         {.repr="insert", .access_bit=SIRIDB_ACCESS_INSERT},
         {.repr="list", .access_bit=SIRIDB_ACCESS_LIST},
-        {.repr="pause", .access_bit=SIRIDB_ACCESS_PAUSE},
         {.repr="revoke", .access_bit=SIRIDB_ACCESS_REVOKE},
         {.repr="select", .access_bit=SIRIDB_ACCESS_SELECT},
         {.repr="show", .access_bit=SIRIDB_ACCESS_SHOW},

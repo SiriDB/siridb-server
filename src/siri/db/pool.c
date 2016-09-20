@@ -85,12 +85,14 @@ int siridb_pool_reindexing(siridb_pool_t * pool)
  *
  * Returns 0 or 1 (false or true).
  */
-int siridb_pool_cexpr_cb(siridb_pool_walker_t * wpool, cexpr_condition_t * cond)
+int siridb_pool_cexpr_cb(
+        siridb_pool_walker_t * wpool,
+        cexpr_condition_t * cond)
 {
     switch (cond->prop)
     {
     case CLERI_GID_K_POOL:
-        return cexpr_int_cmp(cond->operator, wpool->pid, cond->int64);
+        return cexpr_int_cmp(cond->operator, wpool->pool, cond->int64);
     case CLERI_GID_K_SERVERS:
         return cexpr_int_cmp(cond->operator, wpool->servers, cond->int64);
     case CLERI_GID_K_SERIES:

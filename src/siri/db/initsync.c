@@ -118,7 +118,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                 }
                 if (initsync != NULL)
                 {
-                    initsync->size = ftell(initsync->fp);
+                    initsync->size = ftello(initsync->fp);
                     if (initsync->size == -1)
                     {
                         ERR_FILE
@@ -132,7 +132,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                     }
                     else
                     {
-                        if (fseek(initsync->fp, -sizeof(uint32_t), SEEK_END) ||
+                        if (fseeko(initsync->fp, -sizeof(uint32_t), SEEK_END) ||
                             fread(  initsync->next_series_id,
                                     sizeof(uint32_t),
                                     1,
@@ -244,7 +244,7 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
     siridb_initsync_t * initsync = siridb->replicate->initsync;
 
 #ifdef DEUBUG
-    assert (initsync->size == fseek(initsync->fp, 0, SEEK_END);
+    assert (initsync->size == fseeko(initsync->fp, 0, SEEK_END);
 #endif
 
     /* free the current package (can be NULL already) */
@@ -254,7 +254,7 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
     if (initsync->size >= SIZE2)
     {
         initsync->size -= sizeof(uint32_t);
-        if (fseek(initsync->fp, -SIZE2, SEEK_END) ||
+        if (fseeko(initsync->fp, -SIZE2, SEEK_END) ||
             fread(  initsync->next_series_id,
                     sizeof(uint32_t),
                     1,

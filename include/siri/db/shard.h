@@ -16,15 +16,29 @@
 #include <siri/db/series.h>
 #include <siri/file/handler.h>
 
+/* flags */
 #define SIRIDB_SHARD_OK 0
 #define SIRIDB_SHARD_MANUAL_OPTIMIZE 1
 #define SIRIDB_SHARD_HAS_OVERLAP 2
 #define SIRIDB_SHARD_HAS_NEW_VALUES 4
-#define SIRIDB_SHARD_HAS_REMOVED_SERIES 8
+#define SIRIDB_SHARD_HAS_DROPPED_SERIES 8
 #define SIRIDB_SHARD_WILL_BE_REMOVED 16
-#define SIRIDB_SHARD_WILL_BE_REPLACED 32
-#define SIRIDB_SHARD_IS_LOADING 64
-#define SIRIDB_SHARD_IS_CORRUPT 128
+#define SIRIDB_SHARD_IS_LOADING 32
+#define SIRIDB_SHARD_IS_CORRUPT 64
+
+/* types */
+#define SIRIDB_SHARD_TP_NUMBER 0
+#define SIRIDB_SHARD_TP_LOG 1
+
+extern const char shard_type_map[2][7];
+
+#define SIRIDB_SHARD_STATUS_STR_MAX 128
+
+typedef struct siridb_shard_flags_repr_s
+{
+    const char * repr;
+    uint8_t flag;
+} siridb_shard_flags_repr_t;
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_points_s siridb_points_t;
@@ -34,10 +48,11 @@ typedef struct idx_num64_s idx_num64_t;
 
 typedef struct siridb_shard_s siridb_shard_t;
 
+
 typedef struct siridb_shard_s
 {
     uint16_t ref;   /* keep ref on top */
-    uint8_t tp; /* SIRIDB_SERIES_TP_INT, ...DOUBLE or ...STRING */
+    uint8_t tp; /* TP_NUMBER, TP_LOG */
     uint8_t flags;
     uint64_t id;
     siri_fp_t * fp;
@@ -45,18 +60,28 @@ typedef struct siridb_shard_s
     siridb_shard_t * replacing;
 } siridb_shard_t;
 
+typedef struct siridb_shard_view_s
+{
+    siridb_shard_t * shard;
+    siridb_server_t * server;
+    uint64_t start;
+    uint64_t end;
+} siridb_shard_view_t;
+
 siridb_shard_t * siridb_shard_create(
         siridb_t * siridb,
         uint64_t id,
         uint64_t duration,
         uint8_t tp,
         siridb_shard_t * replacing);
-
+int siridb_shard_cexpr_cb(
+        siridb_shard_view_t * vshard,
+        cexpr_condition_t * cond);
+void siridb_shard_status(char * str, siridb_shard_t * shard);
+ssize_t siridb_shard_get_size(siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
-
 void siridb_shard_incref(siridb_shard_t * shard);
 void siridb_shard_decref(siridb_shard_t * shard);
-
 long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,

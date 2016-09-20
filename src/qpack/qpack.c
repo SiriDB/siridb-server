@@ -126,9 +126,9 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
 
     /* get the size */
     if (
-            fseek(fp, 0, SEEK_END) ||
-            (size = ftell(fp)) == -1 ||
-            fseek(fp, 0, SEEK_SET))
+            fseeko(fp, 0, SEEK_END) ||
+            (size = ftello(fp)) == -1 ||
+            fseeko(fp, 0, SEEK_SET))
     {
         log_error("Cannot not read size of file '%s'", fn);
         unpacker = NULL;

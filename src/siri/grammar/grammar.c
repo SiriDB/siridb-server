@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-09-15 12:16:01
+ * Created at: 2016-09-20 15:03:26
  */
 
 #include <siri/grammar/grammar.h>
@@ -38,7 +38,6 @@ cleri_grammar_t * compile_grammar(void)
     cleri_object_t * k_buffer_size = cleri_keyword(CLERI_GID_K_BUFFER_SIZE, "buffer_size", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_buffer_path = cleri_keyword(CLERI_GID_K_BUFFER_PATH, "buffer_path", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_between = cleri_keyword(CLERI_GID_K_BETWEEN, "between", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_continue = cleri_keyword(CLERI_GID_K_CONTINUE, "continue", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_count = cleri_keyword(CLERI_GID_K_COUNT, "count", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_create = cleri_keyword(CLERI_GID_K_CREATE, "create", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_critical = cleri_keyword(CLERI_GID_K_CRITICAL, "critical", CLERI_CASE_INSENSITIVE);
@@ -84,9 +83,9 @@ cleri_grammar_t * compile_grammar(void)
     );
     cleri_object_t * k_length = cleri_keyword(CLERI_GID_K_LENGTH, "length", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_libuv = cleri_keyword(CLERI_GID_K_LIBUV, "libuv", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_license = cleri_keyword(CLERI_GID_K_LICENSE, "license", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_limit = cleri_keyword(CLERI_GID_K_LIMIT, "limit", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_list = cleri_keyword(CLERI_GID_K_LIST, "list", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * k_log = cleri_keyword(CLERI_GID_K_LOG, "log", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_log_level = cleri_keyword(CLERI_GID_K_LOG_LEVEL, "log_level", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_max = cleri_keyword(CLERI_GID_K_MAX, "max", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_max_open_files = cleri_keyword(CLERI_GID_K_MAX_OPEN_FILES, "max_open_files", CLERI_CASE_INSENSITIVE);
@@ -100,20 +99,19 @@ cleri_grammar_t * compile_grammar(void)
     cleri_object_t * k_modify = cleri_keyword(CLERI_GID_K_MODIFY, "modify", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_name = cleri_keyword(CLERI_GID_K_NAME, "name", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_now = cleri_keyword(CLERI_GID_K_NOW, "now", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * k_number = cleri_keyword(CLERI_GID_K_NUMBER, "number", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_online = cleri_keyword(CLERI_GID_K_ONLINE, "online", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_open_files = cleri_keyword(CLERI_GID_K_OPEN_FILES, "open_files", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_optimize_pool = cleri_keyword(CLERI_GID_K_OPTIMIZE_POOL, "optimize_pool", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_optimize_task = cleri_keyword(CLERI_GID_K_OPTIMIZE_TASK, "optimize_task", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_or = cleri_keyword(CLERI_GID_K_OR, "or", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_password = cleri_keyword(CLERI_GID_K_PASSWORD, "password", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_pause = cleri_keyword(CLERI_GID_K_PAUSE, "pause", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_points = cleri_keyword(CLERI_GID_K_POINTS, "points", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_pool = cleri_keyword(CLERI_GID_K_POOL, "pool", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_pools = cleri_keyword(CLERI_GID_K_POOLS, "pools", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_port = cleri_keyword(CLERI_GID_K_PORT, "port", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_prefix = cleri_keyword(CLERI_GID_K_PREFIX, "prefix", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_pvariance = cleri_keyword(CLERI_GID_K_PVARIANCE, "pvariance", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_query_timeout = cleri_keyword(CLERI_GID_K_QUERY_TIMEOUT, "query_timeout", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_read = cleri_keyword(CLERI_GID_K_READ, "read", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_received_points = cleri_keyword(CLERI_GID_K_RECEIVED_POINTS, "received_points", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_reindex_progress = cleri_keyword(CLERI_GID_K_REINDEX_PROGRESS, "reindex_progress", CLERI_CASE_INSENSITIVE);
@@ -123,11 +121,10 @@ cleri_grammar_t * compile_grammar(void)
     cleri_object_t * k_server = cleri_keyword(CLERI_GID_K_SERVER, "server", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_servers = cleri_keyword(CLERI_GID_K_SERVERS, "servers", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_set = cleri_keyword(CLERI_GID_K_SET, "set", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_shard = cleri_keyword(CLERI_GID_K_SHARD, "shard", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * k_sid = cleri_keyword(CLERI_GID_K_SID, "sid", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_sharding_max_chunk_points = cleri_keyword(CLERI_GID_K_SHARDING_MAX_CHUNK_POINTS, "sharding_max_chunk_points", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_shards = cleri_keyword(CLERI_GID_K_SHARDS, "shards", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_show = cleri_keyword(CLERI_GID_K_SHOW, "show", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * k_sid = cleri_keyword(CLERI_GID_K_SID, "sid", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_size = cleri_keyword(CLERI_GID_K_SIZE, "size", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_start = cleri_keyword(CLERI_GID_K_START, "start", CLERI_CASE_INSENSITIVE);
     cleri_object_t * k_startup_time = cleri_keyword(CLERI_GID_K_STARTUP_TIME, "startup_time", CLERI_CASE_INSENSITIVE);
@@ -177,7 +174,7 @@ cleri_grammar_t * compile_grammar(void)
     cleri_object_t * access_keywords = cleri_choice(
         CLERI_GID_ACCESS_KEYWORDS,
         CLERI_FIRST_MATCH,
-        16,
+        14,
         k_read,
         k_write,
         k_modify,
@@ -191,9 +188,7 @@ cleri_grammar_t * compile_grammar(void)
         k_drop,
         k_grant,
         k_revoke,
-        k_alter,
-        k_pause,
-        k_continue
+        k_alter
     );
     cleri_object_t * _boolean = cleri_choice(
         CLERI_GID__BOOLEAN,
@@ -260,8 +255,8 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_THIS
         )
     );
-    cleri_object_t * series_props = cleri_choice(
-        CLERI_GID_SERIES_PROPS,
+    cleri_object_t * series_columns = cleri_list(CLERI_GID_SERIES_COLUMNS, cleri_choice(
+        CLERI_NONE,
         CLERI_FIRST_MATCH,
         6,
         k_name,
@@ -270,21 +265,22 @@ cleri_grammar_t * compile_grammar(void)
         k_start,
         k_end,
         k_pool
-    );
-    cleri_object_t * series_columns = cleri_list(CLERI_GID_SERIES_COLUMNS, series_props, cleri_token(CLERI_NONE, ","), 1, 0, 0);
-    cleri_object_t * shard_props = cleri_choice(
-        CLERI_GID_SHARD_PROPS,
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    cleri_object_t * shard_columns = cleri_list(CLERI_GID_SHARD_COLUMNS, cleri_choice(
+        CLERI_NONE,
         CLERI_FIRST_MATCH,
-        5,
+        8,
         k_sid,
+        k_pool,
+        k_server,
         k_size,
         k_start,
         k_end,
-        k_type
-    );
-    cleri_object_t * shard_columns = cleri_list(CLERI_GID_SHARD_COLUMNS, shard_props, cleri_token(CLERI_NONE, ","), 1, 0, 0);
-    cleri_object_t * server_props = cleri_choice(
-        CLERI_GID_SERVER_PROPS,
+        k_type,
+        k_status
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    cleri_object_t * server_columns = cleri_list(CLERI_GID_SERVER_COLUMNS, cleri_choice(
+        CLERI_NONE,
         CLERI_FIRST_MATCH,
         23,
         k_address,
@@ -310,25 +306,22 @@ cleri_grammar_t * compile_grammar(void)
         k_reindex_progress,
         k_sync_progress,
         k_uptime
-    );
-    cleri_object_t * server_columns = cleri_list(CLERI_GID_SERVER_COLUMNS, server_props, cleri_token(CLERI_NONE, ","), 1, 0, 0);
-    cleri_object_t * group_props = cleri_choice(
-        CLERI_GID_GROUP_PROPS,
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    cleri_object_t * group_columns = cleri_list(CLERI_GID_GROUP_COLUMNS, cleri_choice(
+        CLERI_NONE,
         CLERI_FIRST_MATCH,
         3,
         k_expression,
         k_name,
         k_series
-    );
-    cleri_object_t * group_columns = cleri_list(CLERI_GID_GROUP_COLUMNS, group_props, cleri_token(CLERI_NONE, ","), 1, 0, 0);
-    cleri_object_t * user_props = cleri_choice(
-        CLERI_GID_USER_PROPS,
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    cleri_object_t * user_columns = cleri_list(CLERI_GID_USER_COLUMNS, cleri_choice(
+        CLERI_NONE,
         CLERI_FIRST_MATCH,
         2,
         k_name,
         k_access
-    );
-    cleri_object_t * user_columns = cleri_list(CLERI_GID_USER_COLUMNS, user_props, cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
     cleri_object_t * pool_props = cleri_choice(
         CLERI_GID_POOL_PROPS,
         CLERI_FIRST_MATCH,
@@ -341,83 +334,6 @@ cleri_grammar_t * compile_grammar(void)
     cleri_object_t * bool_operator = cleri_tokens(CLERI_GID_BOOL_OPERATOR, "== !=");
     cleri_object_t * int_operator = cleri_tokens(CLERI_GID_INT_OPERATOR, "== != <= >= < >");
     cleri_object_t * str_operator = cleri_tokens(CLERI_GID_STR_OPERATOR, "== != <= >= !~ < > ~");
-    cleri_object_t * where_series = cleri_sequence(
-        CLERI_GID_WHERE_SERIES,
-        2,
-        k_where,
-        cleri_prio(
-            CLERI_NONE,
-            7,
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                cleri_choice(
-                    CLERI_NONE,
-                    CLERI_FIRST_MATCH,
-                    2,
-                    k_length,
-                    k_pool
-                ),
-                int_operator,
-                int_expr
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                k_name,
-                str_operator,
-                string
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                cleri_choice(
-                    CLERI_NONE,
-                    CLERI_FIRST_MATCH,
-                    2,
-                    k_start,
-                    k_end
-                ),
-                int_operator,
-                time_expr
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                k_type,
-                bool_operator,
-                cleri_choice(
-                    CLERI_NONE,
-                    CLERI_FIRST_MATCH,
-                    3,
-                    k_string,
-                    k_integer,
-                    k_float
-                )
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                cleri_token(CLERI_NONE, "("),
-                CLERI_THIS,
-                cleri_token(CLERI_NONE, ")")
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                CLERI_THIS,
-                k_and,
-                CLERI_THIS
-            ),
-            cleri_sequence(
-                CLERI_NONE,
-                3,
-                CLERI_THIS,
-                k_or,
-                CLERI_THIS
-            )
-        )
-    );
     cleri_object_t * where_group = cleri_sequence(
         CLERI_GID_WHERE_GROUP,
         2,
@@ -481,6 +397,83 @@ cleri_grammar_t * compile_grammar(void)
                 pool_props,
                 int_operator,
                 int_expr
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                cleri_token(CLERI_NONE, "("),
+                CLERI_THIS,
+                cleri_token(CLERI_NONE, ")")
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                CLERI_THIS,
+                k_and,
+                CLERI_THIS
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                CLERI_THIS,
+                k_or,
+                CLERI_THIS
+            )
+        )
+    );
+    cleri_object_t * where_series = cleri_sequence(
+        CLERI_GID_WHERE_SERIES,
+        2,
+        k_where,
+        cleri_prio(
+            CLERI_NONE,
+            7,
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    2,
+                    k_length,
+                    k_pool
+                ),
+                int_operator,
+                int_expr
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_name,
+                str_operator,
+                string
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    2,
+                    k_start,
+                    k_end
+                ),
+                int_operator,
+                time_expr
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_type,
+                bool_operator,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    3,
+                    k_string,
+                    k_integer,
+                    k_float
+                )
             ),
             cleri_sequence(
                 CLERI_NONE,
@@ -592,26 +585,65 @@ cleri_grammar_t * compile_grammar(void)
             )
         )
     );
-    cleri_object_t * where_user = cleri_sequence(
-        CLERI_GID_WHERE_USER,
+    cleri_object_t * where_shard = cleri_sequence(
+        CLERI_GID_WHERE_SHARD,
         2,
         k_where,
         cleri_prio(
             CLERI_NONE,
-            5,
+            7,
             cleri_sequence(
                 CLERI_NONE,
                 3,
-                k_name,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    3,
+                    k_sid,
+                    k_pool,
+                    k_size
+                ),
+                int_operator,
+                int_expr
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_MOST_GREEDY,
+                    2,
+                    k_server,
+                    k_status
+                ),
                 str_operator,
                 string
             ),
             cleri_sequence(
                 CLERI_NONE,
                 3,
-                k_access,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    2,
+                    k_start,
+                    k_end
+                ),
                 int_operator,
-                access_keywords
+                time_expr
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_type,
+                bool_operator,
+                cleri_choice(
+                    CLERI_NONE,
+                    CLERI_FIRST_MATCH,
+                    2,
+                    k_number,
+                    k_log
+                )
             ),
             cleri_sequence(
                 CLERI_NONE,
@@ -636,19 +668,26 @@ cleri_grammar_t * compile_grammar(void)
             )
         )
     );
-    cleri_object_t * where_shard = cleri_sequence(
-        CLERI_GID_WHERE_SHARD,
+    cleri_object_t * where_user = cleri_sequence(
+        CLERI_GID_WHERE_USER,
         2,
         k_where,
         cleri_prio(
             CLERI_NONE,
-            4,
+            5,
             cleri_sequence(
                 CLERI_NONE,
                 3,
-                shard_props,
+                k_name,
+                str_operator,
+                string
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_access,
                 int_operator,
-                int_expr
+                access_keywords
             ),
             cleri_sequence(
                 CLERI_NONE,
@@ -898,6 +937,41 @@ cleri_grammar_t * compile_grammar(void)
             aggregate_functions
         ))
     );
+    cleri_object_t * set_address = cleri_sequence(
+        CLERI_GID_SET_ADDRESS,
+        3,
+        k_set,
+        k_address,
+        string
+    );
+    cleri_object_t * set_drop_threshold = cleri_sequence(
+        CLERI_GID_SET_DROP_THRESHOLD,
+        3,
+        k_set,
+        k_drop_threshold,
+        r_float
+    );
+    cleri_object_t * set_expression = cleri_sequence(
+        CLERI_GID_SET_EXPRESSION,
+        3,
+        k_set,
+        k_expression,
+        r_regex
+    );
+    cleri_object_t * set_ignore_threshold = cleri_sequence(
+        CLERI_GID_SET_IGNORE_THRESHOLD,
+        3,
+        k_set,
+        k_ignore_threshold,
+        _boolean
+    );
+    cleri_object_t * set_log_level = cleri_sequence(
+        CLERI_GID_SET_LOG_LEVEL,
+        3,
+        k_set,
+        k_log_level,
+        log_keywords
+    );
     cleri_object_t * set_name = cleri_sequence(
         CLERI_GID_SET_NAME,
         3,
@@ -912,54 +986,12 @@ cleri_grammar_t * compile_grammar(void)
         k_password,
         string
     );
-    cleri_object_t * set_address = cleri_sequence(
-        CLERI_GID_SET_ADDRESS,
-        3,
-        k_set,
-        k_address,
-        string
-    );
     cleri_object_t * set_port = cleri_sequence(
         CLERI_GID_SET_PORT,
         3,
         k_set,
         k_port,
         r_uinteger
-    );
-    cleri_object_t * set_license = cleri_sequence(
-        CLERI_GID_SET_LICENSE,
-        3,
-        k_set,
-        k_license,
-        string
-    );
-    cleri_object_t * set_log_level = cleri_sequence(
-        CLERI_GID_SET_LOG_LEVEL,
-        3,
-        k_set,
-        k_log_level,
-        log_keywords
-    );
-    cleri_object_t * set_ignore_threshold = cleri_sequence(
-        CLERI_GID_SET_IGNORE_THRESHOLD,
-        3,
-        k_set,
-        k_ignore_threshold,
-        _boolean
-    );
-    cleri_object_t * set_drop_threshold = cleri_sequence(
-        CLERI_GID_SET_DROP_THRESHOLD,
-        3,
-        k_set,
-        k_drop_threshold,
-        r_float
-    );
-    cleri_object_t * set_query_timeout = cleri_sequence(
-        CLERI_GID_SET_QUERY_TIMEOUT,
-        3,
-        k_set,
-        k_query_timeout,
-        r_float
     );
     cleri_object_t * set_timezone = cleri_sequence(
         CLERI_GID_SET_TIMEZONE,
@@ -968,24 +1000,16 @@ cleri_grammar_t * compile_grammar(void)
         k_timezone,
         string
     );
-    cleri_object_t * set_expression = cleri_sequence(
-        CLERI_GID_SET_EXPRESSION,
-        3,
-        k_set,
-        k_expression,
-        r_regex
-    );
-    cleri_object_t * alter_user = cleri_sequence(
-        CLERI_GID_ALTER_USER,
-        3,
-        k_user,
-        string,
+    cleri_object_t * alter_database = cleri_sequence(
+        CLERI_GID_ALTER_DATABASE,
+        2,
+        k_database,
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
             2,
-            set_password,
-            set_name
+            set_drop_threshold,
+            set_timezone
         )
     );
     cleri_object_t * alter_group = cleri_sequence(
@@ -1001,6 +1025,13 @@ cleri_grammar_t * compile_grammar(void)
             set_name
         )
     );
+    cleri_object_t * alter_series = cleri_sequence(
+        CLERI_GID_ALTER_SERIES,
+        3,
+        k_series,
+        series_name,
+        set_name
+    );
     cleri_object_t * alter_server = cleri_sequence(
         CLERI_GID_ALTER_SERVER,
         3,
@@ -1015,26 +1046,18 @@ cleri_grammar_t * compile_grammar(void)
             set_log_level
         )
     );
-    cleri_object_t * alter_database = cleri_sequence(
-        CLERI_GID_ALTER_DATABASE,
-        2,
-        k_database,
+    cleri_object_t * alter_user = cleri_sequence(
+        CLERI_GID_ALTER_USER,
+        3,
+        k_user,
+        string,
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            4,
-            set_license,
-            set_drop_threshold,
-            set_query_timeout,
-            set_timezone
+            2,
+            set_password,
+            set_name
         )
-    );
-    cleri_object_t * alter_series = cleri_sequence(
-        CLERI_GID_ALTER_SERIES,
-        3,
-        k_series,
-        series_name,
-        set_name
     );
     cleri_object_t * count_groups = cleri_sequence(
         CLERI_GID_COUNT_GROUPS,
@@ -1163,12 +1186,6 @@ cleri_grammar_t * compile_grammar(void)
         ),
         cleri_optional(CLERI_NONE, set_ignore_threshold)
     );
-    cleri_object_t * drop_shard = cleri_sequence(
-        CLERI_GID_DROP_SHARD,
-        2,
-        k_shard,
-        r_uinteger
-    );
     cleri_object_t * drop_shards = cleri_sequence(
         CLERI_GID_DROP_SHARDS,
         3,
@@ -1260,12 +1277,6 @@ cleri_grammar_t * compile_grammar(void)
         )
     );
     cleri_object_t * calc_stmt = cleri_repeat(CLERI_GID_CALC_STMT, time_expr, 1, 1);
-    cleri_object_t * continue_stmt = cleri_sequence(
-        CLERI_GID_CONTINUE_STMT,
-        2,
-        k_continue,
-        uuid
-    );
     cleri_object_t * count_stmt = cleri_sequence(
         CLERI_GID_COUNT_STMT,
         2,
@@ -1306,10 +1317,9 @@ cleri_grammar_t * compile_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            6,
+            5,
             drop_group,
             drop_series,
-            drop_shard,
             drop_shards,
             drop_server,
             drop_user
@@ -1345,12 +1355,6 @@ cleri_grammar_t * compile_grammar(void)
         ),
         cleri_optional(CLERI_NONE, limit_expr)
     );
-    cleri_object_t * pause_stmt = cleri_sequence(
-        CLERI_GID_PAUSE_STMT,
-        2,
-        k_pause,
-        uuid
-    );
     cleri_object_t * revoke_stmt = cleri_sequence(
         CLERI_GID_REVOKE_STMT,
         4,
@@ -1382,78 +1386,58 @@ cleri_grammar_t * compile_grammar(void)
         )),
         cleri_optional(CLERI_NONE, merge_as)
     );
-    cleri_object_t * show_props = cleri_choice(
-        CLERI_GID_SHOW_PROPS,
-        CLERI_FIRST_MATCH,
-        31,
-        k_active_handles,
-        k_buffer_path,
-        k_buffer_size,
-        k_dbname,
-        k_dbpath,
-        k_drop_threshold,
-        k_duration_log,
-        k_duration_num,
-        k_libuv,
-        k_license,
-        k_log_level,
-        k_max_open_files,
-        k_mem_usage,
-        k_open_files,
-        k_optimize_pool,
-        k_optimize_task,
-        k_pool,
-        k_query_timeout,
-        k_received_points,
-        k_reindex_progress,
-        k_server,
-        k_sharding_max_chunk_points,
-        k_startup_time,
-        k_status,
-        k_sync_progress,
-        k_timezone,
-        k_time_precision,
-        k_uptime,
-        k_uuid,
-        k_version,
-        k_who_am_i
-    );
     cleri_object_t * show_stmt = cleri_sequence(
         CLERI_GID_SHOW_STMT,
         2,
         k_show,
-        cleri_list(CLERI_NONE, show_props, cleri_token(CLERI_NONE, ","), 0, 0, 0)
+        cleri_list(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            29,
+            k_active_handles,
+            k_buffer_path,
+            k_buffer_size,
+            k_dbname,
+            k_dbpath,
+            k_drop_threshold,
+            k_duration_log,
+            k_duration_num,
+            k_libuv,
+            k_log_level,
+            k_max_open_files,
+            k_mem_usage,
+            k_open_files,
+            k_optimize_pool,
+            k_optimize_task,
+            k_pool,
+            k_received_points,
+            k_reindex_progress,
+            k_server,
+            k_sharding_max_chunk_points,
+            k_startup_time,
+            k_status,
+            k_sync_progress,
+            k_timezone,
+            k_time_precision,
+            k_uptime,
+            k_uuid,
+            k_version,
+            k_who_am_i
+        ), cleri_token(CLERI_NONE, ","), 0, 0, 0)
     );
     cleri_object_t * timeit_stmt = cleri_repeat(CLERI_GID_TIMEIT_STMT, k_timeit, 1, 1);
-    cleri_object_t * help_drop_network = cleri_keyword(CLERI_GID_HELP_DROP_NETWORK, "network", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop_shard = cleri_keyword(CLERI_GID_HELP_DROP_SHARD, "shard", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop_series = cleri_keyword(CLERI_GID_HELP_DROP_SERIES, "series", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop_user = cleri_keyword(CLERI_GID_HELP_DROP_USER, "user", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop_server = cleri_keyword(CLERI_GID_HELP_DROP_SERVER, "server", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop_group = cleri_keyword(CLERI_GID_HELP_DROP_GROUP, "group", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_drop = cleri_sequence(
-        CLERI_GID_HELP_DROP,
-        2,
-        k_drop,
-        cleri_optional(CLERI_NONE, cleri_choice(
-            CLERI_NONE,
-            CLERI_MOST_GREEDY,
-            6,
-            help_drop_network,
-            help_drop_shard,
-            help_drop_series,
-            help_drop_user,
-            help_drop_server,
-            help_drop_group
-        ))
-    );
-    cleri_object_t * help_continue = cleri_keyword(CLERI_GID_HELP_CONTINUE, "continue", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_alter_user = cleri_keyword(CLERI_GID_HELP_ALTER_USER, "user", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_alter_group = cleri_keyword(CLERI_GID_HELP_ALTER_GROUP, "group", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_alter_database = cleri_keyword(CLERI_GID_HELP_ALTER_DATABASE, "database", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_select = cleri_keyword(CLERI_GID_HELP_SELECT, "select", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_revoke = cleri_keyword(CLERI_GID_HELP_REVOKE, "revoke", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_grant = cleri_keyword(CLERI_GID_HELP_GRANT, "grant", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_pause = cleri_keyword(CLERI_GID_HELP_PAUSE, "pause", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_functions = cleri_keyword(CLERI_GID_HELP_FUNCTIONS, "functions", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_alter_network = cleri_keyword(CLERI_GID_HELP_ALTER_NETWORK, "network", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_alter_series = cleri_keyword(CLERI_GID_HELP_ALTER_SERIES, "series", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_alter_server = cleri_keyword(CLERI_GID_HELP_ALTER_SERVER, "server", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_alter_series = cleri_keyword(CLERI_GID_HELP_ALTER_SERIES, "series", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_alter_database = cleri_keyword(CLERI_GID_HELP_ALTER_DATABASE, "database", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_alter_group = cleri_keyword(CLERI_GID_HELP_ALTER_GROUP, "group", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_alter_user = cleri_keyword(CLERI_GID_HELP_ALTER_USER, "user", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_alter = cleri_sequence(
         CLERI_GID_HELP_ALTER,
         2,
@@ -1462,44 +1446,41 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_NONE,
             CLERI_MOST_GREEDY,
             6,
-            help_alter_user,
-            help_alter_group,
-            help_alter_database,
             help_alter_network,
+            help_alter_server,
             help_alter_series,
-            help_alter_server
+            help_alter_database,
+            help_alter_group,
+            help_alter_user
         ))
     );
-    cleri_object_t * help_revoke = cleri_keyword(CLERI_GID_HELP_REVOKE, "revoke", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_servers = cleri_keyword(CLERI_GID_HELP_LIST_SERVERS, "servers", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_users = cleri_keyword(CLERI_GID_HELP_LIST_USERS, "users", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_groups = cleri_keyword(CLERI_GID_HELP_LIST_GROUPS, "groups", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_pools = cleri_keyword(CLERI_GID_HELP_LIST_POOLS, "pools", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_shards = cleri_keyword(CLERI_GID_HELP_LIST_SHARDS, "shards", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_networks = cleri_keyword(CLERI_GID_HELP_LIST_NETWORKS, "networks", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list_series = cleri_keyword(CLERI_GID_HELP_LIST_SERIES, "series", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_list = cleri_sequence(
-        CLERI_GID_HELP_LIST,
+    cleri_object_t * help_count_servers = cleri_keyword(CLERI_GID_HELP_COUNT_SERVERS, "servers", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_networks = cleri_keyword(CLERI_GID_HELP_COUNT_NETWORKS, "networks", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_shards = cleri_keyword(CLERI_GID_HELP_COUNT_SHARDS, "shards", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_series = cleri_keyword(CLERI_GID_HELP_COUNT_SERIES, "series", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_users = cleri_keyword(CLERI_GID_HELP_COUNT_USERS, "users", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_groups = cleri_keyword(CLERI_GID_HELP_COUNT_GROUPS, "groups", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count_pools = cleri_keyword(CLERI_GID_HELP_COUNT_POOLS, "pools", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_count = cleri_sequence(
+        CLERI_GID_HELP_COUNT,
         2,
-        k_list,
+        k_count,
         cleri_optional(CLERI_NONE, cleri_choice(
             CLERI_NONE,
             CLERI_MOST_GREEDY,
             7,
-            help_list_servers,
-            help_list_users,
-            help_list_groups,
-            help_list_pools,
-            help_list_shards,
-            help_list_networks,
-            help_list_series
+            help_count_servers,
+            help_count_networks,
+            help_count_shards,
+            help_count_series,
+            help_count_users,
+            help_count_groups,
+            help_count_pools
         ))
     );
-    cleri_object_t * help_functions = cleri_keyword(CLERI_GID_HELP_FUNCTIONS, "functions", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_access = cleri_keyword(CLERI_GID_HELP_ACCESS, "access", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_create_user = cleri_keyword(CLERI_GID_HELP_CREATE_USER, "user", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_create_network = cleri_keyword(CLERI_GID_HELP_CREATE_NETWORK, "network", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_create_group = cleri_keyword(CLERI_GID_HELP_CREATE_GROUP, "group", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_create_network = cleri_keyword(CLERI_GID_HELP_CREATE_NETWORK, "network", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_create = cleri_sequence(
         CLERI_GID_HELP_CREATE,
         2,
@@ -1509,41 +1490,61 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_MOST_GREEDY,
             3,
             help_create_user,
-            help_create_network,
-            help_create_group
+            help_create_group,
+            help_create_network
         ))
     );
-    cleri_object_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_pause = cleri_keyword(CLERI_GID_HELP_PAUSE, "pause", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_noaccess = cleri_keyword(CLERI_GID_HELP_NOACCESS, "noaccess", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_grant = cleri_keyword(CLERI_GID_HELP_GRANT, "grant", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_networks = cleri_keyword(CLERI_GID_HELP_COUNT_NETWORKS, "networks", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_pools = cleri_keyword(CLERI_GID_HELP_COUNT_POOLS, "pools", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_shards = cleri_keyword(CLERI_GID_HELP_COUNT_SHARDS, "shards", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_groups = cleri_keyword(CLERI_GID_HELP_COUNT_GROUPS, "groups", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_users = cleri_keyword(CLERI_GID_HELP_COUNT_USERS, "users", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_series = cleri_keyword(CLERI_GID_HELP_COUNT_SERIES, "series", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count_servers = cleri_keyword(CLERI_GID_HELP_COUNT_SERVERS, "servers", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_count = cleri_sequence(
-        CLERI_GID_HELP_COUNT,
+    cleri_object_t * help_access = cleri_keyword(CLERI_GID_HELP_ACCESS, "access", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_shards = cleri_keyword(CLERI_GID_HELP_LIST_SHARDS, "shards", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_servers = cleri_keyword(CLERI_GID_HELP_LIST_SERVERS, "servers", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_pools = cleri_keyword(CLERI_GID_HELP_LIST_POOLS, "pools", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_users = cleri_keyword(CLERI_GID_HELP_LIST_USERS, "users", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_groups = cleri_keyword(CLERI_GID_HELP_LIST_GROUPS, "groups", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_series = cleri_keyword(CLERI_GID_HELP_LIST_SERIES, "series", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list_networks = cleri_keyword(CLERI_GID_HELP_LIST_NETWORKS, "networks", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_list = cleri_sequence(
+        CLERI_GID_HELP_LIST,
         2,
-        k_count,
+        k_list,
         cleri_optional(CLERI_NONE, cleri_choice(
             CLERI_NONE,
             CLERI_MOST_GREEDY,
             7,
-            help_count_networks,
-            help_count_pools,
-            help_count_shards,
-            help_count_groups,
-            help_count_users,
-            help_count_series,
-            help_count_servers
+            help_list_shards,
+            help_list_servers,
+            help_list_pools,
+            help_list_users,
+            help_list_groups,
+            help_list_series,
+            help_list_networks
         ))
     );
-    cleri_object_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_INSENSITIVE);
-    cleri_object_t * help_select = cleri_keyword(CLERI_GID_HELP_SELECT, "select", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_noaccess = cleri_keyword(CLERI_GID_HELP_NOACCESS, "noaccess", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help_show = cleri_keyword(CLERI_GID_HELP_SHOW, "show", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_continue = cleri_keyword(CLERI_GID_HELP_CONTINUE, "continue", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_server = cleri_keyword(CLERI_GID_HELP_DROP_SERVER, "server", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_network = cleri_keyword(CLERI_GID_HELP_DROP_NETWORK, "network", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_shard = cleri_keyword(CLERI_GID_HELP_DROP_SHARD, "shard", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_user = cleri_keyword(CLERI_GID_HELP_DROP_USER, "user", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_group = cleri_keyword(CLERI_GID_HELP_DROP_GROUP, "group", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop_series = cleri_keyword(CLERI_GID_HELP_DROP_SERIES, "series", CLERI_CASE_INSENSITIVE);
+    cleri_object_t * help_drop = cleri_sequence(
+        CLERI_GID_HELP_DROP,
+        2,
+        k_drop,
+        cleri_optional(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_MOST_GREEDY,
+            6,
+            help_drop_server,
+            help_drop_network,
+            help_drop_shard,
+            help_drop_user,
+            help_drop_group,
+            help_drop_series
+        ))
+    );
+    cleri_object_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_INSENSITIVE);
     cleri_object_t * help = cleri_sequence(
         CLERI_GID_HELP,
         2,
@@ -1552,22 +1553,22 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_NONE,
             CLERI_MOST_GREEDY,
             16,
-            help_drop,
-            help_continue,
-            help_alter,
-            help_revoke,
-            help_list,
-            help_functions,
-            help_access,
-            help_create,
-            help_timeit,
-            help_pause,
-            help_noaccess,
-            help_grant,
-            help_count,
-            help_timezones,
             help_select,
-            help_show
+            help_revoke,
+            help_grant,
+            help_pause,
+            help_timezones,
+            help_functions,
+            help_alter,
+            help_count,
+            help_create,
+            help_access,
+            help_list,
+            help_noaccess,
+            help_show,
+            help_continue,
+            help_drop,
+            help_timeit
         ))
     );
     cleri_object_t * START = cleri_sequence(
@@ -1577,16 +1578,14 @@ cleri_grammar_t * compile_grammar(void)
         cleri_optional(CLERI_NONE, cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            13,
+            11,
             select_stmt,
             list_stmt,
             count_stmt,
             alter_stmt,
-            continue_stmt,
             create_stmt,
             drop_stmt,
             grant_stmt,
-            pause_stmt,
             revoke_stmt,
             show_stmt,
             calc_stmt,

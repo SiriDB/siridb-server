@@ -63,7 +63,8 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                     siridb,
                     shard_id,
                     duration,
-                    series->tp,
+                    siridb_series_isnum(series) ?
+                            SIRIDB_SHARD_TP_NUMBER : SIRIDB_SHARD_TP_LOG,
                     NULL);
             if (shard == NULL)
             {
@@ -138,7 +139,7 @@ int siridb_buffer_write_len(
 {
     return (
         /* go to the series position in buffer */
-        fseek(  siridb->buffer_fp,
+        fseeko(  siridb->buffer_fp,
                 series->buffer->bf_offset + sizeof(uint32_t),
                 SEEK_SET) ||
 
@@ -165,7 +166,7 @@ int siridb_buffer_write_point(
         siridb_buffer_write_len(siridb, series) ||
 
         /* jump to position where to write the new point */
-        fseek(  siridb->buffer_fp,
+        fseeko(  siridb->buffer_fp,
                 16 * (series->buffer->points->len - 1),
                 SEEK_CUR) ||
 
@@ -191,7 +192,7 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
     }
 
     /* jump to end of buffer */
-    if (fseek(siridb->buffer_fp, 0, SEEK_END))
+    if (fseeko(siridb->buffer_fp, 0, SEEK_END))
     {
         ERR_FILE
         return -1;
@@ -204,7 +205,7 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
     }
 
     /* bind the current offset to the new series */
-    if ((series->buffer->bf_offset = ftell(siridb->buffer_fp)) == -1)
+    if ((series->buffer->bf_offset = ftello(siridb->buffer_fp)) == -1)
     {
         ERR_FILE
         return -1;

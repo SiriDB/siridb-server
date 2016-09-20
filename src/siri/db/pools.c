@@ -7,7 +7,6 @@
  *
  * changes
  *  - initial version, 04-05-2016
- *
  */
 
 #include <assert.h>

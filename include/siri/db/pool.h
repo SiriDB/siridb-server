@@ -37,7 +37,7 @@ typedef struct siridb_pool_s
 
 typedef struct siridb_pool_walker_s
 {
-    uint_fast16_t pid;
+    uint_fast16_t pool;
     uint_fast8_t servers;
     size_t series;
 } siridb_pool_walker_t;

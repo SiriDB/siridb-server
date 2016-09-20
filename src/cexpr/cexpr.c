@@ -15,6 +15,8 @@
 #include <siri/grammar/grammar.h>
 #include <logger/logger.h>
 #include <siri/db/series.h>
+#include <siri/db/shard.h>
+#include <siri/db/access.h>
 #include <strextra/strextra.h>
 
 #define VIA_NULL 0
@@ -407,6 +409,12 @@ static cexpr_t * CEXPR_walk_node(
             case CLERI_GID_K_STRING:
                 (*condition)->int64 = SIRIDB_SERIES_TP_STRING; break;
 
+            /* map shard types */
+            case CLERI_GID_K_NUMBER:
+                (*condition)->int64 = SIRIDB_SHARD_TP_NUMBER; break;
+            case CLERI_GID_K_LOG:
+                (*condition)->int64 = SIRIDB_SHARD_TP_LOG; break;
+
             /* map access types */
             case CLERI_GID_K_SHOW:
                 (*condition)->int64 = SIRIDB_ACCESS_SHOW; break;
@@ -424,10 +432,6 @@ static cexpr_t * CEXPR_walk_node(
                 (*condition)->int64 = SIRIDB_ACCESS_ALTER; break;
             case CLERI_GID_K_DROP:
                 (*condition)->int64 = SIRIDB_ACCESS_DROP; break;
-            case CLERI_GID_K_PAUSE:
-                (*condition)->int64 = SIRIDB_ACCESS_PAUSE; break;
-            case CLERI_GID_K_CONTINUE:
-                (*condition)->int64 = SIRIDB_ACCESS_CONTINUE; break;
             case CLERI_GID_K_GRANT:
                 (*condition)->int64 = SIRIDB_ACCESS_GRANT; break;
             case CLERI_GID_K_REVOKE:
