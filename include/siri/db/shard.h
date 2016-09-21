@@ -22,7 +22,7 @@
 #define SIRIDB_SHARD_HAS_OVERLAP 2
 #define SIRIDB_SHARD_HAS_NEW_VALUES 4
 #define SIRIDB_SHARD_HAS_DROPPED_SERIES 8
-#define SIRIDB_SHARD_WILL_BE_REMOVED 16
+#define SIRIDB_SHARD_IS_REMOVED 16
 #define SIRIDB_SHARD_IS_LOADING 32
 #define SIRIDB_SHARD_IS_CORRUPT 64
 
@@ -82,6 +82,7 @@ ssize_t siridb_shard_get_size(siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_incref(siridb_shard_t * shard);
 void siridb_shard_decref(siridb_shard_t * shard);
+int siridb_shard_remove(siridb_shard_t * shard);
 long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,

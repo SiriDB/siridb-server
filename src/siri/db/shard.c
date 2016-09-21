@@ -76,7 +76,7 @@ static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
         {.repr="overlap", .flag=SIRIDB_SHARD_HAS_OVERLAP},
         {.repr="new-values", .flag=SIRIDB_SHARD_HAS_NEW_VALUES},
         {.repr="dropped-series", .flag=SIRIDB_SHARD_HAS_DROPPED_SERIES},
-        {.repr="dropped", .flag=SIRIDB_SHARD_WILL_BE_REMOVED},
+        {.repr="dropped", .flag=SIRIDB_SHARD_IS_REMOVED},
         {.repr="loading", .flag=SIRIDB_SHARD_IS_LOADING},
         {.repr="corrupt", .flag=SIRIDB_SHARD_IS_CORRUPT},
 };
@@ -592,11 +592,16 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
                 shard->id % siridb->duration_num == series->mask &&
-                (~series->flags & SIRIDB_SERIES_IS_DROPPED))
+                (~series->flags & SIRIDB_SERIES_IS_DROPPED) &&
+                (~new_shard->flags & SIRIDB_SHARD_IS_REMOVED))
         {
             uv_mutex_lock(&siridb->series_mutex);
 
-            if (siridb_series_optimize_shard_num32(siridb, series, new_shard))
+            if (    (~new_shard->flags & SIRIDB_SHARD_IS_REMOVED) &&
+                    siridb_series_optimize_shard_num32(
+                            siridb,
+                            series,
+                            new_shard))
             {
                 log_critical(
                         "Optimizing shard '%s' has failed due to a critical "
@@ -614,6 +619,15 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     }
 
     slist_free(slist);
+
+    if (new_shard->flags & SIRIDB_SHARD_IS_REMOVED)
+    {
+        log_warning(
+                "Cancel optimizing shard '%s' because the shard is dropped",
+                new_shard->fn);
+        siridb_shard_decref(new_shard);
+        return siri_err;
+    }
 
     /* this is a good time to copy the file name */
     char * tmp = strdup(new_shard->replacing->fn);
@@ -634,6 +648,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         siridb_shard_decref(new_shard);
         return siri_err;
     }
+
+
 
     sleep(1);
 
@@ -736,6 +752,37 @@ inline void siridb_shard_decref(siridb_shard_t * shard)
 }
 
 /*
+ * Returns 0 when successful or a negative value in case of an error.
+ */
+int siridb_shard_remove(siridb_shard_t * shard)
+{
+    int rc = 0;
+
+    if (shard->replacing != NULL)
+    {
+        rc = siridb_shard_remove(shard->replacing);
+    }
+
+    siri_fp_close(shard->fp);
+
+    rc += unlink(shard->fn);
+
+    if (rc == 0)
+    {
+        log_debug("Shard file removed: %s", shard->fn);
+    }
+    else
+    {
+        log_critical(
+                "Cannot remove shard file: %s (error code: %d)",
+                shard->fn,
+                rc);
+    }
+
+    return rc;
+}
+
+/*
  * Destroy shard.
  * When flag SIRIDB_SHARD_WILL_BE_REMOVED is set, the file will be removed.
  *
@@ -753,7 +800,7 @@ static void SHARD_free(siridb_shard_t * shard)
     siri_fp_decref(shard->fp);
 
     /* check if we need to remove the shard file */
-    if (shard->flags & SIRIDB_SHARD_WILL_BE_REMOVED)
+    if (shard->flags & SIRIDB_SHARD_IS_REMOVED)
     {
         int rc;
         rc = unlink(shard->fn);

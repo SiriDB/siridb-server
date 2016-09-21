@@ -205,7 +205,7 @@ static void OPTIMIZE_work(uv_work_t * work)
             if (    !siri_err &&
                     optimize.status != SIRI_OPTIMIZE_CANCELLED &&
                     shard->flags != SIRIDB_SHARD_OK &&
-                    (~shard->flags & SIRIDB_SHARD_WILL_BE_REMOVED))
+                    (~shard->flags & SIRIDB_SHARD_IS_REMOVED))
             {
                 log_info("Start optimizing shard id %lu (%u)",
                         shard->id, shard->flags);

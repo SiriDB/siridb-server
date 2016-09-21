@@ -4,6 +4,7 @@
 #include <siri/db/query.h>
 #include <logger/logger.h>
 #include <siri/db/aggregate.h>
+#include <siri/db/shard.h>
 #include <assert.h>
 
 #define DEFAULT_LIST_LIMIT 1000
@@ -140,6 +141,7 @@ query_drop_t * query_drop_new(void)
         q_drop->tp = QUERIES_DROP;
         q_drop->n = 0;
         q_drop->flags = 0;
+        q_drop->shards_list = NULL;
     }
     return q_drop;
 }
@@ -205,6 +207,17 @@ void query_drop_free(uv_handle_t * handle)
 {
     query_drop_t * q_drop =
             (query_drop_t *) ((siridb_query_t *) handle->data)->data;
+
+    if (q_drop->shards_list != NULL)
+    {
+        while (q_drop->shards_list->len)
+        {
+            siridb_shard_decref(
+                    (siridb_shard_t *) slist_pop(q_drop->shards_list));
+        }
+
+        slist_free(q_drop->shards_list);
+    }
 
     QUERIES_FREE(q_drop, handle)
 }

@@ -143,6 +143,7 @@ static void exit_timeit_stmt(uv_async_t * handle);
 /* async loop functions */
 static void async_count_series(uv_async_t * handle);
 static void async_drop_series(uv_async_t * handle);
+static void async_drop_shards(uv_async_t * handle);
 static void async_filter_series(uv_async_t * handle);
 static void async_list_series(uv_async_t * handle);
 static void async_select_aggregate(uv_async_t * handle);
@@ -155,6 +156,7 @@ static void on_ack_response(
         int status);
 static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_drop_series_response(slist_t * promises, uv_async_t * handle);
+static void on_drop_shards_response(slist_t * promises, uv_async_t * handle);
 static void on_groups_response(slist_t * promises, uv_async_t * handle);
 static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_select_response(slist_t * promises, uv_async_t * handle);
@@ -1497,6 +1499,8 @@ static void exit_count_shards(uv_async_t * handle)
                 q_count->n++;
             }
         }
+
+        slist_free(shards_list);
     }
 
     if (IS_MASTER)
@@ -1766,75 +1770,83 @@ static void exit_drop_series(uv_async_t * handle)
         }
     }
 }
-
 static void exit_drop_shards(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-
-    cleri_node_t * shard_id_node =
-                query->nodes->node->children->next->node;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
 
-    int64_t shard_id = atoll(shard_id_node->str);
+    MASTER_CHECK_POOLS_ONLINE(siridb)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    siridb_shard_t * shard = imap_pop(siridb->shards, shard_id);
+    q_drop->shards_list = imap_2slist_ref(siridb->shards);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
-    if (shard == NULL)
+    if (q_drop->where_expr != NULL)
     {
-        log_debug(
-                "Cannot find shard '%ld' on server '%s'",
-                shard_id,
-                siridb->server->name);
+        uint64_t duration;
+        siridb_shard_view_t vshard = {
+                .server=siridb->server
+        };
+
+        size_t dropped = 0;
+
+        for (size_t i = 0; i < q_drop->shards_list->len; i++)
+        {
+            vshard.shard = (siridb_shard_t *) q_drop->shards_list->data[i];
+
+            /* set start and end properties */
+            duration = (vshard.shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
+                    siridb->duration_num : siridb->duration_log;
+
+            vshard.start = vshard.shard->id - vshard.shard->id % duration;
+            vshard.end = vshard.start + duration;
+
+            if (!cexpr_run(
+                    q_drop->where_expr,
+                    (cexpr_cb_t) siridb_shard_cexpr_cb,
+                    &vshard))
+            {
+                siridb_shard_decref(vshard.shard);
+                dropped++;
+            }
+            else if (dropped)
+            {
+                q_drop->shards_list->data[i - dropped] = vshard.shard;
+            }
+        }
+
+        q_drop->shards_list->len -= dropped;
+    }
+
+    double percent = (double)
+            q_drop->shards_list->len / siridb->shards->len;
+
+    if (IS_MASTER &&
+        q_drop->shards_list->len &&
+        (~q_drop->flags & QUERIES_IGNORE_DROP_THRESHOLD) &&
+        percent >= siridb->drop_threshold)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "This query would drop %0.2f%% of the shards in pool %u. "
+                "Add \'set ignore_threshold true\' to the query "
+                "statement if you really want to do this.",
+                percent * 100,
+                siridb->server->pool);
+
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
-        siridb_series_t * series;
+        QP_ADD_SUCCESS
 
-        /*
-         * We need a series mutex here since we depend on the series index
-         * and we create a copy since series might be removed when the length
-         * of series is zero after removing the shard
-         */
-        uv_mutex_lock(&siridb->series_mutex);
+        q_drop->n = q_drop->shards_list->len;
 
-        /* create a copy since series might be removed */
-        slist_t * slist = imap_2slist(siridb->series_map);
-
-        if (slist != NULL)
-        {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    /* series might be destroyed after this call */
-                    siridb_series_remove_shard_num32(siridb, series, shard);
-                }
-            }
-            slist_free(slist);
-        }
-
-        uv_mutex_unlock(&siridb->series_mutex);
-
-        shard->flags |= SIRIDB_SHARD_WILL_BE_REMOVED;
-
-        siridb_shard_decref(shard);
-
+        async_drop_shards(handle);
     }
-
-    /* we send back a successful message even when the shard was not found
-     * because it might be dropped on another server so at least the shard
-     * is gone.
-     */
-    QP_ADD_SUCCESS
-    qp_add_fmt(query->packer,
-            "Shard '%ld' is dropped successfully.", shard_id);
-
-    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_drop_user(uv_async_t * handle)
@@ -2255,6 +2267,8 @@ static void exit_list_shards(uv_async_t * handle)
 
         siridb_shard_decref(vshard.shard);
     }
+
+    slist_free(shards_list);
 
     if (IS_MASTER && q_list->limit)
     {
@@ -2914,6 +2928,99 @@ static void async_drop_series(uv_async_t * handle)
     }
 }
 
+static void async_drop_shards(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
+
+    if (q_drop->shards_list->len)
+    {
+        siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+        siridb_shard_t * shard = slist_pop(q_drop->shards_list);
+        siridb_series_t * series;
+
+        uv_mutex_lock(&siridb->series_mutex);
+        uv_mutex_lock(&siridb->shards_mutex);
+
+        imap_pop(siridb->shards, shard->id);
+        shard->flags |= SIRIDB_SHARD_IS_REMOVED;
+        siridb_shard_remove(shard);
+
+        uv_mutex_unlock(&siridb->shards_mutex);
+
+        LOGC("Here...1");
+        /*
+         * We need a series mutex here since we depend on the series index
+         * and we create a copy since series might be removed when the length
+         * of series is zero after removing the shard
+         */
+
+        /* create a copy since series might be removed */
+        slist_t * slist = imap_2slist(siridb->series_map);
+
+        LOGC("Here...1.1");
+
+        if (slist != NULL)
+        {
+            for (size_t i = 0; i < slist->len; i++)
+            {
+                series = (siridb_series_t *) slist->data[i];
+                if (shard->id % siridb->duration_num == series->mask)
+                {
+                    /* series might be destroyed after this call */
+                    LOGC("Here...1.2");
+                    siridb_series_remove_shard_num32(siridb, series, shard);
+                    LOGC("Here...1.3");
+                }
+            }
+            slist_free(slist);
+        }
+
+        LOGC("Here...2");
+
+        uv_mutex_unlock(&siridb->series_mutex);
+
+        siridb_shard_decref(shard);
+
+        LOGC("Here...3");
+    }
+
+    if (q_drop->shards_list->len)
+    {
+        LOGC("Here...4");
+        uv_async_t * async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (async_more == NULL)
+        {
+            ERR_ALLOC
+        }
+        else
+        {
+            async_more->data = (void *) handle->data;
+            uv_async_init(
+                    siri.loop,
+                    async_more,
+                    (uv_async_cb) &async_drop_shards);
+            uv_async_send(async_more);
+            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        }
+        LOGC("Here...5");
+    }
+    else if (IS_MASTER)
+    {
+        LOGC("Here...6");
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_drop_shards_response);
+    }
+    else
+    {
+        qp_add_int64(query->packer, q_drop->n);
+        SIRIPARSER_NEXT_NODE
+    }
+}
+
 static void async_filter_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -3474,6 +3581,65 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
 
     qp_add_fmt(query->packer,
             "Successfully dropped %lu series.", q_drop->n);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+/*
+ * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
+ */
+static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
+{
+    ON_PROMISES
+
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_drop;
+
+    query_drop_t * q_drop = query->data;
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            continue;
+        }
+
+        pkg = (sirinet_pkg_t *) promise->data;
+
+        if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
+        {
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+            if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) &&  // shards
+                    qp_is_int(qp_next(&unpacker, &qp_drop))) // one result
+            {
+                q_drop->n += qp_drop.via.int64;
+
+                /* extract time-it info if needed */
+                if (query->timeit != NULL)
+                {
+                    siridb_query_timeit_from_unpacker(query, &unpacker);
+                }
+            }
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        free(promise);
+    }
+
+    qp_add_fmt(query->packer,
+            "Successfully dropped %lu shards. (this number does not include "
+            "shards which are dropped on replica servers)",
+            q_drop->n);
 
     SIRIPARSER_NEXT_NODE
 }

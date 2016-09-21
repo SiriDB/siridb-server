@@ -459,7 +459,7 @@ void siridb_series_remove_shard_num32(
     uint_fast32_t i, offset;
 
     i = offset = 0;
-
+    LOGC("1...");
     for (   idx = (idx_num32_t *) series->idx;
             i < series->idx_len;
             i++, idx++)
@@ -475,10 +475,15 @@ void siridb_series_remove_shard_num32(
                     ((idx_num32_t *) series->idx)[i];
         }
     }
+    LOGC("2...");
+
     if (offset)
     {
+        LOGC("2.1 ...");
         if (!series->length)
         {
+            LOGC("2.1 (drop)...");
+
             if (siridb_series_drop(siridb, series))
             {
                 siridb_series_flush_dropped(siridb);
@@ -486,6 +491,7 @@ void siridb_series_remove_shard_num32(
         }
         else
         {
+            LOGC("2.1 (re-alloc)...");
             series->idx_len -= offset;
             idx = (idx_num32_t *) realloc(
                         (idx_num32_t *) series->idx,
@@ -499,14 +505,17 @@ void siridb_series_remove_shard_num32(
             {
                 series->idx = idx;
             }
+            LOGC("2.2 ...");
             uint64_t start = shard->id - series->mask;
             uint64_t end = start + siridb->duration_num;
             if (series->start >= start && series->start < end)
             {
+                LOGC("2.3 ...");
                 SERIES_update_start_num32(series);
             }
             if (series->end < end && series->end > start)
             {
+                LOGC("2.4 ...");
                 SERIES_update_end_num32(series);
             }
         }
