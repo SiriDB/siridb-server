@@ -105,7 +105,7 @@ class TestInsert(TestBase):
         self.client0.close()
         self.client1.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':

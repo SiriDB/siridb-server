@@ -25,8 +25,8 @@ DATA = {
 }
 
 
-class TestUser(TestBase):
-    title = 'Test user object'
+class TestGroup(TestBase):
+    title = 'Test group object'
 
     @default_test_setup(2)
     async def run(self):
@@ -115,4 +115,4 @@ class TestUser(TestBase):
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
-    run_test(TestUser())
+    run_test(TestGroup())

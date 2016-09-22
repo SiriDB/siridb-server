@@ -376,16 +376,6 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         if (signum == SIGINT || signum == SIGTERM)
         {
             log_warning("Asked SiriDB Server to stop (%d)", signum);
-
-            /* set SiriDB in closing mode and start a timer to check if
-             * we can finish open tasks before really closing
-             */
-            uv_timer_init(siri.loop, &closing_timer);
-            uv_timer_start(
-                    &closing_timer,
-                    SIRI_try_close,
-                    0,
-                    WAIT_BETWEEN_CLOSE_ATTEMPTS);
         }
         else
         {
@@ -397,8 +387,16 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
             {
                 siri_err = signum;
             }
-            SIRI_destroy();
         }
+        /*
+         * Try to finish open tasks
+         */
+        uv_timer_init(siri.loop, &closing_timer);
+        uv_timer_start(
+                &closing_timer,
+                SIRI_try_close,
+                0,
+                WAIT_BETWEEN_CLOSE_ATTEMPTS);
     }
 }
 

@@ -16,8 +16,8 @@ from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
 
-class TestPool(TestBase):
-    title = 'Test pool object'
+class TestCluster(TestBase):
+    title = 'Test siridb-cluster'
 
 
     @default_test_setup(4)
@@ -27,9 +27,9 @@ class TestPool(TestBase):
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
-    run_test(TestPool())
+    run_test(TestCluster())

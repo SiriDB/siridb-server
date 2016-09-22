@@ -79,6 +79,18 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
         return;
 
+#define MSG_SUCCESS_CREATE_USER "User '%s' is created successfully."
+#define MSG_SUCCESS_DROP_USER "User '%s' is dropped successfully."
+#define MSG_SUCCESS_ALTER_USER "Successful updated user '%s'."
+#define MSG_SUCCESS_GRANT_USER "Successfully granted permissions to user '%s'."
+#define MSG_SUCCESS_REVOKE_USER \
+    "Successfully revoked permissions from user '%s'."
+#define MSG_SUCCESS_CREATE_GROUP "Group '%s' is created successfully."
+#define MSG_SUCCESS_DROP_GROUP "Group '%s' is dropped successfully."
+#define MSG_SUCCESS_ALTER_GROUP "Successful updated group '%s'."
+#define MSG_SUCCESS_SET_DROP_THRESHOLD \
+    "Successful changed drop_threshold from %g to %g."
+
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
@@ -951,7 +963,23 @@ static void enter_series_name(uv_async_t * handle)
         }
     }
 
-    if (series != NULL)
+    if (series == NULL)
+    {
+        if (q_wrapper->update_cb == &imap_intersection_ref)
+        {
+            imap_free(
+                    q_wrapper->series_map,
+                    (imap_free_cb) &siridb_series_decref);
+
+            q_wrapper->series_map = imap_new();
+
+            if (q_wrapper->series_map == NULL)
+            {
+                MEM_ERR_RET
+            }
+        }
+    }
+    else
     {
         if (    q_wrapper->update_cb == NULL ||
                 q_wrapper->update_cb == &imap_union_ref)
@@ -1191,9 +1219,9 @@ static void exit_alter_group(uv_async_t * handle)
     }
 
     QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-            "Successful updated group '%s'.",
-            ((query_alter_t *) query->data)->via.group->name);
+    char * name = ((query_alter_t *) query->data)->via.group->name;
+    log_info(MSG_SUCCESS_ALTER_GROUP, name);
+    qp_add_fmt_safe(query->packer, MSG_SUCCESS_ALTER_GROUP, name);
 
     if (IS_MASTER)
     {
@@ -1218,9 +1246,9 @@ static void exit_alter_user(uv_async_t * handle)
     }
 
     QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-            "Successful updated user '%s'.",
-            ((query_alter_t *) query->data)->via.user->name);
+    char * name = ((query_alter_t *) query->data)->via.user->name;
+    log_info(MSG_SUCCESS_ALTER_USER, name);
+    qp_add_fmt_safe(query->packer, MSG_SUCCESS_ALTER_USER, name);
 
     if (IS_MASTER)
     {
@@ -1588,8 +1616,8 @@ static void exit_create_group(uv_async_t * handle)
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                "Group '%s' is created successfully.", group_name);
+        log_info(MSG_SUCCESS_CREATE_GROUP, group_name);
+        qp_add_fmt_safe(query->packer, MSG_SUCCESS_CREATE_GROUP, group_name);
 
         if (IS_MASTER)
         {
@@ -1647,8 +1675,9 @@ static void exit_create_user(uv_async_t * handle)
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                "User '%s' is created successfully.", user->name);
+
+        log_info(MSG_SUCCESS_CREATE_USER, user->name);
+        qp_add_fmt_safe(query->packer, MSG_SUCCESS_CREATE_USER, user->name);
 
         if (IS_MASTER)
         {
@@ -1685,9 +1714,8 @@ static void exit_drop_group(uv_async_t * handle)
     else
     {
         QP_ADD_SUCCESS
-
-        qp_add_fmt_safe(query->packer,
-                "Group '%s' is dropped successfully.", name);
+        log_info(MSG_SUCCESS_DROP_GROUP, name);
+        qp_add_fmt_safe(query->packer, MSG_SUCCESS_DROP_GROUP, name);
 
         if (IS_MASTER)
         {
@@ -1872,8 +1900,8 @@ static void exit_drop_user(uv_async_t * handle)
     else
     {
         QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                "User '%s' is dropped successfully.", username);
+        log_info(MSG_SUCCESS_DROP_USER, username);
+        qp_add_fmt_safe(query->packer, MSG_SUCCESS_DROP_USER, username);
 
         if (IS_MASTER)
         {
@@ -1909,9 +1937,9 @@ static void exit_grant_user(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-            "Successfully granted permissions to user '%s'.",
-            ((query_alter_t *) query->data)->via.user->name);
+    char * name = ((query_alter_t *) query->data)->via.user->name;
+    log_info(MSG_SUCCESS_GRANT_USER, name);
+    qp_add_fmt_safe(query->packer, MSG_SUCCESS_GRANT_USER, name);
 
     if (IS_MASTER)
     {
@@ -2366,9 +2394,9 @@ static void exit_revoke_user(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-            "Successfully revoked permissions from user '%s'.",
-            ((query_alter_t *) query->data)->via.user->name);
+    char * name = ((query_alter_t *) query->data)->via.user->name;
+    log_info(MSG_SUCCESS_REVOKE_USER, name);
+    qp_add_fmt_safe(query->packer, MSG_SUCCESS_REVOKE_USER, name);
 
     if (IS_MASTER)
     {
@@ -2575,9 +2603,14 @@ static void exit_set_drop_threshold(uv_async_t * handle)
         else
         {
             QP_ADD_SUCCESS
+
+            log_info(
+                    MSG_SUCCESS_SET_DROP_THRESHOLD,
+                    old,
+                    siridb->drop_threshold);
+
             qp_add_fmt_safe(query->packer,
-                    "Successful changed drop_threshold from "
-                    "%g to %g.",
+                    MSG_SUCCESS_SET_DROP_THRESHOLD,
                     old,
                     siridb->drop_threshold);
 
@@ -2889,9 +2922,7 @@ static void async_drop_series(uv_async_t * handle)
     for (; q_drop->slist_index < index_end; q_drop->slist_index++)
     {
         series = (siridb_series_t *) q_drop->slist->data[q_drop->slist_index];
-
         siridb_series_drop(siridb, series);
-
         siridb_series_decref(series);
     }
 
@@ -2935,59 +2966,17 @@ static void async_drop_shards(uv_async_t * handle)
 
     if (q_drop->shards_list->len)
     {
-        siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-        siridb_shard_t * shard = slist_pop(q_drop->shards_list);
-        siridb_series_t * series;
+        siridb_shard_t * shard = (siridb_shard_t *) slist_pop(
+                q_drop->shards_list);
 
-        uv_mutex_lock(&siridb->series_mutex);
-        uv_mutex_lock(&siridb->shards_mutex);
-
-        imap_pop(siridb->shards, shard->id);
-        shard->flags |= SIRIDB_SHARD_IS_REMOVED;
-        siridb_shard_remove(shard);
-
-        uv_mutex_unlock(&siridb->shards_mutex);
-
-        LOGC("Here...1");
-        /*
-         * We need a series mutex here since we depend on the series index
-         * and we create a copy since series might be removed when the length
-         * of series is zero after removing the shard
-         */
-
-        /* create a copy since series might be removed */
-        slist_t * slist = imap_2slist(siridb->series_map);
-
-        LOGC("Here...1.1");
-
-        if (slist != NULL)
-        {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    /* series might be destroyed after this call */
-                    LOGC("Here...1.2");
-                    siridb_series_remove_shard_num32(siridb, series, shard);
-                    LOGC("Here...1.3");
-                }
-            }
-            slist_free(slist);
-        }
-
-        LOGC("Here...2");
-
-        uv_mutex_unlock(&siridb->series_mutex);
-
+        siridb_shard_drop(
+                shard,
+                ((sirinet_socket_t *) query->client->data)->siridb);
         siridb_shard_decref(shard);
-
-        LOGC("Here...3");
     }
 
     if (q_drop->shards_list->len)
     {
-        LOGC("Here...4");
         uv_async_t * async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
 
         if (async_more == NULL)
@@ -3004,11 +2993,9 @@ static void async_drop_shards(uv_async_t * handle)
             uv_async_send(async_more);
             uv_close((uv_handle_t *) handle, (uv_close_cb) free);
         }
-        LOGC("Here...5");
     }
     else if (IS_MASTER)
     {
-        LOGC("Here...6");
         siridb_query_forward(
                 handle,
                 SIRIDB_QUERY_FWD_UPDATE,
@@ -3410,7 +3397,6 @@ static void async_series_re(uv_async_t * handle)
                     q_wrapper->series_tmp,
                     (imap_free_cb) &siridb_series_decref);
         }
-
         q_wrapper->series_tmp = NULL;
 
         SIRIPARSER_NEXT_NODE
@@ -3898,7 +3884,10 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
                 else
                 {
                     handle->data = query;
-                    uv_async_init(siri.loop, handle, (uv_async_cb) query->nodes->cb);
+                    uv_async_init(
+                            siri.loop,
+                            handle,
+                            (uv_async_cb) query->nodes->cb);
                 }
             }
 
@@ -3998,7 +3987,7 @@ static void master_select_work(uv_work_t * work)
             sprintf(query->err_msg, "Memory allocation error.");
             /* no break */
         case 1:
-            siridb_query_send_error((uv_async_t *) handle, CPROTO_ERR_QUERY);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
             return;
         }
 

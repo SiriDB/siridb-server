@@ -42,6 +42,7 @@ class TestSeries(TestBase):
 
         self.client0.close()
 
+        # return False
 
 
 if __name__ == '__main__':

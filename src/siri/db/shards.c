@@ -117,6 +117,53 @@ int siridb_shards_load(siridb_t * siridb)
     return rc;
 }
 
+//void siridb_shards_drop_work(uv_work_t * work)
+//{
+//    uv_async_t * handle = (uv_async_t *) work->data;
+//    siridb_query_t * query = (siridb_query_t *) handle->data;
+//    query_select_t * q_drop = (query_drop_t *) query->data;
+//
+//    int rc = 0;
+//    /*
+//     * We need to check for SiriDB errors because this task is running in
+//     * another thread. In case a siri_err is set, this means we are in forced
+//     * closing state and we should not use the handle but let siri close it.
+//     */
+//    if (!siri_err)
+//    {
+//        switch (rc)
+//        {
+//        case -1:
+//            sprintf(query->err_msg, "Memory allocation error.");
+//            /* no break */
+//        case 1:
+//            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+//            return;
+//        }
+//
+//        if (query->nodes == NULL)
+//        {
+//            siridb_send_query_result(handle);
+//        }
+//        else
+//        {
+//            uv_async_send(handle);
+//        }
+//    }
+//}
+//
+//void siridb_shards_drop_work_finished(uv_work_t * work, int status)
+//{
+//    if (status)
+//    {
+//        log_error("Drop shards work failed (error: %s)",
+//                uv_strerror(status));
+//    }
+//    siri_async_decref((uv_async_t **) &work->data);
+//
+//    free(work);
+//}
+
 /*
  * Returns true if fn is a shard filename, false if not.
  */

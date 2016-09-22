@@ -15,7 +15,7 @@ from testing import TestBase
 from testing import UserAuthError
 
 
-class TestSeries(TestBase):
+class TestServer(TestBase):
     title = 'Test server object'
 
     @default_test_setup(2)
@@ -51,10 +51,10 @@ class TestSeries(TestBase):
         self.client0.close()
         self.client1.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
-    run_test(TestSeries())
+    run_test(TestServer())

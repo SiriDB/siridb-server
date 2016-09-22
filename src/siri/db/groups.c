@@ -506,7 +506,8 @@ static int GROUPS_load(siridb_groups_t * groups)
 
     if (!xpath_file_exist(groups->fn))
     {
-        return rc; // no groups file, nothing to do
+        /* no groups file, create a new one */
+        return siridb_groups_save(groups);
     }
 
     qp_unpacker_t * unpacker = siridb_misc_open_schema_file(

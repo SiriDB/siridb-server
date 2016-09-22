@@ -500,6 +500,7 @@ void imap_intersection_ref(
         {
             dest->len -= dest_nd->size;
             IMAP_node_free_cb(dest_nd, decref_cb);
+            dest_nd->nodes = NULL;
         }
     }
 
@@ -956,6 +957,7 @@ static void IMAP_intersection_ref(
         {
             dest->size -= dest_nd->size;
             IMAP_node_free_cb(dest_nd, decref_cb);
+            dest_nd->nodes = NULL;
         }
 
     }

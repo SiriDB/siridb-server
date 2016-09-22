@@ -82,6 +82,7 @@ ssize_t siridb_shard_get_size(siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_incref(siridb_shard_t * shard);
 void siridb_shard_decref(siridb_shard_t * shard);
+void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
 int siridb_shard_remove(siridb_shard_t * shard);
 long int siridb_shard_write_points(
         siridb_t * siridb,

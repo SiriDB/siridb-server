@@ -381,10 +381,22 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
     };
 
     /* mark shards with dropped series flag */
-    for (uint32_t i = 0; i < series->idx_len; i++)
+    switch ((idx_tp) series->idx_tp)
     {
-        ((idx_xxx_t *) series->idx)[i].shard->flags |=
-                SIRIDB_SHARD_HAS_DROPPED_SERIES;
+    case IDX_TP_NUM32:
+        for (uint32_t i = 0; i < series->idx_len; i++)
+        {
+            ((idx_num32_t *) series->idx)[i].shard->flags |=
+                    SIRIDB_SHARD_HAS_DROPPED_SERIES;
+        }
+        break;
+    case IDX_TP_NUM64:
+    case IDX_TP_LOG32:
+    case IDX_TP_LOG64:
+    default:
+        /* TODO: implement other */
+        assert (0);
+        break;
     }
 
     /* decrement reference to series */
@@ -459,7 +471,7 @@ void siridb_series_remove_shard_num32(
     uint_fast32_t i, offset;
 
     i = offset = 0;
-    LOGC("1...");
+
     for (   idx = (idx_num32_t *) series->idx;
             i < series->idx_len;
             i++, idx++)
@@ -475,14 +487,12 @@ void siridb_series_remove_shard_num32(
                     ((idx_num32_t *) series->idx)[i];
         }
     }
-    LOGC("2...");
 
     if (offset)
     {
-        LOGC("2.1 ...");
         if (!series->length)
         {
-            LOGC("2.1 (drop)...");
+            series->idx_len = 0;
 
             if (siridb_series_drop(siridb, series))
             {
@@ -491,7 +501,6 @@ void siridb_series_remove_shard_num32(
         }
         else
         {
-            LOGC("2.1 (re-alloc)...");
             series->idx_len -= offset;
             idx = (idx_num32_t *) realloc(
                         (idx_num32_t *) series->idx,
@@ -505,17 +514,14 @@ void siridb_series_remove_shard_num32(
             {
                 series->idx = idx;
             }
-            LOGC("2.2 ...");
             uint64_t start = shard->id - series->mask;
             uint64_t end = start + siridb->duration_num;
             if (series->start >= start && series->start < end)
             {
-                LOGC("2.3 ...");
                 SERIES_update_start_num32(series);
             }
             if (series->end < end && series->end > start)
             {
-                LOGC("2.4 ...");
                 SERIES_update_end_num32(series);
             }
         }
@@ -934,6 +940,11 @@ static siridb_series_t * SERIES_new(
             series->idx_len = 0;
             series->flags = 0;
             series->idx = NULL;
+            series->idx_tp = (siridb->time->precision == SIRIDB_TIME_SECONDS) ?
+                    (tp == SIRIDB_SERIES_TP_STRING) ?
+                            IDX_TP_LOG32 : IDX_TP_NUM32 :
+                    (tp == SIRIDB_SERIES_TP_STRING) ?
+                            IDX_TP_LOG64 : IDX_TP_NUM64;
         }
 
     }

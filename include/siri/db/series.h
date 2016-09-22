@@ -42,15 +42,15 @@ typedef struct siridb_shard_s siridb_shard_t;
     (TP == QP_INT64) ? SIRIDB_SERIES_TP_INT :                               \
     (TP == QP_DOUBLE) ? SIRIDB_SERIES_TP_DOUBLE : SIRIDB_SERIES_TP_STRING
 
-extern const char series_type_map[3][8];
-
-typedef struct idx_xxx_s
+typedef enum
 {
-    siridb_shard_t * shard;
-    uint32_t pos;
-    uint16_t len;
-    uint16_t pad;
-} idx_xxx_t;
+    IDX_TP_NUM32,
+    IDX_TP_NUM64,
+    IDX_TP_LOG32,
+    IDX_TP_LOG64,
+} idx_tp;
+
+extern const char series_type_map[3][8];
 
 typedef struct idx_num32_s
 {
@@ -89,7 +89,7 @@ typedef struct siridb_series_s
     uint8_t flags;
     uint8_t tp;
     uint8_t server_id;
-    uint8_t pad0;
+    uint8_t idx_tp;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);

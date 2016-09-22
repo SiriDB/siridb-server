@@ -663,7 +663,17 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
      * Closing files or writing to the new shard might have produced
      * critical errors. This seems to be a good point to check for errors.
      */
-    if (!siri_err)
+    if (siri_err || (new_shard->flags & SIRIDB_SHARD_IS_REMOVED))
+    {
+        if (new_shard->flags & SIRIDB_SHARD_IS_REMOVED)
+        {
+            log_warning(
+                    "Cancel optimizing shard '%s' because the shard is dropped",
+                    new_shard->fn);
+        }
+        free(tmp);
+    }
+    else
     {
         /* remove the old shard file, this is not critical */
         unlink(new_shard->replacing->fn);
@@ -691,10 +701,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             new_shard->replacing = NULL;
         }
     }
-    else
-    {
-        free(tmp);
-    }
+
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -751,6 +758,62 @@ inline void siridb_shard_decref(siridb_shard_t * shard)
     }
 }
 
+void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
+{
+    siridb_series_t * series;
+
+    uv_mutex_lock(&siridb->series_mutex);
+    uv_mutex_lock(&siridb->shards_mutex);
+
+    if (imap_pop(siridb->shards, shard->id) != NULL)
+    {
+        siridb_shard_decref(shard);
+    }
+#ifdef DEBUG
+    else if (~shard->flags & SIRIDB_SHARD_IS_REMOVED)
+    {
+        LOGC("Cannot find shard id %lu in shards map", shard->id);
+    }
+#endif
+
+    if (shard->flags & SIRIDB_SHARD_IS_REMOVED)
+    {
+        log_warning("Shard id '%lu' is already dropped", shard->id);
+    }
+    else
+    {
+        shard->flags |= SIRIDB_SHARD_IS_REMOVED;
+        siridb_shard_remove(shard);
+    }
+
+    uv_mutex_unlock(&siridb->shards_mutex);
+
+    /*
+     * We need a series mutex here since we depend on the series index
+     * and we create a copy since series might be removed when the length
+     * of series is zero after removing the shard
+     */
+
+    /* create a copy since series might be removed */
+    slist_t * slist = imap_2slist(siridb->series_map);
+
+    if (slist != NULL)
+    {
+        for (size_t i = 0; i < slist->len; i++)
+        {
+            series = (siridb_series_t *) slist->data[i];
+            if (shard->id % siridb->duration_num == series->mask)
+            {
+                /* series might be destroyed after this call */
+                siridb_series_remove_shard_num32(siridb, series, shard);
+            }
+        }
+        slist_free(slist);
+    }
+
+    uv_mutex_unlock(&siridb->series_mutex);
+}
+
 /*
  * Returns 0 when successful or a negative value in case of an error.
  */
@@ -769,7 +832,7 @@ int siridb_shard_remove(siridb_shard_t * shard)
 
     if (rc == 0)
     {
-        log_debug("Shard file removed: %s", shard->fn);
+        log_info("Shard file removed: %s", shard->fn);
     }
     else
     {
@@ -798,24 +861,6 @@ static void SHARD_free(siridb_shard_t * shard)
 
     /* this will close the file, even when other references exist */
     siri_fp_decref(shard->fp);
-
-    /* check if we need to remove the shard file */
-    if (shard->flags & SIRIDB_SHARD_IS_REMOVED)
-    {
-        int rc;
-        rc = unlink(shard->fn);
-        if (rc == 0)
-        {
-            log_debug("Shard file removed: %s", shard->fn);
-        }
-        else
-        {
-            log_critical(
-                    "Cannot remove shard file: %s (error code: %d)",
-                    shard->fn,
-                    rc);
-        }
-    }
 
 #ifdef DEBUG
     log_debug("Free shard id: %lu", shard->id);
