@@ -577,12 +577,19 @@ static void GROUPS_init_series(siridb_t * siridb)
                     (ct_val_cb) siridb_group_test_series,
                     series);
         }
-        uv_mutex_unlock(&groups->mutex);
 
         siridb_series_decref(series);
-        usleep(50000);  // 50ms
 
-        uv_mutex_lock(&groups->mutex);
+        if (groups->nseries->len % GROUPS_RE_BATCH_SZ)
+        {
+
+            uv_mutex_unlock(&groups->mutex);
+
+            usleep(50000);  // 50ms
+
+            uv_mutex_lock(&groups->mutex);
+        }
+
     }
 
     uv_mutex_unlock(&groups->mutex);
