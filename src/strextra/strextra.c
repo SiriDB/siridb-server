@@ -33,7 +33,47 @@ void strx_upper_case(char * sptr)
 void strx_replace_char(char * sptr, char orig, char repl)
 {
     for (; *sptr != '\0'; sptr++)
-        if (*sptr == orig) *sptr = repl;
+    {
+        if (*sptr == orig)
+        {
+            *sptr = repl;
+        }
+    }
+}
+
+/*
+ * Split and then join a given string.
+ *
+ * For example:
+ *      string: "  this  is a   test  "
+ *      split: ' ' and join with '_'
+ *      result: "this_is_a_test"
+ */
+void strx_split_join(char * pt, char split_chr, char join_chr)
+{
+    int join = -1;
+    char * dest = pt;
+
+    for (; *pt != '\0'; pt++)
+    {
+        if (*pt != split_chr)
+        {
+            if (join > 0)
+            {
+                *dest = join_chr;
+                dest++;
+            }
+            join = 0;
+            *dest = *pt;
+            dest++;
+        }
+        else if (!join)
+        {
+            join = 1;
+        }
+    }
+
+    *dest = '\0';
 }
 
 void strx_trim(char ** str, char chr)

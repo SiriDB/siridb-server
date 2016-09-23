@@ -1,3 +1,14 @@
+/*
+ * queries.c - Querie helpers for listener
+ *
+ * author       : Jeroen van der Heijden
+ * email        : jeroen@transceptor.technology
+ * copyright    : 2016, Transceptor Technology
+ *
+ * changes
+ *  - initial version, 03-05-2016
+ *
+ */
 #include <siri/parser/queries.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -271,6 +282,14 @@ void query_select_free(uv_handle_t * handle)
     QUERIES_FREE(q_select, handle)
 }
 
+void query_help_free(uv_handle_t * handle)
+{
+    /* used as char to hold a string */
+    free(((siridb_query_t *) handle->data)->data);
+
+    /* normal call-back */
+    siridb_query_free(handle);
+}
 
 static void QUERIES_free_merge_result(slist_t * plist)
 {

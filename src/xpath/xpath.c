@@ -15,6 +15,9 @@
 #include <sys/stat.h>
 #include <logger/logger.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <unistd.h>
+#include <string.h>
 
 /*
  * Test if file exist using the effective user.
@@ -77,4 +80,34 @@ ssize_t xpath_get_content(char ** buffer, const char * fn)
 
     fclose(fp);
     return (*buffer == NULL) ? -1 : size;
+}
+
+/*
+ * Get the current executable path. (path should at least have size PATH_MAX)
+ *
+ * Returns 0 if successful or -1 in case of an error.
+ * (this functions writes logging in case of errors)
+ */
+int xpath_get_exec_path(char * path)
+{
+    char* path_end;
+
+    if (readlink("/proc/self/exe", path, PATH_MAX) == -1)
+    {
+        log_critical("Cannot read executable path");
+        return -1;
+    }
+
+    /* find last / in path */
+    path_end = strrchr (path, '/');
+
+    if (path_end == NULL)
+    {
+        log_critical("Cannot find / in executable path");
+        return -1;
+    }
+
+    *(++path_end) = '\0';
+
+    return 0;
 }

@@ -18,6 +18,13 @@
 
 #include <siri/grammar/grammar.h>
 
+/* keywords */
 #define KW_OFFSET CLERI_GID_K_ACCESS
 #define KW_COUNT CLERI_GID_K_WRITE + 1 - KW_OFFSET
+
+/* aggregation functions */
 #define F_OFFSET CLERI_GID_F_COUNT
+
+/* help statements */
+#define HELP_OFFSET CLERI_GID_HELP
+#define HELP_COUNT CLERI_GID_HELP_TIMEZONES + 1 - HELP_OFFSET

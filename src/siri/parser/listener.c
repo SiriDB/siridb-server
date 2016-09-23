@@ -39,6 +39,7 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/groups.h>
 #include <siri/db/group.h>
+#include <siri/help/help.h>
 
 #define MAX_ITERATE_COUNT 1000      // thousand
 #define MAX_SELECT_POINTS 1000000   // one million
@@ -106,6 +107,7 @@ static void enter_create_user(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_user(uv_async_t * handle);
 static void enter_group_match(uv_async_t * handle);
+static void enter_help(uv_async_t * handle);
 static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
 static void enter_merge_as(uv_async_t * handle);
@@ -142,6 +144,7 @@ static void exit_drop_series(uv_async_t * handle);
 static void exit_drop_shards(uv_async_t * handle);
 static void exit_drop_user(uv_async_t * handle);
 static void exit_grant_user(uv_async_t * handle);
+static void exit_help_xxx(uv_async_t * handle);
 static void exit_list_groups(uv_async_t * handle);
 static void exit_list_pools(uv_async_t * handle);
 static void exit_list_series(uv_async_t * handle);
@@ -292,6 +295,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
     siriparser_listen_enter[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
+    siriparser_listen_enter[CLERI_GID_HELP] = enter_help;
     siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
     siriparser_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
@@ -354,6 +358,11 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siriparser_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
+
+    for (uint_fast16_t i = HELP_OFFSET; i < HELP_OFFSET + HELP_COUNT; i++)
+    {
+        siriparser_listen_exit[i] = exit_help_xxx;
+    }
 }
 
 /******************************************************************************
@@ -679,6 +688,27 @@ static void enter_group_match(uv_async_t * handle)
         }
     }
 }
+
+static void enter_help(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    cleri_node_t * node = query->nodes->node;
+
+    query->data = strndup(node->str, node->len);
+
+    if (query->data == NULL)
+    {
+        MEM_ERR_RET
+    }
+
+    query->free_cb = (uv_close_cb) query_help_free;
+
+    strx_split_join(query->data, ' ', '_');
+
+    SIRIPARSER_NEXT_NODE
+}
+
 static void enter_limit_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -1961,6 +1991,39 @@ static void exit_grant_user(uv_async_t * handle)
     {
         SIRIPARSER_NEXT_NODE
     }
+}
+
+static void exit_help_xxx(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    if (query->data != NULL)
+    {
+#ifdef DEBUG
+        assert (query->packer == NULL);
+#endif
+
+        const char * help = siri_help_get(
+                query->nodes->node->cl_obj->via.dummy->gid,
+                (const char *) query->data,
+                query->err_msg);
+
+        if (help == NULL)
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+
+        query->packer = sirinet_packer_new(4096);
+
+        qp_add_type(query->packer, QP_MAP_OPEN);
+        qp_add_raw(query->packer, "help", 4);
+        qp_add_string(query->packer, help);
+
+        free(query->data);
+        query->data = NULL;
+    }
+    SIRIPARSER_NEXT_NODE
 }
 
 static void exit_list_groups(uv_async_t * handle)

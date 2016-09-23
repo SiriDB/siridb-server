@@ -1,5 +1,5 @@
 /*
- * queries.h - Helpers for listener (walking series, pools etc.)
+ * queries.h - Querie helpers for listener
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -128,5 +128,4 @@ void query_list_free(uv_handle_t * handle);
 query_select_t * query_select_new(void);
 void query_select_free(uv_handle_t * handle);
 
-
-
+void query_help_free(uv_handle_t * handle);

@@ -16,3 +16,4 @@
 int xpath_file_exist(const char * fn);
 int xpath_is_dir(const char * path);
 ssize_t xpath_get_content(char ** buffer, const char * fn);
+int xpath_get_exec_path(char * path);

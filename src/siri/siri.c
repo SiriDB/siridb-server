@@ -37,6 +37,7 @@
 #include <siri/err.h>
 #include <siri/async.h>
 #include <siri/db/groups.h>
+#include <siri/help/help.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
