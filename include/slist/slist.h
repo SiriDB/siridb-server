@@ -19,7 +19,7 @@
 
 typedef struct slist_object_s
 {
-    uint16_t ref;
+    uint64_t ref;
 } slist_object_t;
 
 typedef struct slist_s
@@ -38,13 +38,13 @@ void slist_compact(slist_t ** slist);
 int slist_append_safe(slist_t ** slist, void * data);
 
 /*
- * Expects the object to have a object->ref (uint16_t) on top of the
+ * Expects the object to have a object->ref (uint_xxx_t) on top of the
  * objects definition.
  */
 #define slist_object_incref(object) ((slist_object_t * ) object)->ref++
 
 /*
- * Expects the object to have a object->ref (uint16_t) on top of the
+ * Expects the object to have a object->ref (uint_xxx_t) on top of the
  * objects definition.
  *
  * WARNING: Be careful using 'slist_object_decref' only when being sure

@@ -51,7 +51,7 @@ typedef struct siridb_shard_s siridb_shard_t;
 
 typedef struct siridb_shard_s
 {
-    uint16_t ref;   /* keep ref on top */
+    uint64_t ref;   /* keep ref on top */
     uint8_t tp; /* TP_NUMBER, TP_LOG */
     uint8_t flags;
     uint64_t id;

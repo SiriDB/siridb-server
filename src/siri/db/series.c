@@ -336,6 +336,8 @@ int siridb_series_add_idx_num32(
         series->flags |= SIRIDB_SERIES_HAS_OVERLAP;
     }
 
+    siridb_shard_incref(shard);
+
     return 0;
 }
 
@@ -379,25 +381,6 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
         log_critical("Cannot write %d to dropped cache file.", series->id);
         rc = -1;
     };
-
-    /* mark shards with dropped series flag */
-    switch ((idx_tp) series->idx_tp)
-    {
-    case IDX_TP_NUM32:
-        for (uint32_t i = 0; i < series->idx_len; i++)
-        {
-            ((idx_num32_t *) series->idx)[i].shard->flags |=
-                    SIRIDB_SHARD_HAS_DROPPED_SERIES;
-        }
-        break;
-    case IDX_TP_NUM64:
-    case IDX_TP_LOG32:
-    case IDX_TP_LOG64:
-    default:
-        /* TODO: implement other */
-        assert (0);
-        break;
-    }
 
     /* decrement reference to series */
     siridb_series_decref(series);
@@ -478,6 +461,7 @@ void siridb_series_remove_shard_num32(
     {
         if (idx->shard == shard)
         {
+            siridb_shard_decref(shard);
             offset++;
             series->length -= idx->len;
         }
@@ -719,6 +703,15 @@ int siridb_series_optimize_shard_num32(
             }
             size += idx->len;
             end++;
+
+#ifdef DEBUG
+            /*
+             * we have at least 2 references to the shard so we never
+             * reach 0 here.
+             */
+            assert(shard->replacing->ref >= 2);
+#endif
+            siridb_shard_decref(shard->replacing);
         }
         else if (idx->shard == shard && end)
         {
@@ -788,6 +781,7 @@ int siridb_series_optimize_shard_num32(
             idx->end_ts = (uint32_t) points->data[pend - 1].ts;
             idx->len = pend - pstart;
             idx->pos = pos;
+            siridb_shard_incref(shard);
         }
         start++;
     }
@@ -872,6 +866,29 @@ static void SERIES_free(siridb_series_t * series)
         log_debug("Free series: '%s'", series->name);
     }
 #endif
+
+    siridb_shard_t * shard;
+
+    /* mark shards with dropped series flag */
+    switch ((idx_tp) series->idx_tp)
+    {
+    case IDX_TP_NUM32:
+        for (uint32_t i = 0; i < series->idx_len; i++)
+        {
+            shard = ((idx_num32_t *) series->idx)[i].shard;
+            shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
+            siridb_shard_decref(shard);
+        }
+        break;
+    case IDX_TP_NUM64:
+    case IDX_TP_LOG32:
+    case IDX_TP_LOG64:
+    default:
+        /* TODO: implement other */
+        assert (0);
+        break;
+    }
+
     if (series->buffer != NULL)
     {
         siridb_buffer_free(series->buffer);

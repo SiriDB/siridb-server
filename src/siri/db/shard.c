@@ -235,7 +235,6 @@ siridb_shard_t *  siridb_shard_create(
 
     if (fclose(fp))
     {
-
         ERR_FILE
         siridb_shard_decref(shard);
         log_critical("Cannot close shard file: '%s'", shard->fn);

@@ -327,7 +327,7 @@ slist_t * imap_2slist(imap_t * imap)
 
 /*
  * Use this function to create a s-list copy and update the ref count
- * for each object. We expect each object to have object->ref (uint16_t) on
+ * for each object. We expect each object to have object->ref (uint_xxx_t) on
  * top of the object definition.
  *
  * There is no function to handle the decrement for the ref count since they

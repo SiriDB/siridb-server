@@ -45,6 +45,7 @@
 #define GROUPS_LOOP_SLEEP 2  // 2 seconds
 #define GROUPS_LOOP_DEEP 15  // x times -> 30 seconds (used when re-indexing)
 #define GROUPS_RE_BATCH_SZ 1000
+#define CALC_BATCH_SIZE(sz) GROUPS_RE_BATCH_SZ /((sz / 5 ) + 1) + 1;
 
 static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
@@ -400,43 +401,7 @@ static int GROUPS_2slist(siridb_group_t * group, slist_t * groups_list)
     return 0;
 }
 
-/*
- * Group thread.
- */
-static void GROUPS_cleanup(siridb_groups_t * groups)
-{
-    uv_mutex_lock(&groups->mutex);
 
-    groups->flags &= ~GROUPS_FLAG_DROPPED_SERIES;
-
-    slist_t * groups_list = slist_new(groups->groups->len);
-
-    ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
-
-    uv_mutex_unlock(&groups->mutex);
-
-    siridb_group_t * group;
-
-    while (groups_list->len)
-    {
-        group = (siridb_group_t *) slist_pop(groups_list);
-
-        if (!group->flags)
-        {
-            uv_mutex_lock(&groups->mutex);
-
-            siridb_group_cleanup(group);
-
-            uv_mutex_unlock(&groups->mutex);
-        }
-
-        siridb_group_decref(group);
-
-        usleep(10000);  // 10ms
-    }
-
-    slist_free(groups_list);
-}
 
 /*
  * Group thread.
@@ -566,6 +531,9 @@ static void GROUPS_init_series(siridb_t * siridb)
 
     uv_mutex_lock(&groups->mutex);
 
+    /* calculate modulo size  [1..1001] */
+    int m = CALC_BATCH_SIZE(groups->groups->len);
+
     while (groups->nseries->len)
     {
         series = (siridb_series_t *) slist_pop(groups->nseries);
@@ -580,16 +548,17 @@ static void GROUPS_init_series(siridb_t * siridb)
 
         siridb_series_decref(series);
 
-        if (groups->nseries->len % GROUPS_RE_BATCH_SZ)
+        if (groups->nseries->len % m == 0)
         {
-
             uv_mutex_unlock(&groups->mutex);
 
-            usleep(50000);  // 50ms
+            usleep(10000);  // 10ms
 
             uv_mutex_lock(&groups->mutex);
-        }
 
+            /* re-calculate modulo size [1..1001] */
+            m = CALC_BATCH_SIZE(groups->groups->len);
+        }
     }
 
     uv_mutex_unlock(&groups->mutex);
@@ -610,7 +579,6 @@ static void GROUPS_init_groups(siridb_t * siridb)
 
     slist_t * series_list;
     siridb_series_t * series;
-
     uv_mutex_lock(&siridb->series_mutex);
 
     series_list = (groups->nseries->len) ?
@@ -675,4 +643,42 @@ static void GROUPS_init_groups(siridb_t * siridb)
     }
 
     slist_free(series_list);
+}
+
+/*
+ * Group thread.
+ */
+static void GROUPS_cleanup(siridb_groups_t * groups)
+{
+    uv_mutex_lock(&groups->mutex);
+
+    groups->flags &= ~GROUPS_FLAG_DROPPED_SERIES;
+
+    slist_t * groups_list = slist_new(groups->groups->len);
+
+    ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
+
+    uv_mutex_unlock(&groups->mutex);
+
+    siridb_group_t * group;
+
+    while (groups_list->len)
+    {
+        group = (siridb_group_t *) slist_pop(groups_list);
+
+        if (!group->flags)
+        {
+            uv_mutex_lock(&groups->mutex);
+
+            siridb_group_cleanup(group);
+
+            uv_mutex_unlock(&groups->mutex);
+        }
+
+        siridb_group_decref(group);
+
+        usleep(10000);  // 10ms
+    }
+
+    slist_free(groups_list);
 }
