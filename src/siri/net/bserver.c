@@ -240,17 +240,27 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_buffer_path;
     qp_obj_t qp_buffer_size;
     qp_obj_t qp_startup_time;
+    qp_obj_t qp_address;
+    qp_obj_t qp_port;
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
             qp_next(&unpacker, &qp_uuid) == QP_RAW &&
             qp_next(&unpacker, &qp_dbname) == QP_RAW &&
+            qp_is_raw_term(&qp_dbname) &&
             qp_next(&unpacker, &qp_flags) == QP_INT64 &&
             qp_next(&unpacker, &qp_version) == QP_RAW &&
+            qp_is_raw_term(&qp_version) &&
             qp_next(&unpacker, &qp_min_version) == QP_RAW &&
+            qp_is_raw_term(&qp_min_version) &&
             qp_next(&unpacker, &qp_dbpath) == QP_RAW &&
+            qp_is_raw_term(&qp_dbpath) &&
             qp_next(&unpacker, &qp_buffer_path) == QP_RAW &&
+            qp_is_raw_term(&qp_buffer_path) &&
             qp_next(&unpacker, &qp_buffer_size) == QP_INT64 &&
-            qp_next(&unpacker, &qp_startup_time) == QP_INT64)
+            qp_next(&unpacker, &qp_startup_time) == QP_INT64 &&
+            qp_next(&unpacker, &qp_address) == QP_RAW &&
+            qp_is_raw_term(&qp_address) &&
+            qp_next(&unpacker, &qp_port) == QP_INT64)
     {
         rc = siridb_auth_server_request(
                 client,
@@ -266,6 +276,13 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             /* check and update flags */
             BSERVER_flags_update(siridb, server, qp_flags.via.int64);
+
+            /* update server address if needed */
+            siridb_server_update_address(
+                    siridb,
+                    server,
+                    qp_address.via.raw,
+                    (uint16_t) qp_port.via.int64);
 
             /* update other server properties */
             server->dbpath = strdup(qp_dbpath.via.raw);

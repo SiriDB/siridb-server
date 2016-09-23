@@ -90,8 +90,9 @@ siridb_server_t * siridb_server_new(
     /* sets address:port to name property */
     if (SERVER_update_name(server))
     {
+        ERR_ALLOC
         SERVER_free(server);
-        server = NULL;  /* signal is raised */
+        server = NULL;
     }
 
     return server;
@@ -311,6 +312,57 @@ void siridb_server_send_flags(siridb_server_t * server)
 }
 
 /*
+ * Returns 0 if successful or -1 in case of an error.
+ * (a SIGNAL might be raises)
+ *
+ * This function only updates the address/port/name in case different from the
+ * current values.
+ */
+int siridb_server_update_address(
+        siridb_t * siridb,
+        siridb_server_t * server,
+        const char * address,
+        uint16_t port)
+{
+    if (strcmp(server->address, address) || server->port != port)
+    {
+        char * tmp;
+        tmp = strdup(address);
+        if (tmp == NULL)
+        {
+            log_critical(
+                    "Cannot set server address (memory allocation error)");
+            return -1;
+        }
+
+        free(server->address);
+
+        server->address = tmp;
+        server->port = port;
+
+        log_warning("Update server '%s' to '%s:%u'",
+                server->name,
+                server->address,
+                server->port);
+
+        if (SERVER_update_name(server))
+        {
+            log_critical(
+                    "Cannot rename server (memory allocation error)");
+            return -1;
+        }
+
+        if (siridb_servers_save(siridb))
+        {
+            return -1;
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
+/*
  * Write call-back.
  */
 static void SERVER_write_cb(uv_write_t * req, int status)
@@ -397,7 +449,9 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_string_term(packer, ssocket->siridb->dbpath) ||
                 qp_add_string_term(packer, ssocket->siridb->buffer_path) ||
                 qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
-                qp_add_int32(packer, (int32_t) abs(siri.startup_time))) &&
+                qp_add_int32(packer, (int32_t) abs(siri.startup_time)) ||
+                qp_add_string_term(packer, ssocket->siridb->server->address) ||
+                qp_add_int32(packer, (int32_t) abs(ssocket->siridb->server->port))) &&
                     (pkg = sirinet_pkg_new(
                             0,
                             packer->len,
@@ -738,7 +792,8 @@ static void SERVER_free(siridb_server_t * server)
 }
 
 /*
- * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
+ * Returns 0 if successful or -1 in case of an allocation error.
+ * (server->name is unchanged in case of an error)
  */
 static int SERVER_update_name(siridb_server_t * server)
 {
@@ -765,7 +820,6 @@ static int SERVER_update_name(siridb_server_t * server)
     tmp = (char *) realloc(server->name, len);
     if (tmp == NULL)
     {
-        ERR_ALLOC
         return -1;
     }
 

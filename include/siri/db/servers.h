@@ -32,5 +32,6 @@ ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb);
 int siridb_servers_online(siridb_t * siridb);
 int siridb_servers_available(siridb_t * siridb);
 int siridb_servers_list(siridb_server_t * server, uv_async_t * handle);
+int siridb_servers_save(siridb_t * siridb);
 int siridb_servers_register(siridb_t * siridb, siridb_server_t * server);
 slist_t * siridb_servers_other2slist(siridb_t * siridb);

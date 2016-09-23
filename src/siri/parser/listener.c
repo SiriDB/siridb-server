@@ -90,6 +90,10 @@ if (IS_MASTER && !siridb_pools_online(siridb))                              \
 #define MSG_SUCCESS_ALTER_GROUP "Successful updated group '%s'."
 #define MSG_SUCCESS_SET_DROP_THRESHOLD \
     "Successful changed drop_threshold from %g to %g."
+#define MSG_SUCCESS_SET_ADDR_PORT "Successful changed server address to '%s'."
+#define MSG_ERR_SERVER_ADDRESS \
+    "Its only possible to change a servers address or port when the server " \
+    "is not connected."
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
@@ -147,8 +151,10 @@ static void exit_list_users(uv_async_t * handle);
 static void exit_revoke_user(uv_async_t * handle);
 static void exit_select_aggregate(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
+static void exit_set_address(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
+static void exit_set_port(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
@@ -340,8 +346,10 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_REVOKE_USER] = exit_revoke_user;
     siriparser_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
     siriparser_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
+    siriparser_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
     siriparser_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
     siriparser_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
+    siriparser_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
     siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siriparser_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
 }
@@ -2569,6 +2577,50 @@ static void exit_select_stmt(uv_async_t * handle)
     }
 }
 
+static void exit_set_address(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+
+    if (siridb->server == server || server->socket != NULL)
+    {
+        sprintf(query->err_msg, MSG_ERR_SERVER_ADDRESS);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+    char address[node->len - 1];
+    strx_extract_string(address, node->str, node->len);
+
+    int rc;
+    rc = siridb_server_update_address(siridb, server, address, server->port);
+    switch (rc)
+    {
+    case -1:
+        sprintf(query->err_msg, "Error while updating server address");
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        break;
+
+    case 0:
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Server address is already set to '%s'",
+                server->address);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        break;
+
+    case 1:
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                MSG_SUCCESS_SET_ADDR_PORT,
+                server->name);
+        SIRIPARSER_NEXT_NODE
+        break;
+    }
+}
+
 static void exit_set_drop_threshold(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -2727,6 +2779,59 @@ static void exit_set_log_level(uv_async_t * handle)
     }
 }
 
+static void exit_set_port(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+
+    if (siridb->server == server || server->socket != NULL)
+    {
+        sprintf(query->err_msg, MSG_ERR_SERVER_ADDRESS);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+
+    uint64_t port = strx_to_uint64(node->str, node->len);
+
+    if (port > 65535)
+    {
+        sprintf(query->err_msg,
+                "Server port must be a value between 0 and 65535");
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        int rc;
+        rc = siridb_server_update_address(siridb, server, server->address, port);
+        switch (rc)
+        {
+        case -1:
+            sprintf(query->err_msg, "Error while updating server address");
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            break;
+
+        case 0:
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Server port is already set to '%u'",
+                    server->port);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            break;
+
+        case 1:
+            QP_ADD_SUCCESS
+            qp_add_fmt_safe(query->packer,
+                    MSG_SUCCESS_SET_ADDR_PORT,
+                    server->name);
+            SIRIPARSER_NEXT_NODE
+            break;
+        }
+    }
+}
+
 static void exit_show_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -2773,12 +2878,7 @@ static void exit_show_stmt(uv_async_t * handle)
             prop_cb = siridb_props[children->node->children->node->
                                    cl_obj->via.keyword->gid - KW_OFFSET];
 #ifdef DEBUG
-            /* TODO: can be removed as soon as all props are implemented */
-            if (prop_cb == NULL)
-            {
-                LOGC("not implemented");
-            }
-            else
+            assert (prop_cb != NULL);  /* all props are implemented */
 #endif
             prop_cb(((sirinet_socket_t *) query->client->data)->siridb,
                     query->packer, 1);

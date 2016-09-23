@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-09-20 15:03:26
+ * Created at: 2016-09-23 15:08:53
  */
 
 #pragma once
@@ -181,8 +181,6 @@ enum cleri_grammar_ids {
     CLERI_GID_K_NUMBER,
     CLERI_GID_K_ONLINE,
     CLERI_GID_K_OPEN_FILES,
-    CLERI_GID_K_OPTIMIZE_POOL,
-    CLERI_GID_K_OPTIMIZE_TASK,
     CLERI_GID_K_OR,
     CLERI_GID_K_PASSWORD,
     CLERI_GID_K_POINTS,

@@ -54,7 +54,8 @@ typedef enum
 {
     BPROTO_AUTH_REQUEST=128,                    /* (uuid, dbname, flags, version,
                                                 min_version, dbpath, buffer_path,
-                                                buffer_size, startup_time) */
+                                                buffer_size, startup_time,
+                                                address, port) */
     BPROTO_FLAGS_UPDATE,                        // flags
     BPROTO_LOG_LEVEL_UPDATE,                    // log_level
     BPROTO_REPL_FINISHED,                       // empty

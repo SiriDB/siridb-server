@@ -30,7 +30,6 @@
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args);
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
-static int SERVERS_save(siridb_t * siridb);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -85,7 +84,7 @@ int siridb_servers_load(siridb_t * siridb)
 
         siridb->server = server;
 
-        if (SERVERS_save(siridb))
+        if (siridb_servers_save(siridb))
         {
             log_critical("Cannot save servers");
             return -1;  /* signal is raised */
@@ -136,6 +135,7 @@ int siridb_servers_load(siridb_t * siridb)
             {
                 /* if this is me, bind server to siridb->server */
                 siridb->server = server;
+
             }
             else
             {
@@ -164,6 +164,14 @@ int siridb_servers_load(siridb_t * siridb)
     {
         log_critical("Expected end of file '%s'", fn);
         rc = -1;
+    }
+    else if (siridb_server_update_address(
+            siridb,
+            siridb->server,
+            siri.cfg->listen_backend_address,
+            siri.cfg->listen_backend_port) < 0)
+    {
+        rc = -1;  /* logging is done, set result code to -1 */
     }
 
     return rc;
@@ -283,7 +291,7 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         siridb->reindex = siridb_reindex_open(siridb, 1);
     }
 
-    if (llist_append(siridb->servers, server) || SERVERS_save(siridb))
+    if (llist_append(siridb->servers, server) || siridb_servers_save(siridb))
     {
         log_critical("Cannot save server '%s'", server->name);
         return -1;  /* a signal is raised in this case */
@@ -637,26 +645,10 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
     return 1;  // true
 }
 
-static void SERVERS_walk_free(siridb_server_t * server, void * args)
-{
-    siridb_server_decref(server);
-}
-
-static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
-{
-    int rc = 0;
-    rc += qp_fadd_type(fpacker, QP_ARRAY4);
-    rc += qp_fadd_raw(fpacker, (char *) &server->uuid[0], 16);
-    rc += qp_fadd_string(fpacker, server->address);
-    rc += qp_fadd_int32(fpacker, (int32_t) server->port);
-    rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
-    return rc;
-}
-
 /*
  * Return 0 if successful or -1 and a SIGNAL is raised in case of an error.
  */
-static int SERVERS_save(siridb_t * siridb)
+int siridb_servers_save(siridb_t * siridb)
 {
     qp_fpacker_t * fpacker;
 
@@ -697,3 +689,21 @@ static int SERVERS_save(siridb_t * siridb)
 
     return 0;
 }
+
+static void SERVERS_walk_free(siridb_server_t * server, void * args)
+{
+    siridb_server_decref(server);
+}
+
+static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
+{
+    int rc = 0;
+    rc += qp_fadd_type(fpacker, QP_ARRAY4);
+    rc += qp_fadd_raw(fpacker, (char *) &server->uuid[0], 16);
+    rc += qp_fadd_string(fpacker, server->address);
+    rc += qp_fadd_int32(fpacker, (int32_t) server->port);
+    rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
+    return rc;
+}
+
+

@@ -124,6 +124,11 @@ int siridb_server_send_pkg(
         void * data,
         int flags);
 void siridb_server_send_flags(siridb_server_t * server);
+int siridb_server_update_address(
+        siridb_t * siridb,
+        siridb_server_t * server,
+        const char * address,
+        uint16_t port);
 char * siridb_server_str_status(siridb_server_t * server);
 int siridb_server_is_remote_prop(uint32_t prop);
 int siridb_server_cexpr_cb(

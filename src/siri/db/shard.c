@@ -121,7 +121,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
     FILE * fp;
 
-    log_debug("Loading shard %ld", id);
+    log_info("Loading shard %ld", id);
 
     if ((fp = fopen(shard->fn, "r")) == NULL)
     {

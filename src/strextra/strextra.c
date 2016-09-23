@@ -178,6 +178,13 @@ size_t strx_extract_string(char * dest, const char * source, size_t len)
     return i;
 }
 
+/*
+ * Returns a string to double.
+ * No error checking is done, we make the following assumptions:
+ *      - len > 0
+ *      - string is allowed to have one dot (.) at most but not required
+ *      - string can start with a plus (+) or minus (-) sign.
+ */
 double strx_to_double(const char * src, size_t len)
 {
     char * pt = (char *) src;
@@ -219,4 +226,24 @@ double strx_to_double(const char * src, size_t len)
     }
 
     return convert * d;
+}
+
+/*
+ * Returns a string to uint64_t.
+ * No error checking is done, we make the following assumptions:
+ *      - len > 0
+ *      - string can only contain characters [0..9] and no signs
+ */
+uint64_t strx_to_uint64(const char * src, size_t len)
+{
+    char * pt = (char *) src;
+
+    uint64_t i = *pt - '0';
+
+    while (--len && isdigit(*(++pt)))
+    {
+        i = 10 * i + *pt - '0';
+    }
+
+    return i;
 }
