@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2016-09-23 15:08:53
+ * Created at: 2016-09-23 17:03:33
  */
 
 #pragma once
@@ -21,7 +21,6 @@ enum cleri_grammar_ids {
     CLERI_GID_AGGREGATE_FUNCTIONS,
     CLERI_GID_ALTER_DATABASE,
     CLERI_GID_ALTER_GROUP,
-    CLERI_GID_ALTER_SERIES,
     CLERI_GID_ALTER_SERVER,
     CLERI_GID_ALTER_STMT,
     CLERI_GID_ALTER_USER,

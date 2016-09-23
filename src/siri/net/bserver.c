@@ -167,12 +167,10 @@ static void BSERVER_flags_update(
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-#ifdef DEBUG
     log_debug("[Back-end server] Got data (pid: %d, len: %d, tp: %s)",
             pkg->pid,
             pkg->len,
             sirinet_bproto_client_str(pkg->tp));
-#endif
 
     switch ((bproto_client_t) pkg->tp)
     {

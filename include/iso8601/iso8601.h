@@ -18,6 +18,8 @@ typedef int16_t iso8601_tz_t;
 /* Returns a time-zone identifier from a given name or a negative value
  * in case of an error or when the time-zone is not found.
  * Examples of tzname are: Europe/Amsterdam, UTC etc.
+ *
+ * (this function is not case-sensitive)
  */
 iso8601_tz_t iso8601_tz(const char * tzname);
 

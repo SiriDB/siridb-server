@@ -39,7 +39,6 @@ typedef enum
     QUERY_ALTER_NONE,
     QUERY_ALTER_DATABASE,
     QUERY_ALTER_GROUP,
-    QUERY_ALTER_SERIES,
     QUERY_ALTER_SERVER,
     QUERY_ALTER_USER
 } query_alter_tp;
@@ -66,7 +65,6 @@ typedef struct query_wrapper_s
 union query_alter_u
 {
     siridb_group_t * group;
-    siridb_series_t * series;
     siridb_server_t * server;
     siridb_user_t * user;
     void * dummy;

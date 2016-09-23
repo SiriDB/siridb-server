@@ -179,9 +179,6 @@ void query_alter_free(uv_handle_t * handle)
     case QUERY_ALTER_GROUP:
         siridb_group_decref(q_alter->via.group);
         break;
-    case QUERY_ALTER_SERIES:
-        siridb_series_decref(q_alter->via.series);
-        break;
     case QUERY_ALTER_SERVER:
         siridb_server_decref(q_alter->via.server);
         break;

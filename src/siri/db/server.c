@@ -200,13 +200,11 @@ int siridb_server_send_pkg(
             (timeout) ? timeout : PROMISE_DEFAULT_TIMEOUT,
             0);
 
-#ifdef DEBUG
     log_debug("Sending (pid: %lu, len: %lu, tp: %s) to '%s'",
             pkg->pid,
             pkg->len,
             sirinet_bproto_client_str(pkg->tp),
             server->name);
-#endif
 
     req->data = promise;
 
@@ -498,13 +496,11 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     siridb_server_t * server = ssocket->origin;
     sirinet_promise_t * promise = imap_pop(server->promises, pkg->pid);
 
-#ifdef DEBUG
     log_debug("Response received (pid: %lu, len: %lu, tp: %s) from '%s'",
             pkg->pid,
             pkg->len,
             sirinet_bproto_server_str(pkg->tp),
             server->name);
-#endif
 
     if (promise == NULL)
     {

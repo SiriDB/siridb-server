@@ -41,7 +41,7 @@
 #include <siri/db/group.h>
 
 #define MAX_ITERATE_COUNT 1000      // thousand
-#define MAX_SELECT_POINTS 100000   // one hundred thousand
+#define MAX_SELECT_POINTS 1000000   // one million
 #define MAX_LIST_LIMIT 10000        // ten thousand
 
 #define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
@@ -155,6 +155,7 @@ static void exit_set_address(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_set_port(uv_async_t * handle);
+static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 
@@ -350,6 +351,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
     siriparser_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     siriparser_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
+    siriparser_listen_exit[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     siriparser_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siriparser_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
 }
@@ -892,7 +894,6 @@ static void enter_set_name(uv_async_t * handle)
         break;
     case QUERY_ALTER_NONE:
     case QUERY_ALTER_DATABASE:
-    case QUERY_ALTER_SERIES:
     case QUERY_ALTER_SERVER:
     default:
         assert (0);
@@ -2832,6 +2833,68 @@ static void exit_set_port(uv_async_t * handle)
     }
 }
 
+static void exit_set_timezone(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+
+    char timezone[node->len - 1];
+    strx_extract_string(timezone, node->str, node->len);
+
+    iso8601_tz_t new_tz = iso8601_tz(timezone);
+
+    if (new_tz < 0)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Unknown time zone: '%s'. (see 'help timezones' "
+                "for a list of valid time zones)",
+                timezone);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+
+    }
+    else if (siridb->tz == new_tz)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Database '%s' is already set to time-zone '%s'.",
+                siridb->dbname,
+                timezone);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        QP_ADD_SUCCESS
+
+        qp_add_fmt_safe(
+                query->packer,
+                "Successful changed timezone from '%s' to '%s'.",
+                iso8601_tzname(siridb->tz),
+                iso8601_tzname(new_tz));
+
+        siridb->tz = new_tz;
+
+        if (siridb_save(siridb))
+        {
+            log_critical("Could not save database changes (database: '%s')",
+                    siridb->dbname);
+        }
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response);
+        }
+        else
+        {
+            SIRIPARSER_NEXT_NODE
+        }
+    }
+}
+
 static void exit_show_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -3877,6 +3940,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
     qp_obj_t qp_tp;
     qp_obj_t qp_len;
     qp_obj_t qp_points;
+    qp_obj_t qp_err_msg;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -3897,10 +3961,38 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
             if (pkg == NULL || pkg->tp != BPROTO_RES_QUERY)
             {
                 err_count++;
-                snprintf(query->err_msg,
-                        SIRIDB_MAX_SIZE_ERR_MSG,
-                        "Error occurred while sending the database change to "
-                        "at least '%s'", promise->server->name);
+
+                if (pkg != NULL && pkg->tp == BPROTO_ERR_QUERY)
+                {
+                    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+                    if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                            qp_is_raw(qp_next(&unpacker, NULL)) &&
+                            qp_is_raw(qp_next(&unpacker, &qp_err_msg)))
+                    {
+                        snprintf(query->err_msg,
+                                SIRIDB_MAX_SIZE_ERR_MSG,
+                                "%.*s",
+                                (int) qp_err_msg.len,
+                                qp_err_msg.via.raw);
+                    }
+                    else
+                    {
+                        snprintf(query->err_msg,
+                                SIRIDB_MAX_SIZE_ERR_MSG,
+                                "Error occurred while sending request to "
+                                "at least '%s'",
+                                promise->server->name);
+                    }
+                }
+                else
+                {
+                    snprintf(query->err_msg,
+                            SIRIDB_MAX_SIZE_ERR_MSG,
+                            "Error occurred while sending request to "
+                            "at least '%s'",
+                            promise->server->name);
+                }
             }
             else
             {
