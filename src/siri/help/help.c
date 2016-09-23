@@ -18,7 +18,7 @@
 #include <siri/db/db.h>
 #include <stdio.h>
 
-char * siri_help_content[HELP_COUNT] = {0};
+static char * siri_help_content[HELP_COUNT] = {0};
 
 const char * siri_help_get(
         uint16_t gid,
@@ -93,5 +93,17 @@ const char * siri_help_get(
         }
     }
     return *content;
+}
+
+void siri_help_free(void)
+{
+#ifdef DEBUG
+    log_debug("Free help");
+#endif
+
+    for (uint_fast16_t i = 0; i < HELP_COUNT; i ++)
+    {
+        free(siri_help_content[i]);
+    }
 }
 

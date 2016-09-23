@@ -102,7 +102,7 @@ void siridb_replicate_close(siridb_replicate_t * replicate)
 void siridb_replicate_free(siridb_replicate_t ** replicate)
 {
 #ifdef DEBUG
-    log_debug("Free replicate!");
+    log_debug("Free replicate");
     assert ((*replicate)->status == REPLICATE_CLOSED);
 #endif
     if ((*replicate)->initsync != NULL)

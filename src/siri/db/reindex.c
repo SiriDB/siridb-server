@@ -238,6 +238,7 @@ void siridb_reindex_free(siridb_reindex_t ** reindex)
 {
 #ifdef DEBUG
     assert ((*reindex)->timer == NULL);
+    log_debug("Free re-index");
 #endif
     if ((*reindex)->fp != NULL && fclose((*reindex)->fp))
     {

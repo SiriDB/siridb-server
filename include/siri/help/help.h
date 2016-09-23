@@ -18,3 +18,4 @@ const char * siri_help_get(
         const char * help_name,
         char * err_msg);
 
+void siri_help_free(void);

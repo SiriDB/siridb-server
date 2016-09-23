@@ -19,6 +19,7 @@
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <siri/db/presuf.h>
+#include <siri/help/help.h>
 
 #ifdef DEBUG
 #include <test/test.h>
@@ -84,6 +85,9 @@ int main(int argc, char * argv[])
 
     /* cleanup prefix-suffix allocation */
     siridb_presuf_cleanup();
+
+    /* cleanup help */
+    siri_help_free();
 
     log_info("Bye! (%d)\n", siri_err);
 
