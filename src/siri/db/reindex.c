@@ -20,6 +20,7 @@
  *    the old- or new pool. (selecting series during re-indexing has therefore
  *    the same behavior as a regular expression selection)
  *
+ *  - Drop server is not allowed while re-indexing.
  */
 #define _GNU_SOURCE
 #include <siri/db/reindex.h>
@@ -341,7 +342,7 @@ static void REINDEX_send(uv_timer_t * timer)
     /* actually 'available' is sufficient since the destination server has
      * never status 're-indexing' unless one day we support down-scaling.
      */
-    if (siridb_server_is_reindexing(siridb->reindex->server))
+    if (siridb_server_is_accessible(siridb->reindex->server))
     {
         siridb_server_send_pkg(
                 siridb->reindex->server,

@@ -357,7 +357,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
         return;
     }
 
-    if (!siridb_pools_reindexing(siridb))
+    if (!siridb_pools_accessible(siridb))
     {
         CLSERVER_send_pool_error(client, pkg);
         return;

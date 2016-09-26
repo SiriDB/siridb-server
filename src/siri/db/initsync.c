@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <siri/siri.h>
 #include <siri/optimize.h>
+#include <qpack/qpack.h>
 
 #define INITSYNC_SLEEP 100          // 100 milliseconds
 #define INITSYNC_TIMEOUT 60000      // 1 minute

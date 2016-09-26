@@ -28,7 +28,7 @@ class Server:
         self.pid = None
 
     def create(self):
-        logging.info('Create and start server {}'.format(self.name))
+        logging.info('Create server {}'.format(self.name))
 
         config = configparser.RawConfigParser()
         config.add_section('siridb')
@@ -45,7 +45,10 @@ class Server:
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
 
-        os.mkdir(self.dbpath)
+        try:
+            os.mkdir(self.dbpath)
+        except FileExistsError:
+            pass
 
     @staticmethod
     def _get_pid_set():

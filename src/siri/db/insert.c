@@ -72,7 +72,7 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     case ERR_TIMESTAMP_OUT_OF_RANGE:
         return  "Received at least one time-stamp which is out-of-range.";
     case ERR_UNSUPPORTED_VALUE:
-        return  "Unsupported value received. (only integer, string and float "
+        return  "Unsupported value received. (only integer and float "
                 "values are supported).";
     case ERR_EXPECTING_AT_LEAST_ONE_POINT:
         return  "Expecting a series to have at least one point.";
@@ -953,8 +953,10 @@ static int INSERT_read_points(
         switch (qp_next(unpacker, qp_obj))
         {
         case QP_RAW:
-            qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
-            break;
+            return ERR_UNSUPPORTED_VALUE;
+//            TODO: Add support for strings
+//            qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
+//            break;
 
         case QP_INT64:
             qp_add_int64(packer, qp_obj->via.int64);

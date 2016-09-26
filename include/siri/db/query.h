@@ -15,12 +15,15 @@
 #define SIRIDB_QUERY_FLAG_REBUILD 2
 #define SIRIDB_QUERY_FLAG_UPDATE_REPLICA 4
 
+/*
+ * Note(*) : servers must be 'accessible' unless FLAG_ONLY_CHECK_ONLINE is used
+ */
 typedef enum
 {
-    SIRIDB_QUERY_FWD_SERVERS,  // Forward to all servers directly
-    SIRIDB_QUERY_FWD_POOLS,  // Forward to all pools
-    SIRIDB_QUERY_FWD_SOME_POOLS,  // Forward to some pools
-    SIRIDB_QUERY_FWD_UPDATE  // Forward to all pools and update replica's.
+    SIRIDB_QUERY_FWD_SERVERS,       // Forward to all 'online' servers
+    SIRIDB_QUERY_FWD_POOLS,         // Forward to all pools(*)
+    SIRIDB_QUERY_FWD_SOME_POOLS,    // Forward to some pools(*)
+    SIRIDB_QUERY_FWD_UPDATE         // Forward to all pools, update replicas(*)
 } siridb_query_fwd_t;
 
 
@@ -83,7 +86,8 @@ void siridb_query_send_error(
 void siridb_query_forward(
         uv_async_t * handle,
         siridb_query_fwd_t fwd,
-        sirinet_promises_cb cb);
+        sirinet_promises_cb cb,
+        int flags);
 void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker);

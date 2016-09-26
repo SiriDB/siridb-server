@@ -18,7 +18,7 @@ from testing import UserAuthError
 class TestServer(TestBase):
     title = 'Test server object'
 
-    @default_test_setup(2)
+    @default_test_setup(4)
     async def run(self):
         await self.client0.connect()
 
@@ -45,8 +45,54 @@ class TestServer(TestBase):
         with self.assertRaisesRegexp(
                 QueryError,
                 "Query error at position 42. Expecting debug, info, warning, error or critical"):
-            result = await self.client0.query('alter server "localhost:{}" set log_level unknown')
+            await self.client0.query('alter server "localhost:{}" set log_level unknown')
 
+        self.client1.close()
+        result = await self.server1.stop()
+        self.assertTrue(result)
+
+        self.server1.listen_backend_port = 9111
+        self.server1.create()
+        await self.server1.start(sleep=35)
+
+        result = await self.client0.query('list servers status')
+        self.assertEqual(result.pop('servers'), [['running'], ['running']])
+
+        await self.client1.connect()
+        result = await self.client1.query('show server')
+        self.assertEqual(result.pop('data'), [{'name': 'server', 'value': 'localhost:9111'}])
+
+        await self.db.add_replica(self.server2, 1)
+        await self.assertIsRunning(self.db, self.client0, timeout=10)
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "Cannot remove server 'localhost:9010' because this is the only server for pool 0"):
+            await self.client1.query('drop server "localhost:9010"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                "Cannot remove server 'localhost:9012' because the server is still online.*"):
+            await self.client1.query('drop server "localhost:9012"')
+
+        result = await self.server1.stop()
+        self.assertTrue(result)
+
+        result = await self.server2.stop()
+        self.assertTrue(result)
+
+        await self.server1.start(sleep=10)
+
+        result = await self.client0.query('drop server "localhost:9012"')
+        self.assertEqual(result.pop('success_msg'), "Server 'localhost:9012' is dropped successfully.")
+
+        time.sleep(1)
+
+        result = await self.client0.query('list servers status')
+        self.assertEqual(result.pop('servers'), [['running'], ['running']])
+
+        await self.db.add_replica(self.server3, 1)
+        await self.assertIsRunning(self.db, self.client0, timeout=10)
 
         self.client0.close()
         self.client1.close()

@@ -215,7 +215,10 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
 
     if (server->pool < siridb->pools->len)
     {
-        /* this is a new server for an existing pool */
+        log_info("Register '%s' as a replica server for pool %u",
+                server->name,
+                server->pool);
+
         pool = siridb->pools->pool + server->pool;
         if (pool->len != 1)
         {
@@ -263,9 +266,9 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
                         server->name);
                 return -1;
             }
-
-            siridb_pool_add_server(pool, server);
         }
+
+        siridb_pool_add_server(pool, server);
     }
     else if (server->pool > siridb->pools->len)
     {
@@ -276,7 +279,10 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
     }
     else
     {
-        /* create a new pool and new lookup table */
+        log_info("Register '%s' for a new pool with id %u",
+                server->name,
+                server->pool);
+
         pool = siridb_pools_append(siridb->pools, server);
         if (pool == NULL)
         {
@@ -343,7 +349,9 @@ slist_t * siridb_servers_other2slist(siridb_t * siridb)
 }
 
 /*
- * This function can raise a SIGNAL.
+ * This function sends a package to all online server.
+ *
+ * Note:a signal can be raised.
  *
  * If promises could not be created, the 'cb' function with cb(NULL, data)
  */

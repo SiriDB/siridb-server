@@ -218,11 +218,13 @@ void siridb_query_send_error(
  * Reference counter for handle will be incremented since we count the handle
  * to a timer object. The cb function should perform siri_async_decref(&handle).
  *
+ * (see siridb_query_fwd_t definition for info about fwd_t and flags)
  */
 void siridb_query_forward(
         uv_async_t * handle,
         siridb_query_fwd_t fwd,
-        sirinet_promises_cb cb)
+        sirinet_promises_cb cb,
+        int flags)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
@@ -282,7 +284,8 @@ void siridb_query_forward(
                     pkg,
                     0,
                     cb,
-                    handle);
+                    handle,
+                    flags);
             break;
 
         case SIRIDB_QUERY_FWD_SOME_POOLS:
@@ -306,7 +309,8 @@ void siridb_query_forward(
                             pkg,
                             0,
                             cb,
-                            handle);
+                            handle,
+                            flags);
                 }
                 else
                 {
@@ -327,7 +331,8 @@ void siridb_query_forward(
                     pkg,
                     0,
                     cb,
-                    handle);
+                    handle,
+                    flags);
             break;
 
         default:

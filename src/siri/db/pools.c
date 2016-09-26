@@ -173,20 +173,19 @@ int siridb_pools_available(siridb_t * siridb)
     return 1;  //true
 }
 
+
 /*
- * Returns 1 (true) if at least one server in each pool is re-indexing,
- * 0 (false) if at least one pool has no server re-indexing.
- * ('this' pool is NOT included)
+ * Returns 1 (true) if at least one server in each pool is accessible, 0 (false)
+ * if at least one pool has no server accessible. ('this' pool is NOT included)
  *
- * A server is  're-indexing' when and exactly running and authenticated and
- * optionally re-indexing.
+ * A server is  'accessible' when exactly 'available' or 're-indexing'.
  */
-int siridb_pools_reindexing(siridb_t * siridb)
+int siridb_pools_accessible(siridb_t * siridb)
 {
     for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
     {
         if (    pid != siridb->server->pool &&
-                !siridb_pool_reindexing(siridb->pools->pool + pid))
+                !siridb_pool_accessible(siridb->pools->pool + pid))
         {
             return 0;  // false
         }
@@ -195,7 +194,7 @@ int siridb_pools_reindexing(siridb_t * siridb)
 }
 
 /*
- * This function will send a package to one available server in each pool,
+ * This function will send a package to one accessible server in each pool,
  * 'this' pool not included. The promises call-back function should be
  * used to check if the package has been send successfully to all pools.
  *
@@ -211,7 +210,8 @@ void siridb_pools_send_pkg(
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
-        void * data)
+        void * data,
+        int flags)
 {
     sirinet_promises_t * promises =
             sirinet_promises_new(siridb->pools->len - 1, cb, data, pkg);
@@ -240,11 +240,11 @@ void siridb_pools_send_pkg(
                     timeout,
                     sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG))
+                    FLAG_KEEP_PKG | flags))
             {
                 log_debug(
                         "Cannot send package to pool '%u' "
-                        "(no available server found)",
+                        "(no accessible server found)",
                         pid);
                 slist_append(promises->promises, NULL);
             }
@@ -255,7 +255,7 @@ void siridb_pools_send_pkg(
 }
 
 /*
- * This function will send a package to one available server in the pools
+ * This function will send a package to one accessible server in the pools
  * provided by the 'slist'. The promises call-back function should be
  * used to check if the package has been send successfully to all pools.
  *
@@ -274,7 +274,8 @@ void siridb_pools_send_pkg_2some(
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
-        void * data)
+        void * data,
+        int flags)
 {
     sirinet_promises_t * promises =
             sirinet_promises_new(slist->len, cb, data, pkg);
@@ -298,11 +299,11 @@ void siridb_pools_send_pkg_2some(
                     timeout,
                     sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG))
+                    FLAG_KEEP_PKG | flags))
             {
                 log_debug(
                         "Cannot send package to at least on pool "
-                        "(no available server found)");
+                        "(no accessible server found)");
                 slist_append(promises->promises, NULL);
             }
         }

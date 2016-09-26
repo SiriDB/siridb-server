@@ -21,12 +21,12 @@
 #include <siri/net/pkg.h>
 
 #define FLAG_KEEP_PKG 1
+#define FLAG_ONLY_CHECK_ONLINE 2
 
 #define SERVER_FLAG_RUNNING 1
-#define SERVER_FLAG_PAUSED 2
+#define SERVER_FLAG_BACKUP_MODE 2
 #define SERVER_FLAG_SYNCHRONIZING 4
 #define SERVER_FLAG_REINDEXING 8
-#define SERVER_FLAG_WILL_BE_REMOVED 16
 #define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
                                          and will NEVER be set on 'this'
                                          server */
@@ -56,11 +56,7 @@
 #define siridb_server_is_synchronizing(server) \
 (server->flags == SERVER__IS_SYNCHRONIZING)
 
-/*
- * A server is 're-indexing' when exactly running and authenticated and
- * optionally re-indexing.
- */
-#define siridb_server_is_reindexing(server) \
+#define siridb_server_is_accessible(server) \
 (server->flags == SERVER__IS_ONLINE || server->flags == SERVER__IS_REINDEXING)
 
 
@@ -130,6 +126,11 @@ int siridb_server_update_address(
         const char * address,
         uint16_t port);
 char * siridb_server_str_status(siridb_server_t * server);
+siridb_server_t * siridb_server_from_node(
+        siridb_t * siridb,
+        cleri_node_t * server_node,
+        char * err_msg);
+int siridb_server_drop(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_is_remote_prop(uint32_t prop);
 int siridb_server_cexpr_cb(
         siridb_server_walker_t * wserver,

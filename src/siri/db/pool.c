@@ -60,25 +60,25 @@ int siridb_pool_available(siridb_pool_t * pool)
 }
 
 /*
- * Returns 1 (true) if at least one server in the pool is 're-indexing,
- * 0 (false) if no server in the pool is re-indexing.
+ * Returns 1 (true) if at least one server in the pool is accessible, 0 (false)
+ * if no server in the pool is accessible.
  *
  * Warning: this function should not be used on 'this' pool.
  *
- * A server is  'available' when exactly running and authenticated and
- * optionally re-indexing.
+ * A server is  'accessible' when exactly 'available' or 're-indexing'.
  */
-int siridb_pool_reindexing(siridb_pool_t * pool)
+int siridb_pool_accessible(siridb_pool_t * pool)
 {
     for (uint16_t i = 0; i < pool->len; i++)
     {
-        if (siridb_server_is_reindexing(pool->server[i]))
+        if (siridb_server_is_accessible(pool->server[i]))
         {
             return 1;  // true
         }
     }
     return 0;  // false
 }
+
 
 /*
  * Call-back function used to validate pools in a where expression.
@@ -145,7 +145,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
 }
 
 /*
- * Returns 0 if we have send the package to one 're-indexing'
+ * Returns 0 if we have send the package to one 'accessible'
  * server in the pool. The package will be send only to one server, even if
  * the pool has more servers 're-indexing'.
  *
@@ -158,6 +158,9 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
  * optionally re-indexing.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
+ *
+ * In case flag 'FLAG_ONLY_CHECK_ONLINE' is set, we do not check 'accessible'
+ * but only 'online' is enough.
  *
  * pkg will be destroyed when and ONLY when 0 is returned. (Except when
  * FLAG_KEEP_PKG is set)
@@ -174,7 +177,9 @@ int siridb_pool_send_pkg(
 
     for (uint16_t i = 0; i < pool->len; i++)
     {
-        if (siridb_server_is_reindexing(pool->server[i]))
+        if ((flags & FLAG_ONLY_CHECK_ONLINE) ?
+                siridb_server_is_online(pool->server[i]) :
+                siridb_server_is_accessible(pool->server[i]))
         {
             server = (server == NULL) ?
                     pool->server[i] : pool->server[rand() % 2];

@@ -486,7 +486,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
         qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
         package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
-                    (siridb->server->flags & SERVER_FLAG_PAUSED) ||
+                    (siridb->server->flags & SERVER_FLAG_BACKUP_MODE) ||
                     siridb_insert_local(siridb, &unpacker, flags)) ?
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
@@ -548,7 +548,7 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
 
     if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
-            (siridb->server->flags & SERVER_FLAG_PAUSED))
+            (siridb->server->flags & SERVER_FLAG_BACKUP_MODE))
     {
         log_error("Cannot drop series because of having status %d",
                 siridb->server->flags);

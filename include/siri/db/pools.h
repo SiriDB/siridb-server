@@ -44,17 +44,19 @@ siridb_pool_t * siridb_pools_append(
 siridb_lookup_t * siridb_pools_gen_lookup(uint_fast16_t num_pools);
 int siridb_pools_online(siridb_t * siridb);
 int siridb_pools_available(siridb_t * siridb);
-int siridb_pools_reindexing(siridb_t * siridb);
+int siridb_pools_accessible(siridb_t * siridb);
 void siridb_pools_send_pkg(
         siridb_t * siridb,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
-        void * data);
+        void * data,
+        int flags);
 void siridb_pools_send_pkg_2some(
         siridb_t * siridb,
         slist_t * slist,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
-        void * data);
+        void * data,
+        int flags);

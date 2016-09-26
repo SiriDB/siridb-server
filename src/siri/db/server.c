@@ -21,11 +21,13 @@
 #include <siri/version.h>
 #include <procinfo/procinfo.h>
 #include <siri/err.h>
+#include <strextra/strextra.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 #define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
 
+static int SERVER_equal(siridb_server_t * s1, siridb_server_t * s2);
 static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_free(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
@@ -564,8 +566,8 @@ char * siridb_server_str_status(siridb_server_t * server)
             case SERVER_FLAG_RUNNING:
                 strcat(buffer, (!n) ? "running" : " | " "running");
                 break;
-            case SERVER_FLAG_PAUSED:
-                strcat(buffer, (!n) ? "paused" : " | " "paused");
+            case SERVER_FLAG_BACKUP_MODE:
+                strcat(buffer, (!n) ? "backup-mode" : " | " "backup-mode");
                 break;
             case SERVER_FLAG_SYNCHRONIZING:
                 strcat(buffer, (!n) ? "synchronizing" : " | " "synchronizing");
@@ -579,6 +581,120 @@ char * siridb_server_str_status(siridb_server_t * server)
     }
     return strdup((n) ? buffer : "offline");
 }
+
+/*
+ * Returns server object by node or NULL if the server is not found.
+ */
+siridb_server_t * siridb_server_from_node(
+        siridb_t * siridb,
+        cleri_node_t * server_node,
+        char * err_msg)
+{
+    siridb_server_t * server = NULL;
+
+    switch (server_node->cl_obj->tp)
+    {
+    case CLERI_TP_CHOICE:  // server name
+        {
+            char name[server_node->len - 1];
+            strx_extract_string(name, server_node->str, server_node->len);
+            server = siridb_servers_by_name(siridb->servers, name);
+        }
+        break;
+
+    case CLERI_TP_REGEX:  // uuid
+        {
+            uuid_t uuid;
+            char * str_uuid = strndup(server_node->str, server_node->len);
+            server = (uuid_parse(str_uuid, uuid) == 0) ?
+                    siridb_servers_by_uuid(siridb->servers, uuid) : NULL;
+            free(str_uuid);
+        }
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    if (server == NULL)
+    {
+        snprintf(
+                err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot find server: %.*s",
+                (int) server_node->len,
+                server_node->str);
+    }
+
+    return server;
+}
+
+/*
+ * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
+ * (an error can only happen when we are not able to save the new servers file)
+ */
+int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
+{
+    int rc = 0;
+#ifdef DEBUG
+    assert (siridb->server != server);
+#endif
+    siridb_pool_t * pool = siridb->pools->pool + server->pool;
+
+    switch (server->id)
+    {
+    case 0:
+#ifdef DEBUG
+        assert (pool->len == 2);
+#endif
+        pool->server[0] = pool->server[1];
+        pool->server[0]->id = 0;
+        /* no break */
+    case 1:
+        pool->server[1] = NULL;
+        pool->len = 1;
+        break;
+    default:
+        assert (0);
+        break;
+    }
+
+    if (server == siridb->replica)
+    {
+        if (siridb->replicate != NULL)
+        {
+            siridb_replicate_close(siridb->replicate);
+            siridb_replicate_free(&siridb->replicate);
+        }
+
+        siridb->replica = NULL;
+
+        if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
+        {
+            siridb->server->flags &= ~SERVER_FLAG_SYNCHRONIZING;
+            siridb_servers_send_flags(siridb->servers);
+        }
+    }
+
+    if ((siridb_server_t *) llist_remove(
+            siridb->servers,
+            (llist_cb) SERVER_equal,
+            server) == server)
+    {
+        siridb_server_decref(server);
+        rc = siridb_servers_save(siridb);
+    }
+#ifdef DEBUG
+    else
+    {
+        assert (0);
+    }
+#endif
+    return rc;
+}
+
+
 
 /*
  * Returns true when the given property (CLERI keyword) needs a remote query
@@ -747,6 +863,14 @@ int siridb_server_cexpr_cb(
     log_critical("Unexpected server property received: %d", cond->prop);
     assert (0);
     return -1;
+}
+
+/*
+ * Returns 1 when the two given server are equal, 0 if not.
+ */
+static int SERVER_equal(siridb_server_t * s1, siridb_server_t * s2)
+{
+    return s1 == s2;
 }
 
 /*
