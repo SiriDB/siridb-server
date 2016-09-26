@@ -47,7 +47,7 @@ class TestBase(unittest.TestCase):
             result = result['servers']
             try:
                 assert len(result) == len(self.db.servers), \
-                    'Server(s) are missing : {}'.format(result)
+                    'Server(s) are missing: {} (expexting: {})'.format(result, self.db.servers)
             except AssertionError as e:
                 if not timeout:
                     raise e

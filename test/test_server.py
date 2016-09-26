@@ -83,13 +83,18 @@ class TestServer(TestBase):
 
         await self.server1.start(sleep=10)
 
+        result = await self.client1.query('show status')
+        self.assertEqual(result.pop('data'), [{'name': 'status', 'value': 'running | synchronizing'}])
+
         result = await self.client0.query('drop server "localhost:9012"')
         self.assertEqual(result.pop('success_msg'), "Server 'localhost:9012' is dropped successfully.")
+        self.db.servers.remove(self.server2)
 
         time.sleep(1)
 
-        result = await self.client0.query('list servers status')
-        self.assertEqual(result.pop('servers'), [['running'], ['running']])
+        for client in (self.client0, self.client1):
+            result = await client.query('list servers status')
+            self.assertEqual(result.pop('servers'), [['running'], ['running']])
 
         await self.db.add_replica(self.server3, 1)
         await self.assertIsRunning(self.db, self.client0, timeout=10)

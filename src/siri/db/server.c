@@ -668,6 +668,12 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
             siridb_replicate_free(&siridb->replicate);
         }
 
+        if (siridb->fifo != NULL)
+        {
+            siridb_fifo_free(siridb->fifo);
+            siridb->fifo = NULL;
+        }
+
         siridb->replica = NULL;
 
         if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
