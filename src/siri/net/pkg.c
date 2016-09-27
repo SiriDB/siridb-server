@@ -42,9 +42,12 @@ sirinet_pkg_t * sirinet_pkg_new(
     }
     else
     {
+
         pkg->len = len;
         pkg->pid = pid;
         pkg->tp = tp;
+        pkg->checkbit = 0;  /* check bit will be set when send */
+
         if (data != NULL)
         {
             memcpy(pkg->data, data, len);
@@ -118,7 +121,7 @@ sirinet_pkg_t * sirinet_packer2pkg(
     pkg->pid = pid;
     pkg->tp = tp;
     pkg->len = packer->len - PKG_HEADER_SIZE;
-    pkg->checkbit = pkg->tp ^ 255;
+    pkg->checkbit = 0;  /* check bit will be set when send */
 
     /* Free the packer, not the buffer */
     free(packer);

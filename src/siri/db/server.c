@@ -367,6 +367,8 @@ int siridb_server_update_address(
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
     sirinet_promise_t * promise = (sirinet_promise_t *) req->data;
+    sirinet_pkg_t * pkg = promise->pkg;
+
     if (status)
     {
         log_error("Socket write error to server '%s' (pid: %lu, error: %s)",
@@ -384,7 +386,8 @@ static void SERVER_write_cb(uv_write_t * req, int status)
 
         promise->cb(promise, NULL, PROMISE_WRITE_ERROR);
     }
-    free(promise->pkg); /* NULL when FLAG_KEEP_PKG is set */
+
+    free(pkg); /* NULL when FLAG_KEEP_PKG is set */
     free(req);
 }
 

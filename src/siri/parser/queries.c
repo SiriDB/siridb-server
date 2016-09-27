@@ -17,6 +17,7 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/shard.h>
 #include <assert.h>
+#include <siri/err.h>
 
 #define DEFAULT_LIST_LIMIT 1000
 

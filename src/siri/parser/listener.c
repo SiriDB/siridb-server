@@ -565,7 +565,10 @@ static void enter_create_user(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     /* bind user object to data and set correct free call */
-    query_alter_t * q_alter = query->data = query_alter_new();
+    query_alter_t * q_alter = query_alter_new();
+
+    query->data = q_alter;
+
     if (q_alter != NULL)
     {
         query->free_cb = (uv_close_cb) query_alter_free;
@@ -1737,8 +1740,9 @@ static void exit_create_user(uv_async_t * handle)
     }
     else
     {
-        /* success, we do not need to free the user anymore */
-        query->free_cb = (uv_close_cb) siridb_query_free;
+        /* success, increment the user reference counter */
+        siridb_user_incref(user);
+
 #ifdef DEBUG
         assert (query->packer == NULL);
 #endif

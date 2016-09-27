@@ -4,12 +4,15 @@ import configparser
 import subprocess
 import psutil
 import asyncio
+import time
 from .constants import SIRIDBC
 from .constants import TEST_DIR
+from .constants import VALGRIND
 
 class Server:
     HOLD_TERM = False
     GEOMETRY = '140x60'
+    MEM_CHECK = False
 
     def __init__(self,
                  n,
@@ -50,10 +53,11 @@ class Server:
         except FileExistsError:
             pass
 
-    @staticmethod
-    def _get_pid_set():
+    def _get_pid_set(self):
+        # print(subprocess.check_output(['pgrep', 'memcheck-amd64-']))
         try:
-            ret = set(map(int, subprocess.check_output(['/bin/pidof', 'siridbc']).split()))
+
+            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridbc']).split()))
         except subprocess.CalledProcessError:
             ret = set()
         return ret
@@ -61,12 +65,17 @@ class Server:
     async def start(self, sleep=None):
         prev = self._get_pid_set()
         rc = os.system(
-            'xfce4-terminal -e "{} --config {}" --title {} --geometry={}{}'
-            .format(SIRIDBC,
+            'xfce4-terminal -e "{}{} --config {}" --title {} --geometry={}{}'
+            .format(VALGRIND if self.MEM_CHECK else '',
+                    SIRIDBC,
                     self.cfgfile,
                     self.name,
                     self.GEOMETRY,
                     ' -H' if self.HOLD_TERM else ''))
+
+        if self.MEM_CHECK:
+            time.sleep(5)
+
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
         self.pid = my_pid.pop()
