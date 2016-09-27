@@ -58,14 +58,14 @@ typedef struct siridb_query_s
     uv_close_cb free_cb;    /* must be on top */
     uint8_t ref;
     uint8_t flags;
-    void * data;
     uint16_t pid;
+    siridb_timep_t time_precision;
+    void * data;
     uv_stream_t * client;
     char * q;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     qp_packer_t * packer;
     qp_packer_t * timeit;
-    siridb_timep_t time_precision;
     cleri_parser_t * pr;
     siridb_nodes_t * nodes;
     struct timespec start;

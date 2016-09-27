@@ -168,6 +168,9 @@ int siri_start(void)
     /* initialize heart-beat task (bind siri.heartbeat) */
     siri_heartbeat_init(&siri);
 
+    /* initialize backup (bind siri.backup) */
+    siri_backup_init(&siri);
+
     /* update siridb status to running */
     SIRI_set_running_state();
 
@@ -198,7 +201,7 @@ void siri_free(void)
     siri_fh_free(siri.fh);
 
     /* this will free each SiriDB database and the list */
-    llist_free_cb(siri.siridb_list, (llist_cb) siridb_free_cb, NULL);
+    llist_free_cb(siri.siridb_list, (llist_cb) siridb_decref_cb, NULL);
 
     /* free siridb grammar */
     cleri_grammar_free(siri.grammar);
@@ -370,6 +373,9 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
 
         /* stop heart-beat task */
         siri_heartbeat_stop(&siri);
+
+        /* destroy backup (mode) task */
+        siri_backup_destroy(&siri);
 
         /* mark SiriDB as closing and remove ONLINE flag from servers. */
         SIRI_set_closing_state();

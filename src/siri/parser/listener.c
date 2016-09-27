@@ -49,17 +49,35 @@
 #define DEFAULT_ALLOC_COLUMNS 6
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
 
-#define MASTER_CHECK_POOLS_ONLINE(siridb)                                   \
+#define MASTER_CHECK_ONLINE(siridb)                                         \
+if (IS_MASTER && !siridb_server_self_online(siridb->server))                \
+{                                                                           \
+    sprintf(query->err_msg,                                                 \
+            "Server '%s' is currently not available to process "            \
+            "this request",                                                 \
+            siridb->server->name);                                          \
+    siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
+    return;                                                                 \
+}                                                                           \
 if (IS_MASTER && !siridb_pools_online(siridb))                              \
 {                                                                           \
     sprintf(query->err_msg,                                                 \
-            "At least one pool is lacking an online server to process " \
+            "At least one pool is lacking an online server to process "     \
             "this request");                                                \
     siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
     return;                                                                 \
 }
 
-#define MASTER_CHECK_POOLS_ACCESSIBLE(siridb)                               \
+#define MASTER_CHECK_ACCESSIBLE(siridb)                                     \
+if (IS_MASTER && !siridb_server_self_accessible(siridb->server))            \
+{                                                                           \
+    sprintf(query->err_msg,                                                 \
+            "Server '%s' is currently not accessible to process "           \
+            "this request",                                                 \
+            siridb->server->name);                                          \
+    siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
+    return;                                                                 \
+}                                                                           \
 if (IS_MASTER && !siridb_pools_accessible(siridb))                          \
 {                                                                           \
     sprintf(query->err_msg,                                                 \
@@ -70,7 +88,7 @@ if (IS_MASTER && !siridb_pools_accessible(siridb))                          \
 }
 
 #define MASTER_CHECK_REINDEXING(siridb)                                     \
-if (IS_MASTER && siridb_is_reindexing(siridb))                               \
+if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 {                                                                           \
    sprintf(query->err_msg,                                                  \
            "SiriDB cannot perform this request because the database is "    \
@@ -411,7 +429,7 @@ static void enter_alter_group(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_alter_t * q_alter = (query_alter_t *) query->data;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * group_node =
                     query->nodes->node->children->next->node;
@@ -486,7 +504,7 @@ static void enter_alter_user(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
@@ -589,7 +607,7 @@ static void enter_grant_user(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_GRANT)
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
@@ -782,7 +800,7 @@ static void enter_revoke_user(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_REVOKE)
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * user_node =
                 query->nodes->node->children->next->node;
@@ -823,6 +841,7 @@ static void enter_select_stmt(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_SELECT)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
 #ifdef DEBUG
     assert (query->packer == NULL && query->data == NULL);
@@ -1413,7 +1432,7 @@ static void exit_count_pools(uv_async_t * handle)
     }
     else
     {
-        MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+        MASTER_CHECK_ACCESSIBLE(siridb)
 
         q_count->n = cexpr_run(
                 q_count->where_expr,
@@ -1442,7 +1461,7 @@ static void exit_count_series(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     qp_add_raw(query->packer, "series", 6);
 
@@ -1631,7 +1650,7 @@ static void exit_create_group(uv_async_t * handle)
     cleri_node_t * for_nd =
             query->nodes->node->children->next->next->next->node;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     char group_name[name_nd->len - 1];
     strx_extract_string(group_name, name_nd->str, name_nd->len);
@@ -1699,7 +1718,7 @@ static void exit_create_user(uv_async_t * handle)
     assert(query->packer == NULL);
 #endif
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     char name[user_node->len - 1];
     strx_extract_string(name, user_node->str, user_node->len);
@@ -1751,7 +1770,7 @@ static void exit_drop_group(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * group_node =
             query->nodes->node->children->next->node;
@@ -1791,7 +1810,7 @@ static void exit_drop_series(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     /*
      * This function will be called twice when using a where statement.
@@ -1863,7 +1882,7 @@ static void exit_drop_server(uv_async_t * handle)
             query->err_msg);
 
     MASTER_CHECK_REINDEXING(siridb)
-    MASTER_CHECK_POOLS_ONLINE(siridb)
+    MASTER_CHECK_ONLINE(siridb)
 
     if (server == NULL)
     {
@@ -1927,7 +1946,7 @@ static void exit_drop_shards(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
@@ -2005,7 +2024,7 @@ static void exit_drop_user(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * user_node =
             query->nodes->node->children->next->node;
@@ -2182,7 +2201,7 @@ static void exit_list_pools(uv_async_t * handle)
     uint_fast16_t prop;
     cexpr_t * where_expr = q_list->where_expr;
 
-//    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+//    MASTER_CHECK_ACCESSIBLE(siridb)
 
     if (q_list->props == NULL)
     {
@@ -2792,75 +2811,89 @@ static void exit_set_backup_mode(uv_async_t * handle)
     int backup_mode = query->nodes->node->children->next->next->node->
             children->node->cl_obj->via.dummy->gid == CLERI_GID_K_TRUE;
 
-
-    /*
-     * we can set the success message, we just ignore the message in case an
-     * error occurs.
-     */
-
-    QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-                "Successful %s backup mode on '%s'.",
-                (backup_mode) ? "enabled" : "disabled",
-                server->name);
-
-    if (server == siridb->server)
+    if (backup_mode ^ ((server->flags & SERVER_FLAG_BACKUP_MODE) != 0))
     {
-        if (backup_mode)
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                    "Successful %s backup mode on '%s'.",
+                    (backup_mode) ? "enabled" : "disabled",
+                    server->name);
+
+        if (server == siridb->server)
         {
-            server->flags |= SERVER_FLAG_BACKUP_MODE;
+            if (backup_mode)
+            {
+                if (siri_backup_enable(&siri, siridb))
+                {
+                    MEM_ERR_RET
+                }
+            }
+            else
+            {
+                if (siri_backup_disable(&siri, siridb))
+                {
+                    MEM_ERR_RET
+                }
+            }
+
+            SIRIPARSER_NEXT_NODE
         }
         else
         {
-            server->flags &= ~SERVER_FLAG_BACKUP_MODE;
-        }
+            if (siridb_server_is_online(server))
+            {
+                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                        0,
+                        3,
+                        (backup_mode) ?
+                                BPROTO_ENABLE_BACKUP_MODE :
+                                BPROTO_DISABLE_BACKUP_MODE,
+                        NULL);
 
-        SIRIPARSER_NEXT_NODE
+                if (pkg == NULL)
+                {
+                    MEM_ERR_RET
+                }
+
+                /* handle will be bound to a timer so we should increment */
+                siri_async_incref(handle);
+
+                if (siridb_server_send_pkg(
+                        server,
+                        pkg,
+                        0,
+                        on_ack_response,
+                        handle,
+                        0))
+                {
+                    /*
+                     * signal is raised and 'on_ack_response' will not be
+                     * called
+                     */
+                    free(pkg);
+                    siri_async_decref(&handle);
+                    MEM_ERR_RET
+                }
+            }
+            else
+            {
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Cannot %s backup mode, '%s' is currently unavailable",
+                        (backup_mode) ? "enable" : "disable",
+                        server->name);
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            }
+        }
     }
     else
     {
-        if (siridb_server_is_online(server))
-        {
-            sirinet_pkg_t * pkg = sirinet_pkg_new(
-                    0,
-                    3,
-                    BPROTO_LOG_LEVEL_UPDATE,
-                    NULL);
-
-            if (pkg == NULL)
-            {
-                MEM_ERR_RET
-            }
-
-            /* handle will be bound to a timer so we should increment */
-            siri_async_incref(handle);
-
-            if (siridb_server_send_pkg(
-                    server,
-                    pkg,
-                    0,
-                    on_ack_response,
-                    handle,
-                    0))
-            {
-                /*
-                 * signal is raised and 'on_ack_response' will not be
-                 * called
-                 */
-                free(pkg);
-                siri_async_decref(&handle);
-                MEM_ERR_RET
-            }
-        }
-        else
-        {
-            snprintf(query->err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Cannot %s backup mode, '%s' is currently unavailable",
-                    (backup_mode) ? "enable" : "disable",
-                    server->name);
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-        }
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Backup mode is already %s on '%s'.",
+                (backup_mode) ? "enabled" : "disabled",
+                server->name);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
 }
 
@@ -2869,7 +2902,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-    MASTER_CHECK_POOLS_ACCESSIBLE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
@@ -3838,6 +3871,12 @@ static void on_ack_response(
             switch (pkg->tp)
             {
             case BPROTO_ACK_LOG_LEVEL:
+                /* success message is already set */
+                break;
+            case BPROTO_ACK_ENABLE_BACKUP_MODE:
+                /* success message is already set */
+                break;
+            case BPROTO_ACK_DISABLE_BACKUP_MODE:
                 /* success message is already set */
                 break;
 

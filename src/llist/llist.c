@@ -119,7 +119,8 @@ void llist_walkn(llist_t * llist, size_t * n, llist_cb cb, void * args)
 
 /*
  * Remove and return the first item where 'cb' is not zero
- * or NULL if not found.
+ * or NULL if not found unless 'cb' is NULL, then simple the
+ * data is compared to 'args'.
  */
 void * llist_remove(llist_t * llist, llist_cb cb, void * args)
 {
@@ -129,7 +130,7 @@ void * llist_remove(llist_t * llist, llist_cb cb, void * args)
 
     while (node != NULL)
     {
-        if (cb(node->data, args))
+        if ((cb == NULL) ? node->data == args : cb(node->data, args))
         {
             if (prev == NULL)
             {
@@ -156,6 +157,8 @@ void * llist_remove(llist_t * llist, llist_cb cb, void * args)
 
             data = node->data;
             free(node);
+            llist->len--;
+
             return data;
         }
         prev = node;
@@ -194,6 +197,7 @@ void * llist_pop(llist_t * llist)
         }
         data = node->data;
         free(node);
+        llist->len--;
     }
 
     return data;
@@ -220,6 +224,7 @@ void * llist_shift(llist_t * llist)
 
         data = node->data;
         free(node);
+        llist->len--;
     }
 
     return data;

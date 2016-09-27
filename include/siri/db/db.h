@@ -114,7 +114,7 @@ int siridb_from_unpacker(
         char * err_msg);
 
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
-void siridb_free_cb(siridb_t * siridb, void * args);
+void siridb_decref_cb(siridb_t * siridb, void * args);
 void siridb_incref(siridb_t * siridb);
 void siridb_decref(siridb_t * siridb);
 int siridb_open_files(siridb_t * siridb);

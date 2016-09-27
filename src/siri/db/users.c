@@ -21,6 +21,7 @@
 #include <qpack/qpack.h>
 #include <strextra/strextra.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"

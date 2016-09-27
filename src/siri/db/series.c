@@ -34,7 +34,7 @@ static void SERIES_free(siridb_series_t * series);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
 static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
 static int SERIES_open_new_dropped_file(siridb_t * siridb);
-static int SERIES_open_store(siridb_t * siridb);
+static int SERIES_open_dropped_file(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
 static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
@@ -245,17 +245,9 @@ int siridb_series_load(siridb_t * siridb)
 
     imap_free(dropped, NULL);
 
-    if (SERIES_update_max_id(siridb))
-    {
-        return -1;
-    }
-
-    if (SERIES_open_new_dropped_file(siridb))
-    {
-        return -1;
-    }
-
-    if (SERIES_open_store(siridb))
+    if (    SERIES_update_max_id(siridb) ||
+            SERIES_open_new_dropped_file(siridb) ||
+            siridb_series_open_store(siridb))
     {
         return -1;
     }
@@ -375,8 +367,13 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
 #endif
 
     int rc = 0;
-    /* we are sure the file pointer is at the end of file */
-    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
+
+    if (siridb->dropped_fp == NULL && SERIES_open_dropped_file(siridb))
+    {
+        rc = -1;
+    }
+    /* we are sure the pointer is at the end of the file */
+    else if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->dropped_fp) != 1)
     {
         log_critical("Cannot write %d to dropped cache file.", series->id);
         rc = -1;
@@ -424,11 +421,17 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series)
  */
 int siridb_series_flush_dropped(siridb_t * siridb)
 {
-    int rc = fflush(siridb->dropped_fp);
-    if (rc)
+    int rc = 0;
+
+    if (siridb->dropped_fp == NULL && SERIES_open_dropped_file(siridb))
+    {
+        rc = -1;
+    }
+    else if (fflush(siridb->dropped_fp))
     {
         SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
         log_critical("Could not flush dropped file: '%s'", fn);
+        rc = -1;
     }
 
     siridb->groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
@@ -835,6 +838,24 @@ int siridb_series_optimize_shard_num32(
 }
 
 /*
+ * Open SiriDB series store file.
+ *
+ * Returns 0 if successful or -1 in case of an error.
+ */
+int siridb_series_open_store(siridb_t * siridb)
+{
+    /* macro get series file name */
+    SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
+
+    if ((siridb->store = qp_open(fn, "a")) == NULL)
+    {
+        log_critical("Cannot open file '%s' for appending", fn);
+        return -1;
+    }
+    return 0;
+}
+
+/*
  * Updates series->flags and remove SIRIDB_SERIES_HAS_OVERLAP if possible.
  * This function never sets an overlap and therefore should not be called
  * as long as the overlap flag is not set.
@@ -1185,7 +1206,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 }
 
 /*
- * Open SiriDB drop series file.
+ * Open a new SiriDB drop series file.
  *
  * Returns 0 if successful or -1 in case of an error.
  */
@@ -1202,18 +1223,17 @@ static int SERIES_open_new_dropped_file(siridb_t * siridb)
 }
 
 /*
- * Open SiriDB series store file.
+ * Open SiriDB drop series file.
  *
  * Returns 0 if successful or -1 in case of an error.
  */
-static int SERIES_open_store(siridb_t * siridb)
+static int SERIES_open_dropped_file(siridb_t * siridb)
 {
-    /* macro get series file name */
-    SIRIDB_GET_FN(fn, SIRIDB_SERIES_FN)
+    SIRIDB_GET_FN(fn, SIRIDB_DROPPED_FN)
 
-    if ((siridb->store = qp_open(fn, "a")) == NULL)
+    if ((siridb->dropped_fp = fopen(fn, "a")) == NULL)
     {
-        log_critical("Cannot open file '%s' for appending", fn);
+        log_critical("Cannot open '%s' for appending", fn);
         return -1;
     }
     return 0;

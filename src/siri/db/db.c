@@ -448,7 +448,7 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
     return NULL;
 }
 
-void siridb_free_cb(siridb_t * siridb, void * args)
+void siridb_decref_cb(siridb_t * siridb, void * args)
 {
     siridb_decref(siridb);
 }

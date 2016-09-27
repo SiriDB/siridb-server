@@ -147,3 +147,5 @@ void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
 uint8_t siridb_series_server_id(const char * name);
+int siridb_series_open_store(siridb_t * siridb);
+

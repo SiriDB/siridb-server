@@ -81,6 +81,8 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_REGISTER_SERVER: return "BPROTO_REGISTER_SERVER";
     case BPROTO_DROP_SERIES: return "BPROTO_DROP_SERIES";
     case BPROTO_REQ_GROUPS: return "BPROTO_REQ_GROUPS";
+    case BPROTO_ENABLE_BACKUP_MODE: return "BPROTO_ENABLE_BACKUP_MODE";
+    case BPROTO_DISABLE_BACKUP_MODE: return "BPROTO_DISABLE_BACKUP_MODE";
     default:
         sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
@@ -104,6 +106,8 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ERR_INSERT: return "BPROTO_ERR_INSERT";
     case BPROTO_ERR_REGISTER_SERVER: return "BPROTO_ERR_REGISTER_SERVER";
     case BPROTO_ERR_DROP_SERIES: return "BPROTO_ERR_DROP_SERIES";
+    case BPROTO_ERR_ENABLE_BACKUP_MODE: return "BPROTO_ERR_ENABLE_BACKUP_MODE";
+    case BPROTO_ERR_DISABLE_BACKUP_MODE: return "BPROTO_ERR_DISABLE_BACKUP_MODE";
     case BPROTO_AUTH_SUCCESS: return "BPROTO_AUTH_SUCCESS";
     case BPROTO_ACK_FLAGS: return "BPROTO_ACK_FLAGS";
     case BPROTO_ACK_LOG_LEVEL: return "BPROTO_ACK_LOG_LEVEL";
@@ -111,6 +115,8 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ACK_REPL_FINISHED: return "BPROTO_ACK_REPL_FINISHED";
     case BPROTO_ACK_REGISTER_SERVER: return "BPROTO_ACK_REGISTER_SERVER";
     case BPROTO_ACK_DROP_SERIES: return "BPROTO_ACK_DROP_SERIES";
+    case BPROTO_ACK_ENABLE_BACKUP_MODE: return "BPROTO_ACK_ENABLE_BACKUP_MODE";
+    case BPROTO_ACK_DISABLE_BACKUP_MODE: return "BPROTO_ACK_DISABLE_BACKUP_MODE";
     case BPROTO_RES_GROUPS: return "BPROTO_RES_GROUPS";
     default:
         sprintf(protocol_str, "BPROTO_SERVER_TYPE_UNKNOWN (%d)", n);

@@ -17,6 +17,7 @@
 #include <siri/file/handler.h>
 #include <stdbool.h>
 #include <siri/optimize.h>
+#include <siri/backup.h>
 #include <siri/heartbeat.h>
 #include <siri/cfg/cfg.h>
 #include <siri/args/args.h>
@@ -27,6 +28,7 @@ typedef struct siridb_list_s siridb_list_t;
 typedef struct siri_fh_s siri_fh_t;
 typedef struct siri_optimize_s siri_optimize_t;
 typedef struct siri_heartbeat_s siri_heartbeat_t;
+typedef struct siri_backup_s siri_backup_t;
 typedef struct siri_cfg_s siri_cfg_t;
 typedef struct siri_args_s siri_args_t;
 typedef struct llist_s llist_t;
@@ -46,6 +48,7 @@ typedef struct siri_s
     llist_t * siridb_list;
     siri_fh_t * fh;
     siri_optimize_t * optimize;
+    uv_timer_t * backup;
     uv_timer_t * heartbeat;
     siri_cfg_t * cfg;
     siri_args_t * args;

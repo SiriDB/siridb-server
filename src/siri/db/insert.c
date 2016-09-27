@@ -242,6 +242,18 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
  */
 int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags)
 {
+    if (siridb->buffer_fp == NULL && siridb_buffer_open(siridb))
+    {
+        ERR_FILE
+        return -1;
+    }
+
+    if (siridb->store == NULL && siridb_series_open_store(siridb))
+    {
+        ERR_FILE
+        return -1;
+    }
+
     if ((flags & INSERT_FLAG_TEST) || (
             (siridb->flags & SIRIDB_FLAG_REINDEXING) &&
             (~flags & INSERT_FLAG_TESTED)))

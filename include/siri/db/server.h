@@ -24,16 +24,22 @@
 #define FLAG_ONLY_CHECK_ONLINE 2
 
 #define SERVER_FLAG_RUNNING 1
-#define SERVER_FLAG_BACKUP_MODE 2
-#define SERVER_FLAG_SYNCHRONIZING 4
-#define SERVER_FLAG_REINDEXING 8
+#define SERVER_FLAG_SYNCHRONIZING 2
+#define SERVER_FLAG_REINDEXING 4
+#define SERVER_FLAG_BACKUP_MODE 8
+//#define SERVER_FLAG_APPLYING_MODE 16
 #define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
                                          and will NEVER be set on 'this'
                                          server */
 
 #define SERVER__IS_ONLINE 33  // RUNNING + AUTHENTICATED
-#define SERVER__IS_SYNCHRONIZING 37  // RUNNING + SYNCHRONIZING + AUTHENTICATED
-#define SERVER__IS_REINDEXING 41  // RUNNING + REINDEXING + AUTHENTICATED
+#define SERVER__IS_SYNCHRONIZING 35  // RUNNING + SYNCHRONIZING + AUTHENTICATED
+#define SERVER__IS_REINDEXING 37  // RUNNING + REINDEXING + AUTHENTICATED
+
+#define SERVER__SELF_ONLINE 1  // RUNNING
+#define SERVER__SELF_SYNCHRONIZING 3  // RUNNING + SYNCHRONIZING
+#define SERVER__SELF_REINDEXING 5  // RUNNING + REINDEXING
+
 
 /*
  * A server is  'connected' when at least connected.
@@ -46,18 +52,35 @@
  */
 #define siridb_server_is_online(server) \
 ((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
+#define siridb_server_self_online(server) \
+((server->flags & SERVER__SELF_ONLINE) == SERVER__SELF_ONLINE)
 
 /*
  * A server is  'available' when exactly running and authenticated.
  */
 #define siridb_server_is_available(server) \
 (server->flags == SERVER__IS_ONLINE)
+#define siridb_server_self_available(server) \
+(server->flags == SERVER__SELF_ONLINE)
 
+/*
+ * A server is  'synchronizing' when exactly running, authenticated and
+ * synchronizing.
+ */
 #define siridb_server_is_synchronizing(server) \
 (server->flags == SERVER__IS_SYNCHRONIZING)
+#define siridb_server_self_synchronizing(server) \
+(server->flags == SERVER__SELF_SYNCHRONIZING)
 
+/*
+ * A server is  'accessible' when exactly running, authenticated and
+ * optionally re-indexing.
+ */
 #define siridb_server_is_accessible(server) \
 (server->flags == SERVER__IS_ONLINE || server->flags == SERVER__IS_REINDEXING)
+#define siridb_server_self_accessible(server) \
+(server->flags == SERVER__SELF_ONLINE || server->flags == SERVER__SELF_REINDEXING)
+
 
 
 typedef struct siridb_s siridb_t;
@@ -86,7 +109,6 @@ typedef struct siridb_server_s
     char * buffer_path;
     size_t buffer_size;
     uint32_t startup_time;
-
 } siridb_server_t;
 
 typedef struct siridb_server_walker_s
@@ -95,11 +117,12 @@ typedef struct siridb_server_walker_s
     siridb_t * siridb;
 } siridb_server_walker_t;
 
-typedef struct siridb_server_reg_s
+typedef struct siridb_server_async_s
 {
     uint16_t pid;
     uv_stream_t * client;
-} siridb_server_reg_t;
+} siridb_server_async_t;
+
 
 siridb_server_t * siridb_server_new(
         const char * uuid,

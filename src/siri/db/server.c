@@ -27,7 +27,6 @@
 #define SIRIDB_SERVERS_SCHEMA 1
 #define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
 
-static int SERVER_equal(siridb_server_t * s1, siridb_server_t * s2);
 static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_free(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
@@ -684,9 +683,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
     }
 
     if ((siridb_server_t *) llist_remove(
-            siridb->servers,
-            (llist_cb) SERVER_equal,
-            server) == server)
+            siridb->servers, NULL, server) == server)
     {
         siridb_server_decref(server);
         rc = siridb_servers_save(siridb);
@@ -869,14 +866,6 @@ int siridb_server_cexpr_cb(
     log_critical("Unexpected server property received: %d", cond->prop);
     assert (0);
     return -1;
-}
-
-/*
- * Returns 1 when the two given server are equal, 0 if not.
- */
-static int SERVER_equal(siridb_server_t * s1, siridb_server_t * s2)
-{
-    return s1 == s2;
 }
 
 /*

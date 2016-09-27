@@ -25,6 +25,7 @@
 #include <siri/optimize.h>
 #include <siri/db/replicate.h>
 #include <siri/db/groups.h>
+#include <siri/siri.h>
 
 #define DEFAULT_BACKLOG 128
 
@@ -53,6 +54,8 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_in server_addr;
@@ -218,6 +221,12 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         break;
     case BPROTO_REQ_GROUPS:
         on_req_groups(client, pkg);
+        break;
+    case BPROTO_ENABLE_BACKUP_MODE:
+        on_enable_backup_mode(client, pkg);
+        break;
+    case BPROTO_DISABLE_BACKUP_MODE:
+        on_disable_backup_mode(client, pkg);
         break;
     }
 
@@ -485,8 +494,11 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
         qp_unpacker_t unpacker;
         qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
+        /*
+         * We do not check here for backup mode since we want back-end inserts
+         * to finish. We rather prevent servers from starting new insert tasks.
+         */
         package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
-                    (siridb->server->flags & SERVER_FLAG_BACKUP_MODE) ||
                     siridb_insert_local(siridb, &unpacker, flags)) ?
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
                 sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
@@ -614,8 +626,91 @@ static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
     sirinet_pkg_t * package = siridb_groups_pkg(siridb->groups, pkg->pid);
+
     if (package != NULL)
     {
         sirinet_pkg_send(client, package);
     }
 }
+
+static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    sirinet_pkg_t * package;
+
+    if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
+            (siridb->flags & SIRIDB_FLAG_REINDEXING) ||
+            (siridb->server->flags & SERVER_FLAG_BACKUP_MODE))
+    {
+        log_error(
+                "Cannot set server '%s' in backup mode because of "
+                "having status %d",
+                siridb->server->name,
+                siridb->server->flags);
+
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                BPROTO_ERR_ENABLE_BACKUP_MODE,
+                NULL);
+    }
+    else
+    {
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                (siri_backup_enable(&siri, siridb)) ?
+                        BPROTO_ERR_ENABLE_BACKUP_MODE :
+                        BPROTO_ACK_ENABLE_BACKUP_MODE,
+                NULL);
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+
+}
+
+static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    sirinet_pkg_t * package = NULL;
+
+    if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
+            (siridb->flags & SIRIDB_FLAG_REINDEXING) ||
+            (~siridb->server->flags & SERVER_FLAG_BACKUP_MODE))
+    {
+        log_error(
+                "Cannot clear server '%s' from backup mode because of "
+                "having status %d",
+                siridb->server->name,
+                siridb->server->flags);
+
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                BPROTO_ERR_DISABLE_BACKUP_MODE,
+                NULL);
+    }
+    else
+    {
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                (siri_backup_disable(&siri, siridb)) ?
+                        BPROTO_ERR_DISABLE_BACKUP_MODE :
+                        BPROTO_ACK_DISABLE_BACKUP_MODE,
+                NULL);
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+

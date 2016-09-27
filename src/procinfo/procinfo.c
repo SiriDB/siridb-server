@@ -20,6 +20,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <logger/logger.h>
 
 static int parse_line(char * line);
 

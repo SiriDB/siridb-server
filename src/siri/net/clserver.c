@@ -77,7 +77,7 @@ static void CLSERVER_send_pool_error(
 static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer);
 static void CLSERVER_on_register_server_response(
         slist_t * promises,
-        siridb_server_reg_t * server_reg);
+        siridb_server_async_t * server_reg);
 
 #define POOL_ERR_MSG \
     "At least one pool has no server available to process the request"
@@ -653,8 +653,8 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else if (new_server != NULL)
     {
-        siridb_server_reg_t * server_reg =
-                (siridb_server_reg_t *) malloc(sizeof(siridb_server_reg_t));
+        siridb_server_async_t * server_reg = (siridb_server_async_t *)
+                malloc(sizeof(siridb_server_async_t));
 
         if (server_reg == NULL)
         {
@@ -668,11 +668,11 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             pkg->tp = BPROTO_REGISTER_SERVER;
 
-            /* make sure to unlock the client in the callback */
-            sirinet_socket_lock(client);
-
             if (servers != NULL && (package = sirinet_pkg_copy(pkg)) != NULL)
             {
+                /* make sure to unlock the client in the callback */
+                sirinet_socket_lock(client);
+
                 siridb_servers_send_pkg(
                         servers,
                         package,
@@ -702,7 +702,7 @@ static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer)
  */
 static void CLSERVER_on_register_server_response(
         slist_t * promises,
-        siridb_server_reg_t * server_reg)
+        siridb_server_async_t * server_reg)
 {
     if (promises != NULL)
     {

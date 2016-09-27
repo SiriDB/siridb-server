@@ -70,6 +70,8 @@ typedef enum
     BPROTO_REGISTER_SERVER,                     // (uuid, host, port, pool)
     BPROTO_DROP_SERIES,                         // series_name
     BPROTO_REQ_GROUPS,                          // empty
+    BPROTO_ENABLE_BACKUP_MODE,                  // empty
+    BPROTO_DISABLE_BACKUP_MODE,                 // empty
 } bproto_client_t;
 
 /*
@@ -103,6 +105,8 @@ typedef enum
     BPROTO_ERR_INSERT,                          // empty
     BPROTO_ERR_REGISTER_SERVER,                 // empty
     BPROTO_ERR_DROP_SERIES,                     // empty
+    BPROTO_ERR_ENABLE_BACKUP_MODE,              // empty
+    BPROTO_ERR_DISABLE_BACKUP_MODE,             // empty
 
     /* success */
     BPROTO_AUTH_SUCCESS=192,                    // empty
@@ -112,6 +116,8 @@ typedef enum
     BPROTO_ACK_REPL_FINISHED,                   // empty
     BPROTO_ACK_REGISTER_SERVER,                 // empty
     BPROTO_ACK_DROP_SERIES,                     // empty
+    BPROTO_ACK_ENABLE_BACKUP_MODE,              // empty
+    BPROTO_ACK_DISABLE_BACKUP_MODE,             // empty
     BPROTO_RES_GROUPS                           // [[name, series], ...]
 
 } bproto_server_t;
