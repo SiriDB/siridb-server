@@ -115,6 +115,7 @@ void siridb_median_real(
     n = points->len * percentage;
 
     size_l = size_r = 0;
+    found_a = found_b = false;
 
     if (points->tp == TP_INT)
     {
@@ -237,10 +238,14 @@ static double find_median_real_int64(
     }
 
     if (found_a && found_b)
+    {
         return (a + b) / 2.0;
+    }
 
     if ((!found_b && size_l > n) || size_l > n - 1)
+    {
         return find_median_real_int64(arr_l, size_l, n, a, b, found_a, found_b);
+    }
 
     return find_median_real_int64(
                 arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
@@ -288,10 +293,14 @@ static double find_median_real_double(
     }
 
     if (found_a && found_b)
+    {
         return (a + b) / 2.0;
+    }
 
     if ((!found_b && size_l > n) || size_l > n - 1)
+    {
         return find_median_real_double(arr_l, size_l, n, a, b, found_a, found_b);
+    }
 
     return find_median_real_double(
                 arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
@@ -325,11 +334,16 @@ static double find_n_int64(
             size_l++;
         }
     }
+
     if (size_l == n)
+    {
         return pivot;
+    }
 
     if (size_l > n)
+    {
         return find_n_int64(arr_l, size_l, n);
+    }
 
     return find_n_int64(arr_r, size_r, n - size_l - 1);
 }

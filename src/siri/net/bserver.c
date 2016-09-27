@@ -292,7 +292,9 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
                     (uint16_t) qp_port.via.int64);
 
             /* update other server properties */
+            free(server->dbpath);
             server->dbpath = strdup(qp_dbpath.via.raw);
+            free(server->buffer_path);
             server->buffer_path = strdup(qp_buffer_path.via.raw);
             server->buffer_size = qp_buffer_size.via.int64;
             server->startup_time = qp_startup_time.via.int64;

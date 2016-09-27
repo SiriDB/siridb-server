@@ -9,7 +9,7 @@
  *  - initial version, 04-05-2016
  *
  */
-
+#define _GNU_SOURCE
 #include <siri/db/users.h>
 #include <siri/db/query.h>
 #include <assert.h>
@@ -200,6 +200,7 @@ siridb_user_t * siridb_users_get_user(
 {
     siridb_user_t * user;
     char * pw;
+    struct crypt_data data;
 
     if ((user = llist_get(
             users,
@@ -214,7 +215,9 @@ siridb_user_t * siridb_users_get_user(
         return user;
     }
 
-    pw = crypt(password, user->password);
+
+    data.initialized = 0;
+    pw = crypt_r(password, user->password, &data);
 
     return (strcmp(pw, user->password) == 0) ? user : NULL;
 }

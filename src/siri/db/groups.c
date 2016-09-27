@@ -389,6 +389,8 @@ static void GROUPS_free(siridb_groups_t * groups)
     }
 
     uv_mutex_destroy(&groups->mutex);
+
+    free(groups);
 }
 
 /*

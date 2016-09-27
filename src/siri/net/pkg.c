@@ -114,9 +114,11 @@ sirinet_pkg_t * sirinet_packer2pkg(
     assert (pkg->tp == PKG___QP_TP);
 #endif
 
+
     pkg->pid = pid;
     pkg->tp = tp;
     pkg->len = packer->len - PKG_HEADER_SIZE;
+    pkg->checkbit = pkg->tp ^ 255;
 
     /* Free the packer, not the buffer */
     free(packer);

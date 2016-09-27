@@ -201,6 +201,10 @@ static void BACKUP_walk(siridb_t * siridb, void * args)
     {
         siridb_shard_t * shard;
 
+        /*
+         * A lock is not needed since the optimize thread is paused and this
+         * is running from the main thread.
+         */
         slist_t * shard_list = imap_2slist(siridb->shards);
 
         for (size_t i = 0; i < shard_list->len; i++)

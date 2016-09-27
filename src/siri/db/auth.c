@@ -108,6 +108,7 @@ bproto_server_t siridb_auth_server_request(
     ((sirinet_socket_t *) client->data)->siridb = siridb;
     ((sirinet_socket_t *) client->data)->origin = server;
 
+    free(server->version);
     server->version = strdup(qp_version->via.raw);
 
     /* we must increment the server reference counter */

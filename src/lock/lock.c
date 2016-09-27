@@ -42,6 +42,7 @@ lock_t lock_lock(const char * path, int flags)
     char strpid[10] = {0};
     int is_locked;
     FILE * fp;
+    lock_t lock_rc;
 
     if (asprintf(&lock_fn, "%s%s", path, ".lock") < 0)
     {
@@ -55,6 +56,7 @@ lock_t lock_lock(const char * path, int flags)
         if (flags & LOCK_QUIT_IF_EXIST)
         {
             fclose(fp);
+            free(lock_fn);
             return LOCK_IS_LOCKED_ERR;
         }
 
@@ -76,22 +78,27 @@ lock_t lock_lock(const char * path, int flags)
              * The process id in the existing lock file is the same as 'this'
              * process, we therefore can overwrite the lock.
              */
-            return LOCK_create(lock_fn, pid);
+            lock_rc = LOCK_create(lock_fn, pid);
+            free(lock_fn);
+            return lock_rc;
         }
 
         if (LOCK_get_process_name(&proc_name, pid))
         {
+            free(lock_fn);
             return LOCK_MEM_ALLOC_ERR;
         }
 
         if (proc_name == NULL)
         {
+            free(lock_fn);
             return LOCK_PROCESS_NAME_ERR;
         }
 
         if (LOCK_get_process_name(&pproc_name, ppid))
         {
             free(proc_name);
+            free(lock_fn);
             return LOCK_MEM_ALLOC_ERR;
         }
 
@@ -107,11 +114,15 @@ lock_t lock_lock(const char * path, int flags)
 
         if (is_locked)
         {
+            free(lock_fn);
             return LOCK_IS_LOCKED_ERR;
         }
     }
 
-    return LOCK_create(lock_fn, pid);
+    lock_rc = LOCK_create(lock_fn, pid);
+    free(lock_fn);
+
+    return lock_rc;
 }
 
 /*
@@ -120,11 +131,17 @@ lock_t lock_lock(const char * path, int flags)
 lock_t lock_unlock(const char * path)
 {
     char * lock_fn;
+    lock_t lock_rc;
+
     if (asprintf(&lock_fn, "%s%s", path, ".lock") < 0)
     {
         return LOCK_MEM_ALLOC_ERR;
     }
-    return (unlink(lock_fn)) ? LOCK_UNLINK_ERR : LOCK_REMOVED;
+
+    lock_rc = (unlink(lock_fn)) ? LOCK_UNLINK_ERR : LOCK_REMOVED;
+    free(lock_fn);
+
+    return lock_rc;
 }
 
 /*

@@ -9,7 +9,7 @@
  *  - initial version, 10-03-2016
  *
  */
-
+#define _GNU_SOURCE
 #include <siri/db/user.h>
 #include <crypt.h>
 #include <string.h>
@@ -108,6 +108,7 @@ int siridb_user_set_password(
 {
     char salt[] = "$1$........$";
     char * encrypted;
+    struct crypt_data data;
 
     if (strlen(password) < SIRIDB_MIN_PASSWORD_LEN)
     {
@@ -135,7 +136,9 @@ int siridb_user_set_password(
     {
         salt[i] = SEED_CHARS[rand() % len];
     }
-    encrypted = crypt(password, salt);
+
+    data.initialized = 0;
+    encrypted = crypt_r(password, salt, &data);
 
     /* replace user password with encrypted password */
     free(user->password);

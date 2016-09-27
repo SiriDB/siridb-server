@@ -174,7 +174,7 @@ siridb_ffile_result_t siridb_ffile_append(
     }
     ffile->free_space -= size + sizeof(uint32_t);
 
-    if (    fseeko(ffile->fp, ffile->free_space, SEEK_SET) ||
+    if (    fseeko(ffile->fp, (off_t) ffile->free_space, SEEK_SET) ||
             fwrite((unsigned char *) pkg, size, 1, ffile->fp) != 1 ||
             fwrite(&size, sizeof(uint32_t), 1, ffile->fp) != 1 ||
             fflush(ffile->fp))
