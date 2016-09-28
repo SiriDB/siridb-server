@@ -14,6 +14,7 @@
 #include <siri/net/promise.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
 {
@@ -30,3 +31,20 @@ const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
     return "";
 }
 
+/*
+ * Create a new promise is done in 'siridb_server_send_pkg'.
+ */
+
+
+inline void sirinet_promise_incref(sirinet_promise_t * promise)
+{
+    promise->ref++;
+}
+
+void sirinet_promise_decref(sirinet_promise_t * promise)
+{
+    if (!--promise->ref)
+    {
+        free(promise);
+    }
+}

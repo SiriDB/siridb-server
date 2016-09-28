@@ -623,7 +623,7 @@ static void REINDEX_on_insert_response(
         break;
     }
 
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 /*

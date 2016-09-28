@@ -734,7 +734,7 @@ static void CLSERVER_on_register_server_response(
                 }
                 /* make sure we free the promise and data */
                 free(promise->data);
-                free(promise);
+                sirinet_promise_decref(promise);
             }
         }
 

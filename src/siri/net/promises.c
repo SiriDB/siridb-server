@@ -12,6 +12,7 @@
  */
 
 #include <siri/net/promises.h>
+#include <siri/net/promise.h>
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
@@ -62,14 +63,17 @@ void sirinet_promises_llist_free(slist_t * promises)
         {
             /* make sure we free the promise and data */
             free(promise->data);
-            free(promise);
+            sirinet_promise_decref(promise);
         }
     }
 }
 
 /*
  * This function will clean the promises type and list. The promises->cb
- * is responsible for calling 'free' on each promise and promise->data.
+ * is responsible for calling 'sirinet_promise_decref' on each promise and
+ * free promise->data.
+ *
+ * A promise reference count will be incremented by one.
  */
 void sirinet_promises_on_response(
         sirinet_promise_t * promise,

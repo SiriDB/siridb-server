@@ -169,6 +169,7 @@ int siridb_server_send_pkg(
     promise->timer->data = promise;
     promise->cb = cb;
     promise->pkg = (flags & FLAG_KEEP_PKG) ? NULL : pkg;
+    promise->ref = 2;
     /*
      * we do not need to increment the server reference counter since promises
      * will be destroyed before the server is destroyed.
@@ -367,7 +368,6 @@ int siridb_server_update_address(
 static void SERVER_write_cb(uv_write_t * req, int status)
 {
     sirinet_promise_t * promise = (sirinet_promise_t *) req->data;
-    sirinet_pkg_t * pkg = promise->pkg;
 
     if (status)
     {
@@ -387,7 +387,9 @@ static void SERVER_write_cb(uv_write_t * req, int status)
         promise->cb(promise, NULL, PROMISE_WRITE_ERROR);
     }
 
-    free(pkg); /* NULL when FLAG_KEEP_PKG is set */
+    free(promise->pkg); /* NULL when FLAG_KEEP_PKG is set */
+    sirinet_promise_decref(promise);
+
     free(req);
 }
 
@@ -975,7 +977,7 @@ static void SERVER_on_auth_response(
     }
 
     /* we must free the promise */
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 static void SERVER_on_flags_update_response(
@@ -1003,5 +1005,5 @@ static void SERVER_on_flags_update_response(
     }
 
     /* we must free the promise */
-    free(promise);
+    sirinet_promise_decref(promise);
 }

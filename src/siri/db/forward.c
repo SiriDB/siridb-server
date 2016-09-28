@@ -195,7 +195,7 @@ static void FORWARD_on_response(slist_t * promises, uv_async_t * handle)
 
             /* make sure we free the promise and data */
             free(promise->data);
-            free(promise);
+            sirinet_promise_decref(promise);
         }
     }
 

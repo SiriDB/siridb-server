@@ -829,6 +829,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
             qp_obj->via.real = (double) *((double *) unpacker->pt);
         }
         unpacker->pt += 8;
+
         return QP_DOUBLE;
     }
 

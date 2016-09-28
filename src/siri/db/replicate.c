@@ -381,7 +381,7 @@ static void REPLICATE_on_repl_response(
             REPLICATE_SLEEP,
             0);
 
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 static void REPLICATE_on_repl_finished_response(
@@ -410,7 +410,7 @@ static void REPLICATE_on_repl_finished_response(
     }
 
     /* we must free the promise */
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 

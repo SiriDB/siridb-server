@@ -475,7 +475,7 @@ static void INITSYNC_on_insert_response(
         assert (0);
         break;
     }
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 

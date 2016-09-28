@@ -49,5 +49,6 @@ typedef struct sirinet_promise_s
 } sirinet_promise_t;
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status);
-
+void sirinet_promise_incref(sirinet_promise_t * promise);
+void sirinet_promise_decref(sirinet_promise_t * promise);
 

@@ -685,7 +685,7 @@ int siridb_series_optimize_shard_num32(
 #endif
 
     idx_num32_t * idx;
-    uint_fast32_t i, end, max_ts, start = 0;
+    uint_fast32_t i, end, other, max_ts, start = 0;
     size_t size;
     siridb_points_t * points;
     int rc = 0;
@@ -718,7 +718,7 @@ int siridb_series_optimize_shard_num32(
         }
         else if (idx->shard == shard && end)
         {
-            end++;
+            other++;
         }
     }
 
@@ -728,9 +728,12 @@ int siridb_series_optimize_shard_num32(
         return rc;
     }
 
+    end += other;
+
     long int pos;
     uint16_t chunk_sz;
     uint_fast32_t num_chunks, pstart, pend;
+    uint32_t start_ts;
 
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
@@ -778,9 +781,17 @@ int siridb_series_optimize_shard_num32(
         }
         else
         {
-            idx = (idx_num32_t *) series->idx + start;
+            start_ts = (uint32_t) points->data[pstart].ts;
+
+            do
+            {
+                idx = (idx_num32_t *) series->idx + start;
+            }
+            while (idx->shard == shard->replacing && start++);
+
+
             idx->shard = shard;
-            idx->start_ts = (uint32_t) points->data[pstart].ts;
+            idx->start_ts = start_ts;
             idx->end_ts = (uint32_t) points->data[pend - 1].ts;
             idx->len = pend - pstart;
             idx->pos = pos;

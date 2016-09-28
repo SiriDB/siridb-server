@@ -3907,7 +3907,7 @@ static void on_ack_response(
 
 
     /* we must free the promise */
-    free(promise);
+    sirinet_promise_decref(promise);
 }
 
 /*
@@ -3958,7 +3958,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 
         /* make sure we free the promise and data */
         free(promise->data);
-        free(promise);
+        sirinet_promise_decref(promise);
     }
 
     qp_add_int64(query->packer, q_count->n);
@@ -4014,7 +4014,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
 
         /* make sure we free the promise and data */
         free(promise->data);
-        free(promise);
+        sirinet_promise_decref(promise);
     }
 
     qp_add_fmt(query->packer,
@@ -4071,7 +4071,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
 
         /* make sure we free the promise and data */
         free(promise->data);
-        free(promise);
+        sirinet_promise_decref(promise);
     }
 
     qp_add_fmt(query->packer,
@@ -4137,7 +4137,7 @@ static void on_groups_response(slist_t * promises, uv_async_t * handle)
 
         /* make sure we free the promise and data */
         free(promise->data);
-        free(promise);
+        sirinet_promise_decref(promise);
     }
 
     query->nodes->cb(handle);
@@ -4202,7 +4202,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
         /* make sure we free the promise and data */
         free(promise->data);
-        free(promise);
+        sirinet_promise_decref(promise);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
@@ -4323,7 +4323,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
 
             /* make sure we free the promise and data */
             free(promise->data);
-            free(promise);
+            sirinet_promise_decref(promise);
         }
     }
 
@@ -4424,7 +4424,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
 
             /* make sure we free the promise and data */
             free(promise->data);
-            free(promise);
+            sirinet_promise_decref(promise);
         }
     }
 
