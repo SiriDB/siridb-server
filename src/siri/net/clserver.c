@@ -151,9 +151,7 @@ static void on_new_connection(uv_stream_t * server, int status)
         }
         else
         {
-            uv_close(
-                    (uv_handle_t *) client,
-                    (uv_close_cb) sirinet_socket_free);
+            sirinet_socket_decref((uv_stream_t *) client);
         }
     }
 }
@@ -670,8 +668,8 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             if (servers != NULL && (package = sirinet_pkg_copy(pkg)) != NULL)
             {
-                /* make sure to unlock the client in the callback */
-                sirinet_socket_lock(client);
+                /* make sure to decrement the client in the callback */
+                sirinet_socket_incref(client);
 
                 siridb_servers_send_pkg(
                         servers,
@@ -758,8 +756,8 @@ static void CLSERVER_on_register_server_response(
         }
     }
 
-    /* unlock the client */
-    sirinet_socket_unlock(server_reg->client);
+    /* decref the client */
+    sirinet_socket_decref(server_reg->client);
 
     /* free server register object */
     free(server_reg);

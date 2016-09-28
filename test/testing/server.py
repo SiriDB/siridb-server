@@ -74,7 +74,7 @@ class Server:
                     ' -H' if self.HOLD_TERM else ''))
 
         if self.MEM_CHECK:
-            time.sleep(5)
+            await asyncio.sleep(1)
 
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
@@ -112,6 +112,7 @@ class Server:
         return True
 
     def kill(self):
+        print("!!!!!!!!!!!! KILLL !!!!!!!!!!")
         os.system('kill -9 {}'.format(self.pid))
         self.pid = None
 

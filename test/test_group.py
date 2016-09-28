@@ -115,4 +115,5 @@ class TestGroup(TestBase):
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestGroup())

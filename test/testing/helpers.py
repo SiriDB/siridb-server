@@ -26,6 +26,10 @@ def cleanup():
     logging.info('Force kill all open siridbc processes')
     os.system('pkill -9 siridbc')
 
+    logging.info('Force kill all open memcheck-amd64- processes')
+    os.system('pkill -9 memcheck-amd64-')
+
+
 def random_value(tp=float, mi=-100, ma=100):
     i = random.randrange(mi, ma)
     if tp == float:

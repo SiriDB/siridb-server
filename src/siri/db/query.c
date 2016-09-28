@@ -92,8 +92,8 @@ void siridb_query_run(
     /* bind pid, client and flags so we can send back the result */
     query->pid = pid;
 
-    /* lock the client */
-    sirinet_socket_lock(client);
+    /* increment client reference counter */
+    sirinet_socket_incref(client);
 
     query->client = client;
     query->flags = flags;
@@ -148,8 +148,8 @@ void siridb_query_free(uv_handle_t * handle)
     /* free query result */
     cleri_parser_free(query->pr);
 
-    /* unlock the client */
-    sirinet_socket_unlock(query->client);
+    /* decrement client reference counter */
+    sirinet_socket_decref(query->client);
 
     /* free query */
     free(query);

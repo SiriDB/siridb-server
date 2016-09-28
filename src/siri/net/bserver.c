@@ -127,9 +127,7 @@ static void on_new_connection(uv_stream_t * server, int status)
         }
         else
         {
-            uv_close(
-                    (uv_handle_t *) client,
-                    (uv_close_cb) sirinet_socket_free);
+            sirinet_socket_decref((uv_stream_t *) client);
         }
     }
 }

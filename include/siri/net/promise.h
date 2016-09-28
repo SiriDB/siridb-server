@@ -40,6 +40,7 @@ typedef void (* sirinet_promise_cb)(
 typedef struct sirinet_promise_s
 {
     uint16_t pid;
+    uint16_t ref;
     uv_timer_t * timer;
     sirinet_promise_cb cb;
     siridb_server_t * server;

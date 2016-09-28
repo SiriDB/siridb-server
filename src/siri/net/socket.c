@@ -21,6 +21,7 @@
 #define MAX_ALLOWED_PKG_SIZE 2097152  // 2 MB
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
+static void SOCKET_free(uv_stream_t * client);
 
 /*
  * This function can raise a SIGNAL.
@@ -85,8 +86,7 @@ void sirinet_socket_on_data(
             free(buf->base);
         }
 
-        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
-
+        sirinet_socket_decref(client);
         return;
     }
 
@@ -105,7 +105,8 @@ void sirinet_socket_on_data(
                         "closing connection (pid: %lu, len: %lu, tp: %u)",
                         pkg->pid, pkg->len, pkg->tp);
                 free(buf->base);
-                uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
+
+                sirinet_socket_decref(client);
                 return;
             }
 
@@ -176,8 +177,7 @@ void sirinet_socket_on_data(
                     "Got an illegal package or size too large, "
                     "closing connection (pid: %lu, len: %lu, tp: %u)",
                     pkg->pid, pkg->len, pkg->tp);
-
-            uv_close((uv_handle_t *) client, (uv_close_cb) sirinet_socket_free);
+            sirinet_socket_decref(client);
             return;
         }
 
@@ -270,6 +270,48 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
     return socket;
 }
 
+inline void sirinet_socket_incref(uv_stream_t * client)
+{
+    ((sirinet_socket_t *) client->data)->ref++;
+}
+
+void sirinet_socket_decref(uv_stream_t * client)
+{
+    sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
+
+    if (!--ssocket->ref)
+    {
+        uv_close(
+            (uv_handle_t *) client,
+            (uv_close_cb) SOCKET_free);
+    }
+}
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * (reference counter is initially set to 1)
+ */
+static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
+{
+    sirinet_socket_t * ssocket =
+            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
+    if (ssocket == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        ssocket->tp = tp;
+        ssocket->on_data = cb;
+        ssocket->buf = NULL;
+        ssocket->len = 0;
+        ssocket->origin = NULL;
+        ssocket->siridb = NULL;
+        ssocket->ref = 1;
+    }
+    return ssocket;
+}
+
 /*
  * Destroy socket. (parsing NULL is not allowed)
  *
@@ -281,14 +323,9 @@ uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
  *  In case a server is destroyed, remaining promises will be cancelled and
  *  the call-back functions will be called.
  */
-void sirinet_socket_free(uv_stream_t * client)
+static void SOCKET_free(uv_stream_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
-    ssocket->flags &= ~SOCKET_IN_USE;
-    if (ssocket->flags & SOCKET_LOCKED)
-    {
-        return;
-    }
 
 #ifdef DEBUG
     log_debug("Free socket type: %d", ssocket->tp);
@@ -319,46 +356,6 @@ void sirinet_socket_free(uv_stream_t * client)
     free(ssocket->buf);
     free(ssocket);
     free((uv_tcp_t *) client);
-}
-
-inline void sirinet_socket_lock(uv_stream_t * client)
-{
-    ((sirinet_socket_t *) client->data)->flags |= SOCKET_LOCKED;
-}
-
-void sirinet_socket_unlock(uv_stream_t * client)
-{
-    sirinet_socket_t * ssocket = client->data;
-    ssocket->flags &= ~SOCKET_LOCKED;
-    if (!ssocket->flags)
-    {
-        sirinet_socket_free(client);
-    }
-}
-
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- * (reference counter is initially set to 1)
- */
-static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
-{
-    sirinet_socket_t * ssocket =
-            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
-    if (ssocket == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        ssocket->tp = tp;
-        ssocket->on_data = cb;
-        ssocket->buf = NULL;
-        ssocket->len = 0;
-        ssocket->origin = NULL;
-        ssocket->siridb = NULL;
-        ssocket->flags = SOCKET_IN_USE;
-    }
-    return ssocket;
 }
 
 

@@ -427,8 +427,14 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         /* This can be a TCP server with data set to NULL or a SiriDB socket
          * which should be destroyed.
          */
-        uv_close(handle, (handle->data == NULL) ?
-                NULL : (uv_close_cb) sirinet_socket_free);
+        if (handle->data == NULL)
+        {
+            uv_close(handle, NULL);
+        }
+        else
+        {
+            sirinet_socket_decref((uv_stream_t *) handle);
+        }
         break;
 
     case UV_TIMER:

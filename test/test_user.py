@@ -67,7 +67,7 @@ class TestUser(TestBase):
 
         result = await self.client1.query('alter user "sasientje" set password "dagdag"')
 
-        await self.server0.start(sleep=12)
+        await self.server0.start(sleep=35)
 
         self.client0 = Client(
             self.db,
@@ -136,6 +136,6 @@ class TestUser(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestUser())

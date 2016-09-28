@@ -224,8 +224,8 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
     /* bind the number of points to insert object */
     insert->npoints= npoints;
 
-    /* lock the client */
-    sirinet_socket_lock(insert->client);
+    /* increment the client reference counter */
+    sirinet_socket_incref(insert->client);
 
     uv_async_init(siri.loop, handle, INSERT_points_to_pools);
     handle->data = (void *) insert;
@@ -1000,8 +1000,8 @@ static void INSERT_free(uv_handle_t * handle)
 {
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
 
-    /* unlock the client */
-    sirinet_socket_unlock(insert->client);
+    /* decrement the client reference counter */
+    sirinet_socket_decref(insert->client);
 
     /* free insert */
     siridb_insert_free(insert);

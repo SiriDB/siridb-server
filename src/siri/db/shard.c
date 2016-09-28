@@ -648,8 +648,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         return siri_err;
     }
 
-
-
     sleep(1);
 
     uv_mutex_lock(&siridb->series_mutex);

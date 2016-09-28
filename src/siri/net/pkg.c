@@ -16,6 +16,13 @@
 #include <logger/logger.h>
 #include <siri/err.h>
 #include <assert.h>
+#include <siri/net/socket.h>
+
+typedef struct pkg_send_s
+{
+    sirinet_pkg_t * pkg;
+    uv_stream_t * client;
+} pkg_send_t;
 
 static void PKG_write_cb(uv_write_t * req, int status);
 
@@ -167,6 +174,7 @@ sirinet_pkg_t * sirinet_pkg_err(
 int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+
     if (req == NULL)
     {
         ERR_ALLOC
@@ -174,7 +182,22 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
         return -1;
     }
 
-    req->data = pkg;
+    pkg_send_t * data = (pkg_send_t *) malloc(sizeof(pkg_send_t));
+
+    if (data == NULL)
+    {
+        ERR_ALLOC
+        free(pkg);
+        free(req);
+        return -1;
+    }
+
+    /* increment client reference counter */
+    sirinet_socket_incref(client);
+
+    data->client = client;
+    data->pkg = pkg;
+    req->data = data;
 
     /* set the correct check bit */
     pkg->checkbit = pkg->tp ^ 255;
@@ -182,6 +205,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
             PKG_HEADER_SIZE + pkg->len);
+
     uv_write(req, client, &wrbuf, 1, PKG_write_cb);
 
     return 0;
@@ -212,6 +236,12 @@ static void PKG_write_cb(uv_write_t * req, int status)
     {
         log_error("Socket write error: %s", uv_strerror(status));
     }
-    free(req->data); /* pkg */
+
+    pkg_send_t * data = (pkg_send_t *) req->data;
+
+    sirinet_socket_decref(data->client);
+
+    free(data->pkg);
+    free(data);
     free(req);
 }

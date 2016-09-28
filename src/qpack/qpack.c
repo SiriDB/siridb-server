@@ -478,8 +478,8 @@ int qp_add_double(qp_packer_t * packer, double real)
     else
     {
         packer->buffer[packer->len++] = QP_DOUBLE;
-        memcpy(packer->buffer + packer->len, &real, 8);
-        packer->len += 8;
+        memcpy(packer->buffer + packer->len, &real, sizeof(double));
+        packer->len += sizeof(double);
     }
     return 0;
 }
@@ -513,8 +513,8 @@ int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
     QP_RESIZE(3)
     packer->buffer[packer->len++] = QP_INT16;
-    memcpy(packer->buffer + packer->len, &integer, 2);
-    packer->len += 2;
+    memcpy(packer->buffer + packer->len, &integer, sizeof(int16_t));
+    packer->len += sizeof(int16_t);
     return 0;
 }
 
@@ -525,8 +525,8 @@ int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
     QP_RESIZE(5)
     packer->buffer[packer->len++] = QP_INT32;
-    memcpy(packer->buffer + packer->len, &integer, 4);
-    packer->len += 4;
+    memcpy(packer->buffer + packer->len, &integer, sizeof(int32_t));
+    packer->len += sizeof(int32_t);
     return 0;
 }
 
@@ -537,8 +537,8 @@ int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
     QP_RESIZE(9)
     packer->buffer[packer->len++] = QP_INT64;
-    memcpy(packer->buffer + packer->len, &integer, 8);
-    packer->len += 8;
+    memcpy(packer->buffer + packer->len, &integer, sizeof(int64_t));
+    packer->len += sizeof(int64_t);
     return 0;
 }
 
@@ -826,8 +826,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            qp_obj->via.real =
-                    (double) *((double *) unpacker->pt);
+            qp_obj->via.real = (double) *((double *) unpacker->pt);
         }
         unpacker->pt += 8;
         return QP_DOUBLE;
