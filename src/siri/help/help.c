@@ -20,6 +20,12 @@
 
 static char * siri_help_content[HELP_COUNT] = {0};
 
+/*
+ * Returns the help mark-down content from cache if possible or otherwise
+ * the help file will be read from disk.
+ *
+ * In case of an error NULL is returned and an error message is set.
+ */
 const char * siri_help_get(
         uint16_t gid,
         const char * help_name,
@@ -29,6 +35,10 @@ const char * siri_help_get(
 
     if (*content == NULL)
     {
+        /*
+         * path must be initialized for xpath_get_exec_path to handle this variable
+         * correctly.
+         */
         char path[PATH_MAX] = {0};
         char fn[PATH_MAX];
 
@@ -94,14 +104,15 @@ const char * siri_help_get(
                 }
 
                 fclose(fp);
-
-
             }
         }
     }
     return *content;
 }
 
+/*
+ * Destroy the help. (free help content in cache)
+ */
 void siri_help_free(void)
 {
 #ifdef DEBUG

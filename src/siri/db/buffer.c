@@ -81,7 +81,7 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
         {
             size = end - start;
 
-            num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
+            num_chunks = (size - 1) / shard->max_chunk_sz + 1;
             chunk_sz = size / num_chunks + (size % num_chunks != 0);
 
             for (pstart = start; pstart < end; pstart += chunk_sz)

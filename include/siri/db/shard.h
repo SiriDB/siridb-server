@@ -51,9 +51,10 @@ typedef struct siridb_shard_s siridb_shard_t;
 
 typedef struct siridb_shard_s
 {
-    uint64_t ref;   /* keep ref on top */
+    uint32_t ref;   /* keep ref on top */
     uint8_t tp; /* TP_NUMBER, TP_LOG */
     uint8_t flags;
+    uint16_t max_chunk_sz;
     uint64_t id;
     siri_fp_t * fp;
     char * fn;

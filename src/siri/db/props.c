@@ -101,10 +101,6 @@ static void prop_server(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
-static void prop_sharding_max_chunk_points(
-        siridb_t * siridb,
-        qp_packer_t * packer,
-        int map);
 static void prop_startup_time(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -183,8 +179,6 @@ void siridb_init_props(void)
             prop_reindex_progress;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] =
             prop_server;
-    siridb_props[CLERI_GID_K_SHARDING_MAX_CHUNK_POINTS - KW_OFFSET] =
-            prop_sharding_max_chunk_points;
     siridb_props[CLERI_GID_K_STARTUP_TIME - KW_OFFSET] =
             prop_startup_time;
     siridb_props[CLERI_GID_K_STATUS - KW_OFFSET] =
@@ -356,14 +350,6 @@ static void prop_server(
 {
     SIRIDB_PROP_MAP("server", 6)
     qp_add_string(packer, siridb->server->name);
-}
-static void prop_sharding_max_chunk_points(
-        siridb_t * siridb,
-        qp_packer_t * packer,
-        int map)
-{
-    SIRIDB_PROP_MAP("sharding_max_chunk_points", 25)
-    qp_add_int32(packer, (int32_t) abs(siri.cfg->max_chunk_points));
 }
 
 static void prop_startup_time(

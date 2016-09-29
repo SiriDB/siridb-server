@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <slist/slist.h>
 #include <siri/file/pointer.h>
+#include <siri/err.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
@@ -42,18 +43,20 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
  * 0    (uint8_t)   SHEMA
  * 1    (uint64_t)  ID
  * 9    (uint64_t)  DURATION
- * 17   (uint8_t)   TP
- * 18   (uint8_t)   TIME_PRECISION
- * 19   (uint8_t)   FLAGS
+ * 17   (uint16_t)  MAX_CHUCK_SZ
+ * 19   (uint8_t)   TP
+ * 20   (uint8_t)   TIME_PRECISION
+ * 21   (uint8_t)   FLAGS
  *
  */
-#define HEADER_SIZE 20
+#define HEADER_SIZE 22
 #define HEADER_SCHEMA 0
 #define HEADER_ID 1
 #define HEADER_DURATION 9
-#define HEADER_TP 17
-#define HEADER_TIME_PRECISION 18
-#define HEADER_FLAGS 19
+#define HEADER_MAX_CHUNK_SZ 17
+#define HEADER_TP 19
+#define HEADER_TIME_PRECISION 20
+#define HEADER_FLAGS 21
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint32_t)  START_TS
@@ -70,6 +73,9 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
 #define IDX_NUM64_SZ 22
 
 #define SHARD_STATUS_SIZE 7
+
+/* max 65535 since uint16_t is used to store this value */
+#define DEFAULT_MAX_CHUNK_SZ_NUM 800
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
         {.repr="optimize-scheduled", .flag=SIRIDB_SHARD_MANUAL_OPTIMIZE},
@@ -143,9 +149,10 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
 
-    /* set shard type and status flag */
+    /* set shard type, flags and max_chunk_sz */
     shard->tp = (uint8_t) header[HEADER_TP];
     shard->flags = (uint8_t) header[HEADER_FLAGS] | SIRIDB_SHARD_IS_LOADING;
+    shard->max_chunk_sz = (uint32_t) header[HEADER_MAX_CHUNK_SZ];
 
     SHARD_load_idx_num32(siridb, shard, fp);
 
@@ -196,6 +203,9 @@ siridb_shard_t *  siridb_shard_create(
     shard->flags = SIRIDB_SHARD_OK;
     shard->tp = tp;
     shard->replacing = replacing;
+    shard->max_chunk_sz = (replacing == NULL) ?
+            DEFAULT_MAX_CHUNK_SZ_NUM : replacing->max_chunk_sz;
+
     FILE * fp;
     if (SHARD_init_fn(siridb, shard) < 0)
     {
@@ -215,13 +225,15 @@ siridb_shard_t *  siridb_shard_create(
     /* 0    (uint8_t)   SHEMA
      * 1    (uint64_t)  ID
      * 9    (uint64_t)  DURATION
-     * 17   (uint8_t)   TP
-     * 18   (uint8_t)   TIME_PRECISION
-     * 19   (uint8_t)   FLAGS
+     * 17   (uint16_t)  MAX_CHUNK_SZ
+     * 19   (uint8_t)   TP
+     * 20   (uint8_t)   TIME_PRECISION
+     * 21   (uint8_t)   FLAGS
      */
     if (    fputc(SIRIDB_SHARD_SHEMA, fp) == EOF ||
             fwrite(&id, sizeof(uint64_t), 1, fp) != 1 ||
             fwrite(&duration, sizeof(uint64_t), 1, fp) != 1 ||
+            fwrite(&shard->max_chunk_sz, sizeof(uint16_t), 1, fp) != 1 ||
             fputc(tp, fp) == EOF ||
             fputc(siridb->time->precision, fp) == EOF ||
             fputc(shard->flags, fp) == EOF)
@@ -423,7 +435,7 @@ int siridb_shard_get_points_num32(
 {
     size_t len = points->len + idx->len;
     /*
-     * Index length is limited to max_chunck_points so we are able to store
+     * Index length is limited to max_chunk_points so we are able to store
      * one chunk in stack memory.
      */
     uint32_t temp[idx->len * 3];

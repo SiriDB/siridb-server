@@ -15,10 +15,6 @@
 #define MIN_OPEN_FILES_LIMIT 3
 #define DEFAULT_OPEN_FILES_LIMIT MAX_OPEN_FILES_LIMIT
 
-#define MIN_CHUNK_POINTS 10
-#define MAX_CHUNK_POINTS 65535
-#define DEFAULT_CHUNK_POINTS 800
-
 static siri_cfg_t siri_cfg = {
         .listen_client_address="localhost",
         .listen_client_port=9000,
@@ -28,7 +24,6 @@ static siri_cfg_t siri_cfg = {
         .heartbeat_interval=3,
         .default_db_path="/var/lib/siridb/",
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
-        .max_chunk_points=DEFAULT_CHUNK_POINTS
 };
 
 static void SIRI_CFG_read_interval(
@@ -42,7 +37,6 @@ static void SIRI_CFG_read_address_port(
         uint16_t * port_pt);
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
-static void SIRI_CFG_read_max_chunk_points(cfgparser_t * cfgparser);
 
 void siri_cfg_init(siri_t * siri)
 {
@@ -88,7 +82,6 @@ void siri_cfg_init(siri_t * siri)
 
     SIRI_CFG_read_default_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
-    SIRI_CFG_read_max_chunk_points(cfgparser);
 
     cfgparser_free(cfgparser);
 }
@@ -260,38 +253,6 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
             log_critical("Could not set the soft-limit to %d", min_limit);
         }
     }
-}
-
-static void SIRI_CFG_read_max_chunk_points(cfgparser_t * cfgparser)
-{
-    cfgparser_option_t * option;
-    cfgparser_return_t rc;
-    rc = cfgparser_get_option(
-                &option,
-                cfgparser,
-                "sharding",
-                "max_chunk_points");
-    if (rc != CFGPARSER_SUCCESS || option->tp != CFGPARSER_TP_INTEGER)
-    {    log_info(
-                "Using default value for [sharding]max_chunk_points: %d",
-                siri_cfg.max_chunk_points);
-    }
-    else
-    {
-        siri_cfg.max_chunk_points = (uint16_t) option->val->integer;
-    }
-
-    if (siri_cfg.max_chunk_points < MIN_CHUNK_POINTS ||
-            siri_cfg.max_chunk_points > MAX_CHUNK_POINTS)
-    {
-        log_warning(
-                "Value max_chunk_points must be a value between %d and %d "
-                "but we found %d. Using default value instead: %d",
-                MIN_CHUNK_POINTS, MAX_CHUNK_POINTS,
-                siri_cfg.max_chunk_points, DEFAULT_CHUNK_POINTS);
-        siri_cfg.max_chunk_points = DEFAULT_CHUNK_POINTS;
-    }
-
 }
 
 static void SIRI_CFG_read_address_port(

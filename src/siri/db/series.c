@@ -38,7 +38,7 @@ static int SERIES_open_dropped_file(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
 static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
-static void SERIES_update_overlap(siridb_series_t * series);
+static void SERIES_update_overlap_num32(siridb_series_t * series);
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
 static void SERIES_idx_swap_num32(idx_num32_t * idx, uint32_t n, uint32_t i);
 static void SERIES_idx_sort_num32(
@@ -761,7 +761,7 @@ int siridb_series_optimize_shard_num32(
         }
     }
 
-    num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
+    num_chunks = (size - 1) / shard->max_chunk_sz + 1;
     chunk_sz = size / num_chunks + (size % num_chunks != 0);
     i = start;
 
@@ -789,6 +789,10 @@ int siridb_series_optimize_shard_num32(
         {
             start_ts = (uint32_t) points->data[pstart].ts;
 
+            /*
+             * We should always find a spot for this index since the number
+             * of chunks cannot grow.
+             */
             do
             {
                 idx = (idx_num32_t *) series->idx + i;
@@ -813,13 +817,23 @@ int siridb_series_optimize_shard_num32(
 
     if (new_idx)
     {
+        /*
+         * We might have skipped new_indexes while writing new blocks and
+         * possible some new_indexes exist at the wrong place in the index.
+         *
+         * Therefore we must sort the series index part containing data
+         * for this shard.
+         */
         SERIES_idx_sort_num32((idx_num32_t *) series->idx, start, end);
+
+        /*
+         * We need to set 'i' to the correct value since 'i' has possible
+         * not walked over all 'new indexes'.
+         *
+         * (in case other is 0, i is equal to the value set below)
+         */
         i = start + new_idx + num_chunks;
     }
-
-#ifdef DEBUG
-    assert (siri_err || i == start + new_idx + num_chunks);
-#endif
 
     if (i < end)
     {
@@ -861,7 +875,7 @@ int siridb_series_optimize_shard_num32(
 
     if (series->flags & SIRIDB_SERIES_HAS_OVERLAP)
     {
-        SERIES_update_overlap(series);
+        SERIES_update_overlap_num32(series);
     }
 
     return rc;
@@ -941,7 +955,7 @@ static void SERIES_idx_sort_num32(
  * This function never sets an overlap and therefore should not be called
  * as long as the overlap flag is not set.
  */
-static void SERIES_update_overlap(siridb_series_t * series)
+static void SERIES_update_overlap_num32(siridb_series_t * series)
 {
 #ifdef DEBUG
     assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
@@ -985,8 +999,8 @@ static void SERIES_free(siridb_series_t * series)
     case IDX_TP_NUM64:
     case IDX_TP_LOG32:
     case IDX_TP_LOG64:
-    default:
         /* TODO: implement other */
+    default:
         assert (0);
         break;
     }
