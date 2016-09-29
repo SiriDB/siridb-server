@@ -1,3 +1,4 @@
+import asyncio
 import random
 import time
 from testing import Client
@@ -34,6 +35,13 @@ class TestInsert(TestBase):
                     ['series int', 100, 'integer', self.series_int[0][0], self.series_int[-1][0]],
                 ]
             })
+
+    async def insert(self, client, series, n, timeout=1):
+        for _ in range(n):
+            await client.insert_some_series(series, timeout=timeout)
+            await asyncio.sleep(1.0)
+
+
 
     @default_test_setup(2)
     async def run(self):
@@ -102,6 +110,17 @@ class TestInsert(TestBase):
 
         await self._test_series(self.client1)
 
+        # Create some random series and start 25 insert task parallel
+        series = gen_series(n=5000)
+        tasks = [
+            asyncio.ensure_future(
+                self.client0.insert_some_series(series, timeout=0))
+            for i in range(25)]
+        await asyncio.gather(*tasks)
+
+        # Check the result
+        await self.assertSeries(self.client0, series)
+
         self.client0.close()
         self.client1.close()
 
@@ -110,6 +129,6 @@ class TestInsert(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
     run_test(TestInsert())

@@ -74,7 +74,16 @@ sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
 
 #define SHARD_STATUS_SIZE 7
 
-/* max 65535 since uint16_t is used to store this value */
+/*
+ * Once a shard is created the chunk_size is saved (and after a restart loaded)
+ * from the shard. Its not possible to shrink the chunk size for an existing
+ * shard since we assume the index will not grow when optimizing. It is
+ * possible to set a larger chunk size for an existing shard.
+ *
+ * New shards can be created using a lower max_chunk size.
+ *
+ * Max 65535 since uint16_t is used to store this value
+ */
 #define DEFAULT_MAX_CHUNK_SZ_NUM 800
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
@@ -152,7 +161,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     /* set shard type, flags and max_chunk_sz */
     shard->tp = (uint8_t) header[HEADER_TP];
     shard->flags = (uint8_t) header[HEADER_FLAGS] | SIRIDB_SHARD_IS_LOADING;
-    shard->max_chunk_sz = (uint32_t) header[HEADER_MAX_CHUNK_SZ];
+    shard->max_chunk_sz = *((uint16_t *) (header + HEADER_MAX_CHUNK_SZ));
 
     SHARD_load_idx_num32(siridb, shard, fp);
 

@@ -83,6 +83,17 @@ class TestBase(unittest.TestCase):
                     'for series {!r}' \
                     .format(len(s.points), length, s.name)
 
+    def assertAlmostEqual(self, a, b, *args, **kwargs):
+        if isinstance(b, dict):
+            for series, points in b.items():
+                assert isinstance(points, list), 'Expecting a list of points'
+                for i, point in enumerate(points):
+                    assert isinstance(point, list) and len(point) == 2, \
+                        'Expecting a point to be a list of 2 items'
+                    super().assertEqual(a[series][i][0], point[0])
+                    super().assertAlmostEqual(a[series][i][1], point[1], *args, **kwargs)
+        else:
+            super().assertAlmostEqual(a, b, *args, **kwargs)
 
 
 
