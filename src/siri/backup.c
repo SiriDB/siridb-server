@@ -57,6 +57,7 @@ int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 {
 #ifdef DEBUG
     assert (~siridb->server->flags & SERVER_FLAG_BACKUP_MODE);
+    assert (~siridb->server->flags & SERVER_FLAG_REINDEXING);
 #endif
 
     llist_t * llist = (llist_t *) siri->backup->data;
@@ -72,7 +73,10 @@ int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 
     siridb_servers_send_flags(siridb->servers);
 
-    siri_optimize_pause();
+    if (~siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
+    {
+        siri_optimize_pause();
+    }
 
     if (siridb->replicate != NULL)
     {
@@ -221,5 +225,7 @@ static void BACKUP_walk(siridb_t * siridb, void * args)
                 siri_fp_close(shard->replacing->fp);
             }
         }
+
+        slist_free(shard_list);
     }
 }

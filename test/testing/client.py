@@ -3,6 +3,7 @@ import functools
 import logging
 import random
 import sys
+import time
 from .constants import PY_SIRIDB_PATH
 from .helpers import gen_points
 from .server import Server
@@ -74,7 +75,7 @@ class Client:
                 break
 
         if timeout is not None:
-            await asyncio.sleep(0.1)
+            time.sleep(0.1)
 
         for s in series[:n]:
             s.commit_points()

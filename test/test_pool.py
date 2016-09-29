@@ -37,7 +37,7 @@ class TestPool(TestBase):
             series,
             300))
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
 
         await self.db.add_pool(self.server1, sleep=3)
 
@@ -50,8 +50,9 @@ class TestPool(TestBase):
             series,
             200))
 
-        # await self.assertSeries(self.client0, series)
-        # await self.assertSeries(self.client1, series)
+        if not Server.MEM_CHECK:
+            await self.assertSeries(self.client0, series)
+            await self.assertSeries(self.client1, series)
 
         await self.assertIsRunning(self.db, self.client0, timeout=200)
 
@@ -63,17 +64,19 @@ class TestPool(TestBase):
             series,
             100))
 
-        # for _ in range(10):
-        #     await self.assertSeries(self.client0, series)
-        #     await self.assertSeries(self.client1, series)
-        #     await self.assertSeries(self.client2, series)
-        #     await asyncio.sleep(2)
+        if not Server.MEM_CHECK:
+            for _ in range(10):
+                await asyncio.sleep(2)
+                await self.assertSeries(self.client0, series)
+                await self.assertSeries(self.client1, series)
+                await self.assertSeries(self.client2, series)
 
         await self.assertIsRunning(self.db, self.client0, timeout=600)
 
-        # await self.assertSeries(self.client0, series)
-        # await self.assertSeries(self.client1, series)
-        # await self.assertSeries(self.client2, series)
+        if not Server.MEM_CHECK:
+            await self.assertSeries(self.client0, series)
+            await self.assertSeries(self.client1, series)
+            await self.assertSeries(self.client2, series)
 
         await asyncio.wait_for(task0, None)
         await asyncio.wait_for(task1, None)

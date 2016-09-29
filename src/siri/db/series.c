@@ -40,7 +40,11 @@ static void SERIES_update_start_num32(siridb_series_t * series);
 static void SERIES_update_end_num32(siridb_series_t * series);
 static void SERIES_update_overlap(siridb_series_t * series);
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
-
+static void SERIES_idx_swap_num32(idx_num32_t * idx, uint32_t n, uint32_t i);
+static void SERIES_idx_sort_num32(
+        idx_num32_t * idx,
+        uint32_t start,
+        uint32_t end);
 
 static siridb_series_t * SERIES_new(
         siridb_t * siridb,
@@ -685,14 +689,14 @@ int siridb_series_optimize_shard_num32(
 #endif
 
     idx_num32_t * idx;
-    uint_fast32_t i, end, other, max_ts, start = 0;
+    uint_fast32_t i, end, new_idx, max_ts, start;
     size_t size;
     siridb_points_t * points;
     int rc = 0;
 
     max_ts = (shard->id + siridb->duration_num) - series->mask;
 
-    end = i = size = 0;
+    new_idx = end = i = size = start = 0;
 
     for (   idx = (idx_num32_t *) series->idx;
             i < series->idx_len && idx->start_ts < max_ts;
@@ -718,7 +722,7 @@ int siridb_series_optimize_shard_num32(
         }
         else if (idx->shard == shard && end)
         {
-            other++;
+            new_idx++;
         }
     }
 
@@ -728,11 +732,11 @@ int siridb_series_optimize_shard_num32(
         return rc;
     }
 
-    end += other;
+    end += new_idx;
 
     long int pos;
     uint16_t chunk_sz;
-    uint_fast32_t num_chunks, pstart, pend;
+    uint_fast32_t num_chunks, pstart, pend, diff;
     uint32_t start_ts;
 
     points = siridb_points_new(size, series->tp);
@@ -759,6 +763,7 @@ int siridb_series_optimize_shard_num32(
 
     num_chunks = (size - 1) / siri.cfg->max_chunk_points + 1;
     chunk_sz = size / num_chunks + (size % num_chunks != 0);
+    i = start;
 
     for (pstart = 0; pstart < size; pstart += chunk_sz)
     {
@@ -778,6 +783,7 @@ int siridb_series_optimize_shard_num32(
         {
             log_critical("Cannot write points to shard id '%ld'", shard->id);
             rc = -1;  /* signal is raised */
+            num_chunks--;
         }
         else
         {
@@ -785,10 +791,14 @@ int siridb_series_optimize_shard_num32(
 
             do
             {
-                idx = (idx_num32_t *) series->idx + start;
+                idx = (idx_num32_t *) series->idx + i;
+                i++;
             }
-            while (idx->shard == shard->replacing && start++);
+            while (idx->shard == shard);
 
+#ifdef DEBUG
+            assert (idx->shard == shard->replacing);
+#endif
 
             idx->shard = shard;
             idx->start_ts = start_ts;
@@ -797,23 +807,32 @@ int siridb_series_optimize_shard_num32(
             idx->pos = pos;
             siridb_shard_incref(shard);
         }
-        start++;
     }
 
     siridb_points_free(points);
 
-    if (start < end)
+    if (new_idx)
     {
-        /* save the difference in variable i */
-        i = end - start;
+        SERIES_idx_sort_num32((idx_num32_t *) series->idx, start, end);
+        i = start + new_idx + num_chunks;
+    }
+
+#ifdef DEBUG
+    assert (siri_err || i == start + new_idx + num_chunks);
+#endif
+
+    if (i < end)
+    {
+        /* get the difference */
+        diff = end - i;
 
         /* new length is current length minus difference */
-        series->idx_len -= i;
+        series->idx_len -= diff;
 
-        for (; start < series->idx_len; start++)
+        for (; i < series->idx_len; i++)
         {
-            ((idx_num32_t *) series->idx)[start] =
-                    ((idx_num32_t *) series->idx)[start + i];
+            ((idx_num32_t *) series->idx)[i] =
+                    ((idx_num32_t *) series->idx)[i + diff];
         }
 
         /* shrink memory to the new size */
@@ -836,7 +855,7 @@ int siridb_series_optimize_shard_num32(
     else
     {
         /* start must be equal to end if not smaller */
-        assert (start == end);
+        assert (i == end);
     }
 #endif
 
@@ -864,6 +883,57 @@ int siridb_series_open_store(siridb_t * siridb)
         return -1;
     }
     return 0;
+}
+
+/*
+ * Swap shards in idx and check 'n' times upward in the list if the swap is
+ * needed.
+ */
+static void SERIES_idx_swap_num32(idx_num32_t * idx, uint32_t n, uint32_t i)
+{
+    /* swap i with i + 1 in the index */
+    idx_num32_t tmp = idx[i + 1];
+    idx[i + 1] = idx[i];
+    idx[i] = tmp;
+
+    /* check if we also need to swap i - 1 with i ... */
+    if (--n && (idx[--i].shard != tmp.shard || idx[i].start_ts > tmp.start_ts))
+    {
+        SERIES_idx_swap_num32(idx, n, i);
+    }
+}
+
+/*
+ * Will sort an index to its correct order. The start of idx should be correct
+ * with a valid shard. All replaced shard indexes are sorted towards the end.
+ */
+static void SERIES_idx_sort_num32(
+        idx_num32_t * idx,
+        uint32_t start,
+        uint32_t end)
+{
+    siridb_shard_t * shard = idx[start].shard;
+    idx_num32_t * a;
+    idx_num32_t * b;
+    uint32_t i = start;
+
+    /*
+     * Since the first position is always correct we can leave this one alone.
+     */
+    while (++i < end)
+    {
+        a = idx + i;
+        b = idx + i + 1;
+        /*
+         * We only need to swap if at least the last position is of the correct
+         * shard and if the time-stamps should be swapped.
+         */
+        if (    b->shard == shard &&
+                (a->shard != shard || a->start_ts > b->start_ts))
+        {
+            SERIES_idx_swap_num32(idx, i - start, i);
+        }
+    }
 }
 
 /*
