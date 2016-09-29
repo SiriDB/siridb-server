@@ -29,7 +29,7 @@ const char * siri_help_get(
 
     if (*content == NULL)
     {
-        char path[PATH_MAX];
+        char path[PATH_MAX] = {0};
         char fn[PATH_MAX];
 
         if (xpath_get_exec_path(path))
@@ -38,7 +38,14 @@ const char * siri_help_get(
         }
         else
         {
-            snprintf(fn, PATH_MAX, "%shelp/%s.md", path, help_name);
+            if (help_name[0] == '?')
+            {
+                snprintf(fn, PATH_MAX, "%shelp/help%s.md", path, help_name + 1);
+            }
+            else
+            {
+                snprintf(fn, PATH_MAX, "%shelp/%s.md", path, help_name);
+            }
 
             log_debug("Reading help file: '%s'", fn);
 

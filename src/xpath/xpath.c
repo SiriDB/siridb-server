@@ -99,7 +99,7 @@ int xpath_get_exec_path(char * path)
     }
 
     /* find last / in path */
-    path_end = strrchr (path, '/');
+    path_end = strrchr(path, '/');
 
     if (path_end == NULL)
     {
