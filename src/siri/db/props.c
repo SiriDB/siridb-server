@@ -259,7 +259,7 @@ static void prop_duration_log(
         int map)
 {
     SIRIDB_PROP_MAP("duration_log", 12)
-    qp_add_int64(packer, siridb->duration_log);
+    qp_add_int64(packer, (int64_t) siridb->duration_log);
 }
 
 static void prop_duration_num(
@@ -268,7 +268,7 @@ static void prop_duration_num(
         int map)
 {
     SIRIDB_PROP_MAP("duration_num", 12)
-    qp_add_int64(packer, siridb->duration_num);
+    qp_add_int64(packer, (int64_t) siridb->duration_num);
 }
 
 static void prop_libuv(
@@ -313,7 +313,7 @@ static void prop_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("open_files", 10)
-    qp_add_int32(packer, siridb_open_files(siridb));
+    qp_add_int32(packer, (int32_t) siridb_open_files(siridb));
 }
 
 static void prop_pool(
@@ -331,7 +331,7 @@ static void prop_received_points(
         int map)
 {
     SIRIDB_PROP_MAP("received_points", 15)
-    qp_add_int64(packer, siridb->received_points);
+    qp_add_int64(packer, (int64_t) siridb->received_points);
 }
 
 static void prop_reindex_progress(

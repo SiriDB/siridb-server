@@ -129,12 +129,27 @@ siridb_points_t * siridb_series_get_points_num32(
         uint64_t * start_ts,
         uint64_t * end_ts);
 
+siridb_points_t * siridb_series_get_points_num64(
+        siridb_series_t * series,
+        uint64_t * start_ts,
+        uint64_t * end_ts);
+
 void siridb_series_remove_shard_num32(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);
 
+void siridb_series_remove_shard_num64(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard);
+
 int siridb_series_optimize_shard_num32(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard);
+
+int siridb_series_optimize_shard_num64(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);

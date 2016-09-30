@@ -101,7 +101,6 @@ int siridb_shard_get_points_num32(
         uint8_t has_overlap);
 
 int siridb_shard_get_points_num64(
-        siridb_t * siridb,
         siridb_points_t * points,
         idx_num64_t * idx,
         uint64_t * start_ts,

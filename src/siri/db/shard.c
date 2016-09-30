@@ -523,6 +523,96 @@ int siridb_shard_get_points_num32(
 }
 
 /*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_points_num64(
+        siridb_points_t * points,
+        idx_num64_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    size_t len = points->len + idx->len;
+    /*
+     * Index length is limited to max_chunk_points so we are able to store
+     * one chunk in stack memory.
+     */
+    uint64_t temp[idx->len * 3];
+    uint64_t * pt;
+
+    if (idx->shard->fp->fp == NULL)
+    {
+        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
+        {
+            log_critical(
+                    "Cannot open file '%s', skip reading points",
+                    idx->shard->fn);
+            return -1;
+        }
+    }
+
+    if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+        fread(
+            temp,
+            12,
+            idx->len,
+            idx->shard->fp->fp) != idx->len)
+    {
+        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
+        {
+            log_error("Cannot read from shard id %lu", idx->shard->id);
+        }
+        else
+        {
+            log_critical(
+                    "Cannot read from shard id %lu. The next optimize cycle "
+                    "will fix this shard but you might loose some data.",
+                    idx->shard->id);
+            idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+        }
+        return -1;
+    }
+
+    /* set pointer to start */
+    pt = temp;
+
+    /* crop from start if needed */
+    if (start_ts != NULL)
+    {
+        for (; *pt < *start_ts; pt += 3, len--);
+    }
+
+    /* crop from end if needed */
+    if (end_ts != NULL)
+    {
+        for (   uint64_t * p = temp + 3 * (idx->len - 1);
+                *p >= *end_ts;
+                p -= 3, len--);
+    }
+
+    if (    has_overlap &&
+            points->len &&
+            (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP))
+    {
+        for (uint64_t ts; points->len < len; pt += 3)
+        {
+            ts = *pt;
+            siridb_points_add_point(points, &ts, ((qp_via_t *) (pt + 1)));
+        }
+    }
+    else
+    {
+        for (; points->len < len; points->len++, pt += 3)
+        {
+            points->data[points->len].ts = *pt;
+            points->data[points->len].val = *((qp_via_t *) (pt + 1));
+        }
+    }
+
+    return 0;
+}
+
+/*
  * This function will be called from the 'optimize' thread.
  *
  * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
@@ -534,6 +624,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
             siridb->duration_num : siridb->duration_log;
     siridb_series_t * series;
+    int optimize_result;
 
     uv_mutex_lock(&siridb->shards_mutex);
 
@@ -574,10 +665,10 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     }
 
     /* at this point the references should be as following (unless dropped):
-     *  shard->ref (2)
+     *  shard->ref (=>2)
      *      - simple list
      *      - new_shard->replacing
-     *  new_shard->ref (2)
+     *  new_shard->ref (=>2)
      *      - siridb->shards
      *      - this method
      */
@@ -607,7 +698,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
         series = slist->data[i];
 
-        /* TODO: get correct function based on shard and time precision */
+
 
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
@@ -617,15 +708,35 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         {
             uv_mutex_lock(&siridb->series_mutex);
 
-            if (    (~new_shard->flags & SIRIDB_SHARD_IS_REMOVED) &&
-                    siridb_series_optimize_shard_num32(
+            if (~new_shard->flags & SIRIDB_SHARD_IS_REMOVED)
+            {
+                switch((idx_tp) series->idx_tp)
+                {
+                case IDX_TP_NUM32:
+                    optimize_result = siridb_series_optimize_shard_num32(
                             siridb,
                             series,
-                            new_shard))
-            {
-                log_critical(
-                        "Optimizing shard '%s' has failed due to a critical "
-                        "error", shard->fn);
+                            new_shard);
+                    break;
+                case IDX_TP_NUM64:
+                    optimize_result = siridb_series_optimize_shard_num64(
+                            siridb,
+                            series,
+                            new_shard);
+                    break;
+                case IDX_TP_LOG32:
+                case IDX_TP_LOG64:
+                    /* TODO: not implemented yet */
+                    assert (0);
+                    break;
+                }
+
+                if (optimize_result)
+                {
+                    log_critical(
+                            "Optimizing shard '%s' has failed due to a critical "
+                            "error", shard->fn);
+                }
             }
 
             uv_mutex_unlock(&siridb->series_mutex);
@@ -823,7 +934,21 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
             if (shard->id % siridb->duration_num == series->mask)
             {
                 /* series might be destroyed after this call */
-                siridb_series_remove_shard_num32(siridb, series, shard);
+                switch ((idx_tp) series->idx_tp)
+                {
+                case IDX_TP_NUM32:
+                    siridb_series_remove_shard_num32(siridb, series, shard);
+                    break;
+                case IDX_TP_NUM64:
+                    siridb_series_remove_shard_num64(siridb, series, shard);
+                    break;
+                case IDX_TP_LOG32:
+                case IDX_TP_LOG64:
+                    /* TODO: not implemented yet */
+                    assert (0);
+                    break;
+                }
+
             }
         }
         slist_free(slist);

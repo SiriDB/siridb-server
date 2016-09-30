@@ -25,6 +25,8 @@
 #include <test/test.h>
 #endif
 
+#define IS_BIG_ENDIAN (!*(unsigned char *)&(uint16_t){1})
+
 int main(int argc, char * argv[])
 {
     #ifdef DEBUG
@@ -61,6 +63,15 @@ int main(int argc, char * argv[])
         exit(1);
     }
     #endif
+
+    if (IS_BIG_ENDIAN)
+    {
+        LOGC("BIG Endian");
+    }
+    else
+    {
+        LOGC("LITTLE Endian");
+    }
 
     /* start server */
     log_info("Starting SiriDB Server (version: %s)", SIRIDB_VERSION);
