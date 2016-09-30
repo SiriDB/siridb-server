@@ -150,15 +150,14 @@ class TestSelect(TestBase):
                 [1447257600, 0.001388888888888889]]})
 
         # test prefix, suffex
-
         result = await self.client0.query(
                 'select sum(1d) prefix "sum-" suffix "-sum", '
                 'min(1d) prefix "minimum-", '
                 'max(1d) suffix "-maximum" from "aggr"');
-
         self.assertIn('sum-aggr-sum', result)
         self.assertIn('minimum-aggr', result)
         self.assertIn('aggr-maximum', result)
+
 
         self.client0.close()
 
@@ -166,6 +165,6 @@ class TestSelect(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestSelect())

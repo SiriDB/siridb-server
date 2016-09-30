@@ -40,11 +40,12 @@ class TestCluster(TestBase):
         await self.db.add_replica(self.server1, 0)
         await self.db.add_replica(self.server3, 1)
         await self.db.add_replica(self.server5, 2)
+
         await self.assertIsRunning(self.db, self.client0, timeout=35)
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
