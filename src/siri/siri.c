@@ -52,7 +52,7 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 #define WAIT_BETWEEN_CLOSE_ATTEMPTS 3000
 
 static uv_timer_t closing_timer;
-static int closing_attempts = 20;
+static int closing_attempts = 40;  // times 3 seconds is 2 minutes
 
 #define N_SIGNALS 4
 static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV, SIGABRT};
@@ -386,7 +386,7 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         }
         else
         {
-            log_critical("Signal (%d) received, stop SiriDB immediately!",
+            log_critical("Signal (%d) received, stop SiriDB!",
                     signum);
 
             /* set siri_err, see ERR_CLOSE_TIMEOUT_REACHED for the reason why */

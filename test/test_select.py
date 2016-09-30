@@ -149,6 +149,17 @@ class TestSelect(TestBase):
                 [1447254000, -0.0008333333333333333],
                 [1447257600, 0.001388888888888889]]})
 
+        # test prefix, suffex
+
+        result = await self.client0.query(
+                'select sum(1d) prefix "sum-" suffix "-sum", '
+                'min(1d) prefix "minimum-", '
+                'max(1d) suffix "-maximum" from "aggr"');
+
+        self.assertIn('sum-aggr-sum', result)
+        self.assertIn('minimum-aggr', result)
+        self.assertIn('aggr-maximum', result)
+
         self.client0.close()
 
         # return False
