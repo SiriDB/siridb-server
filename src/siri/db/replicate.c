@@ -375,12 +375,15 @@ static void REPLICATE_on_repl_response(
         }
         break;
     }
-    uv_timer_start(
-            siridb->replicate->timer,
-            REPLICATE_work,
-            REPLICATE_SLEEP,
-            0);
 
+    if (siridb->replicate->status != REPLICATE_CLOSED)
+    {
+        uv_timer_start(
+                siridb->replicate->timer,
+                REPLICATE_work,
+                REPLICATE_SLEEP,
+                0);
+    }
     sirinet_promise_decref(promise);
 }
 
