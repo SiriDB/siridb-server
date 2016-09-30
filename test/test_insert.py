@@ -1,21 +1,30 @@
 import asyncio
+import functools
 import random
 import time
 from testing import Client
 from testing import default_test_setup
+from testing import gen_data
 from testing import gen_points
 from testing import gen_series
 from testing import InsertError
 from testing import PoolError
+from testing import QueryError
 from testing import run_test
+from testing import Series
 from testing import Server
 from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
 
+TIME_PRECISION = 'ms'
+
+
 class TestInsert(TestBase):
     title = 'Test inserts and response'
+
+    GEN_POINTS = functools.partial(gen_points, n=1, time_precision=TIME_PRECISION)
 
     async def _test_series(self, client):
 
@@ -31,19 +40,19 @@ class TestInsert(TestBase):
             result,
             {   'columns': ['name', 'length', 'type', 'start', 'end'],
                 'series': [
-                    ['series float', 100, 'float', self.series_float[0][0], self.series_float[-1][0]],
-                    ['series int', 100, 'integer', self.series_int[0][0], self.series_int[-1][0]],
+                    ['series float', 10000, 'float', self.series_float[0][0], self.series_float[-1][0]],
+                    ['series int', 10000, 'integer', self.series_int[0][0], self.series_int[-1][0]],
                 ]
             })
 
     async def insert(self, client, series, n, timeout=1):
         for _ in range(n):
-            await client.insert_some_series(series, timeout=timeout)
+            await client.insert_some_series(series, timeout=timeout, points=self.GEN_POINTS)
             await asyncio.sleep(1.0)
 
 
 
-    @default_test_setup(2)
+    @default_test_setup(2, time_precision=TIME_PRECISION)
     async def run(self):
         await self.client0.connect()
 
@@ -55,16 +64,16 @@ class TestInsert(TestBase):
             await self.client0.insert([]),
             {'success_msg': 'Inserted 0 point(s) successfully.'})
 
-        self.series_float = gen_points(tp=float)
+        self.series_float = gen_points(tp=float, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
         random.shuffle(self.series_float)
-        self.series_int = gen_points(tp=int)
+        self.series_int = gen_points(tp=int, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
         random.shuffle(self.series_int)
 
         self.assertEqual(
             await self.client0.insert({
                 'series float': self.series_float,
                 'series int': self.series_int
-            }), {'success_msg': 'Inserted 200 point(s) successfully.'})
+            }), {'success_msg': 'Inserted 20000 point(s) successfully.'})
 
 
         self.series_float.sort()
@@ -114,7 +123,7 @@ class TestInsert(TestBase):
         series = gen_series(n=5000)
         tasks = [
             asyncio.ensure_future(
-                self.client0.insert_some_series(series, timeout=0))
+                self.client0.insert_some_series(series, timeout=0, points=self.GEN_POINTS))
             for i in range(25)]
         await asyncio.gather(*tasks)
 
@@ -129,6 +138,6 @@ class TestInsert(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestInsert())

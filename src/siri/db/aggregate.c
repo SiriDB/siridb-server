@@ -650,7 +650,7 @@ static siridb_points_t * AGGREGATE_filter(
         size_t i;
         siridb_point_t * spt;
         siridb_point_t * dpt;
-        switch ((siridb_points_tp) source->tp)
+        switch ((points_tp) source->tp)
         {
         case TP_STRING:
             for (   i = 0, spt = source->data, dpt = points->data;

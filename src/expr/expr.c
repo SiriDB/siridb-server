@@ -31,7 +31,7 @@ int expr_parse(int64_t * result, const char * expr)
 
 static int64_t expr_number(const char ** expression)
 {
-    int result = *(*expression)++ - '0';
+    int64_t result = *(*expression)++ - '0';
     while (**expression >= '0' && **expression <= '9')
     {
         result = 10 * result + *(*expression)++ - '0';

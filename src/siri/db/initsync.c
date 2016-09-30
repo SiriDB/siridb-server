@@ -372,7 +372,7 @@ static void INITSYNC_work(uv_timer_t * timer)
     {
         uv_mutex_lock(&siridb->series_mutex);
 
-        siridb_points_t * points = siridb_series_get_points_num32(
+        siridb_points_t * points = siridb_series_get_points(
                 series,
                 NULL,
                 NULL);

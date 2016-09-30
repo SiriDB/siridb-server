@@ -403,11 +403,11 @@ static cexpr_t * CEXPR_walk_node(
 
             /* map series types */
             case CLERI_GID_K_INTEGER:
-                (*condition)->int64 = SIRIDB_SERIES_TP_INT; break;
+                (*condition)->int64 = TP_INT; break;
             case CLERI_GID_K_FLOAT:
-                (*condition)->int64 = SIRIDB_SERIES_TP_DOUBLE; break;
+                (*condition)->int64 = TP_DOUBLE; break;
             case CLERI_GID_K_STRING:
-                (*condition)->int64 = SIRIDB_SERIES_TP_STRING; break;
+                (*condition)->int64 = TP_STRING; break;
 
             /* map shard types */
             case CLERI_GID_K_NUMBER:

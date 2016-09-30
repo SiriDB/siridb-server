@@ -43,8 +43,7 @@ typedef struct siridb_shard_flags_repr_s
 typedef struct siridb_s siridb_t;
 typedef struct siridb_points_s siridb_points_t;
 typedef struct siridb_series_s siridb_series_t;
-typedef struct idx_num32_s idx_num32_t;
-typedef struct idx_num64_s idx_num64_t;
+typedef struct idx_s idx_t;
 
 typedef struct siridb_shard_s siridb_shard_t;
 
@@ -93,16 +92,23 @@ long int siridb_shard_write_points(
         uint_fast32_t start,
         uint_fast32_t end);
 
+typedef int (*siridb_shard_get_points_cb)(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap);
+
 int siridb_shard_get_points_num32(
         siridb_points_t * points,
-        idx_num32_t * idx,
+        idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
 
 int siridb_shard_get_points_num64(
         siridb_points_t * points,
-        idx_num64_t * idx,
+        idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);

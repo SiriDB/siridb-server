@@ -23,10 +23,7 @@ typedef struct siridb_buffer_s siridb_buffer_t;
 typedef struct siridb_points_s siridb_points_t;
 typedef struct siridb_shard_s siridb_shard_t;
 
-/* Series Types */
-#define SIRIDB_SERIES_TP_INT 0  // TP_INT
-#define SIRIDB_SERIES_TP_DOUBLE 1  // TP_DOUBLE
-#define SIRIDB_SERIES_TP_STRING 2  // TP_STRING
+typedef points_tp series_tp;
 
 /* Series Flags */
 #define SIRIDB_SERIES_HAS_OVERLAP 1
@@ -36,41 +33,23 @@ typedef struct siridb_shard_s siridb_shard_t;
 /* the max length including terminator char */
 #define SIRIDB_SERIES_NAME_LEN_MAX 65535
 
-#define siridb_series_isnum(series) (series->tp != SIRIDB_SERIES_TP_STRING)
+#define siridb_series_isnum(series) (series->tp != TP_STRING)
 
-#define SIRIDB_QP_MAP2_TP(TP)                                               \
-    (TP == QP_INT64) ? SIRIDB_SERIES_TP_INT :                               \
-    (TP == QP_DOUBLE) ? SIRIDB_SERIES_TP_DOUBLE : SIRIDB_SERIES_TP_STRING
-
-typedef enum
-{
-    IDX_TP_NUM32,
-    IDX_TP_NUM64,
-    IDX_TP_LOG32,
-    IDX_TP_LOG64,
-} idx_tp;
+#define SIRIDB_QP_MAP2_TP(TP)                                 \
+    (TP == QP_INT64) ? TP_INT :                               \
+    (TP == QP_DOUBLE) ? TP_DOUBLE : TP_STRING
 
 extern const char series_type_map[3][8];
 
-typedef struct idx_num32_s
+typedef struct idx_s
 {
     siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
-    uint16_t pad;
-    uint32_t start_ts;
-    uint32_t end_ts;
-} idx_num32_t;
-
-typedef struct idx_num64_s
-{
-    siridb_shard_t * shard;
-    uint32_t pos;
-    uint16_t len;
-    uint16_t pad;
+    uint16_t log_sz;  /* reserved for log values */
     uint64_t start_ts;
     uint64_t end_ts;
-} idx_num64_t;
+} idx_t;
 
 typedef struct siridb_series_s
 {
@@ -102,15 +81,7 @@ siridb_series_t * siridb_series_new(
 void siridb_series_incref(siridb_series_t * series);
 void siridb_series_decref(siridb_series_t * series);
 
-int siridb_series_add_idx_num32(
-        siridb_series_t * series,
-        siridb_shard_t * shard,
-        uint32_t start_ts,
-        uint32_t end_ts,
-        uint32_t pos,
-        uint16_t len);
-
-int siridb_series_add_idx_num64(
+int siridb_series_add_idx(
         siridb_series_t * series,
         siridb_shard_t * shard,
         uint64_t start_ts,
@@ -124,35 +95,21 @@ int siridb_series_add_point(
         uint64_t * ts,
         qp_via_t * val);
 
-siridb_points_t * siridb_series_get_points_num32(
+siridb_points_t * siridb_series_get_points(
         siridb_series_t * series,
         uint64_t * start_ts,
         uint64_t * end_ts);
 
-siridb_points_t * siridb_series_get_points_num64(
-        siridb_series_t * series,
-        uint64_t * start_ts,
-        uint64_t * end_ts);
-
-void siridb_series_remove_shard_num32(
+void siridb_series_remove_shard(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);
 
-void siridb_series_remove_shard_num64(
+int siridb_series_optimize_shard(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard);
 
-int siridb_series_optimize_shard_num32(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard);
-
-int siridb_series_optimize_shard_num64(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard);
 
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond);

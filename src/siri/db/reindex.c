@@ -480,7 +480,7 @@ static void REINDEX_work(uv_timer_t * timer)
                     siridb->pools->prev_lookup,
                     reindex->series->name) == siridb->server->pool);
 #endif
-        siridb_points_t * points = siridb_series_get_points_num32(
+        siridb_points_t * points = siridb_series_get_points(
                 reindex->series,
                 NULL,
                 NULL);

@@ -5,10 +5,10 @@ from .siridb import SiriDB
 from .server import Server
 from .client import Client
 
-def default_test_setup(nservers=1):
+def default_test_setup(nservers=1, **kwargs):
     def wrapper(func):
         async def wrapped(self):
-            self.db = SiriDB()
+            self.db = SiriDB(**kwargs)
 
             self.servers = [Server(n) for n in range(nservers)]
             for n, server in enumerate(self.servers):

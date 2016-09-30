@@ -105,8 +105,7 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                 }
                 else
                 {
-                    /* TODO: Add index for 32 and 64 bit time-stamps, number and log values */
-                    siridb_series_add_idx_num32(
+                    siridb_series_add_idx(
                             series,
                             shard,
                             series->buffer->points->data[pstart].ts,

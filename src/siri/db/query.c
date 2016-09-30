@@ -637,6 +637,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         /* check if timestamp is valid */
         if (!siridb_int64_valid_ts(walker->siridb, node->result))
         {
+            LOGC("TS: %ld  TP: %u", node->result, walker->siridb->time->precision);
             return EXPR_TIME_OUT_OF_RANGE;
         }
 

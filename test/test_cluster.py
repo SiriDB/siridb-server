@@ -1,20 +1,23 @@
 import asyncio
+import functools
 import random
 import time
 from testing import Client
-from testing import Series
 from testing import default_test_setup
+from testing import gen_data
 from testing import gen_points
 from testing import gen_series
-from testing import gen_data
 from testing import InsertError
 from testing import PoolError
+from testing import QueryError
 from testing import run_test
+from testing import Series
 from testing import Server
 from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
+
 
 class TestCluster(TestBase):
     title = 'Test siridb-cluster'

@@ -3679,7 +3679,7 @@ static void async_select_aggregate(uv_async_t * handle)
     uv_mutex_lock(&siridb->series_mutex);
 
     points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
-            NULL : siridb_series_get_points_num32(
+            NULL : siridb_series_get_points(
                     series,
                     q_select->start_ts,
                     q_select->end_ts);

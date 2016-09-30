@@ -20,7 +20,7 @@ typedef enum
     TP_INT,
     TP_DOUBLE,
     TP_STRING
-} siridb_points_tp;
+} points_tp;
 
 
 typedef struct siridb_point_s
@@ -32,11 +32,12 @@ typedef struct siridb_point_s
 typedef struct siridb_points_s
 {
     size_t len;
-    siridb_points_tp tp;
+    points_tp tp;
+    char * content;     /* string content */
     siridb_point_t * data;
 } siridb_points_t;
 
-siridb_points_t * siridb_points_new(size_t size, siridb_points_tp tp);
+siridb_points_t * siridb_points_new(size_t size, points_tp tp);
 void siridb_points_free(siridb_points_t * points);
 void siridb_points_add_point(
         siridb_points_t * points,

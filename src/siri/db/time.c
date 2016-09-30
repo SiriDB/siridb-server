@@ -13,6 +13,7 @@
 #include <xmath/xmath.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
 
 const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
