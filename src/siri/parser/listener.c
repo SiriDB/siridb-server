@@ -56,7 +56,7 @@ if (IS_MASTER && !siridb_server_self_online(siridb->server))                \
             "Server '%s' is currently not available to process "            \
             "this request",                                                 \
             siridb->server->name);                                          \
-    siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
+    siridb_query_send_error(handle, CPROTO_ERR_SERVER);                     \
     return;                                                                 \
 }                                                                           \
 if (IS_MASTER && !siridb_pools_online(siridb))                              \
@@ -75,7 +75,7 @@ if (IS_MASTER && !siridb_server_self_accessible(siridb->server))            \
             "Server '%s' is currently not accessible to process "           \
             "this request",                                                 \
             siridb->server->name);                                          \
-    siridb_query_send_error(handle, CPROTO_ERR_POOL);                       \
+    siridb_query_send_error(handle, CPROTO_ERR_SERVER);                     \
     return;                                                                 \
 }                                                                           \
 if (IS_MASTER && !siridb_pools_accessible(siridb))                          \
