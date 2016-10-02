@@ -26,14 +26,15 @@ typedef enum
     QP_END,             // at the end while unpacking
     QP_RAW,             // raw string
     /*
-     * Both END and RAW are never actually packed but 0 and 1 are reseverd
+     * Both END and RAW are never actually packed but 0 and 1 are reserved
      * for positive signed integers.
      *
      * Fixed positive integers from 0 till 63       [  0...63  ]
      *
-     * Fixed negative integers from -61 till -1     [ 64...124 ]
+     * Fixed negative integers from -60 till -1     [ 64...123 ]
      *
      */
+    QP_HOOK=124,        // Hook is not used by SiriDB
     QP_DOUBLE_N1=125,   // ## double value -1.0
     QP_DOUBLE_0,        // ## double value 0.0
     QP_DOUBLE_1,        // ## double value 1.0

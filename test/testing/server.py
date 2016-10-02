@@ -65,7 +65,7 @@ class Server:
     async def start(self, sleep=None):
         prev = self._get_pid_set()
         rc = os.system(
-            'xfce4-terminal -e "{}{} --config {}" --title {} --geometry={}{}'
+            'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
             .format(VALGRIND if self.MEM_CHECK else '',
                     SIRIDBC,
                     self.cfgfile,

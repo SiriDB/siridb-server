@@ -484,50 +484,72 @@ int qp_add_double(qp_packer_t * packer, double real)
     return 0;
 }
 
+#define QP_ADD_INT8(packer, integer) \
+{                                                               \
+    QP_RESIZE(2)                                                \
+    if (integer >= 0 && integer < 64)                           \
+    {                                                           \
+        packer->buffer[packer->len++] = integer;                \
+    }                                                           \
+    else if (integer >= -60 && integer < 0)                     \
+    {                                                           \
+        packer->buffer[packer->len++] = 63 - integer;           \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        packer->buffer[packer->len++] = QP_INT8;                \
+        packer->buffer[packer->len++] = integer;                \
+    }                                                           \
+    return 0;                                                   \
+}
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int8(qp_packer_t * packer, int8_t integer)
-{
-    QP_RESIZE(2)
-    if (integer >= 0 && integer < 64)
-    {
-        packer->buffer[packer->len++] = integer;
-    }
-    else if (integer >= -61 && integer < 0)
-    {
-        packer->buffer[packer->len++] = 63 - integer;
-    }
-    else
-    {
-        packer->buffer[packer->len++] = QP_INT8;
-        packer->buffer[packer->len++] = integer;
-    }
-    return 0;
-}
+    QP_ADD_INT8(packer, integer)
 
+#define QP_ADD_INT16(packer, integer)                                   \
+{                                                                       \
+    QP_RESIZE(3)                                                        \
+    packer->buffer[packer->len++] = QP_INT16;                           \
+    memcpy(packer->buffer + packer->len, &integer, sizeof(int16_t));    \
+    packer->len += sizeof(int16_t);                                     \
+    return 0;                                                           \
+}
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
-    QP_RESIZE(3)
-    packer->buffer[packer->len++] = QP_INT16;
-    memcpy(packer->buffer + packer->len, &integer, sizeof(int16_t));
-    packer->len += sizeof(int16_t);
-    return 0;
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_ADD_INT8(packer, i8)
+
+    QP_ADD_INT16(packer, integer)
 }
 
+#define QP_ADD_INT32(packer, integer)                                   \
+{                                                                       \
+    QP_RESIZE(5)                                                        \
+    packer->buffer[packer->len++] = QP_INT32;                           \
+    memcpy(packer->buffer + packer->len, &integer, sizeof(int32_t));    \
+    packer->len += sizeof(int32_t);                                     \
+    return 0;                                                           \
+}
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
-    QP_RESIZE(5)
-    packer->buffer[packer->len++] = QP_INT32;
-    memcpy(packer->buffer + packer->len, &integer, sizeof(int32_t));
-    packer->len += sizeof(int32_t);
-    return 0;
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_ADD_INT8(packer, i8)
+
+    int16_t i16;
+    if ((i16 = integer) == integer)
+        QP_ADD_INT16(packer, i16)
+
+    QP_ADD_INT32(packer, integer)
 }
 
 /*
@@ -535,6 +557,19 @@ int qp_add_int32(qp_packer_t * packer, int32_t integer)
  */
 int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_ADD_INT8(packer, i8)
+
+    int16_t i16;
+    if ((i16 = integer) == integer)
+        QP_ADD_INT16(packer, i16)
+
+    int32_t i32;
+    if ((i32 = integer) == integer)
+        QP_ADD_INT32(packer, i32)
+
+
     QP_RESIZE(9)
     packer->buffer[packer->len++] = QP_INT64;
     memcpy(packer->buffer + packer->len, &integer, sizeof(int64_t));
@@ -638,23 +673,29 @@ int qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
     return qp_fadd_raw(fpacker, str, strlen(str));
 }
 
+#define QP_FADD_INT8(fpacker, integer)                                      \
+{                                                                           \
+    if (integer >= 0 && integer < 64)                                       \
+    {                                                                       \
+        return (fputc(integer, fpacker) != EOF) ? 0 : EOF;                  \
+    }                                                                       \
+    if (integer >= -60 && integer < 0)                                      \
+    {                                                                       \
+        return (fputc(63 - integer, fpacker) != EOF) ? 0 : EOF;             \
+    }                                                                          \
+    return (fputc(QP_INT8, fpacker) != EOF && fputc(integer, fpacker) != EOF)  \
+            ? 0 : EOF;                                                         \
+}
 /*
  * Returns 0 if successful and EOF in case an error occurred.
  */
 int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
-{
-    if (integer >= 0 && integer < 64)
-    {
-        return (fputc(integer, fpacker) != EOF) ? 0 : EOF;
-    }
+    QP_FADD_INT8(fpacker, integer)
 
-    if (integer > -64 && integer < 0)
-    {
-        return (fputc(63 - integer, fpacker) != EOF) ? 0 : EOF;
-    }
-
-    return (fputc(QP_INT8, fpacker) != EOF && fputc(integer, fpacker) != EOF)
-            ? 0 : EOF;
+#define QP_FADD_INT16(fpacker, integer)                                     \
+{                                                                           \
+    return (fputc(QP_INT16, fpacker) != EOF &&                              \
+            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : EOF;  \
 }
 
 /*
@@ -662,8 +703,17 @@ int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
  */
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
 {
-    return (fputc(QP_INT16, fpacker) != EOF &&
-            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : EOF;
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_FADD_INT8(fpacker, i8)
+
+    QP_FADD_INT16(fpacker, integer)
+}
+
+#define QP_FADD_INT32(fpacker, integer)                                     \
+{                                                                           \
+    return (fputc(QP_INT32, fpacker) != EOF &&                              \
+            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : EOF;  \
 }
 
 /*
@@ -671,8 +721,15 @@ int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
  */
 int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
 {
-    return (fputc(QP_INT32, fpacker) != EOF &&
-            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : EOF;
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_FADD_INT8(fpacker, i8)
+
+    int16_t i16;
+    if ((i16 = integer) == integer)
+        QP_FADD_INT16(fpacker, i16)
+
+    QP_FADD_INT32(fpacker, integer)
 }
 
 /*
@@ -680,6 +737,18 @@ int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
  */
 int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 {
+    int8_t i8;
+    if ((i8 = integer) == integer)
+        QP_FADD_INT8(fpacker, i8)
+
+    int16_t i16;
+    if ((i16 = integer) == integer)
+        QP_FADD_INT16(fpacker, i16)
+
+    int32_t i32;
+    if ((i32 = integer) == integer)
+        QP_FADD_INT32(fpacker, i32)
+
     return (fputc(QP_INT64, fpacker) != EOF &&
             fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : EOF;
 }
@@ -733,48 +802,131 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         }
         return QP_END;
     }
+
     tp = *unpacker->pt;
-
-    /* unpack specials like array, map, boolean, null etc */
-    if (tp > 236)
-    {
-        if (qp_obj != NULL)
-        {
-            qp_obj->tp = *unpacker->pt;
-        }
-        unpacker->pt++;
-        return tp;
-    }
-
     unpacker->pt++;
 
-    /* unpack fixed positive or negative integers */
-    if (tp < 125)
+    switch(tp)
     {
+    case 124:
         if (qp_obj != NULL)
         {
-            qp_obj->tp = QP_INT64;
-            qp_obj->via.int64 =  (tp < 64) ?
-                    (int64_t) tp :
-                    (int64_t) 63 - tp;
+            qp_obj->tp = QP_HOOK;
         }
-        return QP_INT64;
-    }
+        return QP_HOOK;
 
-    /* unpack fixed doubles -1.0, 0.0 or 1.0 */
-    if (tp < 128)
-    {
+    case 125:
+    case 126:
+    case 127:
+        /* unpack fixed doubles -1.0, 0.0 or 1.0 */
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
             qp_obj->via.real = (double) (tp - 126);
         }
         return QP_DOUBLE;
-    }
 
-    /* unpack fixed sized raw strings */
-    if (tp < 228)
-    {
+    case 128:
+    case 129:
+    case 130:
+    case 131:
+    case 132:
+    case 133:
+    case 134:
+    case 135:
+    case 136:
+    case 137:
+    case 138:
+    case 139:
+    case 140:
+    case 141:
+    case 142:
+    case 143:
+    case 144:
+    case 145:
+    case 146:
+    case 147:
+    case 148:
+    case 149:
+    case 150:
+    case 151:
+    case 152:
+    case 153:
+    case 154:
+    case 155:
+    case 156:
+    case 157:
+    case 158:
+    case 159:
+    case 160:
+    case 161:
+    case 162:
+    case 163:
+    case 164:
+    case 165:
+    case 166:
+    case 167:
+    case 168:
+    case 169:
+    case 170:
+    case 171:
+    case 172:
+    case 173:
+    case 174:
+    case 175:
+    case 176:
+    case 177:
+    case 178:
+    case 179:
+    case 180:
+    case 181:
+    case 182:
+    case 183:
+    case 184:
+    case 185:
+    case 186:
+    case 187:
+    case 188:
+    case 189:
+    case 190:
+    case 191:
+    case 192:
+    case 193:
+    case 194:
+    case 195:
+    case 196:
+    case 197:
+    case 198:
+    case 199:
+    case 200:
+    case 201:
+    case 202:
+    case 203:
+    case 204:
+    case 205:
+    case 206:
+    case 207:
+    case 208:
+    case 209:
+    case 210:
+    case 211:
+    case 212:
+    case 213:
+    case 214:
+    case 215:
+    case 216:
+    case 217:
+    case 218:
+    case 219:
+    case 220:
+    case 221:
+    case 222:
+    case 223:
+    case 224:
+    case 225:
+    case 226:
+    case 227:
+        /* unpack fixed sized raw strings */
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_RAW;
@@ -783,31 +935,34 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         }
         unpacker->pt += tp - 128;
         return QP_RAW;
-    }
 
-    /* unpack raw strings */
-    if (tp < 232)
-    {
-        size_t sz = (tp == QP_RAW8)   ? (size_t) *((uint8_t *) unpacker->pt):
-                    (tp == QP_RAW16)  ? (size_t) *((uint16_t *) unpacker->pt):
-                    (tp == QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
-                                  (size_t) *((uint64_t *) unpacker->pt);
-
-        unpacker->pt += xmath_ipow(2, -QP_RAW8 + tp);
-        if (qp_obj != NULL)
+    case 228:
+    case 229:
+    case 230:
+    case 231:
+        /* unpack raw strings */
         {
-            qp_obj->tp = QP_RAW;
-            qp_obj->via.raw = unpacker->pt;
-            qp_obj->len = sz;
+            size_t sz = (tp == QP_RAW8)   ? (size_t) *((uint8_t *) unpacker->pt):
+                        (tp == QP_RAW16)  ? (size_t) *((uint16_t *) unpacker->pt):
+                        (tp == QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
+                                      (size_t) *((uint64_t *) unpacker->pt);
+
+            unpacker->pt += xmath_ipow(2, -QP_RAW8 + tp);
+            if (qp_obj != NULL)
+            {
+                qp_obj->tp = QP_RAW;
+                qp_obj->via.raw = unpacker->pt;
+                qp_obj->len = sz;
+            }
+            unpacker->pt += sz;
+            return QP_RAW;
         }
-        unpacker->pt += sz;
 
-        return QP_RAW;
-    }
-
-    /* unpack integer values */
-    if (tp < 236)
-    {
+    case 232:
+    case 233:
+    case 234:
+    case 235:
+        /* unpack integer values */
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_INT64;
@@ -819,29 +974,57 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         }
         unpacker->pt += xmath_ipow(2, -QP_INT8 + tp);
         return QP_INT64;
-    }
 
-    if (tp == QP_DOUBLE)
-    {
+    case 236:
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
             qp_obj->via.real = (double) *((double *) unpacker->pt);
         }
         unpacker->pt += 8;
-
         return QP_DOUBLE;
-    }
 
-    // error
-    assert (0);
-    return 0;
+    case 237:
+    case 238:
+    case 239:
+    case 240:
+    case 241:
+    case 242:
+    case 243:
+    case 244:
+    case 245:
+    case 246:
+    case 247:
+    case 248:
+    case 249:
+    case 250:
+    case 251:
+    case 252:
+    case 253:
+    case 254:
+    case 255:
+        if (qp_obj != NULL)
+        {
+            qp_obj->tp = tp;
+        }
+        return tp;
+
+    default:
+        if (qp_obj != NULL)
+        {
+            qp_obj->tp = QP_INT64;
+            qp_obj->via.int64 =  (tp < 64) ?
+                    (int64_t) tp :
+                    (int64_t) 63 - tp;
+        }
+        return QP_INT64;
+    }
 }
 
 /*
  * Returns one of the following: (these are the ONLY possible return values)
  *
- *  QP_END, QP_RAW, QP_INT64, QP_DOUBLE
+ *  QP_END, QP_HOOK, QP_RAW, QP_INT64, QP_DOUBLE
  *  QP_TRUE, QP_FALSE, QP_NULL, QP_ARRAY0..5, QP_MAP0..5,
  *  QP_ARRAY_OPEN, QP_ARRAY_CLOSE, QP_MAP_OPEN, QP_MAP_CLOSE
  */
@@ -854,6 +1037,8 @@ qp_types_t qp_current(qp_unpacker_t * unpacker)
 
     switch ((uint8_t) *unpacker->pt)
     {
+    case 124:
+        return QP_HOOK;
     case 125:
     case 126:
     case 127:
