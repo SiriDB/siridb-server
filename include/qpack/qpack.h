@@ -24,6 +24,7 @@ typedef enum
      * a QP_INT8 (1 byte signed integer) will be returned as QP_INT64.
      */
     QP_END,             // at the end while unpacking
+    QP_ERR,             // error
     QP_RAW,             // raw string
     /*
      * Both END and RAW are never actually packed but 0 and 1 are reserved

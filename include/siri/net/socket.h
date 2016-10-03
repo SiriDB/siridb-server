@@ -15,6 +15,8 @@
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
 
+#define ADDR_BUF_SZ 32
+
 typedef enum sirinet_socket_tp
 {
     SOCKET_CLIENT,
@@ -45,7 +47,7 @@ void sirinet_socket_alloc_buffer(
         uv_handle_t * handle,
         size_t suggested_size,
         uv_buf_t * buf);
-
+int sirinet_addr_and_port(char * buffer, uv_stream_t * client);
 void sirinet_socket_on_data(
         uv_stream_t * client,
         ssize_t nread,

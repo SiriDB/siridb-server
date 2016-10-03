@@ -56,19 +56,22 @@ if (packer->len + LEN > packer->buffer_size)                            \
     }                                                       \
     else if (len < 256)                                     \
     {                                                       \
+        uint8_t length = (uint8_t) len;                     \
         packer->buffer[packer->len++] = QP_RAW8;            \
-        packer->buffer[packer->len++] = len;                \
+        packer->buffer[packer->len++] = length;             \
     }                                                       \
     else if (len < 65536)                                   \
     {                                                       \
+        uint16_t length = (uint16_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW16;           \
-        memcpy(packer->buffer + packer->len, &len, 2);      \
+        memcpy(packer->buffer + packer->len, &length, 2);   \
         packer->len += 2;                                   \
     }                                                       \
     else if (len < 4294967296)                              \
     {                                                       \
+        uint32_t length = (uint32_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW32;           \
-        memcpy(packer->buffer + packer->len, &len, 4);      \
+        memcpy(packer->buffer + packer->len, &length, 4);   \
         packer->len += 4;                                   \
     }                                                       \
     else                                                    \
@@ -77,6 +80,45 @@ if (packer->len + LEN > packer->buffer_size)                            \
         memcpy(packer->buffer + packer->len, &len, 8);      \
         packer->len += 8;                                   \
     }
+
+#define QP_UNPACK_RAW(uintx_t)                              \
+{                                                           \
+    QP_UNPACK_CHECK_SZ(sizeof(uintx_t))                     \
+    size_t sz = (size_t) *((uintx_t *) unpacker->pt);       \
+    QP_UNPACK_CHECK_SZ(sz)                                  \
+    unpacker->pt += sizeof(uintx_t);                        \
+    if (qp_obj != NULL)                                     \
+    {                                                       \
+        qp_obj->tp = QP_RAW;                                \
+        qp_obj->via.raw = unpacker->pt;                     \
+        qp_obj->len = sz;                                   \
+    }                                                       \
+    unpacker->pt += sz;                                     \
+    return QP_RAW;                                          \
+}
+
+#define QP_UNPACK_INT(intx_t)                               \
+{                                                           \
+    QP_UNPACK_CHECK_SZ(sizeof(intx_t))                      \
+    int64_t val = (int64_t) *((intx_t *) unpacker->pt);     \
+    if (qp_obj != NULL)                                     \
+    {                                                       \
+        qp_obj->tp = QP_INT64;                              \
+        qp_obj->via.int64 = val;                            \
+    }                                                       \
+    unpacker->pt += sizeof(intx_t);                         \
+    return QP_INT64;                                        \
+}
+
+#define QP_UNPACK_CHECK_SZ(size)            \
+if (unpacker->pt + size > unpacker->end)    \
+{                                           \
+    if  (qp_obj != NULL)                    \
+    {                                       \
+        qp_obj->tp = QP_ERR;                \
+    }                                       \
+    return QP_ERR;                          \
+}
 
 static qp_types_t QP_print_unpacker(
         qp_types_t tp,
@@ -808,7 +850,149 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
 
     switch(tp)
     {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+    case 21:
+    case 22:
+    case 23:
+    case 24:
+    case 25:
+    case 26:
+    case 27:
+    case 28:
+    case 29:
+    case 30:
+    case 31:
+    case 32:
+    case 33:
+    case 34:
+    case 35:
+    case 36:
+    case 37:
+    case 38:
+    case 39:
+    case 40:
+    case 41:
+    case 42:
+    case 43:
+    case 44:
+    case 45:
+    case 46:
+    case 47:
+    case 48:
+    case 49:
+    case 50:
+    case 51:
+    case 52:
+    case 53:
+    case 54:
+    case 55:
+    case 56:
+    case 57:
+    case 58:
+    case 59:
+    case 60:
+    case 61:
+    case 62:
+    case 63:
+        if (qp_obj != NULL)
+        {
+            qp_obj->tp = QP_INT64;
+            qp_obj->via.int64 = (int64_t) tp;
+        }
+        return QP_INT64;
+
+    case 64:
+    case 65:
+    case 66:
+    case 67:
+    case 68:
+    case 69:
+    case 70:
+    case 71:
+    case 72:
+    case 73:
+    case 74:
+    case 75:
+    case 76:
+    case 77:
+    case 78:
+    case 79:
+    case 80:
+    case 81:
+    case 82:
+    case 83:
+    case 84:
+    case 85:
+    case 86:
+    case 87:
+    case 88:
+    case 89:
+    case 90:
+    case 91:
+    case 92:
+    case 93:
+    case 94:
+    case 95:
+    case 96:
+    case 97:
+    case 98:
+    case 99:
+    case 100:
+    case 101:
+    case 102:
+    case 103:
+    case 104:
+    case 105:
+    case 106:
+    case 107:
+    case 108:
+    case 109:
+    case 110:
+    case 111:
+    case 112:
+    case 113:
+    case 114:
+    case 115:
+    case 116:
+    case 117:
+    case 118:
+    case 119:
+    case 120:
+    case 121:
+    case 122:
+    case 123:
+        if (qp_obj != NULL)
+        {
+            qp_obj->tp = QP_INT64;
+            qp_obj->via.int64 = (int64_t) 63 - tp;
+        }
+        return QP_INT64;
+
     case 124:
+#ifdef DEBUG
+        /* Object hooks are not supported yet */
+        assert (0);
+#endif
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_HOOK;
@@ -927,61 +1111,45 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
     case 226:
     case 227:
         /* unpack fixed sized raw strings */
-        if (qp_obj != NULL)
         {
-            qp_obj->tp = QP_RAW;
-            qp_obj->via.raw = unpacker->pt;
-            qp_obj->len = (size_t) (tp - 128);
-        }
-        unpacker->pt += tp - 128;
-        return QP_RAW;
+            size_t size = tp - 128;
+            QP_UNPACK_CHECK_SZ(size)
 
-    case 228:
-    case 229:
-    case 230:
-    case 231:
-        /* unpack raw strings */
-        {
-            size_t sz = (tp == QP_RAW8)   ? (size_t) *((uint8_t *) unpacker->pt):
-                        (tp == QP_RAW16)  ? (size_t) *((uint16_t *) unpacker->pt):
-                        (tp == QP_RAW32)  ? (size_t) *((uint32_t *) unpacker->pt):
-                                      (size_t) *((uint64_t *) unpacker->pt);
-
-            unpacker->pt += xmath_ipow(2, -QP_RAW8 + tp);
             if (qp_obj != NULL)
             {
                 qp_obj->tp = QP_RAW;
                 qp_obj->via.raw = unpacker->pt;
-                qp_obj->len = sz;
+                qp_obj->len = size;
             }
-            unpacker->pt += sz;
+            unpacker->pt += size;
             return QP_RAW;
         }
+    case 228:
+        QP_UNPACK_RAW(uint8_t)
+    case 229:
+        QP_UNPACK_RAW(uint16_t)
+    case 230:
+        QP_UNPACK_RAW(uint32_t)
+    case 231:
+        QP_UNPACK_RAW(uint64_t)
 
     case 232:
+        QP_UNPACK_INT(int8_t)
     case 233:
+        QP_UNPACK_INT(int16_t)
     case 234:
+        QP_UNPACK_INT(int32_t)
     case 235:
-        /* unpack integer values */
-        if (qp_obj != NULL)
-        {
-            qp_obj->tp = QP_INT64;
-            qp_obj->via.int64 =
-                    (tp == QP_INT8)  ? (int64_t) *((int8_t *) unpacker->pt):
-                    (tp == QP_INT16) ? (int64_t) *((int16_t *) unpacker->pt):
-                    (tp == QP_INT32) ? (int64_t) *((int32_t *) unpacker->pt):
-                                  (int64_t) *((int64_t *) unpacker->pt);
-        }
-        unpacker->pt += xmath_ipow(2, -QP_INT8 + tp);
-        return QP_INT64;
+        QP_UNPACK_INT(int64_t)
 
     case 236:
+        QP_UNPACK_CHECK_SZ(sizeof(double))
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
             qp_obj->via.real = (double) *((double *) unpacker->pt);
         }
-        unpacker->pt += 8;
+        unpacker->pt += sizeof(double);
         return QP_DOUBLE;
 
     case 237:
@@ -1008,17 +1176,10 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
             qp_obj->tp = tp;
         }
         return tp;
-
-    default:
-        if (qp_obj != NULL)
-        {
-            qp_obj->tp = QP_INT64;
-            qp_obj->via.int64 =  (tp < 64) ?
-                    (int64_t) tp :
-                    (int64_t) 63 - tp;
-        }
-        return QP_INT64;
     }
+
+    assert (0);
+    return -1;
 }
 
 /*

@@ -18,7 +18,7 @@
 #include <siri/siri.h>
 #include <siri/err.h>
 
-#define MAX_ALLOWED_PKG_SIZE 2097152  // 2 MB
+#define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 
 static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
 static void SOCKET_free(uv_stream_t * client);
@@ -57,6 +57,32 @@ void sirinet_socket_alloc_buffer(
         buf->base = ssocket->buf + ssocket->len;
         buf->len = suggested_size - ssocket->len;
     }
+}
+
+/*
+ * Buffer should have a size of ADDR_BUF_SZ
+ *
+ * Return 0 if successful or -1 in case of an error.
+ */
+int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
+{
+    struct sockaddr_in name;
+    int namelen = sizeof(name);
+
+    if (uv_tcp_getpeername(
+            (uv_tcp_t *) client,
+            (struct sockaddr *) &name,
+            &namelen))
+    {
+        return -1;
+    }
+
+    char addr[16];
+
+    uv_inet_ntop(AF_INET, &name.sin_addr, addr, sizeof(addr));
+    snprintf(buffer, ADDR_BUF_SZ, "%s:%d", addr, ntohs(name.sin_port));
+
+    return 0;
 }
 
 /*
@@ -281,9 +307,7 @@ void sirinet_socket_decref(uv_stream_t * client)
 
     if (!--ssocket->ref)
     {
-        uv_close(
-            (uv_handle_t *) client,
-            (uv_close_cb) SOCKET_free);
+        uv_close((uv_handle_t *) client, (uv_close_cb) SOCKET_free);
     }
 }
 

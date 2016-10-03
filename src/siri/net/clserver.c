@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define WARNING_PKG_SIZE 1048576   // 1MB
+
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                               \
 sirinet_socket_t * ssocket = client->data;                                  \
@@ -158,10 +160,27 @@ static void on_new_connection(uv_stream_t * server, int status)
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    log_debug("[Client server] Got data (pid: %d, len: %d, tp: %s)",
-            pkg->pid,
-            pkg->len,
-            sirinet_cproto_client_str(pkg->tp));
+    if (pkg->len < WARNING_PKG_SIZE)
+    {
+        log_debug("[Client server] Got data (pid: %d, len: %d, tp: %s)",
+                pkg->pid,
+                pkg->len,
+                sirinet_cproto_client_str(pkg->tp));
+    }
+    else
+    {
+        char name[ADDR_BUF_SZ];
+        if (sirinet_addr_and_port(name, client) == 0)
+        {
+            log_warning(
+                    "Got a large package from '%s' (pid: %d, len: %d, tp: %s)."
+                    " A package size smaller than 1MB is recommended!",
+                    name,
+                    pkg->pid,
+                    pkg->len,
+                    sirinet_cproto_client_str(pkg->tp));
+        }
+    }
 
     /* in case the online flag is not set, we cannot perform any request */
     if (siri.status == SIRI_STATUS_RUNNING)
@@ -475,6 +494,7 @@ static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
     if (qp_next(&unpacker, &qp_dbpath) == QP_RAW)
     {
         char * dbpath = strndup(qp_dbpath.via.raw, qp_dbpath.len);
+
         if (dbpath == NULL)
         {
             ERR_ALLOC
