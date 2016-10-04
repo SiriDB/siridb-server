@@ -20,8 +20,8 @@ static siri_cfg_t siri_cfg = {
         .listen_client_port=9000,
         .listen_backend_address="localhost",
         .listen_backend_port=9010,
-        .optimize_interval=900,
-        .heartbeat_interval=3,
+        .optimize_interval=3600,
+        .heartbeat_interval=30,
         .default_db_path="/var/lib/siridb/",
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
 };

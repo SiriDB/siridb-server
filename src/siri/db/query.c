@@ -637,10 +637,8 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         /* check if timestamp is valid */
         if (!siridb_int64_valid_ts(walker->siridb, node->result))
         {
-            LOGC("TS: %ld  TP: %u", node->result, walker->siridb->time->precision);
             return EXPR_TIME_OUT_OF_RANGE;
         }
-
     }
     else if (gid == CLERI_GID_INT_EXPR)
     {
@@ -761,7 +759,7 @@ static int QUERY_time_expr(
             strx_extract_string(datestr, node->str, node->len);
 
             /* get timestamp from date string */
-            int64_t ts = iso8601_parse_date(datestr, 432);
+            int64_t ts = iso8601_parse_date(datestr, walker->siridb->tz);
 
             if (ts < 0)
             {
