@@ -33,6 +33,16 @@
 
 #define SIRIDB_SHEMA 1
 
+/*
+ * database.dat
+ *
+ * SCHEMA       -> SIRIDB_SHEMA
+ * UUID         -> UUID for 'this' server
+ * DBNAME       -> Database name
+ *
+ *
+ */
+
 static siridb_t * SIRIDB_new(void);
 static void SIRIDB_free(siridb_t * siridb);
 

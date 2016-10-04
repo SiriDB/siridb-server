@@ -1376,7 +1376,9 @@ static void exit_calc_stmt(uv_async_t * handle)
     qp_add_raw(query->packer, "calc", 4);
 
     if (query->time_precision == SIRIDB_TIME_DEFAULT)
+    {
         qp_add_int64(query->packer, calc_node->result);
+    }
     else
     {
         double factor =
