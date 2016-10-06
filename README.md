@@ -1,2 +1,4 @@
-# siridbc
+SiriDB Server
+=============
+
 SiriDB (C-implementation)
