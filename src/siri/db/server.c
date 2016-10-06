@@ -128,10 +128,10 @@ void siridb_server_decref(siridb_server_t * server)
 }
 
 /*
- * This function can return -1 and raise a SIGNAL which means the 'cb' function
- * will NOT be called. Usually this function should return 0 which means that
- * we try to send the package and the 'cb' function can be checked for the
- * result.
+ * This function can return -1 and raise a SIGNAL which means the 'cb'
+ * function will NOT be called. Usually this function should return 0 which
+ * means that we try to send the package and the 'cb' function can be checked
+ * for the result.
  *
  * Note that 'pkg->pid' will be overwritten with a new package id.
  *
@@ -151,6 +151,7 @@ int siridb_server_send_pkg(
     assert (server->promises != NULL);
     assert (cb != NULL);
 #endif
+
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
@@ -616,7 +617,7 @@ siridb_server_t * siridb_server_from_node(
         break;
     }
 
-    if (server == NULL)
+    if (server == NULL && err_msg != NULL)
     {
         snprintf(
                 err_msg,

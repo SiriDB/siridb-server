@@ -605,7 +605,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
     uint16_t pool = siridb->server->pool;
-    sirinet_pkg_t * pkg;
+    sirinet_pkg_t * pkg, * repl_pkg;
     qp_unpacker_t unpacker;
     sirinet_promises_t * promises = sirinet_promises_new(
             siridb->pools->len - 1,
@@ -638,36 +638,34 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                 assert (siridb->fifo != NULL);
 #endif
 
-                if (siridb->replicate->initsync == NULL)
-                {
-                    pkg = sirinet_packer2pkg(
-                            insert->packer[n],
-                            0,
-                            (insert->flags & INSERT_FLAG_TEST) ?
-                                BPROTO_INSERT_TEST_SERVER :
-                            (insert->flags & INSERT_FLAG_TESTED) ?
-                                BPROTO_INSERT_TESTED_SERVER :
-                                BPROTO_INSERT_SERVER);
-                }
-                else
-                {
-                    pkg = siridb_replicate_pkg_filter(
+                repl_pkg = siridb->replicate->initsync == NULL ? NULL :
+                        siridb_replicate_pkg_filter(
                             siridb,
                             insert->packer[n]->buffer + PKG_HEADER_SIZE,
                             insert->packer[n]->len - PKG_HEADER_SIZE,
                             insert->flags);
-                    qp_packer_free(insert->packer[n]);
-                }
+
+                pkg = sirinet_packer2pkg(
+                        insert->packer[n],
+                        0,
+                        (insert->flags & INSERT_FLAG_TEST) ?
+                            BPROTO_INSERT_TEST_SERVER :
+                        (insert->flags & INSERT_FLAG_TESTED) ?
+                            BPROTO_INSERT_TESTED_SERVER :
+                            BPROTO_INSERT_SERVER);
 
                 insert->packer[n] = NULL;
 
-                if (pkg != NULL)
-                {
-                    siridb_replicate_pkg(siridb, pkg);
-                    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
-                    siridb_insert_local(siridb, &unpacker, insert->flags);
-                    free(pkg);
-                }
+                /* send to replica, use repl_pkg if needed */
+                siridb_replicate_pkg(
+                        siridb,
+                        repl_pkg == NULL ? pkg : repl_pkg);
+
+                qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+                siridb_insert_local(siridb, &unpacker, insert->flags);
+
+                free(repl_pkg);
+                free(pkg);
             }
             else
             {

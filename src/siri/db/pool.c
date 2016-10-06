@@ -137,7 +137,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
             pool->server[1] = pool->server[0];
             pool->server[0] = server;
 
-            /* set server ids */
+            /* set server id */
             pool->server[0]->id = 0;
             pool->server[1]->id = 1;
         }

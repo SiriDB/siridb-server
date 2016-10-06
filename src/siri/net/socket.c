@@ -20,7 +20,7 @@
 
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 
-static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb);
+static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
 static void SOCKET_free(uv_stream_t * client);
 
 /*
@@ -281,7 +281,7 @@ void sirinet_socket_on_data(
  *
  * Note: ((sirinet_socket_t *) socket->data)->ref is initially set to 1
  */
-uv_tcp_t * sirinet_socket_new(int tp, on_data_cb_t cb)
+uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
 {
     uv_tcp_t * socket = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
     if (socket == NULL)
@@ -315,7 +315,7 @@ void sirinet_socket_decref(uv_stream_t * client)
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  * (reference counter is initially set to 1)
  */
-static sirinet_socket_t * SOCKET_new(int tp, on_data_cb_t cb)
+static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
 {
     sirinet_socket_t * ssocket =
             (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));

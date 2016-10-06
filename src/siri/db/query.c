@@ -47,6 +47,7 @@ static int QUERY_time_expr(
         size_t * size);
 static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size);
 static int QUERY_rebuild(
+        siridb_t * siridb,
         cleri_node_t * node,
         char * buf,
         size_t * size,
@@ -235,6 +236,7 @@ void siridb_query_forward(
      */
     qp_packer_t * packer =
             qp_packer_new(query->pr->tree->len + QUERY_EXTRA_ALLOC_SIZE);
+
     if (packer == NULL)
     {
         return;  /* signal is raised */
@@ -559,6 +561,7 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
         size_t size = packer->alloc_size;
 
         rc = QUERY_rebuild(
+                ((sirinet_socket_t *) query->client->data)->siridb,
                 query->pr->tree->children->node,
                 buffer,
                 &size,
@@ -852,6 +855,7 @@ static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size)
  * Returns 0 if successful or QUERY_TOO_LONG
  */
 static int QUERY_rebuild(
+        siridb_t * siridb,
         cleri_node_t * node,
         char * buf,
         size_t * size,
@@ -859,9 +863,9 @@ static int QUERY_rebuild(
 {
     switch (node->cl_obj->tp)
     {
+    case CLERI_TP_REGEX:
     case CLERI_TP_TOKEN:
     case CLERI_TP_TOKENS:
-    case CLERI_TP_REGEX:
     case CLERI_TP_KEYWORD:
         if (node->len >= *size)
         {
@@ -873,9 +877,35 @@ static int QUERY_rebuild(
         *(buf + max_size - *size) = ' ';
         return (--(*size)) ? 0 : QUERY_TOO_LONG;
 
+    case CLERI_TP_CHOICE:
     case CLERI_TP_RULE:
         switch (node->cl_obj->via.dummy->gid)
         {
+        case CLERI_GID_UUID:
+            {
+                siridb_server_t * server = siridb_server_from_node(
+                        siridb,
+                        node->children->node,
+                        NULL);
+                if (server != NULL)
+                {
+                    char uuid[37];
+                    uuid_unparse_lower(server->uuid, uuid);
+                    int n;
+                    n = snprintf(
+                            buf + max_size - *size,
+                            *size,
+                            "%s ",
+                            uuid);
+                    if (n >= *size)
+                    {
+                        return QUERY_TOO_LONG;
+                    }
+                    *size -= n;
+                    return 0;
+                }
+            }
+            break;
         case CLERI_GID_INT_EXPR:
         case CLERI_GID_TIME_EXPR:
             {
@@ -903,6 +933,7 @@ static int QUERY_rebuild(
             while (current != NULL && current->node != NULL)
             {
                 if ((rc = QUERY_rebuild(
+                        siridb,
                         current->node,
                         buf,
                         size,

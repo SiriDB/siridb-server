@@ -28,7 +28,7 @@ class TestPool(TestBase):
             await asyncio.sleep(1.0)
 
 
-    @default_test_setup(3)
+    @default_test_setup(4)
     async def run(self):
 
         series = gen_series(n=4000)
@@ -53,11 +53,21 @@ class TestPool(TestBase):
             series,
             200))
 
+        await asyncio.sleep(5)
+
         if not Server.MEM_CHECK:
             await self.assertSeries(self.client0, series)
             await self.assertSeries(self.client1, series)
 
         await self.assertIsRunning(self.db, self.client0, timeout=200)
+
+        await asyncio.sleep(5)
+
+        await self.db.add_replica(self.server3, 1, sleep=3)
+        await self.client3.connect()
+        await self.assertIsRunning(self.db, self.client3, timeout=200)
+
+        await asyncio.sleep(5)
 
         await self.db.add_pool(self.server2, sleep=3)
         await self.client2.connect()
@@ -88,16 +98,18 @@ class TestPool(TestBase):
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
         await self.assertSeries(self.client2, series)
+        await self.assertSeries(self.client3, series)
 
         self.client0.close()
         self.client1.close()
         self.client2.close()
+        self.client3.close()
 
         # return False
 
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestPool())

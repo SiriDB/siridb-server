@@ -1,5 +1,5 @@
 TEST_DIR = '/home/joente/workspace/testdir'
 SIRIDBC = '/home/joente/workspace/siridbc/Debug/siridbc'
-MANAGE = '/home/joente/workspace/siridb-manage/manage.py'
-VALGRIND = 'valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes -v '
-_VALGRIND = 'valgrind --tool=memcheck '
+MANAGE = '/home/joente/workspace/siridb-manage/main.py'
+# VALGRIND = 'valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes -v '
+VALGRIND = 'valgrind --tool=memcheck '
