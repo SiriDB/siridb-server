@@ -2860,21 +2860,24 @@ static void exit_select_stmt(uv_async_t * handle)
             {
                 siridb_nodes_next(&query->nodes);
 
-                if (query->nodes != NULL)
-                {
-                    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-                    handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+                uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+                handle = (uv_async_t *) malloc(sizeof(uv_async_t));
 
-                    if (handle == NULL)
-                    {
-                        ERR_ALLOC
-                    }
-                    else
-                    {
-                        handle->data = query;
-                        uv_async_init(siri.loop, handle, (uv_async_cb) query->nodes->cb);
-                    }
+                if (handle == NULL)
+                {
+                    ERR_ALLOC
                 }
+                else
+                {
+                    handle->data = query;
+                }
+
+                uv_async_init(
+                        siri.loop,
+                        handle,
+                        (query->nodes == NULL) ?
+                                (uv_async_cb) siridb_send_query_result :
+                                (uv_async_cb) query->nodes->cb);
 
                 siri_async_incref(handle);
                 work->data = handle;
@@ -4657,6 +4660,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
  * Helper functions
  *****************************************************************************/
 
+
 static void master_select_work(uv_work_t * work)
 {
     uv_async_t * handle = (uv_async_t *) work->data;
@@ -4687,14 +4691,7 @@ static void master_select_work(uv_work_t * work)
             return;
         }
 
-        if (query->nodes == NULL)
-        {
-            siridb_send_query_result(handle);
-        }
-        else
-        {
-            uv_async_send(handle);
-        }
+        uv_async_send(handle);
     }
 }
 
