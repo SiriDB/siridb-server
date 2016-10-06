@@ -1,23 +1,18 @@
+import sys
 import asyncio
 import functools
 import logging
 import random
-import sys
 import time
-from .constants import PY_SIRIDB_PATH
+from siridb.connector import SiriDBClient
+from siridb.connector.lib.exceptions import AuthenticationError
+from siridb.connector.lib.exceptions import InsertError
+from siridb.connector.lib.exceptions import PoolError
+from siridb.connector.lib.exceptions import QueryError
+from siridb.connector.lib.exceptions import ServerError
+from siridb.connector.lib.exceptions import UserAuthError
 from .helpers import gen_points
 from .server import Server
-
-
-sys.path.append(PY_SIRIDB_PATH)
-from siriclient import AsyncSiriCluster
-from siriclient.shared.exceptions import (
-    InsertError,
-    PoolError,
-    QueryError,
-    ServerError,
-    AuthenticationError,
-    UserAuthError)
 
 
 class Client:
@@ -27,7 +22,7 @@ class Client:
         if isinstance(servers, Server):
             servers = [servers]
 
-        self.cluster = AsyncSiriCluster(
+        self.cluster = SiriDBClient(
             username=username,
             password=password,
             dbname=db.dbname,
