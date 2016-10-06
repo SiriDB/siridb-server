@@ -49,6 +49,13 @@ typedef struct siridb_insert_s
     qp_packer_t * packer[];
 } siridb_insert_t;
 
+//typedef struct siridb_insert_local_s
+//{
+//    uv_close_cb free_cb;    /* must be on top */
+//    uint8_t ref;
+//    void * data;
+//} siridb_insert_local_t;
+
 ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,

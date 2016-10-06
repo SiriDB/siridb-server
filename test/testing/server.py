@@ -57,7 +57,7 @@ class Server:
         # print(subprocess.check_output(['pgrep', 'memcheck-amd64-']))
         try:
 
-            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridbc']).split()))
+            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridb-server']).split()))
         except subprocess.CalledProcessError:
             ret = set()
         return ret

@@ -23,8 +23,8 @@ def cleanup():
         pass
     os.mkdir(TEST_DIR)
 
-    logging.info('Force kill all open siridbc processes')
-    os.system('pkill -9 siridbc')
+    logging.info('Force kill all open siridb-server processes')
+    os.system('pkill -9 siridb-server')
 
     logging.info('Force kill all open memcheck-amd64- processes')
     os.system('pkill -9 memcheck-amd64-')

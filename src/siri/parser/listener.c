@@ -16,15 +16,24 @@
 #include <math.h>
 #include <qpack/qpack.h>
 #include <siri/async.h>
+#include <siri/db/aggregate.h>
+#include <siri/db/group.h>
+#include <siri/db/groups.h>
 #include <siri/db/nodes.h>
+#include <siri/db/presuf.h>
+#include <siri/db/props.h>
 #include <siri/db/props.h>
 #include <siri/db/query.h>
+#include <siri/db/re.h>
 #include <siri/db/series.h>
+#include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
 #include <siri/db/user.h>
 #include <siri/db/users.h>
 #include <siri/err.h>
+#include <siri/grammar/gramp.h>
+#include <siri/help/help.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
 #include <siri/net/socket.h>
@@ -34,12 +43,7 @@
 #include <siri/siri.h>
 #include <strextra/strextra.h>
 #include <sys/time.h>
-#include <siri/db/re.h>
-#include <siri/db/presuf.h>
-#include <siri/db/aggregate.h>
-#include <siri/db/groups.h>
-#include <siri/db/group.h>
-#include <siri/help/help.h>
+
 
 #define MAX_ITERATE_COUNT 1000      // thousand
 #define MAX_SELECT_POINTS 1000000   // one million
@@ -283,9 +287,9 @@ static uint32_t GID_K_START = CLERI_GID_K_START;
 static uint32_t GID_K_END = CLERI_GID_K_END;
 
 /*
- * Start SIRIPARSER_NEXT_NODE
+ * Start SIRIPARSER_ASYNC_NEXT_NODE
  */
-#define SIRIPARSER_NEXT_NODE                                                \
+#define SIRIPARSER_ASYNC_NEXT_NODE                                          \
 siridb_nodes_next(&query->nodes);                                           \
 if (query->nodes == NULL)                                                   \
 {                                                                           \
@@ -306,6 +310,19 @@ else                                                                        \
         uv_async_send(handle);                                              \
     }                                                                       \
 }
+
+#define SIRIPARSER_NEXT_NODE            \
+siridb_nodes_next(&query->nodes);       \
+if (query->nodes == NULL)               \
+{                                       \
+    siridb_send_query_result(handle);   \
+}                                       \
+else                                    \
+{                                       \
+    handle->data = query;               \
+    query->nodes->cb(handle);           \
+}
+
 
 /*
  * Start SIRIPARSER_MASTER_CHECK_ACCESS
@@ -429,6 +446,7 @@ static void enter_access_expr(uv_async_t * handle)
 
     SIRIPARSER_NEXT_NODE
 }
+
 
 static void enter_alter_group(uv_async_t * handle)
 {
@@ -709,7 +727,7 @@ static void enter_group_match(uv_async_t * handle)
 
             q_wrapper->series_tmp = NULL;
 
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -731,7 +749,7 @@ static void enter_help(uv_async_t * handle)
 
     strx_split_join(query->data, ' ', '_');
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_limit_expr(uv_async_t * handle)
@@ -801,7 +819,7 @@ static void enter_merge_as(uv_async_t * handle)
                 query->err_msg);
     }
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_revoke_user(uv_async_t * handle)
@@ -880,7 +898,7 @@ static void enter_select_stmt(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_MAP_OPEN);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_set_expression(uv_async_t * handle)
@@ -901,7 +919,7 @@ static void enter_set_expression(uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1120,7 +1138,7 @@ static void enter_series_name(uv_async_t * handle)
         }
     }
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_series_match(uv_async_t * handle)
@@ -1231,7 +1249,7 @@ static void enter_where_xxx(uv_async_t * handle)
     else
     {
         ((query_wrapper_t *) query->data)->where_expr = cexpr;
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1265,7 +1283,7 @@ static void enter_xxx_columns(uv_async_t * handle)
         }
     }
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /******************************************************************************
@@ -1306,7 +1324,7 @@ static void exit_alter_group(uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1334,7 +1352,7 @@ static void exit_alter_user(uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1386,7 +1404,7 @@ static void exit_calc_stmt(uv_async_t * handle)
         qp_add_int64(query->packer, (int64_t) (calc_node->result * factor));
     }
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_count_groups(uv_async_t * handle)
@@ -1440,7 +1458,7 @@ static void exit_count_pools(uv_async_t * handle)
     if (q_count->where_expr == NULL)
     {
         qp_add_int64(query->packer, siridb->pools->len);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
     else
     {
@@ -1462,7 +1480,7 @@ static void exit_count_pools(uv_async_t * handle)
         else
         {
             qp_add_int64(query->packer, q_count->n);
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -1494,7 +1512,7 @@ static void exit_count_series(uv_async_t * handle)
         {
             qp_add_int64(query->packer, q_count->n);
 
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
     else
@@ -1546,7 +1564,7 @@ static void exit_count_series_length(uv_async_t * handle)
         {
             qp_add_int64(query->packer, q_count->n);
 
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
     else
@@ -1613,7 +1631,7 @@ static void exit_count_servers(uv_async_t * handle)
     else
     {
         qp_add_int64(query->packer, q_count->n);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1644,7 +1662,7 @@ static void exit_count_servers_received(uv_async_t * handle)
     else
     {
         qp_add_int64(query->packer, q_count->n);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1708,7 +1726,7 @@ static void exit_count_shards(uv_async_t * handle)
     else
     {
         qp_add_int64(query->packer, q_count->n);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1765,7 +1783,7 @@ static void exit_count_shards_size(uv_async_t * handle)
     else
     {
         qp_add_int64(query->packer, q_count->n);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1791,7 +1809,7 @@ static void exit_count_users(uv_async_t * handle)
 
     qp_add_int64(query->packer, n);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_create_group(uv_async_t * handle)
@@ -1853,7 +1871,7 @@ static void exit_create_group(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -1915,7 +1933,7 @@ static void exit_create_user(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -1954,7 +1972,7 @@ static void exit_drop_group(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -2082,7 +2100,7 @@ static void exit_drop_server(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
 
         /*
@@ -2211,7 +2229,7 @@ static void exit_drop_user(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -2250,7 +2268,7 @@ static void exit_grant_user(uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -2284,7 +2302,7 @@ static void exit_help_xxx(uv_async_t * handle)
         free(query->data);
         query->data = NULL;
     }
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_list_groups(uv_async_t * handle)
@@ -2416,7 +2434,7 @@ static void exit_list_pools(uv_async_t * handle)
     {
         qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -2526,7 +2544,7 @@ static void exit_list_servers(uv_async_t * handle)
     else
     {
         qp_add_type(query->packer, QP_ARRAY_CLOSE);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -2647,7 +2665,7 @@ static void exit_list_shards(uv_async_t * handle)
     {
         qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -2708,7 +2726,7 @@ static void exit_list_users(uv_async_t * handle)
     }
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_revoke_user(uv_async_t * handle)
@@ -2745,7 +2763,7 @@ static void exit_revoke_user(uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -2825,7 +2843,7 @@ static void exit_select_aggregate(uv_async_t * handle)
             }
             else
             {
-                SIRIPARSER_NEXT_NODE
+                SIRIPARSER_ASYNC_NEXT_NODE
             }
         }
     }
@@ -2854,39 +2872,36 @@ static void exit_select_stmt(uv_async_t * handle)
             uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
             if (work == NULL)
             {
-                ERR_ALLOC
+                MEM_ERR_RET
             }
-            else
+
+            uv_async_t * tmp = (uv_async_t *) malloc(sizeof(uv_async_t));
+            if (tmp == NULL)
             {
-                siridb_nodes_next(&query->nodes);
-
-                uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-                handle = (uv_async_t *) malloc(sizeof(uv_async_t));
-
-                if (handle == NULL)
-                {
-                    ERR_ALLOC
-                }
-                else
-                {
-                    handle->data = query;
-                }
-
-                uv_async_init(
-                        siri.loop,
-                        handle,
-                        (query->nodes == NULL) ?
-                                (uv_async_cb) siridb_send_query_result :
-                                (uv_async_cb) query->nodes->cb);
-
-                siri_async_incref(handle);
-                work->data = handle;
-                uv_queue_work(
-                            siri.loop,
-                            work,
-                            &master_select_work,
-                            &master_select_work_finish);
+                free(work);
+                MEM_ERR_RET
             }
+
+            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+
+            handle = tmp;
+            handle->data = query;
+            siridb_nodes_next(&query->nodes);
+
+            uv_async_init(
+                    siri.loop,
+                    handle,
+                    (query->nodes == NULL) ?
+                            (uv_async_cb) siridb_send_query_result :
+                            (uv_async_cb) query->nodes->cb);
+
+            siri_async_incref(handle);
+            work->data = handle;
+            uv_queue_work(
+                        siri.loop,
+                        work,
+                        &master_select_work,
+                        &master_select_work_finish);
         }
     }
     else
@@ -2906,7 +2921,7 @@ static void exit_select_stmt(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -2950,7 +2965,7 @@ static void exit_set_address(uv_async_t * handle)
         qp_add_fmt_safe(query->packer,
                 MSG_SUCCESS_SET_ADDR_PORT,
                 server->name);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
         break;
     }
 }
@@ -2995,7 +3010,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
                 }
             }
 
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
         else
         {
@@ -3111,7 +3126,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
             }
             else
             {
-                SIRIPARSER_NEXT_NODE
+                SIRIPARSER_ASYNC_NEXT_NODE
             }
         }
     }
@@ -3170,7 +3185,7 @@ static void exit_set_log_level(uv_async_t * handle)
     {
         logger_set_level(log_level);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
     else
     {
@@ -3262,7 +3277,7 @@ static void exit_set_port(uv_async_t * handle)
             qp_add_fmt_safe(query->packer,
                     MSG_SUCCESS_SET_ADDR_PORT,
                     server->name);
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
             break;
         }
     }
@@ -3326,7 +3341,7 @@ static void exit_set_timezone(uv_async_t * handle)
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -3394,7 +3409,7 @@ static void exit_show_stmt(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_timeit_stmt(uv_async_t * handle)
@@ -3428,7 +3443,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
     /* extend packer with timeit information */
     qp_packer_extend(query->packer, query->timeit);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /******************************************************************************
@@ -3489,7 +3504,7 @@ static void async_count_series(uv_async_t * handle)
     {
         qp_add_int64(query->packer, q_count->n);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -3552,7 +3567,7 @@ static void async_count_series_length(uv_async_t * handle)
     {
         qp_add_int64(query->packer, q_count->n);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -3619,7 +3634,7 @@ static void async_drop_series(uv_async_t * handle)
     {
         qp_add_int64(query->packer, q_drop->n);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -3669,7 +3684,7 @@ static void async_drop_shards(uv_async_t * handle)
     else
     {
         qp_add_int64(query->packer, q_drop->n);
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -3847,7 +3862,7 @@ static void async_list_series(uv_async_t * handle)
     {
         qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -3986,7 +4001,7 @@ static void async_select_aggregate(uv_async_t * handle)
         q_select->slist = NULL;
         q_select->slist_index = 0;
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -4063,7 +4078,7 @@ static void async_series_re(uv_async_t * handle)
         }
         q_wrapper->series_tmp = NULL;
 
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -4119,7 +4134,7 @@ static void on_ack_response(
         }
         else
         {
-            SIRIPARSER_NEXT_NODE
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 
@@ -4181,7 +4196,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 
     qp_add_int64(query->packer, q_count->n);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /*
@@ -4238,7 +4253,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
     qp_add_fmt(query->packer,
             "Successfully dropped %lu series.", q_drop->n);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /*
@@ -4297,7 +4312,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
             "shards which are dropped on replica servers)",
             q_drop->n);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /*
@@ -4425,7 +4440,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 /*
@@ -4565,39 +4580,37 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
         uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
         if (work == NULL)
         {
-            ERR_ALLOC
+            MEM_ERR_RET
         }
-        else
+
+        uv_async_t * tmp = (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (tmp == NULL)
         {
-            siridb_nodes_next(&query->nodes);
-
-            if (query->nodes != NULL)
-            {
-                uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-                handle = (uv_async_t *) malloc(sizeof(uv_async_t));
-
-                if (handle == NULL)
-                {
-                    ERR_ALLOC
-                }
-                else
-                {
-                    handle->data = query;
-                    uv_async_init(
-                            siri.loop,
-                            handle,
-                            (uv_async_cb) query->nodes->cb);
-                }
-            }
-
-            siri_async_incref(handle);
-            work->data = handle;
-            uv_queue_work(
-                        siri.loop,
-                        work,
-                        &master_select_work,
-                        &master_select_work_finish);
+            free(work);
+            MEM_ERR_RET
         }
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+
+        handle = tmp;
+        handle->data = query;
+        siridb_nodes_next(&query->nodes);
+
+        uv_async_init(
+                siri.loop,
+                handle,
+                (query->nodes == NULL) ?
+                        (uv_async_cb) siridb_send_query_result :
+                        (uv_async_cb) query->nodes->cb);
+
+        siri_async_incref(handle);
+        work->data = handle;
+        uv_queue_work(
+                    siri.loop,
+                    work,
+                    &master_select_work,
+                    &master_select_work_finish);
+
     }
 }
 
@@ -4652,7 +4665,7 @@ static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
     }
     else
     {
-        SIRIPARSER_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -5004,7 +5017,7 @@ static void finish_list_groups(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void finish_count_groups(uv_async_t * handle)
@@ -5024,5 +5037,5 @@ static void finish_count_groups(uv_async_t * handle)
 
     qp_add_int64(query->packer, n);
 
-    SIRIPARSER_NEXT_NODE
+    SIRIPARSER_ASYNC_NEXT_NODE
 }

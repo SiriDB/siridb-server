@@ -17,6 +17,7 @@
 #include <siri/grammar/grammar.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/db/server.h>
 
 
 /*

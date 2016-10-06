@@ -594,6 +594,53 @@ static int INSERT_local_test(siridb_t * siridb, qp_unpacker_t * unpacker)
     return siri_err;
 }
 
+//static void INSERT_finish_local(
+//        sirinet_promise_t * promise,
+//        sirinet_pkg_t * pkg,
+//        int status)
+//{
+//
+//}
+//
+//static void INSERT_init_local(siridb_t * siridb, sirinet_promises_t * promises)
+//{
+//    sirinet_promise_t * promise =
+//            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+//    if (promise == NULL)
+//    {
+//        ERR_ALLOC
+//    }
+//    else
+//    {
+//        siridb_insert_local_t * ilocal = (siridb_insert_local_t *)
+//                malloc(sizeof(siridb_insert_local_t));
+//        if (ilocal == NULL)
+//        {
+//            free(promise);
+//            ERR_ALLOC
+//        }
+//        else
+//        {
+//            uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+//            if (handle == NULL)
+//            {
+//                free(promise);
+//                free(ilocal);
+//                ERR_ALLOC
+//            }
+//            else
+//            {
+//
+//            uv_async_init(siri.loop, handle, INSERT_points_to_pools);
+//
+//            promise->data = ilocal;
+//            promise->server = NULL;
+//            promise->cb = (sirinet_promise_cb) INSERT_finish_local;
+//        }
+//    }
+//
+//}
+
 /*
  * Call-back function:  uv_async_cb
  *
