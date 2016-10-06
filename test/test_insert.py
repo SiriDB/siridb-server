@@ -111,6 +111,13 @@ class TestInsert(TestBase):
         with self.assertRaises(InsertError):
             await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
 
+        series = gen_series(n=100000)
+        tasks = [
+            asyncio.ensure_future(
+                self.client0.insert_some_series(series, n=1.0, timeout=0, points=self.GEN_POINTS))
+            for i in range(10)]
+        await asyncio.gather(*tasks)
+
         await self.db.add_replica(self.server1, 0, sleep=3)
 
         await self.assertIsRunning(self.db, self.client0, timeout=3)
@@ -133,11 +140,11 @@ class TestInsert(TestBase):
         self.client0.close()
         self.client1.close()
 
-        return Fals?e
+        # return False
 
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
     run_test(TestInsert())

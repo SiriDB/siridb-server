@@ -46,13 +46,12 @@ class Client:
 
     async def insert_some_series(self,
                                  series,
-                                 n=None,
+                                 n=0.01,
                                  timeout=None,
                                  points=functools.partial(gen_points, n=1)):
         random.shuffle(series)
 
-        if n is None:
-            n = len(series) // 100
+        n = int(len(series) * n)
 
         assert (n <= len(series) and n > 0)
 

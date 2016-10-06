@@ -257,6 +257,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     slist_free(slist);
 
     /* generate pools, this can raise a signal */
+    log_info("Initialize pools");
     siridb_pools_init(siridb);
 
     if (!siri_err)

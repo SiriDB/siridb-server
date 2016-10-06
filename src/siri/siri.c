@@ -54,8 +54,13 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 static uv_timer_t closing_timer;
 static int closing_attempts = 40;  // times 3 seconds is 2 minutes
 
-#define N_SIGNALS 4
-static int signals[N_SIGNALS] = {SIGINT, SIGTERM, SIGSEGV, SIGABRT};
+#define N_SIGNALS 5
+static int signals[N_SIGNALS] = {
+        SIGINT,
+        SIGTERM,
+        SIGSEGV,
+        SIGABRT,
+        SIGPIPE};
 
 siri_t siri = {
         .grammar=NULL,
@@ -356,8 +361,15 @@ static void SIRI_try_close(uv_timer_t * handle)
     }
 }
 
+
 static void SIRI_signal_handler(uv_signal_t * req, int signum)
 {
+    if (signum == SIGPIPE)
+    {
+        log_warning("Signal (%d) received, probably a connection was lost");
+        return;
+    }
+
     if (siri.status == SIRI_STATUS_CLOSING)
     {
         log_error("Receive a second signal (%d), stop SiriDB immediately!",

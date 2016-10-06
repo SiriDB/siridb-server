@@ -47,11 +47,11 @@ class TestSeries(TestBase):
 
         self.client0.close()
 
-        # return False
+        return False
 
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
     run_test(TestSeries())

@@ -2071,17 +2071,9 @@ static void exit_drop_server(uv_async_t * handle)
         log_info(MSG_SUCCESS_DROP_SERVER, server->name);
         qp_add_fmt_safe(query->packer, MSG_SUCCESS_DROP_SERVER, server->name);
 
-        /*
-         * After calling this function, all references to the server
-         * object might be gone
-         */
-        if (siridb_server_drop(siridb, server))
-        {
-            log_critical("Cannot save servers to file");
-        }
-
         if (IS_MASTER)
         {
+            query->flags |= SIRIDB_QUERY_FLAG_REBUILD;
             siridb_query_forward(
                     handle,
                     SIRIDB_QUERY_FWD_UPDATE,
@@ -2091,6 +2083,15 @@ static void exit_drop_server(uv_async_t * handle)
         else
         {
             SIRIPARSER_NEXT_NODE
+        }
+
+        /*
+         * After calling this function, all references to the server
+         * object might be gone
+         */
+        if (siridb_server_drop(siridb, server))
+        {
+            log_critical("Cannot save servers to file");
         }
     }
 }
