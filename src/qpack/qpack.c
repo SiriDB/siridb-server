@@ -126,7 +126,7 @@ static qp_types_t QP_print_unpacker(
         qp_obj_t * qp_obj);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Initialize unpacker object.
  */
 void qp_unpacker_init(qp_unpacker_t * unpacker, char * pt, size_t len)
 {

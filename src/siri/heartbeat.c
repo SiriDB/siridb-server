@@ -18,6 +18,10 @@
 #include <siri/db/server.h>
 #include <uv.h>
 
+#ifdef DEBUG
+#include <siri/db/series.h>
+#endif
+
 static uv_timer_t heartbeat;
 
 #define HEARTBEAT_INIT_TIMEOUT 1000
@@ -89,6 +93,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
         /*
          * Finish series with overlap
          */
+        log_debug("Active tasks: %u", siridb->active_tasks);
 
 #endif
 

@@ -22,6 +22,7 @@
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
 #include <siri/err.h>
+#include <lock/lock.h>
 #include <siri/net/clserver.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
@@ -36,17 +37,17 @@
 #define WARNING_PKG_SIZE 1048576   // 1MB
 
 #define DEFAULT_BACKLOG 128
-#define CHECK_SIRIDB(ssocket)                                               \
-sirinet_socket_t * ssocket = client->data;                                  \
-if (ssocket->siridb == NULL)                                                \
-{                                                                           \
-    sirinet_pkg_t * package;                                                \
-    package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR_NOT_AUTHENTICATED, NULL); \
-    if (package != NULL)                                                    \
-    {                                                                       \
-        sirinet_pkg_send((uv_stream_t *) client, package);                  \
-    }                                                                       \
-    return;                                                                 \
+#define CHECK_SIRIDB(ssocket)                                                  \
+sirinet_socket_t * ssocket = client->data;                                     \
+if (ssocket->siridb == NULL)                                                   \
+{                                                                              \
+    sirinet_pkg_t * package;                                                   \
+    package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR_NOT_AUTHENTICATED, NULL);\
+    if (package != NULL)                                                       \
+    {                                                                          \
+        sirinet_pkg_send((uv_stream_t *) client, package);                     \
+    }                                                                          \
+    return;                                                                    \
 }
 
 static const int SERVER_RUNNING_REINDEXING =

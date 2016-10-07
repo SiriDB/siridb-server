@@ -13,6 +13,7 @@
 
 #include <siri/db/db.h>
 #include <qpack/qpack.h>
+#include <siri/db/forward.h>
 #include <uv.h>
 
 #define INSERT_FLAG_TEST 1
@@ -32,10 +33,18 @@ typedef enum
     ERR_MEM_ALLOC,          // This is a critical error.
 } siridb_insert_err_t;
 
+enum
+{
+    INSERT_LOCAL_CANCELLED=-2,
+    INSERT_LOCAL_ERROR,
+    INSERT_LOCAL_SUCESS,
+};
+
 typedef struct siridb_s siridb_t;
 typedef struct qp_unpacker_s qp_unpacker_t;
 typedef struct qp_packer_s qp_packer_t;
 typedef struct qp_obj_s qp_obj_t;
+typedef struct siridb_forward_s siridb_forward_t;
 
 typedef struct siridb_insert_s
 {
@@ -49,12 +58,18 @@ typedef struct siridb_insert_s
     qp_packer_t * packer[];
 } siridb_insert_t;
 
-//typedef struct siridb_insert_local_s
-//{
-//    uv_close_cb free_cb;    /* must be on top */
-//    uint8_t ref;
-//    void * data;
-//} siridb_insert_local_t;
+typedef struct siridb_insert_local_s
+{
+    uv_close_cb free_cb;    /* must be on top */
+    uint8_t ref;
+    uint8_t flags;
+    int8_t status;
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_series_name;
+    siridb_t * siridb;
+    sirinet_promise_t * promise;
+    siridb_forward_t * forward;
+} siridb_insert_local_t;
 
 ssize_t siridb_insert_assign_pools(
         siridb_t * siridb,
@@ -69,4 +84,8 @@ siridb_insert_t * siridb_insert_new(
         uv_stream_t * client);
 void siridb_insert_free(siridb_insert_t * insert);
 int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints);
-int siridb_insert_local(siridb_t * siridb, qp_unpacker_t * unpacker, int flags);
+int insert_init_backend_local(
+        siridb_t * siridb,
+        uv_stream_t * client,
+        sirinet_pkg_t * pkg,
+        uint8_t flags);

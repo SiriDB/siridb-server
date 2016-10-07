@@ -1190,7 +1190,23 @@ static void enter_series_re(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        async_series_re(handle);
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_series_re);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
 
     /* handle is handled or a signal is raised */
@@ -1521,10 +1537,27 @@ static void exit_count_series(uv_async_t * handle)
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
 
-        if (q_count->slist != NULL)
+        if (q_count->slist == NULL)
         {
-            async_count_series(handle);
+            MEM_ERR_RET
         }
+
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_count_series);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
 }
 
@@ -1573,10 +1606,28 @@ static void exit_count_series_length(uv_async_t * handle)
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
 
-        if (q_count->slist != NULL)
+        if (q_count->slist == NULL)
         {
-            async_count_series_length(handle);
+            MEM_ERR_RET
         }
+
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_count_series_length);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
 }
 
@@ -2003,10 +2054,28 @@ static void exit_drop_series(uv_async_t * handle)
             /* create a new one */
             q_drop->series_map = imap_new();
 
-            if (q_drop->series_map != NULL)
+            if (q_drop->series_map == NULL)
             {
-                async_filter_series(handle);
+                MEM_ERR_RET
             }
+
+            uv_async_t * next =
+                    (uv_async_t *) malloc(sizeof(uv_async_t));
+
+            if (next == NULL)
+            {
+                MEM_ERR_RET
+            }
+
+            next->data = handle->data;
+
+            uv_async_init(
+                    siri.loop,
+                    next,
+                    (uv_async_cb) async_filter_series);
+            uv_async_send(next);
+
+            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
         }
     }
     else
@@ -2037,10 +2106,28 @@ static void exit_drop_series(uv_async_t * handle)
 
             q_drop->slist = imap_2slist_ref(q_drop->series_map);
 
-            if (q_drop->slist != NULL)
+            if (q_drop->slist == NULL)
             {
-                async_drop_series(handle);
+                MEM_ERR_RET
             }
+
+            uv_async_t * next =
+                    (uv_async_t *) malloc(sizeof(uv_async_t));
+
+            if (next == NULL)
+            {
+                MEM_ERR_RET
+            }
+
+            next->data = handle->data;
+
+            uv_async_init(
+                    siri.loop,
+                    next,
+                    (uv_async_cb) async_drop_series);
+            uv_async_send(next);
+
+            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
         }
     }
 }
@@ -2189,7 +2276,23 @@ static void exit_drop_shards(uv_async_t * handle)
 
         q_drop->n = q_drop->shards_list->len;
 
-        async_drop_shards(handle);
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_drop_shards);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
     }
 }
 
@@ -2465,10 +2568,28 @@ static void exit_list_series(uv_async_t * handle)
     q_list->slist = imap_2slist_ref((q_list->series_map == NULL) ?
                     siridb->series_map : q_list->series_map);
 
-    if (q_list->slist != NULL)
+    if (q_list->slist == NULL)
     {
-        async_list_series(handle);
+        MEM_ERR_RET;
     }
+
+    uv_async_t * next =
+            (uv_async_t *) malloc(sizeof(uv_async_t));
+
+    if (next == NULL)
+    {
+        MEM_ERR_RET
+    }
+
+    next->data = handle->data;
+
+    uv_async_init(
+            siri.loop,
+            next,
+            (uv_async_cb) async_list_series);
+    uv_async_send(next);
+
+    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 }
 
 static void exit_list_servers(uv_async_t * handle)
@@ -2785,13 +2906,36 @@ static void exit_select_aggregate(uv_async_t * handle)
             /* create a new one */
             q_select->series_map = imap_new();
 
-            if (q_select->series_map != NULL)
+            if (q_select->series_map == NULL)
             {
-                async_filter_series(handle);
+                MEM_ERR_RET
             }
+
+            uv_async_t * next =
+                    (uv_async_t *) malloc(sizeof(uv_async_t));
+
+            if (next == NULL)
+            {
+                MEM_ERR_RET
+            }
+
+            next->data = handle->data;
+
+            uv_async_init(
+                    siri.loop,
+                    next,
+                    (uv_async_cb) async_filter_series);
+            uv_async_send(next);
+
+            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+
         }
     }
-    else if (siridb_presuf_add(&q_select->presuf, query->nodes->node) != NULL)
+    else if (siridb_presuf_add(&q_select->presuf, query->nodes->node) == NULL)
+    {
+        MEM_ERR_RET
+    }
+    else
     {
         if (!siridb_presuf_is_unique(q_select->presuf))
         {
@@ -2835,10 +2979,28 @@ static void exit_select_aggregate(uv_async_t * handle)
                 else
                 {
                     q_select->slist = imap_2slist_ref(q_select->series_map);
-                    if (q_select->slist != NULL)
+                    if (q_select->slist == NULL)
                     {
-                        async_select_aggregate(handle);
+                        MEM_ERR_RET
                     }
+
+                    uv_async_t * next =
+                            (uv_async_t *) malloc(sizeof(uv_async_t));
+
+                    if (next == NULL)
+                    {
+                        MEM_ERR_RET
+                    }
+
+                    next->data = handle->data;
+
+                    uv_async_init(
+                            siri.loop,
+                            next,
+                            (uv_async_cb) async_select_aggregate);
+                    uv_async_send(next);
+
+                    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
                 }
             }
             else
@@ -2875,8 +3037,8 @@ static void exit_select_stmt(uv_async_t * handle)
                 MEM_ERR_RET
             }
 
-            uv_async_t * tmp = (uv_async_t *) malloc(sizeof(uv_async_t));
-            if (tmp == NULL)
+            uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+            if (next == NULL)
             {
                 free(work);
                 MEM_ERR_RET
@@ -2884,7 +3046,7 @@ static void exit_select_stmt(uv_async_t * handle)
 
             uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 
-            handle = tmp;
+            handle = next;
             handle->data = query;
             siridb_nodes_next(&query->nodes);
 
@@ -3455,7 +3617,7 @@ static void async_count_series(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_series_t * series;
     query_count_t * q_count = (query_count_t *) query->data;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
 
     size_t index_end = q_count->slist_index + MAX_ITERATE_COUNT;
 
@@ -3465,11 +3627,7 @@ static void async_count_series(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     for (; q_count->slist_index < index_end; q_count->slist_index++)
@@ -3482,15 +3640,9 @@ static void async_count_series(uv_async_t * handle)
         siridb_series_decref(series);
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_count_series);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else if (IS_MASTER)
     {
@@ -3513,7 +3665,7 @@ static void async_count_series_length(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_series_t * series;
     query_count_t * q_count = (query_count_t *) query->data;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
 
     size_t index_end = q_count->slist_index + MAX_ITERATE_COUNT;
 
@@ -3523,11 +3675,7 @@ static void async_count_series_length(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     for (; q_count->slist_index < index_end; q_count->slist_index++)
@@ -3545,15 +3693,9 @@ static void async_count_series_length(uv_async_t * handle)
         siridb_series_decref(series);
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_count_series_length);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else if (IS_MASTER)
     {
@@ -3578,7 +3720,7 @@ static void async_drop_series(uv_async_t * handle)
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
     siridb_series_t * series;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
 
     size_t index_end = q_drop->slist_index + MAX_ITERATE_COUNT;
 
@@ -3588,11 +3730,7 @@ static void async_drop_series(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     uv_mutex_lock(&siridb->series_mutex);
@@ -3612,15 +3750,9 @@ static void async_drop_series(uv_async_t * handle)
         siridb_series_flush_dropped(siridb);
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_drop_series);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else if (IS_MASTER)
     {
@@ -3656,22 +3788,7 @@ static void async_drop_shards(uv_async_t * handle)
 
     if (q_drop->shards_list->len)
     {
-        uv_async_t * async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
-        else
-        {
-            async_more->data = (void *) handle->data;
-            uv_async_init(
-                    siri.loop,
-                    async_more,
-                    (uv_async_cb) &async_drop_shards);
-            uv_async_send(async_more);
-            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-        }
+        uv_async_send(handle);
     }
     else if (IS_MASTER)
     {
@@ -3693,7 +3810,7 @@ static void async_filter_series(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
     cexpr_t * where_expr = q_wrapper->where_expr;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
     siridb_series_t * series;
     size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
 
@@ -3703,11 +3820,7 @@ static void async_filter_series(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     for (; q_wrapper->slist_index < index_end; q_wrapper->slist_index++)
@@ -3728,15 +3841,9 @@ static void async_filter_series(uv_async_t * handle)
         }
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_filter_series);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else
     {
@@ -3772,7 +3879,7 @@ static void async_list_series(uv_async_t * handle)
     query_list_t * q_list = (query_list_t *) query->data;
     slist_t * props = q_list->props;
     cexpr_t * where_expr = q_list->where_expr;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
     siridb_series_t * series;
     size_t i;
     size_t index_end = q_list->slist_index + MAX_ITERATE_COUNT;
@@ -3783,11 +3890,7 @@ static void async_list_series(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     for (;  q_list->limit && q_list->slist_index < index_end;
@@ -3802,8 +3905,7 @@ static void async_list_series(uv_async_t * handle)
         {
             if (!--q_list->limit)
             {
-                free(async_more);
-                async_more = NULL;
+                async_more = 0;
             }
 
             qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -3839,15 +3941,9 @@ static void async_list_series(uv_async_t * handle)
         siridb_series_decref(series);
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_list_series);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else if (IS_MASTER && q_list->limit)
     {
@@ -3871,7 +3967,7 @@ static void async_select_aggregate(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
     siridb_series_t * series;
     siridb_points_t * points;
     siridb_points_t * aggr_points;
@@ -3902,11 +3998,7 @@ static void async_select_aggregate(uv_async_t * handle)
 
     if ((++q_select->slist_index) < q_select->slist->len)
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (async_more == NULL)
-        {
-            ERR_ALLOC
-        }
+        async_more = 1;
     }
 
     uv_mutex_lock(&siridb->series_mutex);
@@ -3982,15 +4074,9 @@ static void async_select_aggregate(uv_async_t * handle)
         }
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_select_aggregate);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else
     {
@@ -4009,7 +4095,7 @@ static void async_series_re(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
-    uv_async_t * async_more = NULL;
+    uint8_t async_more = 0;
     siridb_series_t * series;
     size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
 
@@ -4019,12 +4105,7 @@ static void async_series_re(uv_async_t * handle)
     }
     else
     {
-        async_more = (uv_async_t *) malloc(sizeof(uv_async_t));
-
-        if (async_more == NULL)
-        {
-            MEM_ERR_RET
-        }
+        async_more = 1;
     }
 
     int pcre_exec_ret;
@@ -4051,15 +4132,9 @@ static void async_series_re(uv_async_t * handle)
         }
     }
 
-    if (async_more != NULL)
+    if (async_more)
     {
-        async_more->data = (void *) handle->data;
-        uv_async_init(
-                siri.loop,
-                async_more,
-                (uv_async_cb) &async_series_re);
-        uv_async_send(async_more);
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_async_send(handle);
     }
     else
     {
@@ -4583,8 +4658,8 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        uv_async_t * tmp = (uv_async_t *) malloc(sizeof(uv_async_t));
-        if (tmp == NULL)
+        uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        if (next == NULL)
         {
             free(work);
             MEM_ERR_RET
@@ -4592,7 +4667,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
 
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 
-        handle = tmp;
+        handle = next;
         handle->data = query;
         siridb_nodes_next(&query->nodes);
 

@@ -119,15 +119,21 @@ void siridb_query_run(
 
     log_debug("Parsing query (%d): %s", query->flags, query->q);
 
+    /* increment active tasks */
+    ((sirinet_socket_t *) query->client->data)->siridb->active_tasks++;
+
     /* send next call */
     uv_async_init(siri.loop, handle, (uv_async_cb) QUERY_parse);
-    handle->data = (void *) query;
+    handle->data = query;
     uv_async_send(handle);
 }
 
 void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /* decrement active tasks */
+    ((sirinet_socket_t *) query->client->data)->siridb->active_tasks--;
 
     /* free query */
     free(query->q);

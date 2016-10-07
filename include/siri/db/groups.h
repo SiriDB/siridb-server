@@ -58,6 +58,6 @@ int siridb_groups_add_group(
         const char * source,
         size_t source_len,
         char * err_msg);
-int siridb_groups_add_series(
+void siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series);

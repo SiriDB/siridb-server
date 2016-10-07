@@ -127,16 +127,24 @@ class TestInsert(TestBase):
             for i in range(25)]
         await asyncio.gather(*tasks)
 
+        await asyncio.sleep(5)
+
         # Check the result
         await self.assertSeries(self.client0, series)
+        await self.assertSeries(self.client1, series)
 
         series = gen_series(n=100000)
         tasks = [
             asyncio.ensure_future(
                 self.client0.insert_some_series(series, n=1.0, timeout=0, points=self.GEN_POINTS))
-            for i in range(10)]
+            for i in range(5)]
         await asyncio.gather(*tasks)
 
+        await asyncio.sleep(5)
+
+        # Check the result
+        await self.assertSeries(self.client0, series)
+        await self.assertSeries(self.client1, series)
 
         self.client0.close()
         self.client1.close()
@@ -146,6 +154,6 @@ class TestInsert(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     run_test(TestInsert())
