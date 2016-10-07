@@ -548,15 +548,27 @@ void siridb_series_remove_shard(
  */
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
 {
-    SERIES_update_start(series);
-    SERIES_update_end(series);
-
-    if (!series->length)
+    if (series->buffer == NULL)
     {
-        log_warning("Drop '%s' (%lu) since no data is found for this series",
+        log_error(
+                "Drop '%s' (%lu) since nu buffer is found for this series",
                 series->name,
                 series->id);
         siridb_series_drop(siridb, series);
+    }
+    else
+    {
+        SERIES_update_start(series);
+        SERIES_update_end(series);
+
+        if (!series->length)
+        {
+            log_warning(
+                    "Drop '%s' (%lu) since no data is found for this series",
+                    series->name,
+                    series->id);
+            siridb_series_drop(siridb, series);
+        }
     }
 }
 

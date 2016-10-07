@@ -745,7 +745,7 @@ static siridb_points_t * AGGREGATE_group_by(
 
     group.tp = source->tp;
 
-    max_sz = ((source->data + source->len - 1)->ts - source->data->ts)
+    max_sz = ((source->data + source->len - 1)->ts - source->data->ts - 1)
             / aggr->group_by + 2;
 
     if (max_sz > source->len)
