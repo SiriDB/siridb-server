@@ -43,17 +43,16 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
     siridb_shard_t * shard;
     uint64_t duration = siridb_series_isnum(series) ?
             siridb->duration_num : siridb->duration_log;
-
+    siridb_points_t * points = series->buffer->points;
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
     size_t size;
     long int pos;
 
-    for (end = 0; end < series->buffer->points->len;)
+    for (end = 0; end < points->len;)
     {
-        shard_start =
-                series->buffer->points->data[end].ts / duration * duration;
+        shard_start = points->data[end].ts / duration * duration;
         shard_end = shard_start + duration;
         shard_id = shard_start + series->mask;
 
@@ -73,8 +72,7 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
         }
 
         for (   start = end;
-                end < series->buffer->points->len &&
-                    series->buffer->points->data[end].ts < shard_end;
+                end < points->len && points->data[end].ts < shard_end;
                 end++);
 
         if (start != end)
@@ -96,20 +94,21 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                         siridb,
                         series,
                         shard,
-                        series->buffer->points,
+                        points,
                         pstart,
                         pend)) < 0)
                 {
                     log_critical(
-                            "Could not write points to shard id '%ld", shard->id);
+                            "Could not write points to shard id '%ld",
+                            shard->id);
                 }
                 else
                 {
                     siridb_series_add_idx(
                             series,
                             shard,
-                            series->buffer->points->data[pstart].ts,
-                            series->buffer->points->data[pend - 1].ts,
+                            points->data[pstart].ts,
+                            points->data[pend - 1].ts,
                             pos,
                             pend - pstart);
                     if (shard->replacing != NULL)
@@ -118,7 +117,7 @@ int siridb_buffer_to_shards(siridb_t * siridb, siridb_series_t * series)
                                siridb,
                                series,
                                shard->replacing,
-                               series->buffer->points,
+                               points,
                                pstart,
                                pend);
                     }

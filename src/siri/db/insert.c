@@ -521,22 +521,31 @@ static int8_t INSERT_local_work(
             return INSERT_LOCAL_ERROR;  /* signal is raised */
         }
 
-        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
         {
-            qp_next(unpacker, &qp_series_ts); // ts
-            qp_next(unpacker, &qp_series_val); // val
-
-            if (siridb_series_add_point(
-                    siridb,
-                    *series,
-                    (uint64_t *) &qp_series_ts.via.int64,
-                    &qp_series_val.via))
+            /*
+             * Written like a do-while loop because here we can implement
+             * some points caching
+             */
+            do
             {
-                return INSERT_LOCAL_ERROR;  /* signal is raised */
-            }
+                qp_next(unpacker, &qp_series_ts); // ts
+                qp_next(unpacker, &qp_series_val); // val
 
-            n--;
+                if (siridb_series_add_point(
+                        siridb,
+                        *series,
+                        (uint64_t *) &qp_series_ts.via.int64,
+                        &qp_series_val.via))
+                {
+                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                }
+
+                n--;
+            }
+            while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2);
         }
+
 
         if (tp == QP_ARRAY_CLOSE)
         {
@@ -661,21 +670,26 @@ static int INSERT_local_work_test(
             return INSERT_LOCAL_ERROR;  /* signal is raised */
         }
 
-        while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
         {
-            qp_next(unpacker, &qp_series_ts); // ts
-            qp_next(unpacker, &qp_series_val); // val
-
-            if (siridb_series_add_point(
-                    siridb,
-                    series,
-                    (uint64_t *) &qp_series_ts.via.int64,
-                    &qp_series_val.via))
+            /* written like a do-while so we can implement some caching...*/
+            do
             {
-                return INSERT_LOCAL_ERROR;  /* signal is raised */
-            }
+                qp_next(unpacker, &qp_series_ts); // ts
+                qp_next(unpacker, &qp_series_val); // val
 
-            n--;
+                if (siridb_series_add_point(
+                        siridb,
+                        series,
+                        (uint64_t *) &qp_series_ts.via.int64,
+                        &qp_series_val.via))
+                {
+                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                }
+
+                n--;
+            }
+            while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2);
         }
 
         if (tp == QP_ARRAY_CLOSE)
