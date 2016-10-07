@@ -8,11 +8,13 @@ import time
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
+from .constants import BUILDTYPE
 
 class Server:
     HOLD_TERM = False
     GEOMETRY = '140x60'
     MEM_CHECK = False
+    BUILDTYPE = BUILDTYPE
 
     def __init__(self,
                  n,
@@ -67,7 +69,7 @@ class Server:
         rc = os.system(
             'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
             .format(VALGRIND if self.MEM_CHECK else '',
-                    SIRIDBC,
+                    SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
                     self.cfgfile,
                     self.name,
                     self.GEOMETRY,

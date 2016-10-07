@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 /*
  * Test if file exist using the effective user.
@@ -52,7 +53,7 @@ int xpath_is_dir(const char * path)
  */
 ssize_t xpath_get_content(char ** buffer, const char * fn)
 {
-    ssize_t size;
+    ssize_t size = 0;
     *buffer = NULL;
 
     FILE * fp = fopen(fn, "r");

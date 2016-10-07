@@ -35,8 +35,9 @@
     {                                                                       \
     case IDX_TP_NUM32: get_points_cb = siridb_shard_get_points_num32; break;\
     case IDX_TP_NUM64: get_points_cb = siridb_shard_get_points_num64; break;\
-    case IDX_TP_LOG32:                                                      \
-    case IDX_TP_LOG64: assert (0); break;                                   \
+    case IDX_TP_LOG32: get_points_cb = siridb_shard_get_points_log32; break;\
+    case IDX_TP_LOG64: get_points_cb = siridb_shard_get_points_log64; break;\
+    default: exit(EXIT_FAILURE);                                            \
     }
 
 
@@ -861,7 +862,7 @@ int siridb_series_optimize_shard(
          * Therefore we must sort the series index part containing data
          * for this shard.
          */
-        SERIES_idx_sort((idx_t *) series->idx, start, end);
+        SERIES_idx_sort((idx_t *) series->idx, start, end - 1);
 
         /*
          * We need to set 'i' to the correct value since 'i' has possible

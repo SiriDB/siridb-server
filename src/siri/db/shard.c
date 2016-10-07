@@ -709,6 +709,32 @@ int siridb_shard_get_points_num64(
 }
 
 /*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_points_log32(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    return -1;  /* dummy function */
+}
+
+/*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_points_log64(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    return -1;  /* dummy function */
+}
+
+/*
  * This function will be called from the 'optimize' thread.
  *
  * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.

@@ -450,7 +450,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
 
     sirinet_pkg_t * package;
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
-
     if ((flags & INSERT_FLAG_POOL) && siridb->replica != NULL)
     {
 #ifdef DEBUG
@@ -490,6 +489,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
             free(repl_pkg);
         }
     }
+
     if (!siri_err)
     {
         /*
