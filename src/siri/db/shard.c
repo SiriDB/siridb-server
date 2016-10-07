@@ -817,8 +817,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             uv_mutex_unlock(&siridb->series_mutex);
 
             /* make this sleep depending on the active_tasks
-             * (10ms per active task) */
-            usleep( 10000 * siridb->active_tasks + 100 );
+             * (50ms per active task) */
+            usleep( 50000 * siridb->active_tasks + 100 );
         }
 
         siridb_series_decref(series);
