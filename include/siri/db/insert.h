@@ -15,6 +15,7 @@
 #include <qpack/qpack.h>
 #include <siri/db/forward.h>
 #include <uv.h>
+#include <siri/db/pcache.h>
 
 #define INSERT_FLAG_TEST 1
 #define INSERT_FLAG_TESTED 2
@@ -69,6 +70,7 @@ typedef struct siridb_insert_local_s
     siridb_t * siridb;
     sirinet_promise_t * promise;
     siridb_forward_t * forward;
+    siridb_pcache_t * pcache;
 } siridb_insert_local_t;
 
 ssize_t siridb_insert_assign_pools(

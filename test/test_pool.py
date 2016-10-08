@@ -105,12 +105,12 @@ class TestPool(TestBase):
         self.client2.close()
         self.client3.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'DEBUG'
+    SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    Server.BUILDTYPE = 'Release'
     run_test(TestPool())

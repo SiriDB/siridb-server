@@ -26,10 +26,21 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MAX_INSERT_MSG 236
 #define INSERT_TIMEOUT 300000  // 5 minutes
 #define INSERT_AT_ONCE 3000    // one point counts as 1, a series as 100
 #define WEIGHT_SERIES 50
 #define WEIGHT_NEW_SERIES 100
+
+#define SERIES_UPDATE_TS(series)    \
+if (*ts < series->start)            \
+{                                   \
+    series->start = *ts;            \
+}                                   \
+if (*ts > series->end)              \
+{                                   \
+    series->end = *ts;              \
+}
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
@@ -40,11 +51,13 @@ static void INSERT_local_free_cb(uv_async_t * handle);
 static int8_t INSERT_local_work(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_obj_t * qp_series_name);
+        qp_obj_t * qp_series_name,
+        siridb_pcache_t ** pcache);
 static int INSERT_local_work_test(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_series_name,
+        siridb_pcache_t ** pcache,
         siridb_forward_t ** forward);
 static void INSERT_local_task(uv_async_t * handle);
 static void INSERT_local_promise_cb(
@@ -79,7 +92,7 @@ static int INSERT_read_points(
         qp_obj_t * qp_obj,
         ssize_t * count);
 
-#define MAX_INSERT_MSG 236
+
 
 /*
  * Return an error message for an insert err.
@@ -301,6 +314,7 @@ int insert_init_backend_local(
     ilocal->flags = flags;
     ilocal->status = INSERT_LOCAL_CANCELLED;
     ilocal->forward = NULL;
+    ilocal->pcache = NULL;
 
     promise->pkg = sirinet_pkg_dup(pkg);
     if (promise->pkg == NULL)
@@ -451,6 +465,10 @@ static void INSERT_local_free_cb(uv_async_t * handle)
     ilocal->promise->cb(ilocal->promise, NULL, ilocal->status);
 
     ilocal->siridb->active_tasks--;
+    if (ilocal->pcache != NULL)
+    {
+        siridb_pcache_free(ilocal->pcache);
+    }
     free(ilocal);
     free(handle);
 }
@@ -461,12 +479,14 @@ static void INSERT_local_free_cb(uv_async_t * handle)
 static int8_t INSERT_local_work(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
-        qp_obj_t * qp_series_name)
+        qp_obj_t * qp_series_name,
+        siridb_pcache_t ** pcache)
 {
     qp_types_t tp;
     siridb_series_t ** series;
     qp_obj_t qp_series_ts;
     qp_obj_t qp_series_val;
+    uint64_t * ts;
     int n = INSERT_AT_ONCE;
 
     /*
@@ -512,10 +532,13 @@ static int8_t INSERT_local_work(
             n -= WEIGHT_NEW_SERIES;
         }
 
+        ts = (uint64_t *) &qp_series_ts.via.int64;
+        SERIES_UPDATE_TS((*series))
+
         if (siridb_series_add_point(
                 siridb,
                 *series,
-                (uint64_t *) &qp_series_ts.via.int64,
+                ts,
                 &qp_series_val.via))
         {
             return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -523,19 +546,31 @@ static int8_t INSERT_local_work(
 
         if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
         {
-            /*
-             * Written like a do-while loop because here we can implement
-             * some points caching
-             */
+            if (*pcache == NULL)
+            {
+                *pcache = siridb_pcache_new((*series)->tp);
+                if (*pcache == NULL)
+                {
+                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                }
+            }
+            else
+            {
+                (*pcache)->tp = (*series)->tp;
+                (*pcache)->len = 0;
+            }
+
             do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
 
-                if (siridb_series_add_point(
-                        siridb,
-                        *series,
-                        (uint64_t *) &qp_series_ts.via.int64,
+                ts = (uint64_t *) &qp_series_ts.via.int64;
+                SERIES_UPDATE_TS((*series))
+
+                if (siridb_pcache_add_point(
+                        *pcache,
+                        ts,
                         &qp_series_val.via))
                 {
                     return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -544,6 +579,14 @@ static int8_t INSERT_local_work(
                 n--;
             }
             while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2);
+
+            if (siridb_series_add_pcache(
+                    siridb,
+                    *series,
+                    *pcache))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
         }
 
 
@@ -563,11 +606,13 @@ static int INSERT_local_work_test(
         siridb_t * siridb,
         qp_unpacker_t * unpacker,
         qp_obj_t * qp_series_name,
+        siridb_pcache_t ** pcache,
         siridb_forward_t ** forward)
 {
     qp_types_t tp;
     siridb_series_t * series;
     uint16_t pool;
+    uint64_t * ts;
     const char * series_name;
     char * pt;
     qp_obj_t qp_series_ts;
@@ -661,10 +706,13 @@ static int INSERT_local_work_test(
         qp_next(unpacker, &qp_series_ts); // first ts
         qp_next(unpacker, &qp_series_val); // first val
 
+        ts = (uint64_t *) &qp_series_ts.via.int64;
+        SERIES_UPDATE_TS(series)
+
         if (siridb_series_add_point(
                 siridb,
                 series,
-                (uint64_t *) &qp_series_ts.via.int64,
+                ts,
                 &qp_series_val.via))
         {
             return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -672,16 +720,31 @@ static int INSERT_local_work_test(
 
         if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
         {
-            /* written like a do-while so we can implement some caching...*/
+            if (*pcache == NULL)
+            {
+                *pcache = siridb_pcache_new(series->tp);
+                if (*pcache == NULL)
+                {
+                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                }
+            }
+            else
+            {
+                (*pcache)->tp = series->tp;
+                (*pcache)->len = 0;
+            }
+
             do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
 
-                if (siridb_series_add_point(
-                        siridb,
-                        series,
-                        (uint64_t *) &qp_series_ts.via.int64,
+                ts = (uint64_t *) &qp_series_ts.via.int64;
+                SERIES_UPDATE_TS(series)
+
+                if (siridb_pcache_add_point(
+                        *pcache,
+                        ts,
                         &qp_series_val.via))
                 {
                     return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -690,6 +753,14 @@ static int INSERT_local_work_test(
                 n--;
             }
             while ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2);
+
+            if (siridb_series_add_pcache(
+                    siridb,
+                    series,
+                    *pcache))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
         }
 
         if (tp == QP_ARRAY_CLOSE)
@@ -758,6 +829,7 @@ static void INSERT_local_task(uv_async_t * handle)
                 siridb,
                 unpacker,
                 &ilocal->qp_series_name,
+                &ilocal->pcache,
                 &ilocal->forward))
         {
             ilocal->status = INSERT_LOCAL_ERROR;
@@ -769,7 +841,8 @@ static void INSERT_local_task(uv_async_t * handle)
         if (INSERT_local_work(
                 siridb,
                 unpacker,
-                &ilocal->qp_series_name))
+                &ilocal->qp_series_name,
+                &ilocal->pcache))
         {
             ilocal->status = INSERT_LOCAL_ERROR;
         }
@@ -871,6 +944,7 @@ static int INSERT_init_local(
     ilocal->flags = flags;
     ilocal->status = INSERT_LOCAL_CANCELLED;
     ilocal->forward = NULL;
+    ilocal->pcache = NULL;
 
     promise->pkg = pkg;
     promise->data = promises;

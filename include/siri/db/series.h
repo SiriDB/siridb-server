@@ -14,6 +14,7 @@
 #include <inttypes.h>
 #include <siri/db/db.h>
 #include <siri/db/points.h>
+#include <siri/db/pcache.h>
 #include <siri/db/buffer.h>
 #include <qpack/qpack.h>
 #include <cexpr/cexpr.h>
@@ -94,6 +95,11 @@ int siridb_series_add_point(
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
+
+int siridb_series_add_pcache(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_pcache_t * pcache);
 
 siridb_points_t * siridb_series_get_points(
         siridb_series_t * series,
