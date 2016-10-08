@@ -9,6 +9,7 @@ from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
 from .constants import BUILDTYPE
+from .constants import MAX_OPEN_FILES
 
 class Server:
     HOLD_TERM = False
@@ -46,6 +47,9 @@ class Server:
         config.set('siridb', 'optimize_interval', self.optimize_interval)
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
         config.set('siridb', 'default_db_path', self.dbpath)
+
+        config.add_section('sharding')
+        config.set('sharding', 'max_open_files', MAX_OPEN_FILES)
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
