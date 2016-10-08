@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <string.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/siri.h>
 #include <xpath/xpath.h>
 #include <siri/err.h>
@@ -35,8 +36,9 @@
     {                                                                       \
     case IDX_TP_NUM32: get_points_cb = siridb_shard_get_points_num32; break;\
     case IDX_TP_NUM64: get_points_cb = siridb_shard_get_points_num64; break;\
-    case IDX_TP_LOG32:                                                      \
-    case IDX_TP_LOG64: assert (0); break;                                   \
+    case IDX_TP_LOG32: get_points_cb = siridb_shard_get_points_log32; break;\
+    case IDX_TP_LOG64: get_points_cb = siridb_shard_get_points_log64; break;\
+    default: exit(EXIT_FAILURE);                                            \
     }
 
 
@@ -112,10 +114,13 @@ int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  *
- * Warning:
- *      do not call this function after a siri_err has occurred since this
+ * Warnings:
+ * -    Do not call this function after a siri_err has occurred since this
  *      would risk a stack overflow in case this series has caused the siri_err
  *      and the buffer length is not reset.
+ *
+ * -    This method will update the series->length but updating the time-stamps
+ *      (series->start and series->end) should be done outside this function.
  */
 int siridb_series_add_point(
         siridb_t * siridb,
@@ -129,14 +134,7 @@ int siridb_series_add_point(
     int rc = 0;
 
     series->length++;
-    if (*ts < series->start)
-    {
-        series->start = *ts;
-    }
-    if (*ts > series->end)
-    {
-        series->end = *ts;
-    }
+
     if (series->buffer != NULL)
     {
         /* add point in memory
@@ -146,7 +144,10 @@ int siridb_series_add_point(
 
         if (series->buffer->points->len == siridb->buffer_len)
         {
-            if (siridb_buffer_to_shards(siridb, series))
+            if (siridb_shards_add_points(
+                    siridb,
+                    series,
+                    series->buffer->points))
             {
                 rc = -1;  /* signal is raised */
             }
@@ -173,6 +174,88 @@ int siridb_series_add_point(
     return rc;
 }
 
+/*
+ * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
+ *
+ * Warnings:
+ * -    Do not call this function after a siri_err has occurred since this
+ *      would risk a stack overflow in case this series has caused the siri_err
+ *      and the buffer length is not reset.
+ *
+ * -    This method will update the series->length but updating the time-stamps
+ *      (series->start and series->end) should be done outside this function.
+ */
+int siridb_series_add_pcache(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_pcache_t * pcache)
+{
+    if (pcache->len > siridb->buffer_len)
+    {
+        series->length += pcache->len;
+
+        if (siridb_shards_add_points(
+                siridb,
+                series,
+                (siridb_points_t *) pcache))
+        {
+            return -1;  /* signal is raised */
+        }
+    }
+    else if (pcache->len + series->buffer->points->len > siridb->buffer_len)
+    {
+        series->length += pcache->len;
+
+        siridb_points_t * points = series->buffer->points;
+        size_t i = points->len;
+        siridb_point_t * point;
+
+        while (i--)
+        {
+            point = points->data + i;
+            if (siridb_pcache_add_point(pcache, &point->ts, &point->val))
+            {
+                return -1;  /* signal is raised */
+            }
+        }
+
+        if (siridb_shards_add_points(
+                siridb,
+                series,
+                (siridb_points_t *) pcache))
+        {
+            return -1;  /* signal is raised */
+        }
+        else
+        {
+            series->buffer->points->len = 0;
+            if (siridb_buffer_write_len(siridb, series))
+            {
+                ERR_FILE
+                return -1;
+            }
+        }
+    }
+    else
+    {
+        siridb_point_t * point;
+
+        for (size_t i = 0; i < pcache->len; i++)
+        {
+            point = pcache->data + i;
+
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    &point->ts,
+                    &point->val))
+            {
+                return -1;  /* signal is raised */
+            }
+        }
+    }
+    return 0;
+}
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -548,15 +631,27 @@ void siridb_series_remove_shard(
  */
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
 {
-    SERIES_update_start(series);
-    SERIES_update_end(series);
-
-    if (!series->length)
+    if (series->buffer == NULL)
     {
-        log_warning("Drop '%s' (%lu) since no data is found for this series",
+        log_error(
+                "Drop '%s' (%lu) since nu buffer is found for this series",
                 series->name,
                 series->id);
         siridb_series_drop(siridb, series);
+    }
+    else
+    {
+        SERIES_update_start(series);
+        SERIES_update_end(series);
+
+        if (!series->length)
+        {
+            log_warning(
+                    "Drop '%s' (%lu) since no data is found for this series",
+                    series->name,
+                    series->id);
+            siridb_series_drop(siridb, series);
+        }
     }
 }
 
@@ -849,7 +944,7 @@ int siridb_series_optimize_shard(
          * Therefore we must sort the series index part containing data
          * for this shard.
          */
-        SERIES_idx_sort((idx_t *) series->idx, start, end);
+        SERIES_idx_sort((idx_t *) series->idx, start, end - 1);
 
         /*
          * We need to set 'i' to the correct value since 'i' has possible

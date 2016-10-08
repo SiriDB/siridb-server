@@ -19,7 +19,6 @@
 
 typedef struct siridb_point_s siridb_point_t;
 typedef struct siridb_points_s siridb_points_t;
-typedef struct siridb_aggr_s siridb_aggr_t;
 
 typedef struct siridb_aggr_s
 {

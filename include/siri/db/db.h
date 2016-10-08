@@ -70,6 +70,7 @@ typedef struct siridb_groups_s siridb_groups_t;
 typedef struct siridb_s
 {
     uint16_t ref;
+    uint16_t active_tasks;
     uuid_t uuid;
     iso8601_tz_t tz;
     uint16_t shard_mask_num;

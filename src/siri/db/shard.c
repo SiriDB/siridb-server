@@ -709,6 +709,32 @@ int siridb_shard_get_points_num64(
 }
 
 /*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_points_log32(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    return -1;  /* dummy function */
+}
+
+/*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_points_log64(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    return -1;  /* dummy function */
+}
+
+/*
  * This function will be called from the 'optimize' thread.
  *
  * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
@@ -816,9 +842,9 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
             uv_mutex_unlock(&siridb->series_mutex);
 
-            /* make this sleep depending on the active handles */
-            usleep( siri.loop->active_handles *
-                    siri.loop->active_handles * 50);
+            /* make this sleep depending on the active_tasks
+             * (50ms per active task) */
+            usleep( 50000 * siridb->active_tasks + 100 );
         }
 
         siridb_series_decref(series);

@@ -8,11 +8,14 @@ import time
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
+from .constants import BUILDTYPE
+from .constants import MAX_OPEN_FILES
 
 class Server:
     HOLD_TERM = False
     GEOMETRY = '140x60'
     MEM_CHECK = False
+    BUILDTYPE = BUILDTYPE
 
     def __init__(self,
                  n,
@@ -45,6 +48,9 @@ class Server:
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
         config.set('siridb', 'default_db_path', self.dbpath)
 
+        config.add_section('sharding')
+        config.set('sharding', 'max_open_files', MAX_OPEN_FILES)
+
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
 
@@ -57,7 +63,7 @@ class Server:
         # print(subprocess.check_output(['pgrep', 'memcheck-amd64-']))
         try:
 
-            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridbc']).split()))
+            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridb-server']).split()))
         except subprocess.CalledProcessError:
             ret = set()
         return ret
@@ -67,7 +73,7 @@ class Server:
         rc = os.system(
             'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
             .format(VALGRIND if self.MEM_CHECK else '',
-                    SIRIDBC,
+                    SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
                     self.cfgfile,
                     self.name,
                     self.GEOMETRY,

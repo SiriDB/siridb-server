@@ -19,6 +19,7 @@
 #include <siri/db/variance.h>
 #include <limits.h>
 #include <strextra/strextra.h>
+#include <stddef.h>
 
 #define AGGR_NEW                                    \
 if ((aggr = AGGREGATE_new(gid)) == NULL)            \
@@ -744,7 +745,7 @@ static siridb_points_t * AGGREGATE_group_by(
 
     group.tp = source->tp;
 
-    max_sz = ((source->data + source->len - 1)->ts - source->data->ts)
+    max_sz = ((source->data + source->len - 1)->ts - source->data->ts - 1)
             / aggr->group_by + 2;
 
     if (max_sz > source->len)
@@ -838,6 +839,10 @@ static siridb_points_t * AGGREGATE_group_by(
 #ifdef DEBUG
     else
     {
+        if (points->len != max_sz)
+        {
+            LOGC("Point: %lu, Maxsz: %lu", points->len, max_sz);
+        }
         /* if not smaller it must be equal */
         assert (points->len == max_sz);
     }

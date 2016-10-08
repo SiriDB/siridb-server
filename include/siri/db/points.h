@@ -22,7 +22,6 @@ typedef enum
     TP_STRING
 } points_tp;
 
-
 typedef struct siridb_point_s
 {
     uint64_t ts;

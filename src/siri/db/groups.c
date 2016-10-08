@@ -28,6 +28,7 @@
 #define _GNU_SOURCE
 #include <siri/db/groups.h>
 #include <siri/db/group.h>
+#include <siri/db/series.h>
 #include <siri/err.h>
 #include <stdlib.h>
 #include <slist/slist.h>
@@ -122,24 +123,23 @@ void siridb_groups_start(siridb_groups_t * groups)
 /*
  * Returns 0 if successful or -1 in case of an error.
  */
-int siridb_groups_add_series(
+void siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series)
 {
-    int rc = 0;
-
     uv_mutex_lock(&groups->mutex);
 
-    rc = slist_append_safe(&groups->nseries, series);
-
-    uv_mutex_unlock(&groups->mutex);
-
-    if (!rc)
+    if (slist_append_safe(&groups->nseries, series) == 0)
     {
         siridb_series_incref(series);
     }
+    else
+    {
+        log_critical("Error while initializing series '%s' for groups",
+                series->name);
+    }
 
-    return rc;
+    uv_mutex_unlock(&groups->mutex);
 }
 
 /*

@@ -40,7 +40,7 @@
 #define REINDEX_SLEEP 100           // 100 milliseconds
 #define REINDEX_RETRY 5000          // 5 seconds
 #define REINDEX_INITWAIT 20000      // 20 seconds
-#define REINDEX_TIMEOUT 60000       // 1 minute
+#define REINDEX_TIMEOUT 300000      // 5 minutes
 
 #define NEXT_SERIES_ERR -1
 #define NEXT_SERIES_SET 0

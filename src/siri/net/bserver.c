@@ -25,6 +25,7 @@
 #include <siri/optimize.h>
 #include <siri/db/replicate.h>
 #include <siri/db/groups.h>
+#include <siri/db/server.h>
 #include <siri/siri.h>
 
 #define DEFAULT_BACKLOG 128
@@ -449,7 +450,6 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
 
     sirinet_pkg_t * package;
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
-
     if ((flags & INSERT_FLAG_POOL) && siridb->replica != NULL)
     {
 #ifdef DEBUG
@@ -489,22 +489,21 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
             free(repl_pkg);
         }
     }
+
     if (!siri_err)
     {
-        qp_unpacker_t unpacker;
-        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
-
         /*
          * We do not check here for backup mode since we want back-end inserts
          * to finish. We rather prevent servers from starting new insert tasks.
          */
-        package = ( !(siridb->server->flags & SERVER_FLAG_RUNNING) ||
-                    siridb_insert_local(siridb, &unpacker, flags)) ?
-                sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL) :
-                sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_INSERT, NULL);
-        if (package != NULL)
+        if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
+                insert_init_backend_local(siridb, client, pkg, flags))
         {
-            sirinet_pkg_send(client, package);
+            package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_INSERT, NULL);
+            if (package != NULL)
+            {
+                sirinet_pkg_send(client, package);
+            }
         }
     }
 }

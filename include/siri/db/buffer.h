@@ -45,7 +45,3 @@ int siridb_buffer_write_point(
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
-
-int siridb_buffer_to_shards(
-        siridb_t * siridb,
-        siridb_series_t * series);

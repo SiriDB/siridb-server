@@ -23,7 +23,7 @@
 #include <stddef.h>
 
 #define REPLICATE_SLEEP 10          // 10 milliseconds
-#define REPLICATE_TIMEOUT 60000     // 1 minute
+#define REPLICATE_TIMEOUT 300000    // 5 minutes
 
 static void REPLICATE_work(uv_timer_t * handle);
 static void REPLICATE_on_repl_response(
