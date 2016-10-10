@@ -950,7 +950,7 @@ int siridb_series_optimize_shard(
          * We need to set 'i' to the correct value since 'i' has possible
          * not walked over all 'new indexes'.
          *
-         * (in case other is 0, i is equal to the value set below)
+         * (in case new_idx is 0, i is already equal to the value set below)
          */
         i = start + new_idx + num_chunks;
     }
