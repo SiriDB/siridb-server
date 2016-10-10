@@ -9,14 +9,14 @@
  *  - initial version, 09-03-2016
  *
  */
+#include <assert.h>
 #include <logger/logger.h>
+#include <siri/err.h>
+#include <siri/net/protocol.h>
+#include <siri/net/socket.h>
+#include <siri/siri.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include <siri/net/socket.h>
-#include <siri/net/protocol.h>
-#include <siri/siri.h>
-#include <siri/err.h>
 
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 

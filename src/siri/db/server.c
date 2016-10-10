@@ -9,19 +9,19 @@
  *  - initial version, 17-03-2016
  *
  */
-#include <siri/db/server.h>
-#include <logger/logger.h>
-#include <siri/db/query.h>
-#include <siri/db/servers.h>
-#include <siri/net/promise.h>
-#include <siri/siri.h>
 #include <assert.h>
-#include <siri/net/socket.h>
-#include <string.h>
-#include <siri/version.h>
+#include <logger/logger.h>
 #include <procinfo/procinfo.h>
+#include <siri/db/query.h>
+#include <siri/db/server.h>
+#include <siri/db/servers.h>
 #include <siri/err.h>
+#include <siri/net/promise.h>
+#include <siri/net/socket.h>
+#include <siri/siri.h>
+#include <siri/version.h>
 #include <strextra/strextra.h>
+#include <string.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1

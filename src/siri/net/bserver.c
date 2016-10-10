@@ -10,23 +10,22 @@
  *  - initial version, 18-06-2016
  *
  */
-
-#include <siri/net/bserver.h>
-#include <stdlib.h>
-#include <logger/logger.h>
-#include <siri/net/pkg.h>
-#include <siri/net/socket.h>
-#include <siri/net/protocol.h>
-#include <siri/db/auth.h>
 #include <assert.h>
-#include <siri/db/query.h>
-#include <siri/db/insert.h>
-#include <siri/db/servers.h>
-#include <siri/optimize.h>
-#include <siri/db/replicate.h>
+#include <logger/logger.h>
+#include <siri/db/auth.h>
 #include <siri/db/groups.h>
+#include <siri/db/insert.h>
+#include <siri/db/query.h>
+#include <siri/db/replicate.h>
 #include <siri/db/server.h>
+#include <siri/db/servers.h>
+#include <siri/net/bserver.h>
+#include <siri/net/pkg.h>
+#include <siri/net/protocol.h>
+#include <siri/net/socket.h>
+#include <siri/optimize.h>
 #include <siri/siri.h>
+#include <stdlib.h>
 
 #define DEFAULT_BACKLOG 128
 

@@ -9,11 +9,12 @@
  *  - initial version, 09-03-2016
  *
  */
-#include <siri/db/time.h>
-#include <xmath/xmath.h>
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/db/time.h>
 #include <siri/err.h>
+#include <stddef.h>
+#include <xmath/xmath.h>
 
 const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 

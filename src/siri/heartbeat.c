@@ -13,9 +13,9 @@
  *  - initial version, 17-06-2016
  *
  */
-#include <siri/heartbeat.h>
 #include <logger/logger.h>
 #include <siri/db/server.h>
+#include <siri/heartbeat.h>
 #include <uv.h>
 
 #ifdef DEBUG

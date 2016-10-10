@@ -9,10 +9,10 @@
  *  - initial version, 08-04-2016
  *
  */
-#include <siri/file/handler.h>
-#include <stdlib.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/file/handler.h>
+#include <stdlib.h>
 
 siri_fh_t * siri_fh_new(uint16_t size)
 {

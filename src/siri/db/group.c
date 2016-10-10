@@ -9,15 +9,15 @@
  *  - initial version, 16-08-2016
  *
  */
-#include <siri/db/group.h>
-#include <siri/err.h>
-#include <stdlib.h>
+#include <assert.h>
 #include <siri/db/db.h>
+#include <siri/db/group.h>
 #include <siri/db/re.h>
 #include <siri/db/series.h>
+#include <siri/err.h>
 #include <siri/grammar/grammar.h>
-#include <assert.h>
 #include <slist/slist.h>
+#include <stdlib.h>
 #include <strextra/strextra.h>
 
 #define SIRIDB_MIN_GROUP_LEN 1

@@ -10,9 +10,9 @@
  *
  */
 
+#include <assert.h>
 #include <siri/db/pcache.h>
 #include <siri/err.h>
-#include <assert.h>
 #include <stddef.h>
 
 #define PCACHE_DEFAULT_SIZE 64

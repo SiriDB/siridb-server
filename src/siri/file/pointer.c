@@ -9,11 +9,10 @@
  *  - initial version, 08-04-2016
  *
  */
-
-#include <siri/file/pointer.h>
-#include <stdlib.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/file/pointer.h>
+#include <stdlib.h>
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.

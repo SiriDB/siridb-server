@@ -10,17 +10,17 @@
  *
  */
 #define _GNU_SOURCE
+#include <assert.h>
+#include <ctype.h>
+#include <limits.h>
+#include <logger/logger.h>
 #include <siri/db/fifo.h>
+#include <siri/err.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <uuid/uuid.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <limits.h>
-#include <stdio.h>
-#include <logger/logger.h>
-#include <ctype.h>
-#include <assert.h>
-#include <siri/err.h>
+#include <uuid/uuid.h>
 
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args);
 static int FIFO_init(siridb_fifo_t * fifo);

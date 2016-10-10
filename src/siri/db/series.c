@@ -9,19 +9,19 @@
  *  - initial version, 29-03-2016
  *
  */
-#include <siri/db/series.h>
-#include <stdlib.h>
-#include <logger/logger.h>
-#include <siri/db/db.h>
-#include <siri/db/buffer.h>
-#include <stdio.h>
 #include <assert.h>
-#include <string.h>
+#include <logger/logger.h>
+#include <siri/db/buffer.h>
+#include <siri/db/db.h>
+#include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
-#include <siri/siri.h>
-#include <xpath/xpath.h>
 #include <siri/err.h>
+#include <siri/siri.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"

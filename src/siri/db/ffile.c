@@ -11,12 +11,12 @@
  *
  */
 #define _GNU_SOURCE
-#include <siri/db/ffile.h>
-#include <stdlib.h>
-#include <logger/logger.h>
 #include <assert.h>
-#include <siri/err.h>
 #include <ctype.h>
+#include <logger/logger.h>
+#include <siri/db/ffile.h>
+#include <siri/err.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 

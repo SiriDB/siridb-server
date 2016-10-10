@@ -10,11 +10,10 @@
  *  - initial version, 23-06-2016
  *
  */
-
-#include <siri/net/promise.h>
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/net/promise.h>
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status)
 {

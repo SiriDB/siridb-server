@@ -9,7 +9,6 @@
  *  - initial version, 01-08-2016
  *
  */
-
 #include <siri/net/protocol.h>
 #include <stdio.h>
 

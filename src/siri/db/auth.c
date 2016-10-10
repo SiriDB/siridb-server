@@ -9,18 +9,18 @@
  *  - initial version, 10-03-2016
  *
  */
-#include <siri/db/auth.h>
+#include <assert.h>
 #include <logger/logger.h>
+#include <siri/db/auth.h>
 #include <siri/db/db.h>
-#include <siri/siri.h>
-#include <siri/net/protocol.h>
-#include <siri/db/users.h>
 #include <siri/db/servers.h>
+#include <siri/db/users.h>
+#include <siri/net/protocol.h>
 #include <siri/net/socket.h>
+#include <siri/siri.h>
+#include <siri/version.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/version.h>
-#include <assert.h>
 
 cproto_server_t siridb_auth_user_request(
         uv_stream_t * client,

@@ -9,13 +9,13 @@
  *  - initial version, 31-07-2016
  *
  */
-#include <siri/db/forward.h>
-#include <stddef.h>
-#include <siri/err.h>
 #include <qpack/qpack.h>
+#include <siri/async.h>
+#include <siri/db/forward.h>
+#include <siri/err.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
-#include <siri/async.h>
+#include <stddef.h>
 
 static void FORWARD_on_response(slist_t * promises, uv_async_t * handle);
 static void FORWARD_free(uv_handle_t * handle);

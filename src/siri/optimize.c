@@ -17,13 +17,13 @@
  *  - initial version, 09-05-2016
  *
  */
-#include <siri/optimize.h>
-#include <siri/siri.h>
+#include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/shard.h>
-#include <unistd.h>
+#include <siri/optimize.h>
+#include <siri/siri.h>
 #include <slist/slist.h>
-#include <assert.h>
+#include <unistd.h>
 
 static siri_optimize_t optimize = {
         .pause=0,

@@ -10,17 +10,17 @@
  *
  */
 #define _GNU_SOURCE
-#include <siri/db/user.h>
+#include <assert.h>
 #include <crypt.h>
-#include <string.h>
-#include <siri/grammar/grammar.h>
-#include <strextra/strextra.h>
+#include <logger/logger.h>
 #include <siri/db/access.h>
 #include <siri/db/db.h>
+#include <siri/db/user.h>
 #include <siri/db/users.h>
-#include <assert.h>
-#include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/grammar/grammar.h>
+#include <strextra/strextra.h>
+#include <string.h>
 
 #define SIRIDB_MIN_PASSWORD_LEN 4
 #define SIRIDB_MAX_PASSWORD_LEN 128

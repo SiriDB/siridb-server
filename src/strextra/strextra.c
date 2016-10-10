@@ -9,14 +9,14 @@
  *  - initial version, 19-03-2016
  *
  */
-#include <string.h>
 #include <ctype.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <inttypes.h>
-#include <math.h>
 #include <logger/logger.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void strx_lower_case(char * sptr)
 {

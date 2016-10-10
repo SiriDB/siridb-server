@@ -11,21 +11,21 @@
  *
  */
 #define _GNU_SOURCE
+#include <assert.h>
+#include <ctree/ctree.h>
+#include <imap/imap.h>
+#include <limits.h>
+#include <logger/logger.h>
+#include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
-#include <imap/imap.h>
-#include <siri/db/series.h>
-#include <logger/logger.h>
-#include <stdio.h>
-#include <siri/siri.h>
-#include <ctree/ctree.h>
-#include <string.h>
-#include <assert.h>
-#include <limits.h>
-#include <unistd.h>
-#include <slist/slist.h>
-#include <siri/file/pointer.h>
 #include <siri/err.h>
+#include <siri/file/pointer.h>
+#include <siri/siri.h>
+#include <slist/slist.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \

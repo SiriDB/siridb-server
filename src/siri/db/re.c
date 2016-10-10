@@ -9,10 +9,9 @@
  *  - initial version, 04-08-2016
  *
  */
-
-#include <siri/db/re.h>
-#include <siri/db/db.h>
 #include <assert.h>
+#include <siri/db/db.h>
+#include <siri/db/re.h>
 
 /*
  * Compiles both a 'pcre' regular expression and 'pcre_extra' optimization if

@@ -9,27 +9,27 @@
  *  - initial version, 10-03-2016
  *
  */
-#include <siri/db/db.h>
-#include <logger/logger.h>
 #include <assert.h>
+#include <cfgparser/cfgparser.h>
+#include <lock/lock.h>
+#include <lock/lock.h>
+#include <logger/logger.h>
+#include <math.h>
+#include <procinfo/procinfo.h>
+#include <siri/db/db.h>
+#include <siri/db/series.h>
+#include <siri/db/servers.h>
+#include <siri/db/shard.h>
+#include <siri/db/shards.h>
+#include <siri/db/time.h>
+#include <siri/db/users.h>
+#include <siri/err.h>
+#include <siri/siri.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/db/time.h>
-#include <siri/db/users.h>
 #include <uuid/uuid.h>
-#include <siri/db/series.h>
-#include <siri/db/shard.h>
-#include <siri/db/servers.h>
-#include <math.h>
-#include <procinfo/procinfo.h>
-#include <lock/lock.h>
-#include <siri/db/shards.h>
-#include <cfgparser/cfgparser.h>
-#include <siri/siri.h>
 #include <xpath/xpath.h>
-#include <lock/lock.h>
-#include <siri/err.h>
 
 #define SIRIDB_SHEMA 1
 

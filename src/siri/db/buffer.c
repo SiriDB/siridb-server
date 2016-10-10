@@ -9,15 +9,15 @@
  *  - initial version, 01-04-2016
  *
  */
+#include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
 #include <siri/db/shard.h>
-#include <stdio.h>
-#include <logger/logger.h>
-#include <string.h>
 #include <siri/siri.h>
-#include <xpath/xpath.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 

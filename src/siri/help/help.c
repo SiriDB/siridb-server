@@ -9,14 +9,12 @@
  *  - initial version, 23-09-2016
  *
  */
-
-
-#include <siri/help/help.h>
 #include <limits.h>
-#include <xpath/xpath.h>
 #include <logger/logger.h>
 #include <siri/db/db.h>
+#include <siri/help/help.h>
 #include <stdio.h>
+#include <xpath/xpath.h>
 
 static char * siri_help_content[HELP_COUNT] = {0};
 

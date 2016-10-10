@@ -9,28 +9,28 @@
  *  - initial version, 10-03-2016
  *
  */
-#include <siri/db/query.h>
-#include <logger/logger.h>
-#include <siri/siri.h>
-#include <sys/time.h>
-#include <siri/parser/listener.h>
-#include <siri/db/time.h>
-#include <string.h>
-#include <siri/net/clserver.h>
-#include <cleri/olist.h>
-#include <motd/motd.h>
 #include <assert.h>
-#include <strextra/strextra.h>
-#include <iso8601/iso8601.h>
+#include <cleri/olist.h>
 #include <expr/expr.h>
+#include <iso8601/iso8601.h>
+#include <logger/logger.h>
+#include <motd/motd.h>
+#include <siri/async.h>
 #include <siri/db/nodes.h>
+#include <siri/db/query.h>
+#include <siri/db/replicate.h>
+#include <siri/db/servers.h>
+#include <siri/db/time.h>
+#include <siri/db/walker.h>
+#include <siri/net/clserver.h>
 #include <siri/net/pkg.h>
 #include <siri/net/socket.h>
-#include <siri/db/walker.h>
-#include <siri/db/servers.h>
-#include <siri/async.h>
-#include <siri/db/replicate.h>
+#include <siri/parser/listener.h>
 #include <siri/parser/queries.h>
+#include <siri/siri.h>
+#include <strextra/strextra.h>
+#include <string.h>
+#include <sys/time.h>
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192

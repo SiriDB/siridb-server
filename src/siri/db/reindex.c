@@ -23,18 +23,19 @@
  *  - Drop server is not allowed while re-indexing.
  */
 #define _GNU_SOURCE
-#include <siri/db/reindex.h>
-#include <stddef.h>
-#include <siri/err.h>
-#include <logger/logger.h>
-#include <stdio.h>
 #include <assert.h>
-#include <unistd.h>
-#include <siri/optimize.h>
-#include <siri/db/db.h>
-#include <siri/db/servers.h>
+#include <logger/logger.h>
 #include <qpack/qpack.h>
+#include <siri/db/db.h>
+#include <siri/db/reindex.h>
+#include <siri/db/server.h>
+#include <siri/db/servers.h>
+#include <siri/err.h>
 #include <siri/net/protocol.h>
+#include <siri/optimize.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #define REINDEX_FN ".reindex"
 #define REINDEX_SLEEP 100           // 100 milliseconds

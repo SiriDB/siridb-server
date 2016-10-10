@@ -9,15 +9,15 @@
  *  - initial version, 03-05-2016
  *
  */
+#include <assert.h>
+#include <logger/logger.h>
+#include <siri/db/aggregate.h>
+#include <siri/db/query.h>
+#include <siri/db/shard.h>
+#include <siri/err.h>
 #include <siri/parser/queries.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <siri/db/query.h>
-#include <logger/logger.h>
-#include <siri/db/aggregate.h>
-#include <siri/db/shard.h>
-#include <assert.h>
-#include <siri/err.h>
 
 #define DEFAULT_LIST_LIMIT 1000
 
