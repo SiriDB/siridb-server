@@ -36,21 +36,19 @@ logger_t Logger = {
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
     {"debug", "info", "warning", "error", "critical"};
 
+const char * LOGGER_COLOR_MAP[LOGGER_NUM_LEVELS] =
+    {KCYN, KGRN, KYEL, KRED, KMAG};
+
 #define LOGGER_LOG_STUFF(LEVEL)                                 \
 {                                                               \
     time_t t = time(NULL);                                      \
     struct tm tm = *localtime(&t);                              \
     if (Logger.flags & LOGGER_FLAG_COLORED)                     \
     {                                                           \
-        char * color =                                          \
-                (LEVEL <= 10) ? KCYN :                          \
-                (LEVEL <= 20) ? KGRN :                          \
-                (LEVEL <= 30) ? KYEL :                          \
-                (LEVEL <= 40) ? KRED : KMAG;                    \
         fprintf(Logger.ostream,                                 \
             "%s[%c %d-%0*d-%0*d %0*d:%0*d:%0*d]" KNRM " ",      \
-            color,                                              \
-            LOGGER_CHR_MAP[(LEVEL - 1) / 10],                   \
+            LOGGER_COLOR_MAP[LEVEL],                            \
+            LOGGER_CHR_MAP[LEVEL],                              \
             tm.tm_year + 1900,                                  \
             2, tm.tm_mon + 1,                                   \
             2, tm.tm_mday,                                      \
@@ -62,7 +60,7 @@ const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
     {                                                           \
         fprintf(Logger.ostream,                                 \
         "[%c %d-%0*d-%0*d %0*d:%0*d:%0*d] ",                    \
-            LOGGER_CHR_MAP[(LEVEL - 1) / 10],                   \
+            LOGGER_CHR_MAP[LEVEL],                              \
             tm.tm_year + 1900,                                  \
             2, tm.tm_mon + 1,                                   \
             2, tm.tm_mday,                                      \
@@ -95,7 +93,7 @@ void logger_init(struct _IO_FILE * ostream, int log_level)
 void logger_set_level(int log_level)
 {
     Logger.level = log_level;
-    Logger.level_name = logger_level_name(log_level);
+    Logger.level_name = LOGGER_LEVEL_NAMES[log_level];
 }
 
 /*
@@ -103,7 +101,7 @@ void logger_set_level(int log_level)
  */
 const char * logger_level_name(int log_level)
 {
-    return LOGGER_LEVEL_NAMES[(log_level - 1) / 10];
+    return LOGGER_LEVEL_NAMES[log_level];
 }
 
 void log__debug(char * fmt, ...)

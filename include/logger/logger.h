@@ -11,11 +11,11 @@
  */
 #pragma once
 
-#define LOGGER_DEBUG 10
-#define LOGGER_INFO 20
-#define LOGGER_WARNING 30
-#define LOGGER_ERROR 40
-#define LOGGER_CRITICAL 50
+#define LOGGER_DEBUG 0
+#define LOGGER_INFO 1
+#define LOGGER_WARNING 2
+#define LOGGER_ERROR 3
+#define LOGGER_CRITICAL 4
 
 #define LOGGER_NUM_LEVELS 5
 

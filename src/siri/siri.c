@@ -97,14 +97,14 @@ void siri_setup_logger(void)
         strx_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
-            logger_init(stdout, (n + 1) * 10);
+            logger_init(stdout, n);
             return;
         }
     }
     /* We should not get here since args should always
      * contain a valid log level
      */
-    logger_init(stdout, 10);
+    logger_init(stdout, 0);
 }
 
 
