@@ -271,6 +271,7 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
         if (setrlimit(RLIMIT_NOFILE, &rlim))
         {
             log_critical("Could not set the soft-limit to %d", min_limit);
+            exit(EXIT_FAILURE);
         }
     }
 }

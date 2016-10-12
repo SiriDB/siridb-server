@@ -580,58 +580,80 @@ int64_t iso8601_parse_date(const char * str, iso8601_tz_t tz)
     /* read year */
     TZ_DIGITS
     if (len != 4)
+    {
         return -1;
+    }
 
     TZ_RESULT("%Y", 0)
     if (*pt != '-')
+    {
         return -1;
+    }
     pt++;
 
     /* read month */
     TZ_DIGITS
     if (!len || len > 2)
+    {
         return -1;
+    }
 
     TZ_RESULT("%Y-%m", 0)
     if (*pt != '-')
+    {
         return -1;
+    }
     pt++;
 
     /* read day */
     TZ_DIGITS
     if (!len || len > 2)
+    {
         return -1;
+    }
 
     TZ_RESULT("%Y-%m-%d", 1)
     if (*pt != ' ' && (use_t = 1) && *pt != 'T')
+    {
         return -1;
+    }
     pt++;
 
     /* read hours */
     for (len = 0; *pt && isdigit(*pt); pt++, len++);
 
     if (!len || len > 2)
+    {
         return -1;
+    }
 
     TZ_RESULT((use_t) ? "%Y-%m-%dT%H" : "%Y-%m-%d %H", 1)
     if (*pt != ':')
+    {
         return -1;
+    }
     pt++;
 
     /* read minutes */
     TZ_DIGITS
     if (!len || len > 2)
+    {
         return -1;
+    }
 
     TZ_RESULT((use_t) ? "%Y-%m-%dT%H:%M" : "%Y-%m-%d %H:%M", 1)
     if (*pt != ':')
+    {
         return -1;
+    }
     pt++;
 
     /* read seconds */
     TZ_DIGITS
     if (!len || len > 2)
+    {
         return -1;
+    }
 
     TZ_RESULT((use_t) ? "%Y-%m-%dT%H:%M:%S" : "%Y-%m-%d %H:%M:%S", 1)
 
@@ -659,17 +681,23 @@ static int64_t get_ts(
 
     /* month day should default to 1, not 0 */
     if (!tm.tm_mday)
+    {
         tm.tm_mday = 1;
+    }
 
     if (strptime(str, fmt, &tm) == NULL)
+    {
         /* parsing date string failed */
         return -1;
+    }
 
     ts = mktime(&tm);
 
     /* in case of UTO or a custom offset we can simple return */
     if (tz == TZ_UTC || offset)
+    {
         return ts + offset;
+    }
 
     /* set custom timezone */
     putenv((char *) tz_common[tz]);
