@@ -61,12 +61,30 @@ void siridb_median_find_n(
         int64_t pivot, v;
         int64_t arr_l[points->len - 1];
         int64_t arr_r[points->len - 1];
+
+        int64_t * equal = arr_l;
+        uint64_t * equal_size = &size_l;
+
         pivot = points->data->val.int64;
 
         for (i = 1; i < points->len; i++)
         {
             v = points->data[i].val.int64;
-            if (v > pivot)
+            if (v == pivot)
+            {
+                equal[(*equal_size)++] = v;
+                if (equal == arr_l)
+                {
+                    equal = arr_r;
+                    equal_size = &size_r;
+                }
+                else
+                {
+                    equal = arr_l;
+                    equal_size = &size_l;
+                }
+            }
+            else if (v > pivot)
             {
                 arr_r[size_r] = v;
                 size_r++;
@@ -86,11 +104,29 @@ void siridb_median_find_n(
         double pivot, v;
         double arr_l[points->len - 1];
         double arr_r[points->len - 1];
+
+        double * equal = arr_l;
+        uint64_t * equal_size = &size_l;
+
         pivot = points->data->val.real;
         for (i = 1; i < points->len; i++)
         {
             v = points->data[i].val.real;
-            if (v > pivot)
+            if (v == pivot)
+            {
+                equal[(*equal_size)++] = v;
+                if (equal == arr_l)
+                {
+                    equal = arr_r;
+                    equal_size = &size_r;
+                }
+                else
+                {
+                    equal = arr_l;
+                    equal_size = &size_l;
+                }
+            }
+            else if (v > pivot)
             {
                 arr_r[size_r] = v;
                 size_r++;
@@ -107,6 +143,7 @@ void siridb_median_find_n(
                 find_n_double(arr_r, size_r, arr_l, n - size_l - 1);
     }
 }
+
 
 void siridb_median_real(
         struct siridb_point_s * point,
@@ -126,20 +163,36 @@ void siridb_median_real(
         int64_t pivot, v, a, b;
         int64_t arr_l[points->len - 1];
         int64_t arr_r[points->len - 1];
+
+        int64_t * equal = arr_l;
+        uint64_t * equal_size = &size_l;
+
         a = b = 0;
         pivot = points->data->val.int64;
         for (i = 1; i < points->len; i++)
         {
             v = points->data[i].val.int64;
-            if (v > pivot)
+            if (v == pivot)
             {
-                arr_r[size_r] = v;
-                size_r++;
+                equal[(*equal_size)++] = v;
+                if (equal == arr_l)
+                {
+                    equal = arr_r;
+                    equal_size = &size_r;
+                }
+                else
+                {
+                    equal = arr_l;
+                    equal_size = &size_l;
+                }
+            }
+            else if (v > pivot)
+            {
+                arr_r[size_r++] = v;
             }
             else
             {
-                arr_l[size_l] = v;
-                size_l++;
+                arr_l[size_l++] = v;
             }
         }
 
@@ -165,12 +218,30 @@ void siridb_median_real(
         double pivot, v, a, b;
         double arr_l[points->len - 1];
         double arr_r[points->len - 1];
+
+        double * equal = arr_l;
+        uint64_t * equal_size = &size_l;
+
         a = b = 0.0;
         pivot = points->data->val.real;
         for (i = 1; i < points->len; i++)
         {
             v = points->data[i].val.real;
-            if (v > pivot)
+            if (v == pivot)
+            {
+                equal[(*equal_size)++] = v;
+                if (equal == arr_l)
+                {
+                    equal = arr_r;
+                    equal_size = &size_r;
+                }
+                else
+                {
+                    equal = arr_l;
+                    equal_size = &size_l;
+                }
+            }
+            else if (v > pivot)
             {
                 arr_r[size_r] = v;
                 size_r++;
@@ -212,12 +283,29 @@ static double find_median_real_int64(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     int64_t pivot, v;
+    int64_t * equal = seq;
+    uint64_t * equal_size = &size_l;
+
     pivot = seq[0];
 
     for (i = 1; i < size; i++)
     {
         v = seq[i];
-        if (v > pivot)
+        if (v == pivot)
+        {
+            equal[(*equal_size)++] = v;
+            if (equal == seq)
+            {
+                equal = other;
+                equal_size = &size_r;
+            }
+            else
+            {
+                equal = seq;
+                equal_size = &size_l;
+            }
+        }
+        else if (v > pivot)
         {
             other[size_r] = v;
             size_r++;
@@ -268,11 +356,29 @@ static double find_median_real_double(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     double pivot, v;
+    double * equal = seq;
+    uint64_t * equal_size = &size_l;
+
     pivot = seq[0];
+
     for (i = 1; i < size; i++)
     {
         v = seq[i];
-        if (v > pivot)
+        if (v == pivot)
+        {
+            equal[(*equal_size)++] = v;
+            if (equal == seq)
+            {
+                equal = other;
+                equal_size = &size_r;
+            }
+            else
+            {
+                equal = seq;
+                equal_size = &size_l;
+            }
+        }
+        else if (v > pivot)
         {
             other[size_r] = v;
             size_r++;
@@ -318,13 +424,29 @@ static double find_n_int64(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     int64_t pivot, v;
+    int64_t * equal = seq;
+    uint64_t * equal_size = &size_l;
 
     pivot = seq[0];
 
     for (i = 1; i < size; i++)
     {
         v = seq[i];
-        if (v > pivot)
+        if (v == pivot)
+        {
+            equal[(*equal_size)++] = v;
+            if (equal == seq)
+            {
+                equal = other;
+                equal_size = &size_r;
+            }
+            else
+            {
+                equal = seq;
+                equal_size = &size_l;
+            }
+        }
+        else if (v > pivot)
         {
             other[size_r] = v;
             size_r++;
@@ -358,13 +480,29 @@ static double find_n_double(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     double pivot, v;
+    double * equal = seq;
+    uint64_t * equal_size = &size_l;
 
     pivot = seq[0];
 
     for (i = 1; i < size; i++)
     {
         v = seq[i];
-        if (v > pivot)
+        if (v == pivot)
+        {
+            equal[(*equal_size)++] = v;
+            if (equal == seq)
+            {
+                equal = other;
+                equal_size = &size_r;
+            }
+            else
+            {
+                equal = seq;
+                equal_size = &size_l;
+            }
+        }
+        else if (v > pivot)
         {
             other[size_r] = v;
             size_r++;
