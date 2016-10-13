@@ -862,6 +862,12 @@ int siridb_server_cexpr_cb(
                 cond->operator,
                 (int64_t) (time(NULL) - wserver->siridb->start_ts),
                 cond->int64);
+
+    case CLERI_GID_K_ACTIVE_HANDLES:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) siri.loop->active_handles,
+                cond->int64);
     }
     /* we must NEVER get here */
     log_critical("Unexpected server property received: %d", cond->prop);
