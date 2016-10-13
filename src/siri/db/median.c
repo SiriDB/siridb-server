@@ -18,16 +18,19 @@
 static double find_n_int64(
         int64_t * seq,
         uint64_t size,
+        int64_t * other,
         uint64_t n);
 
 static double find_n_double(
         double * seq,
         uint64_t size,
+        double * other,
         uint64_t n);
 
 static double find_median_real_int64(
         int64_t * seq,
         uint64_t size,
+        int64_t * other,
         uint64_t n,
         int64_t a,
         int64_t b,
@@ -37,6 +40,7 @@ static double find_median_real_int64(
 static double find_median_real_double(
         double * seq,
         uint64_t size,
+        double * other,
         uint64_t n,
         double a,
         double b,
@@ -74,8 +78,8 @@ void siridb_median_find_n(
             }
         }
         point->val.int64 = (size_l == n) ? pivot : ((size_l > n) ?
-                find_n_int64(arr_l, size_l, n) :
-                find_n_int64(arr_r, size_r, n - size_l - 1));
+                find_n_int64(arr_l, size_l, arr_r, n) :
+                find_n_int64(arr_r, size_r, arr_l, n - size_l - 1));
     }
     else
     {
@@ -99,8 +103,8 @@ void siridb_median_find_n(
         }
 
         point->val.real = (size_l == n) ? pivot : (size_l > n) ?
-                find_n_double(arr_l, size_l, n) :
-                find_n_double(arr_r, size_r, n - size_l - 1);
+                find_n_double(arr_l, size_l, arr_r, n) :
+                find_n_double(arr_r, size_r, arr_l, n - size_l - 1);
     }
 }
 
@@ -152,9 +156,9 @@ void siridb_median_real(
 
         point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
             find_median_real_int64(
-                    arr_l, size_l, n, a, b, found_a, found_b) :
+                    arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
             find_median_real_int64(
-                    arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+                    arr_r, size_r, arr_l, n - size_l - 1, a, b, found_a, found_b);
     }
     else
     {
@@ -189,15 +193,16 @@ void siridb_median_real(
         }
         point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
             find_median_real_double(
-                    arr_l, size_l, n, a, b, found_a, found_b) :
+                    arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
             find_median_real_double(
-                    arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+                    arr_r, size_r, arr_l, n - size_l - 1, a, b, found_a, found_b);
     }
 }
 
 static double find_median_real_int64(
         int64_t * seq,
         uint64_t size,
+        int64_t * other,
         uint64_t n,
         int64_t a,
         int64_t b,
@@ -207,8 +212,6 @@ static double find_median_real_int64(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     int64_t pivot, v;
-    int64_t arr_l[size - 1];
-    int64_t arr_r[size - 1];
     pivot = seq[0];
 
     for (i = 1; i < size; i++)
@@ -216,12 +219,12 @@ static double find_median_real_int64(
         v = seq[i];
         if (v > pivot)
         {
-            arr_r[size_r] = v;
+            other[size_r] = v;
             size_r++;
         }
         else
         {
-            arr_l[size_l] = v;
+            seq[size_l] = v;
             size_l++;
         }
     }
@@ -244,17 +247,18 @@ static double find_median_real_int64(
 
     if ((!found_b && size_l > n) || size_l > n - 1)
     {
-        return find_median_real_int64(arr_l, size_l, n, a, b, found_a, found_b);
+        return find_median_real_int64(seq, size_l, other, n, a, b, found_a, found_b);
     }
 
     return find_median_real_int64(
-                arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+            other, size_r, seq, n - size_l - 1, a, b, found_a, found_b);
 
 }
 
 static double find_median_real_double(
         double * seq,
         uint64_t size,
+        double * other,
         uint64_t n,
         double a,
         double b,
@@ -264,20 +268,18 @@ static double find_median_real_double(
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     double pivot, v;
-    double arr_l[size - 1];
-    double arr_r[size - 1];
     pivot = seq[0];
     for (i = 1; i < size; i++)
     {
         v = seq[i];
         if (v > pivot)
         {
-            arr_r[size_r] = v;
+            other[size_r] = v;
             size_r++;
         }
         else
         {
-            arr_l[size_l] = v;
+            seq[size_l] = v;
             size_l++;
         }
     }
@@ -299,24 +301,23 @@ static double find_median_real_double(
 
     if ((!found_b && size_l > n) || size_l > n - 1)
     {
-        return find_median_real_double(arr_l, size_l, n, a, b, found_a, found_b);
+        return find_median_real_double(seq, size_l, other, n, a, b, found_a, found_b);
     }
 
     return find_median_real_double(
-                arr_r, size_r, n - size_l - 1, a, b, found_a, found_b);
+            other, size_r, seq, n - size_l - 1, a, b, found_a, found_b);
 
 }
 
 static double find_n_int64(
         int64_t * seq,
         uint64_t size,
+        int64_t * other,
         uint64_t n)
 {
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     int64_t pivot, v;
-    int64_t arr_l[size-1];
-    int64_t arr_r[size-1];
 
     pivot = seq[0];
 
@@ -325,12 +326,12 @@ static double find_n_int64(
         v = seq[i];
         if (v > pivot)
         {
-            arr_r[size_r] = v;
+            other[size_r] = v;
             size_r++;
         }
         else
         {
-            arr_l[size_l] = v;
+            seq[size_l] = v;
             size_l++;
         }
     }
@@ -342,22 +343,21 @@ static double find_n_int64(
 
     if (size_l > n)
     {
-        return find_n_int64(arr_l, size_l, n);
+        return find_n_int64(seq, size_l, other, n);
     }
 
-    return find_n_int64(arr_r, size_r, n - size_l - 1);
+    return find_n_int64(other, size_r, seq, n - size_l - 1);
 }
 
 static double find_n_double(
         double * seq,
         uint64_t size,
+        double * other,
         uint64_t n)
 {
     uint64_t i, size_l, size_r;
     size_l = size_r = 0;
     double pivot, v;
-    double arr_l[size-1];
-    double arr_r[size-1];
 
     pivot = seq[0];
 
@@ -366,12 +366,12 @@ static double find_n_double(
         v = seq[i];
         if (v > pivot)
         {
-            arr_r[size_r] = v;
+            other[size_r] = v;
             size_r++;
         }
         else
         {
-            arr_l[size_l] = v;
+            seq[size_l] = v;
             size_l++;
         }
     }
@@ -379,7 +379,7 @@ static double find_n_double(
         return pivot;
 
     if (size_l > n)
-        return find_n_double(arr_l, size_l, n);
+        return find_n_double(seq, size_l, other, n);
 
-    return find_n_double(arr_r, size_r, n - size_l - 1);
+    return find_n_double(other, size_r, seq, n - size_l - 1);
 }
