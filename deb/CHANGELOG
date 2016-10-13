@@ -1,0 +1,5 @@
+{package} ({version}) {distribution}; urgency=medium
+
+  {changelog}
+
+ -- {name} <{email}>  {datetime}

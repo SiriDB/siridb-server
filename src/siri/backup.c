@@ -9,16 +9,15 @@
  *  - initial version, 27-09-2016
  *
  */
-
-#include <siri/backup.h>
-#include <siri/optimize.h>
-#include <siri/siri.h>
-#include <logger/logger.h>
 #include <assert.h>
+#include <logger/logger.h>
+#include <siri/backup.h>
+#include <siri/db/replicate.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
-#include <siri/db/replicate.h>
+#include <siri/optimize.h>
+#include <siri/siri.h>
 #include <stddef.h>
 
 uv_timer_t backup;

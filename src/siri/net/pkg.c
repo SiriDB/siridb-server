@@ -9,14 +9,14 @@
  *  - initial version, 18-06-2016
  *
  */
+#include <assert.h>
+#include <logger/logger.h>
+#include <siri/err.h>
 #include <siri/net/pkg.h>
+#include <siri/net/socket.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <logger/logger.h>
-#include <siri/err.h>
-#include <assert.h>
-#include <siri/net/socket.h>
 
 typedef struct pkg_send_s
 {

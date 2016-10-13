@@ -17,17 +17,16 @@
  *      siridb->shards :    read (lock)         write (lock)
  *
  */
-
-#include <siri/db/shards.h>
+#include <ctype.h>
+#include <dirent.h>
 #include <logger/logger.h>
+#include <siri/db/shard.h>
+#include <siri/db/shards.h>
+#include <siri/siri.h>
 #include <stdbool.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <string.h>
-#include <ctype.h>
-#include <siri/db/shard.h>
-#include <siri/siri.h>
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 

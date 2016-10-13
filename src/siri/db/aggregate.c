@@ -9,17 +9,17 @@
  *  - initial version, 15-04-2016
  *
  */
-#include <siri/db/aggregate.h>
-#include <siri/grammar/grammar.h>
-#include <siri/db/median.h>
 #include <assert.h>
-#include <logger/logger.h>
-#include <siri/err.h>
-#include <slist/slist.h>
-#include <siri/db/variance.h>
 #include <limits.h>
-#include <strextra/strextra.h>
+#include <logger/logger.h>
+#include <siri/db/aggregate.h>
+#include <siri/db/median.h>
+#include <siri/db/variance.h>
+#include <siri/err.h>
+#include <siri/grammar/grammar.h>
+#include <slist/slist.h>
 #include <stddef.h>
+#include <strextra/strextra.h>
 
 #define AGGR_NEW                                    \
 if ((aggr = AGGREGATE_new(gid)) == NULL)            \

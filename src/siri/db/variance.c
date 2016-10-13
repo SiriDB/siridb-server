@@ -9,10 +9,10 @@
  *  - initial version, 10-08-2016
  *
  */
-#include <siri/db/variance.h>
 #include <assert.h>
-#include <siri/db/points.h>
 #include <math.h>
+#include <siri/db/points.h>
+#include <siri/db/variance.h>
 
 double siridb_variance(siridb_points_t * points)
 {

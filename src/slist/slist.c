@@ -9,12 +9,11 @@
  *  - initial version, 06-06-2016
  *
  */
-
+#include <logger/logger.h>
+#include <siri/err.h>
 #include <slist/slist.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <logger/logger.h>
-#include <siri/err.h>
 #include <string.h>
 
 #define SLIST_MAX_SZ 512

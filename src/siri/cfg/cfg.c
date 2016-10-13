@@ -1,11 +1,12 @@
-#include <siri/cfg/cfg.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <inttypes.h>
 #include <cfgparser/cfgparser.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <logger/logger.h>
+#include <siri/cfg/cfg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <strextra/strextra.h>
+#include <string.h>
 #include <sys/resource.h>
 
 /* do not use more than x percent for the max limit for open sharding files */
@@ -69,6 +70,25 @@ void siri_cfg_init(siri_t * siri)
             "listen_backend",
             siri_cfg.listen_backend_address,
             &siri_cfg.listen_backend_port);
+    if (strcmp(siri_cfg.listen_backend_address, "0.0.0.0") == 0)
+    {
+        log_critical(
+"We need a back-end address and port which can be used to "
+"connect to!\n"
+"\n"
+"Syntax: address:port\n"
+"\n"
+"Address:\n"
+"    Can be a host-name like 'localhost', a FQDN like 'server.local',\n"
+"    an IPv4 address like '192.168.1.1'.\n"
+"\n"
+"Port:\n"
+"    Any number between 1 and 65536\n"
+"\n"
+"Please verify the value in '%s'", siri->args->config);
+        cfgparser_free(cfgparser);
+        exit(EXIT_FAILURE);
+    }
 
     SIRI_CFG_read_interval(
             cfgparser,
@@ -251,6 +271,7 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
         if (setrlimit(RLIMIT_NOFILE, &rlim))
         {
             log_critical("Could not set the soft-limit to %d", min_limit);
+            exit(EXIT_FAILURE);
         }
     }
 }

@@ -10,8 +10,8 @@
  *  - initial version, 21-07-2016
  *
  */
-#include <siri/async.h>
 #include <logger/logger.h>
+#include <siri/async.h>
 
 inline void siri_async_incref(uv_async_t * handle)
 {

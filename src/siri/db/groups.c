@@ -26,20 +26,20 @@
  *          since they only run when no other references to the object exist.
  */
 #define _GNU_SOURCE
-#include <siri/db/groups.h>
-#include <siri/db/group.h>
-#include <siri/db/series.h>
-#include <siri/err.h>
-#include <stdlib.h>
-#include <slist/slist.h>
-#include <siri/db/misc.h>
-#include <siri/db/db.h>
-#include <unistd.h>
-#include <siri/siri.h>
 #include <assert.h>
 #include <logger/logger.h>
-#include <xpath/xpath.h>
+#include <siri/db/db.h>
+#include <siri/db/group.h>
+#include <siri/db/groups.h>
+#include <siri/db/misc.h>
+#include <siri/db/series.h>
+#include <siri/err.h>
 #include <siri/net/protocol.h>
+#include <siri/siri.h>
+#include <slist/slist.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"

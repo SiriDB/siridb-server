@@ -9,16 +9,15 @@
  *  - initial version, 08-08-2016
  *
  */
-
+#include <assert.h>
+#include <logger/logger.h>
 #include <siri/db/presuf.h>
 #include <siri/err.h>
+#include <siri/grammar/grammar.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <strextra/strextra.h>
-#include <siri/grammar/grammar.h>
-#include <logger/logger.h>
 #include <string.h>
-#include <assert.h>
-#include <stdio.h>
 
 siridb_presuf_t * PRESUF_add(siridb_presuf_t ** presuf);
 int PRESUF_is_equal(const char * a, const char * b);

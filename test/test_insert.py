@@ -120,10 +120,13 @@ class TestInsert(TestBase):
         await self._test_series(self.client1)
 
         # Create some random series and start 25 insert task parallel
-        series = gen_series(n=5000)
+        series = gen_series(n=10000)
         tasks = [
             asyncio.ensure_future(
-                self.client0.insert_some_series(series, timeout=0, points=self.GEN_POINTS))
+                self.client0.insert_some_series(
+                    series,
+                    timeout=0,
+                    points=self.GEN_POINTS))
             for i in range(25)]
         await asyncio.gather(*tasks)
 
@@ -132,6 +135,13 @@ class TestInsert(TestBase):
         # Check the result
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
+
+        tasks = [
+            asyncio.ensure_future(self.client0.query(
+                    'drop series /.*/ set ignore_threshold true'))
+            for i in range (5)]
+
+        await asyncio.gather(*tasks)
 
         # series = gen_series(n=100000)
         # tasks = [
@@ -144,7 +154,7 @@ class TestInsert(TestBase):
         self.client0.close()
         self.client1.close()
 
-        # return False
+        return False
 
 
 if __name__ == '__main__':

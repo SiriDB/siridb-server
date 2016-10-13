@@ -9,35 +9,36 @@
  *  - initial version, 08-03-2016
  *
  */
-#include <siri/siri.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdio.h>
-#include <time.h>
-#include <logger/logger.h>
-#include <siri/net/clserver.h>
-#include <siri/net/bserver.h>
-#include <siri/parser/listener.h>
-#include <siri/db/props.h>
-#include <siri/db/users.h>
-#include <siri/db/servers.h>
-#include <siri/db/series.h>
-#include <siri/db/buffer.h>
-#include <siri/db/aggregate.h>
-#include <siri/db/pools.h>
-#include <strextra/strextra.h>
-#include <siri/cfg/cfg.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <qpack/qpack.h>
 #include <assert.h>
-#include <siri/net/socket.h>
-#include <siri/version.h>
-#include <xpath/xpath.h>
-#include <siri/err.h>
+#include <logger/logger.h>
+#include <qpack/qpack.h>
 #include <siri/async.h>
+#include <siri/cfg/cfg.h>
+#include <siri/db/aggregate.h>
+#include <siri/db/buffer.h>
 #include <siri/db/groups.h>
+#include <siri/db/pools.h>
+#include <siri/db/props.h>
+#include <siri/db/series.h>
+#include <siri/db/server.h>
+#include <siri/db/servers.h>
+#include <siri/db/users.h>
+#include <siri/err.h>
 #include <siri/help/help.h>
+#include <siri/net/bserver.h>
+#include <siri/net/clserver.h>
+#include <siri/net/socket.h>
+#include <siri/parser/listener.h>
+#include <siri/siri.h>
+#include <siri/version.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <strextra/strextra.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+#include <xpath/xpath.h>
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
@@ -96,14 +97,14 @@ void siri_setup_logger(void)
         strx_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
-            logger_init(stdout, (n + 1) * 10);
+            logger_init(stdout, n);
             return;
         }
     }
     /* We should not get here since args should always
      * contain a valid log level
      */
-    logger_init(stdout, 10);
+    logger_init(stdout, 0);
 }
 
 

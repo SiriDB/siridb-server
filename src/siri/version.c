@@ -9,11 +9,10 @@
  *  - initial version, 08-03-2016
  *
  */
-
-#include <siri/version.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
+#include <siri/version.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int siri_version_cmp(const char * version_a, const char * version_b)
 {

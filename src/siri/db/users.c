@@ -10,18 +10,18 @@
  *
  */
 #define _GNU_SOURCE
-#include <siri/db/users.h>
-#include <siri/db/query.h>
 #include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 #include <crypt.h>
+#include <logger/logger.h>
+#include <qpack/qpack.h>
+#include <siri/db/query.h>
+#include <siri/db/users.h>
+#include <siri/err.h>
+#include <stdlib.h>
+#include <strextra/strextra.h>
+#include <string.h>
 #include <time.h>
 #include <xpath/xpath.h>
-#include <qpack/qpack.h>
-#include <strextra/strextra.h>
-#include <logger/logger.h>
-#include <siri/err.h>
 
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"

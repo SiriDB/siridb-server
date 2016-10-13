@@ -9,17 +9,17 @@
  *  - initial version, 08-03-2016
  *
  */
-#include <stdio.h>
-#include <stdlib.h>
 #include <locale.h>
-#include <time.h>
 #include <logger/logger.h>
 #include <siri/args/args.h>
+#include <siri/db/presuf.h>
 #include <siri/err.h>
+#include <siri/help/help.h>
 #include <siri/siri.h>
 #include <siri/version.h>
-#include <siri/db/presuf.h>
-#include <siri/help/help.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifdef DEBUG
 #include <test/test.h>

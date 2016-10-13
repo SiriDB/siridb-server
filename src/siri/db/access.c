@@ -10,8 +10,8 @@
  *
  */
 #include <siri/db/access.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #define ACCESS_SIZE 14
 

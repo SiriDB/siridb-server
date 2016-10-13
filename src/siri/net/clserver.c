@@ -12,6 +12,7 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <lock/lock.h>
+#include <lock/lock.h>
 #include <logger/logger.h>
 #include <msgpack.h>
 #include <qpack/qpack.h>
@@ -22,7 +23,6 @@
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
 #include <siri/err.h>
-#include <lock/lock.h>
 #include <siri/net/clserver.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>

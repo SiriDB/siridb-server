@@ -9,16 +9,15 @@
  *  - initial version, 15-07-2016
  *
  */
-
-#include <xpath/xpath.h>
-#include <stdio.h>
-#include <sys/stat.h>
-#include <logger/logger.h>
-#include <stdlib.h>
 #include <limits.h>
-#include <unistd.h>
-#include <string.h>
+#include <logger/logger.h>
 #include <stdio.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <xpath/xpath.h>
 
 /*
  * Test if file exist using the effective user.

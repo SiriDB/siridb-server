@@ -10,12 +10,11 @@
  *  - initial version, 13-07-2016
  *
  */
-
-#include <siri/net/promises.h>
-#include <siri/net/promise.h>
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/net/promise.h>
+#include <siri/net/promises.h>
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.

@@ -9,19 +9,19 @@
  *  - initial version, 17-03-2016
  *
  */
-#include <siri/db/server.h>
-#include <logger/logger.h>
-#include <siri/db/query.h>
-#include <siri/db/servers.h>
-#include <siri/net/promise.h>
-#include <siri/siri.h>
 #include <assert.h>
-#include <siri/net/socket.h>
-#include <string.h>
-#include <siri/version.h>
+#include <logger/logger.h>
 #include <procinfo/procinfo.h>
+#include <siri/db/query.h>
+#include <siri/db/server.h>
+#include <siri/db/servers.h>
 #include <siri/err.h>
+#include <siri/net/promise.h>
+#include <siri/net/socket.h>
+#include <siri/siri.h>
+#include <siri/version.h>
 #include <strextra/strextra.h>
+#include <string.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
@@ -861,6 +861,12 @@ int siridb_server_cexpr_cb(
         return cexpr_int_cmp(
                 cond->operator,
                 (int64_t) (time(NULL) - wserver->siridb->start_ts),
+                cond->int64);
+
+    case CLERI_GID_K_ACTIVE_HANDLES:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) siri.loop->active_handles,
                 cond->int64);
     }
     /* we must NEVER get here */

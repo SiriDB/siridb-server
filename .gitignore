@@ -49,3 +49,6 @@ siridbc.layout
 # Python
 */__pycache__/*
 *.pyc
+
+# Build
+build/

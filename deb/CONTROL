@@ -1,0 +1,12 @@
+Source: {package}
+Priority: optional
+Section: database
+Maintainer: {name} <{email}>
+Standards-Version: 3.9.6
+Build-Depends: debhelper (>= 9.0.0)
+Homepage: {homepage}
+
+Package: {package}
+Depends: {depends}
+Architecture: {architecture}
+Description: {description}{long_description}

@@ -1,0 +1,213 @@
+#!/usr/bin/python3
+
+import sys
+import os
+import datetime
+import platform
+import subprocess
+import shutil
+import stat
+import re
+
+VERSION_FILE = 'include/siri/version.h'
+
+def _get_version():
+    re_version = re.compile('^#define SIRIDB_VERSION "([0-9]+\.[0-9]+\.[0-9]+)"$')
+
+    with open(VERSION_FILE, 'r') as f:
+        content = f.readlines()
+    for line in content:
+        m = re_version.match(line)
+        if m:
+            return m.group(1)
+
+def _get_changelog(version):
+    with open('ChangeLog-{}'.format(version), 'r') as f:
+        content = f.read()
+    return content
+
+def _get_distribution():
+    '''Returns distribution code name. (Ubuntu)'''
+    proc = subprocess.Popen(['lsb_release', '-c'], stdout=subprocess.PIPE)
+    for line in proc.stdout:
+        if line:
+            return line.decode().split('\t')[1].strip()
+
+
+if __name__ == '__main__':
+    # Read the current version
+    version = _get_version()
+    if version is None:
+        exit('Cannot find version in file: {}'.format(VERSION_FILE))
+
+    changelog = _get_changelog(version)
+    # Explain architecture= amd64
+    # The architecture is AMD64-compatible and Debian AMD64 will run on AMD and
+    # Intel processors with 64-bit support.
+    # Because of the technology paternity, Debian uses the name "AMD64".
+
+    config = dict(
+        version=version,
+        name='Jeroen van der Heijden',
+        email='jeroen@transceptor.technology',
+        company='Transceptor Technology',
+        company_email='info@transceptor.technology',
+        datetime=datetime.datetime.utcnow().strftime(
+                '%a, %d %b %Y %H:%M:%S') + ' +0000',
+        architecture={
+            '32bit': 'i386',
+            '64bit': 'amd64'}[platform.architecture()[0]],
+        archother={
+            '32bit': 'i386',
+            '64bit': 'x86_64'}[platform.architecture()[0]],
+        homepage='http://siridb.net',
+        distribution=_get_distribution(),
+        curdate=datetime.datetime.utcnow().strftime('%d %b %Y'),
+        year=datetime.datetime.utcnow().year,
+        package='siridb-server',
+        description='SiriDB time series database server',
+        long_description='''
+ SiriDB is a fast and scalable time series database.
+        '''.rstrip(),
+        explain='start the SiriDB time series database server'
+    )
+    config.update(dict(
+        depends='${{shlibs:Depends}}, '
+                '${{misc:Depends}}'
+                .format(**config),
+        changelog=changelog.strip()
+    ))
+
+    POSTINST = open(
+        'deb/POSTINST', 'r').read().strip().format(**config)
+    SYSTEMD = open(
+        'deb/SYSTEMD', 'r').read().strip().format(**config)
+    PRERM = open(
+        'deb/PRERM', 'r').read().strip().format(**config)
+    OVERRIDES = open(
+        'deb/OVERRIDES', 'r').read().strip().format(**config)
+    CHANGELOG = open(
+        'deb/CHANGELOG', 'r').read().strip().format(**config)
+    CONTROL = open(
+        'deb/CONTROL', 'r').read().strip().format(**config)
+    print(CONTROL)
+    MANPAGE = open(
+        'deb/MANPAGE', 'r').read().strip().format(**config)
+    COPYRIGHT = open(
+        'deb/COPYRIGHT', 'r').read().strip().format(**config)
+    RULES = open(
+        'deb/RULES', 'r').read().strip()
+
+    temp_path = os.path.join('build', 'temp')
+    if os.path.isdir(temp_path):
+        shutil.rmtree(temp_path)
+
+    source_path = os.path.join('Release', 'siridb-server')
+    if not os.path.isfile(source_path):
+        sys.exit('ERROR: Cannot find path: {}'.format(source_path))
+
+    deb_file = '{package}_{version}_{architecture}.deb'.format(**config)
+    source_deb = os.path.join(temp_path, deb_file)
+    dest_deb = os.path.join('build', deb_file)
+
+    if os.path.exists(dest_deb):
+        os.unlink(dest_deb)
+
+    pkg_path = os.path.join(temp_path, '{}-{}'.format(config['package'],
+                                                      config['version']))
+
+    debian_path = os.path.join(pkg_path, 'debian')
+
+    pkg_src_path = os.path.join(pkg_path, 'src')
+
+    debian_source_path = os.path.join(debian_path, 'source')
+
+    target_path = os.path.join(pkg_src_path, 'usr', 'lib')
+
+    os.makedirs(target_path)
+    os.makedirs(debian_source_path)
+
+    shutil.copyfile(source_path, os.path.join(target_path, config['package']))
+
+    db_path = os.path.join(pkg_src_path, 'var', 'lib', 'siridb')
+    os.makedirs(db_path)
+
+    cfg_path = os.path.join(pkg_src_path, 'etc', 'siridb')
+    os.makedirs(cfg_path)
+    shutil.copy('siridb.conf', cfg_path)
+
+    systemd_path = os.path.join(target_path, 'systemd')
+    os.makedirs(systemd_path)
+    with open(os.path.join(
+            systemd_path, '{package}.service'.format(**config)), 'w') as f:
+        f.write(SYSTEMD)
+
+    with open(os.path.join(debian_path, 'postinst'), 'w') as f:
+        f.write(POSTINST)
+
+    with open(os.path.join(debian_path, 'prerm'), 'w') as f:
+        f.write(PRERM)
+
+    with open(os.path.join(debian_path, 'source', 'format'), 'w') as f:
+        f.write('3.0 (quilt)')
+
+    with open(os.path.join(debian_path, 'compat'), 'w') as f:
+        f.write('9')
+
+    changelog_file = 'ChangeLog'
+
+    if os.path.isfile(changelog_file):
+        with open(changelog_file, 'r') as f:
+            current_changelog = f.read()
+    else:
+        current_changelog = ''
+
+    if '{package} ({version})'.format(**config) not in current_changelog:
+        changelog = CHANGELOG + '\n\n' + current_changelog
+
+        with open(changelog_file, 'w') as f:
+            f.write(changelog)
+
+    shutil.copy(changelog_file, os.path.join(debian_path, 'changelog'))
+
+    with open(os.path.join(debian_path, 'control'), 'w') as f:
+        f.write(CONTROL)
+
+    with open(os.path.join(debian_path, 'copyright'), 'w') as f:
+        f.write(COPYRIGHT)
+
+    rules_file = os.path.join(debian_path, 'rules')
+    with open(rules_file, 'w') as f:
+        f.write(RULES)
+
+    os.chmod(rules_file, os.stat(rules_file).st_mode | stat.S_IEXEC)
+
+    with open(os.path.join(debian_path, 'links'), 'w') as f:
+        f.write('/usr/lib/{package}/{package} /usr/sbin/{package}\n'.format(
+            **config))
+
+    with open(os.path.join(debian_path, 'install'), 'w') as f:
+        f.write('''src/usr /
+src/etc /
+src/var /''')
+
+    with open(os.path.join(debian_path, '{}.1'.format(
+            config['package'])), 'w') as f:
+        f.write(MANPAGE)
+
+    with open(os.path.join(debian_path, '{}.manpages'.format(
+            config['package'])), 'w') as f:
+        f.write('debian/{}.1'.format(config['package']))
+
+    with open(os.path.join(debian_path, '{}.lintian-overrides'.format(
+            config['package'])), 'w') as f:
+        f.write(OVERRIDES)
+
+    subprocess.call(['debuild', '-us', '-uc', '-b'], cwd=pkg_path)
+
+    if os.path.exists(source_deb):
+        shutil.move(source_deb, dest_deb)
+        shutil.rmtree(temp_path)
+        sys.exit('Successful created package: {}'.format(dest_deb))
+    else:
+        sys.exit('ERROR: {} not created'.format(source_deb))
