@@ -559,6 +559,14 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
                         (server->dbpath != NULL) ?
                             server->dbpath : "");
             break;
+        case CLERI_GID_K_LIBUV:
+            qp_add_string(
+                    query->packer,
+                    (siridb->server == server) ?
+                            uv_version_string() :
+                            (server->libuv != NULL) ?
+                                    server->libuv : "");
+            break;
         case CLERI_GID_K_NAME:
             qp_add_string(query->packer, server->name);
             break;

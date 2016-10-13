@@ -79,6 +79,7 @@ siridb_server_t * siridb_server_new(
     server->ref = 0;
     server->pid = 0;
     server->version = NULL;
+    server->libuv = NULL;
     server->dbpath = NULL;
     server->buffer_path = NULL;
     server->buffer_size = 0;
@@ -451,6 +452,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_int16(packer, ssocket->siridb->server->flags) ||
                 qp_add_string_term(packer, SIRIDB_VERSION) ||
                 qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION) ||
+                qp_add_string_term(packer, uv_version_string()) ||
                 qp_add_string_term(packer, ssocket->siridb->dbpath) ||
                 qp_add_string_term(packer, ssocket->siridb->buffer_path) ||
                 qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
@@ -712,6 +714,7 @@ int siridb_server_is_remote_prop(uint32_t prop)
     case CLERI_GID_K_BUFFER_PATH:
     case CLERI_GID_K_BUFFER_SIZE:
     case CLERI_GID_K_DBPATH:
+    case CLERI_GID_K_LIBUV:
     case CLERI_GID_K_NAME:
     case CLERI_GID_K_ONLINE:
     case CLERI_GID_K_POOL:
@@ -761,6 +764,15 @@ int siridb_server_cexpr_cb(
                         wserver->siridb->dbpath :
                         (wserver->server->dbpath != NULL) ?
                                 wserver->server->dbpath : "",
+                cond->str);
+
+    case CLERI_GID_K_LIBUV:
+        return cexpr_str_cmp(
+                cond->operator,
+                (wserver->siridb->server == wserver->server) ?
+                        uv_version_string() :
+                        (wserver->server->libuv != NULL) ?
+                                wserver->server->libuv : "",
                 cond->str);
 
     case CLERI_GID_K_NAME:
@@ -908,6 +920,7 @@ static void SERVER_free(siridb_server_t * server)
     free(server->name);
     free(server->address);
     free(server->version);
+    free(server->libuv);
     free(server->dbpath);
     free(server->buffer_path);
     free(server);

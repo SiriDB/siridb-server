@@ -241,6 +241,7 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_flags;
     qp_obj_t qp_version;
     qp_obj_t qp_min_version;
+    qp_obj_t qp_libuv;
     qp_obj_t qp_dbpath;
     qp_obj_t qp_buffer_path;
     qp_obj_t qp_buffer_size;
@@ -257,6 +258,8 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             qp_is_raw_term(&qp_version) &&
             qp_next(&unpacker, &qp_min_version) == QP_RAW &&
             qp_is_raw_term(&qp_min_version) &&
+            qp_next(&unpacker, &qp_libuv) == QP_RAW &&
+            qp_is_raw_term(&qp_libuv) &&
             qp_next(&unpacker, &qp_dbpath) == QP_RAW &&
             qp_is_raw_term(&qp_dbpath) &&
             qp_next(&unpacker, &qp_buffer_path) == QP_RAW &&
@@ -294,6 +297,8 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             server->dbpath = strdup(qp_dbpath.via.raw);
             free(server->buffer_path);
             server->buffer_path = strdup(qp_buffer_path.via.raw);
+            free(server->libuv);
+            server->libuv = strdup(qp_libuv.via.raw);
             server->buffer_size = qp_buffer_size.via.int64;
             server->startup_time = qp_startup_time.via.int64;
 
