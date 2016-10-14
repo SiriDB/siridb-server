@@ -53,10 +53,6 @@ static void SERIES_update_start(siridb_series_t * series);
 static void SERIES_update_end(siridb_series_t * series);
 static void SERIES_update_overlap(siridb_series_t * series);
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
-static void SERIES_idx_swap(
-        idx_t * idx,
-        uint_fast32_t n,
-        uint_fast32_t i);
 static void SERIES_idx_sort(
         idx_t * idx,
         uint_fast32_t start,
@@ -1020,27 +1016,6 @@ int siridb_series_open_store(siridb_t * siridb)
 }
 
 /*
- * Swap shards in idx and check 'n' times upward in the list if the swap is
- * needed.
- */
-static void SERIES_idx_swap(
-        idx_t * idx,
-        uint_fast32_t n,
-        uint_fast32_t i)
-{
-    /* swap i with i + 1 in the index */
-    idx_t tmp = idx[i + 1];
-    idx[i + 1] = idx[i];
-    idx[i] = tmp;
-
-    /* check if we also need to swap i - 1 with i ... */
-    if (--n && (idx[--i].shard != tmp.shard || idx[i].start_ts > tmp.start_ts))
-    {
-        SERIES_idx_swap(idx, n, i);
-    }
-}
-
-/*
  * Will sort an index to its correct order. The start of idx should be correct
  * with a valid shard. All replaced shard indexes are sorted towards the end.
  */
@@ -1050,9 +1025,10 @@ static void SERIES_idx_sort(
         uint_fast32_t end)
 {
     siridb_shard_t * shard = idx[start].shard;
-    idx_t * a;
-    idx_t * b;
+    idx_t * a, * b;
     uint_fast32_t i = start;
+    uint_fast32_t n, m;
+    idx_t tmp;
 
     /*
      * Since the first position is always correct we can leave this one alone.
@@ -1068,7 +1044,21 @@ static void SERIES_idx_sort(
         if (    b->shard == shard &&
                 (a->shard != shard || a->start_ts > b->start_ts))
         {
-            SERIES_idx_swap(idx, i - start, i);
+            /*
+             * Swap at least a and b but also check if we can swap a - 1 with b
+             */
+            n = i - start;
+            m = i + 1;
+            tmp = idx[m];
+            do
+            {
+                idx[m] = idx[m - 1];
+                m--;  /* we must decrement here */
+            }
+            while (--n && (
+                    idx[m - 1].shard != tmp.shard ||
+                    idx[m - 1].start_ts > tmp.start_ts));
+            idx[m] = tmp;
         }
     }
 }
