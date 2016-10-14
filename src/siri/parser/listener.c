@@ -4233,7 +4233,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_count;
 
-    query_count_t * q_count = query->data;
+    query_count_t * q_count = (query_count_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -4289,7 +4289,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_drop;
 
-    query_drop_t * q_drop = query->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -4346,7 +4346,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_drop;
 
-    query_drop_t * q_drop = query->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {
