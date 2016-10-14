@@ -18,11 +18,13 @@
 #include <unistd.h>
 #include <timeit/timeit.h>
 
-#define MAX_ITERATE_MERGE_COUNT 2000
+#define MAX_ITERATE_MERGE_COUNT 1000
+#define POINTS_LONG_MERGE 350000
 
 static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points);
 static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
 static void POINTS_sort(siridb_points_t * points);
+static int POINTS_compare(const void * a, const void * b);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -257,8 +259,11 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
         /*
          * Select a merge method depending on the ratio series and points.
          */
-        if ((double) plist->len / (double) n < 0.5)
+        if ((double) plist->len / (double) n < 0.5 && n > POINTS_LONG_MERGE)
         {
+            log_warning(
+                    "Merging %lu points, we do this slow to keep "
+                    "SiriDB responsive", n);
             POINTS_sort_while_merge(plist, points);
         }
         else
@@ -273,20 +278,19 @@ static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
 {
     siridb_points_t ** m;
     size_t i, n;
-    siridb_points_t * tpts = NULL;
+    siridb_points_t ** tpts;
     n = points->len;
 
     while (plist->len)
     {
-        m = (siridb_points_t **) &plist->data[0];
+        m = (siridb_points_t **) plist->data;
 
-        for (i = 1; i < plist->len; i++)
+        for (i = 1, tpts = m + 1; i < plist->len; i++, tpts++)
         {
-            tpts = (siridb_points_t *) plist->data[i];
-            if (((siridb_point_t *) tpts->data)[tpts->len].ts >
-                ((siridb_point_t *) (*m)->data)[(*m)->len].ts)
+            if (((*tpts)->data + (*tpts)->len)->ts >
+                ((*m)->data + (*m)->len)->ts)
             {
-                m = (siridb_points_t **) &plist->data[i];
+                m = (siridb_points_t **) plist->data + i;
             }
         }
 
@@ -318,6 +322,7 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
     siridb_points_t ** m;
     size_t i, n;
     n = points->len;
+    uint8_t use_qsort = ((double) plist->len / (double) n < 0.5);
 
     while (plist->len)
     {
@@ -350,9 +355,23 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
 
     usleep(5000);
 
-    POINTS_sort(points);
+    if (use_qsort)
+    {
+        qsort(  points->data,
+                points->len,
+                sizeof(siridb_point_t),
+                &POINTS_compare);
+    }
+    else
+    {
+        POINTS_sort(points);
+    }
 }
 
+static int POINTS_compare(const void * a, const void * b)
+{
+    return (((siridb_point_t *) a)->ts - ((siridb_point_t *) b)->ts);
+}
 /*
  * Sort points by time-stamp.
  *
