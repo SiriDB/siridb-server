@@ -259,8 +259,7 @@ static int SIRI_load_databases(void)
 
         if (siridb_new(buffer, 0) == NULL)
         {
-            closedir(db_container_path);
-            return -1;
+            log_error("Could not load '%s'.", dbpath->d_name);
         }
     }
     closedir(db_container_path);
@@ -270,8 +269,11 @@ static int SIRI_load_databases(void)
 
 static void SIRI_destroy(void)
 {
+#ifndef DEBUG
     log_info("Closing SiriDB Server (version: %s)", SIRIDB_VERSION);
-
+#else
+    log_warning("Closing SiriDB Server (%s-DEBUG-RELEASE)", SIRIDB_VERSION);
+#endif
     /* stop the event loop */
     uv_stop(siri.loop);
 

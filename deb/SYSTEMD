@@ -4,7 +4,7 @@ After=syslog.target
 After=network.target
 
 [Service]
-ExecStart=/usr/sbin/{package} --config=/etc/siridb/siridb.conf --log-level=info
+ExecStart=/usr/sbin/{package} --config /etc/siridb/siridb.conf --log-level info
 TimeoutStartSec=10
 TimeoutStopSec=300
 

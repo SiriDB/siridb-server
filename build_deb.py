@@ -69,14 +69,12 @@ if __name__ == '__main__':
         long_description='''
  SiriDB is a fast and scalable time series database.
         '''.rstrip(),
-        explain='start the SiriDB time series database server'
-    )
-    config.update(dict(
-        depends='${{shlibs:Depends}}, '
-                '${{misc:Depends}}'
-                .format(**config),
+        explain='start the SiriDB time series database server',
+        depends='${shlibs:Depends}, '
+                '${misc:Depends}, '
+                'libuv1 (>= 1.8.0)',
         changelog=changelog.strip()
-    ))
+    )
 
     POSTINST = open(
         'deb/POSTINST', 'r').read().strip().format(**config)
@@ -122,12 +120,13 @@ if __name__ == '__main__':
 
     debian_source_path = os.path.join(debian_path, 'source')
 
-    target_path = os.path.join(pkg_src_path, 'usr', 'lib')
+    target_path = os.path.join(pkg_src_path, 'usr', 'lib', 'siridb', 'server')
 
     os.makedirs(target_path)
     os.makedirs(debian_source_path)
 
-    shutil.copyfile(source_path, os.path.join(target_path, config['package']))
+    shutil.copy2(source_path, os.path.join(target_path, config['package']))
+    shutil.copytree('help', os.path.join(target_path, 'help'))
 
     db_path = os.path.join(pkg_src_path, 'var', 'lib', 'siridb')
     os.makedirs(db_path)
@@ -183,7 +182,7 @@ if __name__ == '__main__':
     os.chmod(rules_file, os.stat(rules_file).st_mode | stat.S_IEXEC)
 
     with open(os.path.join(debian_path, 'links'), 'w') as f:
-        f.write('/usr/lib/{package}/{package} /usr/sbin/{package}\n'.format(
+        f.write('/usr/lib/siridb/server/{package} /usr/sbin/{package}\n'.format(
             **config))
 
     with open(os.path.join(debian_path, 'install'), 'w') as f:

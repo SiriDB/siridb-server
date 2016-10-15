@@ -3,7 +3,10 @@ Priority: optional
 Section: database
 Maintainer: {name} <{email}>
 Standards-Version: 3.9.6
-Build-Depends: debhelper (>= 9.0.0)
+Build-Depends: debhelper (>= 9),
+               dh-exec (>=0.3),
+               dh-autoreconf,
+               pkg-config
 Homepage: {homepage}
 
 Package: {package}
