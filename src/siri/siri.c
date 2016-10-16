@@ -141,10 +141,15 @@ int siri_start(void)
     siri.loop = malloc(sizeof(uv_loop_t));
     uv_loop_init(siri.loop);
 
-    /* load databases */
-    if ((rc = SIRI_load_databases()))
+    /* initialize the back-end-, client- server and load databases */
+    if (    (rc = sirinet_bserver_init(&siri)) ||
+            (rc = sirinet_clserver_init(&siri)) ||
+            (rc = SIRI_load_databases()))
     {
-        return rc; //something went wrong
+        SIRI_destroy();
+        free(siri.loop);
+        siri.loop = NULL;
+        return rc; // something went wrong
     }
 
     /* bind signals to the event loop */
@@ -152,20 +157,6 @@ int siri_start(void)
     {
         uv_signal_init(siri.loop, &sig[i]);
         uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
-    }
-
-    /* initialize the back-end server */
-    if ((rc = sirinet_bserver_init(&siri)))
-    {
-        SIRI_close_handlers();
-        return rc; // something went wrong
-    }
-
-    /* initialize the client server */
-    if ((rc = sirinet_clserver_init(&siri)))
-    {
-        SIRI_close_handlers();
-        return rc; // something went wrong
     }
 
     /* initialize optimize task (bind siri.optimize) */

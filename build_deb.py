@@ -88,7 +88,6 @@ if __name__ == '__main__':
         'deb/CHANGELOG', 'r').read().strip().format(**config)
     CONTROL = open(
         'deb/CONTROL', 'r').read().strip().format(**config)
-    print(CONTROL)
     MANPAGE = open(
         'deb/MANPAGE', 'r').read().strip().format(**config)
     COPYRIGHT = open(
@@ -103,6 +102,8 @@ if __name__ == '__main__':
     source_path = os.path.join('Release', 'siridb-server')
     if not os.path.isfile(source_path):
         sys.exit('ERROR: Cannot find path: {}'.format(source_path))
+
+    subprocess.call(['strip', '--strip-unneeded', source_path])
 
     deb_file = '{package}_{version}_{architecture}.deb'.format(**config)
     source_deb = os.path.join(temp_path, deb_file)
