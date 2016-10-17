@@ -1,6 +1,6 @@
 Name: {package}
 Maintainer: {name} <{email}>
-Source: https://github.com/transceptor-technology/siridb-server/
+Source: https://github.com/transceptor-technology/{package}/
 Files: *
 Copyright: {year}, {company} <{company_email}>
 License: MIT
