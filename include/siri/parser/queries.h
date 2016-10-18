@@ -40,6 +40,7 @@ typedef enum
     QUERY_ALTER_DATABASE,
     QUERY_ALTER_GROUP,
     QUERY_ALTER_SERVER,
+    QUERY_ALTER_SERVERS,
     QUERY_ALTER_USER
 } query_alter_tp;
 
@@ -75,7 +76,7 @@ typedef struct query_alter_s
     QUERY_DEF
     query_alter_tp alter_tp;
     union query_alter_u via;
-    char * tmp;     /* temporary string value */
+    size_t n;   // can be used as counter
 } query_alter_t;
 
 typedef struct query_count_s

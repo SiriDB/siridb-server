@@ -14,7 +14,6 @@
 #include <expr/expr.h>
 #include <iso8601/iso8601.h>
 #include <logger/logger.h>
-#include <motd/motd.h>
 #include <siri/async.h>
 #include <siri/db/nodes.h>
 #include <siri/db/query.h>
@@ -31,6 +30,12 @@
 #include <strextra/strextra.h>
 #include <string.h>
 #include <sys/time.h>
+
+#ifndef DEBUG
+#include <math.h>
+#else
+#include <motd/motd.h>
+#endif
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -52,6 +57,7 @@ static int QUERY_rebuild(
         char * buf,
         size_t * size,
         const size_t max_size);
+static void QUERY_send_no_query(uv_async_t * handle);
 
 /*
  * This function can raise a SIGNAL.
@@ -473,17 +479,39 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
 }
 
-static void siridb_send_motd(uv_async_t * handle)
+static void QUERY_send_no_query(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    const char * msg;
 
     query->packer = sirinet_packer_new(512);
     qp_add_type(query->packer, QP_MAP1);
-    qp_add_raw(query->packer, "motd", 4);
+
+#ifndef DEBUG
+    /* production version returns timestamp now */
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    qp_add_raw(query->packer, "calc", 4);
+    uint64_t ts = siridb_time_now(siridb, query->start);
+
+    if (query->time_precision == SIRIDB_TIME_DEFAULT)
+    {
+        qp_add_int64(query->packer, (int64_t) ts);
+    }
+    else
+    {
+        double factor =
+                pow(1000.0, query->time_precision - siridb->time->precision);
+        qp_add_int64(query->packer, (int64_t) (ts * factor));
+    }
+
+#else
+    /* development release returns motd */
+    const char * msg;
     msg = motd_get_random_msg();
+    qp_add_raw(query->packer, "motd", 4);
     qp_add_string(query->packer, msg);
 
+
+#endif
     siridb_send_query_result(handle);
 }
 
@@ -506,7 +534,8 @@ static void QUERY_parse(uv_async_t * handle)
     if (!query->pr->is_valid)
     {
         siridb_nodes_free(siridb_walker_free(walker));
-        return QUERY_send_invalid_error(handle);
+        QUERY_send_invalid_error(handle);
+        return;
     }
 
     if ((rc = QUERY_walk(
@@ -533,13 +562,15 @@ static void QUERY_parse(uv_async_t * handle)
             sprintf(query->err_msg, "Invalid date string.");
             break;
         case EXPR_MEM_ALLOC_ERR:
-            return;
+            sprintf(query->err_msg, "Memory allocation error.");
+            break;
         default:
             log_critical("Unknown Return Code received: %d", rc);
             assert(0);
         }
         siridb_nodes_free(siridb_walker_free(walker));
-        return siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
     }
 
     /* free the walker but keep the nodes list */
@@ -547,7 +578,8 @@ static void QUERY_parse(uv_async_t * handle)
 
     if (query->nodes == NULL)
     {
-        return siridb_send_motd(handle);
+        QUERY_send_no_query(handle);
+        return;
     }
 
     uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));

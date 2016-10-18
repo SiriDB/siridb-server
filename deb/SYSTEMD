@@ -1,10 +1,11 @@
 [Unit]
 Description=SiriDB {version} Server
-After=syslog.target
 After=network.target
 
 [Service]
-ExecStart=/usr/sbin/{package} --config=/etc/siridb/siridb.conf --log-level=info
+ExecStart=/usr/sbin/{package} --config /etc/siridb/siridb.conf --log-level info
+StandardOutput=journal
+LimitNOFILE=65535
 TimeoutStartSec=10
 TimeoutStopSec=300
 

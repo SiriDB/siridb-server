@@ -53,10 +53,6 @@ static void SERIES_update_start(siridb_series_t * series);
 static void SERIES_update_end(siridb_series_t * series);
 static void SERIES_update_overlap(siridb_series_t * series);
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
-static void SERIES_idx_swap(
-        idx_t * idx,
-        uint_fast32_t n,
-        uint_fast32_t i);
 static void SERIES_idx_sort(
         idx_t * idx,
         uint_fast32_t start,
@@ -385,7 +381,7 @@ int siridb_series_add_idx(
 
     /* never zero */
     idx = (idx_t *) realloc(
-            (idx_t *) series->idx,
+            series->idx,
             series->idx_len * sizeof(idx_t));
     if (idx == NULL)
     {
@@ -395,12 +391,12 @@ int siridb_series_add_idx(
     }
     series->idx = idx;
 
-    for (; i && start_ts < ((idx_t *) (series->idx))[i - 1].start_ts; i--)
+    for (; i && start_ts < series->idx[i - 1].start_ts; i--)
     {
-        ((idx_t *) series->idx)[i] = ((idx_t *) series->idx)[i - 1];
+        series->idx[i] = series->idx[i - 1];
     }
 
-    idx = ((idx_t *) (series->idx)) + i;
+    idx = series->idx + i;
 
     /* Check here for new values since we now can compare the current
      * idx->shard with shard. We only set NEW_VALUES when we already have
@@ -412,7 +408,7 @@ int siridb_series_add_idx(
     if (    ((shard->flags &
                 (SIRIDB_SHARD_HAS_NEW_VALUES |
                         SIRIDB_SHARD_IS_LOADING)) == 0) &&
-            ((i > 0 && ((idx_t *) (series->idx))[i - 1].shard == shard) ||
+            ((i > 0 && series->idx[i - 1].shard == shard) ||
             (i < series->idx_len - 1 && idx->shard == shard)))
     {
         shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
@@ -429,9 +425,9 @@ int siridb_series_add_idx(
      * reading the shard at startup.
      */
     if (    (i > 0 &&
-            start_ts < ((idx_t *) (series->idx))[i - 1].start_ts) ||
-            (++i < series->idx_len &&
-            end_ts > ((idx_t *) (series->idx))[i].start_ts))
+            start_ts < series->idx[i - 1].end_ts) ||
+            (i + 1 < series->idx_len &&
+            end_ts > series->idx[i + 1].start_ts))
     {
         shard->flags |= SIRIDB_SHARD_HAS_OVERLAP;
         series->flags |= SIRIDB_SERIES_HAS_OVERLAP;
@@ -567,7 +563,7 @@ void siridb_series_remove_shard(
 
     i = offset = 0;
 
-    for (   idx = (idx_t *) series->idx;
+    for (   idx = series->idx;
             i < series->idx_len;
             i++, idx++)
     {
@@ -579,8 +575,7 @@ void siridb_series_remove_shard(
         }
         else if (offset)
         {
-            ((idx_t *) series->idx)[i - offset] =
-                    ((idx_t *) series->idx)[i];
+            series->idx[i - offset] = series->idx[i];
         }
     }
 
@@ -599,7 +594,7 @@ void siridb_series_remove_shard(
         {
             series->idx_len -= offset;
             idx = (idx_t *) realloc(
-                        (idx_t *) series->idx,
+                        series->idx,
                         series->idx_len * sizeof(idx_t));
             if (idx == NULL && series->idx_len)
             {
@@ -671,7 +666,7 @@ siridb_points_t * siridb_series_get_points(
     uint32_t indexes[series->idx_len];
     len = i = size = 0;
 
-    for (   idx = (idx_t *) series->idx;
+    for (   idx = series->idx;
             i < series->idx_len;
             i++, idx++)
     {
@@ -698,7 +693,7 @@ siridb_points_t * siridb_series_get_points(
     {
         get_points_cb(
                 points,
-                (idx_t *) series->idx + indexes[i],
+                series->idx + indexes[i],
                 start_ts,
                 end_ts,
                 series->flags & SIRIDB_SERIES_HAS_OVERLAP);
@@ -819,7 +814,7 @@ int siridb_series_optimize_shard(
 
     rc = new_idx = end = i = size = start = 0;
 
-    for (   idx = (idx_t *) series->idx;
+    for (   idx = series->idx;
             i < series->idx_len && idx->start_ts < max_ts;
             i++, idx++)
     {
@@ -869,7 +864,7 @@ int siridb_series_optimize_shard(
 
     for (i = start; i < end; i++)
     {
-        idx = (idx_t *) series->idx + i;
+        idx = series->idx + i;
         /* we can have indexes for this 'new' shard which we should skip */
         if (idx->shard == shard->replacing && get_points_cb(
                     points,
@@ -915,7 +910,7 @@ int siridb_series_optimize_shard(
              */
             do
             {
-                idx = (idx_t *) series->idx + i;
+                idx = series->idx + i;
                 i++;
             }
             while (idx->shard == shard);
@@ -944,7 +939,7 @@ int siridb_series_optimize_shard(
          * Therefore we must sort the series index part containing data
          * for this shard.
          */
-        SERIES_idx_sort((idx_t *) series->idx, start, end - 1);
+        SERIES_idx_sort(series->idx, start, end - 1);
 
         /*
          * We need to set 'i' to the correct value since 'i' has possible
@@ -965,13 +960,12 @@ int siridb_series_optimize_shard(
 
         for (; i < series->idx_len; i++)
         {
-            ((idx_t *) series->idx)[i] =
-                    ((idx_t *) series->idx)[i + diff];
+            series->idx[i] = series->idx[i + diff];
         }
 
         /* shrink memory to the new size */
         idx = (idx_t *) realloc(
-                (idx_t *) series->idx,
+                series->idx,
                 series->idx_len * sizeof(idx_t));
         if (idx == NULL && series->idx_len)
         {
@@ -1020,27 +1014,6 @@ int siridb_series_open_store(siridb_t * siridb)
 }
 
 /*
- * Swap shards in idx and check 'n' times upward in the list if the swap is
- * needed.
- */
-static void SERIES_idx_swap(
-        idx_t * idx,
-        uint_fast32_t n,
-        uint_fast32_t i)
-{
-    /* swap i with i + 1 in the index */
-    idx_t tmp = idx[i + 1];
-    idx[i + 1] = idx[i];
-    idx[i] = tmp;
-
-    /* check if we also need to swap i - 1 with i ... */
-    if (--n && (idx[--i].shard != tmp.shard || idx[i].start_ts > tmp.start_ts))
-    {
-        SERIES_idx_swap(idx, n, i);
-    }
-}
-
-/*
  * Will sort an index to its correct order. The start of idx should be correct
  * with a valid shard. All replaced shard indexes are sorted towards the end.
  */
@@ -1050,9 +1023,10 @@ static void SERIES_idx_sort(
         uint_fast32_t end)
 {
     siridb_shard_t * shard = idx[start].shard;
-    idx_t * a;
-    idx_t * b;
+    idx_t * a, * b;
     uint_fast32_t i = start;
+    uint_fast32_t n, m;
+    idx_t tmp;
 
     /*
      * Since the first position is always correct we can leave this one alone.
@@ -1068,7 +1042,21 @@ static void SERIES_idx_sort(
         if (    b->shard == shard &&
                 (a->shard != shard || a->start_ts > b->start_ts))
         {
-            SERIES_idx_swap(idx, i - start, i);
+            /*
+             * Swap at least a and b but also check if we can swap a - 1 with b
+             */
+            n = i - start;
+            m = i + 1;
+            tmp = idx[m];
+            do
+            {
+                idx[m] = idx[m - 1];
+                m--;  /* we must decrement here */
+            }
+            while (--n && (
+                    idx[m - 1].shard != tmp.shard ||
+                    idx[m - 1].start_ts > tmp.start_ts));
+            idx[m] = tmp;
         }
     }
 }
@@ -1085,8 +1073,7 @@ static void SERIES_update_overlap(siridb_series_t * series)
 #endif
     for (uint_fast32_t i = 1; i < series->idx_len; i++)
     {
-        if (((idx_t *) series->idx)[i - 1].end_ts >
-                ((idx_t *) series->idx)[i].start_ts)
+        if (series->idx[i - 1].end_ts > series->idx[i].start_ts)
         {
             return;
         }
@@ -1111,7 +1098,7 @@ static void SERIES_free(siridb_series_t * series)
     /* mark shards with dropped series flag */
     for (uint_fast32_t i = 0; i < series->idx_len; i++)
     {
-        shard = ((idx_t *) series->idx)[i].shard;
+        shard = series->idx[i].shard;
         shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
         siridb_shard_decref(shard);
     }
@@ -1522,8 +1509,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
  */
 static void SERIES_update_start(siridb_series_t * series)
 {
-    series->start = (series->idx_len) ?
-            ((idx_t *) series->idx)->start_ts : -1;
+    series->start = series->idx_len ? series->idx->start_ts : -1;
 
     if (series->buffer->points->len)
     {
@@ -1546,7 +1532,7 @@ static void SERIES_update_end(siridb_series_t * series)
         idx_t * idx;
         for (uint_fast32_t i = series->idx_len; i--;)
         {
-            idx = (idx_t *) series->idx + i;
+            idx = series->idx + i;
 
             if (idx->end_ts < start)
             {

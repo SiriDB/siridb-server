@@ -16,8 +16,16 @@
 #include <assert.h>
 #include <siri/err.h>
 #include <unistd.h>
+#include <timeit/timeit.h>
 
 #define MAX_ITERATE_MERGE_COUNT 1000
+#define POINTS_MAX_QSORT 250000
+
+static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points);
+static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
+static void POINTS_simple_sort(siridb_points_t * points);
+static int POINTS_compare(const void * a, const void * b);
+static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points);
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -249,28 +257,167 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
 
         points->len = n;
 
-        siridb_points_t ** m;
-
-        while (plist->len)
+        /*
+         * Select a merge method depending on the ratio series and points.
+         */
+        if (plist->len < 4)
         {
-            m = (siridb_points_t **) &plist->data[0];
+            POINTS_sort_while_merge(plist, points);
+        }
+        else if (n == plist->len || n < POINTS_MAX_QSORT)
+        {
+            POINTS_merge_and_sort(plist, points);
+        }
+        else
+        {
+            POINTS_highest_and_merge(plist, points);
+        }
+    }
+    return points;
+}
 
-            for (i = 1; i < plist->len; i++)
+/*
+ * This merge method works best when having both a lot of series and having
+ * any number of points for each series.
+ */
+static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points)
+{
+    siridb_points_t ** m = NULL;
+    size_t i, n, l = 0;
+    siridb_points_t ** tpts;
+    uint64_t highest = 0;
+    n = points->len;
+
+    while (plist->len)
+    {
+        if (m != NULL)
+        {
+            tpts = m;
+            m = NULL;
+            for (; l < plist->len; l++, tpts++)
             {
-                tpts = (siridb_points_t *) plist->data[i];
-                if (((siridb_point_t *) tpts->data)[tpts->len].ts >
-                    ((siridb_point_t *) (*m)->data)[(*m)->len].ts)
+                if (((*tpts)->data + (*tpts)->len)->ts == highest)
                 {
-                    m = (siridb_points_t **) &plist->data[i];
+                    m = tpts;
+                    break;
                 }
             }
+        }
+
+        if (m == NULL)
+        {
+            m = (siridb_points_t **) plist->data;
+
+            for (i = 1, tpts = m + 1; i < plist->len; i++, tpts++)
+            {
+                if (((*tpts)->data + (*tpts)->len)->ts >
+                    ((*m)->data + (*m)->len)->ts)
+                {
+                    m = tpts;
+                    l = i;
+                    highest = ((*m)->data + (*m)->len)->ts;
+                }
+            }
+        }
+
+        points->data[--n] = (*m)->data[(*m)->len];
+
+        if ((*m)->len--)
+        {
+            m++;
+            l++;
+        }
+        else
+        {
+            siridb_points_free(*m);
+
+            if (--plist->len)
+            {
+                *m = (siridb_points_t *) plist->data[plist->len];
+            }
+        }
+
+        if (!(n % MAX_ITERATE_MERGE_COUNT))
+        {
+            usleep(3000);
+        }
+    }
+#ifdef DEBUG
+    /* size should be exactly zero */
+    assert (n == 0);
+#endif
+}
+
+
+/*
+ * This merge method works best for only a few series with possible a lot
+ * of points.
+ */
+static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
+{
+    siridb_points_t ** m;
+    size_t i, n;
+    siridb_points_t ** tpts;
+    n = points->len;
+
+    while (plist->len)
+    {
+        m = (siridb_points_t **) plist->data;
+
+        for (i = 1, tpts = m + 1; i < plist->len; i++, tpts++)
+        {
+            if (((*tpts)->data + (*tpts)->len)->ts >
+                ((*m)->data + (*m)->len)->ts)
+            {
+                m = tpts;
+            }
+        }
+
+        points->data[--n] = (*m)->data[(*m)->len];
+
+        if (!(*m)->len--)
+        {
+            siridb_points_free(*m);
+
+            if (--plist->len)
+            {
+                *m = (siridb_points_t *) plist->data[plist->len];
+            }
+        }
+
+        if (!(n % MAX_ITERATE_MERGE_COUNT))
+        {
+            usleep(3000);
+        }
+    }
+#ifdef DEBUG
+    /* size should be exactly zero */
+    assert (n == 0);
+#endif
+}
+
+/*
+ * This merge method works best when having a lot of series with only one point
+ * or when the total number of points it not so high.
+ */
+static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
+{
+    siridb_points_t ** m;
+    size_t i, n;
+    n = points->len;
+    uint8_t use_simple_sort = n == plist->len;
+
+    while (plist->len)
+    {
+        for (i = 0; i < plist->len; i++)
+        {
+            m = (siridb_points_t **) &plist->data[i];
 
             points->data[--n] = (*m)->data[(*m)->len];
 
             if (!(*m)->len--)
             {
                 siridb_points_free(*m);
-
                 if (--plist->len)
                 {
                     *m = (siridb_points_t *) plist->data[plist->len];
@@ -279,14 +426,66 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
 
             if (!(n % MAX_ITERATE_MERGE_COUNT))
             {
-                usleep(5000);
+                usleep(3000);
             }
         }
+    }
 
 #ifdef DEBUG
-        /* size should be exactly zero */
-        assert (n == 0);
+    /* size should be exactly zero */
+    assert (n == 0);
 #endif
+
+    usleep(5000);
+
+    if (use_simple_sort)
+    {
+        POINTS_simple_sort(points);
     }
-    return points;
+    else
+    {
+        qsort(  points->data,
+                points->len,
+                sizeof(siridb_point_t),
+                &POINTS_compare);
+    }
+}
+
+inline static int POINTS_compare(const void * a, const void * b)
+{
+    return (((siridb_point_t *) a)->ts - ((siridb_point_t *) b)->ts);
+}
+/*
+ * Sort points by time-stamp.
+ *
+ * Warning: this function should only be used in another thread.
+ */
+static void POINTS_simple_sort(siridb_points_t * points)
+{
+    if (points->len < 2)
+    {
+        return;  /* nothing to do... */
+    }
+    size_t n = 0;
+    size_t i;
+    siridb_point_t * pa, * pb;
+    siridb_point_t tmp;
+    while(++n < points->len)
+    {
+        pa = points->data + n - 1;
+        pb = points->data + n;
+        if (pa->ts > pb->ts)
+        {
+            tmp = points->data[n];
+            i = n;
+            do
+            {
+                points->data[i] = points->data[i - 1];
+            }
+            while (--i && points->data[i - 1].ts > tmp.ts);
+            points->data[i] = tmp;
+
+            usleep(100);
+        }
+    }
 }

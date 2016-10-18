@@ -15,7 +15,7 @@ case "$1" in
             echo "--------------------------------------------------------------------------------"
         else
             echo "Configure systemd service 'siridb-server' ..."
-            cp /usr/lib/siridb-server/systemd/siridb-server.service /lib/systemd/system/siridb-server.service
+            cp /usr/lib/siridb/server/systemd/siridb-server.service /lib/systemd/system/siridb-server.service
             systemctl daemon-reload || true
             deb-systemd-invoke enable siridb-server 2>/dev/null >/dev/null || true
             echo "--------------------------------------------------------------------------------"

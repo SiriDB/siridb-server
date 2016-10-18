@@ -113,6 +113,7 @@ query_alter_t * query_alter_new(void)
         q_alter->tp = QUERIES_ALTER;
         q_alter->alter_tp = QUERY_ALTER_NONE;
         q_alter->via.dummy = NULL;
+        q_alter->n = 0;
     }
 
     return q_alter;
@@ -187,6 +188,7 @@ void query_alter_free(uv_handle_t * handle)
     {
     case QUERY_ALTER_NONE:
     case QUERY_ALTER_DATABASE:
+    case QUERY_ALTER_SERVERS:
         break;
     case QUERY_ALTER_GROUP:
         siridb_group_decref(q_alter->via.group);

@@ -139,10 +139,13 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Its only possible to change a servers address or port when the server " \
     "is not connected."
 #define MSG_SUCCESS_DROP_SERVER "Server '%s' is dropped successfully."
+#define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
+    "Successful set log level to '%s' on %lu servers."
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
+static void enter_alter_servers(uv_async_t * handle);
 static void enter_alter_stmt(uv_async_t * handle);
 static void enter_alter_user(uv_async_t * handle);
 static void enter_count_stmt(uv_async_t * handle);
@@ -226,6 +229,7 @@ static void on_ack_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
+static void on_alter_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
 static void on_drop_series_response(slist_t * promises, uv_async_t * handle);
 static void on_drop_shards_response(slist_t * promises, uv_async_t * handle);
@@ -349,6 +353,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_ACCESS_EXPR] = enter_access_expr;
     siriparser_listen_enter[CLERI_GID_ALTER_GROUP] = enter_alter_group;
     siriparser_listen_enter[CLERI_GID_ALTER_SERVER] = enter_alter_server;
+    siriparser_listen_enter[CLERI_GID_ALTER_SERVERS] = enter_alter_servers;
     siriparser_listen_enter[CLERI_GID_ALTER_STMT] = enter_alter_stmt;
     siriparser_listen_enter[CLERI_GID_ALTER_USER] = enter_alter_user;
     siriparser_listen_enter[CLERI_GID_COUNT_STMT] = enter_count_stmt;
@@ -503,6 +508,14 @@ static void enter_alter_server(uv_async_t * handle)
 
         SIRIPARSER_NEXT_NODE
     }
+}
+
+static void enter_alter_servers(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    ((query_alter_t *) query->data)->alter_tp = QUERY_ALTER_SERVERS;
+
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_alter_stmt(uv_async_t * handle)
@@ -3298,13 +3311,12 @@ static void exit_set_log_level(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
 
 #ifdef DEBUG
     assert (query->data != NULL);
-    assert (IS_MASTER);
 #endif
 
-    siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
     cleri_node_t * node =
             query->nodes->node->children->next->next->node->children->node;
 
@@ -3332,62 +3344,108 @@ static void exit_set_log_level(uv_async_t * handle)
         break;
     }
 
-    /*
-     * we can set the success message, we just ignore the message in case an
-     * error occurs.
-     */
-
-    QP_ADD_SUCCESS
-    qp_add_fmt_safe(query->packer,
-                "Successful set log level to '%s' on '%s'.",
-                logger_level_name(log_level),
-                server->name);
-
-    if (server == siridb->server)
+    if (q_alter->alter_tp == QUERY_ALTER_SERVERS)
     {
-        logger_set_level(log_level);
+        /*
+         * alter_servers
+         */
+        cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+        siridb_server_walker_t wserver = {
+            .server=siridb->server,
+            .siridb=siridb
+        };
 
-        SIRIPARSER_ASYNC_NEXT_NODE
-    }
-    else
-    {
-        QP_PACK_INT16(buffer, log_level)
-
-        if (siridb_server_is_online(server))
+        if (where_expr == NULL || cexpr_run(
+                where_expr,
+                (cexpr_cb_t) siridb_server_cexpr_cb,
+                &wserver))
         {
-            sirinet_pkg_t * pkg = sirinet_pkg_new(
-                    0,
-                    3,
-                    BPROTO_LOG_LEVEL_UPDATE,
-                    buffer);
-            if (pkg != NULL)
-            {
-                /* handle will be bound to a timer so we should increment */
-                siri_async_incref(handle);
-                if (siridb_server_send_pkg(
-                        server,
-                        pkg,
-                        0,
-                        on_ack_response,
-                        handle,
-                        0))
-                {
-                    /*
-                     * signal is raised and 'on_ack_response' will not be
-                     * called
-                     */
-                    free(pkg);
-                    siri_async_decref(&handle);
-                }
-            }
+            logger_set_level(log_level);
+            q_alter->n++;
+        }
+
+        if (IS_MASTER)
+        {
+            /*
+             * Hide log level information so we can later create an appropriate
+             * message.
+             */
+            q_alter->n += log_level << 16;
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_SERVERS,
+                    (sirinet_promises_cb) on_alter_xxx_response,
+                    0);
         }
         else
         {
-            snprintf(query->err_msg,
-                    SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Cannot set log level, '%s' is currently unavailable",
+            qp_add_raw(query->packer, "servers", 7);
+            qp_add_int64(query->packer, q_alter->n);
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+    }
+    else
+    {
+        /*
+         * alter_server
+         *
+         * we can set the success message, we just ignore the message in case
+         * an error occurs.
+         */
+        siridb_server_t * server = q_alter->via.server;
+
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                    "Successful set log level to '%s' on '%s'.",
+                    logger_level_name(log_level),
                     server->name);
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+
+        if (server == siridb->server)
+        {
+            logger_set_level(log_level);
+
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+        else
+        {
+            QP_PACK_INT16(buffer, log_level)
+
+            if (siridb_server_is_online(server))
+            {
+                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                        0,
+                        3,
+                        BPROTO_LOG_LEVEL_UPDATE,
+                        buffer);
+                if (pkg != NULL)
+                {
+                    /* handle will be bound to a timer so we should increment */
+                    siri_async_incref(handle);
+                    if (siridb_server_send_pkg(
+                            server,
+                            pkg,
+                            0,
+                            on_ack_response,
+                            handle,
+                            0))
+                    {
+                        /*
+                         * signal is raised and 'on_ack_response' will not be
+                         * called
+                         */
+                        free(pkg);
+                        siri_async_decref(&handle);
+                    }
+                }
+            }
+            else
+            {
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Cannot set log level, '%s' is currently unavailable",
+                        server->name);
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            }
         }
     }
 }
@@ -4223,6 +4281,75 @@ static void on_ack_response(
  *
  * Make sure to run siri_async_incref() on the handle
  */
+static void on_alter_xxx_response(slist_t * promises, uv_async_t * handle)
+{
+    ON_PROMISES
+
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    sirinet_pkg_t * pkg;
+    sirinet_promise_t * promise;
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_count;
+
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+
+    for (size_t i = 0; i < promises->len; i++)
+    {
+        promise = promises->data[i];
+
+        if (promise == NULL)
+        {
+            continue;
+        }
+
+        pkg = (sirinet_pkg_t *) promise->data;
+
+        if (pkg != NULL && pkg->tp == BPROTO_RES_QUERY)
+        {
+            qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+            if (    qp_is_map(qp_next(&unpacker, NULL)) &&
+                    qp_is_raw(qp_next(&unpacker, NULL)) &&  // servers etc.
+                    qp_is_int(qp_next(&unpacker, &qp_count))) // one result
+            {
+                q_alter->n += qp_count.via.int64;
+
+                /* extract time-it info if needed */
+                if (query->timeit != NULL)
+                {
+                    siridb_query_timeit_from_unpacker(query, &unpacker);
+                }
+            }
+        }
+
+        /* make sure we free the promise and data */
+        free(promise->data);
+        sirinet_promise_decref(promise);
+    }
+    /*
+     * Note: since this function has the sole purpose for alter servers
+     *       and setting log levels, we now simply ad the message here.
+     */
+    QP_ADD_SUCCESS
+
+    log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+            logger_level_name(q_alter->n >> 16),
+            q_alter->n & 0xffff);
+
+    qp_add_fmt_safe(
+            query->packer,
+            MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+            logger_level_name(q_alter->n >> 16),
+            q_alter->n & 0xffff);
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
+/*
+ * Call-back function: sirinet_promises_cb
+ *
+ * Make sure to run siri_async_incref() on the handle
+ */
 static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
@@ -4233,7 +4360,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_count;
 
-    query_count_t * q_count = query->data;
+    query_count_t * q_count = (query_count_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -4289,7 +4416,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_drop;
 
-    query_drop_t * q_drop = query->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {
@@ -4346,7 +4473,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
     qp_unpacker_t unpacker;
     qp_obj_t qp_drop;
 
-    query_drop_t * q_drop = query->data;
+    query_drop_t * q_drop = (query_drop_t *) query->data;
 
     for (size_t i = 0; i < promises->len; i++)
     {

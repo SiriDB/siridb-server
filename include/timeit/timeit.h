@@ -23,7 +23,10 @@ float timeit_stop(timeit_t * start);
 /*
  * Usage:
  *
- *  timeit_start();
+ *  timeit_t start;
+ *  timeit_start(&start);
  *
- *  log_debug("Time in milliseconds: %f",timeit_stop());
+ *  ... some code ....
+ *
+ *  log_debug("Time in milliseconds: %f",timeit_stop(&start));
  */

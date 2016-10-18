@@ -46,6 +46,17 @@ class TestServer(TestBase):
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
 
+        result = await self.client0.query('alter servers set log_level info')
+        self.assertEqual(result.pop('success_msg'), "Successful set log level to 'info' on 2 servers.")
+
+        result = await self.client1.query('list servers log_level')
+        self.assertEqual(result.pop('servers'), [['info'], ['info']])
+
+        result = await self.client0.query('alter servers where active_handles > 1 set log_level debug')
+
+        result = await self.client1.query('list servers log_level')
+        self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
+
         with self.assertRaisesRegexp(
                 QueryError,
                 "Query error at position 42. Expecting debug, info, warning, error or critical"):
@@ -58,6 +69,8 @@ class TestServer(TestBase):
         self.server1.listen_backend_port = 9111
         self.server1.create()
         await self.server1.start(sleep=35)
+
+        await asyncio.sleep(35)
 
         result = await self.client0.query('list servers status')
         self.assertEqual(result.pop('servers'), [['running'], ['running']])
@@ -101,7 +114,7 @@ class TestServer(TestBase):
             self.assertEqual(result.pop('servers'), [['running'], ['running']])
 
         await self.db.add_replica(self.server3, 1)
-        await self.assertIsRunning(self.db, self.client0, timeout=10)
+        await self.assertIsRunning(self.db, self.client0, timeout=35)
 
         self.client0.close()
         self.client1.close()

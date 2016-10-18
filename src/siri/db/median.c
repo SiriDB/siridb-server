@@ -86,13 +86,11 @@ void siridb_median_find_n(
             }
             else if (v > pivot)
             {
-                arr_r[size_r] = v;
-                size_r++;
+                arr_r[size_r++] = v;
             }
             else
             {
-                arr_l[size_l] = v;
-                size_l++;
+                arr_l[size_l++] = v;
             }
         }
         point->val.int64 = (size_l == n) ? pivot : ((size_l > n) ?
@@ -128,13 +126,11 @@ void siridb_median_find_n(
             }
             else if (v > pivot)
             {
-                arr_r[size_r] = v;
-                size_r++;
+                arr_r[size_r++] = v;
             }
             else
             {
-                arr_l[size_l] = v;
-                size_l++;
+                arr_l[size_l++] = v;
             }
         }
 
@@ -211,7 +207,14 @@ void siridb_median_real(
             find_median_real_int64(
                     arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
             find_median_real_int64(
-                    arr_r, size_r, arr_l, n - size_l - 1, a, b, found_a, found_b);
+                    arr_r,
+                    size_r,
+                    arr_l,
+                    n - size_l - 1,
+                    a,
+                    b,
+                    found_a,
+                    found_b);
     }
     else
     {
@@ -243,13 +246,11 @@ void siridb_median_real(
             }
             else if (v > pivot)
             {
-                arr_r[size_r] = v;
-                size_r++;
+                arr_r[size_r++] = v;
             }
             else
             {
-                arr_l[size_l] = v;
-                size_l++;
+                arr_l[size_l++] = v;
             }
         }
         if (size_l == n - 1)
@@ -266,7 +267,14 @@ void siridb_median_real(
             find_median_real_double(
                     arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
             find_median_real_double(
-                    arr_r, size_r, arr_l, n - size_l - 1, a, b, found_a, found_b);
+                    arr_r,
+                    size_r,
+                    arr_l,
+                    n - size_l - 1,
+                    a,
+                    b,
+                    found_a,
+                    found_b);
     }
 }
 
@@ -307,13 +315,11 @@ static double find_median_real_int64(
         }
         else if (v > pivot)
         {
-            other[size_r] = v;
-            size_r++;
+            other[size_r++] = v;
         }
         else
         {
-            seq[size_l] = v;
-            size_l++;
+            seq[size_l++] = v;
         }
     }
 
@@ -335,7 +341,8 @@ static double find_median_real_int64(
 
     if ((!found_b && size_l > n) || size_l > n - 1)
     {
-        return find_median_real_int64(seq, size_l, other, n, a, b, found_a, found_b);
+        return find_median_real_int64(
+                seq, size_l, other, n, a, b, found_a, found_b);
     }
 
     return find_median_real_int64(
@@ -380,13 +387,11 @@ static double find_median_real_double(
         }
         else if (v > pivot)
         {
-            other[size_r] = v;
-            size_r++;
+            other[size_r++] = v;
         }
         else
         {
-            seq[size_l] = v;
-            size_l++;
+            seq[size_l++] = v;
         }
     }
     if (size_l == n - 1)
@@ -407,7 +412,8 @@ static double find_median_real_double(
 
     if ((!found_b && size_l > n) || size_l > n - 1)
     {
-        return find_median_real_double(seq, size_l, other, n, a, b, found_a, found_b);
+        return find_median_real_double(
+                seq, size_l, other, n, a, b, found_a, found_b);
     }
 
     return find_median_real_double(
@@ -448,13 +454,11 @@ static double find_n_int64(
         }
         else if (v > pivot)
         {
-            other[size_r] = v;
-            size_r++;
+            other[size_r++] = v;
         }
         else
         {
-            seq[size_l] = v;
-            size_l++;
+            seq[size_l++] = v;
         }
     }
 
@@ -504,13 +508,11 @@ static double find_n_double(
         }
         else if (v > pivot)
         {
-            other[size_r] = v;
-            size_r++;
+            other[size_r++] = v;
         }
         else
         {
-            seq[size_l] = v;
-            size_l++;
+            seq[size_l++] = v;
         }
     }
     if (size_l == n)

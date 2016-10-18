@@ -10,6 +10,7 @@
  *
  */
 #include <cleri/parser.h>
+#include <cleri/expecting.h>
 #include <logger/logger.h>
 #include <stdbool.h>
 #include <string.h>

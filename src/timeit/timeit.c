@@ -11,6 +11,16 @@
  */
 #include <timeit/timeit.h>
 
+/*
+ * Usage:
+ *
+ *  timeit_t start;
+ *  timeit_start(&start);
+ *
+ *  ... some code ....
+ *
+ *  log_debug("Time in milliseconds: %f",timeit_stop(&start));
+ */
 void timeit_start(timeit_t * start)
 {
     gettimeofday(start, 0);

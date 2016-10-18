@@ -62,7 +62,7 @@ typedef struct siridb_series_s
     uint64_t end;
     uint32_t length;
     uint32_t idx_len;
-    void * idx;
+    idx_t * idx;
     siridb_buffer_t * buffer;
     uint16_t pool;
     uint16_t name_len;

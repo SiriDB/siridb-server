@@ -27,12 +27,6 @@
 
 int main(int argc, char * argv[])
 {
-    #ifdef DEBUG
-    printf( "*******************************\n"
-            "*     Start DEBUG Release     *\n"
-            "*******************************\n");
-    #endif
-
     /*
      * set local to LC_ALL
      * more info at: http://www.cprogramming.com/tutorial/unicode.html
@@ -52,7 +46,7 @@ int main(int argc, char * argv[])
     /* setup logger, this must be done before logging the first line */
     siri_setup_logger();
 
-    #ifdef DEBUG
+#ifdef DEBUG
     int rc;
     /* run tests when we are in debug mode */
     rc = run_tests(0);
@@ -60,11 +54,14 @@ int main(int argc, char * argv[])
     {
         exit(1);
     }
-    #endif
+    log_warning("Starting SiriDB Server (%s-DEBUG-RELEASE-%s)",
+    		SIRIDB_VERSION,
+			SIRIDB_BUILD_DATE);
+#else
 
     /* start server */
     log_info("Starting SiriDB Server (version: %s)", SIRIDB_VERSION);
-
+#endif
     /* initialize SiriDB mutex (used for the siridb_list) */
     uv_mutex_init(&siri.siridb_mutex);
 
