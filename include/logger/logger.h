@@ -44,7 +44,7 @@ void log__critical(char * fmt, ...);
 extern logger_t Logger;
 
 #define log_debug(fmt, ...)                 \
-    if (Logger.level <= LOGGER_DEBUG)       \
+    if (Logger.level == LOGGER_DEBUG)       \
         log__debug(fmt, ##__VA_ARGS__)      \
 
 #define log_info(fmt, ...)                  \

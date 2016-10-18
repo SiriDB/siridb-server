@@ -23,6 +23,8 @@
 #include <siri/args/args.h>
 #include <llist/llist.h>
 
+#define SIRIDB_BUILD_DATE __DATE__ " " __TIME__
+
 typedef struct cleri_grammar_s cleri_grammar_t;
 typedef struct siridb_list_s siridb_list_t;
 typedef struct siri_fh_s siri_fh_t;

@@ -168,10 +168,20 @@ static void BSERVER_flags_update(
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    log_debug("[Back-end server] Got data (pid: %d, len: %d, tp: %s)",
-            pkg->pid,
-            pkg->len,
-            sirinet_bproto_client_str(pkg->tp));
+    if (Logger.level == LOGGER_DEBUG)
+    {
+    	char addr_port[ADDR_BUF_SZ];
+    	if (sirinet_addr_and_port(addr_port, client) == 0)
+    	{
+    	    log_debug(
+					"Package received from server '%s' "
+					"(pid: %u, len: %lu, tp: %s)",
+					addr_port,
+    	            pkg->pid,
+    	            pkg->len,
+    	            sirinet_bproto_client_str(pkg->tp));
+    	}
+    }
 
     switch ((bproto_client_t) pkg->tp)
     {

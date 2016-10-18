@@ -54,7 +54,9 @@ int main(int argc, char * argv[])
     {
         exit(1);
     }
-    log_warning("Starting SiriDB Server (%s-DEBUG-RELEASE)", SIRIDB_VERSION);
+    log_warning("Starting SiriDB Server (%s-DEBUG-RELEASE-%s)",
+    		SIRIDB_VERSION,
+			SIRIDB_BUILD_DATE);
 #else
 
     /* start server */

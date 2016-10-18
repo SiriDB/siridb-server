@@ -161,22 +161,29 @@ static void on_new_connection(uv_stream_t * server, int status)
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
-    if (pkg->len < WARNING_PKG_SIZE)
+    if (Logger.level == LOGGER_DEBUG)
     {
-        log_debug("[Client server] Got data (pid: %d, len: %d, tp: %s)",
-                pkg->pid,
-                pkg->len,
-                sirinet_cproto_client_str(pkg->tp));
+    	char addr_port[ADDR_BUF_SZ];
+    	if (sirinet_addr_and_port(addr_port, client) == 0)
+    	{
+			log_debug(
+					"Package received from client '%s' "
+					"(pid: %u, len: %lu, tp: %s)",
+					addr_port,
+					pkg->pid,
+					pkg->len,
+					sirinet_cproto_client_str(pkg->tp));
+    	}
     }
-    else
+    else if (pkg->len >= WARNING_PKG_SIZE)
     {
-        char name[ADDR_BUF_SZ];
-        if (sirinet_addr_and_port(name, client) == 0)
+        char addr_port[ADDR_BUF_SZ];
+        if (sirinet_addr_and_port(addr_port, client) == 0)
         {
             log_warning(
                     "Got a large package from '%s' (pid: %d, len: %d, tp: %s)."
                     " A package size smaller than 1MB is recommended!",
-                    name,
+					addr_port,
                     pkg->pid,
                     pkg->len,
                     sirinet_cproto_client_str(pkg->tp));
