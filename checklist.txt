@@ -1,0 +1,29 @@
+Before building a new version we need to freeze the master branche.
+
+0. Make sure the debug version is tested and changelogs etc. are correct.
+
+1. Build Release version
+make clean 		(if not done already...)
+make			(check for error, warnings etc)
+
+2. Run tests with release version
+change BUILDTYPE in test script to 'Release' and run the tests
+
+3. Create a new branch (replace x.y.z with the new version)
+git checkout -b x.y.z
+
+4. Push to remote origin (again, replace x.y.z with your version)
+git push origin x.y.z
+
+5. Check out to master
+git check master
+
+6. Build debian packages
+./build_deb.py
+
+7. Test package
+sudo dpkg -i build/siridb-server...deb
+
+7. Upload debian package, update links etc.
+ 
+
