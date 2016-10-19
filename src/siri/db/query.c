@@ -30,6 +30,7 @@
 #include <strextra/strextra.h>
 #include <string.h>
 #include <sys/time.h>
+#include <siri/err.h>
 
 #ifndef DEBUG
 #include <math.h>

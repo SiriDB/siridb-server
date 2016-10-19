@@ -1,3 +1,5 @@
   * Only try to load a database from a directory containing at least the
     files 'database.conf' and 'database.dat'. This prevents trying to load
     from directories like lost+found etc. (issue #1)
+  * Increased UV_THREADPOOL_SIZE from four to eigth and prevent SiriDB
+    from loading more than four databases. (issue #2)

@@ -254,6 +254,16 @@ static int SIRI_load_databases(void)
         	continue;
         }
 
+        if (siri.siridb_list->len == MAX_NUMBER_DB)
+        {
+        	log_critical(
+        			"Cannot load '%s' since no more than %d databases "
+        			"are allowed on a single SiriDB process.",
+					dbpath->d_name,
+					MAX_NUMBER_DB);
+        	continue;
+        }
+
         if (siridb_new(buffer, 0) == NULL)
         {
             log_error("Could not load '%s'.", dbpath->d_name);

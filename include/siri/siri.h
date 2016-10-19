@@ -24,6 +24,7 @@
 #include <llist/llist.h>
 
 #define SIRIDB_BUILD_DATE __DATE__ " " __TIME__
+#define MAX_NUMBER_DB 4
 
 typedef struct cleri_grammar_s cleri_grammar_t;
 typedef struct siridb_list_s siridb_list_t;
