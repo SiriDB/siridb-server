@@ -52,6 +52,31 @@ static void SIRIDB_free(siridb_t * siridb);
     *siridb = NULL;                         \
     return -1;
 
+/*
+ * Check if at least database.conf and database.dat exist in the path.
+ */
+int siridb_is_db_path(const char * dbpath)
+{
+	char buffer[PATH_MAX];
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.conf",
+            dbpath);
+    if (!xpath_file_exist(buffer))
+    {
+    	return 0;  /* false */
+    }
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.dat",
+            dbpath);
+    if (!xpath_file_exist(buffer))
+    {
+    	return 0;  /* false */
+    }
+    return 1;  /* true */
+}
+
 siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
     size_t len = strlen(dbpath);

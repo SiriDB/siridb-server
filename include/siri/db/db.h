@@ -108,6 +108,7 @@ typedef struct siridb_s
     siridb_groups_t * groups;
 } siridb_t;
 
+int siridb_is_db_path(const char * dbpath);
 siridb_t * siridb_new(const char * dbpath, int lock_flags);
 int siridb_from_unpacker(
         qp_unpacker_t * unpacker,

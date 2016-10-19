@@ -248,6 +248,12 @@ static int SIRI_load_databases(void)
                 siri.cfg->default_db_path,
                 dbpath->d_name);
 
+        if (!siridb_is_db_path(buffer))
+        {
+        	/* this is not a SiriDB database directory, files are missing */
+        	continue;
+        }
+
         if (siridb_new(buffer, 0) == NULL)
         {
             log_error("Could not load '%s'.", dbpath->d_name);
