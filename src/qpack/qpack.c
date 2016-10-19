@@ -564,7 +564,7 @@ int qp_add_int8(qp_packer_t * packer, int8_t integer)
 int qp_add_int16(qp_packer_t * packer, int16_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_ADD_INT8(packer, i8)
 
     QP_ADD_INT16(packer, integer)
@@ -584,11 +584,11 @@ int qp_add_int16(qp_packer_t * packer, int16_t integer)
 int qp_add_int32(qp_packer_t * packer, int32_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_ADD_INT8(packer, i8)
 
     int16_t i16;
-    if ((i16 = integer) == integer)
+    if ((i16 = (int16_t) integer) == integer)
         QP_ADD_INT16(packer, i16)
 
     QP_ADD_INT32(packer, integer)
@@ -600,15 +600,15 @@ int qp_add_int32(qp_packer_t * packer, int32_t integer)
 int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_ADD_INT8(packer, i8)
 
     int16_t i16;
-    if ((i16 = integer) == integer)
+    if ((i16 = (int16_t) integer) == integer)
         QP_ADD_INT16(packer, i16)
 
     int32_t i32;
-    if ((i32 = integer) == integer)
+    if ((i32 = (int32_t) integer) == integer)
         QP_ADD_INT32(packer, i32)
 
 
@@ -746,7 +746,7 @@ int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_FADD_INT8(fpacker, i8)
 
     QP_FADD_INT16(fpacker, integer)
@@ -764,11 +764,11 @@ int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
 int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_FADD_INT8(fpacker, i8)
 
     int16_t i16;
-    if ((i16 = integer) == integer)
+    if ((i16 = (int16_t) integer) == integer)
         QP_FADD_INT16(fpacker, i16)
 
     QP_FADD_INT32(fpacker, integer)
@@ -780,15 +780,15 @@ int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
 int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 {
     int8_t i8;
-    if ((i8 = integer) == integer)
+    if ((i8 = (int8_t) integer) == integer)
         QP_FADD_INT8(fpacker, i8)
 
     int16_t i16;
-    if ((i16 = integer) == integer)
+    if ((i16 = (int16_t) integer) == integer)
         QP_FADD_INT16(fpacker, i16)
 
     int32_t i32;
-    if ((i32 = integer) == integer)
+    if ((i32 = (int32_t) integer) == integer)
         QP_FADD_INT32(fpacker, i32)
 
     return (fputc(QP_INT64, fpacker) != EOF &&

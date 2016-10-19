@@ -123,7 +123,10 @@ void siridb_query_run(
     query->pr = NULL;
     query->nodes = NULL;
 
-    log_debug("Parsing query (%d): %s", query->flags, query->q);
+    if (Logger.level == LOGGER_DEBUG && strstr(query->q, "password") == NULL)
+    {
+    	log_debug("Parsing query (%d): %s", query->flags, query->q);
+    }
 
     /* increment active tasks */
     ((sirinet_socket_t *) query->client->data)->siridb->active_tasks++;

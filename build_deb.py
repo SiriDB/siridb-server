@@ -8,8 +8,10 @@ import subprocess
 import shutil
 import stat
 import re
+import argparse
 
 VERSION_FILE = 'include/siri/version.h'
+CHANGELOG_FILE = 'ChangeLog'
 
 def _get_version():
     re_version = re.compile('^#define SIRIDB_VERSION "([0-9]+\.[0-9]+\.[0-9]+)"$')
@@ -24,6 +26,8 @@ def _get_version():
 def _get_changelog(version):
     with open('ChangeLog-{}'.format(version), 'r') as f:
         content = f.read()
+    if not content:
+        raise ValueError('Changelog required!')
     return content
 
 def _get_distribution():
@@ -40,13 +44,32 @@ if __name__ == '__main__':
     if version is None:
         exit('Cannot find version in file: {}'.format(VERSION_FILE))
 
-    changelog = _get_changelog(version)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-r',
+        '--rev',
+        type=int,
+        default=0,
+        help='Debian Revision number.')
+
+    parser.add_argument(
+        '-f',
+        '--force',
+        action='store_true',
+        help='Overwrite existing build.')
+
+    args = parser.parse_args()
+
+    if args.rev:
+        version += '-{}'.format(args.rev)
+
     # Explain architecture= amd64
     # The architecture is AMD64-compatible and Debian AMD64 will run on AMD and
     # Intel processors with 64-bit support.
     # Because of the technology paternity, Debian uses the name "AMD64".
-
     config = dict(
+        package='siridb-server',
         version=version,
         name='Jeroen van der Heijden',
         email='jeroen@transceptor.technology',
@@ -64,7 +87,6 @@ if __name__ == '__main__':
         distribution=_get_distribution(),
         curdate=datetime.datetime.utcnow().strftime('%d %b %Y'),
         year=datetime.datetime.utcnow().year,
-        package='siridb-server',
         description='SiriDB time series database server',
         long_description='''
  SiriDB is a fast and scalable time series database.
@@ -72,9 +94,25 @@ if __name__ == '__main__':
         explain='start the SiriDB time series database server',
         depends='${shlibs:Depends}, '
                 '${misc:Depends}, '
-                'libuv1 (>= 1.8.0)',
-        changelog=changelog.strip()
+                'libuv1 (>= 1.8.0)'
     )
+
+    with open(CHANGELOG_FILE, 'r') as f:
+        current_changelog = f.read()
+
+    if '{package} ({version})'.format(
+            **config) in current_changelog:
+        if not args.force:
+            raise ValueError(
+                'Version {} already build. Use -r <revision> to create a new '
+                'revision number or use -f to overwrite the existing pacakge'
+                .format(version))
+        changelog = None
+    else:
+        changelog = _get_changelog(version)
+        config.update(dict(
+            changelog=changelog.strip()
+        ))
 
     POSTINST = open(
         'deb/POSTINST', 'r').read().strip().format(**config)
@@ -84,8 +122,9 @@ if __name__ == '__main__':
         'deb/PRERM', 'r').read().strip().format(**config)
     OVERRIDES = open(
         'deb/OVERRIDES', 'r').read().strip().format(**config)
-    CHANGELOG = open(
-        'deb/CHANGELOG', 'r').read().strip().format(**config)
+    if changelog:
+        CHANGELOG = open(
+            'deb/CHANGELOG', 'r').read().strip().format(**config)
     CONTROL = open(
         'deb/CONTROL', 'r').read().strip().format(**config)
     MANPAGE = open(
@@ -105,15 +144,17 @@ if __name__ == '__main__':
 
     subprocess.call(['strip', '--strip-unneeded', source_path])
 
-    deb_file = '{package}_{version}_{architecture}.deb'.format(**config)
+    deb_file = \
+        '{package}_{version}_{architecture}.deb'.format(**config)
     source_deb = os.path.join(temp_path, deb_file)
     dest_deb = os.path.join('build', deb_file)
 
     if os.path.exists(dest_deb):
         os.unlink(dest_deb)
 
-    pkg_path = os.path.join(temp_path, '{}-{}'.format(config['package'],
-                                                      config['version']))
+    pkg_path = os.path.join(
+        temp_path,
+        '{package}_{version}'.format(**config))
 
     debian_path = os.path.join(pkg_path, 'debian')
 
@@ -154,21 +195,12 @@ if __name__ == '__main__':
     with open(os.path.join(debian_path, 'compat'), 'w') as f:
         f.write('9')
 
-    changelog_file = 'ChangeLog'
-
-    if os.path.isfile(changelog_file):
-        with open(changelog_file, 'r') as f:
-            current_changelog = f.read()
-    else:
-        current_changelog = ''
-
-    if '{package} ({version})'.format(**config) not in current_changelog:
+    if changelog:
         changelog = CHANGELOG + '\n\n' + current_changelog
-
-        with open(changelog_file, 'w') as f:
+        with open(CHANGELOG_FILE, 'w') as f:
             f.write(changelog)
 
-    shutil.copy(changelog_file, os.path.join(debian_path, 'changelog'))
+    shutil.copy(CHANGELOG_FILE, os.path.join(debian_path, 'changelog'))
 
     with open(os.path.join(debian_path, 'control'), 'w') as f:
         f.write(CONTROL)
