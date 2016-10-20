@@ -21,6 +21,15 @@ If you like to manage SiriDB from the terminal we have a prompt with auto-comple
 	wget https://storage.googleapis.com/siridb/prompt/deb/siridb-prompt_2.0.0_amd64.deb
 	sudo dpkg -i siridb-prompt_2.0.0_amd64.deb
 
+Compile
+-------
+
+(Ubuntu) Install the following packages:
+ 
+	sudo apt-get install libuv1-dev
+	sudo apt-get install uuid-dev
+	sudo apt-get install libpcre3-dev
+
 Logging
 -------
 Journal is prefered over rsyslog. To setup persistant logging using journald:
@@ -30,7 +39,6 @@ Modify `/etc/systemd/journald.conf` and enable the following:
 
 	[Journal]
 	Storage=persistent
-
 	
 Now its possible to follow logs:
 `journalctl -u siridb-server -f`
