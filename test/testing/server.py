@@ -22,10 +22,9 @@ class Server:
                  optimize_interval=30,
                  heartbeat_interval=30):
         self.n = n
-        self.listen_client_address = 'localhost'
         self.listen_client_port = 9000 + n
-        self.listen_backend_address = 'localhost'
         self.listen_backend_port = 9010 + n
+        self.server_address = 'localhost'
         self.optimize_interval = optimize_interval
         self.heartbeat_interval = heartbeat_interval
         self.cfgfile = os.path.join(TEST_DIR, 'siridb{}.conf'.format(self.n))
@@ -38,11 +37,9 @@ class Server:
 
         config = configparser.RawConfigParser()
         config.add_section('siridb')
-        config.set('siridb', 'listen_client', '{}:{}'.format(
-            self.listen_client_address,
-            self.listen_client_port))
-        config.set('siridb', 'listen_backend', '{}:{}'.format(
-            self.listen_backend_address,
+        config.set('siridb', 'listen_client_port', self.listen_client_port)
+        config.set('siridb', 'server_name', '{}:{}'.format(
+            self.server_address,
             self.listen_backend_port))
         config.set('siridb', 'optimize_interval', self.optimize_interval)
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)

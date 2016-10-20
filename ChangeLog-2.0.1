@@ -7,6 +7,13 @@
   * To prevent compile warning on 32-bit linux we now cast int64_t and uint64_t
     to "lld" (long long) and "llu" (unsigned long long). (issue #4)  
   * Dependencies in cleri (with siridb) are removed. (issue #5)
-  * Added CPROTO_REQ_FILE_GROUPS to type translate function. (issue #7)
   * Respond with BPROTO_AUTH_ERR_UNKNOWN_UUID in case the authentication 
-    request the server own UUID. (issue #6)
+    request contains the servers own UUID. (issue #6)
+  * Added CPROTO_REQ_FILE_GROUPS to type translate function. (issue #7)
+  * Added support for an optimize interval of zero which disables the 
+    optimize task. (enhancement issue #8)
+  * Implemented configuration file changes (see issue #9)
+  * Fixed resolving an ip address for a given hostname or fqdn. (for more
+    information see issue #10)
+  * Fixed writing uninitialized data while enabling or disabling backup mode
+    by setting the correct package size. (issue #11)

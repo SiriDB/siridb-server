@@ -81,7 +81,7 @@ class SiriDB:
                 password=password,
                 pool=pool,
                 **vars(self),
-                remote_address=remote_server.listen_client_address,
+                remote_address='localhost',
                 remote_port=remote_server.listen_client_port))
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
@@ -119,7 +119,7 @@ class SiriDB:
                 user=username,
                 password=password,
                 **vars(self),
-                remote_address=remote_server.listen_client_address,
+                remote_address='localhost',
                 remote_port=remote_server.listen_client_port))
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)

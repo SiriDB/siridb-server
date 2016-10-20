@@ -101,7 +101,7 @@ int sirinet_clserver_init(siri_t * siri)
     uv_tcp_init(loop, &client_server);
 
     uv_ip4_addr(
-            siri->cfg->listen_client_address,
+            "0.0.0.0",
             siri->cfg->listen_client_port,
             &client_addr);
 
@@ -121,8 +121,7 @@ int sirinet_clserver_init(siri_t * siri)
         return 1;
     }
 
-    log_info("Start listening for client connections on '%s:%d'",
-            siri->cfg->listen_client_address,
+    log_info("Start listening for client connections on port %d",
             siri->cfg->listen_client_port);
 
     return 0;

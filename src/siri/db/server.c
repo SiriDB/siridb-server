@@ -39,6 +39,12 @@ static void SERVER_on_flags_update_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
+static void SERVER_on_connect(uv_connect_t * req, int status);
+static void SERVER_on_ip4_resolved(
+		uv_getaddrinfo_t * resolver,
+		int status,
+		struct addrinfo * res);
+static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
@@ -364,6 +370,161 @@ int siridb_server_update_address(
 
     return 0;
 }
+
+/*
+ * Connect to a SiriDB Server.
+ */
+void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
+{
+#ifdef DEBUG
+    /* server->socket must be NULL at this point */
+    assert (server->socket == NULL);
+#endif
+
+    server->socket = sirinet_socket_new(SOCKET_SERVER, &SERVER_on_data);
+
+    if (server->socket != NULL)
+    {
+    	struct in_addr sa;
+    	struct in6_addr sa6;
+		sirinet_socket_t * ssocket = server->socket->data;
+		ssocket->origin = server;
+		ssocket->siridb = siridb;
+		siridb_server_incref(server);
+		uv_tcp_init(siri.loop, server->socket);
+
+		if (inet_pton(AF_INET, server->address, &sa))
+		{
+			/* IPv4 */
+			struct sockaddr_in dest;
+
+			uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+			if (req == NULL)
+			{
+				ERR_ALLOC
+			}
+			else
+			{
+				log_debug("Trying to connect to '%s'...", server->name);
+				uv_ip4_addr(server->address, server->port, &dest);
+				uv_tcp_connect(
+						req,
+						server->socket,
+						(const struct sockaddr *) &dest,
+						SERVER_on_connect);
+			}
+		}
+		else if (inet_pton(AF_INET6, server->address, &sa6))
+		{
+			/* IPv6 */
+			struct sockaddr_in6 dest6;
+
+			uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+			if (req == NULL)
+			{
+				ERR_ALLOC
+			}
+			else
+			{
+				log_debug("Trying to connect to '%s'...", server->name);
+				uv_ip6_addr(server->address, server->port, &dest6);
+				uv_tcp_connect(
+						req,
+						server->socket,
+						(const struct sockaddr *) &dest6,
+						SERVER_on_connect);
+			}
+		}
+		else
+		{
+			/* Try DNS */
+			struct addrinfo hints;
+			hints.ai_family = PF_INET;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_protocol = IPPROTO_TCP;
+			hints.ai_flags = AI_NUMERICSERV;
+
+			uv_getaddrinfo_t * resolver =
+					(uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+
+			if (resolver == NULL)
+			{
+				ERR_ALLOC
+			}
+			else
+			{
+				int result;
+				resolver->data = server;
+
+				char port[6]= {'\0'};
+				sprintf(port, "%u", server->port);
+
+				result = uv_getaddrinfo(
+						siri.loop,
+						resolver,
+						SERVER_on_ip4_resolved,
+						server->address,
+						port,
+						&hints);
+
+				if (result)
+				{
+					log_error("getaddrinfo call error %s",
+							uv_err_name(result));
+					free(resolver);
+					sirinet_socket_decref((uv_stream_t *) server->socket);
+				}
+			}
+		}
+    }
+}
+
+static void SERVER_on_ip4_resolved(
+		uv_getaddrinfo_t * resolver,
+		int status,
+		struct addrinfo * res)
+{
+	siridb_server_t * server = (siridb_server_t *) resolver->data;
+
+	if (status < 0)
+    {
+		/* TODO: maybe try to resolve an IPv6 address? */
+        log_error("Cannot resolve ip address for server '%s' (error: %s)",
+        		server->name,
+        		uv_err_name(status));
+        sirinet_socket_decref((uv_stream_t *) server->socket);
+    }
+    else
+    {
+        if (Logger.level == LOGGER_DEBUG)
+        {
+			char addr[17] = {'\0'};
+
+			uv_ip4_name((struct sockaddr_in*) res->ai_addr, addr, 16);
+
+			log_debug(
+					"Resolved ip address '%s' for server '%s', "
+					"trying to connect...",
+					addr, server->name);
+        }
+        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        if (req == NULL)
+        {
+        	ERR_ALLOC
+        }
+        else
+        {
+			uv_tcp_connect(
+					req,
+					server->socket,
+					(const struct sockaddr *) res->ai_addr,
+					SERVER_on_connect);
+        }
+    }
+	uv_freeaddrinfo(res);
+    free(resolver);
+}
+
 /*
  * Write call-back.
  */
@@ -518,34 +679,6 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
         promise->cb(promise, pkg, PROMISE_SUCCESS);
     }
-}
-
-void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
-{
-#ifdef DEBUG
-    /* server->socket must be NULL at this point */
-    assert (server->socket == NULL);
-#endif
-
-    struct sockaddr_in dest;
-    server->socket = sirinet_socket_new(SOCKET_SERVER, &SERVER_on_data);
-
-    sirinet_socket_t * ssocket = server->socket->data;
-    ssocket->origin = server;
-    ssocket->siridb = siridb;
-    siridb_server_incref(server);
-
-    uv_tcp_init(siri.loop, server->socket);
-
-    uv_ip4_addr(server->address, server->port, &dest);
-
-    uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
-
-    uv_tcp_connect(
-            req,
-            server->socket,
-            (const struct sockaddr *) &dest,
-            SERVER_on_connect);
 }
 
 /*

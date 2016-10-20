@@ -66,8 +66,8 @@ int siridb_servers_load(siridb_t * siridb)
 
         server = siridb_server_new(
                 (char *) siridb->uuid,
-                siri.cfg->listen_backend_address,
-                strlen(siri.cfg->listen_backend_address),
+                siri.cfg->server_address,
+                strlen(siri.cfg->server_address),
                 siri.cfg->listen_backend_port,
                 0);
         if (server == NULL)
@@ -168,7 +168,7 @@ int siridb_servers_load(siridb_t * siridb)
     else if (siridb_server_update_address(
             siridb,
             siridb->server,
-            siri.cfg->listen_backend_address,
+            siri.cfg->server_address,
             siri.cfg->listen_backend_port) < 0)
     {
         rc = -1;  /* logging is done, set result code to -1 */

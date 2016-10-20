@@ -17,20 +17,21 @@
 #define DEFAULT_OPEN_FILES_LIMIT MAX_OPEN_FILES_LIMIT
 
 static siri_cfg_t siri_cfg = {
-        .listen_client_address="localhost",
         .listen_client_port=9000,
-        .listen_backend_address="localhost",
         .listen_backend_port=9010,
+        .server_address="localhost",
         .optimize_interval=3600,
         .heartbeat_interval=30,
         .default_db_path="/var/lib/siridb/",
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
 };
 
-static void SIRI_CFG_read_interval(
+static void SIRI_CFG_read_uint(
         cfgparser_t * cfgparser,
         const char * option_name,
-        uint16_t * interval);
+		int min,
+		int max,
+		uint32_t * value);
 static void SIRI_CFG_read_address_port(
         cfgparser_t * cfgparser,
         const char * option_name,
@@ -44,6 +45,7 @@ void siri_cfg_init(siri_t * siri)
     /* Read the application configuration file. */
     cfgparser_t * cfgparser = cfgparser_new();
     cfgparser_return_t rc;
+    uint32_t tmp;
     siri->cfg = &siri_cfg;
     rc = cfgparser_read(cfgparser, siri->args->config);
     if (rc != CFGPARSER_SUCCESS)
@@ -61,44 +63,34 @@ void siri_cfg_init(siri_t * siri)
 
     SIRI_CFG_read_address_port(
             cfgparser,
-            "listen_client",
-            siri_cfg.listen_client_address,
-            &siri_cfg.listen_client_port);
-
-    SIRI_CFG_read_address_port(
-            cfgparser,
-            "listen_backend",
-            siri_cfg.listen_backend_address,
+            "server_name",
+            siri_cfg.server_address,
             &siri_cfg.listen_backend_port);
-    if (strcmp(siri_cfg.listen_backend_address, "0.0.0.0") == 0)
-    {
-        log_critical(
-"We need a back-end address and port which can be used to "
-"connect to!\n"
-"\n"
-"Syntax: address:port\n"
-"\n"
-"Address:\n"
-"    Can be a host-name like 'localhost', a FQDN like 'server.local',\n"
-"    an IPv4 address like '192.168.1.1'.\n"
-"\n"
-"Port:\n"
-"    Any number between 1 and 65536\n"
-"\n"
-"Please verify the value in '%s'", siri->args->config);
-        cfgparser_free(cfgparser);
-        exit(EXIT_FAILURE);
-    }
 
-    SIRI_CFG_read_interval(
+    tmp = siri_cfg.listen_client_port;
+    SIRI_CFG_read_uint(
+            cfgparser,
+            "listen_client_port",
+			1,
+			65535,
+			&tmp);
+    siri_cfg.listen_client_port = (uint16_t) tmp;
+
+    SIRI_CFG_read_uint(
             cfgparser,
             "optimize_interval",
+			0,
+			2419200,  /* 4 weeks */
             &siri_cfg.optimize_interval);
 
-    SIRI_CFG_read_interval(
+    tmp = siri_cfg.heartbeat_interval;
+    SIRI_CFG_read_uint(
             cfgparser,
             "heartbeat_interval",
-            &siri_cfg.heartbeat_interval);
+			3,
+			300,
+            &tmp);
+    siri_cfg.heartbeat_interval = (uint16_t) tmp;
 
     SIRI_CFG_read_default_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
@@ -106,10 +98,12 @@ void siri_cfg_init(siri_t * siri)
     cfgparser_free(cfgparser);
 }
 
-static void SIRI_CFG_read_interval(
+static void SIRI_CFG_read_uint(
         cfgparser_t * cfgparser,
         const char * option_name,
-        uint16_t * interval)
+		int min,
+		int max,
+        uint32_t * value)
 {
     cfgparser_option_t * option;
     cfgparser_return_t rc;
@@ -127,7 +121,7 @@ static void SIRI_CFG_read_interval(
                 option_name,
                 siri.args->config,
                 cfgparser_errmsg(rc),
-                *interval);
+                *value);
     }
     else if (option->tp != CFGPARSER_TP_INTEGER)
     {
@@ -137,22 +131,24 @@ static void SIRI_CFG_read_interval(
                 option_name,
                 siri.args->config,
                 "error: expecting an integer value",
-                *interval);
+                *value);
     }
-    else if (option->val->integer < 1 || option->val->integer > 65535)
+    else if (option->val->integer < min || option->val->integer > max)
     {
         log_warning(
                 "Error reading '[siridb]%s' in '%s': "
-                "error: port should be between 1 and 65535, got '%d'. "
+                "error: value should be between %d and %d but got %d. "
                 "Using default value: '%u'",
                 option_name,
                 siri.args->config,
+				min,
+				max,
                 option->val->integer,
-                *interval);
+                *value);
     }
     else
     {
-        *interval = option->val->integer;
+        *value = option->val->integer;
     }
 }
 
@@ -327,7 +323,7 @@ static void SIRI_CFG_read_address_port(
             }
         }
         if (    !strlen(address) ||
-                strlen(address) >= PATH_MAX ||
+                strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
                 !strx_is_int(port)
                 )
         {
@@ -344,14 +340,7 @@ static void SIRI_CFG_read_address_port(
         }
         else
         {
-            if (*address == '*')
-            {
-                strcpy(address_pt, "0.0.0.0");
-            }
-            else
-            {
-                strcpy(address_pt, address);
-            }
+			strcpy(address_pt, address);
 
             test_port = atoi(port);
 

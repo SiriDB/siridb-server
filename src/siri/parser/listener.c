@@ -3193,7 +3193,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
             {
                 sirinet_pkg_t * pkg = sirinet_pkg_new(
                         0,
-                        3,
+                        0,
                         (backup_mode) ?
                                 BPROTO_ENABLE_BACKUP_MODE :
                                 BPROTO_DISABLE_BACKUP_MODE,
