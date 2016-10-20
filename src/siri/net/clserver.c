@@ -14,7 +14,6 @@
 #include <lock/lock.h>
 #include <lock/lock.h>
 #include <logger/logger.h>
-#include <msgpack.h>
 #include <qpack/qpack.h>
 #include <siri/db/auth.h>
 #include <siri/db/insert.h>

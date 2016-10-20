@@ -30,8 +30,8 @@
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
 shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                                                          \
-sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
-            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
+sprintf(fn, "%s%s%llu%s", siridb->dbpath,                                    \
+            SIRIDB_SHARDS_PATH, (unsigned long long) shrd->id, ".sdb");
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -158,7 +158,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
     FILE * fp;
 
-    log_info("Loading shard %ld", id);
+    log_info("Loading shard %llu", (unsigned long long) id);
 
     if ((fp = fopen(shard->fn, "r")) == NULL)
     {
@@ -1193,10 +1193,10 @@ static int SHARD_load_idx_num32(
         rc = fseeko(fp, len * 12, SEEK_CUR);  // 12 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %lu (%s) at position %ld. Mark this "
-                    "shard as corrupt. The next optimize cycle will most "
+            log_error("Seek error in shard %llu (%s) at position %ld. Mark "
+                    "this shard as corrupt. The next optimize cycle will most "
                     "likely fix this shard but you might loose some data.",
-                    shard->id,
+                    (unsigned long long) shard->id,
                     shard->fn,
                     pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -1297,10 +1297,10 @@ static int SHARD_load_idx_num64(
         rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %lu (%s) at position %ld. Mark this "
+            log_error("Seek error in shard %llu (%s) at position %ld. Mark this "
                     "shard as corrupt. The next optimize cycle will most "
                     "likely fix this shard but you might loose some data.",
-                    shard->id,
+                    (unsigned long long) shard->id,
                     shard->fn,
                     pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -1320,10 +1320,10 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
-             "%s%s%s%ld%s",
+             "%s%s%s%llu%s",
              siridb->dbpath,
              SIRIDB_SHARDS_PATH,
              (shard->replacing == NULL) ? "" : "__",
-             shard->id,
+			 (unsigned long long) shard->id,
              ".sdb");
 }

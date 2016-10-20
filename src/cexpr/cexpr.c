@@ -486,7 +486,7 @@ static cexpr_t * CEXPR_walk_node(
                 break;
             default:
                 log_critical(
-                    "Only 'and' or 'or' keywords are expected, got type: %ld",
+                    "Only 'and' or 'or' keywords are expected, got type: %lu",
                     node->cl_obj->via.keyword->gid);
                 assert (0);
             }

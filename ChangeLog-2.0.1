@@ -3,3 +3,6 @@
     from directories like lost+found etc. (issue #1)
   * Increased UV_THREADPOOL_SIZE from four to eigth and prevent SiriDB
     from loading more than four databases. (issue #2)
+  * Removed unneeded msgpack.h dependency. (issue #3)
+  * To prevent compile warning on 32-bit linux we now cast int64_t and uint64_t
+    to "lld" (long long) and "llu" (unsigned long long). (issue #4)  

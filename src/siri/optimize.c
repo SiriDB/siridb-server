@@ -211,14 +211,15 @@ static void OPTIMIZE_work(uv_work_t * work)
                         shard->id, shard->flags);
                 if (siridb_shard_optimize(shard, siridb) == 0)
                 {
-                    log_info("Finished optimizing shard id %ld", shard->id);
+                    log_info("Finished optimizing shard id %llu",
+                    		(unsigned long long) shard->id);
                 }
                 else
                 {
                     /* signal is raised */
                     log_critical(
-                            "Optimizing shard id %ld has failed with a "
-                            "critical error", shard->id);
+                            "Optimizing shard id %llu has failed with a "
+                            "critical error", (unsigned long long) shard->id);
                 }
             }
 

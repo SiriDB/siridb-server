@@ -340,7 +340,7 @@ int siridb_from_unpacker(
     if (qp_obj.via.int64 != SIRIDB_SHEMA)
     {
         sprintf(err_msg, "error: unsupported schema found: %ld",
-                qp_obj.via.int64);
+                (long) qp_obj.via.int64);
         return -1;
     }
 

@@ -776,7 +776,7 @@ static void enter_limit_expr(uv_async_t * handle)
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Limit must be a value between 0 and %d but received: %ld",
                 MAX_LIST_LIMIT,
-                limit);
+                (long) limit);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else

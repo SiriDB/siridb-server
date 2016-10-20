@@ -898,7 +898,9 @@ int siridb_series_optimize_shard(
                 pstart,
                 pend)) == EOF)
         {
-            log_critical("Cannot write points to shard id '%ld'", shard->id);
+            log_critical(
+            		"Cannot write points to shard id '%llu'",
+            		(unsigned long long) shard->id);
             rc = -1;  /* signal is raised */
             num_chunks--;
         }
@@ -1487,7 +1489,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
             return -1;
         }
 
-        log_debug("Write max series id (%ld)", siridb->max_series_id);
+        log_debug("Write max series id (%lu)", siridb->max_series_id);
 
         if (fwrite(&siridb->max_series_id, sizeof(uint32_t), 1, fp) != 1)
         {

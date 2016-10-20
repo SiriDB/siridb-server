@@ -814,7 +814,7 @@ static int QUERY_time_expr(
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%ld",
+                    "%lu",
                     ts * walker->siridb->time->factor);
 
             if (n >= *size)
@@ -955,8 +955,8 @@ static int QUERY_rebuild(
                 n = snprintf(
                         buf + max_size - *size,
                         *size,
-                        "%ld ",
-                        node->result);
+                        "%lld ",
+                        (long long) node->result);
                 if (n >= *size)
                 {
                     return QUERY_TOO_LONG;

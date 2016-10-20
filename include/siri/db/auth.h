@@ -12,7 +12,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <msgpack.h>
 #include <siri/net/clserver.h>
 #include <qpack/qpack.h>
 #include <siri/net/protocol.h>
