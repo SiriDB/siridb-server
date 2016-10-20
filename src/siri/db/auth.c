@@ -100,8 +100,13 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_UNKNOWN_DBNAME;
     }
 
-    if ((server = siridb_servers_by_uuid(siridb->servers, uuid)) == NULL)
+    if (	(server = siridb_servers_by_uuid(siridb->servers, uuid)) == NULL ||
+    		server == siridb->server)
     {
+    	/*
+    	 * Respond with unknown uuid when not found or in case its 'this'
+    	 * server.
+    	 */
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
     }
 
