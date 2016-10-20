@@ -11,12 +11,10 @@
  *
  */
 #include <cleri/tokens.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <siri/err.h>
 #include <assert.h>
 
 static void TOKENS_free(cleri_object_t * cl_object);
@@ -60,7 +58,6 @@ cleri_object_t * cleri_tokens(
 
     if (cl_object->via.tokens == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -80,7 +77,6 @@ cleri_object_t * cleri_tokens(
             cl_object->via.tokens->spaced == NULL ||
             cl_object->via.tokens->tlist == NULL)
     {
-        ERR_ALLOC
         cleri_object_decref(cl_object);
         return NULL;
     }
@@ -102,7 +98,6 @@ cleri_object_t * cleri_tokens(
                         pt - len,
                         len))
                 {
-                    ERR_ALLOC
                     cleri_object_decref(cl_object);
                     return NULL;
                 }
@@ -141,7 +136,7 @@ static void TOKENS_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * TOKENS_parse(
         cleri_parser_t * pr,
@@ -161,14 +156,25 @@ static cleri_node_t * TOKENS_parse(
             if ((node = cleri_node_new(cl_obj, str, tlist->len)) != NULL)
             {
                 parent->len += node->len;
-                cleri_children_add(parent->children, node);
+                if (cleri_children_add(parent->children, node))
+                {
+					 /* error occurred, reverse changes set mg_node to NULL */
+					cleri_err = -1;
+					parent->len -= node->len;
+					cleri_node_free(node);
+					node = NULL;
+                }
+            }
+            else
+            {
+            	cleri_err = -1;
             }
             return node;
         }
     }
     if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
     {
-        ERR_ALLOC
+        cleri_err = -1;
     }
     return NULL;
 }

@@ -10,11 +10,9 @@
  *
  */
 #include <cleri/regex.h>
-#include <logger/logger.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include <siri/err.h>
 
 static void REGEX_free(cleri_object_t * cl_object);
 
@@ -110,7 +108,7 @@ static void REGEX_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. (result NULL can be also be caused by an error)
  */
 static cleri_node_t *  REGEX_parse(
         cleri_parser_t * pr,
@@ -136,7 +134,7 @@ static cleri_node_t *  REGEX_parse(
     {
         if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
         {
-            ERR_ALLOC
+        	cleri_err = -1; /* error occurred */
         }
         return NULL;
     }
@@ -146,7 +144,18 @@ static cleri_node_t *  REGEX_parse(
     if ((node = cleri_node_new(cl_obj, str, (size_t) sub_str_vec[1])) != NULL)
     {
         parent->len += node->len;
-        cleri_children_add(parent->children, node);
+        if (cleri_children_add(parent->children, node))
+        {
+        	 /* error occurred, reverse changes set node to NULL */
+        	cleri_err = -1;
+        	parent->len -= node->len;
+        	cleri_node_free(node);
+        	node = NULL;
+        }
+    }
+    else
+    {
+    	cleri_err = -1; /* error occurred */
     }
     return node;
 }

@@ -51,3 +51,5 @@ cleri_node_t * cleri__parser_walk(
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule,
         int mode);
+
+extern int cleri_err;

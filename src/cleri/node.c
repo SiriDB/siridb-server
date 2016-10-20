@@ -11,9 +11,7 @@
  *
  */
 #include <cleri/node.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 static cleri_node_t Cleri_empty_node = {
         .children=NULL,
@@ -25,7 +23,7 @@ static cleri_node_t Cleri_empty_node = {
 cleri_node_t * CLERI_EMPTY_NODE = &Cleri_empty_node;
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_node_t * cleri_node_new(
         cleri_object_t * cl_obj,
@@ -35,34 +33,30 @@ cleri_node_t * cleri_node_new(
     cleri_node_t * node;
     node = (cleri_node_t *) malloc(sizeof(cleri_node_t));
 
-    if (node == NULL)
+    if (node != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		node->cl_obj = cl_obj;
+		node->ref = 1;
+
+		node->str = str;
+		node->len = len;
+
+		if (cl_obj == NULL || cl_obj->tp <= CLERI_TP_THIS)
+		{
+			/* NULL when initializing the root node but we do need children */
+			node->children = cleri_children_new();
+			if (node->children == NULL)
+			{
+				free(node);
+				return NULL;
+			}
+		}
+		else
+		{
+			/* we do not need children for some objects */
+			node->children = NULL;
+		}
     }
-
-    node->cl_obj = cl_obj;
-    node->ref = 1;
-
-    node->str = str;
-    node->len = len;
-
-    if (cl_obj == NULL || cl_obj->tp <= CLERI_TP_THIS)
-    {
-        /* NULL when initializing the root node but we do need children */
-        node->children = cleri_children_new();
-        if (node->children == NULL)
-        {
-            free(node);
-            return NULL;  /* signal is set */
-        }
-    }
-    else
-    {
-        /* we do not need children for some objects */
-        node->children = NULL;
-    }
-
     return node;
 }
 

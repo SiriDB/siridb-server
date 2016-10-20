@@ -10,9 +10,7 @@
  *
  */
 #include <cleri/object.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 #include <assert.h>
 
 static cleri_object_t end_of_statement =
@@ -21,7 +19,7 @@ static cleri_object_t end_of_statement =
 cleri_object_t * CLERI_END_OF_STATEMENT = &end_of_statement;
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_object_new(
         cleri_object_tp tp,
@@ -31,17 +29,14 @@ cleri_object_t * cleri_object_new(
     cleri_object_t * cl_object;
 
     cl_object = (cleri_object_t *) malloc(sizeof(cleri_object_t));
-    if (cl_object == NULL)
+    if (cl_object != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		cl_object->tp = tp;
+		cl_object->ref = 1;
+		cl_object->via.dummy = NULL;
+		cl_object->free_object = free_object;
+		cl_object->parse_object = parse_object;
     }
-    cl_object->tp = tp;
-    cl_object->ref = 1;
-    cl_object->via.dummy = NULL;
-    cl_object->free_object = free_object;
-    cl_object->parse_object = parse_object;
-
     return cl_object;
 }
 

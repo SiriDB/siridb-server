@@ -10,11 +10,9 @@
  *
  */
 #include <cleri/kwcache.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 #include <pcre.h>
 #include <string.h>
-#include <siri/err.h>
 
 static void KWCACHE_kw_match(
         cleri_kwcache_t * kwcache,
@@ -22,26 +20,24 @@ static void KWCACHE_kw_match(
         const char * str);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_kwcache_t * cleri_kwcache_new(void)
 {
     cleri_kwcache_t * kwcache;
     kwcache = (cleri_kwcache_t *) malloc(sizeof(cleri_kwcache_t));
-    if (kwcache == NULL)
+    if (kwcache != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		kwcache->len = 0;
+		kwcache->str = NULL;
+		kwcache->next = NULL;
     }
-    kwcache->len = 0;
-    kwcache->str = NULL;
-    kwcache->next = NULL;
     return kwcache;
 }
 
 /*
  * Returns 0 when no kw_match is found, -1 when an error has occurred, or the
- * new kwcache->len value. (a signal is set in case of an error)
+ * new kwcache->len value.
  */
 ssize_t cleri_kwcache_match(
         cleri_parser_t * pr,
@@ -66,7 +62,6 @@ ssize_t cleri_kwcache_match(
         kwcache->next = (cleri_kwcache_t *) malloc(sizeof(cleri_kwcache_t));
         if (kwcache->next == NULL)
         {
-            ERR_ALLOC
             return -1;
         }
         kwcache = kwcache->next;

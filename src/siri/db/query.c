@@ -532,7 +532,16 @@ static void QUERY_parse(uv_async_t * handle)
     if (    walker == NULL ||
             (query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
     {
-        return;  /* signal is set */
+    	if (walker != NULL)
+    	{
+            siridb_nodes_free(siridb_walker_free(walker));
+    	}
+    	else
+    	{
+    		ERR_ALLOC
+    	}
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
     }
 
     if (!query->pr->is_valid)

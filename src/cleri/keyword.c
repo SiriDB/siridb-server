@@ -10,10 +10,8 @@
  *
  */
 #include <cleri/keyword.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/err.h>
 
 static void KEYWORD_free(cleri_object_t * cl_object);
 
@@ -24,7 +22,7 @@ static cleri_node_t * KEYWORD_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_keyword(
         uint32_t gid,
@@ -46,7 +44,6 @@ cleri_object_t * cleri_keyword(
 
     if (cl_object->via.tokens == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -68,7 +65,7 @@ static void KEYWORD_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. (result NULL can be also be caused by an error)
  */
 static cleri_node_t * KEYWORD_parse(
         cleri_parser_t * pr,
@@ -82,7 +79,8 @@ static cleri_node_t * KEYWORD_parse(
 
     if ((match_len = cleri_kwcache_match(pr, str)) < 0)
     {
-        return NULL;
+    	cleri_err = -1; /* error occurred */
+    	return NULL;
     }
 
     if (match_len == cl_obj->via.keyword->len &&
@@ -105,7 +103,8 @@ static cleri_node_t * KEYWORD_parse(
         /* Update expecting */
         if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
         {
-            ERR_ALLOC  /* node is alread NULL */
+            /* error occurred, node is already NULL */
+        	cleri_err = -1;
         }
     }
     return node;

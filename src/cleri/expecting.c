@@ -14,7 +14,6 @@
 #include <logger/logger.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <siri/err.h>
 
 static cleri_exp_modes_t * EXPECTING_modes_new(const char * str);
 static void EXPECTING_empty(cleri_expecting_t * expecting);
@@ -25,41 +24,37 @@ static void EXPECTING_shift_modes(
 static void EXPECTING_modes_free(cleri_exp_modes_t * modes);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_expecting_t * cleri_expecting_new(const char * str)
 {
     cleri_expecting_t * expecting =
             (cleri_expecting_t *) malloc(sizeof(cleri_expecting_t));
 
-    if (expecting == NULL)
+    if (expecting != NULL)
     {
-        ERR_ALLOC
-        return NULL;
-    }
+		expecting->str = str;
 
-    expecting->str = str;
-    expecting->required = cleri_olist_new();
+		if ((expecting->required = cleri_olist_new()) == NULL)
+		{
+			free(expecting);
+			return NULL;
+		}
 
-    if (expecting->required == NULL)
-    {
-        free(expecting);
-        return NULL;
-    }
-    expecting->optional = cleri_olist_new();
-    if (expecting->optional == NULL)
-    {
-        free(expecting->required);
-        free(expecting);
-        return NULL;
-    }
+		if ((expecting->optional = cleri_olist_new()) == NULL)
+		{
+			free(expecting->required);
+			free(expecting);
+			return NULL;
+		}
 
-    expecting->modes = EXPECTING_modes_new(str);
-    if (expecting->optional == NULL)
-    {
-        free(expecting->required);
-        free(expecting);
-        return NULL;
+		if ((expecting->modes = EXPECTING_modes_new(str)) == NULL)
+		{
+			free(expecting->optional);
+			free(expecting->required);
+			free(expecting);
+			return NULL;
+		}
     }
 
     return expecting;
@@ -101,7 +96,6 @@ int cleri_expecting_update(
 
 /*
  * Returns 0 if the mode is set successful and -1 if an error has occurred.
- * (in case of an error a signal is set)
  */
 int cleri_expecting_set_mode(
         cleri_expecting_t * expecting,
@@ -121,7 +115,6 @@ int cleri_expecting_set_mode(
 
     if (current->next == NULL)
     {
-        ERR_ALLOC
         return -1;
     }
 
@@ -147,7 +140,6 @@ void cleri_expecting_free(cleri_expecting_t * expecting)
 /*
  * append optional to required and sets optional to NULL
  */
-
 void cleri_expecting_combine(cleri_expecting_t * expecting)
 {
     cleri_olist_t * required = expecting->required;
@@ -205,23 +197,18 @@ void cleri_expecting_remove(cleri_expecting_t * expecting, uint32_t gid)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 static cleri_exp_modes_t * EXPECTING_modes_new(const char * str)
 {
     cleri_exp_modes_t * modes =
             (cleri_exp_modes_t *) malloc(sizeof(cleri_exp_modes_t));
-
-    if (modes == NULL)
+    if (modes != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		modes->mode = CLERI_EXP_MODE_REQUIRED;
+		modes->next = NULL;
+		modes->str = str;
     }
-
-    modes->mode = CLERI_EXP_MODE_REQUIRED;
-    modes->next = NULL;
-    modes->str = str;
-
     return modes;
 }
 

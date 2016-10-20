@@ -10,12 +10,9 @@
  *
  */
 #include <cleri/sequence.h>
-#include <logger/logger.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <siri/err.h>
-
 
 static void SEQUENCE_free(cleri_object_t * cl_object);
 
@@ -26,7 +23,7 @@ static cleri_node_t * SEQUENCE_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL and in case an error has occurred.
  */
 cleri_object_t * cleri_sequence(
         uint32_t gid,
@@ -41,7 +38,7 @@ cleri_object_t * cleri_sequence(
 
     if (cl_object == NULL)
     {
-        return NULL;  /* signal is set */
+        return NULL;
     }
 
     cl_object->via.sequence =
@@ -49,7 +46,6 @@ cleri_object_t * cleri_sequence(
 
     if (cl_object->via.sequence == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -60,7 +56,7 @@ cleri_object_t * cleri_sequence(
     if (cl_object->via.sequence->olist == NULL)
     {
         cleri_object_decref(cl_object);
-        return NULL;  /* signal is set */
+        return NULL;
     }
 
     va_start(ap, len);
@@ -70,7 +66,6 @@ cleri_object_t * cleri_sequence(
                 cl_object->via.sequence->olist,
                 va_arg(ap, cleri_object_t *)))
         {
-            ERR_ALLOC
             cleri_object_decref(cl_object);
             return NULL;
         }
@@ -90,7 +85,7 @@ static void SEQUENCE_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * SEQUENCE_parse(
         cleri_parser_t * pr,
@@ -105,6 +100,7 @@ static cleri_node_t * SEQUENCE_parse(
     olist = cl_obj->via.sequence->olist;
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
@@ -123,7 +119,15 @@ static cleri_node_t * SEQUENCE_parse(
         }
         olist = olist->next;
     }
+
     parent->len += node->len;
-    cleri_children_add(parent->children, node);
+    if (cleri_children_add(parent->children, node))
+    {
+		 /* error occurred, reverse changes set mg_node to NULL */
+		cleri_err = -1;
+		parent->len -= node->len;
+		cleri_node_free(node);
+		node = NULL;
+    }
     return node;
 }

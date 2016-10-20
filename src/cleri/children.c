@@ -10,37 +10,34 @@
  *
  */
 #include <cleri/children.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL and in case an error has occurred.
  */
 cleri_children_t * cleri_children_new(void)
 {
     cleri_children_t * children =
             (cleri_children_t *) malloc(sizeof(cleri_children_t));
-    if (children == NULL)
+    if (children != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		children->node = NULL;
+		children->next = NULL;
     }
-    children->node = NULL;
-    children->next = NULL;
     return children;
 }
 
 /*
  * Appends a node to children but a signal is set in case an error occurs.
- * (in case of an error, children remains unchanged)
+ *
+ * Returns 0 when successful or -1 in case of an error.
  */
-void cleri_children_add(cleri_children_t * children, cleri_node_t * node)
+int cleri_children_add(cleri_children_t * children, cleri_node_t * node)
 {
     if (children->node == NULL)
     {
         children->node = node;
-        return;
+        return 0;
     }
 
     while (children->next != NULL)
@@ -51,13 +48,14 @@ void cleri_children_add(cleri_children_t * children, cleri_node_t * node)
     children->next = (cleri_children_t *) malloc(sizeof(cleri_children_t));
     if (children->next == NULL)
     {
-        ERR_ALLOC
+        return -1;
     }
     else
     {
         children->next->node = node;
         children->next->next = NULL;
     }
+    return 0;
 }
 
 /*
