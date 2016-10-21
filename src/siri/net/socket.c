@@ -23,6 +23,17 @@
 static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
 static void SOCKET_free(uv_stream_t * client);
 
+const char * sirinet_socket_ip_support_str(uint8_t ip_support)
+{
+	switch (ip_support)
+	{
+	case IP_SUPPORT_ALL: return "ALL";
+	case IP_SUPPORT_IPV4ONLY: return "IPV4ONLY";
+	case IP_SUPPORT_IPV6ONLY: return "IPV6ONLY";
+	default: return "UNKNOWN";
+	}
+}
+
 /*
  * This function can raise a SIGNAL.
  */
@@ -66,7 +77,7 @@ void sirinet_socket_alloc_buffer(
  */
 int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
 {
-    struct sockaddr_in name;
+    struct sockaddr_storage name;
     int namelen = sizeof(name);
 
     if (uv_tcp_getpeername(
@@ -77,10 +88,45 @@ int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
         return -1;
     }
 
-    char addr[16];
+    switch (name.ss_family)
+    {
+    case AF_INET:
+    	{
+    		char addr[INET_ADDRSTRLEN];
+            uv_inet_ntop(
+            		AF_INET,
+					&((struct sockaddr_in *) &name)->sin_addr,
+					addr,
+					sizeof(addr));
+            snprintf(
+            		buffer,
+					ADDR_BUF_SZ,
+					"%s:%d",
+					addr,
+					ntohs(((struct sockaddr_in *) &name)->sin_port));
+    	}
+        break;
 
-    uv_inet_ntop(AF_INET, &name.sin_addr, addr, sizeof(addr));
-    snprintf(buffer, ADDR_BUF_SZ, "%s:%d", addr, ntohs(name.sin_port));
+    case AF_INET6:
+    	{
+    		char addr[INET6_ADDRSTRLEN];
+			uv_inet_ntop(
+					AF_INET6,
+					&((struct sockaddr_in6 *) &name)->sin6_addr,
+					addr,
+					sizeof(addr));
+			snprintf(
+					buffer,
+					ADDR_BUF_SZ,
+					"[%s]:%d",
+					addr,
+					ntohs(((struct sockaddr_in6 *) &name)->sin6_port));
+    	}
+    	break;
+
+    default:
+    	return -1;
+    }
 
     return 0;
 }

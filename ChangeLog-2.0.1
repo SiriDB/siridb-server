@@ -30,3 +30,11 @@
     
   * Accept a variable %HOSTNAME in the configuration file. This is now used
     for the default value, 'server_name = %HOSTNAME:9010'. (issue #12)
+
+  * Parse ipv6 addresses given in the configuration file correctly.
+    (see issue #13)
+    
+  * Added support for ipv6 while discovering an address using dns. (issue #14)
+  
+  * Added propery 'ip_support' to the grammer so we can view the current 
+    setting with 'show' and 'list servers'. (issue #15)  

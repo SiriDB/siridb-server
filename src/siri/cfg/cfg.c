@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <siri/net/socket.h>
 
 /* do not use more than x percent for the max limit for open sharding files */
 #define RLIMIT_PERC_FOR_SHARDING 0.5
@@ -20,11 +21,12 @@
 static siri_cfg_t siri_cfg = {
         .listen_client_port=9000,
         .listen_backend_port=9010,
-        .server_address="localhost",
-        .optimize_interval=3600,
         .heartbeat_interval=30,
-        .default_db_path="/var/lib/siridb/",
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
+        .optimize_interval=3600,
+		.ip_support=IP_SUPPORT_ALL,
+        .server_address="localhost",
+        .default_db_path="/var/lib/siridb/"
 };
 
 static void SIRI_CFG_read_uint(
@@ -40,6 +42,7 @@ static void SIRI_CFG_read_address_port(
         uint16_t * port_pt);
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
 
 void siri_cfg_init(siri_t * siri)
 {
@@ -95,6 +98,7 @@ void siri_cfg_init(siri_t * siri)
 
     SIRI_CFG_read_default_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
+    SIRI_CFG_read_ip_support(cfgparser);
 
     cfgparser_free(cfgparser);
 }
@@ -153,6 +157,64 @@ static void SIRI_CFG_read_uint(
     }
 }
 
+static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "siridb",
+                "ip_support");
+    if (rc != CFGPARSER_SUCCESS)
+    {
+        log_warning(
+                "Error reading '%s' in '%s': %s. "
+                "Using default value: '%s'",
+                "ip_support",
+                siri.args->config,
+                cfgparser_errmsg(rc),
+				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+    }
+    else if (option->tp != CFGPARSER_TP_STRING)
+    {
+        log_warning(
+                "Error reading '%s' in '%s': %s. "
+                "Using default value: '%s'",
+                "ip_support",
+                siri.args->config,
+                "error: expecting a string value",
+				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+    }
+    else
+    {
+        if (strcmp(option->val->string, "ALL") == 0)
+        {
+        	siri_cfg.ip_support = IP_SUPPORT_ALL;
+        }
+        else if (strcmp(option->val->string, "IPV4ONLY") == 0)
+        {
+        	siri_cfg.ip_support = IP_SUPPORT_IPV4ONLY;
+        }
+        else if (strcmp(option->val->string, "IPV6ONLY") == 0)
+        {
+        	siri_cfg.ip_support = IP_SUPPORT_IPV6ONLY;
+        }
+        else
+        {
+            log_warning(
+                    "Error reading '%s' in '%s': "
+					"error: expecting ALL, IPV4ONLY or IPV6ONLY bot got '%s'. "
+                    "Using default value: '%s'",
+                    "ip_support",
+                    siri.args->config,
+					option->val->string,
+    				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+        }
+    }
+}
+
+
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
 {
     cfgparser_option_t * option;
@@ -177,7 +239,7 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     {
         log_warning(
                 "Error reading '%s' in '%s': %s. "
-                "Using default value: '%s:%d'",
+                "Using default value: '%s'",
                 "default_db_path",
                 siri.args->config,
                 "error: expecting a string value",
@@ -245,14 +307,10 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
                 "exceeds %d%% of the current hard limit.\n\nWe "
                 "will use %d as max_open_files for now.\n"
                 "Please increase the hard-limit using:\n"
-                "ulimit -Hn %d\n"
-                "Note: when using supervisor to start SiriDB, "
-                "update '/etc/supervisor/supervisord.conf' "
-                "and set 'minfds=%d', in the [supervisord] "
-                "section.",
+                "ulimit -Hn %d",
                 (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100),
                 siri_cfg.max_open_files,
-                min_limit, min_limit);
+                min_limit);
         min_limit = siri_cfg.max_open_files * 2;
     }
 
@@ -323,7 +381,25 @@ static void SIRI_CFG_read_address_port(
     }
     else
     {
-        for (port = address = option->val->string; *port; port++)
+        if (*option->val->string == '[')
+        {
+        	/* an IPv6 address... */
+        	for (port = address = option->val->string + 1; *port; port++)
+            {
+                if (*port == ']')
+                {
+                    *port = 0;
+                    port++;
+                    break;
+                }
+            }
+        }
+        else
+        {
+        	port = address = option->val->string;
+        }
+
+    	for (; *port; port++)
         {
             if (*port == ':')
             {
@@ -332,6 +408,7 @@ static void SIRI_CFG_read_address_port(
                 break;
             }
         }
+
         if (    !strlen(address) ||
                 strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
                 !strx_is_int(port) ||

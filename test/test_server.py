@@ -22,8 +22,12 @@ from testing import UserAuthError
 class TestServer(TestBase):
     title = 'Test server object'
 
+    Server.SERVER_ADDRESS = 'localhost'
+    Server.IP_SUPPORT = 'ALL'
+
     @default_test_setup(4)
     async def run(self):
+
         await self.client0.connect()
 
         await self.db.add_pool(self.server1)

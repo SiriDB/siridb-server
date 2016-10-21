@@ -27,7 +27,7 @@ class Client:
             password=password,
             dbname=db.dbname,
             hostlist=[
-                ('localhost', server.listen_client_port)
+                (server.server_address, server.listen_client_port)
                 for server in servers
             ])
 

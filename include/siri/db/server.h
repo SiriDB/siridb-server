@@ -104,6 +104,7 @@ typedef struct siridb_server_s
     uv_tcp_t * socket;
     uint16_t pid;
     /* fixed server properties */
+    uint8_t ip_support;
     char * libuv;
     char * version;
     char * dbpath;

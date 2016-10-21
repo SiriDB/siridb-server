@@ -15,7 +15,14 @@
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
 
-#define ADDR_BUF_SZ 32
+#define ADDR_BUF_SZ 54
+
+enum
+{
+	IP_SUPPORT_ALL,
+	IP_SUPPORT_IPV4ONLY,
+	IP_SUPPORT_IPV6ONLY
+};
 
 typedef enum sirinet_socket_tp
 {
@@ -40,6 +47,7 @@ typedef struct sirinet_socket_s
     size_t len;
 } sirinet_socket_t;
 
+const char * sirinet_socket_ip_support_str(uint8_t ip_support);
 uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
 void sirinet_socket_incref(uv_stream_t * client);
 void sirinet_socket_decref(uv_stream_t * client);

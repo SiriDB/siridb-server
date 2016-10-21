@@ -65,6 +65,10 @@ static void prop_duration_num(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_ip_support(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_libuv(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -161,6 +165,8 @@ void siridb_init_props(void)
             prop_duration_log;
     siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
             prop_duration_num;
+    siridb_props[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
+    		prop_ip_support;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
             prop_libuv;
     siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =
@@ -269,6 +275,15 @@ static void prop_duration_num(
 {
     SIRIDB_PROP_MAP("duration_num", 12)
     qp_add_int64(packer, (int64_t) siridb->duration_num);
+}
+
+static void prop_ip_support(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("ip_support", 10)
+    qp_add_string(packer, sirinet_socket_ip_support_str(siri.cfg->ip_support));
 }
 
 static void prop_libuv(

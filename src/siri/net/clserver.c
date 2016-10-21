@@ -53,7 +53,7 @@ static const int SERVER_RUNNING_REINDEXING =
         SERVER_FLAG_RUNNING + SERVER_FLAG_REINDEXING;
 
 static uv_loop_t * loop = NULL;
-static struct sockaddr_in client_addr;
+static struct sockaddr_storage client_addr;
 static uv_tcp_t client_server;
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
@@ -100,15 +100,29 @@ int sirinet_clserver_init(siri_t * siri)
 
     uv_tcp_init(loop, &client_server);
 
-    uv_ip4_addr(
-            "0.0.0.0",
-            siri->cfg->listen_client_port,
-            &client_addr);
-
     /* make sure data is set to NULL so we later on can check this value. */
     client_server.data = NULL;
 
-    uv_tcp_bind(&client_server, (const struct sockaddr *) &client_addr, 0);
+    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        uv_ip4_addr(
+                "0.0.0.0",
+                siri->cfg->listen_client_port,
+                (struct sockaddr_in *) &client_addr);
+    }
+    else
+    {
+		uv_ip6_addr(
+				"::",
+				siri->cfg->listen_client_port,
+				(struct sockaddr_in6 *) &client_addr);
+    }
+
+    uv_tcp_bind(
+    		&client_server,
+			(const struct sockaddr *) &client_addr,
+			(siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
+					UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
             (uv_stream_t*) &client_server,

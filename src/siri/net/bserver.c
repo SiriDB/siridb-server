@@ -58,7 +58,7 @@ static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
-static struct sockaddr_in server_addr;
+static struct sockaddr_storage server_addr;
 static uv_tcp_t backend_server;
 
 int sirinet_bserver_init(siri_t * siri)
@@ -74,15 +74,29 @@ int sirinet_bserver_init(siri_t * siri)
 
     uv_tcp_init(loop, &backend_server);
 
-    uv_ip4_addr(
-            "0.0.0.0",
-            siri->cfg->listen_backend_port,
-            &server_addr);
-
     /* make sure data is set to NULL so we later on can check this value. */
     backend_server.data = NULL;
 
-    uv_tcp_bind(&backend_server, (const struct sockaddr *) &server_addr, 0);
+    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        uv_ip4_addr(
+                "0.0.0.0",
+                siri->cfg->listen_backend_port,
+                (struct sockaddr_in *) &server_addr);
+    }
+    else
+    {
+		uv_ip6_addr(
+				"::",
+				siri->cfg->listen_backend_port,
+				(struct sockaddr_in6 *) &server_addr);
+    }
+
+    uv_tcp_bind(
+    		&backend_server,
+			(const struct sockaddr *) &server_addr,
+			(siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
+					UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
             (uv_stream_t*) &backend_server,
@@ -250,6 +264,7 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_flags;
     qp_obj_t qp_version;
     qp_obj_t qp_min_version;
+    qp_obj_t qp_ip_support;
     qp_obj_t qp_libuv;
     qp_obj_t qp_dbpath;
     qp_obj_t qp_buffer_path;
@@ -267,6 +282,7 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             qp_is_raw_term(&qp_version) &&
             qp_next(&unpacker, &qp_min_version) == QP_RAW &&
             qp_is_raw_term(&qp_min_version) &&
+			qp_next(&unpacker, &qp_ip_support) == QP_INT64 &&
             qp_next(&unpacker, &qp_libuv) == QP_RAW &&
             qp_is_raw_term(&qp_libuv) &&
             qp_next(&unpacker, &qp_dbpath) == QP_RAW &&
@@ -308,8 +324,9 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             server->buffer_path = strdup(qp_buffer_path.via.raw);
             free(server->libuv);
             server->libuv = strdup(qp_libuv.via.raw);
-            server->buffer_size = qp_buffer_size.via.int64;
-            server->startup_time = qp_startup_time.via.int64;
+            server->buffer_size = (size_t) qp_buffer_size.via.int64;
+            server->startup_time = (uint32_t) qp_startup_time.via.int64;
+            server->ip_support = (uint8_t) qp_ip_support.via.int64;
 
             log_info("Accepting back-end server connection: '%s'",
                     server->name);
