@@ -42,6 +42,45 @@ void strx_replace_char(char * sptr, char orig, char repl)
 }
 
 /*
+ * Replace all occurrences of 'o' with 'r' in 'str'. We restrict the new size
+ * to 'n'.
+ *
+ * Returns 0 if successful or -1 if the replaced string does not fit. In this
+ * case the original string is untouched. The new string is terminated.
+ */
+int strx_replace_str(char * str, char * o, char * r, size_t n)
+{
+	char buffer[n];
+	char * pos, * s;
+	size_t l, size = 0, olen = strlen(o), rlen = strlen(r);
+
+	for (s = str; (pos = strstr(s, o)) != NULL; s = pos + olen)
+	{
+		l = pos - s;
+
+		if (size + l + rlen >= n)
+		{
+			return -1;
+		}
+
+		memcpy(buffer + size, s, l);
+		size += l;
+
+		memcpy(buffer + size, r, rlen);
+		size += rlen;
+
+	}
+
+	if (s != str)
+	{
+		memcpy(str, buffer, size);
+		str[size] = '\0';
+	}
+
+	return 0;
+}
+
+/*
  * Split and then join a given string.
  *
  * For example:

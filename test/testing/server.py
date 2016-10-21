@@ -24,7 +24,7 @@ class Server:
         self.n = n
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
-        self.server_address = 'localhost'
+        self.server_address = '%HOSTNAME'
         self.optimize_interval = optimize_interval
         self.heartbeat_interval = heartbeat_interval
         self.cfgfile = os.path.join(TEST_DIR, 'siridb{}.conf'.format(self.n))
