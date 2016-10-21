@@ -43,7 +43,6 @@
 
 
 static int SERIES_save(siridb_t * siridb);
-static void SERIES_free(siridb_series_t * series);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
 static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
 static int SERIES_open_new_dropped_file(siridb_t * siridb);
@@ -291,7 +290,7 @@ siridb_series_t * siridb_series_new(
         {
             ERR_FILE
             log_critical("Cannot write series '%s' to store.", series_name);
-            SERIES_free(series);
+            siridb__series_free(series);
             series = NULL;
         }
         /* create a buffer for series (except string series) */
@@ -302,7 +301,7 @@ siridb_series_t * siridb_series_new(
             /* signal is raised */
             log_critical("Could not create buffer for series '%s'.",
                     series_name);
-            SERIES_free(series);
+            siridb__series_free(series);
             series = NULL;
         }
         /* We only should add the series to series_map and assume the caller
@@ -316,6 +315,39 @@ siridb_series_t * siridb_series_new(
     }
 
     return series;
+}
+
+/*
+ * NEVER call this function but call siridb_series_decref instead.
+ *
+ * Destroy series. (parsing NULL is not allowed)
+ */
+void siridb__series_free(siridb_series_t * series)
+{
+#ifdef DEBUG
+    if (siri.status == SIRI_STATUS_RUNNING || 1)
+    {
+        log_debug("Free series: '%s'", series->name);
+    }
+#endif
+
+    siridb_shard_t * shard;
+
+    /* mark shards with dropped series flag */
+    for (uint_fast32_t i = 0; i < series->idx_len; i++)
+    {
+        shard = series->idx[i].shard;
+        shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
+        siridb_shard_decref(shard);
+    }
+
+    if (series->buffer != NULL)
+    {
+        siridb_buffer_free(series->buffer);
+    }
+    free(series->idx);
+    free(series->name);
+    free(series);
 }
 
 /*
@@ -750,22 +782,13 @@ siridb_points_t * siridb_series_get_points(
 }
 
 /*
- * Increment the series reference counter.
+ * Can be used instead of the macro function when need as callback function.
  */
-inline void siridb_series_incref(siridb_series_t * series)
-{
-    series->ref++;
-}
-
-/*
- * Decrement reference counter for series and free the series when zero is
- * reached.
- */
-void siridb_series_decref(siridb_series_t * series)
+void siridb__series_decref(siridb_series_t * series)
 {
     if (!--series->ref)
     {
-        SERIES_free(series);
+    	siridb__series_free(series);
     }
 }
 
@@ -1081,37 +1104,6 @@ static void SERIES_update_overlap(siridb_series_t * series)
         }
     }
     series->flags &= ~SIRIDB_SERIES_HAS_OVERLAP;
-}
-
-/*
- * Destroy series. (parsing NULL is not allowed)
- */
-static void SERIES_free(siridb_series_t * series)
-{
-#ifdef DEBUG
-    if (siri.status == SIRI_STATUS_RUNNING || 1)
-    {
-        log_debug("Free series: '%s'", series->name);
-    }
-#endif
-
-    siridb_shard_t * shard;
-
-    /* mark shards with dropped series flag */
-    for (uint_fast32_t i = 0; i < series->idx_len; i++)
-    {
-        shard = series->idx[i].shard;
-        shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
-        siridb_shard_decref(shard);
-    }
-
-    if (series->buffer != NULL)
-    {
-        siridb_buffer_free(series->buffer);
-    }
-    free(series->idx);
-    free(series->name);
-    free(series);
 }
 
 /*

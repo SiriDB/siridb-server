@@ -63,31 +63,6 @@ slist_t * slist_copy(slist_t * source)
 }
 
 /*
- * Destroy the simple list.
- */
-inline void slist_free(slist_t * slist)
-{
-    free(slist);
-}
-
-/*
- * Append data to the list. This functions assumes the list can hold the new
- * data is therefore not safe.
- */
-inline void slist_append(slist_t * slist, void * data)
-{
-    slist->data[slist->len++] = data;
-}
-
-/*
- * Pop the last item from the list
- */
-inline void * slist_pop(slist_t * slist)
-{
-    return slist->data[--slist->len];
-}
-
-/*
  * Returns 0 if successful or -1 in case of an error.
  * (in case of an error the list is unchanged)
  */

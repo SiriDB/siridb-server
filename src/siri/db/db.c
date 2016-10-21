@@ -699,13 +699,13 @@ static void SIRIDB_free(siridb_t * siridb)
     /* free c-tree lookup and series */
     if (siridb->series != NULL)
     {
-        ct_free(siridb->series, (ct_free_cb) &siridb_series_decref);
+        ct_free(siridb->series, (ct_free_cb) &siridb__series_decref);
     }
 
     /* free shards using imap walk an free the imap */
     if (siridb->shards != NULL)
     {
-        imap_free(siridb->shards, (imap_free_cb) &siridb_shard_decref);
+        imap_free(siridb->shards, (imap_free_cb) &siridb__shard_decref);
     }
 
     /* only free buffer path when not equal to db_path */

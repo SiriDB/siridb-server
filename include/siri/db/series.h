@@ -79,8 +79,7 @@ siridb_series_t * siridb_series_new(
         const char * series_name,
         uint8_t tp);
 
-void siridb_series_incref(siridb_series_t * series);
-void siridb_series_decref(siridb_series_t * series);
+
 
 int siridb_series_add_idx(
         siridb_series_t * series,
@@ -126,4 +125,16 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
 uint8_t siridb_series_server_id(const char * name);
 int siridb_series_open_store(siridb_t * siridb);
+void siridb__series_free(siridb_series_t * series);
+void siridb__series_decref(siridb_series_t * series);
+/*
+ * Increment the series reference counter.
+ */
+#define siridb_series_incref(series) series->ref++;
 
+/*
+ * Decrement reference counter for series and free the series when zero is
+ * reached.
+ */
+#define siridb_series_decref(series__) \
+		if (!--series__->ref) siridb__series_free(series__)

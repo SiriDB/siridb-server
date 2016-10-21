@@ -38,20 +38,22 @@ if (q->series_map != NULL)                                      \
 {                                                               \
     imap_free(                                                  \
             q->series_map,                                      \
-            (imap_free_cb) &siridb_series_decref);              \
+            (imap_free_cb) &siridb__series_decref);             \
 }                                                               \
 if (q->series_tmp != NULL)                                      \
 {                                                               \
     imap_free(                                                  \
             q->series_tmp,                                      \
-            (imap_free_cb) &siridb_series_decref);              \
+            (imap_free_cb) &siridb__series_decref);             \
 }                                                               \
 if (q->slist != NULL)                                           \
 {                                                               \
+	siridb_series_t * series;									\
     for (; q->slist_index < q->slist->len; q->slist_index++)    \
-    {                                                           \
-        siridb_series_decref(q->slist->data[q->slist_index]);   \
-    }                                                           \
+    {                                                          		 	\
+    	series = (siridb_series_t *) q->slist->data[q->slist_index];	\
+        siridb_series_decref(series);									\
+    }                                                          			\
     slist_free(q->slist);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
@@ -221,10 +223,11 @@ void query_drop_free(uv_handle_t * handle)
 
     if (q_drop->shards_list != NULL)
     {
+    	siridb_shard_t * shard;
         while (q_drop->shards_list->len)
         {
-            siridb_shard_decref(
-                    (siridb_shard_t *) slist_pop(q_drop->shards_list));
+        	shard = (siridb_shard_t *) slist_pop(q_drop->shards_list);
+            siridb_shard_decref(shard);
         }
 
         slist_free(q_drop->shards_list);

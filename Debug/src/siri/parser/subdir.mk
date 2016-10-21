@@ -5,18 +5,15 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../src/siri/parser/listener.c \
-../src/siri/parser/queries.c \
-../src/siri/parser/walkers.c 
+../src/siri/parser/queries.c 
 
 OBJS += \
 ./src/siri/parser/listener.o \
-./src/siri/parser/queries.o \
-./src/siri/parser/walkers.o 
+./src/siri/parser/queries.o 
 
 C_DEPS += \
 ./src/siri/parser/listener.d \
-./src/siri/parser/queries.d \
-./src/siri/parser/walkers.d 
+./src/siri/parser/queries.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

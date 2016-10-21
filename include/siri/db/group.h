@@ -47,10 +47,14 @@ int siridb_group_update_expression(
         const char * source,
         size_t source_len,
         char * err_msg);
-void siridb_group_incref(siridb_group_t * group);
-void siridb_group_decref(siridb_group_t * group);
 void siridb_group_cleanup(siridb_group_t * group);
 int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series);
 int siridb_group_cexpr_cb(siridb_group_t * group, cexpr_condition_t * cond);
 void siridb_group_prop(siridb_group_t * group, qp_packer_t * packer, int prop);
 int siridb_group_is_remote_prop(uint32_t prop);
+void siridb__group_decref(siridb_group_t * group);
+void siridb__group_free(siridb_group_t * group);
+
+#define siridb_group_incref(group) group->ref++
+#define siridb_group_decref(group__) \
+		if (!--group__->ref) siridb__group_free(group__)

@@ -39,7 +39,6 @@
 #include <siri/net/socket.h>
 #include <siri/parser/listener.h>
 #include <siri/parser/queries.h>
-#include <siri/parser/walkers.h>
 #include <siri/siri.h>
 #include <strextra/strextra.h>
 #include <sys/time.h>
@@ -735,7 +734,7 @@ static void enter_group_match(uv_async_t * handle)
                 (*q_wrapper->update_cb)(
                         q_wrapper->series_map,
                         q_wrapper->series_tmp,
-                        (imap_free_cb) &siridb_series_decref);
+                        (imap_free_cb) &siridb__series_decref);
             }
 
             q_wrapper->series_tmp = NULL;
@@ -1071,7 +1070,7 @@ static void enter_series_name(uv_async_t * handle)
         {
             imap_free(
                     q_wrapper->series_map,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
 
             q_wrapper->series_map = imap_new();
 
@@ -1114,7 +1113,7 @@ static void enter_series_name(uv_async_t * handle)
 
             imap_free(
                     q_wrapper->series_map,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
 
             q_wrapper->series_map = imap_new();
 
@@ -4207,7 +4206,7 @@ static void async_series_re(uv_async_t * handle)
             (*q_wrapper->update_cb)(
                     q_wrapper->series_map,
                     q_wrapper->series_tmp,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
         }
         q_wrapper->series_tmp = NULL;
 
@@ -4270,7 +4269,6 @@ static void on_ack_response(
             SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
-
 
     /* we must free the promise */
     sirinet_promise_decref(promise);

@@ -125,8 +125,6 @@ static int SHARD_load_idx_num64(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp);
-
-static void SHARD_free(siridb_shard_t * shard);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
 /*
@@ -964,15 +962,11 @@ int siridb_shard_write_flags(siridb_shard_t * shard)
             fflush(shard->fp->fp)) ? EOF : 0;
 }
 
-/*
- * Increment the shard reference counter.
- */
-inline void siridb_shard_incref(siridb_shard_t * shard)
-{
-    shard->ref++;
-}
 
 /*
+ * This function can be used instead of the macro function when needed as
+ * callback.
+ *
  * Decrement the reference counter, when 0 the shard will be destroyed.
  *
  * In case the shard will be destroyed and flag SIRIDB_SHARD_WILL_BE_REMOVED
@@ -980,11 +974,11 @@ inline void siridb_shard_incref(siridb_shard_t * shard)
  *
  * A signal can be raised in case closing the shard file fails.
  */
-inline void siridb_shard_decref(siridb_shard_t * shard)
+inline void siridb__shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
     {
-        SHARD_free(shard);
+    	siridb__shard_free(shard);
     }
 }
 
@@ -1075,12 +1069,14 @@ int siridb_shard_remove(siridb_shard_t * shard)
 }
 
 /*
- * Destroy shard.
+ * NEVER call this function but call siridb_shard_decref instead.
+ *
+ * Destroys a shard.
  * When flag SIRIDB_SHARD_WILL_BE_REMOVED is set, the file will be removed.
  *
  * A signal can be raised in case closing the shard file fails.
  */
-static void SHARD_free(siridb_shard_t * shard)
+void siridb__shard_free(siridb_shard_t * shard)
 {
     if (shard->replacing != NULL)
     {

@@ -27,6 +27,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <siri/db/db.h>
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 

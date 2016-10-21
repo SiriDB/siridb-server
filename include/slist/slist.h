@@ -31,9 +31,6 @@ typedef struct slist_s
 
 slist_t * slist_new(size_t size);
 slist_t * slist_copy(slist_t * source);
-void slist_free(slist_t * slist);
-void slist_append(slist_t * slist, void * data);
-void * slist_pop(slist_t * slist);
 void slist_compact(slist_t ** slist);
 int slist_append_safe(slist_t ** slist, void * data);
 
@@ -52,3 +49,19 @@ int slist_append_safe(slist_t ** slist, void * data);
  *          probably needs specific cleanup tasks.
  */
 #define slist_object_decref(object) ((slist_object_t * ) object)->ref--
+
+/*
+ * Append data to the list. This functions assumes the list can hold the new
+ * data is therefore not safe.
+ */
+#define slist_append(slist, _data) slist->data[slist->len++] = _data
+
+/*
+ * Destroy the simple list.
+ */
+#define slist_free(slist) free(slist)
+
+/*
+ * Pop the last item from the list
+ */
+#define slist_pop(slist) slist->data[--slist->len]
