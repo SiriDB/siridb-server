@@ -331,15 +331,15 @@ else                                    \
 /*
  * Start SIRIPARSER_MASTER_CHECK_ACCESS
  */
-#define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
-if (    IS_MASTER &&                                                        \
-        !siridb_user_check_access(                                          \
-            ((sirinet_socket_t *) query->client->data)->origin,             \
-            ACCESS_BIT,                                                     \
-            query->err_msg))                                                \
-{                                                                           \
-    siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                \
-    return;                                                                 \
+#define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                            \
+if (IS_MASTER &&                                                        	  \
+    !siridb_user_check_access(                                          	  \
+		(siridb_user_t *) ((sirinet_socket_t *) query->client->data)->origin, \
+		ACCESS_BIT,                                                     	  \
+		query->err_msg))                                                	  \
+{                                                                             \
+    siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                  \
+    return;                                                                   \
 }
 
 void siriparser_init_listener(void)
@@ -631,13 +631,13 @@ static void enter_drop_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
+    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
+
     query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_drop_new();
     query->free_cb = (uv_close_cb) query_drop_free;
-
-    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
 
     SIRIPARSER_NEXT_NODE
 }

@@ -119,42 +119,37 @@ static cleri_node_t * RULE_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
-        cleri_rule_store_t * rule)
+        cleri_rule_store_t * __rule)
 {
     cleri_node_t * node;
     cleri_node_t * rnode;
+    cleri_rule_store_t nrule;
+
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
     	cleri_err = -1;
         return NULL;
     }
 
-    rule = (cleri_rule_store_t *) malloc(sizeof(cleri_rule_store_t));
-    if (rule == NULL)
+    nrule.tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
+
+    if (nrule.tested == NULL)
     {
     	cleri_err = -1;
-        cleri_node_free(node);
-        return NULL;
-    }
-    rule->tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
-    if (rule->tested == NULL)
-    {
-    	cleri_err = -1;
-    	free(rule);
         cleri_node_free(node);
         return NULL;
     }
 
-    rule->tested->str = NULL;
-    rule->tested->node = NULL;
-    rule->tested->next = NULL;
-    rule->root_obj = cl_obj->via.rule->cl_obj;
+    nrule.tested->str = NULL;
+    nrule.tested->node = NULL;
+    nrule.tested->next = NULL;
+    nrule.root_obj = cl_obj->via.rule->cl_obj;
 
     rnode = cleri__parser_walk(
             pr,
             node,
-            rule->root_obj,
-            rule,
+			nrule.root_obj,
+            &nrule,
             CLERI_EXP_MODE_REQUIRED);
 
 
@@ -177,8 +172,7 @@ static cleri_node_t * RULE_parse(
     }
 
     /* cleanup rule */
-    RULE_tested_free(rule->tested);
-    free(rule);
+    RULE_tested_free(nrule.tested);
 
     return node;
 }

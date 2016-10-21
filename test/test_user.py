@@ -83,6 +83,11 @@ class TestUser(TestBase):
         result = await self.client0.query("show who_am_i")
         self.assertEqual(result['data'][0]['value'], 'sasientje')
 
+        with self.assertRaisesRegexp(
+                UserAuthError,
+                "Access denied. User 'sasientje' has no 'insert' privileges."):
+            result = await self.client0.insert({'no access test': [[1, 1.0]]})
+
         result = await self.client1.query('drop user "sasientje"')
         self.assertEqual(result.pop('success_msg'), "User 'sasientje' is dropped successfully.")
         time.sleep(0.1)

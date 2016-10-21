@@ -383,6 +383,31 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
+	char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+
+    if (!siridb_user_check_access(
+			(siridb_user_t *) ssocket->origin,
+			SIRIDB_ACCESS_INSERT,
+			err_msg))
+    {
+    	log_warning("(%s) %s",
+    			sirinet_cproto_server_str(CPROTO_ERR_USER_ACCESS),
+				err_msg);
+        sirinet_pkg_t * package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+				CPROTO_ERR_USER_ACCESS,
+                err_msg);
+
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(client, package);
+        }
+
+        return;
+    }
+
     siridb_t * siridb = ssocket->siridb;
 
     /* only when when the flag is EXACTLY running or
