@@ -94,7 +94,7 @@ int slist_append_safe(slist_t ** slist, void * data)
         *slist = tmp;
     }
 
-    (*slist)->data[(*slist)->len++] = data;
+    slist_append((*slist), data);
 
     return 0;
 }
