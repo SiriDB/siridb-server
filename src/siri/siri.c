@@ -457,7 +457,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         }
         else
         {
-            sirinet_socket_decref((uv_stream_t *) handle);
+            sirinet_socket_decref(handle);
         }
         break;
 

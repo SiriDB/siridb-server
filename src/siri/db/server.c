@@ -417,7 +417,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 			if (req == NULL)
 			{
 				ERR_ALLOC
-				sirinet_socket_decref((uv_stream_t *) server->socket);
+				sirinet_socket_decref(server->socket);
 			}
 			else
 			{
@@ -439,7 +439,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 			if (req == NULL)
 			{
 				ERR_ALLOC
-				sirinet_socket_decref((uv_stream_t *) server->socket);
+				sirinet_socket_decref(server->socket);
 			}
 			else
 			{
@@ -457,7 +457,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 			/* Try DNS */
 			if (SERVER_resolve_dns(server, AF_UNSPEC, SERVER_on_resolved))
 			{
-				sirinet_socket_decref((uv_stream_t *) server->socket);
+				sirinet_socket_decref(server->socket);
 			}
 		}
     }
@@ -530,7 +530,7 @@ static void SERVER_on_resolved(
         		server->name,
         		uv_err_name(status));
 
-        sirinet_socket_decref((uv_stream_t *) server->socket);
+        sirinet_socket_decref(server->socket);
     }
     else
     {
@@ -699,7 +699,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 server->name,
                 uv_strerror(status));
 
-        sirinet_socket_decref((uv_stream_t *) req->handle);
+        sirinet_socket_decref(req->handle);
     }
     free(req);
 }
@@ -1204,7 +1204,7 @@ static void SERVER_on_auth_response(
     if (    (status || pkg->tp != BPROTO_AUTH_SUCCESS) &&
             promise->server->socket != NULL)
     {
-        sirinet_socket_decref((uv_stream_t *) promise->server->socket);
+        sirinet_socket_decref(promise->server->socket);
     }
 
     /* we must free the promise */

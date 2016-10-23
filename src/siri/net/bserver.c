@@ -140,7 +140,7 @@ static void on_new_connection(uv_stream_t * server, int status)
         }
         else
         {
-            sirinet_socket_decref((uv_stream_t *) client);
+            sirinet_socket_decref(client);
         }
     }
 }

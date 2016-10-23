@@ -157,7 +157,7 @@ static void on_new_connection(uv_stream_t * server, int status)
     {
         uv_tcp_init(loop, client);
 
-        if (uv_accept(server, (uv_stream_t*) client) == 0)
+        if (uv_accept(server, (uv_stream_t *) client) == 0)
         {
             uv_read_start(
                     (uv_stream_t *) client,
@@ -166,7 +166,7 @@ static void on_new_connection(uv_stream_t * server, int status)
         }
         else
         {
-            sirinet_socket_decref((uv_stream_t *) client);
+            sirinet_socket_decref(client);
         }
     }
 }

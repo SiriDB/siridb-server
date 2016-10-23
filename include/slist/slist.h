@@ -19,7 +19,7 @@
 
 typedef struct slist_object_s
 {
-    uint64_t ref;
+    uint32_t ref;
 } slist_object_t;
 
 typedef struct slist_s

@@ -44,11 +44,10 @@
  */
 
 static siridb_t * SIRIDB_new(void);
-static void SIRIDB_free(siridb_t * siridb);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
     sprintf(err_msg, "error: " ERROR_MSG);  \
-    SIRIDB_free(*siridb);                   \
+    siridb__free(*siridb);                  \
     *siridb = NULL;                         \
     return -1;
 
@@ -484,22 +483,9 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
     return NULL;
 }
 
-void siridb_decref_cb(siridb_t * siridb, void * args)
+inline void siridb_decref_cb(siridb_t * siridb, void * args)
 {
     siridb_decref(siridb);
-}
-
-inline void siridb_incref(siridb_t * siridb)
-{
-    siridb->ref++;
-}
-
-void siridb_decref(siridb_t * siridb)
-{
-    if (!--siridb->ref)
-    {
-        SIRIDB_free(siridb);
-    }
 }
 
 int siridb_open_files(siridb_t * siridb)
@@ -551,82 +537,11 @@ int siridb_save(siridb_t * siridb)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Destroy SiriDB object.
+ *
+ * Never call this function but rather call siridb_decref.
  */
-static siridb_t * SIRIDB_new(void)
-{
-    siridb_t * siridb = (siridb_t *) malloc(sizeof(siridb_t));
-    if (siridb == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        siridb->series = ct_new();
-        if (siridb->series == NULL)
-        {
-            free(siridb);
-            siridb = NULL;  /* signal is raised */
-        }
-        else
-        {
-            siridb->series_map = imap_new();
-            if (siridb->series_map == NULL)
-            {
-                ct_free(siridb->series, NULL);
-                free(siridb);
-                siridb = NULL;  /* signal is raised */
-            }
-            else
-            {
-                siridb->shards = imap_new();
-                if (siridb->shards == NULL)
-                {
-                    imap_free(siridb->series_map, NULL);
-                    ct_free(siridb->series, NULL);
-                    free(siridb);
-                    siridb = NULL;  /* signal is raised */
-                }
-                else
-                {
-
-                    siridb->dbname = NULL;
-                    siridb->dbpath = NULL;
-                    siridb->ref = 1;
-                    siridb->active_tasks = 0;
-                    siridb->flags = 0;
-                    siridb->buffer_path = NULL;
-                    siridb->time = NULL;
-                    siridb->users = NULL;
-                    siridb->servers = NULL;
-                    siridb->pools = NULL;
-                    siridb->max_series_id = 0;
-                    siridb->received_points = 0;
-                    siridb->drop_threshold = 1.0;
-                    siridb->buffer_size = -1;
-                    siridb->tz = -1;
-                    siridb->server = NULL;
-                    siridb->replica = NULL;
-                    siridb->fifo = NULL;
-                    siridb->replicate = NULL;
-                    siridb->reindex = NULL;
-                    siridb->groups = NULL;
-
-                    /* make file pointers are NULL when file is closed */
-                    siridb->buffer_fp = NULL;
-                    siridb->dropped_fp = NULL;
-                    siridb->store = NULL;
-
-                    uv_mutex_init(&siridb->series_mutex);
-                    uv_mutex_init(&siridb->shards_mutex);
-                }
-            }
-        }
-    }
-    return siridb;
-}
-
-static void SIRIDB_free(siridb_t * siridb)
+void siridb__free(siridb_t * siridb)
 {
 #ifdef DEBUG
     log_debug("Free database: '%s'", siridb->dbname);
@@ -738,5 +653,83 @@ static void SIRIDB_free(siridb_t * siridb)
 
     free(siridb);
 }
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ */
+static siridb_t * SIRIDB_new(void)
+{
+    siridb_t * siridb = (siridb_t *) malloc(sizeof(siridb_t));
+    if (siridb == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        siridb->series = ct_new();
+        if (siridb->series == NULL)
+        {
+            free(siridb);
+            siridb = NULL;  /* signal is raised */
+        }
+        else
+        {
+            siridb->series_map = imap_new();
+            if (siridb->series_map == NULL)
+            {
+                ct_free(siridb->series, NULL);
+                free(siridb);
+                siridb = NULL;  /* signal is raised */
+            }
+            else
+            {
+                siridb->shards = imap_new();
+                if (siridb->shards == NULL)
+                {
+                    imap_free(siridb->series_map, NULL);
+                    ct_free(siridb->series, NULL);
+                    free(siridb);
+                    siridb = NULL;  /* signal is raised */
+                }
+                else
+                {
+
+                    siridb->dbname = NULL;
+                    siridb->dbpath = NULL;
+                    siridb->ref = 1;
+                    siridb->active_tasks = 0;
+                    siridb->flags = 0;
+                    siridb->buffer_path = NULL;
+                    siridb->time = NULL;
+                    siridb->users = NULL;
+                    siridb->servers = NULL;
+                    siridb->pools = NULL;
+                    siridb->max_series_id = 0;
+                    siridb->received_points = 0;
+                    siridb->drop_threshold = 1.0;
+                    siridb->buffer_size = -1;
+                    siridb->tz = -1;
+                    siridb->server = NULL;
+                    siridb->replica = NULL;
+                    siridb->fifo = NULL;
+                    siridb->replicate = NULL;
+                    siridb->reindex = NULL;
+                    siridb->groups = NULL;
+
+                    /* make file pointers are NULL when file is closed */
+                    siridb->buffer_fp = NULL;
+                    siridb->dropped_fp = NULL;
+                    siridb->store = NULL;
+
+                    uv_mutex_init(&siridb->series_mutex);
+                    uv_mutex_init(&siridb->shards_mutex);
+                }
+            }
+        }
+    }
+    return siridb;
+}
+
+
 
 

@@ -21,7 +21,6 @@
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 
 static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
-static void SOCKET_free(uv_stream_t * client);
 
 const char * sirinet_socket_ip_support_str(uint8_t ip_support)
 {
@@ -342,47 +341,8 @@ uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
     return socket;
 }
 
-inline void sirinet_socket_incref(uv_stream_t * client)
-{
-    ((sirinet_socket_t *) client->data)->ref++;
-}
-
-void sirinet_socket_decref(uv_stream_t * client)
-{
-    sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
-
-    if (!--ssocket->ref)
-    {
-        uv_close((uv_handle_t *) client, (uv_close_cb) SOCKET_free);
-    }
-}
-
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- * (reference counter is initially set to 1)
- */
-static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
-{
-    sirinet_socket_t * ssocket =
-            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
-    if (ssocket == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        ssocket->tp = tp;
-        ssocket->on_data = cb;
-        ssocket->buf = NULL;
-        ssocket->len = 0;
-        ssocket->origin = NULL;
-        ssocket->siridb = NULL;
-        ssocket->ref = 1;
-    }
-    return ssocket;
-}
-
-/*
+ * Never use this function but call sirinet_socket_decref.
  * Destroy socket. (parsing NULL is not allowed)
  *
  * We know three different socket types:
@@ -393,7 +353,7 @@ static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
  *  In case a server is destroyed, remaining promises will be cancelled and
  *  the call-back functions will be called.
  */
-static void SOCKET_free(uv_stream_t * client)
+void sirinet__socket_free(uv_stream_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
 
@@ -427,5 +387,32 @@ static void SOCKET_free(uv_stream_t * client)
     free(ssocket);
     free((uv_tcp_t *) client);
 }
+
+/*
+ * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * (reference counter is initially set to 1)
+ */
+static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
+{
+    sirinet_socket_t * ssocket =
+            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
+    if (ssocket == NULL)
+    {
+        ERR_ALLOC
+    }
+    else
+    {
+        ssocket->tp = tp;
+        ssocket->on_data = cb;
+        ssocket->buf = NULL;
+        ssocket->len = 0;
+        ssocket->origin = NULL;
+        ssocket->siridb = NULL;
+        ssocket->ref = 1;
+    }
+    return ssocket;
+}
+
+
 
 

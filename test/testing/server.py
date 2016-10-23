@@ -18,7 +18,7 @@ class Server:
     MEM_CHECK = False
     BUILDTYPE = BUILDTYPE
     SERVER_ADDRESS = '%HOSTNAME'
-    IP_SUPPORT = 'BLA' #'ALL'
+    IP_SUPPORT = 'ALL'
 
     def __init__(self,
                  n,

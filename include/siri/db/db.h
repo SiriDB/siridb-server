@@ -117,9 +117,11 @@ int siridb_from_unpacker(
 
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
 void siridb_decref_cb(siridb_t * siridb, void * args);
-void siridb_incref(siridb_t * siridb);
-void siridb_decref(siridb_t * siridb);
 int siridb_open_files(siridb_t * siridb);
 int siridb_save(siridb_t * siridb);
+void siridb__free(siridb_t * siridb);
+
+#define siridb_incref(siridb) siridb->ref++
+#define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
 
 #define siridb_is_reindexing(siridb) (siridb->flags & SIRIDB_FLAG_REINDEXING)
