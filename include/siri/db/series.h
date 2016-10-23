@@ -55,22 +55,23 @@ typedef struct idx_s
 typedef struct siridb_series_s
 {
     uint32_t ref;  /* keep ref on top */
-    uint32_t mask;
     uint32_t id;
-    uint32_t _pad0;
-    char * name;
-    uint64_t start;
-    uint64_t end;
-    uint32_t length;
-    uint32_t idx_len;
-    idx_t * idx;
-    siridb_buffer_t * buffer;
+    uint16_t mask;
     uint16_t pool;
     uint16_t name_len;
     uint8_t flags;
     uint8_t tp;
+    uint64_t start;
+    uint64_t end;
+    uint32_t length;
+    uint32_t idx_len;
+    char * name;
+    idx_t * idx;
+    siridb_buffer_t * buffer;
     uint8_t server_id;
     uint8_t idx_tp;
+    uint16_t _pad0;
+    uint32_t _pad1;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
@@ -79,8 +80,6 @@ siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
         uint8_t tp);
-
-
 
 int siridb_series_add_idx(
         siridb_series_t * series,

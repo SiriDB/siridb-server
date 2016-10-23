@@ -1152,7 +1152,7 @@ static siridb_series_t * SERIES_new(
             }
 
             series->mask =
-                    (uint32_t) (n / 11) % ((tp == TP_STRING) ?
+                    (uint16_t) (n / 11) % ((tp == TP_STRING) ?
                     siridb->shard_mask_log : siridb->shard_mask_num);
 
             series->server_id = (uint8_t) ((n / 11) % 2);
