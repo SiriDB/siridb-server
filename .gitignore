@@ -54,3 +54,8 @@ siridbc.layout
 
 # Build
 build/
+
+# Grammar
+grammar/cgrammar/
+grammar/jsgrammar/
+grammar/pygrammar/

@@ -6,9 +6,8 @@ Date: 2016-10-10
 '''
 import os
 import sys
-
-sys.path.append('/home/joente/workspace/pyleri')
 from grammar import siri_grammar
+
 
 if __name__ == '__main__':
     c_file, h_file = siri_grammar.export_c(target='siri/grammar/grammar')
