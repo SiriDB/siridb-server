@@ -1101,7 +1101,7 @@ int siridb_server_cexpr_cb(
 				siridb_initsync_sync_progress(wserver->siridb),
                 cond->str);
     }
-    /* we must NEVER get here */
+
     log_critical("Unexpected server property received: %d", cond->prop);
     assert (0);
     return -1;
