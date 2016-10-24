@@ -25,6 +25,6 @@ git check master
 7. Test package
 sudo dpkg -i build/siridb-server...deb
 
-7. Upload debian package, update links etc.
+8. Upload debian package, update links etc.
  
 
