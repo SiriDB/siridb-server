@@ -19,6 +19,7 @@ class Server:
     BUILDTYPE = BUILDTYPE
     SERVER_ADDRESS = '%HOSTNAME'
     IP_SUPPORT = 'ALL'
+    USE_XFCE4 = False
 
     def __init__(self,
                  n,
@@ -75,14 +76,27 @@ class Server:
 
     async def start(self, sleep=None):
         prev = self._get_pid_set()
-        rc = os.system(
-            'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
-            .format(VALGRIND if self.MEM_CHECK else '',
-                    SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
-                    self.cfgfile,
-                    self.name,
-                    self.GEOMETRY,
-                    ' -H' if self.HOLD_TERM else ''))
+
+        if self.USE_XFCE4:
+            rc = subprocess.Popen(
+                'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
+                .format(VALGRIND if self.MEM_CHECK else '',
+                        SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
+                        self.cfgfile,
+                        self.name,
+                        self.GEOMETRY,
+                        ' -H' if self.HOLD_TERM else ''),
+                shell=True)
+        else:
+            rc = subprocess.Popen(
+               'xterm {}-title {} -geometry {} -e "{}{} --config {}"'
+               .format('-hold ' if self.HOLD_TERM else '',
+                       self.name,
+                       self.GEOMETRY,
+                       VALGRIND if self.MEM_CHECK else '',
+                       SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
+                       self.cfgfile),
+               shell=True)
 
         if self.MEM_CHECK:
             await asyncio.sleep(1)
