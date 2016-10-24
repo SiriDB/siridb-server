@@ -12,11 +12,9 @@
  */
 #include <cleri/choice.h>
 #include <cleri/node.h>
-#include <logger/logger.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <siri/err.h>
 
 static void CHOICE_free(cleri_object_t * cl_object);
 
@@ -39,7 +37,7 @@ static cleri_node_t * CHOICE_parse_first_match(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_choice(
         uint32_t gid,
@@ -64,7 +62,6 @@ cleri_object_t * cleri_choice(
 
     if (cl_object->via.choice == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -86,7 +83,6 @@ cleri_object_t * cleri_choice(
                 cl_object->via.choice->olist,
                 va_arg(ap, cleri_object_t *)))
         {
-            ERR_ALLOC
             cleri_object_decref(cl_object);
             return NULL;
         }
@@ -121,7 +117,7 @@ static cleri_node_t * CHOICE_parse(
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * CHOICE_parse_most_greedy(
         cleri_parser_t * pr,
@@ -140,7 +136,8 @@ static cleri_node_t * CHOICE_parse_most_greedy(
     {
         if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
         {
-            return NULL;  /* signal is set */
+        	cleri_err = -1;
+            return NULL;
         }
         rnode = cleri__parser_walk(
                 pr,
@@ -162,13 +159,20 @@ static cleri_node_t * CHOICE_parse_most_greedy(
     if (mg_node != NULL)
     {
         parent->len += mg_node->len;
-        cleri_children_add(parent->children, mg_node);
+        if (cleri_children_add(parent->children, mg_node))
+        {
+			 /* error occurred, reverse changes set mg_node to NULL */
+			cleri_err = -1;
+        	parent->len -= mg_node->len;
+        	cleri_node_free(mg_node);
+        	mg_node = NULL;
+        }
     }
     return mg_node;
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * CHOICE_parse_first_match(
         cleri_parser_t * pr,
@@ -184,6 +188,7 @@ static cleri_node_t * CHOICE_parse_first_match(
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     if (node == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
     while (olist != NULL)
@@ -197,7 +202,14 @@ static cleri_node_t * CHOICE_parse_first_match(
         if (rnode != NULL)
         {
             parent->len += node->len;
-            cleri_children_add(parent->children, node);
+            if (cleri_children_add(parent->children, node))
+            {
+				 /* error occurred, reverse changes set mg_node to NULL */
+				cleri_err = -1;
+				parent->len -= node->len;
+				cleri_node_free(node);
+				node = NULL;
+            }
             return node;
         }
         olist = olist->next;

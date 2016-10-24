@@ -1,0 +1,72 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+-include ../makefile.init
+
+RM := rm -rf
+
+# All of the sources participating in the build are defined here
+-include sources.mk
+-include src/xpath/subdir.mk
+-include src/xmath/subdir.mk
+-include src/timeit/subdir.mk
+-include src/test/subdir.mk
+-include src/strextra/subdir.mk
+-include src/slist/subdir.mk
+-include src/siri/parser/subdir.mk
+-include src/siri/net/subdir.mk
+-include src/siri/help/subdir.mk
+-include src/siri/grammar/subdir.mk
+-include src/siri/file/subdir.mk
+-include src/siri/db/subdir.mk
+-include src/siri/cfg/subdir.mk
+-include src/siri/args/subdir.mk
+-include src/siri/subdir.mk
+-include src/qpack/subdir.mk
+-include src/procinfo/subdir.mk
+-include src/motd/subdir.mk
+-include src/logger/subdir.mk
+-include src/lock/subdir.mk
+-include src/llist/subdir.mk
+-include src/iso8601/subdir.mk
+-include src/imap/subdir.mk
+-include src/expr/subdir.mk
+-include src/ctree/subdir.mk
+-include src/cleri/subdir.mk
+-include src/cfgparser/subdir.mk
+-include src/cexpr/subdir.mk
+-include src/argparse/subdir.mk
+-include subdir.mk
+-include objects.mk
+
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(strip $(C_DEPS)),)
+-include $(C_DEPS)
+endif
+endif
+
+-include ../makefile.defs
+
+# Add inputs and outputs from these tool invocations to the build variables 
+
+# All Target
+all: siridb-server
+
+# Tool invocations
+siridb-server: $(OBJS) $(USER_OBJS)
+	@echo 'Building target: $@'
+	@echo 'Invoking: GCC C Linker'
+	gcc -L/usr/local/include -o "siridb-server" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+# Other Targets
+clean:
+	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) siridb-server
+	-@echo ' '
+
+.PHONY: all clean dependents
+.SECONDARY:
+
+-include ../makefile.targets

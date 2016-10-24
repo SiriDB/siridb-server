@@ -23,7 +23,7 @@ typedef struct cleri_children_s
 
 cleri_children_t * cleri_children_new(void);
 void cleri_children_free(cleri_children_t * children);
-void cleri_children_add(
+int cleri_children_add(
         cleri_children_t * children,
         cleri_node_t * node);
 

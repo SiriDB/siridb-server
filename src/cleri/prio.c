@@ -11,11 +11,10 @@
  *
  */
 #include <cleri/prio.h>
-#include <logger/logger.h>
+#include <cleri/expecting.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <siri/err.h>
 
 static void PRIO_free(cleri_object_t * cl_obj);
 
@@ -26,7 +25,7 @@ static cleri_node_t *  PRIO_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_prio(
         uint32_t gid,
@@ -50,7 +49,6 @@ cleri_object_t * cleri_prio(
 
     if (cl_object->via.prio == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -60,7 +58,6 @@ cleri_object_t * cleri_prio(
 
     if (cl_object->via.prio->olist == NULL)
     {
-        /* signal is set */
         cleri_object_decref(cl_object);
         return NULL;
     }
@@ -72,7 +69,6 @@ cleri_object_t * cleri_prio(
                 cl_object->via.prio->olist,
                 va_arg(ap, cleri_object_t *)))
         {
-            ERR_ALLOC
             cleri_object_decref(cl_object);
             return NULL;
         }
@@ -92,7 +88,7 @@ static void PRIO_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t *  PRIO_parse(
         cleri_parser_t * pr,
@@ -110,6 +106,7 @@ static cleri_node_t *  PRIO_parse(
      * if *str is already in tested */
     if (cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
@@ -119,6 +116,7 @@ static cleri_node_t *  PRIO_parse(
     {
         if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
         {
+        	cleri_err = -1;
             return NULL;
         }
         rnode = cleri__parser_walk(
@@ -142,7 +140,14 @@ static cleri_node_t *  PRIO_parse(
     if (tested->node != NULL)
     {
         parent->len += tested->node->len;
-        cleri_children_add(parent->children, tested->node);
+        if (cleri_children_add(parent->children, tested->node))
+        {
+			 /* error occurred, reverse changes set mg_node to NULL */
+			cleri_err = -1;
+			parent->len -=  tested->node->len;
+			cleri_node_free(tested->node);
+			tested->node = NULL;
+        }
         return tested->node;
     }
     return NULL;

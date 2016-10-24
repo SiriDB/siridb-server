@@ -27,6 +27,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <siri/db/db.h>
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 
@@ -230,8 +231,8 @@ int siridb_shards_add_points(
                         pend)) < 0)
                 {
                     log_critical(
-                            "Could not write points to shard id '%ld",
-                            shard->id);
+                            "Could not write points to shard id '%llu",
+                            (unsigned long long) shard->id);
                 }
                 else
                 {

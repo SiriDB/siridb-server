@@ -30,6 +30,7 @@
 #include <strextra/strextra.h>
 #include <string.h>
 #include <sys/time.h>
+#include <siri/err.h>
 
 #ifndef DEBUG
 #include <math.h>
@@ -123,7 +124,10 @@ void siridb_query_run(
     query->pr = NULL;
     query->nodes = NULL;
 
-    log_debug("Parsing query (%d): %s", query->flags, query->q);
+    if (Logger.level == LOGGER_DEBUG && strstr(query->q, "password") == NULL)
+    {
+    	log_debug("Parsing query (%d): %s", query->flags, query->q);
+    }
 
     /* increment active tasks */
     ((sirinet_socket_t *) query->client->data)->siridb->active_tasks++;
@@ -528,7 +532,16 @@ static void QUERY_parse(uv_async_t * handle)
     if (    walker == NULL ||
             (query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
     {
-        return;  /* signal is set */
+    	if (walker != NULL)
+    	{
+            siridb_nodes_free(siridb_walker_free(walker));
+    	}
+    	else
+    	{
+    		ERR_ALLOC
+    	}
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
     }
 
     if (!query->pr->is_valid)
@@ -748,8 +761,8 @@ static int QUERY_time_expr(
         n = snprintf(
                 buf + EXPR_MAX_SIZE - *size,
                 *size,
-                "%lu",
-                walker->now);
+                "%llu",
+                (unsigned long long) walker->now);
         if (n >= *size)
         {
             return EXPR_TOO_LONG;
@@ -775,8 +788,9 @@ static int QUERY_time_expr(
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%lu",
-                    siridb_time_parse(node->str, node->len) *
+                    "%llu",
+					(unsigned long long)
+						siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
             if (n >= *size)
             {
@@ -810,8 +824,8 @@ static int QUERY_time_expr(
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%ld",
-                    ts * walker->siridb->time->factor);
+                    "%lld",
+					(long long) ts * walker->siridb->time->factor);
 
             if (n >= *size)
             {
@@ -951,8 +965,8 @@ static int QUERY_rebuild(
                 n = snprintf(
                         buf + max_size - *size,
                         *size,
-                        "%ld ",
-                        node->result);
+                        "%lld ",
+                        (long long) node->result);
                 if (n >= *size)
                 {
                     return QUERY_TOO_LONG;

@@ -114,10 +114,11 @@ class TestGroup(TestBase):
         self.client0.close()
         self.client1.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
+    SiriDB.LOG_LEVEL = 'INFO'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
+    Server.BUILDTYPE = 'Debug'
     run_test(TestGroup())

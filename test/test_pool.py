@@ -55,10 +55,6 @@ class TestPool(TestBase):
 
         await asyncio.sleep(5)
 
-        if not Server.MEM_CHECK:
-            await self.assertSeries(self.client0, series)
-            await self.assertSeries(self.client1, series)
-
         await self.assertIsRunning(self.db, self.client0, timeout=200)
 
         await asyncio.sleep(5)
@@ -77,19 +73,7 @@ class TestPool(TestBase):
             series,
             100))
 
-        if not Server.MEM_CHECK:
-            for _ in range(10):
-                await asyncio.sleep(2)
-                await self.assertSeries(self.client0, series)
-                await self.assertSeries(self.client1, series)
-                await self.assertSeries(self.client2, series)
-
         await self.assertIsRunning(self.db, self.client0, timeout=600)
-
-        if not Server.MEM_CHECK:
-            await self.assertSeries(self.client0, series)
-            await self.assertSeries(self.client1, series)
-            await self.assertSeries(self.client2, series)
 
         await asyncio.wait_for(task0, None)
         await asyncio.wait_for(task1, None)
@@ -112,5 +96,5 @@ if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Release'
+    Server.BUILDTYPE = 'Debug'
     run_test(TestPool())

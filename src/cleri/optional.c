@@ -10,9 +10,8 @@
  *
  */
 #include <cleri/optional.h>
-#include <logger/logger.h>
+#include <cleri/expecting.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 static void OPTIONAL_free(cleri_object_t * cl_object);
 
@@ -23,7 +22,7 @@ static cleri_node_t * OPTIONAL_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL and in case an error has occurred.
  */
 cleri_object_t * cleri_optional(uint32_t gid, cleri_object_t * cl_obj)
 {
@@ -47,7 +46,6 @@ cleri_object_t * cleri_optional(uint32_t gid, cleri_object_t * cl_obj)
 
     if (cl_object->via.optional == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -70,7 +68,7 @@ static void OPTIONAL_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * OPTIONAL_parse(
         cleri_parser_t * pr,
@@ -83,6 +81,7 @@ static cleri_node_t * OPTIONAL_parse(
 
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
     rnode = cleri__parser_walk(
@@ -94,9 +93,17 @@ static cleri_node_t * OPTIONAL_parse(
     if (rnode != NULL)
     {
         parent->len += node->len;
-        cleri_children_add(parent->children, node);
+        if (cleri_children_add(parent->children, node))
+        {
+			 /* error occurred, reverse changes set mg_node to NULL */
+			cleri_err = -1;
+			parent->len -= node->len;
+			cleri_node_free(node);
+			node = NULL;
+        }
         return node;
     }
+
     cleri_node_free(node);
     return CLERI_EMPTY_NODE;
 }

@@ -14,7 +14,6 @@
 #include <lock/lock.h>
 #include <lock/lock.h>
 #include <logger/logger.h>
-#include <msgpack.h>
 #include <qpack/qpack.h>
 #include <siri/db/auth.h>
 #include <siri/db/insert.h>
@@ -54,7 +53,7 @@ static const int SERVER_RUNNING_REINDEXING =
         SERVER_FLAG_RUNNING + SERVER_FLAG_REINDEXING;
 
 static uv_loop_t * loop = NULL;
-static struct sockaddr_in client_addr;
+static struct sockaddr_storage client_addr;
 static uv_tcp_t client_server;
 
 static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
@@ -101,15 +100,29 @@ int sirinet_clserver_init(siri_t * siri)
 
     uv_tcp_init(loop, &client_server);
 
-    uv_ip4_addr(
-            siri->cfg->listen_client_address,
-            siri->cfg->listen_client_port,
-            &client_addr);
-
     /* make sure data is set to NULL so we later on can check this value. */
     client_server.data = NULL;
 
-    uv_tcp_bind(&client_server, (const struct sockaddr *) &client_addr, 0);
+    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        uv_ip4_addr(
+                "0.0.0.0",
+                siri->cfg->listen_client_port,
+                (struct sockaddr_in *) &client_addr);
+    }
+    else
+    {
+		uv_ip6_addr(
+				"::",
+				siri->cfg->listen_client_port,
+				(struct sockaddr_in6 *) &client_addr);
+    }
+
+    uv_tcp_bind(
+    		&client_server,
+			(const struct sockaddr *) &client_addr,
+			(siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
+					UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
             (uv_stream_t*) &client_server,
@@ -122,8 +135,7 @@ int sirinet_clserver_init(siri_t * siri)
         return 1;
     }
 
-    log_info("Start listening for client connections on '%s:%d'",
-            siri->cfg->listen_client_address,
+    log_info("Start listening for client connections on port %d",
             siri->cfg->listen_client_port);
 
     return 0;
@@ -145,7 +157,7 @@ static void on_new_connection(uv_stream_t * server, int status)
     {
         uv_tcp_init(loop, client);
 
-        if (uv_accept(server, (uv_stream_t*) client) == 0)
+        if (uv_accept(server, (uv_stream_t *) client) == 0)
         {
             uv_read_start(
                     (uv_stream_t *) client,
@@ -154,7 +166,7 @@ static void on_new_connection(uv_stream_t * server, int status)
         }
         else
         {
-            sirinet_socket_decref((uv_stream_t *) client);
+            sirinet_socket_decref(client);
         }
     }
 }
@@ -370,6 +382,31 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
+
+	char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+
+    if (!siridb_user_check_access(
+			(siridb_user_t *) ssocket->origin,
+			SIRIDB_ACCESS_INSERT,
+			err_msg))
+    {
+    	log_warning("(%s) %s",
+    			sirinet_cproto_server_str(CPROTO_ERR_USER_ACCESS),
+				err_msg);
+        sirinet_pkg_t * package = sirinet_pkg_err(
+                pkg->pid,
+                strlen(err_msg),
+				CPROTO_ERR_USER_ACCESS,
+                err_msg);
+
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(client, package);
+        }
+
+        return;
+    }
 
     siridb_t * siridb = ssocket->siridb;
 

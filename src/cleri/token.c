@@ -13,10 +13,8 @@
  *
  */
 #include <cleri/token.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/err.h>
 
 static void TOKEN_free(cleri_object_t * cl_object);
 
@@ -27,7 +25,7 @@ static cleri_node_t * TOKEN_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_token(
         uint32_t gid,
@@ -49,7 +47,6 @@ cleri_object_t * cleri_token(
 
     if (cl_object->via.token == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -70,7 +67,7 @@ static void TOKEN_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * TOKEN_parse(
         cleri_parser_t * pr,
@@ -88,12 +85,23 @@ static cleri_node_t * TOKEN_parse(
         if ((node = cleri_node_new(cl_obj, str, cl_obj->via.token->len)) != NULL)
         {
             parent->len += node->len;
-            cleri_children_add(parent->children, node);
+            if (cleri_children_add(parent->children, node))
+            {
+				 /* error occurred, reverse changes set mg_node to NULL */
+				cleri_err = -1;
+				parent->len -= node->len;
+				cleri_node_free(node);
+				node = NULL;
+            }
+        }
+        else
+        {
+        	cleri_err = -1;
         }
     }
     else if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
     {
-        ERR_ALLOC
+    	cleri_err = -1;
     }
     return node;
 }

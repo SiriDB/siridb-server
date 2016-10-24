@@ -31,8 +31,10 @@
 # Debug files
 *.dSYM/
 
-/Debug
-/Release
+/Debug/siridb-server
+/Release/siridb-server
+*.d
+*.d
 /testdir
 
 # Eclipse

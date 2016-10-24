@@ -11,28 +11,28 @@
  */
 #include <cleri/parser.h>
 #include <cleri/expecting.h>
-#include <logger/logger.h>
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-#include <strextra/strextra.h>
-#include <siri/err.h>
+
+int cleri_err = 0;
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
+ *
+ * Note: This function is not thread safe.
  */
 cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
 {
     cleri_parser_t * pr;
-    cleri_node_t * rnode;
     const char * end;
-    bool at_end;
+    const char * test;
+    bool at_end = true;
 
     /* prepare parsing */
     pr = (cleri_parser_t *) malloc(sizeof(cleri_parser_t));
     if (pr == NULL)
     {
-        ERR_ALLOC
         return NULL;
     }
 
@@ -53,41 +53,53 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
     pr->re_kw_extra = grammar->re_kw_extra;
 
     /* do the actual parsing */
-    rnode = cleri__parser_walk(
+    cleri__parser_walk(
             pr,
             pr->tree,
             grammar->start,
             NULL,
             CLERI_EXP_MODE_REQUIRED);
 
+    if (cleri_err)
+    {
+    	cleri_err = 0;
+    	cleri_parser_free(pr);
+    	return NULL;
+    }
+
     /* process the parse result */
     end = pr->tree->str + pr->tree->len;
-    at_end = strx_is_empty(end);
-    pr->is_valid = rnode != NULL && at_end;
+
+    /* check if we are at the end of the string */
+    for (test = end; *test; test++)
+    {
+        if (!isspace(*test))
+        {
+        	at_end = false;
+            break;
+        }
+    }
+
+    pr->is_valid = at_end;  // rnode != NULL &&
     pr->pos = (pr->is_valid) ? pr->tree->len : pr->expecting->str - pr->str;
 
     if (!at_end && pr->expecting->required->cl_obj == NULL)
     {
-        cleri_expecting_set_mode(
+        if (cleri_expecting_set_mode(
                 pr->expecting,
                 end,
-                CLERI_EXP_MODE_REQUIRED);
-        if (cleri_expecting_update(
+                CLERI_EXP_MODE_REQUIRED) == -1 ||
+			cleri_expecting_update(
                 pr->expecting,
                 CLERI_END_OF_STATEMENT,
                 end) == -1)
         {
-            ERR_ALLOC
+        	cleri_parser_free(pr);
+        	return NULL;
         }
     }
 
     cleri_expecting_combine(pr->expecting);
-
-    if (siri_err)
-    {
-        cleri_parser_free(pr);
-        pr = NULL;
-    }
 
     return pr;
 }
@@ -109,7 +121,7 @@ void cleri_parser_free(cleri_parser_t * pr)
 /*
  * Walk a parser object.
  * (recursive function, called from each parse_object function)
- * Returns a node or NULL. In case of errors, a signal is set.
+ * Returns a node or NULL. (In case of error one should check cleri_err)
  */
 cleri_node_t * cleri__parser_walk(
         cleri_parser_t * pr,
@@ -127,12 +139,12 @@ cleri_node_t * cleri__parser_walk(
     /* set expecting mode */
     if (cleri_expecting_set_mode(pr->expecting, parent->str, mode) == -1)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
     /* note that the actual node is returned or NULL but we do not
      * actually need the node. (boolean true/false would be enough)
      */
-    return (cl_obj->parse_object == NULL) ? NULL :
-            (*cl_obj->parse_object)(pr, parent, cl_obj, rule);
+    return (*cl_obj->parse_object)(pr, parent, cl_obj, rule);
 }

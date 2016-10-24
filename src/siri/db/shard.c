@@ -30,8 +30,8 @@
 #define GET_FN(shrd)                                                       \
 /* we are sure this fits since the max possible length is checked */        \
 shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                                                          \
-sprintf(fn, "%s%s%ld%s", siridb->dbpath,                                    \
-            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
+sprintf(fn, "%s%s%llu%s", siridb->dbpath,                                    \
+            SIRIDB_SHARDS_PATH, (unsigned long long) shrd->id, ".sdb");
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -125,8 +125,6 @@ static int SHARD_load_idx_num64(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp);
-
-static void SHARD_free(siridb_shard_t * shard);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 
 /*
@@ -158,7 +156,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
     FILE * fp;
 
-    log_info("Loading shard %ld", id);
+    log_info("Loading shard %llu", (unsigned long long) id);
 
     if ((fp = fopen(shard->fn, "r")) == NULL)
     {
@@ -964,15 +962,11 @@ int siridb_shard_write_flags(siridb_shard_t * shard)
             fflush(shard->fp->fp)) ? EOF : 0;
 }
 
-/*
- * Increment the shard reference counter.
- */
-inline void siridb_shard_incref(siridb_shard_t * shard)
-{
-    shard->ref++;
-}
 
 /*
+ * This function can be used instead of the macro function when needed as
+ * callback.
+ *
  * Decrement the reference counter, when 0 the shard will be destroyed.
  *
  * In case the shard will be destroyed and flag SIRIDB_SHARD_WILL_BE_REMOVED
@@ -980,11 +974,11 @@ inline void siridb_shard_incref(siridb_shard_t * shard)
  *
  * A signal can be raised in case closing the shard file fails.
  */
-inline void siridb_shard_decref(siridb_shard_t * shard)
+inline void siridb__shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
     {
-        SHARD_free(shard);
+    	siridb__shard_free(shard);
     }
 }
 
@@ -1075,12 +1069,14 @@ int siridb_shard_remove(siridb_shard_t * shard)
 }
 
 /*
- * Destroy shard.
+ * NEVER call this function but call siridb_shard_decref instead.
+ *
+ * Destroys a shard.
  * When flag SIRIDB_SHARD_WILL_BE_REMOVED is set, the file will be removed.
  *
  * A signal can be raised in case closing the shard file fails.
  */
-static void SHARD_free(siridb_shard_t * shard)
+void siridb__shard_free(siridb_shard_t * shard)
 {
     if (shard->replacing != NULL)
     {
@@ -1193,10 +1189,10 @@ static int SHARD_load_idx_num32(
         rc = fseeko(fp, len * 12, SEEK_CUR);  // 12 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %lu (%s) at position %ld. Mark this "
-                    "shard as corrupt. The next optimize cycle will most "
+            log_error("Seek error in shard %llu (%s) at position %ld. Mark "
+                    "this shard as corrupt. The next optimize cycle will most "
                     "likely fix this shard but you might loose some data.",
-                    shard->id,
+                    (unsigned long long) shard->id,
                     shard->fn,
                     pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -1297,10 +1293,10 @@ static int SHARD_load_idx_num64(
         rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %lu (%s) at position %ld. Mark this "
+            log_error("Seek error in shard %llu (%s) at position %ld. Mark this "
                     "shard as corrupt. The next optimize cycle will most "
                     "likely fix this shard but you might loose some data.",
-                    shard->id,
+                    (unsigned long long) shard->id,
                     shard->fn,
                     pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -1320,10 +1316,10 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
-             "%s%s%s%ld%s",
+             "%s%s%s%llu%s",
              siridb->dbpath,
              SIRIDB_SHARDS_PATH,
              (shard->replacing == NULL) ? "" : "__",
-             shard->id,
+			 (unsigned long long) shard->id,
              ".sdb");
 }

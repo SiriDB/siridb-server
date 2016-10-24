@@ -30,6 +30,9 @@ typedef points_tp series_tp;
 #define SIRIDB_SERIES_HAS_OVERLAP 1
 #define SIRIDB_SERIES_IS_DROPPED 2
 #define SIRIDB_SERIES_INIT_REPL 4
+#define SIRIDB_SERIES_IS_SERVER_ONE 8 	/* if not set its server_id 0 */
+#define SIRIDB_SERIES_IS_32BIT_TS 16    /* if not set its a 64 bit ts */
+#define SIRIDB_SERIES_IS_LOG 32         /* if not set its numeric (int/real) */
 
 /* the max length including terminator char */
 #define SIRIDB_SERIES_NAME_LEN_MAX 65535
@@ -54,22 +57,20 @@ typedef struct idx_s
 
 typedef struct siridb_series_s
 {
-    uint16_t ref;  /* keep ref on top */
-    uint16_t mask;
+    uint32_t ref;  /* keep ref on top */
     uint32_t id;
-    char * name;
-    uint64_t start;
-    uint64_t end;
-    uint32_t length;
-    uint32_t idx_len;
-    idx_t * idx;
-    siridb_buffer_t * buffer;
+    uint16_t mask;
     uint16_t pool;
     uint16_t name_len;
     uint8_t flags;
     uint8_t tp;
-    uint8_t server_id;
-    uint8_t idx_tp;
+    uint64_t start;
+    uint64_t end;
+    uint32_t length;
+    uint32_t idx_len;
+    char * name;
+    idx_t * idx;
+    siridb_buffer_t * buffer;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
@@ -78,9 +79,6 @@ siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
         uint8_t tp);
-
-void siridb_series_incref(siridb_series_t * series);
-void siridb_series_decref(siridb_series_t * series);
 
 int siridb_series_add_idx(
         siridb_series_t * series,
@@ -124,6 +122,22 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series);
 void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
-uint8_t siridb_series_server_id(const char * name);
+uint8_t siridb_series_server_id_by_name(const char * name);
 int siridb_series_open_store(siridb_t * siridb);
+void siridb__series_free(siridb_series_t * series);
+void siridb__series_decref(siridb_series_t * series);
+/*
+ * Increment the series reference counter.
+ */
+#define siridb_series_incref(series) series->ref++;
 
+/*
+ * Decrement reference counter for series and free the series when zero is
+ * reached.
+ */
+#define siridb_series_decref(series__) \
+		if (!--series__->ref) siridb__series_free(series__)
+
+
+#define siridb_series_server_id(series) \
+((series->flags & SIRIDB_SERIES_IS_SERVER_ONE) == SIRIDB_SERIES_IS_SERVER_ONE)

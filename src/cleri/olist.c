@@ -12,22 +12,19 @@
 #include <cleri/olist.h>
 #include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_olist_t * cleri_olist_new(void)
 {
     cleri_olist_t * olist;
     olist = (cleri_olist_t *) malloc(sizeof(cleri_olist_t));
-    if (olist == NULL)
+    if (olist != NULL)
     {
-        ERR_ALLOC
-        return NULL;
+		olist->cl_obj = NULL;
+		olist->next = NULL;
     }
-    olist->cl_obj = NULL;
-    olist->next = NULL;
     return olist;
 }
 

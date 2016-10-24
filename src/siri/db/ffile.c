@@ -59,7 +59,10 @@ siridb_ffile_t * siridb_ffile_new(
         return NULL;
     }
 
-    if (asprintf(&ffile->fn, "%s%0*lu.fifo", path, FFILE_NUMBERS, id) < 0)
+    if (asprintf(&ffile->fn, "%s%0*llu.fifo",
+    		path,
+			FFILE_NUMBERS,
+			(unsigned long long) id) < 0)
     {
         ERR_ALLOC
         free(ffile);

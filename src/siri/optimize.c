@@ -43,7 +43,19 @@ void siri_optimize_init(siri_t * siri)
     uint64_t timeout = siri->cfg->optimize_interval * 1000;
     siri->optimize = &optimize;
     uv_timer_init(siri->loop, &optimize.timer);
-    uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
+
+    /* do not start with optimize_interval zero */
+    if (timeout)
+    {
+		uv_timer_start(&optimize.timer, OPTIMIZE_cb, timeout, timeout);
+    }
+    else
+    {
+    	log_warning(
+    			"Optimizing is disabled! This is not recommended and "
+    			"can be enabled by changing the optimize_interval in the "
+    			"configuration file to a positive integer value.");
+    }
 }
 
 void siri_optimize_stop(siri_t * siri)
@@ -211,14 +223,15 @@ static void OPTIMIZE_work(uv_work_t * work)
                         shard->id, shard->flags);
                 if (siridb_shard_optimize(shard, siridb) == 0)
                 {
-                    log_info("Finished optimizing shard id %ld", shard->id);
+                    log_info("Finished optimizing shard id %llu",
+                    		(unsigned long long) shard->id);
                 }
                 else
                 {
                     /* signal is raised */
                     log_critical(
-                            "Optimizing shard id %ld has failed with a "
-                            "critical error", shard->id);
+                            "Optimizing shard id %llu has failed with a "
+                            "critical error", (unsigned long long) shard->id);
                 }
             }
 

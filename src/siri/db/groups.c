@@ -367,23 +367,27 @@ static void GROUPS_free(siridb_groups_t * groups)
 
     if (groups->nseries != NULL)
     {
+    	siridb_series_t * series;
         for (size_t i = 0; i < groups->nseries->len; i++)
         {
-            siridb_series_decref((siridb_series_t *) groups->nseries->data[i]);
+        	series = (siridb_series_t *) groups->nseries->data[i];
+        	siridb_series_decref(series);
         }
         slist_free(groups->nseries);
     }
 
     if (groups->groups != NULL)
     {
-        ct_free(groups->groups, (ct_free_cb) siridb_group_decref);
+        ct_free(groups->groups, (ct_free_cb) siridb__group_decref);
     }
 
     if (groups->ngroups != NULL)
     {
+    	siridb_group_t * group;
         for (size_t i = 0; i < groups->ngroups->len; i++)
         {
-            siridb_group_decref((siridb_group_t *) groups->ngroups->data[i]);
+        	group = (siridb_group_t *) groups->ngroups->data[i];
+            siridb_group_decref(group);
         }
         slist_free(groups->ngroups);
     }

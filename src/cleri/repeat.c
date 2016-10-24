@@ -10,9 +10,7 @@
  *
  */
 #include <cleri/repeat.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 static void REPEAT_free(cleri_object_t * cl_object);
 
@@ -23,7 +21,7 @@ static cleri_node_t * REPEAT_parse(
         cleri_rule_store_t * rule);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  *
  * cl_ob :      object to repeat
  * min :        should be equal to or higher then 0.
@@ -47,7 +45,7 @@ cleri_object_t * cleri_repeat(
 
     if (cl_object == NULL)
     {
-        return NULL;  /* signal is set */
+        return NULL;
     }
 
     cl_object->via.repeat =
@@ -55,7 +53,6 @@ cleri_object_t * cleri_repeat(
 
     if (cl_object->via.repeat == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -80,6 +77,9 @@ static void REPEAT_free(cleri_object_t * cl_object)
     free(cl_object->via.repeat);
 }
 
+/*
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
+ */
 static cleri_node_t * REPEAT_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
@@ -91,6 +91,7 @@ static cleri_node_t * REPEAT_parse(
     size_t i;
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
@@ -105,7 +106,9 @@ static cleri_node_t * REPEAT_parse(
                 rule,
                 i < cl_obj->via.repeat->min); // 1 = REQUIRED
         if (rnode == NULL)
-            break;
+        {
+        	break;
+        }
     }
 
     if (i < cl_obj->via.repeat->min)
@@ -114,6 +117,13 @@ static cleri_node_t * REPEAT_parse(
         return NULL;
     }
     parent->len += node->len;
-    cleri_children_add(parent->children, node);
+    if (cleri_children_add(parent->children, node))
+    {
+		 /* error occurred, reverse changes set mg_node to NULL */
+		cleri_err = -1;
+		parent->len -= node->len;
+		cleri_node_free(node);
+		node = NULL;
+    }
     return node;
 }

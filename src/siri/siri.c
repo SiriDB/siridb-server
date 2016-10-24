@@ -248,6 +248,22 @@ static int SIRI_load_databases(void)
                 siri.cfg->default_db_path,
                 dbpath->d_name);
 
+        if (!siridb_is_db_path(buffer))
+        {
+        	/* this is not a SiriDB database directory, files are missing */
+        	continue;
+        }
+
+        if (siri.siridb_list->len == MAX_NUMBER_DB)
+        {
+        	log_critical(
+        			"Cannot load '%s' since no more than %d databases "
+        			"are allowed on a single SiriDB process.",
+					dbpath->d_name,
+					MAX_NUMBER_DB);
+        	continue;
+        }
+
         if (siridb_new(buffer, 0) == NULL)
         {
             log_error("Could not load '%s'.", dbpath->d_name);
@@ -441,7 +457,7 @@ static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
         }
         else
         {
-            sirinet_socket_decref((uv_stream_t *) handle);
+            sirinet_socket_decref(handle);
         }
         break;
 

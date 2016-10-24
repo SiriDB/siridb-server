@@ -13,6 +13,7 @@
 
 #include <cleri/object.h>
 #include <cleri/parser.h>
+#include <sys/types.h>
 
 typedef struct cleri_parser_s cleri_parser_t;
 

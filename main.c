@@ -33,8 +33,12 @@ int main(int argc, char * argv[])
      */
     setlocale(LC_ALL, "");
 
+
     /* initialize random */
     srand(time(NULL));
+
+    /* set threadpool size to 8 (default=4) */
+    putenv("UV_THREADPOOL_SIZE=8");
 
     /* set default timezone to UTC */
     putenv("TZ=:UTC");

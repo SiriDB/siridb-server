@@ -13,9 +13,9 @@
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
-#define SIRIDB_VERSION_PATCH 0
+#define SIRIDB_VERSION_PATCH 2
 
-#define SIRIDB_VERSION "2.0.0"
+#define SIRIDB_VERSION "2.0.2"
 #define SIRIDB_MAINTAINER "Jeroen van der Heijden <jeroen@transceptor.technology>"
 #define SIRIDB_HOME_PAGE "http://siridb.net"
 

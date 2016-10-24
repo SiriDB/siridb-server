@@ -10,9 +10,7 @@
  *
  */
 #include <cleri/list.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 static void LIST_free(cleri_object_t * cl_object);
 
@@ -61,7 +59,6 @@ cleri_object_t * cleri_list(
 
     if (cl_object->via.list == NULL)
     {
-        ERR_ALLOC
         free(cl_object);
         return NULL;
     }
@@ -90,7 +87,7 @@ static void LIST_free(cleri_object_t * cl_object)
 }
 
 /*
- * Returns a node or NULL. In case of an error a signal is set.
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t *  LIST_parse(
         cleri_parser_t * pr,
@@ -105,6 +102,7 @@ static cleri_node_t *  LIST_parse(
 
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
@@ -141,6 +139,13 @@ static cleri_node_t *  LIST_parse(
         return NULL;
     }
     parent->len += node->len;
-    cleri_children_add(parent->children, node);
+    if (cleri_children_add(parent->children, node))
+    {
+		 /* error occurred, reverse changes set mg_node to NULL */
+		cleri_err = -1;
+		parent->len -= node->len;
+		cleri_node_free(node);
+		node = NULL;
+    }
     return node;
 }

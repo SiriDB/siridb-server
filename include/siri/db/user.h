@@ -29,8 +29,6 @@ typedef struct siridb_user_s
 } siridb_user_t;
 
 siridb_user_t * siridb_user_new(void);
-void siridb_user_incref(siridb_user_t * user);
-void siridb_user_decref(siridb_user_t * user);
 void siridb_user_prop(siridb_user_t * user, qp_packer_t * packer, int prop);
 int siridb_user_set_name(
         siridb_t * siridb,
@@ -47,4 +45,17 @@ int siridb_user_check_access(
         uint32_t access_bit,
         char * err_msg);
 
+void siridb__user_free(siridb_user_t * user);
+
 int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond);
+
+/*
+ * Increment the user reference counter.
+ */
+#define siridb_user_incref(user) user->ref++
+
+/*
+ * Decrement user reference counter and free the user when zero is reached.
+ */
+#define siridb_user_decref(user__) \
+	if (!--user__->ref) siridb__user_free(user__)

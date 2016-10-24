@@ -22,8 +22,12 @@ from testing import UserAuthError
 class TestServer(TestBase):
     title = 'Test server object'
 
+    Server.SERVER_ADDRESS = 'localhost'
+    Server.IP_SUPPORT = 'IPV4ONLY'
+
     @default_test_setup(4)
     async def run(self):
+
         await self.client0.connect()
 
         await self.db.add_pool(self.server1)
@@ -124,6 +128,7 @@ class TestServer(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
+    Server.BUILDTYPE = 'Debug'
     run_test(TestServer())

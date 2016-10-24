@@ -21,7 +21,17 @@
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 
 static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
-static void SOCKET_free(uv_stream_t * client);
+
+const char * sirinet_socket_ip_support_str(uint8_t ip_support)
+{
+	switch (ip_support)
+	{
+	case IP_SUPPORT_ALL: return "ALL";
+	case IP_SUPPORT_IPV4ONLY: return "IPV4ONLY";
+	case IP_SUPPORT_IPV6ONLY: return "IPV6ONLY";
+	default: return "UNKNOWN";
+	}
+}
 
 /*
  * This function can raise a SIGNAL.
@@ -66,7 +76,7 @@ void sirinet_socket_alloc_buffer(
  */
 int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
 {
-    struct sockaddr_in name;
+    struct sockaddr_storage name;
     int namelen = sizeof(name);
 
     if (uv_tcp_getpeername(
@@ -77,10 +87,45 @@ int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
         return -1;
     }
 
-    char addr[16];
+    switch (name.ss_family)
+    {
+    case AF_INET:
+    	{
+    		char addr[INET_ADDRSTRLEN];
+            uv_inet_ntop(
+            		AF_INET,
+					&((struct sockaddr_in *) &name)->sin_addr,
+					addr,
+					sizeof(addr));
+            snprintf(
+            		buffer,
+					ADDR_BUF_SZ,
+					"%s:%d",
+					addr,
+					ntohs(((struct sockaddr_in *) &name)->sin_port));
+    	}
+        break;
 
-    uv_inet_ntop(AF_INET, &name.sin_addr, addr, sizeof(addr));
-    snprintf(buffer, ADDR_BUF_SZ, "%s:%d", addr, ntohs(name.sin_port));
+    case AF_INET6:
+    	{
+    		char addr[INET6_ADDRSTRLEN];
+			uv_inet_ntop(
+					AF_INET6,
+					&((struct sockaddr_in6 *) &name)->sin6_addr,
+					addr,
+					sizeof(addr));
+			snprintf(
+					buffer,
+					ADDR_BUF_SZ,
+					"[%s]:%d",
+					addr,
+					ntohs(((struct sockaddr_in6 *) &name)->sin6_port));
+    	}
+    	break;
+
+    default:
+    	return -1;
+    }
 
     return 0;
 }
@@ -296,19 +341,53 @@ uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
     return socket;
 }
 
-inline void sirinet_socket_incref(uv_stream_t * client)
+/*
+ * Never use this function but call sirinet_socket_decref.
+ * Destroy socket. (parsing NULL is not allowed)
+ *
+ * We know three different socket types:
+ *  - client: used for clients. a user object might be destroyed.
+ *  - back-end: used to connect to other servers. a server might be destroyed.
+ *  - server: user for severs connecting to here. a server might be destroyed.
+ *
+ *  In case a server is destroyed, remaining promises will be cancelled and
+ *  the call-back functions will be called.
+ */
+void sirinet__socket_free(uv_stream_t * client)
 {
-    ((sirinet_socket_t *) client->data)->ref++;
-}
+    sirinet_socket_t * ssocket = client->data;
 
-void sirinet_socket_decref(uv_stream_t * client)
-{
-    sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
+#ifdef DEBUG
+    log_debug("Free socket type: %d", ssocket->tp);
+#endif
 
-    if (!--ssocket->ref)
+    switch (ssocket->tp)
     {
-        uv_close((uv_handle_t *) client, (uv_close_cb) SOCKET_free);
+    case SOCKET_CLIENT:
+        if (ssocket->origin != NULL)
+        {
+        	siridb_user_t * user = (siridb_user_t *) ssocket->origin;
+            siridb_user_decref(user);
+        }
+        break;
+    case SOCKET_BACKEND:
+        if (ssocket->origin != NULL)
+        {
+        	siridb_server_t * server = (siridb_server_t *) ssocket->origin;
+            siridb_server_decref(server);
+        }
+        break;
+    case SOCKET_SERVER:
+        {
+            siridb_server_t * server = ssocket->origin;
+            server->socket = NULL;
+            server->flags = 0;
+            siridb_server_decref(server);
+        }
     }
+    free(ssocket->buf);
+    free(ssocket);
+    free((uv_tcp_t *) client);
 }
 
 /*
@@ -336,50 +415,6 @@ static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
     return ssocket;
 }
 
-/*
- * Destroy socket. (parsing NULL is not allowed)
- *
- * We know three different socket types:
- *  - client: used for clients. a user object might be destroyed.
- *  - back-end: used to connect to other servers. a server might be destroyed.
- *  - server: user for severs connecting to here. a server might be destroyed.
- *
- *  In case a server is destroyed, remaining promises will be cancelled and
- *  the call-back functions will be called.
- */
-static void SOCKET_free(uv_stream_t * client)
-{
-    sirinet_socket_t * ssocket = client->data;
 
-#ifdef DEBUG
-    log_debug("Free socket type: %d", ssocket->tp);
-#endif
-
-    switch (ssocket->tp)
-    {
-    case SOCKET_CLIENT:
-        if (ssocket->origin != NULL)
-        {
-            siridb_user_decref(ssocket->origin);
-        }
-        break;
-    case SOCKET_BACKEND:
-        if (ssocket->origin != NULL)
-        {
-            siridb_server_decref(ssocket->origin);
-        }
-        break;
-    case SOCKET_SERVER:
-        {
-            siridb_server_t * server = ssocket->origin;
-            server->socket = NULL;
-            server->flags = 0;
-            siridb_server_decref(server);
-        }
-    }
-    free(ssocket->buf);
-    free(ssocket);
-    free((uv_tcp_t *) client);
-}
 
 

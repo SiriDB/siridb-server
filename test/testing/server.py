@@ -5,6 +5,7 @@ import subprocess
 import psutil
 import asyncio
 import time
+import socket
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
@@ -16,16 +17,21 @@ class Server:
     GEOMETRY = '140x60'
     MEM_CHECK = False
     BUILDTYPE = BUILDTYPE
+    SERVER_ADDRESS = '%HOSTNAME'
+    IP_SUPPORT = 'ALL'
 
     def __init__(self,
                  n,
                  optimize_interval=30,
                  heartbeat_interval=30):
         self.n = n
-        self.listen_client_address = 'localhost'
         self.listen_client_port = 9000 + n
-        self.listen_backend_address = 'localhost'
         self.listen_backend_port = 9010 + n
+        self._server_address = self.SERVER_ADDRESS
+        self.server_address = \
+            self._server_address.lstrip('[').rstrip(']').replace(
+                '%HOSTNAME', socket.gethostname())
+        self.ip_support = self.IP_SUPPORT
         self.optimize_interval = optimize_interval
         self.heartbeat_interval = heartbeat_interval
         self.cfgfile = os.path.join(TEST_DIR, 'siridb{}.conf'.format(self.n))
@@ -38,12 +44,11 @@ class Server:
 
         config = configparser.RawConfigParser()
         config.add_section('siridb')
-        config.set('siridb', 'listen_client', '{}:{}'.format(
-            self.listen_client_address,
-            self.listen_client_port))
-        config.set('siridb', 'listen_backend', '{}:{}'.format(
-            self.listen_backend_address,
+        config.set('siridb', 'listen_client_port', self.listen_client_port)
+        config.set('siridb', 'server_name', '{}:{}'.format(
+            self._server_address,
             self.listen_backend_port))
+        config.set('siridb', 'ip_support', self.ip_support)
         config.set('siridb', 'optimize_interval', self.optimize_interval)
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
         config.set('siridb', 'default_db_path', self.dbpath)

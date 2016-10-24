@@ -17,6 +17,7 @@
 void strx_upper_case(char * sptr);
 void strx_lower_case(char * sptr);
 void strx_replace_char(char * sptr, char orig, char repl);
+int strx_replace_str(char * str, char * o, char * r, size_t n);
 void strx_split_join(char * pt, char split_chr, char join_chr);
 
 /* do not use trim when the char is created with *alloc */

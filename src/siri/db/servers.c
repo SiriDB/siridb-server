@@ -66,8 +66,8 @@ int siridb_servers_load(siridb_t * siridb)
 
         server = siridb_server_new(
                 (char *) siridb->uuid,
-                siri.cfg->listen_backend_address,
-                strlen(siri.cfg->listen_backend_address),
+                siri.cfg->server_address,
+                strlen(siri.cfg->server_address),
                 siri.cfg->listen_backend_port,
                 0);
         if (server == NULL)
@@ -168,7 +168,7 @@ int siridb_servers_load(siridb_t * siridb)
     else if (siridb_server_update_address(
             siridb,
             siridb->server,
-            siri.cfg->listen_backend_address,
+            siri.cfg->server_address,
             siri.cfg->listen_backend_port) < 0)
     {
         rc = -1;  /* logging is done, set result code to -1 */
@@ -558,6 +558,12 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
                         siridb->dbpath :
                         (server->dbpath != NULL) ?
                             server->dbpath : "");
+            break;
+        case CLERI_GID_K_IP_SUPPORT:
+            qp_add_string(
+                    query->packer,
+					sirinet_socket_ip_support_str((siridb->server == server) ?
+                            siri.cfg->ip_support : server->ip_support));
             break;
         case CLERI_GID_K_LIBUV:
             qp_add_string(

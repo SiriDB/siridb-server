@@ -80,8 +80,6 @@ int siridb_shard_cexpr_cb(
 void siridb_shard_status(char * str, siridb_shard_t * shard);
 ssize_t siridb_shard_get_size(siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
-void siridb_shard_incref(siridb_shard_t * shard);
-void siridb_shard_decref(siridb_shard_t * shard);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
 int siridb_shard_remove(siridb_shard_t * shard);
 long int siridb_shard_write_points(
@@ -129,3 +127,21 @@ int siridb_shard_get_points_log64(
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 int siridb_shard_write_flags(siridb_shard_t * shard);
+void siridb__shard_free(siridb_shard_t * shard);
+void siridb__shard_decref(siridb_shard_t * shard);
+
+/*
+ * Increment the shard reference counter.
+ */
+#define siridb_shard_incref(shard) shard->ref++
+
+/*
+ * Decrement the reference counter, when 0 the shard will be destroyed.
+ *
+ * In case the shard will be destroyed and flag SIRIDB_SHARD_WILL_BE_REMOVED
+ * is set, the file will be removed.
+ *
+ * A signal can be raised in case closing the shard file fails.
+ */
+#define siridb_shard_decref(shard__) 	\
+		if (!--shard__->ref) siridb__shard_free(shard__)

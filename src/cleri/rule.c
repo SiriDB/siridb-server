@@ -11,22 +11,18 @@
  *
  */
 #include <cleri/rule.h>
-#include <logger/logger.h>
 #include <stdlib.h>
-#include <siri/err.h>
 
 static void RULE_free(cleri_object_t * cl_object);
-
 static cleri_node_t * RULE_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
-
-static void RULE_tested(cleri_rule_tested_t * tested);
+static void RULE_tested_free(cleri_rule_tested_t * tested);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj)
 {
@@ -40,25 +36,23 @@ cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj)
             &RULE_free,
             &RULE_parse);
 
-    if (cl_object == NULL)
+    if (cl_object != NULL)
     {
-        return NULL;
+		cl_object->via.rule =
+				(cleri_rule_t *) malloc(sizeof(cleri_rule_t));
+
+		if (cl_object->via.rule == NULL)
+		{
+			free(cl_object);
+			cl_object = NULL;
+		}
+		else
+		{
+			cl_object->via.rule->gid = gid;
+			cl_object->via.rule->cl_obj = cl_obj;
+			cleri_object_incref(cl_obj);
+		}
     }
-
-    cl_object->via.rule =
-            (cleri_rule_t *) malloc(sizeof(cleri_rule_t));
-
-    if (cl_object->via.rule == NULL)
-    {
-        ERR_ALLOC
-        free(cl_object);
-        return NULL;
-    }
-
-    cl_object->via.rule->gid = gid;
-    cl_object->via.rule->cl_obj = cl_obj;
-
-    cleri_object_incref(cl_obj);
 
     return cl_object;
 }
@@ -69,7 +63,7 @@ cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj)
  *
  *  - CLERI_RULE_TRUE: a new test is created
  *  - CLERI_RULE_FALSE: no new test is created
- *  - CLERI_RULE_ERROR: an error occurred and a signal is set
+ *  - CLERI_RULE_ERROR: an error occurred
  */
 cleri_rule_test_t cleri_rule_init(
         cleri_rule_tested_t ** target,
@@ -103,7 +97,6 @@ cleri_rule_test_t cleri_rule_init(
 
     if (*target == NULL)
     {
-        ERR_ALLOC
         return CLERI_RULE_ERROR;
     }
     (*target)->str = str;
@@ -119,31 +112,44 @@ static void RULE_free(cleri_object_t * cl_object)
     free(cl_object->via.rule);
 }
 
+/*
+ * Returns a node or NULL. In case of an error cleri_err is set to -1.
+ */
 static cleri_node_t * RULE_parse(
         cleri_parser_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
-        cleri_rule_store_t * rule)
+        cleri_rule_store_t * __rule)
 {
     cleri_node_t * node;
     cleri_node_t * rnode;
+    cleri_rule_store_t nrule;
+
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
+    	cleri_err = -1;
         return NULL;
     }
 
-    rule = (cleri_rule_store_t *) malloc(sizeof(cleri_rule_store_t));
-    rule->tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
-    rule->tested->str = NULL;
-    rule->tested->node = NULL;
-    rule->tested->next = NULL;
-    rule->root_obj = cl_obj->via.rule->cl_obj;
+    nrule.tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
+
+    if (nrule.tested == NULL)
+    {
+    	cleri_err = -1;
+        cleri_node_free(node);
+        return NULL;
+    }
+
+    nrule.tested->str = NULL;
+    nrule.tested->node = NULL;
+    nrule.tested->next = NULL;
+    nrule.root_obj = cl_obj->via.rule->cl_obj;
 
     rnode = cleri__parser_walk(
             pr,
             node,
-            rule->root_obj,
-            rule,
+			nrule.root_obj,
+            &nrule,
             CLERI_EXP_MODE_REQUIRED);
 
 
@@ -155,12 +161,18 @@ static cleri_node_t * RULE_parse(
     else
     {
         parent->len += node->len;
-        cleri_children_add(parent->children, node);
+        if (cleri_children_add(parent->children, node))
+        {
+			 /* error occurred, reverse changes set mg_node to NULL */
+			cleri_err = -1;
+			parent->len -= node->len;
+			cleri_node_free(node);
+			node = NULL;
+        }
     }
 
     /* cleanup rule */
-    RULE_tested(rule->tested);
-    free(rule);
+    RULE_tested_free(nrule.tested);
 
     return node;
 }
@@ -168,7 +180,7 @@ static cleri_node_t * RULE_parse(
 /*
  * Cleanup rule tested
  */
-static void RULE_tested(cleri_rule_tested_t * tested)
+static void RULE_tested_free(cleri_rule_tested_t * tested)
 {
     cleri_rule_tested_t * next;
     while (tested != NULL)

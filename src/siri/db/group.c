@@ -23,8 +23,6 @@
 #define SIRIDB_MIN_GROUP_LEN 1
 #define SIRIDB_MAX_GROUP_LEN 255
 
-static void GROUP_free(siridb_group_t * group);
-
 /*
  * Returns a group or NULL in case of an error. When this error is critical,
  * a SIGNAL is raised but in any case err_msg is set with an appropriate
@@ -57,7 +55,7 @@ siridb_group_t * siridb_group_new(
         {
             ERR_ALLOC
             sprintf(err_msg, "Memory allocation error.");
-            GROUP_free(group);
+            siridb__group_free(group);
             group = NULL;
         }
         else if (siridb_re_compile(
@@ -68,7 +66,7 @@ siridb_group_t * siridb_group_new(
                 err_msg))
         {
             /* not critical, err_msg is set */
-            GROUP_free(group);
+        	siridb__group_free(group);
             group = NULL;
         }
     }
@@ -149,16 +147,14 @@ int siridb_group_set_name(
     return 0;
 }
 
-inline void siridb_group_incref(siridb_group_t * group)
-{
-    group->ref++;
-}
-
-void siridb_group_decref(siridb_group_t * group)
+/*
+ * Can be used as a callback, in other cases go for the macro.
+ */
+void siridb__group_decref(siridb_group_t * group)
 {
     if (!--group->ref)
     {
-        GROUP_free(group);
+    	siridb__group_free(group);
     }
 }
 
@@ -345,9 +341,11 @@ int siridb_group_is_remote_prop(uint32_t prop)
 }
 
 /*
+ * NEVER call  this function but rather call siridb_group_decref instead.
+ *
  * Destroy a group object. Parsing NULL is not allowed.
  */
-static void GROUP_free(siridb_group_t * group)
+void siridb__group_free(siridb_group_t * group)
 {
 #ifdef DEBUG
     log_debug("Free group: '%s'", group->name);
@@ -357,9 +355,11 @@ static void GROUP_free(siridb_group_t * group)
 
     if (group->series != NULL)
     {
+    	siridb_series_t * series;
         for (size_t i = 0; i < group->series->len; i++)
         {
-            siridb_series_decref((siridb_series_t *) group->series->data[i]);
+        	series = (siridb_series_t *) group->series->data[i];
+            siridb_series_decref(series);
         }
         slist_free(group->series);
     }

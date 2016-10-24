@@ -39,7 +39,6 @@
 #include <siri/net/socket.h>
 #include <siri/parser/listener.h>
 #include <siri/parser/queries.h>
-#include <siri/parser/walkers.h>
 #include <siri/siri.h>
 #include <strextra/strextra.h>
 #include <sys/time.h>
@@ -331,15 +330,15 @@ else                                    \
 /*
  * Start SIRIPARSER_MASTER_CHECK_ACCESS
  */
-#define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                          \
-if (    IS_MASTER &&                                                        \
-        !siridb_user_check_access(                                          \
-            ((sirinet_socket_t *) query->client->data)->origin,             \
-            ACCESS_BIT,                                                     \
-            query->err_msg))                                                \
-{                                                                           \
-    siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                \
-    return;                                                                 \
+#define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                            \
+if (IS_MASTER &&                                                        	  \
+    !siridb_user_check_access(                                          	  \
+		(siridb_user_t *) ((sirinet_socket_t *) query->client->data)->origin, \
+		ACCESS_BIT,                                                     	  \
+		query->err_msg))                                                	  \
+{                                                                             \
+    siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                  \
+    return;                                                                   \
 }
 
 void siriparser_init_listener(void)
@@ -631,13 +630,13 @@ static void enter_drop_stmt(uv_async_t * handle)
     assert (query->packer == NULL);
 #endif
 
+    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
+
     query->packer = sirinet_packer_new(1024);
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_drop_new();
     query->free_cb = (uv_close_cb) query_drop_free;
-
-    SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
 
     SIRIPARSER_NEXT_NODE
 }
@@ -735,7 +734,7 @@ static void enter_group_match(uv_async_t * handle)
                 (*q_wrapper->update_cb)(
                         q_wrapper->series_map,
                         q_wrapper->series_tmp,
-                        (imap_free_cb) &siridb_series_decref);
+                        (imap_free_cb) &siridb__series_decref);
             }
 
             q_wrapper->series_tmp = NULL;
@@ -776,7 +775,7 @@ static void enter_limit_expr(uv_async_t * handle)
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Limit must be a value between 0 and %d but received: %ld",
                 MAX_LIST_LIMIT,
-                limit);
+                (long) limit);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
@@ -1071,7 +1070,7 @@ static void enter_series_name(uv_async_t * handle)
         {
             imap_free(
                     q_wrapper->series_map,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
 
             q_wrapper->series_map = imap_new();
 
@@ -1114,7 +1113,7 @@ static void enter_series_name(uv_async_t * handle)
 
             imap_free(
                     q_wrapper->series_map,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
 
             q_wrapper->series_map = imap_new();
 
@@ -3193,7 +3192,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
             {
                 sirinet_pkg_t * pkg = sirinet_pkg_new(
                         0,
-                        3,
+                        0,
                         (backup_mode) ?
                                 BPROTO_ENABLE_BACKUP_MODE :
                                 BPROTO_DISABLE_BACKUP_MODE,
@@ -4207,7 +4206,7 @@ static void async_series_re(uv_async_t * handle)
             (*q_wrapper->update_cb)(
                     q_wrapper->series_map,
                     q_wrapper->series_tmp,
-                    (imap_free_cb) &siridb_series_decref);
+                    (imap_free_cb) &siridb__series_decref);
         }
         q_wrapper->series_tmp = NULL;
 
@@ -4270,7 +4269,6 @@ static void on_ack_response(
             SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
-
 
     /* we must free the promise */
     sirinet_promise_decref(promise);

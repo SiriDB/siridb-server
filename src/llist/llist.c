@@ -22,16 +22,17 @@ static llist_node_t * LLIST_node_new(void * data);
  */
 llist_t * llist_new(void)
 {
-    llist_t * llist;
-    llist = (llist_t *) malloc(sizeof(llist_t));
+    llist_t * llist = (llist_t *) malloc(sizeof(llist_t));
     if (llist == NULL)
     {
-        ERR_ALLOC
-        return NULL;
+    	ERR_ALLOC
     }
-    llist->len = 0;
-    llist->first = NULL;
-    llist->last = NULL;
+    else
+    {
+		llist->len = 0;
+		llist->first = NULL;
+		llist->last = NULL;
+    }
     return llist;
 }
 

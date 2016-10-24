@@ -44,13 +44,37 @@
  */
 
 static siridb_t * SIRIDB_new(void);
-static void SIRIDB_free(siridb_t * siridb);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
     sprintf(err_msg, "error: " ERROR_MSG);  \
-    SIRIDB_free(*siridb);                   \
+    siridb__free(*siridb);                  \
     *siridb = NULL;                         \
     return -1;
+
+/*
+ * Check if at least database.conf and database.dat exist in the path.
+ */
+int siridb_is_db_path(const char * dbpath)
+{
+	char buffer[PATH_MAX];
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.conf",
+            dbpath);
+    if (!xpath_file_exist(buffer))
+    {
+    	return 0;  /* false */
+    }
+    snprintf(buffer,
+            PATH_MAX,
+            "%sdatabase.dat",
+            dbpath);
+    if (!xpath_file_exist(buffer))
+    {
+    	return 0;  /* false */
+    }
+    return 1;  /* true */
+}
 
 siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
@@ -315,7 +339,7 @@ int siridb_from_unpacker(
     if (qp_obj.via.int64 != SIRIDB_SHEMA)
     {
         sprintf(err_msg, "error: unsupported schema found: %ld",
-                qp_obj.via.int64);
+                (long) qp_obj.via.int64);
         return -1;
     }
 
@@ -459,22 +483,9 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
     return NULL;
 }
 
-void siridb_decref_cb(siridb_t * siridb, void * args)
+inline void siridb_decref_cb(siridb_t * siridb, void * args)
 {
     siridb_decref(siridb);
-}
-
-inline void siridb_incref(siridb_t * siridb)
-{
-    siridb->ref++;
-}
-
-void siridb_decref(siridb_t * siridb)
-{
-    if (!--siridb->ref)
-    {
-        SIRIDB_free(siridb);
-    }
 }
 
 int siridb_open_files(siridb_t * siridb)
@@ -523,6 +534,124 @@ int siridb_save(siridb_t * siridb)
             qp_fadd_double(fpacker, siridb->drop_threshold) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
+}
+
+/*
+ * Destroy SiriDB object.
+ *
+ * Never call this function but rather call siridb_decref.
+ */
+void siridb__free(siridb_t * siridb)
+{
+#ifdef DEBUG
+    log_debug("Free database: '%s'", siridb->dbname);
+#endif
+
+    /* first we should close all open files */
+    if (siridb->buffer_fp != NULL)
+    {
+        fclose(siridb->buffer_fp);
+    }
+
+    if (siridb->dropped_fp != NULL)
+    {
+        fclose(siridb->dropped_fp);
+    }
+
+    if (siridb->store != NULL)
+    {
+        qp_close(siridb->store);
+    }
+
+    /* free users */
+    if (siridb->users != NULL)
+    {
+        siridb_users_free(siridb->users);
+    }
+
+    /* we do not need to free server and replica since they exist in
+     * this list and therefore will be freed.
+     */
+    if (siridb->servers != NULL)
+    {
+        siridb_servers_free(siridb->servers);
+    }
+
+    /*
+     * Destroy replicate before fifo but after servers so open promises are
+     * closed which might depend on siridb->replicate
+     *
+     * siridb->replicate must be closed, see 'SIRI_set_closing_state'
+     */
+    if (siridb->replicate != NULL)
+    {
+        siridb_replicate_free(&siridb->replicate);
+    }
+
+    if (siridb->reindex != NULL)
+    {
+        siridb_reindex_free(&siridb->reindex);
+    }
+
+    /* free fifo (in case we have a replica) */
+    if (siridb->fifo != NULL)
+    {
+        siridb_fifo_free(siridb->fifo);
+    }
+
+    /* free pools */
+    if (siridb->pools != NULL)
+    {
+        siridb_pools_free(siridb->pools);
+    }
+
+    /* free imap (series) */
+    if (siridb->series_map != NULL)
+    {
+        imap_free(siridb->series_map, NULL);
+    }
+
+    /* free c-tree lookup and series */
+    if (siridb->series != NULL)
+    {
+        ct_free(siridb->series, (ct_free_cb) &siridb__series_decref);
+    }
+
+    /* free shards using imap walk an free the imap */
+    if (siridb->shards != NULL)
+    {
+        imap_free(siridb->shards, (imap_free_cb) &siridb__shard_decref);
+    }
+
+    /* only free buffer path when not equal to db_path */
+    if (siridb->buffer_path != siridb->dbpath)
+    {
+        free(siridb->buffer_path);
+    }
+
+    if (siridb->groups != NULL)
+    {
+        siridb_groups_decref(siridb->groups);
+    }
+
+    /* unlock the database in case no siri_err occurred */
+    if (!siri_err)
+    {
+        lock_t lock_rc = lock_unlock(siridb->dbpath);
+        if (lock_rc != LOCK_REMOVED)
+        {
+            log_error("%s", lock_str(lock_rc));
+        }
+    }
+
+    free(siridb->dbpath);
+    free(siridb->dbname);
+    free(siridb->time);
+
+    uv_mutex_destroy(&siridb->series_mutex);
+    uv_mutex_destroy(&siridb->shards_mutex);
+
+    free(siridb);
 }
 
 /*
@@ -601,117 +730,6 @@ static siridb_t * SIRIDB_new(void)
     return siridb;
 }
 
-static void SIRIDB_free(siridb_t * siridb)
-{
-#ifdef DEBUG
-    log_debug("Free database: '%s'", siridb->dbname);
-#endif
 
-    /* first we should close all open files */
-    if (siridb->buffer_fp != NULL)
-    {
-        fclose(siridb->buffer_fp);
-    }
-
-    if (siridb->dropped_fp != NULL)
-    {
-        fclose(siridb->dropped_fp);
-    }
-
-    if (siridb->store != NULL)
-    {
-        qp_close(siridb->store);
-    }
-
-    /* free users */
-    if (siridb->users != NULL)
-    {
-        siridb_users_free(siridb->users);
-    }
-
-    /* we do not need to free server and replica since they exist in
-     * this list and therefore will be freed.
-     */
-    if (siridb->servers != NULL)
-    {
-        siridb_servers_free(siridb->servers);
-    }
-
-    /*
-     * Destroy replicate before fifo but after servers so open promises are
-     * closed which might depend on siridb->replicate
-     *
-     * siridb->replicate must be closed, see 'SIRI_set_closing_state'
-     */
-    if (siridb->replicate != NULL)
-    {
-        siridb_replicate_free(&siridb->replicate);
-    }
-
-    if (siridb->reindex != NULL)
-    {
-        siridb_reindex_free(&siridb->reindex);
-    }
-
-    /* free fifo (in case we have a replica) */
-    if (siridb->fifo != NULL)
-    {
-        siridb_fifo_free(siridb->fifo);
-    }
-
-    /* free pools */
-    if (siridb->pools != NULL)
-    {
-        siridb_pools_free(siridb->pools);
-    }
-
-    /* free imap (series) */
-    if (siridb->series_map != NULL)
-    {
-        imap_free(siridb->series_map, NULL);
-    }
-
-    /* free c-tree lookup and series */
-    if (siridb->series != NULL)
-    {
-        ct_free(siridb->series, (ct_free_cb) &siridb_series_decref);
-    }
-
-    /* free shards using imap walk an free the imap */
-    if (siridb->shards != NULL)
-    {
-        imap_free(siridb->shards, (imap_free_cb) &siridb_shard_decref);
-    }
-
-    /* only free buffer path when not equal to db_path */
-    if (siridb->buffer_path != siridb->dbpath)
-    {
-        free(siridb->buffer_path);
-    }
-
-    if (siridb->groups != NULL)
-    {
-        siridb_groups_decref(siridb->groups);
-    }
-
-    /* unlock the database in case no siri_err occurred */
-    if (!siri_err)
-    {
-        lock_t lock_rc = lock_unlock(siridb->dbpath);
-        if (lock_rc != LOCK_REMOVED)
-        {
-            log_error("%s", lock_str(lock_rc));
-        }
-    }
-
-    free(siridb->dbpath);
-    free(siridb->dbname);
-    free(siridb->time);
-
-    uv_mutex_destroy(&siridb->series_mutex);
-    uv_mutex_destroy(&siridb->shards_mutex);
-
-    free(siridb);
-}
 
 
