@@ -134,8 +134,6 @@ siridb_server_t * siridb_server_new(
         uint16_t pool);
 
 int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
-void siridb_server_incref(siridb_server_t * server);
-void siridb_server_decref(siridb_server_t * server);
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_send_pkg(
         siridb_server_t * server,
@@ -164,6 +162,17 @@ siridb_server_t * siridb_server_register(
         siridb_t * siridb,
         char * data,
         size_t len);
+void siridb__server_free(siridb_server_t * server);
 
 #define siridb_server_update_flags(org, new) \
     org = new | (org & SERVER_FLAG_AUTHENTICATED)
+
+#define siridb_server_incref(server) server->ref++
+
+/*
+ * Decrement server reference counter and free the server when zero is reached.
+ * When the server is destroyed, all remaining server->promises are cancelled
+ * and each promise->cb() will be called.
+ */
+#define siridb_server_decref(server__) \
+	if (!--server__->ref) siridb__server_free(server__)

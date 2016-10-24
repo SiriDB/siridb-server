@@ -366,13 +366,15 @@ void sirinet__socket_free(uv_stream_t * client)
     case SOCKET_CLIENT:
         if (ssocket->origin != NULL)
         {
-            siridb_user_decref(ssocket->origin);
+        	siridb_user_t * user = (siridb_user_t *) ssocket->origin;
+            siridb_user_decref(user);
         }
         break;
     case SOCKET_BACKEND:
         if (ssocket->origin != NULL)
         {
-            siridb_server_decref(ssocket->origin);
+        	siridb_server_t * server = (siridb_server_t *) ssocket->origin;
+            siridb_server_decref(server);
         }
         break;
     case SOCKET_SERVER:

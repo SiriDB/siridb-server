@@ -28,8 +28,10 @@
 #define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
+/* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
+static int dns_req_family_map[3] = {AF_UNSPEC, AF_INET, AF_INET6};
+
 static int SERVER_update_name(siridb_server_t * server);
-static void SERVER_free(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
 static void SERVER_write_cb(uv_write_t * req, int status);
 static void SERVER_on_auth_response(
@@ -50,6 +52,7 @@ static int SERVER_resolve_dns(
 		int ai_family,
 		uv_getaddrinfo_cb getaddrinfo_cb);
 static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void SERVER_cancel_promise(sirinet_promise_t * promise);
 
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
@@ -105,7 +108,7 @@ siridb_server_t * siridb_server_new(
     if (SERVER_update_name(server))
     {
         ERR_ALLOC
-        SERVER_free(server);
+		siridb__server_free(server);
         server = NULL;
     }
 
@@ -122,23 +125,6 @@ inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
     return uuid_compare(sa->uuid, sb->uuid);
 }
 
-inline void siridb_server_incref(siridb_server_t * server)
-{
-    server->ref++;
-}
-
-/*
- * Decrement server reference counter and free the server when zero is reached.
- * When the server is destroyed, all remaining server->promises are cancelled
- * and each promise->cb() will be called.
- */
-void siridb_server_decref(siridb_server_t * server)
-{
-    if (!--server->ref)
-    {
-        SERVER_free(server);
-    }
-}
 
 /*
  * This function can return -1 and raise a SIGNAL which means the 'cb'
@@ -283,7 +269,7 @@ siridb_server_t * siridb_server_register(
             if (    (server->promises = imap_new()) == NULL ||
                     siridb_servers_register(siridb, server))
             {
-                SERVER_free(server);
+            	siridb__server_free(server);
                 server = NULL;
             }
         }
@@ -455,7 +441,10 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 		else
 		{
 			/* Try DNS */
-			if (SERVER_resolve_dns(server, AF_UNSPEC, SERVER_on_resolved))
+			if (SERVER_resolve_dns(
+					server,
+					dns_req_family_map[siri.cfg->ip_support],
+					SERVER_on_resolved))
 			{
 				sirinet_socket_decref(server->socket);
 			}
@@ -886,7 +875,33 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
     return rc;
 }
 
-
+/*
+ * Do not call this function but use siridb_server_decref.
+ *
+ * Free server. If the server has promises, each promise will be cancelled and
+ * so each promise->cb() will be called.
+ */
+void siridb__server_free(siridb_server_t * server)
+{
+#ifdef DEBUG
+    log_debug("Free server: '%s'", server->name);
+#endif
+    /* we MUST first free the promises because each promise has a reference to
+     * this server and the promise callback might depend on this.
+     */
+    if (server->promises != NULL)
+    {
+        imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
+        imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
+    }
+    free(server->name);
+    free(server->address);
+    free(server->version);
+    free(server->libuv);
+    free(server->dbpath);
+    free(server->buffer_path);
+    free(server);
+}
 
 /*
  * Returns true when the given property (CLERI keyword) needs a remote query
@@ -1096,31 +1111,6 @@ static void SERVER_cancel_promise(sirinet_promise_t * promise)
     promise->cb(promise, NULL, PROMISE_CANCELLED_ERROR);
 }
 
-/*
- * Free server. If the server has promises, each promise will be cancelled and
- * so each promise->cb() will be called.
- */
-static void SERVER_free(siridb_server_t * server)
-{
-#ifdef DEBUG
-    log_debug("Free server: '%s'", server->name);
-#endif
-    /* we MUST first free the promises because each promise has a reference to
-     * this server and the promise callback might depend on this.
-     */
-    if (server->promises != NULL)
-    {
-        imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
-        imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
-    }
-    free(server->name);
-    free(server->address);
-    free(server->version);
-    free(server->libuv);
-    free(server->dbpath);
-    free(server->buffer_path);
-    free(server);
-}
 
 /*
  * Returns 0 if successful or -1 in case of an allocation error.

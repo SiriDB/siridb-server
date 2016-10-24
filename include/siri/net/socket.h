@@ -17,6 +17,7 @@
 
 #define ADDR_BUF_SZ 54
 
+/* Warning: do not change the order! (maps to dns_req_family_map) */
 enum
 {
 	IP_SUPPORT_ALL,

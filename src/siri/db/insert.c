@@ -667,7 +667,8 @@ static int INSERT_local_work_test(
                 n -= WEIGHT_NEW_SERIES;
             }
             else if (siridb->replica == NULL ||
-                    siridb_series_server_id(series_name) == siridb->server->id)
+                    siridb_series_server_id_by_name(series_name) ==
+                    		siridb->server->id)
             {
                 /*
                  * Forward the series to the correct pool because 'this' server

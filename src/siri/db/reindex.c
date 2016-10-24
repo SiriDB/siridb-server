@@ -465,8 +465,8 @@ static void REINDEX_work(uv_timer_t * timer)
             siridb_lookup_sn(
                     siridb->pools->lookup,
                     reindex->series->name) == siridb->server->pool ||
-            (   siridb->replica != NULL &&
-                reindex->series->server_id != siridb->server->id))
+            (siridb->replica != NULL &&
+			 siridb_series_server_id(reindex->series) != siridb->server->id))
     {
         REINDEX_next(siridb);
     }

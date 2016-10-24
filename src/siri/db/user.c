@@ -31,8 +31,6 @@
     "abcdefghijklmnopqrstuvwxyz"  \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-static void USER_free(siridb_user_t * user);
-
 /*
  * Creates a new user with reference counter zero.
  *
@@ -53,25 +51,6 @@ siridb_user_t * siridb_user_new(void)
         user->ref = 0;
     }
     return user;
-}
-
-/*
- * Increment the user reference counter.
- */
-inline void siridb_user_incref(siridb_user_t * user)
-{
-    user->ref++;
-}
-
-/*
- * Decrement user reference counter and free the user when zero is reached.
- */
-void siridb_user_decref(siridb_user_t * user)
-{
-    if (!--user->ref)
-    {
-        USER_free(user);
-    }
 }
 
 /*
@@ -257,9 +236,11 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
 }
 
 /*
+ * Never call this function but use siridb_user_decref.
+ *
  * Destroy user. (parsing NULL is not allowed)
  */
-static void USER_free(siridb_user_t * user)
+void siridb__user_free(siridb_user_t * user)
 {
 #ifdef DEBUG
     log_debug("Free user: '%s'", user->name);

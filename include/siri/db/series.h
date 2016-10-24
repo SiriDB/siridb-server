@@ -30,6 +30,9 @@ typedef points_tp series_tp;
 #define SIRIDB_SERIES_HAS_OVERLAP 1
 #define SIRIDB_SERIES_IS_DROPPED 2
 #define SIRIDB_SERIES_INIT_REPL 4
+#define SIRIDB_SERIES_IS_SERVER_ONE 8 	/* if not set its server_id 0 */
+#define SIRIDB_SERIES_IS_32BIT_TS 16    /* if not set its a 64 bit ts */
+#define SIRIDB_SERIES_IS_LOG 32         /* if not set its numeric (int/real) */
 
 /* the max length including terminator char */
 #define SIRIDB_SERIES_NAME_LEN_MAX 65535
@@ -68,10 +71,6 @@ typedef struct siridb_series_s
     char * name;
     idx_t * idx;
     siridb_buffer_t * buffer;
-    uint8_t server_id;
-    uint8_t idx_tp;
-    uint16_t _pad0;
-    uint32_t _pad1;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
@@ -123,7 +122,7 @@ int siridb_series_drop(siridb_t * siridb, siridb_series_t * series);
 void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
-uint8_t siridb_series_server_id(const char * name);
+uint8_t siridb_series_server_id_by_name(const char * name);
 int siridb_series_open_store(siridb_t * siridb);
 void siridb__series_free(siridb_series_t * series);
 void siridb__series_decref(siridb_series_t * series);
@@ -138,3 +137,7 @@ void siridb__series_decref(siridb_series_t * series);
  */
 #define siridb_series_decref(series__) \
 		if (!--series__->ref) siridb__series_free(series__)
+
+
+#define siridb_series_server_id(series) \
+((series->flags & SIRIDB_SERIES_IS_SERVER_ONE) == SIRIDB_SERIES_IS_SERVER_ONE)

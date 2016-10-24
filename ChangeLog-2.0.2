@@ -1,9 +1,13 @@
   * Check user for permissions when inserting data. Only authentication was 
     checked, not if the user had 'insert' privileges. (issue #16)
     
-  * Minor performance updates by creating some macros for frequently used
+  * Minor performance updates by creating macros for frequently used
     functions. (see issue #17 for more info)
     
   * Store reference counter for a series object in an uint32_t. This solves 
     a bug on big endian systems. (issue #18)
     
+  * Remove server_id and idx_tp from series object and set those as flags.
+    This removed the unneeded pads and saves 8 bytes for each series object.
+    
+  * Honor ip_support setting when sending a dns request. (issue #19)

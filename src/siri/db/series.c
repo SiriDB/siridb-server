@@ -30,17 +30,15 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-#define SERIES_GET_POINTS_CB(get_points_cb, series)                         \
-    siridb_shard_get_points_cb get_points_cb;                               \
-    switch ((idx_tp) series->idx_tp)                                        \
-    {                                                                       \
-    case IDX_TP_NUM32: get_points_cb = siridb_shard_get_points_num32; break;\
-    case IDX_TP_NUM64: get_points_cb = siridb_shard_get_points_num64; break;\
-    case IDX_TP_LOG32: get_points_cb = siridb_shard_get_points_log32; break;\
-    case IDX_TP_LOG64: get_points_cb = siridb_shard_get_points_log64; break;\
-    default: exit(EXIT_FAILURE);                                            \
-    }
-
+#define SERIES_GET_POINTS_CB(get_points_cb, series)   	\
+    siridb_shard_get_points_cb get_points_cb =          \
+		(series->flags & SIRIDB_SERIES_IS_32BIT_TS) ?	\
+			(series->flags & SIRIDB_SERIES_IS_LOG) ?	\
+					siridb_shard_get_points_log32 :		\
+					siridb_shard_get_points_num32 :		\
+			(series->flags & SIRIDB_SERIES_IS_LOG) ?	\
+					siridb_shard_get_points_log64 :		\
+					siridb_shard_get_points_num64;
 
 static int SERIES_save(siridb_t * siridb);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
@@ -69,14 +67,6 @@ const char series_type_map[3][8] = {
         "float",
         "string"
 };
-
-typedef enum
-{
-    IDX_TP_NUM32,
-    IDX_TP_NUM64,
-    IDX_TP_LOG32,
-    IDX_TP_LOG64,
-} idx_tp;
 
 /*
  * Call-back used to compare series properties.
@@ -796,7 +786,7 @@ void siridb__series_decref(siridb_series_t * series)
  * Calculate the server id.
  * Returns 0 or 1, representing a server in a pool)
  */
-uint8_t siridb_series_server_id(const char * name)
+uint8_t siridb_series_server_id_by_name(const char * name)
 {
     uint32_t n;
 
@@ -1144,6 +1134,9 @@ static siridb_series_t * SERIES_new(
             series->end = 0;
             series->buffer = NULL;
             series->pool = pool;
+            series->flags = 0;
+            series->idx_len = 0;
+            series->idx = NULL;
 
             /* get sum series name to calculate series mask (for sharding) */
             for (n = 0; *name; name++)
@@ -1155,21 +1148,26 @@ static siridb_series_t * SERIES_new(
                     (uint16_t) (n / 11) % ((tp == TP_STRING) ?
                     siridb->shard_mask_log : siridb->shard_mask_num);
 
-            series->server_id = (uint8_t) ((n / 11) % 2);
+            if ((uint8_t) ((n / 11) % 2))
+            {
+            	series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
+            }
 
 #ifdef DEBUG
             /* make sure these two are exactly the same */
-            assert (series->server_id == siridb_series_server_id(series->name));
+            assert (siridb_series_server_id(series) ==
+            		siridb_series_server_id_by_name(series->name));
 #endif
 
-            series->idx_len = 0;
-            series->flags = 0;
-            series->idx = NULL;
-            series->idx_tp = (siridb->time->precision == SIRIDB_TIME_SECONDS) ?
-                    (tp == TP_STRING) ?
-                            IDX_TP_LOG32 : IDX_TP_NUM32 :
-                    (tp == TP_STRING) ?
-                            IDX_TP_LOG64 : IDX_TP_NUM64;
+            if (siridb->time->precision == SIRIDB_TIME_SECONDS)
+            {
+            	series->flags |= SIRIDB_SERIES_IS_32BIT_TS;
+            }
+
+            if (tp == TP_STRING)
+            {
+            	series->flags |= SIRIDB_SERIES_IS_LOG;
+            }
         }
 
     }

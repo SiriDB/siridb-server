@@ -23,7 +23,7 @@ class TestServer(TestBase):
     title = 'Test server object'
 
     Server.SERVER_ADDRESS = 'localhost'
-    Server.IP_SUPPORT = 'ALL'
+    Server.IP_SUPPORT = 'IPV4ONLY'
 
     @default_test_setup(4)
     async def run(self):
@@ -128,7 +128,7 @@ class TestServer(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
     Server.BUILDTYPE = 'Debug'
     run_test(TestServer())
