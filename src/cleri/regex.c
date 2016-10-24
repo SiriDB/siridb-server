@@ -17,7 +17,7 @@
 static void REGEX_free(cleri_object_t * cl_object);
 
 static cleri_node_t *  REGEX_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -111,7 +111,7 @@ static void REGEX_free(cleri_object_t * cl_object)
  * Returns a node or NULL. (result NULL can be also be caused by an error)
  */
 static cleri_node_t *  REGEX_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)

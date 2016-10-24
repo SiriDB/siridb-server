@@ -11,7 +11,6 @@
  *
  */
 #include <cleri/expecting.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 #include <assert.h>
 

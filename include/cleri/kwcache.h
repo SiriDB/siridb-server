@@ -12,10 +12,10 @@
 #pragma once
 
 #include <cleri/object.h>
-#include <cleri/parser.h>
+#include <cleri/parse.h>
 #include <sys/types.h>
 
-typedef struct cleri_parser_s cleri_parser_t;
+typedef struct cleri_parse_s cleri_parse_t;
 
 typedef struct cleri_kwcache_s {
     size_t len;
@@ -25,7 +25,7 @@ typedef struct cleri_kwcache_s {
 
 cleri_kwcache_t * cleri_kwcache_new(void);
 ssize_t cleri_kwcache_match(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         const char * str);
 void cleri_kwcache_free(cleri_kwcache_t * kwcache);
 

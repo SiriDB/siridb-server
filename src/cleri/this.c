@@ -18,7 +18,7 @@
 #include <assert.h>
 
 static cleri_node_t * cleri_parse_this(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -37,7 +37,7 @@ cleri_object_t * CLERI_THIS = &cleri_this;
  * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * cleri_parse_this(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -54,7 +54,7 @@ static cleri_node_t * cleri_parse_this(
         	pr->is_valid = -1;
             return NULL;
         }
-        tested->node = cleri__parser_walk(
+        tested->node = cleri__parse_walk(
                 pr,
                 node,
                 rule->root_obj,

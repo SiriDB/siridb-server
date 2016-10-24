@@ -15,7 +15,7 @@
 
 static void RULE_free(cleri_object_t * cl_object);
 static cleri_node_t * RULE_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -116,7 +116,7 @@ static void RULE_free(cleri_object_t * cl_object)
  * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * RULE_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * __rule)
@@ -145,7 +145,7 @@ static cleri_node_t * RULE_parse(
     nrule.tested->next = NULL;
     nrule.root_obj = cl_obj->via.rule->cl_obj;
 
-    rnode = cleri__parser_walk(
+    rnode = cleri__parse_walk(
             pr,
             node,
 			nrule.root_obj,

@@ -15,7 +15,7 @@ C_SRCS += \
 ../src/cleri/object.c \
 ../src/cleri/olist.c \
 ../src/cleri/optional.c \
-../src/cleri/parser.c \
+../src/cleri/parse.c \
 ../src/cleri/prio.c \
 ../src/cleri/regex.c \
 ../src/cleri/repeat.c \
@@ -37,7 +37,7 @@ OBJS += \
 ./src/cleri/object.o \
 ./src/cleri/olist.o \
 ./src/cleri/optional.o \
-./src/cleri/parser.o \
+./src/cleri/parse.o \
 ./src/cleri/prio.o \
 ./src/cleri/regex.o \
 ./src/cleri/repeat.o \
@@ -59,7 +59,7 @@ C_DEPS += \
 ./src/cleri/object.d \
 ./src/cleri/olist.d \
 ./src/cleri/optional.d \
-./src/cleri/parser.d \
+./src/cleri/parse.d \
 ./src/cleri/prio.d \
 ./src/cleri/regex.d \
 ./src/cleri/repeat.d \

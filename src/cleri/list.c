@@ -15,7 +15,7 @@
 static void LIST_free(cleri_object_t * cl_object);
 
 static cleri_node_t *  LIST_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -90,7 +90,7 @@ static void LIST_free(cleri_object_t * cl_object)
  * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t *  LIST_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -108,7 +108,7 @@ static cleri_node_t *  LIST_parse(
 
     while (1)
     {
-        rnode = cleri__parser_walk(
+        rnode = cleri__parse_walk(
                 pr,
                 node,
                 cl_obj->via.list->cl_obj,
@@ -119,7 +119,7 @@ static cleri_node_t *  LIST_parse(
             break;
         }
         i++;
-        rnode = cleri__parser_walk(
+        rnode = cleri__parse_walk(
                 pr,
                 node,
                 cl_obj->via.list->delimiter,

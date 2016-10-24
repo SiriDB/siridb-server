@@ -9,8 +9,8 @@
  *  - initial version, 08-03-2016
  *
  */
-#include <cleri/parser.h>
 #include <cleri/expecting.h>
+#include <cleri/parse.h>
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
@@ -18,15 +18,15 @@
 /*
  * Returns NULL in case an error has occurred.
  */
-cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
+cleri_parse_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
 {
-    cleri_parser_t * pr;
+    cleri_parse_t * pr;
     const char * end;
     const char * test;
     bool at_end = true;
 
     /* prepare parsing */
-    pr = (cleri_parser_t *) malloc(sizeof(cleri_parser_t));
+    pr = (cleri_parse_t *) malloc(sizeof(cleri_parse_t));
     if (pr == NULL)
     {
         return NULL;
@@ -42,7 +42,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
             (pr->kwcache = cleri_kwcache_new()) == NULL ||
             (pr->expecting = cleri_expecting_new(str)) == NULL)
     {
-        cleri_parser_free(pr);
+        cleri_parse_free(pr);
         return NULL;
     }
 
@@ -50,7 +50,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
     pr->re_kw_extra = grammar->re_kw_extra;
 
     /* do the actual parsing */
-    cleri__parser_walk(
+    cleri__parse_walk(
             pr,
             pr->tree,
             grammar->start,
@@ -63,7 +63,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
      */
     if (pr->is_valid == -1)
     {
-    	cleri_parser_free(pr);
+    	cleri_parse_free(pr);
     	return NULL;
     }
 
@@ -94,7 +94,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
                 CLERI_END_OF_STATEMENT,
                 end) == -1)
         {
-        	cleri_parser_free(pr);
+        	cleri_parse_free(pr);
         	return NULL;
         }
     }
@@ -107,7 +107,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
 /*
  * Destroy parser. (parsing NULL is allowed)
  */
-void cleri_parser_free(cleri_parser_t * pr)
+void cleri_parse_free(cleri_parse_t * pr)
 {
     cleri_node_free(pr->tree);
     cleri_kwcache_free(pr->kwcache);
@@ -123,8 +123,8 @@ void cleri_parser_free(cleri_parser_t * pr)
  * (recursive function, called from each parse_object function)
  * Returns a node or NULL. (In case of error one should check cleri_err)
  */
-cleri_node_t * cleri__parser_walk(
-        cleri_parser_t * pr,
+cleri_node_t * cleri__parse_walk(
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule,

@@ -15,7 +15,7 @@
 static void REPEAT_free(cleri_object_t * cl_object);
 
 static cleri_node_t * REPEAT_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -81,7 +81,7 @@ static void REPEAT_free(cleri_object_t * cl_object)
  * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * REPEAT_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -99,7 +99,7 @@ static cleri_node_t * REPEAT_parse(
          cl_obj->via.repeat->max == 0 || i < cl_obj->via.repeat->max;
          i++)
     {
-        rnode = cleri__parser_walk(
+        rnode = cleri__parse_walk(
                 pr,
                 node,
                 cl_obj->via.repeat->cl_obj,
