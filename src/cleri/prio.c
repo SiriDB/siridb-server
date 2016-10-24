@@ -106,7 +106,7 @@ static cleri_node_t *  PRIO_parse(
      * if *str is already in tested */
     if (cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
     {
-    	cleri_err = -1;
+    	pr->is_valid = -1;
         return NULL;
     }
 
@@ -116,7 +116,7 @@ static cleri_node_t *  PRIO_parse(
     {
         if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
         {
-        	cleri_err = -1;
+        	pr->is_valid = -1;
             return NULL;
         }
         rnode = cleri__parser_walk(
@@ -143,7 +143,7 @@ static cleri_node_t *  PRIO_parse(
         if (cleri_children_add(parent->children, tested->node))
         {
 			 /* error occurred, reverse changes set mg_node to NULL */
-			cleri_err = -1;
+        	pr->is_valid = -1;
 			parent->len -=  tested->node->len;
 			cleri_node_free(tested->node);
 			tested->node = NULL;

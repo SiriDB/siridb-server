@@ -91,7 +91,7 @@ static cleri_node_t * REPEAT_parse(
     size_t i;
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
-    	cleri_err = -1;
+    	pr->is_valid = -1;
         return NULL;
     }
 
@@ -120,7 +120,7 @@ static cleri_node_t * REPEAT_parse(
     if (cleri_children_add(parent->children, node))
     {
 		 /* error occurred, reverse changes set mg_node to NULL */
-		cleri_err = -1;
+    	pr->is_valid = -1;
 		parent->len -= node->len;
 		cleri_node_free(node);
 		node = NULL;

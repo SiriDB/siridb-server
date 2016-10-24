@@ -15,7 +15,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_keyword_s
 {
@@ -25,7 +25,7 @@ typedef struct cleri_keyword_s
     size_t len;
 } cleri_keyword_t;
 
-struct cleri_object_s * cleri_keyword(
+cleri_object_t * cleri_keyword(
         uint32_t gid,
         const char * keyword,
         int ign_case);

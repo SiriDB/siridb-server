@@ -16,16 +16,16 @@
 #include <cleri/object.h>
 #include <cleri/olist.h>
 
-struct cleri_object_s;
-struct cleri_olist_s;
+typedef struct cleri_object_s cleri_object_t;
+typedef struct cleri_olist_s cleri_olist_t;
 
 typedef struct cleri_sequence_s
 {
     uint32_t gid;
-    struct cleri_olist_s * olist;
+    cleri_olist_t * olist;
 } cleri_sequence_t;
 
-struct cleri_object_s * cleri_sequence(
+cleri_object_t * cleri_sequence(
         uint32_t gid,
         size_t len,
         ...);

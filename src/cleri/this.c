@@ -51,7 +51,7 @@ static cleri_node_t * cleri_parse_this(
     case CLERI_RULE_TRUE:
         if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
         {
-        	cleri_err = -1;
+        	pr->is_valid = -1;
             return NULL;
         }
         tested->node = cleri__parser_walk(
@@ -76,7 +76,7 @@ static cleri_node_t * cleri_parse_this(
         node->ref++;
         break;
     case CLERI_RULE_ERROR:
-    	cleri_err = -1;
+    	pr->is_valid = -1;
         return NULL;
 
     default:
@@ -88,7 +88,7 @@ static cleri_node_t * cleri_parse_this(
     if (cleri_children_add(parent->children, node))
     {
 		 /* error occurred, reverse changes set mg_node to NULL */
-		cleri_err = -1;
+    	pr->is_valid = -1;
 		parent->len -=  tested->node->len;
 		cleri_node_free(node);
 		node = NULL;

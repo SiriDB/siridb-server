@@ -88,7 +88,7 @@ static cleri_node_t * TOKEN_parse(
             if (cleri_children_add(parent->children, node))
             {
 				 /* error occurred, reverse changes set mg_node to NULL */
-				cleri_err = -1;
+            	pr->is_valid = -1;
 				parent->len -= node->len;
 				cleri_node_free(node);
 				node = NULL;
@@ -96,12 +96,12 @@ static cleri_node_t * TOKEN_parse(
         }
         else
         {
-        	cleri_err = -1;
+        	pr->is_valid = -1;
         }
     }
     else if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
     {
-    	cleri_err = -1;
+    	pr->is_valid = -1;
     }
     return node;
 }

@@ -16,7 +16,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_regex_s
 {
@@ -25,7 +25,7 @@ typedef struct cleri_regex_s
     pcre_extra * regex_extra;
 } cleri_regex_t;
 
-struct cleri_object_s * cleri_regex(
+cleri_object_t * cleri_regex(
         uint32_t gid,
         const char * pattern);
 

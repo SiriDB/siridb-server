@@ -1048,9 +1048,6 @@ int siridb_server_cexpr_cb(
      * that specific server.
      */
     case CLERI_GID_K_LOG_LEVEL:
-#ifdef DEBUG
-        assert (wserver->siridb->server == wserver->server);
-#endif
         return cexpr_int_cmp(
                 cond->operator,
                 Logger.level,
@@ -1091,6 +1088,18 @@ int siridb_server_cexpr_cb(
                 cond->operator,
                 (int64_t) siri.loop->active_handles,
                 cond->int64);
+
+    case CLERI_GID_K_REINDEX_PROGRESS:
+        return cexpr_str_cmp(
+                cond->operator,
+				siridb_reindex_progress(wserver->siridb),
+                cond->str);
+
+    case CLERI_GID_K_SYNC_PROGRESS:
+        return cexpr_str_cmp(
+                cond->operator,
+				siridb_initsync_sync_progress(wserver->siridb),
+                cond->str);
     }
     /* we must NEVER get here */
     log_critical("Unexpected server property received: %d", cond->prop);

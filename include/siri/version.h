@@ -15,7 +15,16 @@
 #define SIRIDB_VERSION_MINOR 0
 #define SIRIDB_VERSION_PATCH 2
 
-#define SIRIDB_VERSION "2.0.2"
+#define VERSTR(num) #num
+#define SIRIDB_VERSION_STR(major,minor,patch) \
+	VERSTR(major) "." VERSTR(minor) "." VERSTR(patch)
+
+#define SIRIDB_VERSION 				\
+	SIRIDB_VERSION_STR(				\
+		SIRIDB_VERSION_MAJOR, 		\
+		SIRIDB_VERSION_MINOR, 		\
+		SIRIDB_VERSION_PATCH)
+
 #define SIRIDB_MAINTAINER "Jeroen van der Heijden <jeroen@transceptor.technology>"
 #define SIRIDB_HOME_PAGE "http://siridb.net"
 

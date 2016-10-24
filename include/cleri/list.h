@@ -16,22 +16,22 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_list_s
 {
     uint32_t gid;
-    struct cleri_object_s * cl_obj;
-    struct cleri_object_s * delimiter;
+    cleri_object_t * cl_obj;
+    cleri_object_t * delimiter;
     size_t min;
     size_t max;
     int opt_closing;
 } cleri_list_t;
 
-struct cleri_object_s * cleri_list(
+cleri_object_t * cleri_list(
         uint32_t gid,
-        struct cleri_object_s * cl_obj,
-        struct cleri_object_s * delimiter,
+		cleri_object_t * cl_obj,
+		cleri_object_t * delimiter,
         size_t min,
         size_t max,
         int opt_closing);
