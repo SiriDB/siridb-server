@@ -29,7 +29,7 @@ typedef struct cleri_rule_store_s cleri_rule_store_t;
 
 typedef struct cleri_parser_s
 {
-    bool is_valid;
+    int is_valid;
     size_t pos;
     const char * str;
     cleri_node_t * tree;
@@ -51,5 +51,3 @@ cleri_node_t * cleri__parser_walk(
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule,
         int mode);
-
-extern int cleri_err;

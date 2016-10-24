@@ -15,12 +15,8 @@
 #include <string.h>
 #include <ctype.h>
 
-int cleri_err = 0;
-
 /*
  * Returns NULL in case an error has occurred.
- *
- * Note: This function is not thread safe.
  */
 cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
 {
@@ -40,6 +36,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
     pr->tree = NULL;
     pr->kwcache = NULL;
     pr->expecting = NULL;
+    pr->is_valid = 0;
 
     if (    (pr->tree = cleri_node_new(NULL, str, 0)) == NULL ||
             (pr->kwcache = cleri_kwcache_new()) == NULL ||
@@ -60,9 +57,12 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
             NULL,
             CLERI_EXP_MODE_REQUIRED);
 
-    if (cleri_err)
+    /*
+     * When is_valid is -1 an unexpected error like an allocation error
+     * has occurred.
+     */
+    if (pr->is_valid == -1)
     {
-    	cleri_err = 0;
     	cleri_parser_free(pr);
     	return NULL;
     }
@@ -80,7 +80,7 @@ cleri_parser_t * cleri_parser_new(cleri_grammar_t * grammar, const char * str)
         }
     }
 
-    pr->is_valid = at_end;  // rnode != NULL &&
+    pr->is_valid = at_end;
     pr->pos = (pr->is_valid) ? pr->tree->len : pr->expecting->str - pr->str;
 
     if (!at_end && pr->expecting->required->cl_obj == NULL)
@@ -139,7 +139,7 @@ cleri_node_t * cleri__parser_walk(
     /* set expecting mode */
     if (cleri_expecting_set_mode(pr->expecting, parent->str, mode) == -1)
     {
-    	cleri_err = -1;
+    	pr->is_valid = -1;
         return NULL;
     }
 
