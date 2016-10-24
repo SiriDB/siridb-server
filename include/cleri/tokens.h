@@ -16,7 +16,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_tlist_s
 {
@@ -33,6 +33,6 @@ typedef struct cleri_tokens_s
     struct cleri_tlist_s * tlist;
 } cleri_tokens_t;
 
-struct cleri_object_s * cleri_tokens(
+cleri_object_t * cleri_tokens(
         uint32_t gid,
         const char * tokens);

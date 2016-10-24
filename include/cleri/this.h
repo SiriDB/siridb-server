@@ -17,6 +17,6 @@
 #include <cleri/expecting.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
-struct cleri_object_s * CLERI_THIS;
+cleri_object_t * CLERI_THIS;

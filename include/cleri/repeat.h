@@ -16,7 +16,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_repeat_s
 {
@@ -27,7 +27,7 @@ typedef struct cleri_repeat_s
 } cleri_repeat_t;
 
 
-struct cleri_object_s * cleri_repeat(
+cleri_object_t * cleri_repeat(
         uint32_t gid,
         struct cleri_object_s * cl_obj,
         size_t min,

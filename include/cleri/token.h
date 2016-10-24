@@ -18,7 +18,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_token_s
 {
@@ -27,7 +27,7 @@ typedef struct cleri_token_s
     size_t len;
 } cleri_token_t;
 
-struct cleri_object_s * cleri_token(
+cleri_object_t * cleri_token(
         uint32_t gid,
         const char * token);
 

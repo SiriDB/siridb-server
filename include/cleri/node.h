@@ -30,7 +30,6 @@ typedef struct cleri_node_s
     cleri_children_t * children;
 } cleri_node_t;
 
-
 cleri_node_t * cleri_node_new(
         cleri_object_t * cl_obj,
         const char * str,

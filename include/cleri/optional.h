@@ -14,7 +14,7 @@
 #include <inttypes.h>
 #include <cleri/object.h>
 
-struct cleri_object_s;
+typedef struct cleri_object_s cleri_object_t;
 
 typedef struct cleri_optional_s
 {
@@ -22,7 +22,7 @@ typedef struct cleri_optional_s
     struct cleri_object_s * cl_obj;
 } cleri_optional_t;
 
-struct cleri_object_s * cleri_optional(
+cleri_object_t * cleri_optional(
         uint32_t gid,
-        struct cleri_object_s * cl_obj);
+		cleri_object_t * cl_obj);
 
