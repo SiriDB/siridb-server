@@ -98,8 +98,7 @@ class Server:
                        self.cfgfile),
                shell=True)
 
-        if self.MEM_CHECK:
-            await asyncio.sleep(1)
+        await asyncio.sleep(1)
 
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)

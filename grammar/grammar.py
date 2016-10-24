@@ -1,6 +1,6 @@
 import logging
 import re
-from .help import help_structure
+from siridbhelp import help_structure
 from pyleri import Choice
 from pyleri import Grammar
 from pyleri import Keyword
