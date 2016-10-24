@@ -1397,14 +1397,27 @@ static void exit_before_expr(uv_async_t * handle)
 static void exit_between_expr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_select_t * q_select = (query_select_t *) query->data;
 
-    ((query_select_t *) query->data)->start_ts = (uint64_t *)
+    q_select->start_ts = (uint64_t *)
             &query->nodes->node->children->next->node->result;
 
-    ((query_select_t *) query->data)->end_ts = (uint64_t *)
+    q_select->end_ts = (uint64_t *)
             &query->nodes->node->children->next->next->next->node->result;
 
-    SIRIPARSER_NEXT_NODE
+    if (*q_select->start_ts > *q_select->end_ts)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Start time (%llu) should not be greater than end time (%llu)",
+				(unsigned long long) *q_select->start_ts,
+				(unsigned long long) *q_select->end_ts);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+    	SIRIPARSER_NEXT_NODE
+    }
 }
 
 static void exit_calc_stmt(uv_async_t * handle)

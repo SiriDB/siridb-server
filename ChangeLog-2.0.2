@@ -14,3 +14,7 @@
   
   * Fixed a bug in listing and counting servers when using one of the 
     properties 'sync_progress' or 'reindex_progress'. (issue #20)
+    
+  * Fixed a bug when a select query is using a greater start time than end
+    time. Instead of trying to answer to the query we now respond with an 
+    error informing the user the given query is not allowed. (issue #21) 
