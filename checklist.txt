@@ -1,4 +1,5 @@
-Before building a new version we need to freeze the master branche.
+Before building a new version we need to freeze the master branche, create a 
+changelog and set the correct version in version.h
 
 0. Make sure the debug version is tested and changelogs etc. are correct.
 
