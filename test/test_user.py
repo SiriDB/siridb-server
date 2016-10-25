@@ -30,7 +30,7 @@ class TestUser(TestBase):
         self.assertEqual(result.pop('users'), [['iris', 'full']])
 
         result = await self.client0.query('create user "sasientje" set password "blabla"')
-        self.assertEqual(result.pop('success_msg'), "User 'sasientje' is created successfully.")
+        self.assertEqual(result.pop('success_msg'), "Successfully created user 'sasientje'.")
 
         result = await self.client0.query('list users where access < modify')
         self.assertEqual(result.pop('users'), [['sasientje', 'no access']])
@@ -89,7 +89,7 @@ class TestUser(TestBase):
             result = await self.client0.insert({'no access test': [[1, 1.0]]})
 
         result = await self.client1.query('drop user "sasientje"')
-        self.assertEqual(result.pop('success_msg'), "User 'sasientje' is dropped successfully.")
+        self.assertEqual(result.pop('success_msg'), "Successfully dropped user 'sasientje'.")
         time.sleep(0.1)
 
         for client in (self.client0, self.client1, self.client2):
@@ -130,7 +130,8 @@ class TestUser(TestBase):
             result = await self.client1.query('alter user "Pee" set name "PPP"')
 
         result = await self.client1.query('alter user "pee" set name "Pee"')
-        self.assertEqual(result.pop('success_msg'), "Successful updated user 'Pee'.")
+        self.assertEqual(
+            result.pop('success_msg'), "Successfully updated user 'Pee'.")
 
         time.sleep(0.1)
         result = await self.client2.query('list users where name == "Pee"')

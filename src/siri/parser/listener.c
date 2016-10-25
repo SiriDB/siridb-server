@@ -2082,6 +2082,23 @@ static void exit_drop_series(uv_async_t * handle)
 
     MASTER_CHECK_ACCESSIBLE(siridb)
 
+    /* we transform the references from imap to slist */
+	q_drop->slist = (q_drop->series_map == NULL) ?
+		imap_2slist_ref(siridb->series_map) :
+		imap_slist_pop(q_drop->series_map);
+
+    if (q_drop->slist == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
+	if (q_drop->series_map != NULL)
+	{
+		/* now we can simply destroy the imap */
+		imap_free(q_drop->series_map, NULL);
+		q_drop->series_map = NULL;
+	}
+
     /*
      * This function will be called twice when using a where statement.
      * The second time the where_expr is NULL and the reason we do this is
@@ -2089,48 +2106,40 @@ static void exit_drop_series(uv_async_t * handle)
      */
     if (q_drop->where_expr != NULL)
     {
-        /* we transform the references from imap to slist */
-        q_drop->slist = imap_slist_pop(q_drop->series_map);
+		/* create a new one */
+		q_drop->series_map = imap_new();
 
-        if (q_drop->slist != NULL)
-        {
-            /* now we can simply destroy the imap */
-            imap_free(q_drop->series_map, NULL);
+		if (q_drop->series_map == NULL)
+		{
+			MEM_ERR_RET
+		}
 
-            /* create a new one */
-            q_drop->series_map = imap_new();
+		uv_async_t * next =
+				(uv_async_t *) malloc(sizeof(uv_async_t));
 
-            if (q_drop->series_map == NULL)
-            {
-                MEM_ERR_RET
-            }
+		if (next == NULL)
+		{
+			MEM_ERR_RET
+		}
 
-            uv_async_t * next =
-                    (uv_async_t *) malloc(sizeof(uv_async_t));
+		next->data = handle->data;
 
-            if (next == NULL)
-            {
-                MEM_ERR_RET
-            }
+		uv_async_init(
+				siri.loop,
+				next,
+				(uv_async_cb) async_filter_series);
+		uv_async_send(next);
 
-            next->data = handle->data;
+		uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 
-            uv_async_init(
-                    siri.loop,
-                    next,
-                    (uv_async_cb) async_filter_series);
-            uv_async_send(next);
-
-            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-        }
     }
     else
     {
         double percent = (double)
-                q_drop->series_map->len / siridb->series_map->len;
+                q_drop->slist->len / siridb->series_map->len;
 
         if (IS_MASTER &&
-            q_drop->series_map->len &&
+            q_drop->slist->len &&
             (~q_drop->flags & QUERIES_IGNORE_DROP_THRESHOLD) &&
             percent >= siridb->drop_threshold)
         {
@@ -2148,14 +2157,7 @@ static void exit_drop_series(uv_async_t * handle)
         {
             QP_ADD_SUCCESS
 
-            q_drop->n = q_drop->series_map->len;
-
-            q_drop->slist = imap_2slist_ref(q_drop->series_map);
-
-            if (q_drop->slist == NULL)
-            {
-                MEM_ERR_RET
-            }
+            q_drop->n = q_drop->slist->len;
 
             uv_async_t * next =
                     (uv_async_t *) malloc(sizeof(uv_async_t));
@@ -2523,8 +2525,6 @@ static void exit_list_pools(uv_async_t * handle)
     };
     uint_fast16_t prop;
     cexpr_t * where_expr = q_list->where_expr;
-
-//    MASTER_CHECK_ACCESSIBLE(siridb)
 
     if (q_list->props == NULL)
     {

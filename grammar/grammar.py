@@ -535,10 +535,8 @@ class SiriGrammar(Grammar):
     # Drop statement needs at least a series_math or where STMT or both
     drop_series = Sequence(
         k_series,
-        Choice(
-            series_match,
-            where_series,
-            Sequence(series_match, where_series)),
+        Optional(series_match),
+        Optional(where_series),
         Optional(set_ignore_threshold))
     drop_shards = Sequence(
         k_shards,

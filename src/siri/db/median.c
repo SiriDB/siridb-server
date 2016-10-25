@@ -68,17 +68,16 @@ int siridb_median_find_n(
         int64_t pivot, v;
 
         int64_t * arr_l =
-        		(int64_t *) malloc(sizeof(int64_t) * (points->len - 1));
-        int64_t * arr_r =
-        		(int64_t *) malloc(sizeof(int64_t) * (points->len - 1));
+        		(int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
-        if (arr_l == NULL || arr_r == NULL)
+        if (arr_l == NULL)
         {
         	log_critical("Memory allocation error occurred.");
         	rc = -1;
         }
         else
         {
+            int64_t * arr_r = arr_l + points->len - 1;
 			int64_t * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
@@ -119,23 +118,23 @@ int siridb_median_find_n(
 					find_n_int64(arr_r, size_r, arr_l, n - size_l - 1));
         }
         free(arr_l);
-        free(arr_r);
     }
     else
     {
         double pivot, v;
 
-        double * arr_l = (double *) malloc(sizeof(double) * (points->len - 1));
-        double * arr_r = (double *) malloc(sizeof(double) * (points->len - 1));
+        double * arr_l =
+        		(double *) malloc(sizeof(double) * 2 * (points->len - 1));
 
-        if (arr_l == NULL || arr_r == NULL)
+        if (arr_l == NULL)
         {
         	log_critical("Memory allocation error occurred.");
         	rc = -1;
         }
         else
         {
-			double * equal = arr_l;
+            double * arr_r = arr_l + points->len - 1;
+        	double * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
 			pivot = points->data[npivot].val.real;
@@ -175,7 +174,6 @@ int siridb_median_find_n(
 					find_n_double(arr_r, size_r, arr_l, n - size_l - 1);
         }
         free(arr_l);
-        free(arr_r);
     }
     return rc;
 }
@@ -203,17 +201,16 @@ int siridb_median_real(
         int64_t pivot, v, a, b;
 
         int64_t * arr_l =
-        		(int64_t *) malloc(sizeof(int64_t) * (points->len - 1));
-        int64_t * arr_r =
-        		(int64_t *) malloc(sizeof(int64_t) * (points->len - 1));
+        		(int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
-        if (arr_l == NULL || arr_r == NULL)
+        if (arr_l == NULL)
         {
         	log_critical("Memory allocation error occurred.");
         	rc = -1;
         }
         else
         {
+            int64_t * arr_r = arr_l + points->len - 1;
 			int64_t * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
@@ -275,23 +272,22 @@ int siridb_median_real(
 						found_b);
         }
         free(arr_l);
-        free(arr_r);
     }
     else
     {
         double pivot, v, a, b;
 
-        double * arr_l = (double *) malloc(sizeof(double) * (points->len - 1));
-        double * arr_r = (double *) malloc(sizeof(double) * (points->len - 1));
+        double * arr_l =
+        		(double *) malloc(sizeof(double) * 2 * (points->len - 1));
 
-        if (arr_l == NULL || arr_r == NULL)
+        if (arr_l == NULL)
         {
         	log_critical("Memory allocation error occurred.");
         	rc = -1;
         }
         else
         {
-
+            double * arr_r = arr_l + points->len - 1;
 			double * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
@@ -351,7 +347,6 @@ int siridb_median_real(
 						found_b);
         }
         free(arr_l);
-        free(arr_r);
     }
     return rc;
 }
