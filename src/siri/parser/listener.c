@@ -146,7 +146,17 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 	"Successfully dropped server '%s'."
 #define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
     "Successfully set log level to '%s' on %lu servers."
-
+#define MSG_SUCCES_SET_LOG_LEVEL \
+	"Successfully set log level to '%s' on '%s'."
+#define MSG_SUCCES_DROP_SERIES \
+	"Successfully dropped %lu series."
+#define MSG_SUCCES_DROP_SHARDS \
+	"Successfully dropped %lu shards. (this number does not include " \
+	"shards which are dropped on replica servers)"
+#define MSG_SUCCES_SET_BACKUP_MODE \
+	"Successfully %s backup mode on '%s'."
+#define MSG_SUCCES_SET_TIMEZONE \
+	"Successfully changed timezone from '%s' to '%s'."
 #define MSG_ERR_SERVER_ADDRESS \
     "Its only possible to change a servers address or port when the server " \
     "is not connected."
@@ -3187,7 +3197,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
     {
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
-                    "Successful %s backup mode on '%s'.",
+        			MSG_SUCCES_SET_BACKUP_MODE,
                     (backup_mode) ? "enabled" : "disabled",
                     server->name);
 
@@ -3419,7 +3429,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
-                    "Successful set log level to '%s' on '%s'.",
+        			MSG_SUCCES_SET_LOG_LEVEL,
                     logger_level_name(log_level),
                     server->name);
 
@@ -3562,7 +3572,7 @@ static void exit_set_timezone(uv_async_t * handle)
 
         qp_add_fmt_safe(
                 query->packer,
-                "Successful changed timezone from '%s' to '%s'.",
+				MSG_SUCCES_SET_TIMEZONE,
                 iso8601_tzname(siridb->tz),
                 iso8601_tzname(new_tz));
 
@@ -4474,8 +4484,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
         sirinet_promise_decref(promise);
     }
 
-    qp_add_fmt(query->packer,
-            "Successfully dropped %lu series.", q_drop->n);
+    qp_add_fmt(query->packer, MSG_SUCCES_DROP_SERIES, q_drop->n);
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }
@@ -4531,10 +4540,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
         sirinet_promise_decref(promise);
     }
 
-    qp_add_fmt(query->packer,
-            "Successfully dropped %lu shards. (this number does not include "
-            "shards which are dropped on replica servers)",
-            q_drop->n);
+    qp_add_fmt(query->packer, MSG_SUCCES_DROP_SHARDS, q_drop->n);
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

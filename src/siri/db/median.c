@@ -614,10 +614,14 @@ static double find_n_double(
         }
     }
     if (size_l == n)
-        return pivot;
+    {
+    	return pivot;
+    }
 
     if (size_l > n)
-        return find_n_double(seq, size_l, other, n);
+    {
+    	return find_n_double(seq, size_l, other, n);
+    }
 
     return find_n_double(other, size_r, seq, n - size_l - 1);
 }
