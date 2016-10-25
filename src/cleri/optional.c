@@ -16,7 +16,7 @@
 static void OPTIONAL_free(cleri_object_t * cl_object);
 
 static cleri_node_t * OPTIONAL_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule);
@@ -71,7 +71,7 @@ static void OPTIONAL_free(cleri_object_t * cl_object)
  * Returns a node or NULL. In case of an error cleri_err is set to -1.
  */
 static cleri_node_t * OPTIONAL_parse(
-        cleri_parser_t * pr,
+        cleri_parse_t * pr,
         cleri_node_t * parent,
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
@@ -84,7 +84,7 @@ static cleri_node_t * OPTIONAL_parse(
     	pr->is_valid = -1;
         return NULL;
     }
-    rnode = cleri__parser_walk(
+    rnode = cleri__parse_walk(
             pr,
             node,
             cl_obj->via.optional->cl_obj,

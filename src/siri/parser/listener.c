@@ -122,24 +122,35 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);      \
         return;
 
-#define MSG_SUCCESS_CREATE_USER "User '%s' is created successfully."
-#define MSG_SUCCESS_DROP_USER "User '%s' is dropped successfully."
-#define MSG_SUCCESS_ALTER_USER "Successful updated user '%s'."
-#define MSG_SUCCESS_GRANT_USER "Successfully granted permissions to user '%s'."
+#define MSG_SUCCESS_CREATE_USER \
+	"Successfully created user '%s'."
+#define MSG_SUCCESS_DROP_USER \
+	"Successfully dropped user '%s'."
+#define MSG_SUCCESS_ALTER_USER \
+	"Successfully updated user '%s'."
+#define MSG_SUCCESS_GRANT_USER \
+	"Successfully granted permissions to user '%s'."
 #define MSG_SUCCESS_REVOKE_USER \
     "Successfully revoked permissions from user '%s'."
-#define MSG_SUCCESS_CREATE_GROUP "Group '%s' is created successfully."
-#define MSG_SUCCESS_DROP_GROUP "Group '%s' is dropped successfully."
-#define MSG_SUCCESS_ALTER_GROUP "Successful updated group '%s'."
+#define MSG_SUCCESS_CREATE_GROUP \
+	"Successfully created group '%s'."
+#define MSG_SUCCESS_DROP_GROUP \
+	"Successfully dropped group '%s'."
+#define MSG_SUCCESS_ALTER_GROUP \
+	"Successful updated group '%s'."
 #define MSG_SUCCESS_SET_DROP_THRESHOLD \
-    "Successful changed drop_threshold from %g to %g."
-#define MSG_SUCCESS_SET_ADDR_PORT "Successful changed server address to '%s'."
+    "Successfully changed drop_threshold from %g to %g."
+#define MSG_SUCCESS_SET_ADDR_PORT \
+	"Successfully changed server address to '%s'."
+#define MSG_SUCCESS_DROP_SERVER \
+	"Successfully dropped server '%s'."
+#define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
+    "Successfully set log level to '%s' on %lu servers."
+
 #define MSG_ERR_SERVER_ADDRESS \
     "Its only possible to change a servers address or port when the server " \
     "is not connected."
-#define MSG_SUCCESS_DROP_SERVER "Server '%s' is dropped successfully."
-#define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
-    "Successful set log level to '%s' on %lu servers."
+
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);

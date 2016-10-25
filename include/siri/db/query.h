@@ -30,7 +30,7 @@ typedef enum
 #include <uv.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <cleri/parser.h>
+#include <cleri/parse.h>
 #include <qpack/qpack.h>
 #include <siri/db/time.h>
 #include <siri/db/nodes.h>
@@ -38,7 +38,7 @@ typedef enum
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
 
-typedef struct cleri_parser_s cleri_parser_t;
+typedef struct cleri_parse_s cleri_parse_t;
 typedef struct siridb_node_list_s siridb_node_list_t;
 
 typedef enum siridb_err_tp
@@ -66,7 +66,7 @@ typedef struct siridb_query_s
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     qp_packer_t * packer;
     qp_packer_t * timeit;
-    cleri_parser_t * pr;
+    cleri_parse_t * pr;
     siridb_nodes_t * nodes;
     struct timespec start;
 } siridb_query_t;

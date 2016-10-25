@@ -90,10 +90,8 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
             }
         }
         log_debug("Series with overlap: %lu", tcount);
-        /*
-         * Finish series with overlap
-         */
         log_debug("Active tasks: %u", siridb->active_tasks);
+        log_debug("Max series id: %lu", siridb->max_series_id);
 
 #endif
 

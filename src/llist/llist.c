@@ -66,7 +66,7 @@ int llist_append(llist_t * llist, void * data)
     llist_node_t * node = LLIST_node_new(data);
     if (node == NULL)
     {
-        return -1;
+        return -1;  /* a signal is raised */
     }
 
     llist->len++;

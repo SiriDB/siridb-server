@@ -10,7 +10,6 @@
  *
  */
 #include <cleri/olist.h>
-#include <logger/logger.h>
 #include <stdlib.h>
 
 /*

@@ -163,7 +163,10 @@ void siridb_query_free(uv_handle_t * handle)
     siridb_nodes_free(query->nodes);
 
     /* free query result */
-    cleri_parser_free(query->pr);
+    if (query->pr != NULL)
+    {
+    	cleri_parse_free(query->pr);
+    }
 
     /* decrement client reference counter */
     sirinet_socket_decref(query->client);
@@ -530,7 +533,7 @@ static void QUERY_parse(uv_async_t * handle)
             &query->flags);
 
     if (    walker == NULL ||
-            (query->pr = cleri_parser_new(siri.grammar, query->q)) == NULL)
+            (query->pr = cleri_parse(siri.grammar, query->q)) == NULL)
     {
     	if (walker != NULL)
     	{
@@ -540,6 +543,7 @@ static void QUERY_parse(uv_async_t * handle)
     	{
     		ERR_ALLOC
     	}
+    	sprintf(query->err_msg, "Memory allocation error.");
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }

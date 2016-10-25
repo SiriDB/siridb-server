@@ -18,8 +18,8 @@
 #include <stdlib.h>
 #include <qpack/qpack.h>
 #include <motd/motd.h>
-#include <cleri/parser.h>
 #include <cleri/grammar.h>
+#include <cleri/parse.h>
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap/imap.h>
@@ -131,11 +131,11 @@ static int test_qpack(void)
 static int test_cleri(void)
 {
     test_start("Testing cleri");
-    cleri_parser_t * pr;
+    cleri_parse_t * pr;
     cleri_grammar_t * grammar = compile_grammar();
 
     /* should not break on full grammar */
-    pr = cleri_parser_new(grammar,
+    pr = cleri_parse(grammar,
             "select mean(1h + 1m) from \"series-001\", \"series-002\", "
             "\"series-003\" between 1360152000 and 1360152000 + 1d merge as "
             "\"series\" using mean(1)");
@@ -143,26 +143,26 @@ static int test_cleri(void)
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_parser_free(pr);
+    cleri_parse_free(pr);
 
     /* should not break on empty grammar */
-    pr = cleri_parser_new(grammar, "");
+    pr = cleri_parse(grammar, "");
 
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_parser_free(pr);
+    cleri_parse_free(pr);
 
     /* should not break on single word grammar */
-    pr = cleri_parser_new(grammar, "now");
+    pr = cleri_parse(grammar, "now");
 
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_parser_free(pr);
+    cleri_parse_free(pr);
 
     /* should not break on wrong grammar */
-    pr = cleri_parser_new(grammar, "count serious?");
+    pr = cleri_parse(grammar, "count serious?");
 
     /* is_valid should be false (0) */
     assert(pr->is_valid == 0);
@@ -170,15 +170,15 @@ static int test_cleri(void)
     /* pos should be 6 */
     assert(pr->pos == 6);
 
-    cleri_parser_free(pr);
+    cleri_parse_free(pr);
 
     /* simple sum */
-    pr = cleri_parser_new(grammar, "21 % 2");
+    pr = cleri_parse(grammar, "21 % 2");
 
     /* is_valid should be true (1) */
     assert(pr->is_valid == 1);
 
-    cleri_parser_free(pr);
+    cleri_parse_free(pr);
 
     /* free grammar */
     cleri_grammar_free(grammar);

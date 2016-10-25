@@ -52,6 +52,9 @@ void siri_backup_destroy(siri_t * siri)
     uv_close((uv_handle_t *) siri->backup, NULL);
 }
 
+/*
+ * Returns 0 when successful or -1 and a signal is raised in case of an error.
+ */
 int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 {
 #ifdef DEBUG

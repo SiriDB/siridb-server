@@ -114,7 +114,7 @@ class TestGroup(TestBase):
         self.client0.close()
         self.client1.close()
 
-        # return False
+        return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'INFO'

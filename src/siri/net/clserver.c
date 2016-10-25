@@ -298,7 +298,7 @@ static void CLSERVER_send_server_error(
             :
             asprintf(
             &err_msg,
-            "Server '%s' is not accepting then request because of having "
+            "Server '%s' is not accepting the request because of having "
             "status: %u",
             siridb->server->name,
             siridb->server->flags);

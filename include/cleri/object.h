@@ -11,7 +11,6 @@
  */
 #pragma once
 
-#include <cleri/parser.h>
 #include <cleri/expecting.h>
 #include <cleri/keyword.h>
 #include <cleri/sequence.h>
@@ -25,6 +24,7 @@
 #include <cleri/grammar.h>
 #include <cleri/prio.h>
 #include <cleri/node.h>
+#include <cleri/parse.h>
 #include <cleri/rule.h>
 #include <cleri/this.h>
 
@@ -43,7 +43,7 @@ typedef struct cleri_prio_s cleri_prio_t;
 typedef struct cleri_rule_s cleri_rule_t;
 typedef struct cleri_rule_store_s cleri_rule_store_t;
 typedef struct cleri_node_s cleri_node_t;
-typedef struct cleri_parser_s cleri_parser_t;
+typedef struct cleri_parse_s cleri_parse_t;
 
 typedef enum {
     CLERI_TP_SEQUENCE,
@@ -86,7 +86,7 @@ typedef union
 typedef void (*cleri_free_object_t)(cleri_object_t *);
 
 typedef cleri_node_t * (*cleri_parse_object_t)(
-        cleri_parser_t *,
+        cleri_parse_t *,
         cleri_node_t *,
         cleri_object_t *,
         cleri_rule_store_t *);
