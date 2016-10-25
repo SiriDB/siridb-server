@@ -49,7 +49,7 @@ static double find_median_real_double(
         bool found_a,
         bool found_b);
 
-void siridb_median_find_n(
+int siridb_median_find_n(
         siridb_point_t * point,
         siridb_points_t * points,
         uint64_t n)
@@ -57,6 +57,7 @@ void siridb_median_find_n(
 #ifdef DEBUG
 	assert (points->len >= 2);
 #endif
+	int rc = 0;
     uint64_t i, size_l, size_r;
 
     size_l = size_r = 0;
@@ -73,7 +74,7 @@ void siridb_median_find_n(
         if (arr_l == NULL || arr_r == NULL)
         {
         	log_critical("Memory allocation error occurred.");
-        	point->val.int64 = 0;
+        	rc = -1;
         }
         else
         {
@@ -125,7 +126,7 @@ void siridb_median_find_n(
         if (arr_l == NULL || arr_r == NULL)
         {
         	log_critical("Memory allocation error occurred.");
-        	point->val.real = 0;
+        	rc = -1;
         }
         else
         {
@@ -167,9 +168,10 @@ void siridb_median_find_n(
         free(arr_l);
         free(arr_r);
     }
+    return rc;
 }
 
-void siridb_median_real(
+int siridb_median_real(
         struct siridb_point_s * point,
         struct siridb_points_s * points,
         double percentage)
@@ -177,6 +179,7 @@ void siridb_median_real(
 #ifdef DEBUG
 	assert (points->len >= 2);
 #endif
+	int rc = 0;
     uint64_t i, size_l, size_r, n;
     bool found_a, found_b;
 
@@ -197,7 +200,7 @@ void siridb_median_real(
         if (arr_l == NULL || arr_r == NULL)
         {
         	log_critical("Memory allocation error occurred.");
-        	point->val.real = 0;  /* we set real for medean_real */
+        	rc = -1;
         }
         else
         {
@@ -270,7 +273,7 @@ void siridb_median_real(
         if (arr_l == NULL || arr_r == NULL)
         {
         	log_critical("Memory allocation error occurred.");
-        	point->val.real = 0;
+        	rc = -1;
         }
         else
         {
@@ -332,6 +335,7 @@ void siridb_median_real(
         free(arr_l);
         free(arr_r);
     }
+    return rc;
 }
 
 static double find_median_real_int64(
