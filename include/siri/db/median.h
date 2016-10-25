@@ -19,12 +19,12 @@ struct siridb_points_s;
 
 /* sets point int64 or real depending on the given points */
 int siridb_median_find_n(
-        struct siridb_point_s * point,
-        struct siridb_points_s * points,
+		siridb_point_t * point,
+		siridb_points_t * points,
         uint64_t n);
 
 /* sets points real, even when the given points are integer type */
 int siridb_median_real(
-        struct siridb_point_s * point,
-        struct siridb_points_s * points,
+		siridb_point_t * point,
+		siridb_points_t * points,
         double percentage);

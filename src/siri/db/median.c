@@ -58,9 +58,10 @@ int siridb_median_find_n(
 	assert (points->len >= 2);
 #endif
 	int rc = 0;
-    uint64_t i, size_l, size_r;
+    uint64_t i, npivot, size_l, size_r;
 
     size_l = size_r = 0;
+    npivot = points->len / 2;
 
     if (points->tp == TP_INT)
     {
@@ -81,10 +82,14 @@ int siridb_median_find_n(
 			int64_t * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
-			pivot = points->data->val.int64;
+			pivot = points->data[npivot].val.int64;
 
-			for (i = 1; i < points->len; i++)
+			for (i = 0; i < points->len; i++)
 			{
+				if (i == npivot)
+				{
+					continue;
+				}
 				v = points->data[i].val.int64;
 				if (v == pivot)
 				{
@@ -133,9 +138,13 @@ int siridb_median_find_n(
 			double * equal = arr_l;
 			uint64_t * equal_size = &size_l;
 
-			pivot = points->data->val.real;
-			for (i = 1; i < points->len; i++)
+			pivot = points->data[npivot].val.real;
+			for (i = 0; i < points->len; i++)
 			{
+				if (i == npivot)
+				{
+					continue;
+				}
 				v = points->data[i].val.real;
 				if (v == pivot)
 				{
@@ -172,21 +181,22 @@ int siridb_median_find_n(
 }
 
 int siridb_median_real(
-        struct siridb_point_s * point,
-        struct siridb_points_s * points,
+		siridb_point_t * point,
+        siridb_points_t * points,
         double percentage)
 {
 #ifdef DEBUG
 	assert (points->len >= 2);
 #endif
 	int rc = 0;
-    uint64_t i, size_l, size_r, n;
+    uint64_t i, npivot, size_l, size_r, n;
     bool found_a, found_b;
 
     n = points->len * percentage;
 
     size_l = size_r = 0;
     found_a = found_b = false;
+    npivot = points->len / 2;
 
     if (points->tp == TP_INT)
     {
@@ -208,9 +218,13 @@ int siridb_median_real(
 			uint64_t * equal_size = &size_l;
 
 			a = b = 0;
-			pivot = points->data->val.int64;
-			for (i = 1; i < points->len; i++)
+			pivot = points->data[npivot].val.int64;
+			for (i = 0; i < points->len; i++)
 			{
+				if (i == npivot)
+				{
+					continue;
+				}
 				v = points->data[i].val.int64;
 				if (v == pivot)
 				{
@@ -282,9 +296,13 @@ int siridb_median_real(
 			uint64_t * equal_size = &size_l;
 
 			a = b = 0.0;
-			pivot = points->data->val.real;
-			for (i = 1; i < points->len; i++)
+			pivot = points->data[npivot].val.real;
+			for (i = 0; i < points->len; i++)
 			{
+				if (i == npivot)
+				{
+					continue;
+				}
 				v = points->data[i].val.real;
 				if (v == pivot)
 				{
@@ -353,11 +371,16 @@ static double find_median_real_int64(
     int64_t pivot, v;
     int64_t * equal = seq;
     uint64_t * equal_size = &size_l;
+    uint64_t npivot = size / 2;
 
-    pivot = seq[0];
+    pivot = seq[npivot];
 
-    for (i = 1; i < size; i++)
+    for (i = 0; i < size; i++)
     {
+    	if (i == npivot)
+    	{
+    		continue;
+    	}
         v = seq[i];
         if (v == pivot)
         {
@@ -425,11 +448,16 @@ static double find_median_real_double(
     double pivot, v;
     double * equal = seq;
     uint64_t * equal_size = &size_l;
+    uint64_t npivot = size / 2;
 
-    pivot = seq[0];
+    pivot = seq[npivot];
 
-    for (i = 1; i < size; i++)
+    for (i = 0; i < size; i++)
     {
+    	if (i == npivot)
+    	{
+    		continue;
+    	}
         v = seq[i];
         if (v == pivot)
         {
@@ -492,11 +520,16 @@ static double find_n_int64(
     int64_t pivot, v;
     int64_t * equal = seq;
     uint64_t * equal_size = &size_l;
+    uint64_t npivot = size / 2;
 
-    pivot = seq[0];
+    pivot = seq[npivot];
 
-    for (i = 1; i < size; i++)
+    for (i = 0; i < size; i++)
     {
+    	if (i == npivot)
+    	{
+    		continue;
+    	}
         v = seq[i];
         if (v == pivot)
         {
