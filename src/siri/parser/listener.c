@@ -472,7 +472,6 @@ static void enter_access_expr(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-
 static void enter_alter_group(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -837,7 +836,7 @@ static void enter_merge_as(uv_async_t * handle)
 
     if (q_select->merge_as == NULL)
     {
-        ERR_ALLOC
+    	MEM_ERR_RET
     }
     else
     {
@@ -1049,7 +1048,6 @@ static void enter_series_name(uv_async_t * handle)
     /* extract series name */
     strx_extract_string(series_name, node->str, node->len);
 
-
     if (siridb_is_reindexing(siridb))
     {
         series = ct_get(siridb->series, series_name);
@@ -1157,16 +1155,18 @@ static void enter_series_name(uv_async_t * handle)
                         series->id);
                 siridb_series_decref(series);
                 break;
+
             case 1:
                 siridb_series_incref(series);
                 break;
+
             default:
-                return;  // signal is raised
+            	MEM_ERR_RET  // signal is raised
             }
         }
         else
         {
-            /* must be cached by one of the above */
+            /* we should not get here */
             assert (0);
         }
     }
@@ -1320,7 +1320,7 @@ static void enter_xxx_columns(uv_async_t * handle)
                     &qlist->props,
                     &columns->node->children->node->cl_obj->via.dummy->gid))
             {
-                ERR_ALLOC
+            	MEM_ERR_RET
             }
 
             if (columns->next == NULL)
@@ -2082,7 +2082,10 @@ static void exit_drop_series(uv_async_t * handle)
 
     MASTER_CHECK_ACCESSIBLE(siridb)
 
-    /* we transform the references from imap to slist */
+    /*
+     * We transform or copy the references from imap to slist because we need
+     * this list for both filtering or performing the actual drop.
+     */
 	q_drop->slist = (q_drop->series_map == NULL) ?
 		imap_2slist_ref(siridb->series_map) :
 		imap_slist_pop(q_drop->series_map);
@@ -2094,7 +2097,7 @@ static void exit_drop_series(uv_async_t * handle)
 
 	if (q_drop->series_map != NULL)
 	{
-		/* now we can simply destroy the imap */
+		/* now we can simply destroy the imap in case we had one */
 		imap_free(q_drop->series_map, NULL);
 		q_drop->series_map = NULL;
 	}
@@ -2114,8 +2117,7 @@ static void exit_drop_series(uv_async_t * handle)
 			MEM_ERR_RET
 		}
 
-		uv_async_t * next =
-				(uv_async_t *) malloc(sizeof(uv_async_t));
+		uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
 		if (next == NULL)
 		{
@@ -2159,8 +2161,7 @@ static void exit_drop_series(uv_async_t * handle)
 
             q_drop->n = q_drop->slist->len;
 
-            uv_async_t * next =
-                    (uv_async_t *) malloc(sizeof(uv_async_t));
+            uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
             if (next == NULL)
             {
@@ -2324,8 +2325,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
         q_drop->n = q_drop->shards_list->len;
 
-        uv_async_t * next =
-                (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -2619,8 +2619,7 @@ static void exit_list_series(uv_async_t * handle)
         MEM_ERR_RET;
     }
 
-    uv_async_t * next =
-            (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
     if (next == NULL)
     {
@@ -5034,7 +5033,6 @@ static int items_select_master_merge(
     if (siridb_points_pack(points, query->packer))
     {
         sprintf(query->err_msg, "Memory allocation error.");
-
         siridb_points_free(points);
         return -1;
     }
@@ -5051,8 +5049,7 @@ int items_select_other(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    return (
-            qp_add_string_term(query->packer, name) ||
+    return (qp_add_string_term(query->packer, name) ||
             siridb_points_raw_pack(points, query->packer));
 }
 
