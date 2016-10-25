@@ -1063,7 +1063,18 @@ static int aggr_median(
         return -1;
     }
 
-    if (points->len % 2 == 1)
+    if (points->len == 1)
+    {
+        if (points->tp == TP_INT)
+        {
+            point->val.real = (double) points->data->val.int64;
+        }
+        else
+        {
+        	point->val.real = points->data->val.real;
+        }
+    }
+    else if (points->len % 2 == 1)
     {
         siridb_median_find_n(point, points, points->len / 2);
         if (points->tp == TP_INT)
@@ -1071,9 +1082,10 @@ static int aggr_median(
             point->val.real = (double) point->val.int64;
         }
     }
-    else
+    else if (siridb_median_real(point, points, 0.5))
     {
-        siridb_median_real(point, points, 0.5);
+        sprintf(err_msg, "Memory allocation error in median.");
+        return -1;
     }
 
     return 0;
@@ -1095,8 +1107,22 @@ static int aggr_median_high(
         return -1;
     }
 
-    siridb_median_find_n(point, points, points->len / 2);
-
+    if (points->len == 1)
+    {
+        if (points->tp == TP_INT)
+        {
+            point->val.int64 = points->data->val.int64;
+        }
+        else
+        {
+        	point->val.real = points->data->val.real;
+        }
+    }
+    else if (siridb_median_find_n(point, points, points->len / 2))
+    {
+        sprintf(err_msg, "Memory allocation error in median high.");
+        return -1;
+    }
     return 0;
 }
 
@@ -1116,8 +1142,22 @@ static int aggr_median_low(
         return -1;
     }
 
-    siridb_median_find_n(point, points, (points->len - 1) / 2);
-
+    if (points->len == 1)
+    {
+        if (points->tp == TP_INT)
+        {
+            point->val.int64 = points->data->val.int64;
+        }
+        else
+        {
+        	point->val.real = points->data->val.real;
+        }
+    }
+    else if (siridb_median_find_n(point, points, (points->len - 1) / 2))
+	{
+        sprintf(err_msg, "Memory allocation error in median low.");
+        return -1;
+    }
     return 0;
 }
 
