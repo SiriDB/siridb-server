@@ -579,11 +579,16 @@ static double find_n_double(
     double pivot, v;
     double * equal = seq;
     uint64_t * equal_size = &size_l;
+    uint64_t npivot = size / 2;
 
-    pivot = seq[0];
+    pivot = seq[npivot];
 
-    for (i = 1; i < size; i++)
+    for (i = 0; i < size; i++)
     {
+    	if (i == npivot)
+    	{
+    		continue;
+    	}
         v = seq[i];
         if (v == pivot)
         {
