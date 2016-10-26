@@ -377,6 +377,10 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
                 tp,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
+    else
+    {
+        log_error("Incorrect package received: 'on_query'");
+    }
 }
 
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
