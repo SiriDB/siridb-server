@@ -52,7 +52,7 @@ class TestSeries(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAl'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
     Server.BUILDTYPE = 'Debug'
     run_test(TestSeries())

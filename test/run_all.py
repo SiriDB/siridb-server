@@ -13,7 +13,7 @@ from test_user import TestUser
 Server.BUILDTYPE = 'Release'
 
 if __name__ == '__main__':
-    run_test(TestCluster())
+    # run_test(TestCluster())
     run_test(TestGroup())
     run_test(TestInsert())
     run_test(TestPool())
