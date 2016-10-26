@@ -13,15 +13,27 @@ import argparse
 VERSION_FILE = 'include/siri/version.h'
 CHANGELOG_FILE = 'ChangeLog'
 
-def _get_version():
-    re_version = re.compile('^#define SIRIDB_VERSION "([0-9]+\.[0-9]+\.[0-9]+)"$')
+def _version_levels():
+    for n in ('MAJOR', 'MINOR', 'PATCH'):
+        yield re.compile('^#define SIRIDB_VERSION_{} ([0-9]+)$'.format(n))
 
+def _get_version():
+    version_gen = _version_levels()
+    version_m = next(version_gen)
+    version = []
     with open(VERSION_FILE, 'r') as f:
         content = f.readlines()
+
     for line in content:
-        m = re_version.match(line)
+        m = version_m.match(line)
         if m:
-            return m.group(1)
+            version.append(m.group(1))
+            try:
+                version_m = next(version_gen)
+            except StopIteration:
+                return '.'.join(version)
+
+    raise ValueError('Cannot find version in {}'.format(VERSION_FILE))
 
 def _get_changelog(version):
     with open('ChangeLog-{}'.format(version), 'r') as f:
