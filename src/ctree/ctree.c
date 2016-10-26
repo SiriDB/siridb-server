@@ -252,20 +252,28 @@ void * ct_pop(ct_t * ct, const char * key)
     ct_node_t ** nd;
     void * data;
     uint8_t k = (uint8_t) *key;
+    uint8_t pos = k / BLOCKSZ;
 
-    nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
-
-    if (*nd == NULL)
+    if (pos < ct->offset || pos >= ct->offset + ct->n)
     {
         data = NULL;
     }
     else
     {
-        data = CT_pop(NULL, nd, key + 1);
-        if (data != NULL)
-        {
-            ct->len--;
-        }
+		nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
+
+		if (*nd == NULL)
+		{
+			data = NULL;
+		}
+		else
+		{
+			data = CT_pop(NULL, nd, key + 1);
+			if (data != NULL)
+			{
+				ct->len--;
+			}
+		}
     }
 
     return data;
@@ -1059,6 +1067,13 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
             }
 
             uint8_t k = (uint8_t) *key;
+            uint8_t pos = k / BLOCKSZ;
+
+            if (pos < node->offset || pos >= node->offset + node->n)
+            {
+                return NULL;
+            }
+
             ct_node_t ** next = &(*node->nodes)[k - node->offset * BLOCKSZ];
 
             return (*next == NULL) ? NULL : CT_pop(node, next, key + 1);
