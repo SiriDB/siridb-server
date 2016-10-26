@@ -37,7 +37,9 @@ class TestServer(TestBase):
 
         for port in (9010, 9011):
             result = await self.client0.query('alter server "localhost:{}" set log_level error'.format(port))
-            self.assertEqual(result.pop('success_msg'), "Successful set log level to 'error' on 'localhost:{}'.".format(port))
+            self.assertEqual(
+                result.pop('success_msg'),
+                "Successfully set log level to 'error' on 'localhost:{}'.".format(port))
 
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['error'], ['error']])
@@ -51,7 +53,9 @@ class TestServer(TestBase):
         self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
 
         result = await self.client0.query('alter servers set log_level info')
-        self.assertEqual(result.pop('success_msg'), "Successful set log level to 'info' on 2 servers.")
+        self.assertEqual(
+            result.pop('success_msg'),
+            "Successfully set log level to 'info' on 2 servers.")
 
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['info'], ['info']])
@@ -108,7 +112,7 @@ class TestServer(TestBase):
         self.assertEqual(result.pop('data'), [{'name': 'status', 'value': 'running | synchronizing'}])
 
         result = await self.client0.query('drop server "localhost:9012"')
-        self.assertEqual(result.pop('success_msg'), "Server 'localhost:9012' is dropped successfully.")
+        self.assertEqual(result.pop('success_msg'), "Successfully dropped server 'localhost:9012'.")
         self.db.servers.remove(self.server2)
 
         time.sleep(1)

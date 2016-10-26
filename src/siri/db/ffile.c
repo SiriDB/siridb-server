@@ -35,7 +35,7 @@ void siridb_ffile_open(siridb_ffile_t * ffile, const char * opentype)
         ffile->fd = fileno(ffile->fp);
         if (ffile->fd == -1)
         {
-            LOGC("Error reading file descriptor: '%s'", ffile->fn);
+        	log_critical("Error reading file descriptor: '%s'", ffile->fn);
             fclose(ffile->fp);
             ffile->fp = NULL;
         }

@@ -20,6 +20,7 @@
 #define INSERT_FLAG_TEST 1
 #define INSERT_FLAG_TESTED 2
 #define INSERT_FLAG_POOL 4
+#define INSERT_FLAG_INIT_REPL 8
 
 typedef enum
 {

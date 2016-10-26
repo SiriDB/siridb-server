@@ -22,8 +22,8 @@
 #include <siri/optimize.h>
 #include <qpack/qpack.h>
 
-#define INITSYNC_SLEEP 100          // 100 milliseconds
-#define INITSYNC_TIMEOUT 60000      // 1 minute
+#define INITSYNC_SLEEP 100          // 100 milliseconds * active tasks
+#define INITSYNC_TIMEOUT 120000     // 2 minutes
 #define INITSYNC_RETRY 30000        // 30 seconds
 #define INITSYC_FN ".initsync"
 
@@ -176,13 +176,14 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
 /*
  * Start initial replica work.
  */
-inline void siridb_initsync_run(uv_timer_t * timer)
+void siridb_initsync_run(uv_timer_t * timer)
 {
+	siridb_t * siridb = (siridb_t *) timer->data;
     uv_timer_start(
             timer,
-            (((siridb_t *) timer->data)->replicate->initsync->pkg == NULL) ?
+            (siridb->replicate->initsync->pkg == NULL) ?
                     INITSYNC_work : INITSYNC_send,
-            INITSYNC_SLEEP,
+            INITSYNC_SLEEP * siridb->active_tasks,
             0);
 }
 
@@ -220,7 +221,7 @@ void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype)
         initsync->fd = fileno(initsync->fp);
         if (initsync->fd == -1)
         {
-            LOGC("Error reading file descriptor: '%s'", initsync->fn);
+            log_critical("Error reading file descriptor: '%s'", initsync->fn);
             fclose(initsync->fp);
             initsync->fp = NULL;
         }
@@ -362,6 +363,12 @@ static void INITSYNC_work(uv_timer_t * timer)
     assert (siridb->replicate->initsync->fp != NULL);
     assert (siridb->replicate->initsync->pkg == NULL);
 #endif
+
+    if (siridb->insert_tasks)
+    {
+    	siridb_initsync_run(timer);
+    	return;
+    }
 
     siridb_initsync_t * initsync = siridb->replicate->initsync;
     siridb_series_t * series;

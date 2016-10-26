@@ -38,11 +38,11 @@ class TestGroup(TestBase):
 
         self.assertEqual(
             await self.client0.query('create group `a` for /a.*/'),
-            {'success_msg': "Group 'a' is created successfully."})
+            {'success_msg': "Successfully created group 'a'."})
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Inserted 6 point(s) successfully.'})
+            {'success_msg': 'Successfully inserted 6 point(s).'})
 
         time.sleep(3)
 
@@ -52,7 +52,7 @@ class TestGroup(TestBase):
 
         self.assertEqual(
             await self.client0.query('create group `b` for /b.*/'),
-            {'success_msg': "Group 'b' is created successfully."})
+            {'success_msg': "Successfully created group 'b'."})
 
         time.sleep(3)
 
@@ -66,7 +66,7 @@ class TestGroup(TestBase):
 
         self.assertEqual(
             await self.client1.query('create group `c` for /c.*/'),
-            {'success_msg': "Group 'c' is created successfully."})
+            {'success_msg': "Successfully created group 'c'."})
 
         time.sleep(3)
 
@@ -80,15 +80,15 @@ class TestGroup(TestBase):
 
         self.assertEqual(
             await self.client1.query('create group `one` for /.1/'),
-            {'success_msg': "Group 'one' is created successfully."})
+            {'success_msg': "Successfully created group 'one'."})
 
         self.assertEqual(
             await self.client1.query('alter group `one` set name "two"'),
-            {'success_msg': "Successful updated group 'two'."})
+            {'success_msg': "Successfully updated group 'two'."})
 
         self.assertEqual(
             await self.client1.query('alter group `two` set expression /.2/'),
-            {'success_msg': "Successful updated group 'two'."})
+            {'success_msg': "Successfully updated group 'two'."})
 
         time.sleep(3)
 

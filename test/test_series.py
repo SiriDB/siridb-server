@@ -35,7 +35,7 @@ class TestSeries(TestBase):
             await self.client0.insert({
                 PI: points,
                 Klingon: points
-            }), {'success_msg': 'Inserted 20 point(s) successfully.'})
+            }), {'success_msg': 'Successfully inserted 20 point(s).'})
 
         self.assertEqual(
             await self.client0.query('select * from "{}"'.format(PI)),
@@ -51,7 +51,7 @@ class TestSeries(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'DEBUG'
+    SiriDB.LOG_LEVEL = 'CRITICAl'
     Server.HOLD_TERM = False
     Server.MEM_CHECK = False
     Server.BUILDTYPE = 'Debug'

@@ -38,7 +38,7 @@
 #include <unistd.h>
 
 #define REINDEX_FN ".reindex"
-#define REINDEX_SLEEP 100           // 100 milliseconds
+#define REINDEX_SLEEP 100           // 100 milliseconds * active tasks
 #define REINDEX_RETRY 5000          // 5 seconds
 #define REINDEX_INITWAIT 20000      // 20 seconds
 #define REINDEX_TIMEOUT 300000      // 5 minutes
@@ -265,7 +265,7 @@ void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype)
         reindex->fd = fileno(reindex->fp);
         if (reindex->fd == -1)
         {
-            LOGC("Error reading file descriptor: '%s'", reindex->fn);
+        	log_critical("Error reading file descriptor: '%s'", reindex->fn);
             fclose(reindex->fp);
             reindex->fp = NULL;
         }
@@ -423,7 +423,11 @@ static void REINDEX_next(siridb_t * siridb)
     switch (REINDEX_next_series_id(siridb->reindex))
     {
     case NEXT_SERIES_SET:
-        uv_timer_start(siridb->reindex->timer, REINDEX_work, REINDEX_SLEEP, 0);
+        uv_timer_start(
+        		siridb->reindex->timer,
+				REINDEX_work,
+				REINDEX_SLEEP * siridb->active_tasks,
+				0);
         break;
 
     case NEXT_SERIES_END:

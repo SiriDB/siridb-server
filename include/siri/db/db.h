@@ -70,16 +70,18 @@ typedef struct siridb_groups_s siridb_groups_t;
 typedef struct siridb_s
 {
     uint16_t ref;
+    uint8_t flags;
+    uint8_t pad0;
+    uint32_t max_series_id;
     uint16_t active_tasks;
-    uuid_t uuid;
-    iso8601_tz_t tz;
+    uint16_t insert_tasks;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
-    uint8_t flags;
+    uuid_t uuid;
+    iso8601_tz_t tz;
     size_t buffer_size;
     size_t buffer_len;
     time_t start_ts;                  // in seconds, to calculate up-time.
-    uint32_t max_series_id;
     uint64_t duration_num;              // number duration in s, ms, us or ns
     uint64_t duration_log;              // log duration in s, ms, us or ns
     char * dbname;

@@ -137,7 +137,7 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 #define MSG_SUCCESS_DROP_GROUP \
 	"Successfully dropped group '%s'."
 #define MSG_SUCCESS_ALTER_GROUP \
-	"Successful updated group '%s'."
+	"Successfully updated group '%s'."
 #define MSG_SUCCESS_SET_DROP_THRESHOLD \
     "Successfully changed drop_threshold from %g to %g."
 #define MSG_SUCCESS_SET_ADDR_PORT \

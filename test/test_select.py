@@ -47,7 +47,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Inserted 26 point(s) successfully.'})
+            {'success_msg': 'Successfully inserted 26 point(s).'})
 
         self.assertEqual(
             await self.client0.query(

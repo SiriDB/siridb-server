@@ -18,7 +18,7 @@ from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
 
-TIME_PRECISION = 's'
+TIME_PRECISION = 'ms'
 
 
 class TestInsert(TestBase):
@@ -58,11 +58,11 @@ class TestInsert(TestBase):
 
         self.assertEqual(
             await self.client0.insert({}),
-            {'success_msg': 'Inserted 0 point(s) successfully.'})
+            {'success_msg': 'Successfully inserted 0 point(s).'})
 
         self.assertEqual(
             await self.client0.insert([]),
-            {'success_msg': 'Inserted 0 point(s) successfully.'})
+            {'success_msg': 'Successfully inserted 0 point(s).'})
 
         self.series_float = gen_points(tp=float, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
         random.shuffle(self.series_float)
@@ -73,7 +73,7 @@ class TestInsert(TestBase):
             await self.client0.insert({
                 'series float': self.series_float,
                 'series int': self.series_int
-            }), {'success_msg': 'Inserted 20000 point(s) successfully.'})
+            }), {'success_msg': 'Successfully inserted 20000 point(s).'})
 
 
         self.series_float.sort()

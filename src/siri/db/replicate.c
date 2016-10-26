@@ -22,7 +22,7 @@
 #include <siri/siri.h>
 #include <stddef.h>
 
-#define REPLICATE_SLEEP 10          // 10 milliseconds
+#define REPLICATE_SLEEP 10          // 10 milliseconds * active tasks
 #define REPLICATE_TIMEOUT 300000    // 5 minutes
 
 static void REPLICATE_work(uv_timer_t * handle);
@@ -381,7 +381,7 @@ static void REPLICATE_on_repl_response(
         uv_timer_start(
                 siridb->replicate->timer,
                 REPLICATE_work,
-                REPLICATE_SLEEP,
+                REPLICATE_SLEEP * siridb->active_tasks,
                 0);
     }
     sirinet_promise_decref(promise);

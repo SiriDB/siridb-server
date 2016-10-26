@@ -698,6 +698,7 @@ static siridb_t * SIRIDB_new(void)
                     siridb->dbpath = NULL;
                     siridb->ref = 1;
                     siridb->active_tasks = 0;
+                    siridb->insert_tasks = 0;
                     siridb->flags = 0;
                     siridb->buffer_path = NULL;
                     siridb->time = NULL;

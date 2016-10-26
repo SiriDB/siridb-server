@@ -342,6 +342,7 @@ int insert_init_backend_local(
     qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
 
     siridb->active_tasks++;
+    siridb->insert_tasks++;
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
@@ -415,7 +416,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 qp_add_raw(packer, "success_msg", 11);
                 snprintf(msg,
                         MAX_INSERT_MSG,
-                        "Inserted %zd point(s) successfully.",
+                        "Successfully inserted %zd point(s).",
                         insert->npoints);
                 log_info(msg);
                 siridb->received_points += insert->npoints;
@@ -465,6 +466,7 @@ static void INSERT_local_free_cb(uv_async_t * handle)
     ilocal->promise->cb(ilocal->promise, NULL, ilocal->status);
 
     ilocal->siridb->active_tasks--;
+    ilocal->siridb->insert_tasks--;
     if (ilocal->pcache != NULL)
     {
         siridb_pcache_free(ilocal->pcache);
@@ -962,6 +964,7 @@ static int INSERT_init_local(
     qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
 
     siridb->active_tasks++;
+    siridb->insert_tasks++;
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
 

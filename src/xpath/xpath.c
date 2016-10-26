@@ -58,7 +58,7 @@ ssize_t xpath_get_content(char ** buffer, const char * fn)
     FILE * fp = fopen(fn, "r");
     if (fp == NULL)
     {
-        LOGC("Cannot open file: '%s'", fn);
+        log_critical("Cannot open file: '%s'", fn);
         return -1;
     }
 
@@ -71,7 +71,7 @@ ssize_t xpath_get_content(char ** buffer, const char * fn)
         {
             if (fread(*buffer, size, 1, fp) != 1)
             {
-                LOGC("Could not get full content from '%s'", fn);
+            	log_critical("Could not get full content from '%s'", fn);
                 free(*buffer);
                 *buffer = NULL;
             }
