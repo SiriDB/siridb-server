@@ -3688,7 +3688,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
         query->packer = sirinet_packer_new(
                 query->timeit->len +
                 1 +
-                PKG_HEADER_SIZE);
+                sizeof(sirinet_pkg_t));
         qp_add_type(query->packer, QP_MAP_OPEN);
     }
 

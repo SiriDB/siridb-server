@@ -40,7 +40,7 @@ sirinet_pkg_t * sirinet_pkg_new(
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
 
 #ifdef DEBUG
-    assert (sizeof(sirinet_pkg_t) == PKG_HEADER_SIZE);
+    assert (sizeof(sirinet_pkg_t) == sizeof(sirinet_pkg_t));
 #endif
 
     if (pkg == NULL)
@@ -92,13 +92,13 @@ sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source)
 qp_packer_t * sirinet_packer_new(size_t alloc_size)
 {
 #ifdef DEBUG
-    assert (alloc_size >= PKG_HEADER_SIZE);
+    assert (alloc_size >= sizeof(sirinet_pkg_t));
 #endif
 
     qp_packer_t * packer = qp_packer_new(alloc_size);
     if (packer != NULL)
     {
-        packer->len = PKG_HEADER_SIZE;
+        packer->len = sizeof(sirinet_pkg_t);
 #ifdef DEBUG
         ((sirinet_pkg_t *) packer->buffer)->tp = PKG___QP_TP;
 #endif
@@ -127,7 +127,7 @@ sirinet_pkg_t * sirinet_packer2pkg(
 
     pkg->pid = pid;
     pkg->tp = tp;
-    pkg->len = packer->len - PKG_HEADER_SIZE;
+    pkg->len = packer->len - sizeof(sirinet_pkg_t);
     pkg->checkbit = 0;  /* check bit will be set when send */
 
     /* Free the packer, not the buffer */
@@ -152,7 +152,7 @@ sirinet_pkg_t * sirinet_pkg_err(
 #endif
 
     sirinet_pkg_t * pkg;
-    qp_packer_t * packer = sirinet_packer_new(len + 20 + PKG_HEADER_SIZE);
+    qp_packer_t * packer = sirinet_packer_new(len + 20 + sizeof(sirinet_pkg_t));
     if (packer == NULL)
     {
         pkg = NULL;  /* signal is raised */
@@ -204,7 +204,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     uv_buf_t wrbuf = uv_buf_init(
             (char *) pkg,
-            PKG_HEADER_SIZE + pkg->len);
+            sizeof(sirinet_pkg_t) + pkg->len);
 
     uv_write(req, client, &wrbuf, 1, PKG_write_cb);
 
@@ -217,7 +217,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
  */
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
 {
-    size_t size = PKG_HEADER_SIZE + pkg->len;
+    size_t size = sizeof(sirinet_pkg_t) + pkg->len;
     sirinet_pkg_t * dup = (sirinet_pkg_t *) malloc(size);
     if (dup == NULL)
     {

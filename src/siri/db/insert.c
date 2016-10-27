@@ -282,6 +282,7 @@ int insert_init_backend_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
+
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
@@ -289,6 +290,7 @@ int insert_init_backend_local(
         ERR_ALLOC
         return -1;
     }
+
     siridb_insert_local_t * ilocal =
             (siridb_insert_local_t *) malloc(sizeof(siridb_insert_local_t));
     if (ilocal == NULL)
@@ -1000,11 +1002,11 @@ static void INSERT_points_to_pools(uv_async_t * handle)
 
     for (uint16_t n = 0; n < insert->packer_size; n++)
     {
-        if (insert->packer[n]->len == PKG_HEADER_SIZE + 1)
+        if (insert->packer[n]->len == sizeof(sirinet_pkg_t) + 1)
         {
             /*
              * skip empty packer.
-             * (empty packer has only PKG_HEADER_SIZE + QP_MAP_OPEN)
+             * (empty packer has only sizeof(sirinet_pkg_t) + QP_MAP_OPEN)
              */
             qp_packer_free(insert->packer[n]);
         }
@@ -1015,8 +1017,8 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                 repl_pkg = siridb->replicate->initsync == NULL ? NULL :
                         siridb_replicate_pkg_filter(
                             siridb,
-                            insert->packer[n]->buffer + PKG_HEADER_SIZE,
-                            insert->packer[n]->len - PKG_HEADER_SIZE,
+                            insert->packer[n]->buffer + sizeof(sirinet_pkg_t),
+                            insert->packer[n]->len - sizeof(sirinet_pkg_t),
                             insert->flags);
 
                 pkg = sirinet_packer2pkg(

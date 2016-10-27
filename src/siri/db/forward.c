@@ -120,11 +120,11 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
     for (uint16_t n = 0; n < forward->size; n++)
     {
         if (    forward->packer[n] == NULL ||
-                forward->packer[n]->len == PKG_HEADER_SIZE + 1)
+                forward->packer[n]->len == sizeof(sirinet_pkg_t) + 1)
         {
             /*
              * skip empty packer and NULL.
-             * (empty packer has only PKG_HEADER_SIZE + QP_MAP_OPEN)
+             * (empty packer has only sizeof(sirinet_pkg_t) + QP_MAP_OPEN)
              */
             continue;
         }

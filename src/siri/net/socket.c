@@ -19,6 +19,7 @@
 #include <string.h>
 
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
+#define SUGGESTED_SIZE 65536
 
 static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
 
@@ -45,7 +46,7 @@ void sirinet_socket_alloc_buffer(
 
     if (ssocket->buf == NULL)
     {
-        buf->base = (char *) malloc(suggested_size);
+        buf->base = (char *) malloc(SUGGESTED_SIZE);
         if (buf->base == NULL)
         {
             ERR_ALLOC
@@ -53,16 +54,14 @@ void sirinet_socket_alloc_buffer(
         }
         else
         {
-            buf->len = suggested_size;
+            buf->len = SUGGESTED_SIZE;
         }
     }
     else
     {
-        if (ssocket->len > PKG_HEADER_SIZE)
-        {
-            suggested_size =
-                    ((sirinet_pkg_t *) ssocket->buf)->len + PKG_HEADER_SIZE;
-        }
+    	suggested_size = (ssocket->len > sizeof(sirinet_pkg_t)) ?
+			((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t) :
+			SUGGESTED_SIZE;
 
         buf->base = ssocket->buf + ssocket->len;
         buf->len = suggested_size - ssocket->len;
@@ -163,7 +162,7 @@ void sirinet_socket_on_data(
 
     if (ssocket->buf == NULL)
     {
-        if (nread >= PKG_HEADER_SIZE)
+        if (nread >= sizeof(sirinet_pkg_t))
         {
             pkg = (sirinet_pkg_t *) buf->base;
 
@@ -181,7 +180,7 @@ void sirinet_socket_on_data(
                 return;
             }
 
-            total_sz = pkg->len + PKG_HEADER_SIZE;
+            total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
             if (nread >= total_sz)
             {
@@ -229,11 +228,11 @@ void sirinet_socket_on_data(
         return;
     }
 
-    if (ssocket->len < PKG_HEADER_SIZE)
+    if (ssocket->len < sizeof(sirinet_pkg_t))
     {
         ssocket->len += nread;
 
-        if (ssocket->len < PKG_HEADER_SIZE)
+        if (ssocket->len < sizeof(sirinet_pkg_t))
         {
             return;
         }
@@ -252,7 +251,7 @@ void sirinet_socket_on_data(
             return;
         }
 
-        total_sz = pkg->len + PKG_HEADER_SIZE;
+        total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
         if (buf->len < total_sz)
         {
@@ -288,7 +287,7 @@ void sirinet_socket_on_data(
         /* pkg is already checked in this case */
         pkg = (sirinet_pkg_t *) ssocket->buf;
 
-        total_sz = pkg->len + PKG_HEADER_SIZE;
+        total_sz = pkg->len + sizeof(sirinet_pkg_t);
     }
 
     if (ssocket->len < total_sz)
@@ -301,12 +300,22 @@ void sirinet_socket_on_data(
         /* Call on-data function. */
         (*ssocket->on_data)(client, pkg);
 
-#ifdef DEBUG
-        LOGC("Got more data than expected");
-#endif
-
         ssocket->len -= total_sz;
-        memmove(ssocket->buf, ssocket->buf + total_sz, ssocket->len);
+        memmove(ssocket->buf, ssocket->buf + total_sz,  ssocket->len);
+
+        char * tmp = (char *) realloc(ssocket->buf,
+			(ssocket->len < sizeof(sirinet_pkg_t)) ?
+				SUGGESTED_SIZE :
+				((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t));
+
+        if (tmp == NULL)
+        {
+            log_critical("Cannot allocate size for buffer");
+            free(ssocket->buf);
+            ssocket->buf = NULL;
+            return;
+        }
+        ssocket->buf = tmp;
 
         /* call this function again with rest data */
         sirinet_socket_on_data(client, 0, buf);

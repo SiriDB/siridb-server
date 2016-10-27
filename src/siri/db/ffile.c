@@ -93,7 +93,7 @@ siridb_ffile_t * siridb_ffile_new(
         else
         {
             /* we need 4 extra zeros (uint32_t) at the start of a fifo file */
-            size_t size = pkg->len + PKG_HEADER_SIZE + 2 * sizeof(uint32_t);
+            size_t size = pkg->len + sizeof(sirinet_pkg_t) + 2 * sizeof(uint32_t);
 
             /* set free space to a value is will always fit */
             ffile->size = ffile->free_space = (size > FFILE_DEFAULT_SIZE) ?
@@ -163,7 +163,7 @@ siridb_ffile_result_t siridb_ffile_append(
     assert (ffile->fp != NULL);
 #endif
 
-    uint32_t size = pkg->len + PKG_HEADER_SIZE;
+    uint32_t size = pkg->len + sizeof(sirinet_pkg_t);
 
     if (ffile->free_space < size + 2 * sizeof(uint32_t))
     {
@@ -239,8 +239,8 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
         return NULL;
     }
 
-    if (    ffile->next_size < PKG_HEADER_SIZE ||
-            pkg->len != ffile->next_size - PKG_HEADER_SIZE)
+    if (    ffile->next_size < sizeof(sirinet_pkg_t) ||
+            pkg->len != ffile->next_size - sizeof(sirinet_pkg_t))
     {
         log_critical(
                 "Corrupt package in fifo: '%s' ", ffile->fn);

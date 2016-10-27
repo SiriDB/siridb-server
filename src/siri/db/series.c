@@ -317,7 +317,7 @@ void siridb__series_free(siridb_series_t * series)
 #ifdef DEBUG
     if (siri.status == SIRI_STATUS_RUNNING || 1)
     {
-        log_debug("Free series: '%s'", series->name);
+//        log_debug("Free series: '%s'", series->name);
     }
 #endif
 

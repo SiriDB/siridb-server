@@ -155,7 +155,7 @@ static void BSERVER_flags_update(
 
     if (server->socket == NULL)
     {
-        /* connect in case we do not has a connection yet */
+        /* connect in case we do not have a connection yet */
         siridb_server_connect(siridb, server);
     }
 

@@ -25,7 +25,7 @@ enum
 /* ct_get_sure() will set a pointer to CT_EMPTY and returns the address so
  * it can be used for custom data. We do not use NULL since we take NULL as if
  * the node does not exist. */
-extern char * CT_EMPTY;
+extern void * CT_EMPTY;
 
 typedef struct ct_node_s * ct_nodes_t[32];
 
@@ -56,7 +56,6 @@ typedef void (*ct_free_cb)(void * data);
 
 ct_t * ct_new(void);
 void ct_free(ct_t * ct, ct_free_cb cb);
-extern int ct_is_empty(void * data);
 void ** ct_get_sure(ct_t * ct, const char * key);
 int ct_add(ct_t * ct, const char * key, void * data);
 void * ct_get(ct_t * node, const char * key);
@@ -68,3 +67,7 @@ int ct_itemsn(ct_t * ct, size_t * n, ct_item_cb cb, void * args);
 int ct_values(ct_t * ct, ct_val_cb cb, void * args);
 void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
 
+/*
+ * Can be used to check if ct_get_sure() has set an CT_EMPTY
+ */
+#define ct_is_empty(data) data == CT_EMPTY

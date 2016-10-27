@@ -18,7 +18,7 @@ from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
 
-TIME_PRECISION = 'ms'
+TIME_PRECISION = 's'
 
 
 class TestInsert(TestBase):
@@ -111,7 +111,8 @@ class TestInsert(TestBase):
         with self.assertRaises(InsertError):
             await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
 
-        await self.db.add_replica(self.server1, 0, sleep=3)
+        # await self.db.add_replica(self.server1, 0, sleep=3)
+        await self.db.add_pool(self.server1, sleep=3)
 
         await self.assertIsRunning(self.db, self.client0, timeout=3)
 
@@ -154,7 +155,7 @@ class TestInsert(TestBase):
         self.client0.close()
         self.client1.close()
 
-        # return False
+        return False
 
 
 if __name__ == '__main__':

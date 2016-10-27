@@ -54,8 +54,8 @@ static void CT_valuesn(
         void * args);
 static void CT_free(ct_node_t * node, ct_free_cb cb);
 
-static char dummy = '\0';
-char * CT_EMPTY = &dummy;
+static char dummy = '\1';
+void * CT_EMPTY = &dummy;
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -95,14 +95,6 @@ void ct_free(ct_t * ct, ct_free_cb cb)
         free(ct->nodes);
     }
     free(ct);
-}
-
-/*
- * Can be used to check if ct_get_sure() has set an CT_EMPTY
- */
-inline int ct_is_empty(void * data)
-{
-    return data == CT_EMPTY;
 }
 
 /*
@@ -1142,55 +1134,56 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
             node->n = 1;
         }
     }
-    else
-    {
-        if (pos < node->offset)
-        {
-            ct_nodes_t * tmp;
-            uint8_t diff = node->offset - pos;
-            uint8_t oldn = node->n;
-            node->n += diff;
-            tmp = (ct_nodes_t *) realloc(
-                    node->nodes,
-                    node->n * sizeof(ct_nodes_t));
-            if (tmp == NULL && node->n)
-            {
-                ERR_ALLOC
-                node->n -= diff;
-                rc = -1;
-            }
-            else
-            {
-                node->nodes = tmp;
-                node->offset = pos;
-                memmove(node->nodes + diff,
-                        node->nodes,
-                        oldn * sizeof(ct_nodes_t));
-                memset(node->nodes, 0, diff * sizeof(ct_nodes_t));
-            }
-        }
-        else if (pos >= node->offset + node->n)
-        {
-            ct_nodes_t * tmp;
-            uint8_t diff = pos - node->offset - node->n + 1;
-            uint8_t oldn = node->n;
-            node->n += diff;
-            tmp = (ct_nodes_t *) realloc(
-                    node->nodes,
-                    node->n * sizeof(ct_nodes_t));
-            if (tmp == NULL && node->n)
-            {
-                ERR_ALLOC
-                node->n -= diff;
-                rc = -1;
-            }
-            else
-            {
-                node->nodes = tmp;
-                memset(node->nodes + oldn, 0, diff * sizeof(ct_nodes_t));
-            }
-        }
-    }
+    else if (pos < node->offset)
+	{
+		ct_nodes_t * tmp;
+		uint8_t diff = node->offset - pos;
+		uint8_t oldn = node->n;
+		node->n += diff;
+		tmp = (ct_nodes_t *) realloc(
+				node->nodes,
+				node->n * sizeof(ct_nodes_t));
+		if (tmp == NULL && node->n)
+		{
+			ERR_ALLOC
+			node->n -= diff;
+			rc = -1;
+		}
+		else
+		{
+			node->nodes = tmp;
+			node->offset = pos;
+			memmove(node->nodes + diff,
+					node->nodes,
+					oldn * sizeof(ct_nodes_t));
+			memset(node->nodes, 0, diff * sizeof(ct_nodes_t));
+		}
+	}
+	else if (pos >= node->offset + node->n)
+	{
+		ct_nodes_t * tmp;
+		uint8_t diff = pos - node->offset - node->n + 1;
+		uint8_t oldn = node->n;
+		node->n += diff;
+		tmp = (ct_nodes_t *) realloc(
+				node->nodes,
+				node->n * sizeof(ct_nodes_t));
+#ifdef DEBUG
+		assert (node->n);
+#endif
+		if (tmp == NULL)
+		{
+			ERR_ALLOC
+			node->n -= diff;
+			rc = -1;
+		}
+		else
+		{
+			node->nodes = tmp;
+			memset(node->nodes + oldn, 0, diff * sizeof(ct_nodes_t));
+		}
+	}
+
     return rc;
 }
 

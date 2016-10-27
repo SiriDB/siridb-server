@@ -273,7 +273,7 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
         int flags)
 {
     siridb_series_t * series;
-    qp_packer_t * netpacker = sirinet_packer_new(len + PKG_HEADER_SIZE);
+    qp_packer_t * netpacker = sirinet_packer_new(len + sizeof(sirinet_pkg_t));
 
     if (netpacker == NULL)
     {

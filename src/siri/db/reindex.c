@@ -48,7 +48,7 @@
 #define NEXT_SERIES_END 1
 
 static const long int SIZE2 = 2 * sizeof(uint32_t);
-static const size_t PCKSZ = PKG_HEADER_SIZE + 5;
+static const size_t PCKSZ = sizeof(sirinet_pkg_t) + 5;
 
 inline static int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex);
 static int REINDEX_create_cb(siridb_series_t * series, FILE * fp);
