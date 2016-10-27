@@ -1,3 +1,10 @@
+siridb-server (2.0.3) xenial; urgency=medium
+
+  * Fixed bug in network handler. The wrong size could be allocated when 
+    receiving multiple packages in a stream. (issue #27)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 27 Oct 2016 20:41:58 +0000
+
 siridb-server (2.0.2) xenial; urgency=medium
 
   * Check user for permissions when inserting data. Only authentication was 
