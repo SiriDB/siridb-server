@@ -303,10 +303,17 @@ void sirinet_socket_on_data(
         ssocket->len -= total_sz;
         memmove(ssocket->buf, ssocket->buf + total_sz,  ssocket->len);
 
+        /*
+         * The ssocket->buf now has ssocket->len size. it might be possible
+         * the we do not have enough to determine the next package size, we
+         * can have the next package complete, partly or even multiple
+         * packages are possible.
+         */
         char * tmp = (char *) realloc(ssocket->buf,
-			(ssocket->len < sizeof(sirinet_pkg_t)) ?
-				SUGGESTED_SIZE :
-				((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t));
+			(ssocket->len < sizeof(sirinet_pkg_t) ||
+			(total_sz = ((sirinet_pkg_t *) ssocket->buf)->len +
+					sizeof(sirinet_pkg_t)) < SUGGESTED_SIZE) ?
+				SUGGESTED_SIZE : total_sz);
 
         if (tmp == NULL)
         {

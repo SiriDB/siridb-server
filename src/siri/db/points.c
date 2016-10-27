@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <siri/err.h>
 #include <unistd.h>
-#include <timeit/timeit.h>
 
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000

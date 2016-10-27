@@ -282,7 +282,6 @@ int insert_init_backend_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
-
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
