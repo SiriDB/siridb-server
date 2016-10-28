@@ -1,7 +1,7 @@
 /*
  * iso8601.c - Library to parse ISO 8601 dates
  *
- * Note: time-zones are found be tzset() in either /usr/lib/zoneinfo/ or
+ * Note: time-zones are found with tzset() in either /usr/lib/zoneinfo/ or
  *       /usr/share/zoneinfo/
  *
  *       (This library is Linux only)
