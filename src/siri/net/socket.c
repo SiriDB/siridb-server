@@ -59,12 +59,14 @@ void sirinet_socket_alloc_buffer(
     }
     else
     {
-    	suggested_size = (ssocket->len > sizeof(sirinet_pkg_t)) ?
-			((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t) :
-			SUGGESTED_SIZE;
+    	size_t size =
+			(ssocket->len < sizeof(sirinet_pkg_t) ||
+			(size = ((sirinet_pkg_t *) ssocket->buf)->len +
+						sizeof(sirinet_pkg_t)) <= SUGGESTED_SIZE)
+				? SUGGESTED_SIZE : size;
 
-        buf->base = ssocket->buf + ssocket->len;
-        buf->len = suggested_size - ssocket->len;
+    	buf->base = ssocket->buf + ssocket->len;
+        buf->len = size - ssocket->len;
     }
 }
 
@@ -189,7 +191,8 @@ void sirinet_socket_on_data(
 
                 if (nread == total_sz)
                 {
-                    free(buf->base);
+                	ssocket->buf = buf->base;
+                	ssocket->len = 0;
                 }
                 else
                 {
@@ -204,8 +207,10 @@ void sirinet_socket_on_data(
                 return;
             }
 
-            /* total size > 0 */
-            ssocket->buf = (buf->len < total_sz) ?
+#ifdef DEBUG
+            assert (buf->len == SUGGESTED_SIZE);
+#endif
+            ssocket->buf = (total_sz > SUGGESTED_SIZE) ?
                 (char *) realloc(buf->base, total_sz) : buf->base;
 
             if (ssocket->buf == NULL)
@@ -253,9 +258,8 @@ void sirinet_socket_on_data(
 
         total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
-        if (buf->len < total_sz)
+        if (total_sz > SUGGESTED_SIZE)
         {
-            /* total sz > 0 */
             char * tmp = (char *) realloc(ssocket->buf, total_sz);
 
             /* test re-allocation */
@@ -290,51 +294,47 @@ void sirinet_socket_on_data(
         total_sz = pkg->len + sizeof(sirinet_pkg_t);
     }
 
-    if (ssocket->len < total_sz)
+    if (ssocket->len >= total_sz)
     {
-        return;
+		/* Call on-data function. */
+		(*ssocket->on_data)(client, pkg);
+
+		if (ssocket->len == total_sz)
+		{
+			ssocket->len = 0;
+		}
+		else
+		{
+#ifdef DEBUG
+			/*
+			 * We cannot have a 'rest' value when socket->len was smaller than
+			 * the suggested size;
+			 */
+			assert (ssocket->len <= SUGGESTED_SIZE);
+#endif
+	        ssocket->len -= total_sz;
+	        memmove(ssocket->buf, ssocket->buf + total_sz,  ssocket->len);
+
+	    	if (ssocket->len >= sizeof(sirinet_pkg_t) &&
+	    		(total_sz = ((sirinet_pkg_t *) ssocket->buf)->len +
+					sizeof(sirinet_pkg_t)) > SUGGESTED_SIZE)
+	    	{
+	    		char * tmp = (char *) realloc(ssocket->buf, total_sz);
+
+	            if (tmp == NULL)
+	            {
+	                log_critical("Cannot allocate size for buffer");
+	                free(ssocket->buf);
+	                ssocket->buf = NULL;
+	                return;
+	            }
+
+	            ssocket->buf = tmp;
+	    	}
+
+	    	sirinet_socket_on_data(client, 0, buf);
+		}
     }
-
-    if (ssocket->len > total_sz)
-    {
-        /* Call on-data function. */
-        (*ssocket->on_data)(client, pkg);
-
-        ssocket->len -= total_sz;
-        memmove(ssocket->buf, ssocket->buf + total_sz,  ssocket->len);
-
-        /*
-         * The ssocket->buf now has ssocket->len size. it might be possible
-         * the we do not have enough to determine the next package size, we
-         * can have the next package complete, partly or even multiple
-         * packages are possible.
-         */
-        char * tmp = (char *) realloc(ssocket->buf,
-			(ssocket->len < sizeof(sirinet_pkg_t) ||
-			(total_sz = ((sirinet_pkg_t *) ssocket->buf)->len +
-					sizeof(sirinet_pkg_t)) < SUGGESTED_SIZE) ?
-				SUGGESTED_SIZE : total_sz);
-
-        if (tmp == NULL)
-        {
-            log_critical("Cannot allocate size for buffer");
-            free(ssocket->buf);
-            ssocket->buf = NULL;
-            return;
-        }
-        ssocket->buf = tmp;
-
-        /* call this function again with rest data */
-        sirinet_socket_on_data(client, 0, buf);
-
-        return;
-    }
-
-    /* Call on-data function. */
-    (*ssocket->on_data)(client, pkg);
-
-    free(ssocket->buf);
-    ssocket->buf = NULL;
 }
 
 /*
