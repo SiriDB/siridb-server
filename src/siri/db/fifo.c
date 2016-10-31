@@ -85,7 +85,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     }
 
     /* we have at least one fifo in the list */
-    fifo->out = llist_shift(fifo->fifos);
+    fifo->out = (siridb_ffile_t *) llist_shift(fifo->fifos);
 
 #ifdef DEBUG
     assert (fifo->out != NULL);
@@ -115,10 +115,13 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     switch(siridb_ffile_append(fifo->in, pkg))
     {
     case FFILE_NO_FREE_SPACE:
-        if (fifo->in != fifo->out && fclose(fifo->in->fp))
+        if (fifo->in != fifo->out)
         {
-            ERR_FILE
-            break;
+        	if (fclose(fifo->in->fp))
+			{
+				ERR_FILE
+			}
+        	fifo->in->fp = NULL;
         }
 
         fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, pkg);
@@ -196,7 +199,7 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
     if (!fifo->out->next_size && fifo->out != fifo->in)
     {
         siridb_ffile_unlink(fifo->out);
-        fifo->out = llist_shift(fifo->fifos);
+        fifo->out = (siridb_ffile_t *) llist_shift(fifo->fifos);
 
         /* fifo->out->fp can be open in case it is equal to fifo->in */
         if (fifo->out->fp == NULL)

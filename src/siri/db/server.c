@@ -582,7 +582,11 @@ static void SERVER_write_cb(uv_write_t * req, int status)
 
         if (imap_pop(promise->server->promises, promise->pid) == NULL)
         {
-            log_critical("Got a socket error but the promise is not found!!");
+            log_critical(
+            		"Got a socket error but the promise is not found. "
+            		"(PID: %lu)",
+					promise->pid);
+            return;
         }
 
         uv_timer_stop(promise->timer);
@@ -611,6 +615,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
                 "but we cannot find this promise!!",
                 promise->pid,
                 promise->server->name);
+        return;
     }
     else
     {

@@ -125,17 +125,23 @@ void strx_trim(char ** str, char chr)
 
     // trim leading chars
     while ((chr && **str == chr) || (!chr && isspace(**str)))
-        (*str)++;
+    {
+    	(*str)++;
+    }
 
     // check all chars?
     if(**str == 0)
-        return;
+    {
+    	return;
+    }
 
     // trim trailing chars
     end = *str + strlen(*str) - 1;
     while (end > *str &&
             ((chr && *end == chr) || (!chr && isspace(*end))))
-        end--;
+    {
+    	end--;
+    }
 
     // write new null terminator
     *(end + 1) = 0;
@@ -161,19 +167,27 @@ bool strx_is_int(const char * str)
 {
    // Handle negative numbers.
    if (*str == '-')
-       ++str;
+   {
+	   ++str;
+   }
 
    // Handle empty string or just "-".
    if (!*str)
-       return false;
+   {
+	   return false;
+   }
 
    // Check for non-digit chars in the rest of the string.
    while (*str)
    {
        if (!isdigit(*str))
-           return false;
+       {
+    	   return false;
+       }
        else
-           ++str;
+       {
+    	   ++str;
+       }
    }
 
    return true;
@@ -191,7 +205,9 @@ bool strx_is_float(const char * str)
 
    // Handle empty string or just "-".
    if (!*str)
-       return false;
+   {
+	   return false;
+   }
 
    // Check for non-digit chars in the rest of the string.
    while (*str)

@@ -30,6 +30,8 @@ inline static int USERS_cmp(siridb_user_t * user, const char * name);
 static int USERS_free(siridb_user_t * user, void * args);
 static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker);
 
+#define MSG_ERR_CANNOT_WRITE_USERS "Could not write users to file!"
+
 /*
  * Returns 0 if successful or -1 in case of an error.
  * (a SIGNAL might be raised in case of an error)
@@ -222,6 +224,13 @@ siridb_user_t * siridb_users_get_user(
     return (strcmp(pw, user->password) == 0) ? user : NULL;
 }
 
+/*
+ * We get and remove the user in one code block so we do not need a dropped
+ * flag on the user object.
+ *
+ * Returns 0 if successful. In case of an error -1 is returned and err_msg
+ * is set to an appropriate value.
+ */
 int siridb_users_drop_user(
         siridb_t * siridb,
         const char * name,
@@ -238,7 +247,7 @@ int siridb_users_drop_user(
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "User '%s' does not exist.",
                 name);
-        return 1;
+        return -1;
     }
 
     /* decrement reference for user object */
@@ -246,7 +255,9 @@ int siridb_users_drop_user(
 
     if (siridb_users_save(siridb))
     {
-        log_critical("Could not write users to file!");
+        log_critical(MSG_ERR_CANNOT_WRITE_USERS);
+        sprintf(err_msg, MSG_ERR_CANNOT_WRITE_USERS);
+        return -1;
     }
 
     return 0;
