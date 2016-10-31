@@ -117,7 +117,7 @@ int siri_start(void)
     uv_signal_t sig[N_SIGNALS];
 
     /* get start time so we can calculate the startup_time */
-    clock_gettime(CLOCK_REALTIME, &start);
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     /* initialize listener (set enter and exit functions) */
     siriparser_init_listener();
@@ -172,7 +172,7 @@ int siri_start(void)
     SIRI_set_running_state();
 
     /* set startup time */
-    clock_gettime(CLOCK_REALTIME, &end);
+    clock_gettime(CLOCK_MONOTONIC, &end);
     siri.startup_time = end.tv_sec - start.tv_sec;
 
     /* start the event loop */

@@ -3669,7 +3669,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     struct timespec end;
 
-    clock_gettime(CLOCK_REALTIME, &end);
+    clock_gettime(CLOCK_MONOTONIC, &end);
 
     qp_add_type(query->timeit, QP_MAP2);
     qp_add_raw(query->timeit, "server", 6);

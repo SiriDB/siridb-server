@@ -95,7 +95,7 @@ void siridb_query_run(
     }
 
     /* set start time */
-    clock_gettime(CLOCK_REALTIME, &query->start);
+    clock_gettime(CLOCK_MONOTONIC, &query->start);
 
     /* bind pid, client and flags so we can send back the result */
     query->pid = pid;
