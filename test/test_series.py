@@ -21,7 +21,6 @@ from testing import UserAuthError
 
 PI = 'ԉ'
 Klingon = '     qajunpaQHeylIjmo’ batlh DuSuvqang charghwI’ ‘It.'
-WithNull = 'with\0null'
 
 class TestSeries(TestBase):
     title = 'Test series object'
@@ -38,8 +37,6 @@ class TestSeries(TestBase):
                 Klingon: points
             }), {'success_msg': 'Successfully inserted 20 point(s).'})
 
-        await self.client0.insert({WithNull: points})
-
         self.assertEqual(
             await self.client0.query('select * from "{}"'.format(PI)),
             {PI: points})
@@ -48,14 +45,10 @@ class TestSeries(TestBase):
             await self.client0.query('select * from "{}"'.format(Klingon)),
             {Klingon: points})
 
-        self.assertEqual(
-            await self.client0.query('select * from "{}"'.format(WithNull)),
-            {WithNull: points})
-
 
         self.client0.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':
