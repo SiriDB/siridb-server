@@ -1,3 +1,9 @@
+siridb-server (2.0.4) xenial; urgency=medium
+
+  * Fixed bug in fifo buffer. (see issue #28)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 31 Oct 2016 14:21:27 +0000
+
 siridb-server (2.0.3) xenial; urgency=medium
 
   * Fixed bug in network handler. The wrong size could be allocated when 
