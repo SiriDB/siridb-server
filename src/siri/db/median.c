@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <logger/logger.h>
 
-static double find_n_int64(
+static int64_t find_n_int64(
         int64_t * seq,
         uint64_t size,
         int64_t * other,
@@ -414,7 +414,7 @@ static double find_median_real_int64(
 
     if (found_a && found_b)
     {
-        return (a + b) / 2.0;
+        return ((double) a + (double) b) / 2.0f;
     }
 
     if ((!found_b && size_l > n) || size_l > n - 1)
@@ -504,7 +504,7 @@ static double find_median_real_double(
 
 }
 
-static double find_n_int64(
+static int64_t find_n_int64(
         int64_t * seq,
         uint64_t size,
         int64_t * other,
