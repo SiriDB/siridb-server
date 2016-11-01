@@ -14,6 +14,7 @@
 #define SIRIDB_QUERY_FLAG_MASTER 1
 #define SIRIDB_QUERY_FLAG_REBUILD 2
 #define SIRIDB_QUERY_FLAG_UPDATE_REPLICA 4
+#define SIRIDB_QUERY_FLAG_ERR 8
 
 /*
  * Note(*) : servers must be 'accessible' unless FLAG_ONLY_CHECK_ONLINE is used

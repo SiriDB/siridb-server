@@ -158,11 +158,10 @@ class TestSelect(TestBase):
                 [1447253549, 538],
                 [1447254748, 537]]})
 
-        for _ in range(1000):
-            with self.assertRaises(QueryError):
-                await self.client0.query(
-                    'select filter( ~ 1 ) from "aggr" '
-                    'merge as "t" using filter("0")')
+        with self.assertRaises(QueryError):
+            await self.client0.query(
+                'select * from "aggr" '
+                'merge as "t" using filter("0")')
 
         # test prefix, suffex
         result = await self.client0.query(

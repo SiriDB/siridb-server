@@ -4916,24 +4916,15 @@ static void master_select_work(uv_work_t * work)
                     (ct_item_cb) &items_select_master_merge,
             handle);
 
-    /*
-     * We need to check for SiriDB errors because this task is running in
-     * another thread. In case a siri_err is set, this means we are in forced
-     * closing state and we should not use the handle but let siri close it.
-     */
-    if (!siri_err)
+    switch (rc)
     {
-        switch (rc)
-        {
-        case -1:
-            sprintf(query->err_msg, "Memory allocation error.");
-            /* no break */
-        case 1:
-            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            return;
-        }
+    case -1:
+        sprintf(query->err_msg, "Memory allocation error.");
+        /* no break */
+    case 1:
+        query->flags |= SIRIDB_QUERY_FLAG_ERR;
+        break;
 
-        uv_async_send(handle);
     }
 }
 
@@ -4944,6 +4935,27 @@ static void master_select_work_finish(uv_work_t * work, int status)
         log_error("Select work failed (error: %s)",
                 uv_strerror(status));
     }
+
+    uv_async_t * handle = (uv_async_t *) work->data;
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /*
+     * We need to check for SiriDB errors because this task is running in
+     * another thread. In case a siri_err is set, this means we are in forced
+     * closing state and we should not use the handle but let siri close it.
+     */
+    if (!siri_err)
+    {
+    	if (query->flags & SIRIDB_QUERY_FLAG_ERR)
+		{
+    		siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+		}
+    	else
+    	{
+    		uv_async_send(handle);
+    	}
+    }
+
     siri_async_decref((uv_async_t **) &work->data);
 
     free(work);
