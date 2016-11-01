@@ -149,11 +149,27 @@ class TestSelect(TestBase):
                 [1447254000, -0.0008333333333333333],
                 [1447257600, 0.001388888888888889]]})
 
+        self.assertEqual(
+            await self.client0.query('select filter(>534) from "aggr"'),
+            {'aggr': [
+                [1447249633, 535],
+                [1447250549, 537],
+                [1447252349, 537],
+                [1447253549, 538],
+                [1447254748, 537]]})
+
+        for _ in range(1000):
+            with self.assertRaises(QueryError):
+                await self.client0.query(
+                    'select filter( ~ 1 ) from "aggr" '
+                    'merge as "t" using filter("0")')
+
         # test prefix, suffex
         result = await self.client0.query(
                 'select sum(1d) prefix "sum-" suffix "-sum", '
                 'min(1d) prefix "minimum-", '
                 'max(1d) suffix "-maximum" from "aggr"');
+
         self.assertIn('sum-aggr-sum', result)
         self.assertIn('minimum-aggr', result)
         self.assertIn('aggr-maximum', result)
