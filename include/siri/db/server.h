@@ -105,12 +105,13 @@ typedef struct siridb_server_s
     uint16_t pid;
     /* fixed server properties */
     uint8_t ip_support;
+    uint8_t pad0;
+    uint32_t startup_time;
     char * libuv;
     char * version;
     char * dbpath;
     char * buffer_path;
     size_t buffer_size;
-    uint32_t startup_time;
 } siridb_server_t;
 
 typedef struct siridb_server_walker_s

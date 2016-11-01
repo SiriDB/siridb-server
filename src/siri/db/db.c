@@ -488,6 +488,10 @@ inline void siridb_decref_cb(siridb_t * siridb, void * args)
     siridb_decref(siridb);
 }
 
+/*
+ * Returns the number of open files by the given database.
+ * (includes both the database and buffer path)
+ */
 int siridb_open_files(siridb_t * siridb)
 {
     int open_files = procinfo_open_files(siridb->dbpath);

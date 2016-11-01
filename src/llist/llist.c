@@ -37,7 +37,7 @@ llist_t * llist_new(void)
 }
 
 /*
- * Destroys the linked list but performs a call-back function on the data.
+ * Destroys the linked list and calls a call-back function on each item.
  * The result of the call back function will be ignored.
  */
 void llist_free_cb(llist_t * llist, llist_cb cb, void * args)

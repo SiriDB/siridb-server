@@ -33,7 +33,15 @@ DATA = {
         [1447250249, 532], [1447250549, 537], [1447250868, 530], [1447251168, 520],
         [1447251449, 54], [1447251749, 54], [1447252049, 513], [1447252349, 537],
         [1447252649, 528], [1447252968, 531], [1447253244, 533], [1447253549, 538],
-        [1447253849, 534], [1447254149, 532], [1447254449, 533], [1447254748, 537]
+        [1447253849, 534], [1447254149, 532], [1447254449, 533], [1447254748, 537]],
+    'huge': [
+        [1471254705, 9223372036854775807],
+        [1471254706, 9223372036854775806],
+        [1471254707, 9223372036854775805],
+        [1471254708, 9223372036854775804]],
+    'equal ts': [
+        [1471254705, 0], [1471254705, 1], [1471254705, 2],
+        [1471254707, 0], [1471254707, 1], [1471254708, 0],
     ]
 }
 
@@ -47,7 +55,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 26 point(s).'})
+            {'success_msg': 'Successfully inserted 36 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -162,6 +170,11 @@ class TestSelect(TestBase):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
+
+        with self.assertRaises(QueryError):
+            await self.client0.query('select sum(now) from "huge"')
+
+        await self.client0.query('select derivative() from "equal ts"')
 
         # test prefix, suffex
         result = await self.client0.query(

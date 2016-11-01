@@ -351,9 +351,10 @@ slist_t * siridb_servers_other2slist(siridb_t * siridb)
 /*
  * This function sends a package to all online server.
  *
- * Note:a signal can be raised.
+ * Note:a signal can be raised but the callback will always be called.
  *
- * If promises could not be created, the 'cb' function with cb(NULL, data)
+ * If promises could not be created, the 'cb' function will still be called
+ * using the arguments (NULL, data).
  */
 void siridb_servers_send_pkg(
         slist_t * servers,

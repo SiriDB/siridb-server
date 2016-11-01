@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="14.2">
+  <help_text>// Uncomment the following line to change the fontsize and font:
+fontsize=13
+fontfamily=Monospaced //possible: SansSerif,Serif,
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Welcome to UMLet!
+//
+// Double-click on elements to add them to the diagram, or to copy them
+// Edit elements by modifying the text in this panel
+// Hold Ctrl to select multiple elements
+// Use Ctrl+mouse to select via lasso
+//
+// Use +/- or Ctrl+mouse wheel to zoom
+// Drag a whole relation at its central square icon
+//
+// Press Ctrl+C to copy the whole diagram to the system clipboard (then just paste it to, eg, Word)
+// Edit the files in the "palettes" directory to create your own element palettes
+//
+// Select "Custom Elements &gt; New..." to create new element types
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// This text will be stored with each diagram;  use it for notes.</help_text>
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>10</x>
+      <y>380</y>
+      <w>250</w>
+      <h>270</h>
+    </coordinates>
+    <panel_attributes>siri_t
+--
+args: *siri_args_t
+backup: *uv_timer_t
+cfg: *siri_cfg_t
+fh: *siri_fh_t
+grammar: *cleri_grammar_t
+heartbeat: *uv_timer_t
+loop: * uv_loop_t
+optimize: *siri_optimize_t
+siridb_list: *llist_t
+siridb_mutex: uv_mutex_t
+startup_time: uint32_t
+status: siri_status_t
+--
+siri_start(): int
+siri_free(): void
+siri_setup_logger(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>390</x>
+      <y>380</y>
+      <w>280</w>
+      <h>790</h>
+    </coordinates>
+    <panel_attributes>siridb_t
+--
+active_tasks: uint16_t 
+buffer_fp: *FILE
+buffer_len: size_t 
+buffer_path: * char
+buffer_size: size_t 
+dbname: * char
+dbpath: * char
+drop_threshold: double 
+dropped_fp: *FILE
+duration_log: uint64_t 
+duration_num: uint64_t 
+fifo: *siridb_fifo_t
+flags: uint8_t 
+groups: *siridb_groups_t
+index_size: size_t 
+insert_tasks: uint16_t 
+max_series_id: uint32_t
+pools: *siridb_pools_t
+received_points: size_t 
+ref: uint16_t
+reindex: *siridb_reindex_t
+replica: * siridb_server_t
+replicate: *siridb_replicate_t
+series: *ct_t
+series_map: *imap_t
+series_mutex: uv_mutex_t 
+server: * siridb_server_t
+servers: *llist_t
+shard_mask_log: uint16_t 
+shard_mask_num: uint16_t 
+shards: *imap_t
+shards_mutex: uv_mutex_t 
+start_ts: time_t 
+store: *qp_fpacker_t
+time: * siridb_time_t
+tz: iso8601_tz_t 
+users: *llist_t
+uuid: uuid_t 
+--
+siridb__free(): void
+siridb_decref(): void
+siridb_decref_cb(): void
+siridb_from_unpacker(): int
+siridb_get(): *siridb_t
+siridb_incref(): void
+siridb_is_db_path(): int
+siridb_is_reindexing(): int
+siridb_new(): *siridb_t
+siridb_open_files(): int
+siridb_save(): int
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>250</x>
+      <y>510</y>
+      <w>160</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;140.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>760</x>
+      <y>380</y>
+      <w>370</w>
+      <h>240</h>
+    </coordinates>
+    <panel_attributes>lt=.
+servers
+--
+siridb_servers_available(): int
+siridb_servers_by_name(): *siridb_server_t
+siridb_servers_by_uuid(): *siridb_server_t
+siridb_servers_free(): void
+siridb_servers_get_file(): ssize_t
+siridb_servers_list(): int
+siridb_servers_load(): int
+siridb_servers_online(): int
+siridb_servers_other2slist(): *slist_t
+siridb_servers_register(): int
+siridb_servers_save(): int
+siridb_servers_send_flags(): void
+siridb_servers_send_pkg(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1220</x>
+      <y>0</y>
+      <w>360</w>
+      <h>700</h>
+    </coordinates>
+    <panel_attributes>server_t
+--
+address: *char
+buffer_path: *char
+buffer_size: size_t
+dbpath: *char
+flags: uint8_t
+id: uint8_t
+ip_support: uint8_t
+libuv: *char
+name: *char
+pid: uint16_t 
+pool: uint16_t
+port: uint16_t
+promises: *imap_t
+ref: uint16_t
+socket: *uv_tcp_t
+startup_time: uint32_t
+uuid: uuid_t
+version: *char
+--
+siridb__server_free(): void
+siridb_server_cexpr_cb(): int
+siridb_server_cmp(): int 
+siridb_server_connect(): void
+siridb_server_decref(): void
+siridb_server_drop(): int
+siridb_server_from_node(): *siridb_server_t
+siridb_server_incref(): void
+siridb_server_is_accessible(): int
+siridb_server_is_available(): int
+siridb_server_is_connected(): int
+siridb_server_is_online(): int
+siridb_server_is_remote_prop(): int
+siridb_server_is_synchronizing(): int
+siridb_server_new(): *siridb_server_t
+siridb_server_register(): *siridb_server_t
+siridb_server_self_accessible(): int
+siridb_server_self_available(): int
+siridb_server_self_online(): int
+siridb_server_self_synchronizing(): int
+siridb_server_send_flags(): void
+siridb_server_send_pkg(): int
+siridb_server_str_status(): *char
+siridb_server_update_address(): int 
+siridb_server_update_flags(): void
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>660</x>
+      <y>640</y>
+      <w>580</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1..*</panel_attributes>
+    <additional_attributes>10.0;10.0;560.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>660</x>
+      <y>490</y>
+      <w>120</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>lt=.</panel_attributes>
+    <additional_attributes>10.0;10.0;100.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1120</x>
+      <y>490</y>
+      <w>120</w>
+      <h>30</h>
+    </coordinates>
+    <panel_attributes>lt=.</panel_attributes>
+    <additional_attributes>100.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>390</x>
+      <y>170</y>
+      <w>250</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>iso8601_tz_t
+--
+tz: iso8601_tz_t
+--
+iso8601_tz(): iso8601_tz_t
+iso8601_tzname(): const *char
+iso8601_parse_date(): int64_t
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>520</x>
+      <y>270</y>
+      <w>30</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;110.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>10</x>
+      <y>730</y>
+      <w>250</w>
+      <h>140</h>
+    </coordinates>
+    <panel_attributes>siri_fh_t
+--
+size: uint16_t
+idx: uint16_t
+fpointers: **siri_fp_t
+--
+siri_fh_new(): *siri_fh_t
+siri_fh_free(): void
+siri_fopen(): int
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>10</x>
+      <y>960</y>
+      <w>250</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>siri_fp_t
+--
+fp: *FILE
+ref: uint8_t
+--
+siri_fp_new(): *siri_fp_t
+siri_fp_decref(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>120</x>
+      <y>640</y>
+      <w>30</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>120</x>
+      <y>860</y>
+      <w>80</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..size</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>370</x>
+      <y>1400</y>
+      <w>360</w>
+      <h>440</h>
+    </coordinates>
+    <panel_attributes>siridb_shard_t
+--
+flags: uint8_t
+fn: *char
+fp: *siri_fp_t
+id: uint64_t
+max_chunk_sz: uint16_t
+ref: uint32_t
+replacing: *siridb_shard_t
+tp: uint8_t
+--
+siridb__shard_decref(): void
+siridb__shard_free(): void 
+siridb_shard_cexpr_cb(): int
+siridb_shard_create(): *siridb_shard_t
+siridb_shard_decref(): void
+siridb_shard_drop(): void
+siridb_shard_get_points_log32(): int
+siridb_shard_get_points_log64(): int
+siridb_shard_get_points_num32(): int
+siridb_shard_get_points_num64(): int
+siridb_shard_get_size(): ssize_t
+siridb_shard_incref(): void
+siridb_shard_load(): int
+siridb_shard_optimize(): int
+siridb_shard_remove(): int
+siridb_shard_status(): void
+siridb_shard_write_flags(): int
+siridb_shard_write_points(): long int</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>430</x>
+      <y>1250</y>
+      <w>320</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>lt=.
+shards
+--
+siridb_shards_add_points(): int
+siridb_shards_load(): int</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>540</x>
+      <y>1160</y>
+      <w>30</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>540</x>
+      <y>1310</y>
+      <w>30</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>lt=.</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>400</x>
+      <y>1160</y>
+      <w>60</w>
+      <h>260</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;240.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>250</x>
+      <y>770</y>
+      <w>140</w>
+      <h>730</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-
+</panel_attributes>
+    <additional_attributes>10.0;10.0;90.0;10.0;90.0;710.0;120.0;710.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>120</x>
+      <y>1060</y>
+      <w>270</w>
+      <h>550</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>250.0;520.0;10.0;520.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>830</x>
+      <y>800</y>
+      <w>370</w>
+      <h>610</h>
+    </coordinates>
+    <panel_attributes>siridb_series_t
+--
+buffer: *siridb_buffer_t
+end: uint64_t
+flags: uint8_t
+id: uint32_t
+idx: *idx_t
+idx_len: uint32_t
+length: uint32_t
+mask: uint16_t
+name: *char
+name_len: uint16_t
+pool: uint16_t
+ref: uint32_t 
+start: uint64_t 
+tp: uint8_t
+--
+siridb__series_decref(): void
+siridb__series_free(): void
+siridb_series_add_idx(): int
+siridb_series_add_pcache(): int 
+siridb_series_add_point(): int 
+siridb_series_cexpr_cb(): int
+siridb_series_decref(): void
+siridb_series_drop(): int
+siridb_series_drop_commit(): int
+siridb_series_drop_prepare(): void
+siridb_series_flush_dropped(): int
+siridb_series_get_points(): *siridb_points_t
+siridb_series_incref(): void
+siridb_series_isnum(): int
+siridb_series_load(): int
+siridb_series_new(): *siridb_series_t
+siridb_series_open_store(): int
+siridb_series_optimize_shard(): int
+siridb_series_remove_shard(): void
+siridb_series_replicate_file(): int
+siridb_series_server_id(): int
+siridb_series_server_id_by_name(): uint8_t
+siridb_series_update_props(): void</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>660</x>
+      <y>860</y>
+      <w>190</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..*</panel_attributes>
+    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>830</x>
+      <y>1500</y>
+      <w>370</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>idx_t
+--
+end_ts: uint64_t
+len: uint16_t
+log_sz: uint16_t
+pos: uint32_t
+shard: *siridb_shard_t
+start_ts: uint64_t
+--
+/functions can be found in/
+/siridb_series_t class/</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1010</x>
+      <y>1400</y>
+      <w>70</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
+m1=1
+m2=0..len</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;100.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>720</x>
+      <y>1570</y>
+      <w>130</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1=1
+m2=1</panel_attributes>
+    <additional_attributes>110.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>

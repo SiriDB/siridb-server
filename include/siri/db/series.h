@@ -129,7 +129,7 @@ void siridb__series_decref(siridb_series_t * series);
 /*
  * Increment the series reference counter.
  */
-#define siridb_series_incref(series) series->ref++;
+#define siridb_series_incref(series) series->ref++
 
 /*
  * Decrement reference counter for series and free the series when zero is

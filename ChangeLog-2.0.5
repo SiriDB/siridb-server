@@ -1,3 +1,6 @@
-  * Changed CLOCK_REALTIME to CLOCK_MONOTONIC.
+  * Changed CLOCK_REALTIME to CLOCK_MONOTONIC for monitoring startup time.
   
   * Fixed bug using filter aggregation. (issue #29)
+  
+  * Fixed bug in median, median_low and median_high when using on series
+    with large values. (issue #30)

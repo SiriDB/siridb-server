@@ -506,7 +506,7 @@ static siridb_points_t * AGGREGATE_derivative(
                 {
                     dpt->ts = spt->ts;
                     dpt->val.real = ((double) spt->val.int64 - prev->val.int64)
-                            / ((double) spt->ts - prev->ts) * aggr->timespan;
+                            / (double) (spt->ts - prev->ts) * aggr->timespan;
                     prev = spt;
                 }
                 break;
