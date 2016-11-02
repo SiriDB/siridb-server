@@ -22,7 +22,7 @@ typedef struct siridb_s siridb_t;
 typedef struct siridb_user_s
 {
     uint16_t ref;
-    uint16_t flags;     /* not used (only for padding) */
+    uint16_t pad0;
     uint32_t access_bit;
     char * name;
     char * password; /* keeps an encrypted password */

@@ -68,7 +68,6 @@ int siridb_users_load(siridb_t * siridb)
         {
             return -1;  /* signal is raised */
         }
-        siridb_user_incref(user);
 
         user->access_bit = SIRIDB_ACCESS_PROFILE_FULL;
 
@@ -105,8 +104,6 @@ int siridb_users_load(siridb_t * siridb)
         }
         else
         {
-            siridb_user_incref(user);
-
             user->name = strndup(qp_name.via.raw, qp_name.len);
             user->password = strndup(qp_password.via.raw, qp_password.len);
 

@@ -55,9 +55,21 @@ static cexpr_t * CEXPR_walk_node(
 
 cexpr_t * cexpr_from_node(cleri_node_t * node)
 {
-    cexpr_t * cexpr = CEXPR_new();
+	cexpr_t * tmp;
+	cexpr_t * cexpr = CEXPR_new();
+    if (cexpr == NULL)
+    {
+    	return NULL;
+    }
+
     int expecting = EXPECTING_PROP;
     cexpr_condition_t * condition = CEXPR_condition_new();
+
+    if (condition == NULL)
+    {
+    	free(cexpr);
+    	return NULL;
+    }
 
     /* create a list, we only need this list while building an expression */
     cexpr_list_t list;
@@ -66,10 +78,17 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     /* by simply wrapping the expression between curly brackets we make sure
      * we start validating at the correct start.
      */
-    cexpr = CEXPR_open_curly(cexpr, &list);
+    tmp = CEXPR_open_curly(cexpr, &list);
+
+    if (tmp == NULL)
+    {
+    	free(cexpr);
+    	free(condition);
+    	return NULL;
+    }
 
     /* build the expression */
-    cexpr = CEXPR_walk_node(node, cexpr, &list, &condition, &expecting);
+    cexpr = CEXPR_walk_node(node, tmp, &list, &condition, &expecting);
 
     /* test if successful */
     if (cexpr != NULL)
@@ -324,6 +343,10 @@ cexpr_operator_t cexpr_operator_fn(cleri_node_t * node)
     return 0;
 }
 
+/*
+ * Return NULL in case of an error. (this can be when max_curly depth is
+ * reached or when a memory allocation error has occurred.
+ */
 static cexpr_t * CEXPR_walk_node(
         cleri_node_t * node,
         cexpr_t * cexpr,
@@ -331,6 +354,7 @@ static cexpr_t * CEXPR_walk_node(
         cexpr_condition_t ** condition,
         int * expecting)
 {
+	cexpr_condition_t * tmp_condition;
     switch (*expecting)
     {
     case EXPECTING_PROP:
@@ -368,7 +392,6 @@ static cexpr_t * CEXPR_walk_node(
             log_critical(
                     "Got an unexpected operator type: %d", node->cl_obj->tp);
         }
-        /* we must NEVER get here */
         assert (0);
         break;
 
@@ -386,6 +409,10 @@ static cexpr_t * CEXPR_walk_node(
             if (node->cl_obj->via.choice->gid == CLERI_GID_STRING)
             {
                 (*condition)->str = (char *) malloc(node->len -1);
+                if ((*condition)->str == NULL)
+                {
+                	return NULL;
+                }
                 strx_extract_string((*condition)->str, node->str, node->len);
                 SET_CONDITION_AND_RETURN
             }
@@ -480,9 +507,17 @@ static cexpr_t * CEXPR_walk_node(
             {
             case CLERI_GID_K_AND:
                 cexpr = CEXPR_push_and(cexpr);
+                if (cexpr == NULL)
+                {
+                	return NULL;
+                }
                 break;
             case CLERI_GID_K_OR:
                 cexpr = CEXPR_push_or(cexpr, list);
+                if (cexpr == NULL)
+                {
+                	return NULL;
+                }
                 break;
             default:
                 log_critical(
@@ -490,8 +525,13 @@ static cexpr_t * CEXPR_walk_node(
                     node->cl_obj->via.keyword->gid);
                 assert (0);
             }
-            *condition = CEXPR_condition_new();
-            (*expecting) = EXPECTING_PROP;
+            tmp_condition = CEXPR_condition_new();
+            if (tmp_condition == NULL)
+            {
+            	return NULL;
+            }
+            *condition = tmp_condition;
+            *expecting = EXPECTING_PROP;
             return cexpr;
 
         case CLERI_TP_TOKEN:
@@ -527,23 +567,36 @@ static cexpr_t * CEXPR_walk_node(
     return cexpr;
 }
 
-
+/*
+ * Returns NULL in case of an error
+ */
 static cexpr_t * CEXPR_new(void)
 {
     cexpr_t * cexpr = (cexpr_t *) malloc(sizeof(cexpr_t));
-    cexpr->operator = CEXPR_AND;
-    cexpr->tp_a = VIA_NULL;
-    cexpr->tp_b = VIA_NULL;
-    cexpr->via_a.cexpr = NULL;
+    if (cexpr != NULL)
+    {
+		cexpr->operator = CEXPR_AND;
+		cexpr->tp_a = VIA_NULL;
+		cexpr->tp_b = VIA_NULL;
+		cexpr->via_a.cexpr = NULL;
+    }
     return cexpr;
 }
 
+/*
+ * Returns NULL in case of an error
+ */
 static cexpr_condition_t * CEXPR_condition_new(void)
 {
     cexpr_condition_t * condition =
             (cexpr_condition_t *) malloc(sizeof(cexpr_condition_t));
-    condition->int64 = 0;
-    condition->str = NULL;
+
+    if (condition != NULL)
+    {
+		condition->int64 = 0;
+		condition->str = NULL;
+    }
+
     return condition;
 }
 
@@ -553,6 +606,9 @@ static void CEXPR_condition_free(cexpr_condition_t * cond)
     free(cond);
 }
 
+/*
+ * Returns NULL in case or an error
+ */
 static cexpr_t * CEXPR_push_and(cexpr_t * cexpr)
 {
     if (cexpr->tp_b == VIA_NULL)
@@ -560,13 +616,20 @@ static cexpr_t * CEXPR_push_and(cexpr_t * cexpr)
         return cexpr;
     }
     cexpr_t * new_cexpr = CEXPR_new();
-    new_cexpr->tp_a = cexpr->tp_b;
-    new_cexpr->via_a = cexpr->via_b;
-    cexpr->tp_b = VIA_CEXPR;
-    cexpr->via_b.cexpr = new_cexpr;
+
+    if (new_cexpr != NULL)
+    {
+		new_cexpr->tp_a = cexpr->tp_b;
+		new_cexpr->via_a = cexpr->via_b;
+		cexpr->tp_b = VIA_CEXPR;
+		cexpr->via_b.cexpr = new_cexpr;
+    }
     return new_cexpr;
 }
 
+/*
+ * Returns NULL in case or an error
+ */
 static cexpr_t * CEXPR_push_or(cexpr_t * cexpr, cexpr_list_t * list)
 {
     if (cexpr->tp_b == VIA_NULL)
@@ -575,16 +638,21 @@ static cexpr_t * CEXPR_push_or(cexpr_t * cexpr, cexpr_list_t * list)
         cexpr->operator = CEXPR_OR;
         return cexpr;
     }
-    size_t selected = list->len - 1;
-    cexpr = list->cexpr[selected];
 
     cexpr_t * new_cexpr = CEXPR_new();
 
-    new_cexpr->operator = CEXPR_OR;
-    new_cexpr->tp_a = VIA_CEXPR;
-    new_cexpr->via_a.cexpr = cexpr;
+    if (new_cexpr != NULL)
+    {
+		size_t selected = list->len - 1;
+		cexpr = list->cexpr[selected];
 
-    list->cexpr[selected] = new_cexpr;
+
+		new_cexpr->operator = CEXPR_OR;
+		new_cexpr->tp_a = VIA_CEXPR;
+		new_cexpr->via_a.cexpr = cexpr;
+
+		list->cexpr[selected] = new_cexpr;
+    }
 
     return new_cexpr;
 }
@@ -614,11 +682,18 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
         return NULL;
     }
 
-    /* save current cexpr in depth. */
-    list->cexpr[list->len] = cexpr;
-
     /* create new expression */
     cexpr_t * new_cexpr = CEXPR_new();
+
+    if (new_cexpr == NULL)
+    {
+    	/* memory allocation error */
+    	return NULL;
+    }
+
+
+    /* save current cexpr in depth. */
+    list->cexpr[list->len] = cexpr;
 
     if (cexpr->tp_a == VIA_NULL)
     {

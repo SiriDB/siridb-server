@@ -48,7 +48,7 @@ siridb_user_t * siridb_user_new(void)
         user->access_bit = 0;
         user->password = NULL;
         user->name = NULL;
-        user->ref = 0;
+        user->ref = 1;
     }
     return user;
 }

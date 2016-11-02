@@ -548,9 +548,20 @@ static void enter_alter_stmt(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(1024);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_alter_new();
+
+    if (query->data == NULL)
+    {
+    	MEM_ERR_RET
+    }
     query->free_cb = (uv_close_cb) query_alter_free;
 
     SIRIPARSER_NEXT_NODE
@@ -600,9 +611,21 @@ static void enter_count_stmt(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(256);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_count_new();
+
+    if (query->data == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     query->free_cb = (uv_close_cb) query_count_free;
 
     SIRIPARSER_NEXT_NODE
@@ -626,20 +649,22 @@ static void enter_create_user(uv_async_t * handle)
 
     query->data = q_alter;
 
-    if (q_alter != NULL)
+    if (q_alter == NULL)
     {
-        query->free_cb = (uv_close_cb) query_alter_free;
-
-        q_alter->alter_tp = QUERY_ALTER_USER;
-        q_alter->via.user = siridb_user_new();
-
-        if (q_alter->via.user != NULL)
-        {
-            siridb_user_incref(q_alter->via.user);
-
-            SIRIPARSER_NEXT_NODE
-        }
+    	MEM_ERR_RET
     }
+
+	query->free_cb = (uv_close_cb) query_alter_free;
+	q_alter->via.user = siridb_user_new();
+
+	if (q_alter->via.user == NULL)
+	{
+		MEM_ERR_RET
+	}
+
+	q_alter->alter_tp = QUERY_ALTER_USER;
+
+	SIRIPARSER_NEXT_NODE
 }
 
 static void enter_drop_stmt(uv_async_t * handle)
@@ -653,9 +678,21 @@ static void enter_drop_stmt(uv_async_t * handle)
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_DROP)
 
     query->packer = sirinet_packer_new(1024);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     query->data = query_drop_new();
+
+    if (query->data == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     query->free_cb = (uv_close_cb) query_drop_free;
 
     SIRIPARSER_NEXT_NODE
@@ -816,12 +853,24 @@ static void enter_list_stmt(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     qp_add_raw(query->packer, "columns", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     query->data = query_list_new();
+
+    if (query->data == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     query->free_cb = (uv_close_cb) query_list_free;
 
     SIRIPARSER_NEXT_NODE
@@ -838,10 +887,8 @@ static void enter_merge_as(uv_async_t * handle)
     {
     	MEM_ERR_RET
     }
-    else
-    {
-        strx_extract_string(q_select->merge_as, node->str, node->len);
-    }
+
+    strx_extract_string(q_select->merge_as, node->str, node->len);
 
     if (IS_MASTER && query->nodes->node->children->next->next->next != NULL)
     {
@@ -882,16 +929,19 @@ static void enter_revoke_user(uv_async_t * handle)
                 ~siridb_access_from_children((cleri_children_t *) query->data);
 
         query_alter_t * q_alter = query->data = query_alter_new();
-        if (q_alter != NULL)
+
+        if (q_alter == NULL)
         {
-            siridb_user_incref(user);
-
-            query->free_cb = (uv_close_cb) query_alter_free;
-            q_alter->alter_tp = QUERY_ALTER_USER;
-            q_alter->via.user = user;
-
-            SIRIPARSER_NEXT_NODE
+        	MEM_ERR_RET
         }
+
+		siridb_user_incref(user);
+
+		query->free_cb = (uv_close_cb) query_alter_free;
+		q_alter->alter_tp = QUERY_ALTER_USER;
+		q_alter->via.user = user;
+
+		SIRIPARSER_NEXT_NODE
     }
 }
 
@@ -1178,7 +1228,10 @@ static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    ((query_wrapper_t *) query->data)->series_map = imap_new();
+    if ((((query_wrapper_t *) query->data)->series_map = imap_new()) == NULL)
+	{
+    	MEM_ERR_RET
+	}
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1292,7 +1345,6 @@ static void enter_where_xxx(uv_async_t * handle)
     if (cexpr == NULL)
     {
         sprintf(query->err_msg, "Max depth reached in 'where' expression!");
-        log_critical(query->err_msg);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
@@ -1310,27 +1362,29 @@ static void enter_xxx_columns(uv_async_t * handle)
 
     qlist->props = slist_new(DEFAULT_ALLOC_COLUMNS);
 
-    if (qlist->props != NULL)
+    if (qlist->props == NULL)
     {
-        while (1)
-        {
-            qp_add_raw(query->packer, columns->node->str, columns->node->len);
-
-            if (slist_append_safe(
-                    &qlist->props,
-                    &columns->node->children->node->cl_obj->via.dummy->gid))
-            {
-            	MEM_ERR_RET
-            }
-
-            if (columns->next == NULL)
-            {
-                break;
-            }
-
-            columns = columns->next->next;
-        }
+        MEM_ERR_RET
     }
+
+	while (1)
+	{
+		qp_add_raw(query->packer, columns->node->str, columns->node->len);
+
+		if (slist_append_safe(
+				&qlist->props,
+				&columns->node->children->node->cl_obj->via.dummy->gid))
+		{
+			MEM_ERR_RET
+		}
+
+		if (columns->next == NULL)
+		{
+			break;
+		}
+
+		columns = columns->next->next;
+	}
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }
@@ -1452,6 +1506,12 @@ static void exit_calc_stmt(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(64);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "calc", 4);
 
@@ -1832,6 +1892,7 @@ static void exit_count_shards_size(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
+    uint64_t duration;
 
     qp_add_raw(query->packer, "shards_size", 11);
 
@@ -1842,9 +1903,13 @@ static void exit_count_shards_size(uv_async_t * handle)
     uv_mutex_lock(&siridb->shards_mutex);
 
     slist_t * shards_list = imap_2slist_ref(siridb->shards);
-    uint64_t duration;
 
     uv_mutex_unlock(&siridb->shards_mutex);
+
+    if (shards_list == NULL)
+    {
+    	MEM_ERR_RET
+    }
 
     for (size_t i = 0; i < shards_list->len; i++)
     {
@@ -2013,6 +2078,12 @@ static void exit_create_user(uv_async_t * handle)
         assert (query->packer == NULL);
 #endif
         query->packer = sirinet_packer_new(1024);
+
+        if (query->packer == NULL)
+        {
+        	MEM_ERR_RET
+        }
+
         qp_add_type(query->packer, QP_MAP_OPEN);
 
         QP_ADD_SUCCESS
@@ -2402,6 +2473,12 @@ static void exit_grant_user(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(1024);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -2445,6 +2522,11 @@ static void exit_help_xxx(uv_async_t * handle)
         }
 
         query->packer = sirinet_packer_new(4096);
+
+        if (query->packer == NULL)
+        {
+        	MEM_ERR_RET
+        }
 
         qp_add_type(query->packer, QP_MAP_OPEN);
         qp_add_raw(query->packer, "help", 4);
@@ -2529,6 +2611,12 @@ static void exit_list_pools(uv_async_t * handle)
     if (q_list->props == NULL)
     {
         q_list->props = slist_new(3);
+
+        if (q_list->props == NULL)
+        {
+        	MEM_ERR_RET
+        }
+
         slist_append(q_list->props, &GID_K_POOL);
         slist_append(q_list->props, &GID_K_SERVERS);
         slist_append(q_list->props, &GID_K_SERIES);
@@ -2668,6 +2756,12 @@ static void exit_list_servers(uv_async_t * handle)
     if (q_list->props == NULL)
     {
         q_list->props = slist_new(5);
+
+        if (q_list->props == NULL)
+        {
+            MEM_ERR_RET
+        }
+
         slist_append(q_list->props, &GID_K_NAME);
         slist_append(q_list->props, &GID_K_POOL);
         slist_append(q_list->props, &GID_K_VERSION);
@@ -2735,6 +2829,12 @@ static void exit_list_shards(uv_async_t * handle)
     if (q_list->props == NULL)
     {
         q_list->props = slist_new(5);
+
+        if (q_list->props == NULL)
+        {
+            MEM_ERR_RET
+        }
+
         slist_append(q_list->props, &GID_K_SID);
         slist_append(q_list->props, &GID_K_POOL);
         slist_append(q_list->props, &GID_K_SERVER);
@@ -2912,6 +3012,12 @@ static void exit_revoke_user(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(1024);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
 
     QP_ADD_SUCCESS
@@ -3613,6 +3719,12 @@ static void exit_show_stmt(uv_async_t * handle)
 #endif
 
     query->packer = sirinet_packer_new(4096);
+
+    if (query->packer == NULL)
+    {
+    	MEM_ERR_RET
+    }
+
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -3689,6 +3801,12 @@ static void exit_timeit_stmt(uv_async_t * handle)
                 query->timeit->len +
                 1 +
                 sizeof(sirinet_pkg_t));
+
+        if (query->packer == NULL)
+        {
+        	MEM_ERR_RET
+        }
+
         qp_add_type(query->packer, QP_MAP_OPEN);
     }
 
