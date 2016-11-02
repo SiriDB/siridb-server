@@ -21,8 +21,6 @@
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 #define SUGGESTED_SIZE 65536
 
-static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
-
 const char * sirinet_socket_ip_support_str(uint8_t ip_support)
 {
 	switch (ip_support)
@@ -344,17 +342,25 @@ void sirinet_socket_on_data(
  */
 uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
 {
-    uv_tcp_t * socket = (uv_tcp_t *) malloc(sizeof(uv_tcp_t));
-    if (socket == NULL)
+    sirinet_socket_t * ssocket =
+            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
+
+    if (ssocket == NULL)
     {
         ERR_ALLOC
+		return NULL;
     }
-    else if ((socket->data = SOCKET_new(tp, cb)) == NULL)
-    {
-        free(socket);
-        socket = NULL;  /* signal is raised */
-    }
-    return socket;
+
+    ssocket->tp = tp;
+	ssocket->on_data = cb;
+	ssocket->buf = NULL;
+	ssocket->len = 0;
+	ssocket->origin = NULL;
+	ssocket->siridb = NULL;
+	ssocket->ref = 1;
+    ssocket->tcp.data = ssocket;
+
+    return &ssocket->tcp;
 }
 
 /*
@@ -403,33 +409,8 @@ void sirinet__socket_free(uv_stream_t * client)
     }
     free(ssocket->buf);
     free(ssocket);
-    free((uv_tcp_t *) client);
 }
 
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- * (reference counter is initially set to 1)
- */
-static sirinet_socket_t * SOCKET_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
-{
-    sirinet_socket_t * ssocket =
-            (sirinet_socket_t *) malloc(sizeof(sirinet_socket_t));
-    if (ssocket == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        ssocket->tp = tp;
-        ssocket->on_data = cb;
-        ssocket->buf = NULL;
-        ssocket->len = 0;
-        ssocket->origin = NULL;
-        ssocket->siridb = NULL;
-        ssocket->ref = 1;
-    }
-    return ssocket;
-}
 
 
 

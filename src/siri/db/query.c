@@ -486,6 +486,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
 
         expecting = expecting->next;
     }
+
     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
 }
 

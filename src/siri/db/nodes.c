@@ -12,6 +12,7 @@
 #include <logger/logger.h>
 #include <siri/db/nodes.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 void siridb_nodes_next(siridb_nodes_t ** nodes)
 {

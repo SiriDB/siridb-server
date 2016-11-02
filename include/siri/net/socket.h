@@ -46,6 +46,7 @@ typedef struct sirinet_socket_s
     void * origin;  /* can be a user, server or NULL */
     char * buf;
     size_t len;
+    uv_tcp_t tcp;
 } sirinet_socket_t;
 
 const char * sirinet_socket_ip_support_str(uint8_t ip_support);

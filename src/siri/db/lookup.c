@@ -12,11 +12,7 @@
 #include <siri/db/lookup.h>
 #include <siri/err.h>
 #include <stdlib.h>
-
-static void LOOKUP_make(
-        uint_fast16_t n,
-        uint_fast16_t num_pools,
-        siridb_lookup_t * lookup);
+#include <string.h>
 
 /*
  * Returns a pool id based on a terminated string.
@@ -49,18 +45,38 @@ uint16_t siridb_lookup_sn_raw(
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
+ *
+ * (Algorithm to create pools lookup array.)
  */
 siridb_lookup_t * siridb_lookup_new(uint_fast16_t num_pools)
 {
     siridb_lookup_t * lookup =
             (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
+
     if (lookup == NULL)
     {
         ERR_ALLOC
     }
     else
     {
-        LOOKUP_make(1, num_pools, lookup);
+    	uint_fast16_t n, i, m;
+    	uint_fast16_t counters[num_pools - 1];
+
+    	for (n = 1, m = 2; n < num_pools; n++, m++)
+        {
+    		for (i = 0; i < n; i++)
+    		{
+    			counters[i] = i;
+    		}
+
+    		for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
+    		{
+    			if (++counters[ (*lookup)[i] ] % m == 0)
+    			{
+    				(*lookup)[i] = n;
+    			}
+    		}
+        }
     }
     return lookup;
 }
@@ -73,35 +89,4 @@ inline void siridb_lookup_free(siridb_lookup_t * lookup)
     free(lookup);
 }
 
-/*
- * Algorithm to create pools lookup array.
- */
-static void LOOKUP_make(
-        uint_fast16_t n,
-        uint_fast16_t num_pools,
-        siridb_lookup_t * lookup)
-{
-    if (n == num_pools)
-    {
-        return;
-    }
 
-    uint_fast16_t i;
-    uint_fast16_t m;
-    uint_fast16_t counters[n];
-    for (i = 0; i < n; i++)
-    {
-        counters[i] = i;
-    }
-
-    m = n + 1;
-    for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
-    {
-        counters[(*lookup)[i]]++;
-        if (counters[(*lookup)[i]] % m == 0)
-        {
-            (*lookup)[i] = n;
-        }
-    }
-    LOOKUP_make(m, num_pools, lookup);
-}

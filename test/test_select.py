@@ -166,13 +166,23 @@ class TestSelect(TestBase):
                 [1447253549, 538],
                 [1447254748, 537]]})
 
-        with self.assertRaises(QueryError):
+        with self.assertRaisesRegexp(
+                    QueryError,
+                    'Cannot use a string filter on number type\.'):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
 
-        with self.assertRaises(QueryError):
+        with self.assertRaisesRegexp(
+                    QueryError,
+                    'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
+
+        with self.assertRaisesRegexp(
+                    QueryError,
+                    'Max depth reached in \'where\' expression!'):
+            await self.client0.query(
+                'select * from "aggr" where ((((((length > 1))))))')
 
         await self.client0.query('select derivative() from "equal ts"')
 

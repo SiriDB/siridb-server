@@ -48,7 +48,10 @@ cproto_server_t siridb_auth_user_request(
         return CPROTO_ERR_AUTH_UNKNOWN_DB;
     }
 
-    if ((user = siridb_users_get_user(siridb->users, username, password)) == NULL)
+    if ((user = siridb_users_get_user(
+    		siridb->users,
+			username,
+			password)) == NULL)
     {
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
@@ -70,13 +73,6 @@ bproto_server_t siridb_auth_server_request(
     siridb_t * siridb;
     siridb_server_t * server;
     uuid_t uuid;
-
-#ifdef DEBUG
-    /* test if all are terminated */
-    assert (*(qp_dbname->via.raw + qp_dbname->len - 1) == 0);
-    assert (*(qp_version->via.raw + qp_version->len - 1) == 0);
-    assert (*(qp_min_version->via.raw + qp_min_version->len - 1) == 0);
-#endif
 
     if (qp_uuid->len != 16)
     {
