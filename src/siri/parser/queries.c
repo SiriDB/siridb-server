@@ -91,9 +91,14 @@ query_select_t * query_select_new(void)
         q_select->merge_as = NULL;
         q_select->n = 0;
         q_select->points_map = NULL;
-        q_select->result = ct_new();  // a signal is raised in case of failure
         q_select->alist = NULL;
         q_select->mlist = NULL;
+        q_select->result = ct_new();  // a signal is raised in case of failure
+        if (q_select->result == NULL)
+        {
+        	free(q_select);
+        	q_select = NULL;
+        }
     }
     return q_select;
 }
