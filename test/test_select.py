@@ -194,7 +194,7 @@ class TestSelect(TestBase):
                 QueryError,
                 'Memory allocation error or maximum recursion depth reached.'):
             await self.client0.query(
-                'select * from "aggr" where length > {}'.format('('*500))
+                'select * from "aggr" where length > {}'.format('(' * 500))
 
         with self.assertRaisesRegexp(
                     QueryError,
