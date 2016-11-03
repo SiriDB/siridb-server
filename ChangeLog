@@ -1,3 +1,24 @@
+siridb-server (2.0.5) xenial; urgency=medium
+
+  * Changed CLOCK_REALTIME to CLOCK_MONOTONIC for monitoring startup time.
+  
+  * Fixed bug using filter aggregation. (issue #29)
+  
+  * Fixed bug in median, median_low and median_high when using on series
+    with large values. (issue #30)
+    
+  * Check for successful memory allocations in cexpr object. 
+  
+  * Wrap socket around uv_tcp_t instead of two separate mallocs.
+  
+  * Fixed possible stack overflow error by checking for a max recursion depth 
+    when parsing a query. (issue #31)
+    
+  * Fixed possible stack overflow error by checking for a maximum query length.
+    (see issue #32)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 03 Nov 2016 13:34:15 +0000
+
 siridb-server (2.0.4) xenial; urgency=medium
 
   * Fixed bug in fifo buffer. (see issue #28)
