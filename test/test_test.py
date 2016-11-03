@@ -26,31 +26,6 @@ class TestInsert(TestBase):
 
     GEN_POINTS = functools.partial(gen_points, n=1, time_precision=TIME_PRECISION)
 
-    async def _test_series(self, client):
-
-        result = await client.query('select * from "series float"')
-        self.assertEqual(result['series float'], self.series_float)
-
-        result = await client.query('select * from "series int"')
-        self.assertEqual(result['series int'], self.series_int)
-
-        result = await client.query('list series name, length, type, start, end')
-        result['series'].sort()
-        self.assertEqual(
-            result,
-            {   'columns': ['name', 'length', 'type', 'start', 'end'],
-                'series': [
-                    ['series float', 10000, 'float', self.series_float[0][0], self.series_float[-1][0]],
-                    ['series int', 10000, 'integer', self.series_int[0][0], self.series_int[-1][0]],
-                ]
-            })
-
-    async def insert(self, client, series, n, timeout=1):
-        for _ in range(n):
-            await client.insert_some_series(series, timeout=timeout, points=self.GEN_POINTS)
-            await asyncio.sleep(1.0)
-
-
 
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):
@@ -58,7 +33,7 @@ class TestInsert(TestBase):
 
 
         # Create some random series and start 25 insert task parallel
-        series = gen_series(n=1000)
+        series = gen_series(n=10000)
         tasks = [
             asyncio.ensure_future(
                 self.client0.insert_some_series(
