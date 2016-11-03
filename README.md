@@ -8,8 +8,8 @@ Installation
 
 Compiled packages are available for Ubuntu (amd64 - 16.04 LTS xenial)
 
-	wget https://storage.googleapis.com/siridb/server/deb/siridb-server_2.0.4_amd64.deb
-	sudo dpkg -i siridb-server_2.0.4_amd64.deb
+	wget https://storage.googleapis.com/siridb/server/deb/siridb-server_2.0.5_amd64.deb
+	sudo dpkg -i siridb-server_2.0.5_amd64.deb
 	
 For creating a new or joining an existing database you need the manage tool:
 
