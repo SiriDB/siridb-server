@@ -317,7 +317,7 @@ void siridb__series_free(siridb_series_t * series)
 #ifdef DEBUG
     if (siri.status == SIRI_STATUS_RUNNING || 1)
     {
-//        log_debug("Free series: '%s'", series->name);
+        log_debug("Free series: '%s'", series->name);
     }
 #endif
 
@@ -353,18 +353,14 @@ int siridb_series_load(siridb_t * siridb)
     log_info("Loading series");
 
     imap_t * dropped = imap_new();
+
     if (dropped == NULL)
     {
         return -1;
     }
 
-    if (SERIES_read_dropped(siridb, dropped))
-    {
-        imap_free(dropped, NULL);
-        return -1;
-    }
-
-    if (SERIES_load(siridb, dropped))
+    if (SERIES_read_dropped(siridb, dropped) ||
+    	SERIES_load(siridb, dropped))
     {
         imap_free(dropped, NULL);
         return -1;
@@ -372,9 +368,9 @@ int siridb_series_load(siridb_t * siridb)
 
     imap_free(dropped, NULL);
 
-    if (    SERIES_update_max_id(siridb) ||
-            SERIES_open_new_dropped_file(siridb) ||
-            siridb_series_open_store(siridb))
+    if (SERIES_update_max_id(siridb) ||
+        SERIES_open_new_dropped_file(siridb) ||
+        siridb_series_open_store(siridb))
     {
         return -1;
     }

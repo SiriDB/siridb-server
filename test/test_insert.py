@@ -137,12 +137,12 @@ class TestInsert(TestBase):
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
 
-        tasks = [
-            asyncio.ensure_future(self.client0.query(
-                    'drop series /.*/ set ignore_threshold true'))
-            for i in range (5)]
+        # tasks = [
+        #     asyncio.ensure_future(self.client0.query(
+        #             'drop series /.*/ set ignore_threshold true'))
+        #     for i in range (5)]
 
-        await asyncio.gather(*tasks)
+        # await asyncio.gather(*tasks)
 
         # series = gen_series(n=100000)
         # tasks = [
@@ -155,7 +155,7 @@ class TestInsert(TestBase):
         self.client0.close()
         self.client1.close()
 
-        # return False
+        return False
 
 
 if __name__ == '__main__':

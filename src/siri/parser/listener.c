@@ -1584,7 +1584,7 @@ static void exit_count_pools(uv_async_t * handle)
     }
     else
     {
-        MASTER_CHECK_ACCESSIBLE(siridb)
+        MASTER_CHECK_ONLINE(siridb)
 
         q_count->n = cexpr_run(
                 q_count->where_expr,
@@ -1613,7 +1613,7 @@ static void exit_count_series(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    MASTER_CHECK_ACCESSIBLE(siridb)
+    MASTER_CHECK_ONLINE(siridb)
 
     qp_add_raw(query->packer, "series", 6);
 
@@ -1673,7 +1673,7 @@ static void exit_count_series_length(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    MASTER_CHECK_ACCESSIBLE(siridb)
+    MASTER_CHECK_ONLINE(siridb)
 
     qp_add_raw(query->packer, "series_length", 13);
 
@@ -3647,6 +3647,8 @@ static void exit_set_timezone(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
+    MASTER_CHECK_ACCESSIBLE(siridb)
+
     char timezone[node->len - 1];
     strx_extract_string(timezone, node->str, node->len);
 
@@ -4348,6 +4350,12 @@ static void async_series_re(uv_async_t * handle)
     {
         /* free the s-list object and reset index */
         slist_free(q_wrapper->slist);
+
+        free(q_wrapper->regex);
+        free(q_wrapper->regex_extra);
+
+        q_wrapper->regex = NULL;
+        q_wrapper->regex_extra = NULL;
 
         q_wrapper->slist = NULL;
         q_wrapper->slist_index = 0;

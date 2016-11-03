@@ -214,7 +214,6 @@ class TestSelect(TestBase):
         self.assertIn('minimum-aggr', result)
         self.assertIn('aggr-maximum', result)
 
-
         self.client0.close()
 
         return False
