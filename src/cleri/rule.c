@@ -131,6 +131,7 @@ static cleri_node_t * RULE_parse(
         return NULL;
     }
 
+    nrule.depth = 0;
     nrule.tested = (cleri_rule_tested_t *) malloc(sizeof(cleri_rule_tested_t));
 
     if (nrule.tested == NULL)

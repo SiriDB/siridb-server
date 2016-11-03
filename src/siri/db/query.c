@@ -547,7 +547,8 @@ static void QUERY_parse(uv_async_t * handle)
     	{
     		ERR_ALLOC
     	}
-    	sprintf(query->err_msg, "Memory allocation error.");
+    	sprintf(query->err_msg,
+    			"Memory allocation error or maximum recursion depth reached.");
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }

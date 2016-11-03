@@ -12,9 +12,12 @@
  */
 #include <cleri/prio.h>
 #include <cleri/expecting.h>
+#include <cleri/olist.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#define PRIO_MAX_RECUSION_DEPTH 200
 
 static void PRIO_free(cleri_object_t * cl_obj);
 
@@ -104,7 +107,8 @@ static cleri_node_t *  PRIO_parse(
 
     /* initialize and return rule test, or return an existing test
      * if *str is already in tested */
-    if (cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
+    if (	++rule->depth == PRIO_MAX_RECUSION_DEPTH ||
+    		cleri_rule_init(&tested, rule->tested, str) == CLERI_RULE_ERROR)
     {
     	pr->is_valid = -1;
         return NULL;

@@ -167,22 +167,40 @@ class TestSelect(TestBase):
                 [1447254748, 537]]})
 
         with self.assertRaisesRegexp(
-                    QueryError,
-                    'Cannot use a string filter on number type\.'):
+                QueryError,
+                'Cannot use a string filter on number type\.'):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
 
         with self.assertRaisesRegexp(
-                    QueryError,
-                    'Overflow detected while using sum\(\)\.'):
+                QueryError,
+                'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
 
         with self.assertRaisesRegexp(
-                    QueryError,
-                    'Max depth reached in \'where\' expression!'):
+                QueryError,
+                'Max depth reached in \'where\' expression!'):
             await self.client0.query(
                 'select * from "aggr" where ((((((length > 1))))))')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Cannot compile regular expression.*'):
+            await self.client0.query(
+                'select * from /(bla/')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Memory allocation error or maximum recursion depth reached.'):
+            await self.client0.query(
+                'select * from "aggr" where length > {}'.format('('*500))
+
+        with self.assertRaisesRegexp(
+                    QueryError,
+                    'Query too long.'):
+            await self.client0.query('select * from "{}"'.format('a' * 65535))
+
 
         await self.client0.query('select derivative() from "equal ts"')
 

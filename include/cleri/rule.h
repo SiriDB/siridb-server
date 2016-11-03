@@ -39,6 +39,7 @@ typedef struct cleri_rule_store_s
 {
     cleri_rule_tested_t * tested;
     cleri_object_t * root_obj;
+    size_t depth;
 } cleri_rule_store_t;
 
 typedef struct cleri_rule_s

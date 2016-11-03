@@ -34,6 +34,8 @@
 #include <string.h>
 
 #define WARNING_PKG_SIZE 1048576   // 1MB
+#define MAX_QUERY_PKG_SIZE 65535   // queries should fit in this size
+
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(ssocket)                                                  \
@@ -352,10 +354,35 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
+	if (pkg->len > MAX_QUERY_PKG_SIZE)
+	{
+		sirinet_pkg_t * package;
+
+		log_error(
+				"Received a query exceeding the maximum size. "
+				"(%lu, max size: %lu)",
+				pkg->len,
+				MAX_QUERY_PKG_SIZE);
+
+		package = sirinet_pkg_err(
+				pkg->pid,
+				15,
+				CPROTO_ERR_QUERY,
+				"Query too long.");
+
+		if (package != NULL)
+		{
+			sirinet_pkg_send((uv_stream_t *) client, package);
+		}
+
+		return;
+	}
+
     qp_unpacker_t unpacker;
     qp_obj_t qp_query;
     qp_obj_t qp_time_precision;
     siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
+
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&

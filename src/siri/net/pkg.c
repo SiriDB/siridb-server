@@ -170,6 +170,8 @@ sirinet_pkg_t * sirinet_pkg_err(
 /*
  * Returns 0 if successful or -1 when an error has occurred.
  * (signal is raised in case of an error)
+ *
+ * Note: pkg will be freed after calling this function.
  */
 int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
