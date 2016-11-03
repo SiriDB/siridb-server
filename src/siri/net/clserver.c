@@ -33,8 +33,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WARNING_PKG_SIZE 1048576   // 1MB
-#define MAX_QUERY_PKG_SIZE 65535   // queries should fit in this size
+#define WARNING_PKG_SIZE 1048576   	// 1MB
+
+/*
+ * note: this size is chosen to be 65535 but is not restricted to 16bit and
+ * 		 can be larger if required.
+ */
+#define MAX_QUERY_PKG_SIZE 65535
 
 
 #define DEFAULT_BACKLOG 128

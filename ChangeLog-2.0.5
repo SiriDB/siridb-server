@@ -8,3 +8,9 @@
   * Check for successful memory allocations in cexpr object. 
   
   * Wrap socket around uv_tcp_t instead of two separate mallocs.
+  
+  * Fixed possible stack overflow error by checking for a max recursion depth 
+    when parsing a query. (issue #31)
+    
+  * Fixed possible stack overflow error by checking for a maximum query length.
+    (see issue #32)
