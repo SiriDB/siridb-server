@@ -29,7 +29,7 @@ fontfamily=Monospaced //possible: SansSerif,Serif,
     <id>UMLClass</id>
     <coordinates>
       <x>416</x>
-      <y>752</y>
+      <y>792</y>
       <w>200</w>
       <h>216</h>
     </coordinates>
@@ -57,7 +57,7 @@ siri_setup_logger(): void</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>720</x>
-      <y>752</y>
+      <y>792</y>
       <w>224</w>
       <h>632</h>
     </coordinates>
@@ -120,7 +120,7 @@ siridb_save(): int
     <id>Relation</id>
     <coordinates>
       <x>608</x>
-      <y>856</y>
+      <y>896</y>
       <w>128</w>
       <h>32</h>
     </coordinates>
@@ -133,7 +133,7 @@ m2=0..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1016</x>
-      <y>752</y>
+      <y>792</y>
       <w>296</w>
       <h>192</h>
     </coordinates>
@@ -159,7 +159,7 @@ siridb_servers_send_pkg(): void</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1400</x>
-      <y>448</y>
+      <y>488</y>
       <w>288</w>
       <h>560</h>
     </coordinates>
@@ -216,7 +216,7 @@ siridb_server_update_flags(): void
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>960</y>
+      <y>1000</y>
       <w>480</w>
       <h>32</h>
     </coordinates>
@@ -229,7 +229,7 @@ m2=1..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>840</y>
+      <y>880</y>
       <w>96</w>
       <h>24</h>
     </coordinates>
@@ -240,7 +240,7 @@ m2=1..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1304</x>
-      <y>840</y>
+      <y>880</y>
       <w>112</w>
       <h>24</h>
     </coordinates>
@@ -251,7 +251,7 @@ m2=1..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>472</x>
-      <y>584</y>
+      <y>624</y>
       <w>200</w>
       <h>88</h>
     </coordinates>
@@ -269,7 +269,7 @@ iso8601_parse_date(): int64_t
     <id>UMLClass</id>
     <coordinates>
       <x>416</x>
-      <y>1032</y>
+      <y>1072</y>
       <w>200</w>
       <h>112</h>
     </coordinates>
@@ -289,7 +289,7 @@ siri_fopen(): int
     <id>UMLClass</id>
     <coordinates>
       <x>416</x>
-      <y>1216</y>
+      <y>1256</y>
       <w>200</w>
       <h>88</h>
     </coordinates>
@@ -306,7 +306,7 @@ siri_fp_decref(): void</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>504</x>
-      <y>960</y>
+      <y>1000</y>
       <w>24</w>
       <h>88</h>
     </coordinates>
@@ -319,7 +319,7 @@ m2=1</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>504</x>
-      <y>1136</y>
+      <y>1176</y>
       <w>64</w>
       <h>96</h>
     </coordinates>
@@ -332,7 +332,7 @@ m2=0..size</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>704</x>
-      <y>1568</y>
+      <y>1608</y>
       <w>288</w>
       <h>352</h>
     </coordinates>
@@ -371,7 +371,7 @@ siridb_shard_write_points(): long int</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>752</x>
-      <y>1448</y>
+      <y>1488</y>
       <w>256</w>
       <h>56</h>
     </coordinates>
@@ -386,7 +386,7 @@ siridb_shards_load(): int</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>840</x>
-      <y>1376</y>
+      <y>1416</y>
       <w>24</w>
       <h>88</h>
     </coordinates>
@@ -397,7 +397,7 @@ siridb_shards_load(): int</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>840</x>
-      <y>1496</y>
+      <y>1536</y>
       <w>24</w>
       <h>88</h>
     </coordinates>
@@ -408,7 +408,7 @@ siridb_shards_load(): int</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>728</x>
-      <y>1376</y>
+      <y>1416</y>
       <w>48</w>
       <h>208</h>
     </coordinates>
@@ -421,7 +421,7 @@ m2=0..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>608</x>
-      <y>1064</y>
+      <y>1104</y>
       <w>112</w>
       <h>584</h>
     </coordinates>
@@ -433,7 +433,7 @@ m2=0..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>504</x>
-      <y>1296</y>
+      <y>1336</y>
       <w>216</w>
       <h>440</h>
     </coordinates>
@@ -446,7 +446,7 @@ m2=1</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1072</x>
-      <y>1088</y>
+      <y>1128</y>
       <w>296</w>
       <h>488</h>
     </coordinates>
@@ -496,7 +496,7 @@ siridb_series_update_props(): void</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>1136</y>
+      <y>1176</y>
       <w>152</w>
       <h>32</h>
     </coordinates>
@@ -509,7 +509,7 @@ m2=0..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1072</x>
-      <y>1648</y>
+      <y>1688</y>
       <w>296</w>
       <h>128</h>
     </coordinates>
@@ -530,7 +530,7 @@ start_ts: uint64_t
     <id>Relation</id>
     <coordinates>
       <x>1216</x>
-      <y>1568</y>
+      <y>1608</y>
       <w>56</w>
       <h>96</h>
     </coordinates>
@@ -543,7 +543,7 @@ m2=0..len</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>984</x>
-      <y>1704</y>
+      <y>1744</y>
       <w>104</w>
       <h>32</h>
     </coordinates>
@@ -556,7 +556,7 @@ m2=1</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1432</x>
-      <y>1032</y>
+      <y>1072</y>
       <w>256</w>
       <h>280</h>
     </coordinates>
@@ -589,7 +589,7 @@ siridb_groups_start(): void</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>1056</y>
+      <y>1096</y>
       <w>512</w>
       <h>32</h>
     </coordinates>
@@ -602,7 +602,7 @@ m2=1</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1432</x>
-      <y>1392</y>
+      <y>1432</y>
       <w>256</w>
       <h>280</h>
     </coordinates>
@@ -635,7 +635,7 @@ siridb_group_update_expression(): int</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1544</x>
-      <y>1304</y>
+      <y>1344</y>
       <w>48</w>
       <h>104</h>
     </coordinates>
@@ -648,7 +648,7 @@ m2=0..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1360</x>
-      <y>1344</y>
+      <y>1384</y>
       <w>168</w>
       <h>64</h>
     </coordinates>
@@ -661,7 +661,7 @@ m2=0..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>88</x>
-      <y>752</y>
+      <y>792</y>
       <w>200</w>
       <h>144</h>
     </coordinates>
@@ -684,7 +684,7 @@ siri_cfg_init(): void
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>800</y>
+      <y>840</y>
       <w>152</w>
       <h>40</h>
     </coordinates>
@@ -697,7 +697,7 @@ m2=cfg file
     <id>Relation</id>
     <coordinates>
       <x>568</x>
-      <y>664</y>
+      <y>704</y>
       <w>184</w>
       <h>104</h>
     </coordinates>
@@ -710,7 +710,7 @@ m2=tz translation
     <id>UMLClass</id>
     <coordinates>
       <x>1064</x>
-      <y>496</y>
+      <y>536</y>
       <w>248</w>
       <h>216</h>
     </coordinates>
@@ -739,7 +739,7 @@ siridb_fifo_pop(): *sirinet_pkg_t
     <id>Relation</id>
     <coordinates>
       <x>912</x>
-      <y>680</y>
+      <y>720</y>
       <w>168</w>
       <h>88</h>
     </coordinates>
@@ -752,7 +752,7 @@ m2=0..1</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>88</x>
-      <y>960</y>
+      <y>1000</y>
       <w>200</w>
       <h>96</h>
     </coordinates>
@@ -771,7 +771,7 @@ siri_args_parse(): void
     <id>Relation</id>
     <coordinates>
       <x>176</x>
-      <y>888</y>
+      <y>928</y>
       <w>56</w>
       <h>88</h>
     </coordinates>
@@ -783,7 +783,7 @@ config</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>896</y>
+      <y>936</y>
       <w>152</w>
       <h>128</h>
     </coordinates>
@@ -796,7 +796,7 @@ m2=startup arguments
     <id>UMLClass</id>
     <coordinates>
       <x>1776</x>
-      <y>872</y>
+      <y>912</y>
       <w>280</w>
       <h>192</h>
     </coordinates>
@@ -823,7 +823,7 @@ siridb_pools_send_pkg_2some(): void
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>1008</y>
+      <y>1048</y>
       <w>856</w>
       <h>32</h>
     </coordinates>
@@ -836,7 +836,7 @@ m2=1</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1776</x>
-      <y>616</y>
+      <y>656</y>
       <w>280</w>
       <h>192</h>
     </coordinates>
@@ -858,7 +858,7 @@ siridb_pool_send_pkg(): int
     <id>Relation</id>
     <coordinates>
       <x>1912</x>
-      <y>800</y>
+      <y>840</y>
       <w>48</w>
       <h>88</h>
     </coordinates>
@@ -871,7 +871,7 @@ m2=1..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1680</x>
-      <y>704</y>
+      <y>744</y>
       <w>112</w>
       <h>32</h>
     </coordinates>
@@ -884,7 +884,7 @@ m2=1..len</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1064</x>
-      <y>200</y>
+      <y>240</y>
       <w>248</w>
       <h>216</h>
     </coordinates>
@@ -912,7 +912,7 @@ siridb_ffile_unlink(): void</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>1192</x>
-      <y>408</y>
+      <y>448</y>
       <w>48</w>
       <h>104</h>
     </coordinates>
@@ -925,7 +925,7 @@ m2=1..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>776</x>
-      <y>496</y>
+      <y>536</y>
       <w>256</w>
       <h>120</h>
     </coordinates>
@@ -945,7 +945,7 @@ siridb_users_save(): *int </panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>712</x>
-      <y>224</y>
+      <y>264</y>
       <w>232</w>
       <h>192</h>
     </coordinates>
@@ -971,7 +971,7 @@ siridb_user_decref(): void</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>744</x>
-      <y>408</y>
+      <y>448</y>
       <w>48</w>
       <h>360</h>
     </coordinates>
@@ -984,7 +984,7 @@ m2=0..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>824</x>
-      <y>608</y>
+      <y>648</y>
       <w>24</w>
       <h>160</h>
     </coordinates>
@@ -995,7 +995,7 @@ m2=0..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>824</x>
-      <y>408</y>
+      <y>448</y>
       <w>24</w>
       <h>104</h>
     </coordinates>
@@ -1006,9 +1006,9 @@ m2=0..*</panel_attributes>
     <id>UMLClass</id>
     <coordinates>
       <x>1400</x>
-      <y>144</y>
+      <y>184</y>
       <w>288</w>
-      <h>216</h>
+      <h>232</h>
     </coordinates>
     <panel_attributes>sirinet_socket_t
 --
@@ -1018,6 +1018,7 @@ on_data: on_data_cb_t
 origin: *void
 ref: uint32_t 
 siridb: *siridb_t
+tcp: uv_tcp_t
 tp: sirinet_socket_tp_t
 --
 sirinet__socket_free(): void
@@ -1035,20 +1036,20 @@ sirinet_socket_on_data(): void
     <id>Relation</id>
     <coordinates>
       <x>1544</x>
-      <y>352</y>
+      <y>408</y>
       <w>24</w>
-      <h>112</h>
+      <h>96</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;-&gt;&gt;&gt;&gt;
 m2=1
 </panel_attributes>
-    <additional_attributes>10.0;120.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;100.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
       <x>936</x>
-      <y>168</y>
+      <y>208</y>
       <w>480</w>
       <h>128</h>
     </coordinates>
@@ -1062,7 +1063,7 @@ m2=0..*
     <id>UMLClass</id>
     <coordinates>
       <x>88</x>
-      <y>584</y>
+      <y>624</y>
       <w>200</w>
       <h>88</h>
     </coordinates>
@@ -1079,7 +1080,7 @@ sirinet_clserver_init(): int
     <id>UMLClass</id>
     <coordinates>
       <x>88</x>
-      <y>456</y>
+      <y>496</y>
       <w>200</w>
       <h>88</h>
     </coordinates>
@@ -1096,7 +1097,7 @@ sirinet_bserver_init(): int
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>72</y>
+      <y>112</y>
       <w>1296</w>
       <h>456</h>
     </coordinates>
@@ -1109,7 +1110,7 @@ m2=1..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>88</y>
+      <y>128</y>
       <w>1232</w>
       <h>568</h>
     </coordinates>
@@ -1122,7 +1123,7 @@ m2=1..*</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>40</x>
-      <y>624</y>
+      <y>664</y>
       <w>64</w>
       <h>192</h>
     </coordinates>
@@ -1134,7 +1135,7 @@ config</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>0</x>
-      <y>488</y>
+      <y>528</y>
       <w>104</w>
       <h>368</h>
     </coordinates>
@@ -1146,7 +1147,7 @@ config</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>648</y>
+      <y>688</y>
       <w>200</w>
       <h>120</h>
     </coordinates>
@@ -1157,7 +1158,7 @@ config</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>280</x>
-      <y>520</y>
+      <y>560</y>
       <w>216</w>
       <h>248</h>
     </coordinates>
