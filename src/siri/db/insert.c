@@ -175,7 +175,11 @@ ssize_t siridb_insert_assign_pools(
     else if (qp_is_array(tp))
     {
         qp_packer_t * tmp_packer = qp_packer_new(QP_SUGGESTED_SIZE);
-        if (tmp_packer != NULL)
+        if (tmp_packer == NULL)
+        {
+        	ERR_ALLOC
+        }
+        else
         {
             rc = INSERT_assign_by_array(
                     siridb,

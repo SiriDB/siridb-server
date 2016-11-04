@@ -1330,6 +1330,11 @@ static void enter_timeit_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query->timeit = qp_packer_new(512);
 
+    if (query->timeit == NULL)
+    {
+		MEM_ERR_RET
+    }
+
     qp_add_raw(query->timeit, "__timeit__", 10);
     qp_add_type(query->timeit, QP_ARRAY_OPEN);
 

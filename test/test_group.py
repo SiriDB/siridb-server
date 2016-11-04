@@ -110,6 +110,9 @@ class TestGroup(TestBase):
         result = await self.client0.query('list series `a`, `two` & "c2"')
         self.assertEqual(sorted(result.pop('series')), [['c2']])
 
+        await self.client0.query('drop group `a`')
+        await self.client0.query('drop group `b`')
+        await self.client0.query('drop group `c`')
 
         self.client0.close()
         self.client1.close()

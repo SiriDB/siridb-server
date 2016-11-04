@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <xmath/xmath.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -218,25 +217,20 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns a new packer object or NULL in case of an error.
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)
 {
     qp_packer_t * packer = (qp_packer_t *) malloc(sizeof(qp_packer_t));
-    if (packer == NULL)
+    if (packer != NULL)
     {
-        ERR_ALLOC
-    }
-    else
-    {
-        packer->alloc_size = alloc_size;
+    	packer->alloc_size = alloc_size;
         packer->buffer_size = packer->alloc_size;
         packer->len = 0;
 
         packer->buffer = (char *) malloc(packer->buffer_size);
         if (packer->buffer == NULL)
         {
-            ERR_ALLOC
             free(packer);
             packer = NULL;
         }

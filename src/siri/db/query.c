@@ -261,7 +261,8 @@ void siridb_query_forward(
 
     if (packer == NULL)
     {
-        return;  /* signal is raised */
+    	ERR_ALLOC
+        return;
     }
 
     qp_add_type(packer, QP_ARRAY2);

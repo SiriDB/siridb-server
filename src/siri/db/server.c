@@ -648,9 +648,14 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_alloc_buffer,
                 sirinet_socket_on_data);
 
-        qp_packer_t * packer = qp_packer_new(512);
         sirinet_pkg_t * pkg;
-        if (packer != NULL)
+        qp_packer_t * packer = qp_packer_new(512);
+
+        if (packer == NULL)
+        {
+        	ERR_ALLOC
+        }
+        else
         {
             if (!(
                 qp_add_type(packer, QP_ARRAY_OPEN) ||

@@ -131,31 +131,32 @@ class TestInsert(TestBase):
             for i in range(25)]
         await asyncio.gather(*tasks)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)
 
         # Check the result
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)
 
-        # tasks = [
-        #     asyncio.ensure_future(self.client0.query(
-        #             'drop series /.*/ set ignore_threshold true'))
-        #     for i in range (5)]
+        tasks = [
+            asyncio.ensure_future(self.client0.query(
+                    'drop series /.*/ set ignore_threshold true'))
+            for i in range (5)]
 
-        # await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks)
 
-        # series = gen_series(n=100000)
-        # tasks = [
-        #     asyncio.ensure_future(
-        #         self.client0.insert_some_series(series, n=1.0, timeout=0, points=self.GEN_POINTS))
-        #     for i in range(5)]
-        # await asyncio.gather(*tasks)
+        tasks = [
+            asyncio.ensure_future(self.client0.query(
+                    'drop shards set ignore_threshold true'))
+            for i in range (5)]
 
+        await asyncio.gather(*tasks)
+
+        await asyncio.sleep(2)
 
         self.client0.close()
         self.client1.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':

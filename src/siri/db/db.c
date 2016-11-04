@@ -76,6 +76,12 @@ int siridb_is_db_path(const char * dbpath)
     return 1;  /* true */
 }
 
+/*
+ * Returns a siridb object or NULL in case of an error.
+ *
+ * (lock_flags are simple parsed to the lock function)
+ *
+ */
 siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
     size_t len = strlen(dbpath);
@@ -465,6 +471,9 @@ int siridb_from_unpacker(
     return 0;
 }
 
+/*
+ * Get a siridb object by name.
+ */
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 {
     llist_node_t * node = siridb_list->first;
@@ -483,6 +492,9 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
     return NULL;
 }
 
+/*
+ * Sometimes we need a callback function and cannot use a macro expansion.
+ */
 inline void siridb_decref_cb(siridb_t * siridb, void * args)
 {
     siridb_decref(siridb);
