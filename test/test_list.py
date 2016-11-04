@@ -21,8 +21,8 @@ from testing import UserAuthError
 TIME_PRECISION = 's'
 
 
-class TestInsert(TestBase):
-    title = 'Test inserts and response'
+class TestList(TestBase):
+    title = 'Test list'
 
     GEN_POINTS = functools.partial(gen_points, n=1, time_precision=TIME_PRECISION)
 
@@ -30,7 +30,6 @@ class TestInsert(TestBase):
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):
         await self.client0.connect()
-
 
         # Create some random series and start 25 insert task parallel
         series = gen_series(n=10000)
@@ -104,4 +103,4 @@ if __name__ == '__main__':
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
     Server.BUILDTYPE = 'Debug'
-    run_test(TestInsert())
+    run_test(TestList())

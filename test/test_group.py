@@ -41,9 +41,25 @@ class TestGroup(TestBase):
                 'Group name should be at least 1 characters.'):
             await self.client0.query('create group `` for /c.*/')
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group name should be at least 1 characters.'):
+            await self.client0.query('create group `` for /c.*/')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group name should be at most [0-9]+ characters.'):
+            await self.client0.query(
+                'create group `{}` for /c.*/'.format('a' * 300))
+
         self.assertEqual(
             await self.client0.query('create group `a` for /a.*/'),
             {'success_msg': "Successfully created group 'a'."})
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group \'a\' already exists.'):
+            await self.client0.query('create group `a` for /a.*/')
 
         self.assertEqual(
             await self.client0.insert(DATA),
@@ -118,6 +134,11 @@ class TestGroup(TestBase):
         await self.client0.query('drop group `a`')
         await self.client0.query('drop group `b`')
         await self.client0.query('drop group `c`')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group \'c\' does not exist.'):
+            await self.client0.query('drop group `c`')
 
         self.client0.close()
         self.client1.close()

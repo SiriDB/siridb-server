@@ -29,6 +29,24 @@ class TestUser(TestBase):
         result = await self.client0.query('list users')
         self.assertEqual(result.pop('users'), [['iris', 'full']])
 
+        with self.assertRaises(QueryError):
+            await self.client0.query('create user "sasientje"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'User name should be at least 2 characters.'):
+            await self.client0.query('create user "s" set password "123456"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'User name contains illegal characters.*'):
+            await self.client0.query('create user "  " set password "123456"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Password should be at least 4 characters.'):
+            await self.client0.query('create user "aa" set password "123"')
+
         result = await self.client0.query('create user "sasientje" set password "blabla"')
         self.assertEqual(result.pop('success_msg'), "Successfully created user 'sasientje'.")
 
