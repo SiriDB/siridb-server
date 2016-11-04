@@ -1,3 +1,15 @@
+siridb-server (2.0.6) xenial; urgency=medium
+
+  * Fixed memory leak when using multiple regular expressions in one query.
+    (issue #33)
+    
+  * Fixed memory leak in difference, symmetric_difference and intersection
+    functions on the imap object. (see issue #34)
+    
+  * Fixed memory leak when creating an invalid group. (issue #35)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 04 Nov 2016 21:03:31 +0000
+
 siridb-server (2.0.5) xenial; urgency=medium
 
   * Changed CLOCK_REALTIME to CLOCK_MONOTONIC for monitoring startup time.
