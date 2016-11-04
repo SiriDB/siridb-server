@@ -88,7 +88,7 @@ int siridb_group_set_name(
 {
     if (strlen(name) < SIRIDB_MIN_GROUP_LEN)
     {
-        sprintf(err_msg, "Gruop name should be at least %d characters.",
+        sprintf(err_msg, "Group name should be at least %d characters.",
                 SIRIDB_MIN_GROUP_LEN);
         return 1;
     }

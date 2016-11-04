@@ -36,6 +36,11 @@ class TestGroup(TestBase):
     async def run(self):
         await self.client0.connect()
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group name should be at least 1 characters.'):
+            await self.client0.query('create group `` for /c.*/')
+
         self.assertEqual(
             await self.client0.query('create group `a` for /a.*/'),
             {'success_msg': "Successfully created group 'a'."})

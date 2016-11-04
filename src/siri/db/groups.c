@@ -160,8 +160,14 @@ int siridb_groups_add_group(
             source_len,
             err_msg);
 
-    if (group == NULL || siridb_group_set_name(groups, group, name, err_msg))
+    if (group == NULL)
+	{
+    	return -1; /* err_msg is set and a SIGNAL is possibly raised */
+	}
+
+    if (siridb_group_set_name(groups, group, name, err_msg))
     {
+    	siridb_group_decref(group);
         return -1;  /* err_msg is set and a SIGNAL is possibly raised */
     }
 
@@ -172,6 +178,7 @@ int siridb_groups_add_group(
     switch (rc)
     {
     case CT_EXISTS:
+    	siridb_group_decref(group);
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Group '%s' already exists.",
@@ -179,12 +186,14 @@ int siridb_groups_add_group(
         break;
 
     case CT_ERR:
+    	siridb_group_decref(group);
         sprintf(err_msg, "Memory allocation error.");
         break;
 
     case CT_OK:
         if (slist_append_safe(&groups->ngroups, group))
         {
+        	siridb_group_decref(group);
             sprintf(err_msg, "Memory allocation error.");
             rc = -1;
         }
@@ -197,11 +206,6 @@ int siridb_groups_add_group(
     default:
         assert (0);
         break;
-    }
-
-    if (rc != CT_OK)
-    {
-        siridb_group_decref(group);
     }
 
     uv_mutex_unlock(&groups->mutex);
