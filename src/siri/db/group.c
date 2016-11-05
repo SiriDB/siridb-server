@@ -237,7 +237,7 @@ int siridb_group_update_expression(
         size_t source_len,
         char * err_msg)
 {
-    char * new_source = strdup(source);
+    char * new_source = strndup(source, source_len);
     pcre * new_regex;
     pcre_extra * new_regex_extra;
     siridb_series_t * series;
