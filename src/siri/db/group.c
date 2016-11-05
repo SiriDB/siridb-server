@@ -240,6 +240,7 @@ int siridb_group_update_expression(
     char * new_source = strdup(source);
     pcre * new_regex;
     pcre_extra * new_regex_extra;
+    siridb_series_t * series;
 
     if (new_source == NULL)
     {
@@ -270,7 +271,14 @@ int siridb_group_update_expression(
     group->regex = new_regex;
     group->regex_extra = new_regex_extra;
 
+    for (size_t i = 0; i < group->series->len; i++)
+    {
+    	series = (siridb_series_t *) group->series->data[i];
+    	siridb_series_decref(series);
+    }
+
     group->series->len = 0;
+
     slist_compact(&group->series);
 
     if (~group->flags & GROUP_FLAG_INIT)

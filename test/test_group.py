@@ -111,6 +111,7 @@ class TestGroup(TestBase):
             await self.client1.query('alter group `two` set expression /.2/'),
             {'success_msg': "Successfully updated group 'two'."})
 
+
         time.sleep(3)
 
         result = await self.client0.query('list series `a` & `two`')
@@ -130,6 +131,11 @@ class TestGroup(TestBase):
 
         result = await self.client0.query('list series `a`, `two` & "c2"')
         self.assertEqual(sorted(result.pop('series')), [['c2']])
+
+        self.assertEqual(
+            await self.client1.query('alter group `a` set expression /b.*/'),
+            {'success_msg': "Successfully updated group 'a'."})
+
 
         await self.client0.query('drop group `a`')
         await self.client0.query('drop group `b`')
