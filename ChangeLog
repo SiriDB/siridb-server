@@ -1,3 +1,9 @@
+siridb-server (2.0.8) xenial; urgency=medium
+
+  * Add source IP to logging when an invalid package is received. (issue #38)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 07 Nov 2016 12:46:44 +0000
+
 siridb-server (2.0.7) xenial; urgency=medium
 
   * Fixed memory leak in "alter group set expression". (issue #36)
