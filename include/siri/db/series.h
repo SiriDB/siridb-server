@@ -81,38 +81,38 @@ siridb_series_t * siridb_series_new(
         uint8_t tp);
 
 int siridb_series_add_idx(
-        siridb_series_t * series,
-        siridb_shard_t * shard,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard,
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
         uint16_t len);
 
 int siridb_series_add_point(
-        siridb_t * siridb,
-        siridb_series_t * series,
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
         uint64_t * ts,
         qp_via_t * val);
 
 int siridb_series_add_pcache(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_pcache_t * pcache);
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_pcache_t *__restrict pcache);
 
 siridb_points_t * siridb_series_get_points(
-        siridb_series_t * series,
-        uint64_t * start_ts,
-        uint64_t * end_ts);
+        siridb_series_t *__restrict series,
+        uint64_t *__restrict start_ts,
+        uint64_t *__restrict end_ts);
 
 void siridb_series_remove_shard(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard);
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard);
 
 int siridb_series_optimize_shard(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard);
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard);
 
 
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series);
@@ -124,7 +124,7 @@ int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_flush_dropped(siridb_t * siridb);
 uint8_t siridb_series_server_id_by_name(const char * name);
 int siridb_series_open_store(siridb_t * siridb);
-void siridb__series_free(siridb_series_t * series);
+void siridb__series_free(siridb_series_t *__restrict series);
 void siridb__series_decref(siridb_series_t * series);
 /*
  * Increment the series reference counter.

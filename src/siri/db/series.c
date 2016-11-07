@@ -46,9 +46,9 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
 static int SERIES_open_new_dropped_file(siridb_t * siridb);
 static int SERIES_open_dropped_file(siridb_t * siridb);
 static int SERIES_update_max_id(siridb_t * siridb);
-static void SERIES_update_start(siridb_series_t * series);
-static void SERIES_update_end(siridb_series_t * series);
-static void SERIES_update_overlap(siridb_series_t * series);
+static void SERIES_update_start(siridb_series_t *__restrict series);
+static void SERIES_update_end(siridb_series_t *__restrict series);
+static void SERIES_update_overlap(siridb_series_t *__restrict series);
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker);
 static void SERIES_idx_sort(
         idx_t * idx,
@@ -108,8 +108,8 @@ int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
  *      (series->start and series->end) should be done outside this function.
  */
 int siridb_series_add_point(
-        siridb_t * siridb,
-        siridb_series_t * series,
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
         uint64_t * ts,
         qp_via_t * val)
 {
@@ -171,9 +171,9 @@ int siridb_series_add_point(
  *      (series->start and series->end) should be done outside this function.
  */
 int siridb_series_add_pcache(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_pcache_t * pcache)
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_pcache_t *__restrict pcache)
 {
     if (pcache->len > siridb->buffer_len)
     {
@@ -191,9 +191,9 @@ int siridb_series_add_pcache(
     {
         series->length += pcache->len;
 
-        siridb_points_t * points = series->buffer->points;
+        siridb_points_t *__restrict points = series->buffer->points;
         size_t i = points->len;
-        siridb_point_t * point;
+        siridb_point_t *__restrict point;
 
         while (i--)
         {
@@ -223,7 +223,7 @@ int siridb_series_add_pcache(
     }
     else
     {
-        siridb_point_t * point;
+        siridb_point_t *__restrict point;
 
         for (size_t i = 0; i < pcache->len; i++)
         {
@@ -312,7 +312,7 @@ siridb_series_t * siridb_series_new(
  *
  * Destroy series. (parsing NULL is not allowed)
  */
-void siridb__series_free(siridb_series_t * series)
+void siridb__series_free(siridb_series_t *__restrict series)
 {
 #ifdef DEBUG
     if (siri.status == SIRI_STATUS_RUNNING || 1)
@@ -386,8 +386,8 @@ int siridb_series_load(siridb_t * siridb)
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int siridb_series_add_idx(
-        siridb_series_t * series,
-        siridb_shard_t * shard,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard,
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
@@ -568,15 +568,15 @@ int siridb_series_flush_dropped(siridb_t * siridb)
  * Note that 'series' can be destroyed when series->length has reached zero.
  */
 void siridb_series_remove_shard(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard)
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard)
 {
 #ifdef DEBUG
     assert (shard->id % siridb->duration_num == series->mask);
 #endif
 
-    idx_t * idx;
+    idx_t *__restrict idx;
     uint_fast32_t i, offset;
 
     i = offset = 0;
@@ -672,13 +672,13 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 siridb_points_t * siridb_series_get_points(
-        siridb_series_t * series,
-        uint64_t * start_ts,
-        uint64_t * end_ts)
+        siridb_series_t *__restrict series,
+        uint64_t *__restrict start_ts,
+        uint64_t *__restrict end_ts)
 {
-    idx_t * idx;
-    siridb_points_t * points;
-    siridb_point_t * point;
+    idx_t *__restrict idx;
+    siridb_points_t *__restrict points;
+    siridb_point_t *__restrict point;
     size_t len, size;
     uint32_t i;
     uint32_t indexes[series->idx_len];
@@ -731,7 +731,9 @@ siridb_points_t * siridb_series_get_points(
     /* crop end buffer if needed */
     if (end_ts != NULL && len)
     {
-        for (   siridb_point_t * p = point + len - 1;
+    	siridb_point_t *__restrict p;
+
+        for (   p = point + len - 1;
                 len && p->ts >= *end_ts;
                 p--, len--);
     }
@@ -803,20 +805,20 @@ uint8_t siridb_series_server_id_by_name(const char * name)
  * be at least 'ERROR' for all error logs)
  */
 int siridb_series_optimize_shard(
-        siridb_t * siridb,
-        siridb_series_t * series,
-        siridb_shard_t * shard)
+        siridb_t *__restrict siridb,
+        siridb_series_t *__restrict series,
+        siridb_shard_t *__restrict shard)
 {
 #ifdef DEBUG
     assert (shard->id % siridb->duration_num == series->mask);
 #endif
 
-    idx_t * idx;
+    idx_t *__restrict idx;
 
     uint_fast32_t i, start, end, new_idx;
     uint64_t max_ts;
     size_t size;
-    siridb_points_t * points;
+    siridb_points_t *__restrict points;
     int rc;
 
     max_ts = (shard->id + siridb->duration_num) - series->mask;
@@ -1077,7 +1079,7 @@ static void SERIES_idx_sort(
  * This function never sets an overlap and therefore should not be called
  * as long as the overlap flag is not set.
  */
-static void SERIES_update_overlap(siridb_series_t * series)
+static void SERIES_update_overlap(siridb_series_t *__restrict series)
 {
 #ifdef DEBUG
     assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
@@ -1495,7 +1497,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
 /*
  * Update series 'start' property.
  */
-static void SERIES_update_start(siridb_series_t * series)
+static void SERIES_update_start(siridb_series_t *__restrict series)
 {
     series->start = series->idx_len ? series->idx->start_ts : -1;
 
@@ -1512,7 +1514,7 @@ static void SERIES_update_start(siridb_series_t * series)
 /*
  * Update series 'end' property.
  */
-static void SERIES_update_end(siridb_series_t * series)
+static void SERIES_update_end(siridb_series_t *__restrict series)
 {
     if (series->idx_len)
     {

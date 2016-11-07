@@ -72,7 +72,7 @@ void siridb_points_free(siridb_points_t * points)
  *      point and is therefore not safe.
  */
 void siridb_points_add_point(
-        siridb_points_t * points,
+        siridb_points_t *__restrict points,
         uint64_t * ts,
         qp_via_t * val)
 {

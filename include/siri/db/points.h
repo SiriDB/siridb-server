@@ -39,7 +39,7 @@ typedef struct siridb_points_s
 siridb_points_t * siridb_points_new(size_t size, points_tp tp);
 void siridb_points_free(siridb_points_t * points);
 void siridb_points_add_point(
-        siridb_points_t * points,
+        siridb_points_t *__restrict points,
         uint64_t * ts,
         qp_via_t * val);
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer);
