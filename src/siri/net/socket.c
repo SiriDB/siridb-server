@@ -21,6 +21,26 @@
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 #define SUGGESTED_SIZE 65536
 
+#define CHECK_PKG(__buf)													\
+	if (    (pkg->tp ^ 255) != pkg->checkbit ||								\
+			(ssocket->tp == SOCKET_CLIENT &&								\
+					pkg->len > MAX_ALLOWED_PKG_SIZE))						\
+	{																		\
+		char addr_port[ADDR_BUF_SZ];										\
+		if (sirinet_addr_and_port(addr_port, client) == 0)					\
+		{																	\
+			log_error(														\
+				"Got an illegal package or size too large from '%s', "		\
+				"closing connection (pid: %lu, len: %lu, tp: %u)",			\
+				addr_port, pkg->pid, pkg->len, pkg->tp);					\
+		}																	\
+		free(__buf);														\
+		ssocket->buf = NULL;												\
+		sirinet_socket_decref(client);										\
+		return;																\
+	}
+
+
 const char * sirinet_socket_ip_support_str(uint8_t ip_support)
 {
 	switch (ip_support)
@@ -164,25 +184,7 @@ void sirinet_socket_on_data(
         {
             pkg = (sirinet_pkg_t *) buf->base;
 
-            if (    (pkg->tp ^ 255) != pkg->checkbit ||
-                    (ssocket->tp == SOCKET_CLIENT &&
-                            pkg->len > MAX_ALLOWED_PKG_SIZE))
-            {
-                char addr_port[ADDR_BUF_SZ];
-
-                if (sirinet_addr_and_port(addr_port, client) == 0)
-                {
-					log_error(
-						"Got an illegal package or size too large from '%s', "
-						"closing connection (pid: %lu, len: %lu, tp: %u)",
-						addr_port, pkg->pid, pkg->len, pkg->tp);
-                }
-
-                free(buf->base);
-
-                sirinet_socket_decref(client);
-                return;
-            }
+            CHECK_PKG(buf->base)
 
             total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
@@ -243,26 +245,7 @@ void sirinet_socket_on_data(
 
         pkg = (sirinet_pkg_t *) ssocket->buf;
 
-        if (    (pkg->tp ^ 255) != pkg->checkbit ||
-                (ssocket->tp == SOCKET_CLIENT &&
-                        pkg->len > MAX_ALLOWED_PKG_SIZE))
-        {
-            char addr_port[ADDR_BUF_SZ];
-
-            if (sirinet_addr_and_port(addr_port, client) == 0)
-            {
-				log_error(
-					"Got an illegal package or size too large from '%s', "
-					"closing connection (pid: %lu, len: %lu, tp: %u)",
-					addr_port, pkg->pid, pkg->len, pkg->tp);
-            }
-
-            free(ssocket->buf);
-            ssocket->buf = NULL;
-
-            sirinet_socket_decref(client);
-            return;
-        }
+        CHECK_PKG(ssocket->buf)
 
         total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
@@ -330,26 +313,7 @@ void sirinet_socket_on_data(
         {
         	pkg = (sirinet_pkg_t *) ssocket->buf;
 
-            if (    (pkg->tp ^ 255) != pkg->checkbit ||
-                    (ssocket->tp == SOCKET_CLIENT &&
-                            pkg->len > MAX_ALLOWED_PKG_SIZE))
-            {
-                char addr_port[ADDR_BUF_SZ];
-
-                if (sirinet_addr_and_port(addr_port, client) == 0)
-                {
-    				log_error(
-    					"Got an illegal package or size too large from '%s', "
-    					"closing connection (pid: %lu, len: %lu, tp: %u)",
-    					addr_port, pkg->pid, pkg->len, pkg->tp);
-                }
-
-                free(ssocket->buf);
-                ssocket->buf = NULL;
-
-                sirinet_socket_decref(client);
-                return;
-            }
+            CHECK_PKG(ssocket->buf)
 
             total_sz = pkg->len + sizeof(sirinet_pkg_t);
 
