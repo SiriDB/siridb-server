@@ -27,11 +27,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#define GET_FN(shrd)                                                       \
+#define GET_FN(shrd)                                                       	\
 /* we are sure this fits since the max possible length is checked */        \
-shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                                                          \
-sprintf(fn, "%s%s%llu%s", siridb->dbpath,                                    \
-            SIRIDB_SHARDS_PATH, (unsigned long long) shrd->id, ".sdb");
+shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                       \
+sprintf(fn, "%s%s%" PRIu64 "%s", siridb->dbpath,                            \
+            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -156,7 +156,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
     FILE * fp;
 
-    log_info("Loading shard %llu", (unsigned long long) id);
+    log_info("Loading shard %" PRIu64, id);
 
     if ((fp = fopen(shard->fn, "r")) == NULL)
     {
@@ -564,12 +564,13 @@ int siridb_shard_get_points_num32(
     {
         if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
         {
-            log_error("Cannot read from shard id %lu", idx->shard->id);
+            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
         }
         else
         {
             log_critical(
-                    "Cannot read from shard id %lu. The next optimize cycle "
+                    "Cannot read from shard id %" PRIu64
+					". The next optimize cycle "
                     "will fix this shard but you might loose some data.",
                     idx->shard->id);
             idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -654,12 +655,13 @@ int siridb_shard_get_points_num64(
     {
         if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
         {
-            log_error("Cannot read from shard id %lu", idx->shard->id);
+            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
         }
         else
         {
             log_critical(
-                    "Cannot read from shard id %lu. The next optimize cycle "
+                    "Cannot read from shard id %" PRIu64
+					". The next optimize cycle "
                     "will fix this shard but you might loose some data.",
                     idx->shard->id);
             idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
@@ -758,7 +760,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         {
             /* signal is raised */
             log_critical(
-                    "Cannot create shard id '%lu' for optimizing.",
+                    "Cannot create shard id '%" PRIu64 "' for optimizing.",
                     shard->id);
         }
         else
@@ -769,8 +771,10 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     else
     {
         log_warning(
-                "Skip optimizing shard id '%lu' since the shard has changed "
-                "since building the optimize shard list.", shard->id);
+                "Skip optimizing shard id '%" PRIu64
+				"' since the shard has changed "
+                "since building the optimize shard list.",
+				shard->id);
     }
 
     uv_mutex_unlock(&siridb->shards_mutex);
@@ -996,13 +1000,13 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
 #ifdef DEBUG
     else if (~shard->flags & SIRIDB_SHARD_IS_REMOVED)
     {
-        LOGC("Cannot find shard id %lu in shards map", shard->id);
+        LOGC("Cannot find shard id %" PRIu64 " in shards map", shard->id);
     }
 #endif
 
     if (shard->flags & SIRIDB_SHARD_IS_REMOVED)
     {
-        log_warning("Shard id '%lu' is already dropped", shard->id);
+        log_warning("Shard id '%" PRIu64 "' is already dropped", shard->id);
     }
     else
     {
@@ -1088,7 +1092,7 @@ void siridb__shard_free(siridb_shard_t * shard)
     siri_fp_decref(shard->fp);
 
 #ifdef DEBUG
-    log_debug("Free shard id: %lu", shard->id);
+    log_debug("Free shard id: %" PRIu64, shard->id);
 #endif
 
     free(shard->fn);
@@ -1125,7 +1129,8 @@ static int SHARD_load_idx_num32(
 
         if (pos < 0)
         {
-            log_error("Cannot read position in shard %lu (%s). Mark this shard "
+            log_error("Cannot read position in shard %" PRIu64
+            		" (%s). Mark this shard "
                     "as corrupt. The next optimize cycle will most likely fix "
                     "this shard but you might loose some data.",
                     shard->id,
@@ -1141,8 +1146,9 @@ static int SHARD_load_idx_num32(
             if (!series_id || series_id > siridb->max_series_id)
             {
                 log_error(
-                        "Unexpected Series ID %u is found in shard %lu (%s) at "
-                        "position %d. This indicates that this shard is "
+                        "Unexpected Series ID %" PRIu32
+						" is found in shard %" PRIu64 " (%s) at "
+                        "position %ld. This indicates that this shard is "
                         "probably corrupt. The next optimize cycle will most "
                         "likely fix this shard but you might loose some data.",
                         series_id,
@@ -1157,7 +1163,8 @@ static int SHARD_load_idx_num32(
             if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
             {
                 log_debug(
-                        "At least Series ID %u is found in shard %lu (%s) but "
+                        "At least Series ID %" PRIu32
+						" is found in shard %" PRIu64 " (%s) but "
                         "does not exist anymore. We will remove the series on "
                         "the next optimize cycle.",
                         series_id,
@@ -1189,12 +1196,13 @@ static int SHARD_load_idx_num32(
         rc = fseeko(fp, len * 12, SEEK_CUR);  // 12 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %llu (%s) at position %ld. Mark "
-                    "this shard as corrupt. The next optimize cycle will most "
-                    "likely fix this shard but you might loose some data.",
-                    (unsigned long long) shard->id,
-                    shard->fn,
-                    pos);
+            log_error(
+				"Seek error in shard %" PRIu64 " (%s) at position %ld. "
+				"Mark this shard as corrupt. The next optimize cycle will "
+				"most likely fix this shard but you might loose some data.",
+				shard->id,
+				shard->fn,
+				pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
             return -1;
         }
@@ -1229,7 +1237,8 @@ static int SHARD_load_idx_num64(
 
         if (pos < 0)
         {
-            log_error("Cannot read position in shard %lu (%s). Mark this shard "
+            log_error("Cannot read position in shard %" PRIu64
+            		" (%s). Mark this shard "
                     "as corrupt. The next optimize cycle will most likely fix "
                     "this shard but you might loose some data.",
                     shard->id,
@@ -1245,7 +1254,8 @@ static int SHARD_load_idx_num64(
             if (!series_id || series_id > siridb->max_series_id)
             {
                 log_error(
-                        "Unexpected Series ID %u is found in shard %lu (%s) at "
+                        "Unexpected Series ID %" PRIu32
+						" is found in shard %" PRIu64 " (%s) at "
                         "position %d. This indicates that this shard is "
                         "probably corrupt. The next optimize cycle will most "
                         "likely fix this shard but you might loose some data.",
@@ -1261,7 +1271,8 @@ static int SHARD_load_idx_num64(
             if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
             {
                 log_debug(
-                        "At least Series ID %u is found in shard %lu (%s) but "
+                        "At least Series ID %" PRIu32
+						" is found in shard %" PRIu64 " (%s) but "
                         "does not exist anymore. We will remove the series on "
                         "the next optimize cycle.",
                         series_id,
@@ -1293,12 +1304,13 @@ static int SHARD_load_idx_num64(
         rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM32 point size
         if (rc != 0)
         {
-            log_error("Seek error in shard %llu (%s) at position %ld. Mark this "
-                    "shard as corrupt. The next optimize cycle will most "
-                    "likely fix this shard but you might loose some data.",
-                    (unsigned long long) shard->id,
-                    shard->fn,
-                    pos);
+            log_error(
+				"Seek error in shard %" PRIu64 " (%s) at position %ld. "
+				"Mark this shard as corrupt. The next optimize cycle will "
+				"most likely fix this shard but you might loose some data.",
+				shard->id,
+				shard->fn,
+				pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
             return -1;
         }
@@ -1316,10 +1328,10 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
-             "%s%s%s%llu%s",
+             "%s%s%s%" PRIu64 "%s",
              siridb->dbpath,
              SIRIDB_SHARDS_PATH,
              (shard->replacing == NULL) ? "" : "__",
-			 (unsigned long long) shard->id,
+			 shard->id,
              ".sdb");
 }

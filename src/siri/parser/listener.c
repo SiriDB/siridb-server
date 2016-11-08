@@ -830,9 +830,9 @@ static void enter_limit_expr(uv_async_t * handle)
     if (limit <= 0 || limit > MAX_LIST_LIMIT)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
-                "Limit must be a value between 0 and %d but received: %ld",
+                "Limit must be a value between 0 and %d but received: %" PRId64,
                 MAX_LIST_LIMIT,
-                (long) limit);
+                limit);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
@@ -1489,9 +1489,10 @@ static void exit_between_expr(uv_async_t * handle)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
-                "Start time (%llu) should not be greater than end time (%llu)",
-				(unsigned long long) *q_select->start_ts,
-				(unsigned long long) *q_select->end_ts);
+                "Start time (%" PRIu64 ") "
+				"should not be greater than end time (%" PRIu64 ")",
+				*q_select->start_ts,
+				*q_select->end_ts);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else

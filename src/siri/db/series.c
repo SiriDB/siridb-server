@@ -647,9 +647,9 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
     if (series->buffer == NULL)
     {
         log_error(
-                "Drop '%s' (%lu) since nu buffer is found for this series",
-                series->name,
-                series->id);
+			"Drop '%s' (%" PRIu32 ") since nu buffer is found for this series",
+			series->name,
+			series->id);
         siridb_series_drop(siridb, series);
     }
     else
@@ -660,9 +660,9 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
         if (!series->length)
         {
             log_warning(
-                    "Drop '%s' (%lu) since no data is found for this series",
-                    series->name,
-                    series->id);
+				"Drop '%s' (%" PRIu32 ") since no data is found for this series",
+				series->name,
+				series->id);
             siridb_series_drop(siridb, series);
         }
     }
@@ -910,8 +910,8 @@ int siridb_series_optimize_shard(
                 pend)) == EOF)
         {
             log_critical(
-            		"Cannot write points to shard id '%llu'",
-            		(unsigned long long) shard->id);
+            		"Cannot write points to shard id '%" PRIu64 "'",
+            		shard->id);
             rc = -1;  /* signal is raised */
             num_chunks--;
         }
@@ -1477,7 +1477,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
             return -1;
         }
 
-        log_debug("Write max series id (%lu)", siridb->max_series_id);
+        log_debug("Write max series id (%" PRIu32 ")", siridb->max_series_id);
 
         if (fwrite(&siridb->max_series_id, sizeof(uint32_t), 1, fp) != 1)
         {

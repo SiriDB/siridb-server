@@ -89,12 +89,15 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
                 tcount++;
             }
         }
-        log_debug("Series with overlap: %lu", tcount);
-        log_debug("Active tasks: %u (inserts: %u, queries: %u)",
+        log_debug("Series with overlap: %" PRIu32, tcount);
+        log_debug(
+        		"Active tasks: %" PRIu16
+				" (inserts: %" PRIu16
+				", queries: %" PRIu16 ")",
         		siridb->active_tasks,
 				siridb->insert_tasks,
 				siridb->active_tasks - siridb->insert_tasks);
-        log_debug("Max series id: %lu", siridb->max_series_id);
+        log_debug("Max series id: %" PRIu32, siridb->max_series_id);
 
 #endif
 

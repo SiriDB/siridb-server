@@ -202,7 +202,7 @@ int siridb_server_send_pkg(
             (timeout) ? timeout : PROMISE_DEFAULT_TIMEOUT,
             0);
 
-    log_debug("Sending (pid: %lu, len: %lu, tp: %s) to '%s'",
+    log_debug("Sending (pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s) to '%s'",
             pkg->pid,
             pkg->len,
             sirinet_bproto_client_str(pkg->tp),
@@ -575,16 +575,17 @@ static void SERVER_write_cb(uv_write_t * req, int status)
 
     if (status)
     {
-        log_error("Socket write error to server '%s' (pid: %lu, error: %s)",
-                promise->server->name,
-                promise->pid,
-                uv_strerror(status));
+        log_error(
+			"Socket write error to server '%s' (pid: %" PRIu16 ", error: %s)",
+			promise->server->name,
+			promise->pid,
+			uv_strerror(status));
 
         if (imap_pop(promise->server->promises, promise->pid) == NULL)
         {
             log_critical(
             		"Got a socket error but the promise is not found. "
-            		"(PID: %lu)",
+            		"(PID: %" PRIu16 ")",
 					promise->pid);
             return;
         }
@@ -611,7 +612,8 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     if (imap_pop(promise->server->promises, promise->pid) == NULL)
     {
         log_critical(
-                "Timeout task is called on package (PID %lu) for server '%s' "
+                "Timeout task is called on package (PID %" PRIu16
+				") for server '%s' "
                 "but we cannot find this promise!!",
                 promise->pid,
                 promise->server->name);
@@ -619,7 +621,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     }
     else
     {
-        log_warning("Timeout on package (PID %lu) for server '%s'",
+        log_warning("Timeout on package (PID %" PRIu16 ") for server '%s'",
                 promise->pid,
                 promise->server->name);
     }
@@ -713,17 +715,21 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     siridb_server_t * server = ssocket->origin;
     sirinet_promise_t * promise = imap_pop(server->promises, pkg->pid);
 
-    log_debug("Response received (pid: %lu, len: %lu, tp: %s) from '%s'",
-            pkg->pid,
-            pkg->len,
-            sirinet_bproto_server_str(pkg->tp),
-            server->name);
+    log_debug(
+			"Response received (pid: %" PRIu16
+			", len: %" PRIu32 ", tp: %s) from '%s'",
+			pkg->pid,
+			pkg->len,
+			sirinet_bproto_server_str(pkg->tp),
+			server->name);
 
     if (promise == NULL)
     {
         log_warning(
-                "Received a package (PID %lu) from server '%s' which has "
-                "probably timed-out earlier.", pkg->pid, server->name);
+                "Received a package (PID %" PRIu16
+				") from server '%s' which has probably timed-out earlier.",
+				pkg->pid,
+				server->name);
     }
     else
     {

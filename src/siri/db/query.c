@@ -771,8 +771,8 @@ static int QUERY_time_expr(
         n = snprintf(
                 buf + EXPR_MAX_SIZE - *size,
                 *size,
-                "%llu",
-                (unsigned long long) walker->now);
+                "%" PRIu64,
+                walker->now);
         if (n >= *size)
         {
             return EXPR_TOO_LONG;
@@ -798,8 +798,7 @@ static int QUERY_time_expr(
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%llu",
-					(unsigned long long)
+                    "%" PRIu64,
 						siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
             if (n >= *size)
@@ -834,8 +833,8 @@ static int QUERY_time_expr(
             n = snprintf(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
-                    "%lld",
-					(long long) ts * walker->siridb->time->factor);
+                    "%" PRId64,
+					ts * walker->siridb->time->factor);
 
             if (n >= *size)
             {
@@ -975,8 +974,8 @@ static int QUERY_rebuild(
                 n = snprintf(
                         buf + max_size - *size,
                         *size,
-                        "%lld ",
-                        (long long) node->result);
+                        "%" PRId64 " ",
+                        node->result);
                 if (n >= *size)
                 {
                     return QUERY_TOO_LONG;

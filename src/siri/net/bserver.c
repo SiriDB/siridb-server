@@ -188,7 +188,7 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     	{
     	    log_debug(
 					"Package received from server '%s' "
-					"(pid: %u, len: %lu, tp: %s)",
+					"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
 					addr_port,
     	            pkg->pid,
     	            pkg->len,

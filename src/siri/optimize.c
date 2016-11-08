@@ -219,19 +219,19 @@ static void OPTIMIZE_work(uv_work_t * work)
                     shard->flags != SIRIDB_SHARD_OK &&
                     (~shard->flags & SIRIDB_SHARD_IS_REMOVED))
             {
-                log_info("Start optimizing shard id %lu (%u)",
+                log_info("Start optimizing shard id %" PRIu64 " (%" PRIu8 ")",
                         shard->id, shard->flags);
                 if (siridb_shard_optimize(shard, siridb) == 0)
                 {
-                    log_info("Finished optimizing shard id %llu",
-                    		(unsigned long long) shard->id);
+                    log_info("Finished optimizing shard id %" PRIu64,
+                    		shard->id);
                 }
                 else
                 {
                     /* signal is raised */
                     log_critical(
-                            "Optimizing shard id %llu has failed with a "
-                            "critical error", (unsigned long long) shard->id);
+						"Optimizing shard id %" PRIu64 " has failed with a "
+						"critical error", shard->id);
                 }
             }
 

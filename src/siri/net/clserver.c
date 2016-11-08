@@ -187,7 +187,7 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     	{
 			log_debug(
 					"Package received from client '%s' "
-					"(pid: %u, len: %lu, tp: %s)",
+					"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
 					addr_port,
 					pkg->pid,
 					pkg->len,
@@ -365,7 +365,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
 
 		log_error(
 				"Received a query exceeding the maximum size. "
-				"(%lu, max size: %lu)",
+				"(%" PRIu32 ", max size: %u)",
 				pkg->len,
 				MAX_QUERY_PKG_SIZE);
 

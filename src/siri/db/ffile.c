@@ -59,10 +59,10 @@ siridb_ffile_t * siridb_ffile_new(
         return NULL;
     }
 
-    if (asprintf(&ffile->fn, "%s%0*llu.fifo",
+    if (asprintf(&ffile->fn, "%s%0*" PRIu64 ".fifo",
     		path,
 			FFILE_NUMBERS,
-			(unsigned long long) id) < 0)
+			id) < 0)
     {
         ERR_ALLOC
         free(ffile);
@@ -232,7 +232,7 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
     if (fread(pkg, ffile->next_size, 1, ffile->fp) != 1)
     {
         log_critical(
-                "Error while reading %lu bytes from '%s'",
+                "Error while reading %" PRIu32 " bytes from '%s'",
                 ffile->next_size,
                 ffile->fn);
         free(pkg);

@@ -31,7 +31,8 @@
 		{																	\
 			log_error(														\
 				"Got an illegal package or size too large from '%s', "		\
-				"closing connection (pid: %lu, len: %lu, tp: %u)",			\
+				"closing connection "										\
+				"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",		\
 				addr_port, pkg->pid, pkg->len, pkg->tp);					\
 		}																	\
 		free(__buf);														\
@@ -218,7 +219,7 @@ void sirinet_socket_on_data(
             {
                 log_critical(
                         "Cannot allocate size for package "
-                        "(pid: %lu, len: %lu, tp: %u)",
+                        "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
                         pkg->pid, pkg->len, pkg->tp);
                 free(buf->base);
                 return;
@@ -259,7 +260,7 @@ void sirinet_socket_on_data(
             {
                 log_critical(
                         "Cannot allocate size for package "
-                        "(pid: %lu, len: %lu, tp: %u)",
+                		"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
                         pkg->pid, pkg->len, pkg->tp);
                 free(ssocket->buf);
                 ssocket->buf = NULL;

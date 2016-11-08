@@ -1349,7 +1349,7 @@ static qp_types_t QP_print_unpacker(
     switch (tp)
     {
     case QP_INT64:
-        printf("%lld", (long long) qp_obj->via.int64);
+        printf("%" PRId64, qp_obj->via.int64);
         break;
     case QP_DOUBLE:
         printf("%f", qp_obj->via.real);
