@@ -166,5 +166,5 @@ if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Release'
+    Server.BUILDTYPE = 'Debug'
     run_test(TestUser())

@@ -75,7 +75,7 @@ class SiriDB:
             '--user {user} '
             '--password {password} '
             '--pool {pool} '
-            '--buffer-path {buffer_path} '
+            '{bufpath}'
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 log_level=self.LOG_LEVEL.lower(),
@@ -83,6 +83,9 @@ class SiriDB:
                 user=username,
                 password=password,
                 pool=pool,
+                bufpath=
+                    '' if not self.buffer_path
+                    else '--buffer-path {}'.format(self.buffer_path),
                 **vars(self),
                 remote_address=remote_server.server_address,
                 remote_port=remote_server.listen_client_port))
@@ -114,13 +117,16 @@ class SiriDB:
             '--remote-port {remote_port} '
             '--user {user} '
             '--password {password} '
-            '--buffer-path {buffer_path} '
+            '{bufpath}'
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 log_level=self.LOG_LEVEL.lower(),
                 cfgfile=server.cfgfile,
                 user=username,
                 password=password,
+                bufpath=
+                    '' if not self.buffer_path
+                    else '--buffer-path {}'.format(self.buffer_path),
                 **vars(self),
                 remote_address=remote_server.server_address,
                 remote_port=remote_server.listen_client_port))
