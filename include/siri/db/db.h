@@ -34,9 +34,9 @@
 
 #define SIRIDB_FLAG_REINDEXING 1
 
-#define SIRIDB_GET_FN(FN, FILENAME)                         \
-    char FN[strlen(siridb->dbpath) + strlen(FILENAME) + 1]; \
-    sprintf(FN, "%s%s", siridb->dbpath, FILENAME);
+#define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
+    char FN[strlen(__path) + strlen(FILENAME) + 1]; 				\
+    sprintf(FN, "%s%s", __path, FILENAME);
 
 /* Schema File Check
  * Needs fn and unpacker, free unpacker in case of an error.

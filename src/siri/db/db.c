@@ -9,6 +9,7 @@
  *  - initial version, 10-03-2016
  *
  */
+#define _GNU_SOURCE
 #include <assert.h>
 #include <cfgparser/cfgparser.h>
 #include <lock/lock.h>
@@ -191,12 +192,25 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
                 &option,
                 cfgparser,
                 "buffer",
-                "buffer_path");
+                "path");
 
-    siridb->buffer_path = (
-            rc == CFGPARSER_SUCCESS &&
-            option->tp == CFGPARSER_TP_STRING) ?
-                    strdup(option->val->string) : siridb->dbpath;
+    if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING)
+	{
+    	len = strlen(option->val->string);
+    	siridb->buffer_path = NULL;
+		if (option->val->string[len - 1] == '/')
+		{
+			siridb->buffer_path = strdup(option->val->string);
+		}
+		else if (asprintf(&siridb->buffer_path, "%s/", option->val->string) < 0)
+		{
+			siridb->buffer_path = NULL;
+		}
+	}
+    else
+    {
+    	siridb->buffer_path = siridb->dbpath;
+    }
 
     /* free cfgparser */
     cfgparser_free(cfgparser);

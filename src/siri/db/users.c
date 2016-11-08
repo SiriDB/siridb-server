@@ -58,7 +58,7 @@ int siridb_users_load(siridb_t * siridb)
     }
 
     /* get user access file name */
-    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_USERS_FN)
 
     if (!xpath_file_exist(fn))
     {
@@ -142,7 +142,7 @@ int siridb_users_load(siridb_t * siridb)
 ssize_t siridb_users_get_file(char ** buffer, siridb_t * siridb)
 {
     /* get users file name */
-    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_USERS_FN)
 
     return xpath_get_content(buffer, fn);
 }
@@ -268,7 +268,7 @@ int siridb_users_save(siridb_t * siridb)
     qp_fpacker_t * fpacker;
 
     /* get user access file name */
-    SIRIDB_GET_FN(fn, SIRIDB_USERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_USERS_FN)
 
     if (
         /* open a new user file */

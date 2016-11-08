@@ -146,7 +146,7 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
  */
 int siridb_buffer_open(siridb_t * siridb)
 {
-    SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn, siridb->buffer_path, SIRIDB_BUFFER_FN)
 
     if ((siridb->buffer_fp = fopen(fn, "r+")) == NULL)
     {
@@ -174,8 +174,8 @@ int siridb_buffer_load(siridb_t * siridb)
 
     log_info("Loading and cleanup buffer");
 
-    SIRIDB_GET_FN(fn, SIRIDB_BUFFER_FN)
-    SIRIDB_GET_FN(fn_temp, "__" SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn, siridb->buffer_path, SIRIDB_BUFFER_FN)
+    SIRIDB_GET_FN(fn_temp, siridb->buffer_path, "__" SIRIDB_BUFFER_FN)
 
     if (xpath_file_exist(fn_temp))
     {

@@ -11,7 +11,7 @@ class SiriDB:
     def __init__(self,
                  dbname='dbtest',
                  time_precision='s',
-                 buffer_path=None,
+                 buffer_path='',
                  duration_log='1d',
                  duration_num='1w',
                  buffer_size=1024):
@@ -34,13 +34,16 @@ class SiriDB:
             '--noroot --config {cfgfile} create-new '
             '--dbname {dbname} '
             '--time-precision {time_precision} '
-            '--buffer-path {buffer_path} '
+            '{bufpath}'
             '--duration-log {duration_log} '
             '--duration-num {duration_num} '
             '--buffer-size {buffer_size}'.format(
                 manage=MANAGE,
                 log_level=self.LOG_LEVEL.lower(),
                 cfgfile=server.cfgfile,
+                bufpath=
+                    '' if not self.buffer_path
+                    else '--buffer-path {}'.format(self.buffer_path),
                 **vars(self)))
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)

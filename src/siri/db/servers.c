@@ -58,7 +58,7 @@ int siridb_servers_load(siridb_t * siridb)
     }
 
     /* get servers file name */
-    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     if (!xpath_file_exist(fn))
     {
@@ -198,7 +198,7 @@ void siridb_servers_free(llist_t * servers)
 ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb)
 {
     /* get servers file name */
-    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     return xpath_get_content(buffer, fn);
 }
@@ -676,7 +676,7 @@ int siridb_servers_save(siridb_t * siridb)
     qp_fpacker_t * fpacker;
 
     /* get servers file name */
-    SIRIDB_GET_FN(fn, SIRIDB_SERVERS_FN)
+    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {
