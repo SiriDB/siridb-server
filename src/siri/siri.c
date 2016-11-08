@@ -8,6 +8,14 @@
  * changes
  *  - initial version, 08-03-2016
  *
+ * Info siri->siridb_mutex:
+ *
+ *  Main thread:
+ *      siri->siridb_list :    read (no lock)      	write (lock)
+ *
+ *  Other threads:
+ *      siri->siridb_list :    read (lock)      	write (not allowed)
+ *
  */
 #include <assert.h>
 #include <logger/logger.h>

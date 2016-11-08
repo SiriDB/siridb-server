@@ -159,7 +159,7 @@ class TestUser(TestBase):
         self.client1.close()
         self.client2.close()
 
-        return False
+        # return False
 
 
 if __name__ == '__main__':

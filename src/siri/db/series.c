@@ -8,6 +8,18 @@
  * changes
  *  - initial version, 29-03-2016
  *
+ * Info siridb->series_mutex:
+ *
+ *  Main thread:
+ *      siridb->series_map :    read (no lock)      write (lock)
+ *      series->idx :   		read (lock)         write (lock)
+ *
+ *  Other threads:
+ *      siridb->series_map :    read (lock)      	write (not allowed)
+ *      series->idx :   		read (lock)         write (lock)
+ *
+ *  Note:   One exception to 'not allowed' are the free functions
+ *          since they only run when no other references to the object exist.
  */
 #include <assert.h>
 #include <logger/logger.h>

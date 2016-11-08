@@ -16,6 +16,8 @@
  *  Other threads:
  *      siridb->shards :    read (lock)         write (lock)
  *
+ *	Note: since series->idx hold a reference to a shard, a lock to the
+ *	      series_mutex is required in some cases.
  */
 #include <ctype.h>
 #include <dirent.h>

@@ -67,8 +67,6 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     log_debug("Start heart-beat task");
 #endif
 
-    uv_mutex_lock(&siri.siridb_mutex);
-
     siridb_node = siri.siridb_list->first;
 
     while (siridb_node != NULL)
@@ -121,7 +119,5 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
 
         siridb_node = siridb_node->next;
     }
-
-    uv_mutex_unlock(&siri.siridb_mutex);
 }
 
