@@ -37,6 +37,7 @@
 		}																	\
 		free(__buf);														\
 		ssocket->buf = NULL;												\
+		ssocket->on_data = NULL;											\
 		sirinet_socket_decref(client);										\
 		return;																\
 	}
@@ -160,6 +161,28 @@ void sirinet_socket_on_data(
     sirinet_pkg_t * pkg;
     size_t total_sz;
 
+    /*
+     * ssocket->on_data is NULL when 'sirinet_socket_decref' is called from
+     * within this function. We should never call 'sirinet_socket_decref' twice
+     * so the best thing is to free the buffer and exit this function.
+     */
+    if (ssocket->on_data == NULL)
+    {
+		char addr_port[ADDR_BUF_SZ];
+
+		if (sirinet_addr_and_port(addr_port, client) == 0)
+		{
+	    	log_error(
+	    			"Received data from '%s' but we ignore the data since the "
+	    			"connection will be closed in a few seconds...",
+				addr_port);
+		}
+
+    	free(buf->base);
+
+    	return;
+    }
+
     if (nread < 0)
     {
         if (nread != UV_EOF)
@@ -167,15 +190,19 @@ void sirinet_socket_on_data(
             log_error("Read error: %s", uv_err_name(nread));
         }
 
-        /* the buffer must be destroyed too
-         * (sirinet_socket_free will free ssocket->buf if needed)
-         */
         if (ssocket->buf == NULL)
         {
             free(buf->base);
         }
+        else
+        {
+        	free(ssocket->buf);
+        	ssocket->buf = NULL;
+        }
 
+        ssocket->on_data = NULL;
         sirinet_socket_decref(client);
+
         return;
     }
 
