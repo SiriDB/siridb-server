@@ -989,29 +989,35 @@ inline void siridb__shard_decref(siridb_shard_t * shard)
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_series_t * series;
+    siridb_shard_t * pop_shard;
+    int optimizing = 0;
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
-    if (imap_pop(siridb->shards, shard->id) != NULL)
-    {
-        siridb_shard_decref(shard);
-    }
-#ifdef DEBUG
-    else if (~shard->flags & SIRIDB_SHARD_IS_REMOVED)
-    {
-        LOGC("Cannot find shard id %" PRIu64 " in shards map", shard->id);
-    }
-#endif
+    pop_shard = (siridb_shard_t *) imap_pop(siridb->shards, shard->id);
 
-    if (shard->flags & SIRIDB_SHARD_IS_REMOVED)
+    /*
+     * When optimizing the pop_shard will be set to the new shard and shard
+     * is set to the old one.
+     */
+    if (pop_shard != NULL && (~pop_shard->flags & SIRIDB_SHARD_IS_REMOVED))
     {
-        log_warning("Shard id '%" PRIu64 "' is already dropped", shard->id);
+    	pop_shard->flags |= SIRIDB_SHARD_IS_REMOVED;
+    	siridb_shard_remove(pop_shard);
+    	if (shard != pop_shard)
+    	{
+    		optimizing = 1;
+    	}
+    	else if (shard->replacing != NULL)
+    	{
+    		optimizing = 1;
+    		shard = shard->replacing;
+    	}
     }
     else
     {
-        shard->flags |= SIRIDB_SHARD_IS_REMOVED;
-        siridb_shard_remove(shard);
+        log_warning("Shard id '%" PRIu64 "' is already dropped", shard->id);
     }
 
     uv_mutex_unlock(&siridb->shards_mutex);
@@ -1022,20 +1028,52 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
      * of series is zero after removing the shard
      */
 
-    /* create a copy since series might be removed */
-    slist_t * slist = imap_2slist(siridb->series_map);
-
-    if (slist != NULL)
+    /*
+     * Create a copy since series might be removed and when optimizing we need
+     * to remove indexes for both the old and new shard. Since a series might
+     * be dropped by the first call to remove shard, we need an extra reference
+     * for each series.
+     */
+    if (optimizing)
     {
-        for (size_t i = 0; i < slist->len; i++)
-        {
-            series = (siridb_series_t *) slist->data[i];
-            if (shard->id % siridb->duration_num == series->mask)
-            {
-                siridb_series_remove_shard(siridb, series, shard);
-            }
-        }
-        slist_free(slist);
+		slist_t * slist = imap_2slist_ref(siridb->series_map);
+
+		if (slist != NULL)
+		{
+			for (size_t i = 0; i < slist->len; i++)
+			{
+				series = (siridb_series_t *) slist->data[i];
+				if (shard->id % siridb->duration_num == series->mask)
+				{
+					siridb_series_remove_shard(siridb, series, shard);
+					siridb_series_remove_shard(siridb, series, pop_shard);
+				}
+				siridb_series_decref(series);
+			}
+			slist_free(slist);
+		}
+    }
+    else
+    {
+		slist_t * slist = imap_2slist(siridb->series_map);
+
+		if (slist != NULL)
+		{
+			for (size_t i = 0; i < slist->len; i++)
+			{
+				series = (siridb_series_t *) slist->data[i];
+				if (shard->id % siridb->duration_num == series->mask)
+				{
+					siridb_series_remove_shard(siridb, series, shard);
+				}
+			}
+			slist_free(slist);
+		}
+    }
+
+    if (pop_shard != NULL)
+    {
+    	siridb_shard_decref(pop_shard);
     }
 
     uv_mutex_unlock(&siridb->series_mutex);

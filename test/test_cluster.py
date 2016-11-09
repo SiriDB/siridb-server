@@ -35,13 +35,13 @@ class TestCluster(TestBase):
         await self.db.add_pool(self.server4)
         await self.assertIsRunning(self.db, self.client0, timeout=12)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(35)
 
         await self.db.add_replica(self.server1, 0)
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
         await self.db.add_replica(self.server3, 1)
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
 
         await self.db.add_replica(self.server5, 2)
 

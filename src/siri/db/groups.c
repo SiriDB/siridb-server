@@ -20,6 +20,8 @@
  *      groups->groups :    read (lock)         write (not allowed)
  *      groups->nseries :   read (lock)         write (lock)
  *      groups->ngroups :   read (lock)         write (lock)
+ *
+ *  Group thread:
  *      group->series :     read (no lock)      write (lock)
  *
  *  Note:   One exception to 'not allowed' are the free functions

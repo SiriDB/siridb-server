@@ -327,7 +327,7 @@ siridb_series_t * siridb_series_new(
 void siridb__series_free(siridb_series_t *__restrict series)
 {
 #ifdef DEBUG
-    if (siri.status == SIRI_STATUS_RUNNING || 1)
+    if (siri.status == SIRI_STATUS_RUNNING || 0)
     {
         log_debug("Free series: '%s'", series->name);
     }
