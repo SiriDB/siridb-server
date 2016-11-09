@@ -741,8 +741,8 @@ int siridb_shard_get_points_log64(
  */
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
+	int rc = 0;
     siridb_shard_t * new_shard = NULL;
-
     uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
             siridb->duration_num : siridb->duration_log;
     siridb_series_t * series;
@@ -762,6 +762,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
             log_critical(
                     "Cannot create shard id '%" PRIu64 "' for optimizing.",
                     shard->id);
+            rc = -1;
         }
         else
         {
@@ -771,9 +772,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     else
     {
         log_warning(
-                "Skip optimizing shard id '%" PRIu64
-				"' since the shard has changed "
-                "since building the optimize shard list.",
+                "Skip optimizing shard id '%" PRIu64 "' "
+				"because the shard is probably dropped.",
 				shard->id);
     }
 
@@ -781,10 +781,12 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (new_shard == NULL)
     {
-        /* creating the new shard has failed, we exit here so the mutex is
-         * is unlocked. (signal is raised)
+        /*
+         * Creating the new shard has failed or the shard is dropped.
+         * We exit here so the mutex is is unlocked.
+         * (a signal might have been raised)
          */
-        return -1;
+        return rc;
     }
 
     /* at this point the references should be as following (unless dropped):
@@ -943,6 +945,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     siridb_shard_decref(new_shard);
 
     sleep(1);
+
     return siri_err;
 }
 
