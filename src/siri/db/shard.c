@@ -1000,13 +1000,14 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
     pop_shard = (siridb_shard_t *) imap_pop(siridb->shards, shard->id);
 
     /*
-     * When optimizing the pop_shard will be set to the new shard and shard
-     * is set to the old one.
+     * When optimizing, 'pop_shard' is always the new shard and 'shard'
+     * will be set to the old one.
      */
     if (pop_shard != NULL && (~pop_shard->flags & SIRIDB_SHARD_IS_REMOVED))
     {
     	pop_shard->flags |= SIRIDB_SHARD_IS_REMOVED;
     	siridb_shard_remove(pop_shard);
+
     	if (shard != pop_shard)
     	{
     		optimizing = 1;
