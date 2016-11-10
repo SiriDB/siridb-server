@@ -936,7 +936,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         }
     }
 
-
     uv_mutex_unlock(&siridb->series_mutex);
 
     /* can raise an error only if the shard is dropped, in any other case we
