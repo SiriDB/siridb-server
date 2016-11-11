@@ -1,0 +1,1 @@
+  * Fixed using a buffer path larger or close to PATH_MAX. (issue #43)

@@ -125,14 +125,12 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
                     argv[argn]);
             break;
         case ARGPARSE_ERR_AMBIGUOUS_OPTION:
-            // TODO: read possible matches
             snprintf(buffer,
                     ARGPARSE_ERR_SIZE,
                     "ambiguous option: %s",
                     argv[argn]);
             break;
         case ARGPARSE_ERR_INVALID_CHOICE:
-            // TODO: read possible choices
             if  (current->argument->shortcut)
                 snprintf(buffer,
                         ARGPARSE_ERR_SIZE,
@@ -146,6 +144,12 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
                         "argument --%s: invalid choice: '%s'",
                         current->argument->name,
                         argv[argn]);
+            break;
+        case ARGPARSE_ERR_ARGUMENT_TOO_LONG:
+            snprintf(buffer,
+                    ARGPARSE_ERR_SIZE,
+                    "argument value exceeds character limit: %s",
+					current->argument->name);
             break;
         default:
             *buffer = 0;
@@ -214,7 +218,7 @@ static void print_error(
 static void print_usage(argparse_parser_t * parser, const char * bname)
 {
     char buffer[ARGPARSE_HELP_SIZE];
-    char uname[255];
+    char uname[ARGPARSE_MAX_LEN_ARG];
     size_t line_size;
     size_t ident;
     argparse_args_t * current;
@@ -283,7 +287,7 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
 static void print_help(argparse_parser_t * parser, const char * bname)
 {
     char buffer[ARGPARSE_HELP_SIZE];
-    char uname[255];
+    char uname[ARGPARSE_MAX_LEN_ARG];
     argparse_args_t * current;
     size_t line_size;
 
@@ -342,7 +346,6 @@ static void print_help(argparse_parser_t * parser, const char * bname)
         else
             printf("%-*s", 24, buffer);
 
-        // TODO: honor screen width
         printf("%s\n", current->argument->help);
     }
 }
@@ -352,7 +355,7 @@ static uint16_t get_argument(
         argparse_parser_t * parser,
         char * argument)
 {
-    char buffer[255];
+    char buffer[ARGPARSE_MAX_LEN_ARG];
     uint16_t nfound = 0;
     argparse_args_t * current;
     for (current = parser->args; current != NULL; current = current->next)
@@ -408,6 +411,11 @@ static int process_arg(
     /* we expect a value an this value should not start with - */
     if (++(*argn) == argc || *argv[*argn] == '-')
         return ARGPARSE_ERR_MISSING_VALUE;
+
+    if (strlen(argv[*argn]) >= ARGPARSE_MAX_LEN_ARG)
+    {
+    	return ARGPARSE_ERR_ARGUMENT_TOO_LONG;
+    }
 
     /* create a copy from the value into a buffer */
     strcpy(buffer, argv[*argn]);
