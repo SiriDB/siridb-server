@@ -18,8 +18,8 @@ For creating a new or joining an existing database you need the manage tool:
 	
 If you like to manage SiriDB from the terminal we have a prompt with auto-completion support available:
 
-	wget https://storage.googleapis.com/siridb/prompt/deb/siridb-prompt_2.0.1_amd64.deb
-	sudo dpkg -i siridb-prompt_2.0.1_amd64.deb
+	wget https://storage.googleapis.com/siridb/prompt/deb/siridb-prompt_2.0.2_amd64.deb
+	sudo dpkg -i siridb-prompt_2.0.2_amd64.deb
 
 
 Compile
