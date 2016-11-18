@@ -55,6 +55,7 @@ typedef struct siridb_shard_s
     uint8_t flags;
     uint16_t max_chunk_sz;
     uint64_t id;
+    size_t size;
     siri_fp_t * fp;
     char * fn;
     siridb_shard_t * replacing;
@@ -78,7 +79,6 @@ int siridb_shard_cexpr_cb(
         siridb_shard_view_t * vshard,
         cexpr_condition_t * cond);
 void siridb_shard_status(char * str, siridb_shard_t * shard);
-ssize_t siridb_shard_get_size(siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
 int siridb_shard_remove(siridb_shard_t * shard);

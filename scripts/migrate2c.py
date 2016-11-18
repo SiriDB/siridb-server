@@ -13,9 +13,9 @@ supervisorctl restart webserver:
 import os
 import sys
 import time
-sys.path.append('../siridb')
+# sys.path.append('../../siridb')
+sys.path.append('SiriDB')
 from siriclient import SiriClient
-sys.path.append('../siridb-connector')
 from siridb.connector import connect
 
 RENAME_SERIES = False
@@ -43,6 +43,7 @@ def move_series(source, dest, source_is_python):
             print('Error listing series: {}'.format(series))
             break
         series_name = series[0][0]
+        print('Move series: {}'.format(series_name))
         data = source.query('select * from "{}"'.format(series_name))
         if not series_name in data:
             print('Error getting data: {}'.format(data))
@@ -69,32 +70,28 @@ def move_series(source, dest, source_is_python):
 
 if __name__ == '__main__':
     # connect to old SiriDB
-    siridb_python = SiriClient()
-    siridb_python.connect('siri', 'iris', 'sasien', 'localhost', 9100)
+    siridb_src = SiriClient()
+    siridb_src.connect('siri', 'iris', 'sasien', 'localhost', 9100)
 
     # connect to new SiriDB
-    siridb_c = connect('iris', 'siri', 'dbtest', 'localhost', 9000)
+    siridb_dst = connect('iris', 'siri', 'dbtest', 'localhost', 9000)
 
     # Uncomment to move series from Python to C
-    query_time, insert_time = move_series(
-        siridb_python,
-        siridb_c,
-        source_is_python=True)
-
-    # Uncomment to move series from C to Python
-    # query_time, insert_time = move_series(
-    #     siridb_c,
-    #     siridb_python,
-    #     source_is_python=False)
-
-
-    print('''
+    try:
+        query_time, insert_time = move_series(
+            siridb_src,
+            siridb_dst,
+            source_is_python=True)
+    except Exception as e:
+        print('Got an exception: {}'.format(e))
+    else:
+        print('''
 Query time  : {}
 Insert time : {}
 '''.format(query_time, insert_time))
-
-    siridb_python.close()
-    siridb_c.close()
+    finally:
+        siridb_src.close()
+        siridb_dst.close()
 
 
 

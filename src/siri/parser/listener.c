@@ -1932,7 +1932,7 @@ static void exit_count_shards_size(uv_async_t * handle)
                 (cexpr_cb_t) siridb_shard_cexpr_cb,
                 &vshard))
         {
-            q_count->n += (size_t) siridb_shard_get_size(vshard.shard);
+            q_count->n += vshard.shard->size;
         }
 
         siridb_shard_decref(vshard.shard);
@@ -2886,10 +2886,7 @@ static void exit_list_shards(uv_async_t * handle)
                     qp_add_int16(query->packer, vshard.server->pool);
                     break;
                 case CLERI_GID_K_SIZE:
-                    {
-                        ssize_t size = siridb_shard_get_size(vshard.shard);
-                        qp_add_int64(query->packer, size);
-                    }
+					qp_add_int64(query->packer, vshard.shard->size);
                     break;
                 case CLERI_GID_K_START:
                     qp_add_int64(query->packer, vshard.start);
