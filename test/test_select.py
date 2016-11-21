@@ -42,6 +42,16 @@ DATA = {
     'equal ts': [
         [1471254705, 0], [1471254705, 1], [1471254705, 1],
         [1471254707, 0], [1471254707, 1], [1471254708, 0],
+    ],
+    'variance': [
+        [1471254705, 2.75], [1471254706, 1.75], [1471254707, 1.25],
+        [1471254708, 0.25], [1471254709, 0.5], [1471254710, 1.25],
+        [1471254711, 3.5]
+    ],
+    'pvariance': [
+        [1471254705, 0.0], [1471254706, 0.25], [1471254707, 0.25],
+        [1471254708, 1.25], [1471254709, 1.5], [1471254710, 1.75],
+        [1471254711, 2.75], [1471254712, 3.25]
     ]
 }
 
@@ -55,7 +65,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 36 point(s).'})
+            {'success_msg': 'Successfully inserted 51 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -165,6 +175,15 @@ class TestSelect(TestBase):
                 [1447252349, 537],
                 [1447253549, 538],
                 [1447254748, 537]]})
+
+        self.assertAlmostEqual(
+            await self.client0.query('select variance(1471254712) from "variance"'),
+            {'variance': [[1471254712, 1.3720238095238095]]})
+
+        self.assertAlmostEqual(
+            await self.client0.query('select pvariance(1471254715) from "pvariance"'),
+            {'pvariance': [[1471254715, 1.25]]})
+
 
         with self.assertRaisesRegexp(
                 QueryError,

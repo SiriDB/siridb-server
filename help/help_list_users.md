@@ -9,10 +9,10 @@ columns
 -------
 Valid columns are:
 
-- user: User name.
+- name: User name.
 - access: Access rights assigned to the user.
 
-When no columns are provided the default is used. (user, access)
+When no columns are provided the default is used. (name, access)
 
 Example:
 
@@ -20,5 +20,5 @@ Example:
 	list users
 	
 	# List users with full access
-	list users where access == 'full'
+	list users where access == full
 	

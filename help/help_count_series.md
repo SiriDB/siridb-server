@@ -3,10 +3,12 @@ count series
 
 Syntax:
 
-	count series [match_series] [where ...]
+	count series [length] [match_series] [where ...]
 	
 Count series in the SiriDB cluster. For more information about how to select 
 series see `help list series`
+
+Count series length gives the total number of points for the selected series.
 
 Examples:
 
@@ -18,7 +20,11 @@ Examples:
 
 	# Get number of series in pool 0
 	count series where pool == 0
+	
+	# Get the total number of points in the database
+	count series length
+
 
 Example output:
 
-	{"count": 1105946}
+	{"series": 1105946}

@@ -13,7 +13,7 @@ from count groups.
 If you want to view the cached groups on a server, use 
 `list groups where cached == true`.
 
-Examples:
+Example:
 
 	# Get number of groups
 	count groups 
@@ -26,4 +26,4 @@ Examples:
 
 Example output:
 
-	{"count": 23}
+	{"groups": 23}

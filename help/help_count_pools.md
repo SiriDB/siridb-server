@@ -17,4 +17,4 @@ Examples:
 
 Example output:
 
-	{"count": 2}
+	{"pools": 2}

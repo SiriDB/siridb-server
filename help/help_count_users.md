@@ -12,9 +12,9 @@ Examples:
 	# Get number of users
 	count users 
 	
-	# Get number of user not equal to 'iris'
-	count users where user != 'iris'
+	# Get number of users not equal to 'iris'
+	count users where name != 'iris'
 
 Example output:
 
-	{"count": 6}
+	{"users": 6}

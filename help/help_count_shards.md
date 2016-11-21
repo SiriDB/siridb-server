@@ -14,7 +14,7 @@ difference can be even bigger when servers in a cluster are using different
 buffer sizes. (view buffer size on each server:
 `list servers name, buffer_size`)
 
-Examples:
+Example:
 
 	# Get number of shards
 	count shards 
@@ -24,4 +24,4 @@ Examples:
 
 Example output:
 
-	{"count": 51}
+	{"shards": 51}

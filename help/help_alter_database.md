@@ -32,7 +32,7 @@ Example:
 set timezone
 ------------
 Change the timezone for the database. When using a date/time in a query SiriDB
-needs to convert the given date to a timestamp. Default **Local** is used which
+needs to convert the given date to a timestamp. Default **NAIVE** is used which
 means SiriDB is naive about the time zone and acts as if it's a local time.
 
 >**Warning**
