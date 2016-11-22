@@ -19,12 +19,6 @@ typedef struct siridb_s siridb_t;
 typedef struct siridb_series_s siridb_series_t;
 typedef struct siridb_points_s siridb_points_t;
 
-typedef struct siridb_buffer_s
-{
-    long int bf_offset;
-    siridb_points_t * points;
-} siridb_buffer_t;
-
 int siridb_buffer_new_series(
         siridb_t * siridb,
         siridb_series_t * series);
@@ -32,8 +26,6 @@ int siridb_buffer_new_series(
 int siridb_buffer_open(siridb_t * siridb);
 
 int siridb_buffer_load(siridb_t * siridb);
-
-void siridb_buffer_free(siridb_buffer_t * buffer);
 
 int siridb_buffer_write_len(
         siridb_t * siridb,

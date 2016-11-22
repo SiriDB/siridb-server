@@ -5,3 +5,5 @@
 
   * Fixed identifying a corrupt shard when an invalid header size is found
     at the end of a shard while loading a database. (issue #45)
+    
+  * Re-use space in buffer when series are dropped. (issue #46)

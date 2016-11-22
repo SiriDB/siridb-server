@@ -21,19 +21,8 @@
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
-static siridb_buffer_t * BUFFER_new(
-        siridb_t * siridb,
-        siridb_series_t * series);
-
-/*
- * Destroy buffer. (parsing NULL is not allowed)
- */
-void siridb_buffer_free(siridb_buffer_t * buffer)
-{
-    siridb_points_free(buffer->points);
-    free(buffer);
-}
-
+static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series);
+static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series);
 
 
 /*
@@ -46,11 +35,11 @@ int siridb_buffer_write_len(
     return (
         /* go to the series position in buffer */
         fseeko(  siridb->buffer_fp,
-                series->buffer->bf_offset + sizeof(uint32_t),
+                series->bf_offset + sizeof(uint32_t),
                 SEEK_SET) ||
 
         /* write new length */
-        fwrite( &series->buffer->points->len,
+        fwrite( &series->buffer->len,
                 sizeof(size_t),
                 1,
                 siridb->buffer_fp) != 1) ? EOF : 0;
@@ -73,7 +62,7 @@ int siridb_buffer_write_point(
 
         /* jump to position where to write the new point */
         fseeko(  siridb->buffer_fp,
-                16 * (series->buffer->points->len - 1),
+                16 * (series->buffer->len - 1),
                 SEEK_CUR) ||
 
         /* write time-stamp */
@@ -83,62 +72,21 @@ int siridb_buffer_write_point(
         fwrite(val, sizeof(qp_via_t), 1, siridb->buffer_fp) != 1) ? EOF : 0;
 }
 
-
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
 int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
 {
-    /* get file descriptor */
-    int buffer_fd = fileno(siridb->buffer_fp);
-    if (buffer_fd == -1)
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    /* jump to end of buffer */
-    if (fseeko(siridb->buffer_fp, 0, SEEK_END))
-    {
-        ERR_FILE
-        return -1;
-    }
-
     /* allocate new buffer */
-    if ((series->buffer = BUFFER_new(siridb, series)) == NULL)
+	series->buffer = siridb_points_new(siridb->buffer_len, series->tp);
+	if (series->buffer == NULL)
     {
         return -1;  /* signal is raised */
     }
 
-    /* bind the current offset to the new series */
-    if ((series->buffer->bf_offset = ftello(siridb->buffer_fp)) == -1)
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    /* write series ID to buffer */
-    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->buffer_fp) != 1)
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    /* fill buffer with zeros */
-    if (ftruncate(buffer_fd, series->buffer->bf_offset + siridb->buffer_size))
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    /* commit changes to disk */
-    if (fsync(buffer_fd))
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    return 0;
+	return (siridb->empty_buffers->len) ?
+			BUFFER_use_empty(siridb, series) :
+			BUFFER_create_new(siridb, series);
 }
 
 /*
@@ -219,7 +167,7 @@ int siridb_buffer_load(siridb_t * siridb)
                 continue;
             }
 
-            series->buffer = BUFFER_new(siridb, series);
+            series->buffer = siridb_points_new(siridb->buffer_len, series->tp);
             if (series->buffer == NULL)
             {
                 log_critical("Cannot allocate a buffer for series id %u",
@@ -230,7 +178,7 @@ int siridb_buffer_load(siridb_t * siridb)
                 return -1;  /* signal is raised */
             }
 
-            series->buffer->bf_offset = offset;
+            series->bf_offset = offset;
 
             pt += sizeof(uint32_t);
 
@@ -239,7 +187,7 @@ int siridb_buffer_load(siridb_t * siridb)
                     pt += 16)
             {
                 siridb_points_add_point(
-                        series->buffer->points,
+                        series->buffer,
                         (uint64_t *) pt,
                         (qp_via_t *) (pt + 8));
             }
@@ -247,7 +195,7 @@ int siridb_buffer_load(siridb_t * siridb)
             offset += siridb->buffer_size;
 
             /* increment series->length which is 0 at this time */
-            series->length += series->buffer->points->len;
+            series->length += series->buffer->len;
 
             /* write to output file and check if write was successful */
             if ((fwrite(buffer + i * siridb->buffer_size,
@@ -274,29 +222,82 @@ int siridb_buffer_load(siridb_t * siridb)
     return 0;
 }
 
-/*
- * Returns a buffer that can hold 1 more point than actual on disk.
- *
- * NULL and a SIGNAL is raised in case an error has occurred.
- */
-static siridb_buffer_t * BUFFER_new(
-        siridb_t * siridb,
-        siridb_series_t * series)
+static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
 {
-    siridb_buffer_t * buffer =
-            (siridb_buffer_t *) malloc(sizeof(siridb_buffer_t));
-    if (buffer == NULL)
+	series->bf_offset = (long int) slist_pop(siridb->empty_buffers);
+
+	/* jump to the correct buffer position */
+    if (fseeko(siridb->buffer_fp, series->bf_offset, SEEK_SET))
     {
-        ERR_ALLOC
+        ERR_FILE
+        return -1;
     }
-    else
+
+    /* write series ID to buffer */
+    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->buffer_fp) != 1)
     {
-        buffer->points = siridb_points_new(siridb->buffer_len, series->tp);
-        if (buffer->points == NULL)
-        {
-            free(buffer);
-            buffer = NULL;  /* signal is raised */
-        }
+        ERR_FILE
+        return -1;
     }
-    return buffer;
+
+    /* write 0 length */
+    if (fwrite(
+    		&series->buffer->len,
+			sizeof(size_t),
+			1,
+			siridb->buffer_fp) != 1)
+    {
+        ERR_FILE
+        return -1;
+    }
+
+    return 0;
+}
+
+static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
+{
+	/* get file descriptor */
+	int buffer_fd = fileno(siridb->buffer_fp);
+	if (buffer_fd == -1)
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	/* jump to end of buffer */
+	if (fseeko(siridb->buffer_fp, 0, SEEK_END))
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	/* bind the current offset to the new series */
+	if ((series->bf_offset = ftello(siridb->buffer_fp)) == -1)
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	/* write series ID to buffer */
+	if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->buffer_fp) != 1)
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	/* fill buffer with zeros */
+	if (ftruncate(buffer_fd, series->bf_offset + siridb->buffer_size))
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	/* commit changes to disk */
+	if (fsync(buffer_fd))
+	{
+		ERR_FILE
+		return -1;
+	}
+
+	return 0;
 }

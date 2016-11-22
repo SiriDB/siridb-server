@@ -508,6 +508,7 @@ static int8_t INSERT_local_work(
         series = (siridb_series_t **) ct_get_sure(
                 siridb->series,
                 qp_series_name->via.raw);
+
         if (series == NULL)
         {
             log_critical(

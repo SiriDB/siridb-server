@@ -90,6 +90,7 @@ typedef struct siridb_s
     double drop_threshold;
     size_t index_size;
     size_t received_points;
+    slist_t * empty_buffers;
     siridb_time_t * time;
     siridb_server_t * server;
     siridb_server_t * replica;

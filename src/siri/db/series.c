@@ -137,20 +137,20 @@ int siridb_series_add_point(
         /* add point in memory
          * (memory can hold 1 more point than we can hold on disk)
          */
-        siridb_points_add_point(series->buffer->points, ts, val);
+        siridb_points_add_point(series->buffer, ts, val);
 
-        if (series->buffer->points->len == siridb->buffer_len)
+        if (series->buffer->len == siridb->buffer_len)
         {
             if (siridb_shards_add_points(
                     siridb,
                     series,
-                    series->buffer->points))
+                    series->buffer))
             {
                 rc = -1;  /* signal is raised */
             }
             else
             {
-                series->buffer->points->len = 0;
+                series->buffer->len = 0;
                 if (siridb_buffer_write_len(siridb, series))
                 {
                     ERR_FILE
@@ -199,11 +199,11 @@ int siridb_series_add_pcache(
             return -1;  /* signal is raised */
         }
     }
-    else if (pcache->len + series->buffer->points->len > siridb->buffer_len)
+    else if (pcache->len + series->buffer->len > siridb->buffer_len)
     {
         series->length += pcache->len;
 
-        siridb_points_t *__restrict points = series->buffer->points;
+        siridb_points_t *__restrict points = series->buffer;
         size_t i = points->len;
         siridb_point_t *__restrict point;
 
@@ -225,7 +225,7 @@ int siridb_series_add_pcache(
         }
         else
         {
-            series->buffer->points->len = 0;
+            series->buffer->len = 0;
             if (siridb_buffer_write_len(siridb, series))
             {
                 ERR_FILE
@@ -345,8 +345,15 @@ void siridb__series_free(siridb_series_t *__restrict series)
 
     if (series->buffer != NULL)
     {
-        siridb_buffer_free(series->buffer);
+        siridb_points_free(series->buffer);
+        if (series->flags & SIRIDB_SERIES_IS_DROPPED)
+        {
+        	slist_append_safe(
+        		&series->siridb->empty_buffers,
+				(void *) series->bf_offset);
+        }
     }
+
     free(series->idx);
     free(series->name);
     free(series);
@@ -709,7 +716,7 @@ siridb_points_t * siridb_series_get_points(
         }
     }
 
-    size += series->buffer->points->len;
+    size += series->buffer->len;
     points = siridb_points_new(size, series->tp);
 
     if (points == NULL)
@@ -731,8 +738,8 @@ siridb_points_t * siridb_series_get_points(
     }
 
     /* create pointer to buffer and get current length */
-    point = series->buffer->points->data;
-    len = series->buffer->points->len;
+    point = series->buffer->data;
+    len = series->buffer->len;
 
     /* crop start buffer if needed */
     if (start_ts != NULL)
@@ -1147,6 +1154,7 @@ static siridb_series_t * SERIES_new(
             series->flags = 0;
             series->idx_len = 0;
             series->idx = NULL;
+            series->siridb = siridb;
 
             /* get sum series name to calculate series mask (for sharding) */
             for (n = 0; *name; name++)
@@ -1513,9 +1521,9 @@ static void SERIES_update_start(siridb_series_t *__restrict series)
 {
     series->start = series->idx_len ? series->idx->start_ts : -1;
 
-    if (series->buffer->points->len)
+    if (series->buffer->len)
     {
-        siridb_point_t * point = series->buffer->points->data;
+        siridb_point_t * point = series->buffer->data;
         if (point->ts < series->start)
         {
             series->start = point->ts;
@@ -1552,10 +1560,10 @@ static void SERIES_update_end(siridb_series_t *__restrict series)
     {
         series->end = 0;
     }
-    if (series->buffer->points->len)
+    if (series->buffer->len)
     {
-        siridb_point_t * point = series->buffer->points->data +
-                series->buffer->points->len - 1;
+        siridb_point_t * point = series->buffer->data +
+                series->buffer->len - 1;
         if (point->ts > series->end)
         {
             series->end = point->ts;

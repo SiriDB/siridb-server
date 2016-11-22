@@ -68,9 +68,11 @@ typedef struct siridb_series_s
     uint64_t end;
     uint32_t length;
     uint32_t idx_len;
+    long int bf_offset;
+    siridb_points_t * buffer;
     char * name;
     idx_t * idx;
-    siridb_buffer_t * buffer;
+    siridb_t * siridb;
 } siridb_series_t;
 
 int siridb_series_load(siridb_t * siridb);
