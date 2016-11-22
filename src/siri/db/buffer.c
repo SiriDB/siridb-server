@@ -21,6 +21,9 @@
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
+/* when set to 1, no caching is done. 1 is the minimum value. */
+#define SIRIDB_BUFFER_CACHE 64
+
 static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series);
 static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series);
 
@@ -256,8 +259,10 @@ static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
 
 static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
 {
+	long int buffer_pos;
 	/* get file descriptor */
 	int buffer_fd = fileno(siridb->buffer_fp);
+
 	if (buffer_fd == -1)
 	{
 		ERR_FILE
@@ -285,8 +290,10 @@ static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
 		return -1;
 	}
 
+	buffer_pos = series->bf_offset + siridb->buffer_size * SIRIDB_BUFFER_CACHE;
+
 	/* fill buffer with zeros */
-	if (ftruncate(buffer_fd, series->bf_offset + siridb->buffer_size))
+	if (ftruncate(buffer_fd, buffer_pos))
 	{
 		ERR_FILE
 		return -1;
@@ -297,6 +304,11 @@ static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
 	{
 		ERR_FILE
 		return -1;
+	}
+
+	while ((buffer_pos -= siridb->buffer_size) > series->bf_offset)
+	{
+		slist_append_safe(&siridb->empty_buffers, (void *) buffer_pos);
 	}
 
 	return 0;

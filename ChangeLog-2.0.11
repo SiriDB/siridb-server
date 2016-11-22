@@ -1,0 +1,2 @@
+  * Pre allocate buffer space for better performance while creating new series. 
+    (see issue #47)
