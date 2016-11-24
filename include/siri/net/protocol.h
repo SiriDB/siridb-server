@@ -35,7 +35,7 @@ typedef enum
     CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
     CPROTO_RES_FILE,                            // file content
 
-    /* errors */
+    /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                          // {"error_msg": ...}
     CPROTO_ERR_QUERY,                           // {"error_msg": ...}
     CPROTO_ERR_INSERT,                          // {"error_msg": ...}
@@ -123,6 +123,7 @@ typedef enum
 } bproto_server_t;
 
 #define sirinet_protocol_is_error(tp) (tp >= 64 && tp < 192)
+#define sirinet_protocol_is_error_msg(tp) (tp >= 64 && tp < 70)
 
 const char * sirinet_cproto_client_str(cproto_client_t n);
 const char * sirinet_cproto_server_str(cproto_server_t n);

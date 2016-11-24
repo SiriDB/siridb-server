@@ -4514,6 +4514,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
+	uint8_t error_tp = 0;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
@@ -4550,15 +4551,29 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
                 }
             }
         }
+        else if (pkg != NULL &&
+        		!error_tp &&
+        		sirinet_protocol_is_error_msg(pkg->tp) &&
+				siridb_query_err_from_pkg(query, pkg) == 0)
+		{
+        	error_tp = pkg->tp;
+        }
 
         /* make sure we free the promise and data */
         free(promise->data);
         sirinet_promise_decref(promise);
     }
 
-    qp_add_int64(query->packer, q_count->n);
+    if (error_tp)
+    {
+        siridb_query_send_error(handle, error_tp);
+    }
+    else
+    {
+		qp_add_int64(query->packer, q_count->n);
 
-    SIRIPARSER_ASYNC_NEXT_NODE
+		SIRIPARSER_ASYNC_NEXT_NODE
+    }
 }
 
 /*
@@ -4743,6 +4758,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
+	int error_tp = 0;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -4790,15 +4806,28 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
                 }
             }
         }
+        else if (pkg != NULL &&
+        		!error_tp &&
+        		sirinet_protocol_is_error_msg(pkg->tp) &&
+				siridb_query_err_from_pkg(query, pkg) == 0)
+		{
+        	error_tp = pkg->tp;
+        }
 
         /* make sure we free the promise and data */
         free(promise->data);
         sirinet_promise_decref(promise);
     }
 
-    qp_add_type(query->packer, QP_ARRAY_CLOSE);
-
-    SIRIPARSER_ASYNC_NEXT_NODE
+    if (error_tp)
+    {
+        siridb_query_send_error(handle, error_tp);
+    }
+    else
+    {
+		qp_add_type(query->packer, QP_ARRAY_CLOSE);
+		SIRIPARSER_ASYNC_NEXT_NODE
+    }
 }
 
 /*

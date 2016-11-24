@@ -84,7 +84,6 @@ siri_t siri = {
         .startup_time=0
 };
 
-
 void siri_setup_logger(void)
 {
     int n;
@@ -114,8 +113,6 @@ void siri_setup_logger(void)
      */
     logger_init(stdout, 0);
 }
-
-
 
 int siri_start(void)
 {
@@ -380,7 +377,6 @@ static void SIRI_try_close(uv_timer_t * handle)
                 "finish...", num);
     }
 }
-
 
 static void SIRI_signal_handler(uv_signal_t * req, int signum)
 {

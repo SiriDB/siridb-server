@@ -92,3 +92,4 @@ void siridb_query_forward(
 void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker);
+int siridb_query_err_from_pkg(siridb_query_t * query, sirinet_pkg_t * pkg);

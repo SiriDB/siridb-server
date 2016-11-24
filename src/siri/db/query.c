@@ -369,6 +369,34 @@ void siridb_query_forward(
     qp_packer_free(packer);
 }
 
+/*
+ * Unpack an error message from a package and copy the message
+ * to query->err_msg.
+ *
+ * Returns 0 if successful or -1 in case the package data is not valid.
+ */
+int siridb_query_err_from_pkg(siridb_query_t * query, sirinet_pkg_t * pkg)
+{
+	qp_unpacker_t unpacker;
+	qp_obj_t qp_err;
+
+	/* initialize unpacker */
+	qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+	if (qp_is_map(qp_next(&unpacker, NULL)) &&
+	    qp_is_raw(qp_next(&unpacker, NULL)) && // error_msg
+		qp_is_raw(qp_next(&unpacker, &qp_err)) &&
+		qp_err.len < SIRIDB_MAX_SIZE_ERR_MSG)
+	{
+		memcpy(query->err_msg, qp_err.via.raw, qp_err.len);
+		query->err_msg[qp_err.len] = '\0';
+		return 0;
+	}
+
+	/* package data did not have a valid error message */
+	return -1;
+}
+
 void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker)
