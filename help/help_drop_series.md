@@ -3,11 +3,11 @@ drop series
 
 Syntax:
 
-	drop series <series_match> and/or <where ...> [set ignore_threshold false/true]
+	drop series [series_match] [where ...] [set ignore_threshold true/false]
 	
-Drops series from SiriDB. You need to tell SiriDB which series you want to 
-remove so at least some series match or where statement is required. For
-information about how to match series look at `help list series`.
+Drops series from SiriDB. Optionally you can use a match and/or where statement
+to filter the series you want to drop. For more information about how to match 
+series look at `help list series`.
  
 SiriDB has a mechanism to protect you from accidentally dropping all (or many)
 series. This is done with a *threshold* value. If the server receiving your drop
@@ -33,4 +33,4 @@ Examples:
 	drop series "series-001"
 	
 	# Drop all series
-	drop series /.*/ set ignore_threshold true
+	drop series set ignore_threshold true

@@ -1,12 +1,13 @@
 Lost access to SiriDB
 ---------------------
 Read/use this section when accidentally all access rights to a database are 
-gone. Follow the steps below to recover the default user access rights.
+gone. Follow the steps below to recover the default user.
+(username: *iris*, password: *siri*)
 
 Stop **all servers** in the SiriDB cluster.
 
 	# Assume you use systemd to start SiriDB...
-	> sudo systemctl stop siridb-server 
+	> sudo systemctl stop siridb-server.service
 
 >**Warning**
 >

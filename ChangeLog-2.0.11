@@ -3,3 +3,5 @@
     
   * Fixed sending a correct error message to a client for list and count
     statements in case a specific series does not exist. (issue #48)
+    
+  * Update help files.

@@ -18,7 +18,7 @@ from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
 
-TIME_PRECISION = 's'
+TIME_PRECISION = 'ns'
 
 
 class TestInsert(TestBase):

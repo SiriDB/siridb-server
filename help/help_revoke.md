@@ -3,9 +3,10 @@ revoke
 
 Syntax:
 
-	revoke <access> from user/network ...
+	revoke <access> from 'username'
 	
-Revokes access rights from a user or network. For available access rights refer to `help access`.
+Revokes access rights from a user. For information about access rights
+see `help access`.
 
 >**Warning**
 >
@@ -15,12 +16,10 @@ Revokes access rights from a user or network. For available access rights refer 
 
 Example:
 
-	# Revoke drop and create from user "siri"
-	revoke drop, create from user "siri"
+	# Revoke drop and create from user "iris"
+	revoke drop, create from user "iris"
 	
-	# Revoke modify from nerwork "192.168.10.0/24"
-	revoke modify from network "192.168.10.0/24"	
 	
 Output:
 
-	{"success_msg": "Successful revoked ... permissions from ..."}
+	{"success_msg": "Successfully revoked permissions from ..."}

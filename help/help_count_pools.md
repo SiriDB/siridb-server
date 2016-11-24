@@ -12,8 +12,8 @@ Examples:
 	# Get number of pools
 	count pools 
 	
-	# Get number of pools with less or equal to 100 series in the pool
-	count pools where series <= 100
+	# Get number of pools with less or equal to 100000 series
+	count pools where series <= 100000
 
 Example output:
 

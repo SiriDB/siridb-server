@@ -154,6 +154,14 @@ class TestGroup(TestBase):
 
         await self.client0.query('alter group `all` set expression /.*/ # bla')
 
+        self.assertEqual(
+            await self.client0.query('count groups'),
+            {'groups': 4})
+
+        self.assertEqual(
+            await self.client0.query('count groups where series > 2'),
+            {'groups': 2})
+
         self.client0.close()
         self.client1.close()
 

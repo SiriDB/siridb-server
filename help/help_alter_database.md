@@ -10,20 +10,19 @@ Valid options are *drop_threshold* and *timezone*.
 drop_threshold
 --------------
 This value is used to protect you from accidentally dropping data from SiriDB.
-The threshold is a value between 0 and 1 (100%). The threshold value is only
+The threshold is a value between 0 and 1 (0/100%). The threshold value is only
 checked against the pool receiving your query. The default threshold value is
 1 (100%) but it might be a good idea to change this to a lower value.
 
 >**Note**
 >
->Currently the drop_threshold is only used for dropping series since this is
->the only drop statement which allows you to drop multiple series. In 
->future we plan adding drop shards and maybe drop users/networks and then 
->this threshold will also be used for these statements.
+>Currently the drop_threshold is only used for dropping series and shards
+>because these are the only queries where we allow to drop multiple 
+>entries at once.
  
 Example:
 	
-	# Do not allow dropping more than 10% of SiriDB data
+	# Do not allow dropping more than 10% series or shards at once
 	alter database set drop_threshold 0.1
 	
 	# View the current threshold

@@ -3,25 +3,31 @@ count shards
 
 Syntax:
 
-	count shards [where ...]
+	count shards [size] [where ...]
 	
-Count shards returns the number of shards in the SiriDB cluster. When using
-multiple pools with replicas this answer can be different depending on which
-server is answering.
-This difference can happen because one server can have points for series in its
-buffer while the replica has send the points to shards. Note that the
-difference can be even bigger when servers in a cluster are using different
-buffer sizes. (view buffer size on each server:
-`list servers name, buffer_size`)
+Count shards returns the number of shards on all *online* servers in a SiriDB 
+cluster. This means that offline servers are ignored and replica servers are
+included in the query.
+Its also possible to count the shards size in case you want to see the amount 
+of disk-space shards are using.
 
 Example:
 
 	# Get number of shards
 	count shards 
 	
-	# Get number of shards which are larger then 1GB
-	count shards where size > 1024 ** 3
+	# Get number of shards for the current points. (assuming you have 
+	# no shards for points in the future)
+	count shards where end > now
+	
+	# Get the ammount of disk space (in bytes) which shards are using 
+	# on server01.
+	count shards size where server == 'server01'
 
-Example output:
+Example output (count shards):
 
 	{"shards": 51}
+	
+Example output (count shards size):
+
+    {"shards_size": 355243846}	

@@ -7,7 +7,7 @@ Syntax:
 	
 Valid options are *password* and *name*.
 
-Change a users password.
+Change a users name or password.
 
 Example:
 

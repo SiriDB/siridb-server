@@ -5,9 +5,9 @@ Syntax:
 
 	drop server <server_uuid / server_name>
 	
-Can be used to remove a server. We only support dropping a server which
-has a replica since scaling down is currently not supported. Before dropping
-the server, the server needs to be turned off.
+Can be used to remove a server. We only allow dropping a server which has a
+replica since scaling down in number of pools  is currently not supported. 
+A server needs to be turned off before it can be dropped.
 
 >**Note**
 >

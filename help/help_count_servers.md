@@ -7,7 +7,7 @@ Syntax:
 	
 Count servers returns the number of servers in a SiriDB cluster.
 Received points are the number of points received be a server since uptime.
-After a restart the counters are reset to zero.
+After a restart the received points counters are reset to zero.
 
 
 >**Info**
@@ -26,6 +26,10 @@ Examples:
 	# Get total received points since uptime
 	count servers received_points
 
-Example output:
+Example output (count servers):
 
-	{"count": 6}
+	{"servers": 6}
+	
+Example output (count servers received_points):
+
+    {"count": 21573435683}	

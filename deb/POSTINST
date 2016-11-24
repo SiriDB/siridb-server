@@ -10,7 +10,7 @@ case "$1" in
         OUTPUT=`deb-systemd-invoke status siridb-server || true`
         if [[ $OUTPUT == *"running"* ]]; then
             echo "--------------------------------------------------------------------------------"
-            echo "|  type 'sudo systemctl restart siridb-server' to restart SiriDB Server        |"
+            echo "|  type 'sudo systemctl restart siridb-server.service' to restart SiriDB       |"
             echo "|  ...or just reboot the machine.                                              |"
             echo "--------------------------------------------------------------------------------"
         else
@@ -19,7 +19,7 @@ case "$1" in
             systemctl daemon-reload || true
             deb-systemd-invoke enable siridb-server 2>/dev/null >/dev/null || true
             echo "--------------------------------------------------------------------------------"
-            echo "|  type 'sudo systemctl start siridb-server' to start SiriDB Server            |"
+            echo "|  type 'sudo systemctl start siridb-server.service' to start SiriDB           |"
             echo "|  ...or just reboot the machine.                                              |"
             echo "--------------------------------------------------------------------------------"
         fi
