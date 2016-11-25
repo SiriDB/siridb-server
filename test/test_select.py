@@ -235,11 +235,11 @@ class TestSelect(TestBase):
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
-    Server.MEM_CHECK = False
+    Server.MEM_CHECK = True
     Server.BUILDTYPE = 'Debug'
     run_test(TestSelect())
