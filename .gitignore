@@ -59,3 +59,7 @@ build/
 grammar/cgrammar/
 grammar/jsgrammar/
 grammar/pygrammar/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
