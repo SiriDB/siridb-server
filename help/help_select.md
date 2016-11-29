@@ -23,30 +23,15 @@ in the result we must add a prefix and/or suffix to the series name to make the
 name unique. Not that a prefix and/or suffix is only required when querying 
 multiple aggregates. 
 
-Possible functions:
-* count (ts): Group points by <ts> using the count (number of points).
-* sum (ts) : Group points by <ts> using the sum of the values.
-* max (ts) : Group points by <ts> using the max of the values.
-* min (ts) : Group points by <ts> using the min of the values.
-* mean (ts) : Group points by <ts> using the mean of the values.
-* median (ts) : Group points by <ts> using the min of the values.
-* median_high (ts) : Group points by <ts> using the min of the values.
-* median\_low (ts) : Group points by <ts> using the median_low of the values.
-* variance (ts) : Group points by <ts> using the variance of the values.
-* pvariance (ts) : Group points by <ts> using the pvariance of the values.
-* difference ([ts]): Return difference between values instead of original values, or group points by the difference between the fist and last value.
-* derivative ([ts [,ts]]): Like difference, but return the result over time.
-
-
 Example:
 
-	# Select both the points and mean grouped by 5 minutes from "series-001"
-	select points prefix "points-", mean (5m) prefix "mean-" from "series-001"
+	# Select both the min and max grouped by 5 minutes from "series-001"
+	select min(5m) prefix "min-", max (5m) prefix "max-" from "series-001"
 
 For more help on aggregate functions see `help functions`.
 	
-Group functions
----------------
+Combine functions
+-----------------
 Aggregate function can be used together by parsing the result of one function
 to the next. It's also possible to use the same function twice which can be 
 useful with for example difference.
@@ -120,7 +105,7 @@ Examples:
 >
 >In the examples below we assume there are no points in the future. If you have
 >points in the future and want only points from 7 days ago up till now you can
->use between now - 7d and now. Since we assume our series have  no points in the
+>use between now - 7d and now. Since we assume our series have no points in the
 >future we use after now - 7d. 
 
 	# We want the average value per 1 hour over the last 7 days over s01
@@ -129,9 +114,9 @@ Examples:
 	# We solve this by first getting the mean value for each series
 	# by 1 hour before merging the series.
 	#
-	# Note we use mean(1) which means we group by 1 second or millisecond
-	# depending on the time precision. We can do this because the series
-	# are already grouped by 1h and therefore have re-indexed timestamps 
+	# Note we use mean(1) while merging. This means we group by 1 second or 
+	# millisecond depending on the time precision. We can do this because the 
+	# series are already grouped by 1h and therefore have re-indexed timestamps 
 	# at precisely each hour.
 	select mean(1h) from "s01", "s02" after now - 7d merge as "merged_s" using mean(1)
 	
