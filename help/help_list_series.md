@@ -42,12 +42,7 @@ Example:
 
 regular expression
 ------------------
-Regular expressions can be used to select series. Note that each pool in a SiriDB cluster will look for matching series. Regular expressions
-will be cached so will probably run faster when used more than once. They are automatically updated when new series are created or dropped.
-With `show max_cache_expressions` you can see how many cached expressions are kept and this value can be changed using 
-`alter database set max_cache_expressions n` (see `help alter database` for more information).
-It's also possible to view which expressions a server has in cache but notice that only local cache is displayed and the result might be different 
-on another server. This can be done with `list groups where cached == true`. Cached expressions are not kept after a restart.
+Regular expressions can be used to select series. Note that each pool in a SiriDB cluster will look for matching series. If you plan to use a regular expression multiple times, you should consider creating a group for the expression.
  
 Example:
 	
@@ -57,12 +52,18 @@ Example:
 	# list all series starting with "linux" (case-insensitive)
 	list series /linux.*/i
 	
+	# list all series not starting with "linux"
+	list series /(?!linux).*/
+	
+	# list all series not containing "linux"
+	list series /((?!linux).)*/
+	
 group
 -----
-Groups can basically like regular expressions but are available on all servers in a SiriDB cluster and kept even after a reboot.
-It's also possible to create an index for a group. They costs of indexing a group is basically only memory but creating or dropping series
-might also be a bit slower when series have a match with the group. When a group is indexed the update functions *difference* and *intersection*
-are much faster with new regular expressions since they only have to look for a match in the index of the group.
+Groups are basically cached regular expression and can be used together with nomal
+regular expressions. When you use a regular expression to match series in a group its
+best to first select the group and then the regular expression. This way the regular
+expression only needs to validate series inside the group.
 
 Examples:
 
@@ -70,13 +71,15 @@ Examples:
 	list series `linux`
 	
 	# list all series in group "linux" with "cpu" in the name
-	# note that this query can be very fast if group "linux" is indexed
+	# note that we first select the group so the regular expression only
+	# needs to be validated on series in the group.
 	list series `linux` & /.*cpu.*/
 	
 update functions
 ----------------
 When selecting series you can combine *series-names*, *regular-expressions* and *groups*. Update functions tell SiriDB how to combine selection.
 SiriDB knows four update functions:
+
 * difference (alias: **-**)
 * symmentric_difference (alias: **^**)
 * union (aliasses: **,** and **|**)
@@ -98,14 +101,15 @@ examples
 	# a series name contains "test".
 	list series `linux` & `cpu` - /.*test.*/
 	
-	# list series in group `linux` and view their length and last value
-	list series name, length, last `linux`
+	# list series in group `linux` and view their length.
+	list series name, length `linux`
 	
-	# list series in group `linux` which have their last data more than 100 days ago.
+	# list series in group `linux` which have their last data point more 
+	# than 100 days ago
 	list series `linux` where end < now - 100d
 
 
-	# sample output
+	# sample output (list series)
 	{
 		"columns": ["name"],
 		"series": [
