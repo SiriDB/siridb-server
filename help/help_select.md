@@ -64,7 +64,7 @@ with the exact end time are *excluded* from the result.
 
 Examples:
 
-	# Select all points from "series-001" in the 24h
+	# Select all points from "series-001" in the last 24h
 	select * from "series-001" after now - 1d
 	
 	# Select all points from "series-001" today
