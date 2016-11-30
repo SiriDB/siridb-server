@@ -149,6 +149,7 @@ As an optional argument you can specify a time period. In this case the function
 Example:
 
     # Select difference between values in series-001.
+    select difference() from 'series-001'
     
 derivative
 ----------
@@ -165,12 +166,12 @@ be used. A second argument can be used to set a time period. This time period wi
 
 Example:
 
-    # Select the difference per second for values in 'series-001'
-    select derivarive(1s) from series-001.
+    # Select the difference per second for values in series-001.
+    select derivative(1s) from 'series-001'
 
     # Select the difference per second between the first and last value 
     # within each hour for values in 'series-001'
-    select derivarive(1s, 1h) from 'series-001'
+    select derivative(1s, 1h) from 'series-001'
     
 
 filter

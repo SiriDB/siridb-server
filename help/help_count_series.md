@@ -14,18 +14,18 @@ Examples:
 
 	# Get number of series
 	count series 
-    
-    # Get the total number of points in the database
-    count series length
-    
+	    
+	# Get the total number of points in the database
+	count series length
+	    
 	# Get number of series in group `group_server01`
 	count series `group_server01`
-
+		
 	# Get number of points for series in pool 0
 	count series length where pool == 0
-
-    # Get the number of series which started in the last week
-    count series where start > now - 1w and start <= now	
+	
+	# Get the number of series which started in the last week
+	count series where start > now - 1w and start <= now	
 
 
 Example output (series):
@@ -35,4 +35,4 @@ Example output (series):
 
 Example output (series length):
 	
-    {"series_length": 77450345251}
+	{"series_length": 77450345251}
