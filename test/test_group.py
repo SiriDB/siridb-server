@@ -158,6 +158,8 @@ class TestGroup(TestBase):
             await self.client0.query('count groups'),
             {'groups': 4})
 
+        await asyncio.sleep(2)
+
         self.assertEqual(
             await self.client0.query('count groups where series > 2'),
             {'groups': 2})
