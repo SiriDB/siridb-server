@@ -31,6 +31,12 @@ Compile
 	sudo apt install uuid-dev
 	sudo apt install libpcre3-dev
 
+Replace `Release` with `Debug` for a debug build.
+
+	cd ./Release
+	make clean
+	make
+
 
 Build Deb Package
 -----------------	
