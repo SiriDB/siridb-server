@@ -22,4 +22,4 @@ Remove the appropriate file on **all servers** in the SiriDB cluster.
 Start **all servers** in the SiriDB cluster.
 
 	# Assume systemd is used to start SiriDB...
-	> sudo systemctl start siridb-server
+	> sudo systemctl start siridb-server.service
