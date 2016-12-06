@@ -4,10 +4,10 @@ alter user
 Syntax:
 
 	alter user 'username' set <option>
-	
+
 Valid options are *password* and *name*.
 
-Change a users name or password.
+Change a user name or password.
 
 Example:
 

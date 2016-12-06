@@ -4,7 +4,7 @@ alter database
 Syntax:
 
 	alter database set <option>
-	
+
 Valid options are *drop_threshold* and *timezone*.
 
 drop_threshold
@@ -17,17 +17,17 @@ checked against the pool receiving your query. The default threshold value is
 >**Note**
 >
 >Currently the drop_threshold is only used for dropping series and shards
->because these are the only queries where we allow to drop multiple 
+>because these are the only queries where we allow to drop multiple
 >entries at once.
- 
+
 Example:
-	
+
 	# Do not allow dropping more than 10% series or shards at once
 	alter database set drop_threshold 0.1
-	
+
 	# View the current threshold
 	show drop_threshold
-	
+
 set timezone
 ------------
 Change the timezone for the database. When using a date/time in a query SiriDB
@@ -38,12 +38,12 @@ means SiriDB is naive about the time zone and acts as if it's a local time.
 >
 >When using a SiriDB database over multiple time zones it's probably best to
 >set the time zone to anything other than *NAIVE* since with *NAIVE* the server
->*receiving* the query will convert the date to a local time-stamp. This means that 
->sending the same query to a server in another time zone could respond with 
+>*receiving* the query will convert the date to a local time-stamp. This means that
+>sending the same query to a server in another time zone could respond with
 >a different result.
 >
->It's however always possible in the query to specify
->a UTC date by adding 'Z' to the date. For example: '2016-01-11 16:00Z' will 
+>However, it's always possible in the query to specify
+>a UTC date by adding 'Z' to the date. For example: '2016-01-11 16:00Z' will
 >use UTC as it's time zone, no matter what time zone the database has configured.
 
 For a list of valid time zones see `help timezones`
@@ -52,9 +52,9 @@ Example:
 
 	# Set the default time zone to UTC
 	alter database set timezone 'UTC'
-	
+
 	# Set the default time zone to NAIVE
 	alter database set timezone 'NAIVE'
-	
+
 	# Set the default time zone to Europe/Amsterdam
 	alter database set timezone 'Europe/Amsterdam'  

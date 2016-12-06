@@ -13,7 +13,7 @@ SiriDB knows the following access rights:
 * grant
 * revoke
 
-The most obvious are combined into access profiles which can be used to grant 
+The most obvious ones are combined into access profiles which can be used to grant 
 or revoke multiple access rights at once.
 
 * read:  (select, show, list and count)
@@ -23,5 +23,5 @@ or revoke multiple access rights at once.
 
 >**Warning**
 >
->Changes to access rights are active immediately so be careful when revoking
->access rights from users. 
+>Changes to access rights are active immediately, so be careful when revoking
+>access rights from users.

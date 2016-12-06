@@ -8,7 +8,7 @@ Syntax:
     timeit <any_query>
 
 Example result:
-	
+
 	{
 		"__timeit__": [
 	    	{
@@ -21,5 +21,5 @@ Example result:
 	    	}
 	  	]
 	}
-    
-Here `__timeit__` is an array containing response data from each server involved in processing the query. The last server in this list is the server who has received the query. Since this server is responsible for sending the response it has to wait for all other servers to complete and therefore the query time for this server will be always the highest value of all servers in the list.
+
+Here `__timeit__` is an array containing response data from each server involved in processing the query. The last server in this list is the server who has received the query. Since this server is responsible for sending the response it has to wait for all other servers to complete and therefore the query time for this server will always be the highest value of all servers in the list.

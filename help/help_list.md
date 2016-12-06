@@ -16,10 +16,9 @@ See available options for more information on each *list* command:
 
 
 >**Warning**
-> 
->Each list command allows a limit option which is set to 1000 by default but 
->can be any integer value from 1 to 10000. Usually we only expect to reach this 
->limit with listing series or shards but note that it's always there. We have 
->set the 1000 limit by default to prevent accidentally listing all series. 
->(its possible to have millions of series)
- 
+>
+>Each list command allows a limit option which is set to 1000 by default but
+>can be any integer value from 1 to 10000. Usually we only expect to reach this
+>limit with listing series or shards, but note that it's always there. We have
+>set the 1000 limit by default to prevent accidentally listing all series
+>(its possible to have millions of series).
