@@ -725,7 +725,7 @@ static void ** CT_getaddr(ct_node_t * node, const char * key)
 
             ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
 
-            return (nd == NULL) ? NULL : CT_get(nd, key + 1);
+            return (nd == NULL) ? NULL : CT_getaddr(nd, key + 1);
         }
         if (*key != *pt)
         {

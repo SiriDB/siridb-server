@@ -4272,10 +4272,11 @@ static void async_select_aggregate(uv_async_t * handle)
                     q_select->presuf,
                     q_select->merge_as,
                     strlen(q_select->merge_as));
+
             plist = (slist_t **) ct_getaddr(q_select->result, name);
 
             if (    name == NULL ||
-                    *plist == NULL ||
+                    plist == NULL ||
                     slist_append_safe(plist, points))
             {
                 sprintf(query->err_msg, "Error adding points to map.");
