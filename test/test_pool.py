@@ -57,13 +57,13 @@ class TestPool(TestBase):
 
         await self.assertIsRunning(self.db, self.client0, timeout=200)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(25)
 
         await self.db.add_replica(self.server3, 1, sleep=3)
         await self.client3.connect()
         await self.assertIsRunning(self.db, self.client3, timeout=200)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(30)
 
         await self.db.add_pool(self.server2, sleep=3)
         await self.client2.connect()

@@ -220,6 +220,15 @@ class TestSelect(TestBase):
                     'Query too long.'):
             await self.client0.query('select * from "{}"'.format('a' * 65535))
 
+        self.assertEqual(
+            await self.client0.query(
+                'select min(2h) prefix "min-", max(1h) prefix "max-" '
+                'from /.*/ where type == integer '
+                'merge as "int_min_max" using median_low(1) => difference()'),
+            {   'max-int_min_max': [
+                    [1447254000, 3], [1447257600, -1], [1471255200, -532]],
+                'min-int_min_max': [
+                    [1447257600, -477], [1471255200, -54]]})
 
         await self.client0.query('select derivative() from "equal ts"')
 
@@ -241,5 +250,5 @@ if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    Server.BUILDTYPE = 'Release'
     run_test(TestSelect())
