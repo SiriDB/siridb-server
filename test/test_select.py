@@ -249,6 +249,6 @@ class TestSelect(TestBase):
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.MEM_CHECK = False
     Server.BUILDTYPE = 'Release'
     run_test(TestSelect())
