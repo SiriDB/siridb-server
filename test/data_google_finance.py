@@ -11,13 +11,16 @@ def _data_to_csv(data, ticker, interval):
     lines = []
     series = None
     ts = None
+    tz_offset = None
     for n, line in enumerate(data.splitlines()):
         if line.startswith('COLUMNS='):
             series = [
                 'GOOGLE-FINANCE-{}-{}'.format(ticker, column)
                 for column in line[13:].split(',')]
             lines.append(',' + ','.join(series))
-        elif n > 6:
+        elif line.startswith('TIMEZONE_OFFSET='):
+            tz_offset = int(line[17:])
+        elif tz_offset is not None:
             date, *fields = line.split(',')
             if date[0] == 'a':
                 ts = int(date[1:])
@@ -81,7 +84,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '-t', '--ticker',
         help='Ticker symbol of the stock',
-        required=True,
+        default='IBM',
+        # required=True,
         type=str)
 
     parser.add_argument(
