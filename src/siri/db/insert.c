@@ -177,7 +177,7 @@ ssize_t siridb_insert_assign_pools(
         qp_packer_t * tmp_packer = qp_packer_new(QP_SUGGESTED_SIZE);
         if (tmp_packer == NULL)
         {
-        	ERR_ALLOC
+            ERR_ALLOC
         }
         else
         {
@@ -676,7 +676,7 @@ static int INSERT_local_work_test(
             }
             else if (siridb->replica == NULL ||
                     siridb_series_server_id_by_name(series_name) ==
-                    		siridb->server->id)
+                            siridb->server->id)
             {
                 /*
                  * Forward the series to the correct pool because 'this' server

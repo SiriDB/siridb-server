@@ -563,7 +563,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_IP_SUPPORT:
             qp_add_string(
                     query->packer,
-					sirinet_socket_ip_support_str((siridb->server == server) ?
+                    sirinet_socket_ip_support_str((siridb->server == server) ?
                             siri.cfg->ip_support : server->ip_support));
             break;
         case CLERI_GID_K_LIBUV:
