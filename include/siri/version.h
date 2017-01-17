@@ -17,14 +17,14 @@
 
 #define SIRIDB_STRINGIFY(num) #num
 #define SIRIDB_VERSION_STR(major,minor,patch) \
-	SIRIDB_STRINGIFY(major) "." \
-	SIRIDB_STRINGIFY(minor) "." \
-	SIRIDB_STRINGIFY(patch)
+    SIRIDB_STRINGIFY(major) "." \
+    SIRIDB_STRINGIFY(minor) "." \
+    SIRIDB_STRINGIFY(patch)
 
-#define SIRIDB_VERSION SIRIDB_VERSION_STR(				\
-		SIRIDB_VERSION_MAJOR, 		\
-		SIRIDB_VERSION_MINOR, 		\
-		SIRIDB_VERSION_PATCH)
+#define SIRIDB_VERSION SIRIDB_VERSION_STR(                \
+        SIRIDB_VERSION_MAJOR,         \
+        SIRIDB_VERSION_MINOR,         \
+        SIRIDB_VERSION_PATCH)
 
 #define SIRIDB_MAINTAINER "Jeroen van der Heijden <jeroen@transceptor.technology>"
 #define SIRIDB_HOME_PAGE "http://siridb.net"

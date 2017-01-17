@@ -57,14 +57,14 @@ static siridb_t * SIRIDB_new(void);
  */
 int siridb_is_db_path(const char * dbpath)
 {
-	char buffer[PATH_MAX];
+    char buffer[PATH_MAX];
     snprintf(buffer,
             PATH_MAX,
             "%sdatabase.conf",
             dbpath);
     if (!xpath_file_exist(buffer))
     {
-    	return 0;  /* false */
+        return 0;  /* false */
     }
     snprintf(buffer,
             PATH_MAX,
@@ -72,7 +72,7 @@ int siridb_is_db_path(const char * dbpath)
             dbpath);
     if (!xpath_file_exist(buffer))
     {
-    	return 0;  /* false */
+        return 0;  /* false */
     }
     return 1;  /* true */
 }
@@ -195,21 +195,21 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
                 "path");
 
     if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING)
-	{
-    	len = strlen(option->val->string);
-    	siridb->buffer_path = NULL;
-		if (option->val->string[len - 1] == '/')
-		{
-			siridb->buffer_path = strdup(option->val->string);
-		}
-		else if (asprintf(&siridb->buffer_path, "%s/", option->val->string) < 0)
-		{
-			siridb->buffer_path = NULL;
-		}
-	}
+    {
+        len = strlen(option->val->string);
+        siridb->buffer_path = NULL;
+        if (option->val->string[len - 1] == '/')
+        {
+            siridb->buffer_path = strdup(option->val->string);
+        }
+        else if (asprintf(&siridb->buffer_path, "%s/", option->val->string) < 0)
+        {
+            siridb->buffer_path = NULL;
+        }
+    }
     else
     {
-    	siridb->buffer_path = siridb->dbpath;
+        siridb->buffer_path = siridb->dbpath;
     }
 
     /* free cfgparser */
@@ -599,7 +599,7 @@ void siridb__free(siridb_t * siridb)
     }
 
     /* free buffer positions */
-	slist_free(siridb->empty_buffers);
+    slist_free(siridb->empty_buffers);
 
     /* we do not need to free server and replica since they exist in
      * this list and therefore will be freed.
@@ -737,36 +737,36 @@ static siridb_t * SIRIDB_new(void)
                     }
                     else
                     {
-						siridb->dbname = NULL;
-						siridb->dbpath = NULL;
-						siridb->ref = 1;
-						siridb->active_tasks = 0;
-						siridb->insert_tasks = 0;
-						siridb->flags = 0;
-						siridb->buffer_path = NULL;
-						siridb->time = NULL;
-						siridb->users = NULL;
-						siridb->servers = NULL;
-						siridb->pools = NULL;
-						siridb->max_series_id = 0;
-						siridb->received_points = 0;
-						siridb->drop_threshold = 1.0;
-						siridb->buffer_size = -1;
-						siridb->tz = -1;
-						siridb->server = NULL;
-						siridb->replica = NULL;
-						siridb->fifo = NULL;
-						siridb->replicate = NULL;
-						siridb->reindex = NULL;
-						siridb->groups = NULL;
+                        siridb->dbname = NULL;
+                        siridb->dbpath = NULL;
+                        siridb->ref = 1;
+                        siridb->active_tasks = 0;
+                        siridb->insert_tasks = 0;
+                        siridb->flags = 0;
+                        siridb->buffer_path = NULL;
+                        siridb->time = NULL;
+                        siridb->users = NULL;
+                        siridb->servers = NULL;
+                        siridb->pools = NULL;
+                        siridb->max_series_id = 0;
+                        siridb->received_points = 0;
+                        siridb->drop_threshold = 1.0;
+                        siridb->buffer_size = -1;
+                        siridb->tz = -1;
+                        siridb->server = NULL;
+                        siridb->replica = NULL;
+                        siridb->fifo = NULL;
+                        siridb->replicate = NULL;
+                        siridb->reindex = NULL;
+                        siridb->groups = NULL;
 
-						/* make file pointers are NULL when file is closed */
-						siridb->buffer_fp = NULL;
-						siridb->dropped_fp = NULL;
-						siridb->store = NULL;
+                        /* make file pointers are NULL when file is closed */
+                        siridb->buffer_fp = NULL;
+                        siridb->dropped_fp = NULL;
+                        siridb->store = NULL;
 
-						uv_mutex_init(&siridb->series_mutex);
-						uv_mutex_init(&siridb->shards_mutex);
+                        uv_mutex_init(&siridb->series_mutex);
+                        uv_mutex_init(&siridb->shards_mutex);
                     }
                 }
             }

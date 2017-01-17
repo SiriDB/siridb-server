@@ -100,7 +100,7 @@ static cleri_node_t * SEQUENCE_parse(
     olist = cl_obj->via.sequence->olist;
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         return NULL;
     }
 

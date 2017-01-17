@@ -163,13 +163,13 @@ int siridb_groups_add_group(
             err_msg);
 
     if (group == NULL)
-	{
-    	return -1; /* err_msg is set and a SIGNAL is possibly raised */
-	}
+    {
+        return -1; /* err_msg is set and a SIGNAL is possibly raised */
+    }
 
     if (siridb_group_set_name(groups, group, name, err_msg))
     {
-    	siridb_group_decref(group);
+        siridb_group_decref(group);
         return -1;  /* err_msg is set and a SIGNAL is possibly raised */
     }
 
@@ -180,7 +180,7 @@ int siridb_groups_add_group(
     switch (rc)
     {
     case CT_EXISTS:
-    	siridb_group_decref(group);
+        siridb_group_decref(group);
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Group '%s' already exists.",
@@ -188,14 +188,14 @@ int siridb_groups_add_group(
         break;
 
     case CT_ERR:
-    	siridb_group_decref(group);
+        siridb_group_decref(group);
         sprintf(err_msg, "Memory allocation error.");
         break;
 
     case CT_OK:
         if (slist_append_safe(&groups->ngroups, group))
         {
-        	siridb_group_decref(group);
+            siridb_group_decref(group);
             sprintf(err_msg, "Memory allocation error.");
             rc = -1;
         }
@@ -373,11 +373,11 @@ static void GROUPS_free(siridb_groups_t * groups)
 
     if (groups->nseries != NULL)
     {
-    	siridb_series_t * series;
+        siridb_series_t * series;
         for (size_t i = 0; i < groups->nseries->len; i++)
         {
-        	series = (siridb_series_t *) groups->nseries->data[i];
-        	siridb_series_decref(series);
+            series = (siridb_series_t *) groups->nseries->data[i];
+            siridb_series_decref(series);
         }
         slist_free(groups->nseries);
     }
@@ -389,10 +389,10 @@ static void GROUPS_free(siridb_groups_t * groups)
 
     if (groups->ngroups != NULL)
     {
-    	siridb_group_t * group;
+        siridb_group_t * group;
         for (size_t i = 0; i < groups->ngroups->len; i++)
         {
-        	group = (siridb_group_t *) groups->ngroups->data[i];
+            group = (siridb_group_t *) groups->ngroups->data[i];
             siridb_group_decref(group);
         }
         slist_free(groups->ngroups);

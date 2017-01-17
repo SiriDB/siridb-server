@@ -66,7 +66,7 @@ siridb_group_t * siridb_group_new(
                 err_msg))
         {
             /* not critical, err_msg is set */
-        	siridb__group_free(group);
+            siridb__group_free(group);
             group = NULL;
         }
     }
@@ -154,7 +154,7 @@ void siridb__group_decref(siridb_group_t * group)
 {
     if (!--group->ref)
     {
-    	siridb__group_free(group);
+        siridb__group_free(group);
     }
 }
 
@@ -273,8 +273,8 @@ int siridb_group_update_expression(
 
     for (size_t i = 0; i < group->series->len; i++)
     {
-    	series = (siridb_series_t *) group->series->data[i];
-    	siridb_series_decref(series);
+        series = (siridb_series_t *) group->series->data[i];
+        siridb_series_decref(series);
     }
 
     group->series->len = 0;
@@ -363,10 +363,10 @@ void siridb__group_free(siridb_group_t * group)
 
     if (group->series != NULL)
     {
-    	siridb_series_t * series;
+        siridb_series_t * series;
         for (size_t i = 0; i < group->series->len; i++)
         {
-        	series = (siridb_series_t *) group->series->data[i];
+            series = (siridb_series_t *) group->series->data[i];
             siridb_series_decref(series);
         }
         slist_free(group->series);
