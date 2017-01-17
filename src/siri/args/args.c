@@ -89,15 +89,15 @@ void siri_args_parse(siri_t * siri, int argc, char *argv[])
     {
         printf(
                 "SiriDB Server %s\n"
-        		"Build date: %s\n"
+                "Build date: %s\n"
                 "Maintainer: %s\n"
                 "Home-page: %s\n",
 #ifndef DEBUG
                 SIRIDB_VERSION,
 #else
-				SIRIDB_VERSION "-DEBUG-RELEASE",
+                SIRIDB_VERSION "-DEBUG-RELEASE",
 #endif
-				SIRIDB_BUILD_DATE,
+                SIRIDB_BUILD_DATE,
                 SIRIDB_MAINTAINER,
                 SIRIDB_HOME_PAGE);
 

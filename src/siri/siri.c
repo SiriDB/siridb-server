@@ -11,10 +11,10 @@
  * Info siri->siridb_mutex:
  *
  *  Main thread:
- *      siri->siridb_list :    read (no lock)      	write (lock)
+ *      siri->siridb_list :    read (no lock)          write (lock)
  *
  *  Other threads:
- *      siri->siridb_list :    read (lock)      	write (not allowed)
+ *      siri->siridb_list :    read (lock)          write (not allowed)
  *
  */
 #include <assert.h>
@@ -255,18 +255,18 @@ static int SIRI_load_databases(void)
 
         if (!siridb_is_db_path(buffer))
         {
-        	/* this is not a SiriDB database directory, files are missing */
-        	continue;
+            /* this is not a SiriDB database directory, files are missing */
+            continue;
         }
 
         if (siri.siridb_list->len == MAX_NUMBER_DB)
         {
-        	log_critical(
-        			"Cannot load '%s' since no more than %d databases "
-        			"are allowed on a single SiriDB process.",
-					dbpath->d_name,
-					MAX_NUMBER_DB);
-        	continue;
+            log_critical(
+                    "Cannot load '%s' since no more than %d databases "
+                    "are allowed on a single SiriDB process.",
+                    dbpath->d_name,
+                    MAX_NUMBER_DB);
+            continue;
         }
 
         if (siridb_new(buffer, 0) == NULL)
@@ -285,8 +285,8 @@ static void SIRI_destroy(void)
     log_info("Closing SiriDB Server (version: %s)", SIRIDB_VERSION);
 #else
     log_warning("Closing SiriDB Server (%s-DEBUG-RELEASE-%s)",
-    		SIRIDB_VERSION,
-			SIRIDB_BUILD_DATE);
+            SIRIDB_VERSION,
+            SIRIDB_BUILD_DATE);
 #endif
     /* stop the event loop */
     uv_stop(siri.loop);

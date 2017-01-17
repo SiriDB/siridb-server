@@ -964,8 +964,8 @@ static void IMAP_intersection_ref(
 
     if (!dest->size)
     {
-    	IMAP_node_free(dest);
-    	dest->nodes = NULL;
+        IMAP_node_free(dest);
+        dest->nodes = NULL;
     }
 
     free(node->nodes);
@@ -1019,8 +1019,8 @@ static void IMAP_difference_ref(
 
     if (!dest->size)
     {
-    	IMAP_node_free(dest);
-    	dest->nodes = NULL;
+        IMAP_node_free(dest);
+        dest->nodes = NULL;
     }
 
     free(node->nodes);
@@ -1085,8 +1085,8 @@ static void IMAP_symmetric_difference_ref(
 
     if (!dest->size)
     {
-    	IMAP_node_free(dest);
-    	dest->nodes = NULL;
+        IMAP_node_free(dest);
+        dest->nodes = NULL;
     }
 
     free(node->nodes);

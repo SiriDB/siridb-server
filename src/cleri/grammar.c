@@ -24,7 +24,7 @@ cleri_grammar_t * cleri_grammar(
     if (start == NULL)
     {
         /* this is critical and unexpected, memory is not cleaned */
-    	fprintf(stderr, "NULL is parsed to grammar");
+        fprintf(stderr, "NULL is parsed to grammar");
         exit(EXIT_FAILURE);
     }
 
@@ -33,7 +33,7 @@ cleri_grammar_t * cleri_grammar(
     if (grammar == NULL)
     {
         /* this is critical and unexpected, memory is not cleaned */
-    	fprintf(stderr, "Allocation error while building grammar");
+        fprintf(stderr, "Allocation error while building grammar");
         exit(EXIT_FAILURE);
     }
 
@@ -52,7 +52,7 @@ cleri_grammar_t * cleri_grammar(
     if(grammar->re_keywords == NULL)
     {
         /* this is critical and unexpected, memory is not cleaned */
-    	fprintf(stderr, "critical: could not compile '%s': %s\n",
+        fprintf(stderr, "critical: could not compile '%s': %s\n",
                 re_keywords,
                 pcre_error_str);
         exit(EXIT_FAILURE);
@@ -66,7 +66,7 @@ cleri_grammar_t * cleri_grammar(
      * string otherwise. */
     if(pcre_error_str != NULL)
     {
-    	fprintf(stderr, "critical: could not compile '%s': %s\n",
+        fprintf(stderr, "critical: could not compile '%s': %s\n",
                 re_keywords,
                 pcre_error_str);
         exit(EXIT_FAILURE);

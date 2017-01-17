@@ -123,40 +123,40 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
         return;
 
 #define MSG_SUCCESS_CREATE_USER \
-	"Successfully created user '%s'."
+    "Successfully created user '%s'."
 #define MSG_SUCCESS_DROP_USER \
-	"Successfully dropped user '%s'."
+    "Successfully dropped user '%s'."
 #define MSG_SUCCESS_ALTER_USER \
-	"Successfully updated user '%s'."
+    "Successfully updated user '%s'."
 #define MSG_SUCCESS_GRANT_USER \
-	"Successfully granted permissions to user '%s'."
+    "Successfully granted permissions to user '%s'."
 #define MSG_SUCCESS_REVOKE_USER \
     "Successfully revoked permissions from user '%s'."
 #define MSG_SUCCESS_CREATE_GROUP \
-	"Successfully created group '%s'."
+    "Successfully created group '%s'."
 #define MSG_SUCCESS_DROP_GROUP \
-	"Successfully dropped group '%s'."
+    "Successfully dropped group '%s'."
 #define MSG_SUCCESS_ALTER_GROUP \
-	"Successfully updated group '%s'."
+    "Successfully updated group '%s'."
 #define MSG_SUCCESS_SET_DROP_THRESHOLD \
     "Successfully changed drop_threshold from %g to %g."
 #define MSG_SUCCESS_SET_ADDR_PORT \
-	"Successfully changed server address to '%s'."
+    "Successfully changed server address to '%s'."
 #define MSG_SUCCESS_DROP_SERVER \
-	"Successfully dropped server '%s'."
+    "Successfully dropped server '%s'."
 #define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
     "Successfully set log level to '%s' on %lu servers."
 #define MSG_SUCCES_SET_LOG_LEVEL \
-	"Successfully set log level to '%s' on '%s'."
+    "Successfully set log level to '%s' on '%s'."
 #define MSG_SUCCES_DROP_SERIES \
-	"Successfully dropped %lu series."
+    "Successfully dropped %lu series."
 #define MSG_SUCCES_DROP_SHARDS \
-	"Successfully dropped %lu shards. (this number does not include " \
-	"shards which are dropped on replica servers)"
+    "Successfully dropped %lu shards. (this number does not include " \
+    "shards which are dropped on replica servers)"
 #define MSG_SUCCES_SET_BACKUP_MODE \
-	"Successfully %s backup mode on '%s'."
+    "Successfully %s backup mode on '%s'."
 #define MSG_SUCCES_SET_TIMEZONE \
-	"Successfully changed timezone from '%s' to '%s'."
+    "Successfully changed timezone from '%s' to '%s'."
 #define MSG_ERR_SERVER_ADDRESS \
     "Its only possible to change a servers address or port when the server " \
     "is not connected."
@@ -352,11 +352,11 @@ else                                    \
  * Start SIRIPARSER_MASTER_CHECK_ACCESS
  */
 #define SIRIPARSER_MASTER_CHECK_ACCESS(ACCESS_BIT)                            \
-if (IS_MASTER &&                                                        	  \
-    !siridb_user_check_access(                                          	  \
-		(siridb_user_t *) ((sirinet_socket_t *) query->client->data)->origin, \
-		ACCESS_BIT,                                                     	  \
-		query->err_msg))                                                	  \
+if (IS_MASTER &&                                                              \
+    !siridb_user_check_access(                                                \
+        (siridb_user_t *) ((sirinet_socket_t *) query->client->data)->origin, \
+        ACCESS_BIT,                                                           \
+        query->err_msg))                                                      \
 {                                                                             \
     siridb_query_send_error(handle, CPROTO_ERR_USER_ACCESS);                  \
     return;                                                                   \
@@ -551,7 +551,7 @@ static void enter_alter_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -560,7 +560,7 @@ static void enter_alter_stmt(uv_async_t * handle)
 
     if (query->data == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
     query->free_cb = (uv_close_cb) query_alter_free;
 
@@ -614,7 +614,7 @@ static void enter_count_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -623,7 +623,7 @@ static void enter_count_stmt(uv_async_t * handle)
 
     if (query->data == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     query->free_cb = (uv_close_cb) query_count_free;
@@ -651,20 +651,20 @@ static void enter_create_user(uv_async_t * handle)
 
     if (q_alter == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
-	query->free_cb = (uv_close_cb) query_alter_free;
-	q_alter->via.user = siridb_user_new();
+    query->free_cb = (uv_close_cb) query_alter_free;
+    q_alter->via.user = siridb_user_new();
 
-	if (q_alter->via.user == NULL)
-	{
-		MEM_ERR_RET
-	}
+    if (q_alter->via.user == NULL)
+    {
+        MEM_ERR_RET
+    }
 
-	q_alter->alter_tp = QUERY_ALTER_USER;
+    q_alter->alter_tp = QUERY_ALTER_USER;
 
-	SIRIPARSER_NEXT_NODE
+    SIRIPARSER_NEXT_NODE
 }
 
 static void enter_drop_stmt(uv_async_t * handle)
@@ -681,7 +681,7 @@ static void enter_drop_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -690,7 +690,7 @@ static void enter_drop_stmt(uv_async_t * handle)
 
     if (query->data == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     query->free_cb = (uv_close_cb) query_drop_free;
@@ -856,7 +856,7 @@ static void enter_list_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -868,7 +868,7 @@ static void enter_list_stmt(uv_async_t * handle)
 
     if (query->data == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     query->free_cb = (uv_close_cb) query_list_free;
@@ -885,7 +885,7 @@ static void enter_merge_as(uv_async_t * handle)
 
     if (q_select->merge_as == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     strx_extract_string(q_select->merge_as, node->str, node->len);
@@ -932,16 +932,16 @@ static void enter_revoke_user(uv_async_t * handle)
 
         if (q_alter == NULL)
         {
-        	MEM_ERR_RET
+            MEM_ERR_RET
         }
 
-		siridb_user_incref(user);
+        siridb_user_incref(user);
 
-		query->free_cb = (uv_close_cb) query_alter_free;
-		q_alter->alter_tp = QUERY_ALTER_USER;
-		q_alter->via.user = user;
+        query->free_cb = (uv_close_cb) query_alter_free;
+        q_alter->alter_tp = QUERY_ALTER_USER;
+        q_alter->via.user = user;
 
-		SIRIPARSER_NEXT_NODE
+        SIRIPARSER_NEXT_NODE
     }
 }
 
@@ -1211,7 +1211,7 @@ static void enter_series_name(uv_async_t * handle)
                 break;
 
             default:
-            	MEM_ERR_RET  // signal is raised
+                MEM_ERR_RET  // signal is raised
             }
         }
         else
@@ -1229,9 +1229,9 @@ static void enter_series_match(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     if ((((query_wrapper_t *) query->data)->series_map = imap_new()) == NULL)
-	{
-    	MEM_ERR_RET
-	}
+    {
+        MEM_ERR_RET
+    }
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1332,7 +1332,7 @@ static void enter_timeit_stmt(uv_async_t * handle)
 
     if (query->timeit == NULL)
     {
-		MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_raw(query->timeit, "__timeit__", 10);
@@ -1372,24 +1372,24 @@ static void enter_xxx_columns(uv_async_t * handle)
         MEM_ERR_RET
     }
 
-	while (1)
-	{
-		qp_add_raw(query->packer, columns->node->str, columns->node->len);
+    while (1)
+    {
+        qp_add_raw(query->packer, columns->node->str, columns->node->len);
 
-		if (slist_append_safe(
-				&qlist->props,
-				&columns->node->children->node->cl_obj->via.dummy->gid))
-		{
-			MEM_ERR_RET
-		}
+        if (slist_append_safe(
+                &qlist->props,
+                &columns->node->children->node->cl_obj->via.dummy->gid))
+        {
+            MEM_ERR_RET
+        }
 
-		if (columns->next == NULL)
-		{
-			break;
-		}
+        if (columns->next == NULL)
+        {
+            break;
+        }
 
-		columns = columns->next->next;
-	}
+        columns = columns->next->next;
+    }
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }
@@ -1490,14 +1490,14 @@ static void exit_between_expr(uv_async_t * handle)
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Start time (%" PRIu64 ") "
-				"should not be greater than end time (%" PRIu64 ")",
-				*q_select->start_ts,
-				*q_select->end_ts);
+                "should not be greater than end time (%" PRIu64 ")",
+                *q_select->start_ts,
+                *q_select->end_ts);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
     {
-    	SIRIPARSER_NEXT_NODE
+        SIRIPARSER_NEXT_NODE
     }
 }
 
@@ -1515,7 +1515,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -1914,7 +1914,7 @@ static void exit_count_shards_size(uv_async_t * handle)
 
     if (shards_list == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     for (size_t i = 0; i < shards_list->len; i++)
@@ -2087,7 +2087,7 @@ static void exit_create_user(uv_async_t * handle)
 
         if (query->packer == NULL)
         {
-        	MEM_ERR_RET
+            MEM_ERR_RET
         }
 
         qp_add_type(query->packer, QP_MAP_OPEN);
@@ -2163,21 +2163,21 @@ static void exit_drop_series(uv_async_t * handle)
      * We transform or copy the references from imap to slist because we need
      * this list for both filtering or performing the actual drop.
      */
-	q_drop->slist = (q_drop->series_map == NULL) ?
-		imap_2slist_ref(siridb->series_map) :
-		imap_slist_pop(q_drop->series_map);
+    q_drop->slist = (q_drop->series_map == NULL) ?
+        imap_2slist_ref(siridb->series_map) :
+        imap_slist_pop(q_drop->series_map);
 
     if (q_drop->slist == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
-	if (q_drop->series_map != NULL)
-	{
-		/* now we can simply destroy the imap in case we had one */
-		imap_free(q_drop->series_map, NULL);
-		q_drop->series_map = NULL;
-	}
+    if (q_drop->series_map != NULL)
+    {
+        /* now we can simply destroy the imap in case we had one */
+        imap_free(q_drop->series_map, NULL);
+        q_drop->series_map = NULL;
+    }
 
     /*
      * This function will be called twice when using a where statement.
@@ -2186,30 +2186,30 @@ static void exit_drop_series(uv_async_t * handle)
      */
     if (q_drop->where_expr != NULL)
     {
-		/* create a new one */
-		q_drop->series_map = imap_new();
+        /* create a new one */
+        q_drop->series_map = imap_new();
 
-		if (q_drop->series_map == NULL)
-		{
-			MEM_ERR_RET
-		}
+        if (q_drop->series_map == NULL)
+        {
+            MEM_ERR_RET
+        }
 
-		uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
-		if (next == NULL)
-		{
-			MEM_ERR_RET
-		}
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
 
-		next->data = handle->data;
+        next->data = handle->data;
 
-		uv_async_init(
-				siri.loop,
-				next,
-				(uv_async_cb) async_filter_series);
-		uv_async_send(next);
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_filter_series);
+        uv_async_send(next);
 
-		uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
 
     }
     else
@@ -2482,7 +2482,7 @@ static void exit_grant_user(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -2531,7 +2531,7 @@ static void exit_help_xxx(uv_async_t * handle)
 
         if (query->packer == NULL)
         {
-        	MEM_ERR_RET
+            MEM_ERR_RET
         }
 
         qp_add_type(query->packer, QP_MAP_OPEN);
@@ -2620,7 +2620,7 @@ static void exit_list_pools(uv_async_t * handle)
 
         if (q_list->props == NULL)
         {
-        	MEM_ERR_RET
+            MEM_ERR_RET
         }
 
         slist_append(q_list->props, &GID_K_POOL);
@@ -2886,7 +2886,7 @@ static void exit_list_shards(uv_async_t * handle)
                     qp_add_int16(query->packer, vshard.server->pool);
                     break;
                 case CLERI_GID_K_SIZE:
-					qp_add_int64(query->packer, vshard.shard->size);
+                    qp_add_int64(query->packer, vshard.shard->size);
                     break;
                 case CLERI_GID_K_START:
                     qp_add_int64(query->packer, vshard.start);
@@ -3018,7 +3018,7 @@ static void exit_revoke_user(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -3305,7 +3305,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
     {
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
-        			MSG_SUCCES_SET_BACKUP_MODE,
+                    MSG_SUCCES_SET_BACKUP_MODE,
                     (backup_mode) ? "enabled" : "disabled",
                     server->name);
 
@@ -3537,7 +3537,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
-        			MSG_SUCCES_SET_LOG_LEVEL,
+                    MSG_SUCCES_SET_LOG_LEVEL,
                     logger_level_name(log_level),
                     server->name);
 
@@ -3682,7 +3682,7 @@ static void exit_set_timezone(uv_async_t * handle)
 
         qp_add_fmt_safe(
                 query->packer,
-				MSG_SUCCES_SET_TIMEZONE,
+                MSG_SUCCES_SET_TIMEZONE,
                 iso8601_tzname(siridb->tz),
                 iso8601_tzname(new_tz));
 
@@ -3727,7 +3727,7 @@ static void exit_show_stmt(uv_async_t * handle)
 
     if (query->packer == NULL)
     {
-    	MEM_ERR_RET
+        MEM_ERR_RET
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
@@ -3809,7 +3809,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
         if (query->packer == NULL)
         {
-        	MEM_ERR_RET
+            MEM_ERR_RET
         }
 
         qp_add_type(query->packer, QP_MAP_OPEN);
@@ -4515,7 +4515,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
-	uint8_t error_tp = 0;
+    uint8_t error_tp = 0;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
@@ -4553,11 +4553,11 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
             }
         }
         else if (pkg != NULL &&
-        		!error_tp &&
-        		sirinet_protocol_is_error_msg(pkg->tp) &&
-				siridb_query_err_from_pkg(query, pkg) == 0)
-		{
-        	error_tp = pkg->tp;
+                !error_tp &&
+                sirinet_protocol_is_error_msg(pkg->tp) &&
+                siridb_query_err_from_pkg(query, pkg) == 0)
+        {
+            error_tp = pkg->tp;
         }
 
         /* make sure we free the promise and data */
@@ -4571,9 +4571,9 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
     }
     else
     {
-		qp_add_int64(query->packer, q_count->n);
+        qp_add_int64(query->packer, q_count->n);
 
-		SIRIPARSER_ASYNC_NEXT_NODE
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -4759,7 +4759,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
-	int error_tp = 0;
+    int error_tp = 0;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -4808,11 +4808,11 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
             }
         }
         else if (pkg != NULL &&
-        		!error_tp &&
-        		sirinet_protocol_is_error_msg(pkg->tp) &&
-				siridb_query_err_from_pkg(query, pkg) == 0)
-		{
-        	error_tp = pkg->tp;
+                !error_tp &&
+                sirinet_protocol_is_error_msg(pkg->tp) &&
+                siridb_query_err_from_pkg(query, pkg) == 0)
+        {
+            error_tp = pkg->tp;
         }
 
         /* make sure we free the promise and data */
@@ -4826,8 +4826,8 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
     }
     else
     {
-		qp_add_type(query->packer, QP_ARRAY_CLOSE);
-		SIRIPARSER_ASYNC_NEXT_NODE
+        qp_add_type(query->packer, QP_ARRAY_CLOSE);
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -5095,23 +5095,23 @@ static void master_select_work_finish(uv_work_t * work, int status)
     }
     else if (!siri_err)
     {
-		/*
-		 * We need to check for SiriDB errors because this task is running in
-		 * another thread. In case a siri_err is set, this means we are in forced
-		 * closing state and we should not use the handle but let siri close it.
-		 */
+        /*
+         * We need to check for SiriDB errors because this task is running in
+         * another thread. In case a siri_err is set, this means we are in forced
+         * closing state and we should not use the handle but let siri close it.
+         */
 
-    	uv_async_t * handle = (uv_async_t *) work->data;
-		siridb_query_t * query = (siridb_query_t *) handle->data;
+        uv_async_t * handle = (uv_async_t *) work->data;
+        siridb_query_t * query = (siridb_query_t *) handle->data;
 
-		if (query->flags & SIRIDB_QUERY_FLAG_ERR)
-		{
-			siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-		}
-		else
-		{
-			uv_async_send(handle);
-		}
+        if (query->flags & SIRIDB_QUERY_FLAG_ERR)
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        }
+        else
+        {
+            uv_async_send(handle);
+        }
     }
 
     siri_async_decref((uv_async_t **) &work->data);

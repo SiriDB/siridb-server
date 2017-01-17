@@ -98,7 +98,7 @@ qp_packer_t * sirinet_packer_new(size_t alloc_size)
     qp_packer_t * packer = qp_packer_new(alloc_size);
     if (packer == NULL)
     {
-    	ERR_ALLOC
+        ERR_ALLOC
     }
     else
     {

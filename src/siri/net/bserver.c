@@ -86,17 +86,17 @@ int sirinet_bserver_init(siri_t * siri)
     }
     else
     {
-		uv_ip6_addr(
-				"::",
-				siri->cfg->listen_backend_port,
-				(struct sockaddr_in6 *) &server_addr);
+        uv_ip6_addr(
+                "::",
+                siri->cfg->listen_backend_port,
+                (struct sockaddr_in6 *) &server_addr);
     }
 
     uv_tcp_bind(
-    		&backend_server,
-			(const struct sockaddr *) &server_addr,
-			(siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
-					UV_TCP_IPV6ONLY : 0);
+            &backend_server,
+            (const struct sockaddr *) &server_addr,
+            (siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
+                    UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
             (uv_stream_t*) &backend_server,
@@ -183,17 +183,17 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     if (Logger.level == LOGGER_DEBUG)
     {
-    	char addr_port[ADDR_BUF_SZ];
-    	if (sirinet_addr_and_port(addr_port, client) == 0)
-    	{
-    	    log_debug(
-					"Package received from server '%s' "
-					"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
-					addr_port,
-    	            pkg->pid,
-    	            pkg->len,
-    	            sirinet_bproto_client_str(pkg->tp));
-    	}
+        char addr_port[ADDR_BUF_SZ];
+        if (sirinet_addr_and_port(addr_port, client) == 0)
+        {
+            log_debug(
+                    "Package received from server '%s' "
+                    "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
+                    addr_port,
+                    pkg->pid,
+                    pkg->len,
+                    sirinet_bproto_client_str(pkg->tp));
+        }
     }
 
     switch ((bproto_client_t) pkg->tp)
@@ -282,7 +282,7 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             qp_is_raw_term(&qp_version) &&
             qp_next(&unpacker, &qp_min_version) == QP_RAW &&
             qp_is_raw_term(&qp_min_version) &&
-			qp_next(&unpacker, &qp_ip_support) == QP_INT64 &&
+            qp_next(&unpacker, &qp_ip_support) == QP_INT64 &&
             qp_next(&unpacker, &qp_libuv) == QP_RAW &&
             qp_is_raw_term(&qp_libuv) &&
             qp_next(&unpacker, &qp_dbpath) == QP_RAW &&

@@ -25,13 +25,13 @@ llist_t * llist_new(void)
     llist_t * llist = (llist_t *) malloc(sizeof(llist_t));
     if (llist == NULL)
     {
-    	ERR_ALLOC
+        ERR_ALLOC
     }
     else
     {
-		llist->len = 0;
-		llist->first = NULL;
-		llist->last = NULL;
+        llist->len = 0;
+        llist->first = NULL;
+        llist->last = NULL;
     }
     return llist;
 }

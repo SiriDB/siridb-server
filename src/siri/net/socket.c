@@ -21,37 +21,37 @@
 #define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
 #define SUGGESTED_SIZE 65536
 
-#define CHECK_PKG(__buf)													\
-	if (    (pkg->tp ^ 255) != pkg->checkbit ||								\
-			(ssocket->tp == SOCKET_CLIENT &&								\
-					pkg->len > MAX_ALLOWED_PKG_SIZE))						\
-	{																		\
-		char addr_port[ADDR_BUF_SZ];										\
-		if (sirinet_addr_and_port(addr_port, client) == 0)					\
-		{																	\
-			log_error(														\
-				"Got an illegal package or size too large from '%s', "		\
-				"closing connection "										\
-				"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",		\
-				addr_port, pkg->pid, pkg->len, pkg->tp);					\
-		}																	\
-		free(__buf);														\
-		ssocket->buf = NULL;												\
-		ssocket->on_data = NULL;											\
-		sirinet_socket_decref(client);										\
-		return;																\
-	}
+#define CHECK_PKG(__buf)                                                    \
+    if (    (pkg->tp ^ 255) != pkg->checkbit ||                                \
+            (ssocket->tp == SOCKET_CLIENT &&                                \
+                    pkg->len > MAX_ALLOWED_PKG_SIZE))                        \
+    {                                                                        \
+        char addr_port[ADDR_BUF_SZ];                                        \
+        if (sirinet_addr_and_port(addr_port, client) == 0)                    \
+        {                                                                    \
+            log_error(                                                        \
+                "Got an illegal package or size too large from '%s', "        \
+                "closing connection "                                        \
+                "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",        \
+                addr_port, pkg->pid, pkg->len, pkg->tp);                    \
+        }                                                                    \
+        free(__buf);                                                        \
+        ssocket->buf = NULL;                                                \
+        ssocket->on_data = NULL;                                            \
+        sirinet_socket_decref(client);                                        \
+        return;                                                                \
+    }
 
 
 const char * sirinet_socket_ip_support_str(uint8_t ip_support)
 {
-	switch (ip_support)
-	{
-	case IP_SUPPORT_ALL: return "ALL";
-	case IP_SUPPORT_IPV4ONLY: return "IPV4ONLY";
-	case IP_SUPPORT_IPV6ONLY: return "IPV6ONLY";
-	default: return "UNKNOWN";
-	}
+    switch (ip_support)
+    {
+    case IP_SUPPORT_ALL: return "ALL";
+    case IP_SUPPORT_IPV4ONLY: return "IPV4ONLY";
+    case IP_SUPPORT_IPV6ONLY: return "IPV6ONLY";
+    default: return "UNKNOWN";
+    }
 }
 
 /*
@@ -79,9 +79,9 @@ void sirinet_socket_alloc_buffer(
     }
     else
     {
-    	suggested_size = (ssocket->len > sizeof(sirinet_pkg_t)) ?
-			((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t) :
-			SUGGESTED_SIZE;
+        suggested_size = (ssocket->len > sizeof(sirinet_pkg_t)) ?
+            ((sirinet_pkg_t *) ssocket->buf)->len + sizeof(sirinet_pkg_t) :
+            SUGGESTED_SIZE;
 
         buf->base = ssocket->buf + ssocket->len;
         buf->len = suggested_size - ssocket->len;
@@ -109,41 +109,41 @@ int sirinet_addr_and_port(char * buffer, uv_stream_t * client)
     switch (name.ss_family)
     {
     case AF_INET:
-    	{
-    		char addr[INET_ADDRSTRLEN];
+        {
+            char addr[INET_ADDRSTRLEN];
             uv_inet_ntop(
-            		AF_INET,
-					&((struct sockaddr_in *) &name)->sin_addr,
-					addr,
-					sizeof(addr));
+                    AF_INET,
+                    &((struct sockaddr_in *) &name)->sin_addr,
+                    addr,
+                    sizeof(addr));
             snprintf(
-            		buffer,
-					ADDR_BUF_SZ,
-					"%s:%d",
-					addr,
-					ntohs(((struct sockaddr_in *) &name)->sin_port));
-    	}
+                    buffer,
+                    ADDR_BUF_SZ,
+                    "%s:%d",
+                    addr,
+                    ntohs(((struct sockaddr_in *) &name)->sin_port));
+        }
         break;
 
     case AF_INET6:
-    	{
-    		char addr[INET6_ADDRSTRLEN];
-			uv_inet_ntop(
-					AF_INET6,
-					&((struct sockaddr_in6 *) &name)->sin6_addr,
-					addr,
-					sizeof(addr));
-			snprintf(
-					buffer,
-					ADDR_BUF_SZ,
-					"[%s]:%d",
-					addr,
-					ntohs(((struct sockaddr_in6 *) &name)->sin6_port));
-    	}
-    	break;
+        {
+            char addr[INET6_ADDRSTRLEN];
+            uv_inet_ntop(
+                    AF_INET6,
+                    &((struct sockaddr_in6 *) &name)->sin6_addr,
+                    addr,
+                    sizeof(addr));
+            snprintf(
+                    buffer,
+                    ADDR_BUF_SZ,
+                    "[%s]:%d",
+                    addr,
+                    ntohs(((struct sockaddr_in6 *) &name)->sin6_port));
+        }
+        break;
 
     default:
-    	return -1;
+        return -1;
     }
 
     return 0;
@@ -168,19 +168,19 @@ void sirinet_socket_on_data(
      */
     if (ssocket->on_data == NULL)
     {
-		char addr_port[ADDR_BUF_SZ];
+        char addr_port[ADDR_BUF_SZ];
 
-		if (sirinet_addr_and_port(addr_port, client) == 0)
-		{
-	    	log_error(
-	    			"Received data from '%s' but we ignore the data since the "
-	    			"connection will be closed in a few seconds...",
-				addr_port);
-		}
+        if (sirinet_addr_and_port(addr_port, client) == 0)
+        {
+            log_error(
+                    "Received data from '%s' but we ignore the data since the "
+                    "connection will be closed in a few seconds...",
+                addr_port);
+        }
 
-    	free(buf->base);
+        free(buf->base);
 
-    	return;
+        return;
     }
 
     if (nread < 0)
@@ -196,8 +196,8 @@ void sirinet_socket_on_data(
         }
         else
         {
-        	free(ssocket->buf);
-        	ssocket->buf = NULL;
+            free(ssocket->buf);
+            ssocket->buf = NULL;
         }
 
         ssocket->on_data = NULL;
@@ -287,7 +287,7 @@ void sirinet_socket_on_data(
             {
                 log_critical(
                         "Cannot allocate size for package "
-                		"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
+                        "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
                         pkg->pid, pkg->len, pkg->tp);
                 free(ssocket->buf);
                 ssocket->buf = NULL;
@@ -335,11 +335,11 @@ void sirinet_socket_on_data(
          */
         if (ssocket->len < sizeof(sirinet_pkg_t))
         {
-        	total_sz = SUGGESTED_SIZE;
+            total_sz = SUGGESTED_SIZE;
         }
         else
         {
-        	pkg = (sirinet_pkg_t *) ssocket->buf;
+            pkg = (sirinet_pkg_t *) ssocket->buf;
 
             CHECK_PKG(ssocket->buf)
 
@@ -347,7 +347,7 @@ void sirinet_socket_on_data(
 
             if (total_sz < SUGGESTED_SIZE)
             {
-            	total_sz = SUGGESTED_SIZE;
+                total_sz = SUGGESTED_SIZE;
             }
         }
 
@@ -389,16 +389,16 @@ uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
     if (ssocket == NULL)
     {
         ERR_ALLOC
-		return NULL;
+        return NULL;
     }
 
     ssocket->tp = tp;
-	ssocket->on_data = cb;
-	ssocket->buf = NULL;
-	ssocket->len = 0;
-	ssocket->origin = NULL;
-	ssocket->siridb = NULL;
-	ssocket->ref = 1;
+    ssocket->on_data = cb;
+    ssocket->buf = NULL;
+    ssocket->len = 0;
+    ssocket->origin = NULL;
+    ssocket->siridb = NULL;
+    ssocket->ref = 1;
     ssocket->tcp.data = ssocket;
 
     return &ssocket->tcp;
@@ -429,14 +429,14 @@ void sirinet__socket_free(uv_stream_t * client)
     case SOCKET_CLIENT:
         if (ssocket->origin != NULL)
         {
-        	siridb_user_t * user = (siridb_user_t *) ssocket->origin;
+            siridb_user_t * user = (siridb_user_t *) ssocket->origin;
             siridb_user_decref(user);
         }
         break;
     case SOCKET_BACKEND:
         if (ssocket->origin != NULL)
         {
-        	siridb_server_t * server = (siridb_server_t *) ssocket->origin;
+            siridb_server_t * server = (siridb_server_t *) ssocket->origin;
             siridb_server_decref(server);
         }
         break;

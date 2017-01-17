@@ -12,11 +12,11 @@
  *
  *  Main thread:
  *      siridb->series_map :    read (no lock)      write (lock)
- *      series->idx :   		read (lock)         write (lock)
+ *      series->idx :           read (lock)         write (lock)
  *
  *  Other threads:
- *      siridb->series_map :    read (lock)      	write (not allowed)
- *      series->idx :   		read (lock)         write (lock)
+ *      siridb->series_map :    read (lock)          write (not allowed)
+ *      series->idx :           read (lock)         write (lock)
  *
  *  Note:   One exception to 'not allowed' are the free functions
  *          since they only run when no other references to the object exist.
@@ -42,15 +42,15 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-#define SERIES_GET_POINTS_CB(get_points_cb, series)   	\
+#define SERIES_GET_POINTS_CB(get_points_cb, series)       \
     siridb_shard_get_points_cb get_points_cb =          \
-		(series->flags & SIRIDB_SERIES_IS_32BIT_TS) ?	\
-			(series->flags & SIRIDB_SERIES_IS_LOG) ?	\
-					siridb_shard_get_points_log32 :		\
-					siridb_shard_get_points_num32 :		\
-			(series->flags & SIRIDB_SERIES_IS_LOG) ?	\
-					siridb_shard_get_points_log64 :		\
-					siridb_shard_get_points_num64;
+        (series->flags & SIRIDB_SERIES_IS_32BIT_TS) ?    \
+            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
+                    siridb_shard_get_points_log32 :        \
+                    siridb_shard_get_points_num32 :        \
+            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
+                    siridb_shard_get_points_log64 :        \
+                    siridb_shard_get_points_num64;
 
 static int SERIES_save(siridb_t * siridb);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
@@ -348,9 +348,9 @@ void siridb__series_free(siridb_series_t *__restrict series)
         siridb_points_free(series->buffer);
         if (series->flags & SIRIDB_SERIES_IS_DROPPED)
         {
-        	slist_append_safe(
-        		&series->siridb->empty_buffers,
-				(void *) series->bf_offset);
+            slist_append_safe(
+                &series->siridb->empty_buffers,
+                (void *) series->bf_offset);
         }
     }
 
@@ -379,7 +379,7 @@ int siridb_series_load(siridb_t * siridb)
     }
 
     if (SERIES_read_dropped(siridb, dropped) ||
-    	SERIES_load(siridb, dropped))
+        SERIES_load(siridb, dropped))
     {
         imap_free(dropped, NULL);
         return -1;
@@ -666,9 +666,9 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
     if (series->buffer == NULL)
     {
         log_error(
-			"Drop '%s' (%" PRIu32 ") since nu buffer is found for this series",
-			series->name,
-			series->id);
+            "Drop '%s' (%" PRIu32 ") since nu buffer is found for this series",
+            series->name,
+            series->id);
         siridb_series_drop(siridb, series);
     }
     else
@@ -679,9 +679,9 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
         if (!series->length)
         {
             log_warning(
-				"Drop '%s' (%" PRIu32 ") since no data is found for this series",
-				series->name,
-				series->id);
+                "Drop '%s' (%" PRIu32 ") since no data is found for this series",
+                series->name,
+                series->id);
             siridb_series_drop(siridb, series);
         }
     }
@@ -750,7 +750,7 @@ siridb_points_t * siridb_series_get_points(
     /* crop end buffer if needed */
     if (end_ts != NULL && len)
     {
-    	siridb_point_t *__restrict p;
+        siridb_point_t *__restrict p;
 
         for (   p = point + len - 1;
                 len && p->ts >= *end_ts;
@@ -795,7 +795,7 @@ void siridb__series_decref(siridb_series_t * series)
 {
     if (!--series->ref)
     {
-    	siridb__series_free(series);
+        siridb__series_free(series);
     }
 }
 
@@ -929,8 +929,8 @@ int siridb_series_optimize_shard(
                 pend)) == EOF)
         {
             log_critical(
-            		"Cannot write points to shard id '%" PRIu64 "'",
-            		shard->id);
+                    "Cannot write points to shard id '%" PRIu64 "'",
+                    shard->id);
             rc = -1;  /* signal is raised */
             num_chunks--;
         }
@@ -1168,23 +1168,23 @@ static siridb_series_t * SERIES_new(
 
             if ((uint8_t) ((n / 11) % 2))
             {
-            	series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
+                series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
             }
 
 #ifdef DEBUG
             /* make sure these two are exactly the same */
             assert (siridb_series_server_id(series) ==
-            		siridb_series_server_id_by_name(series->name));
+                    siridb_series_server_id_by_name(series->name));
 #endif
 
             if (siridb->time->precision == SIRIDB_TIME_SECONDS)
             {
-            	series->flags |= SIRIDB_SERIES_IS_32BIT_TS;
+                series->flags |= SIRIDB_SERIES_IS_32BIT_TS;
             }
 
             if (tp == TP_STRING)
             {
-            	series->flags |= SIRIDB_SERIES_IS_LOG;
+                series->flags |= SIRIDB_SERIES_IS_LOG;
             }
         }
 

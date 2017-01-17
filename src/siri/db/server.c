@@ -44,13 +44,13 @@ static void SERVER_on_flags_update_response(
         int status);
 static void SERVER_on_connect(uv_connect_t * req, int status);
 static void SERVER_on_resolved(
-		uv_getaddrinfo_t * resolver,
-		int status,
-		struct addrinfo * res);
+        uv_getaddrinfo_t * resolver,
+        int status,
+        struct addrinfo * res);
 static int SERVER_resolve_dns(
-		siridb_server_t * server,
-		int ai_family,
-		uv_getaddrinfo_cb getaddrinfo_cb);
+        siridb_server_t * server,
+        int ai_family,
+        uv_getaddrinfo_cb getaddrinfo_cb);
 static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void SERVER_cancel_promise(sirinet_promise_t * promise);
 
@@ -108,7 +108,7 @@ siridb_server_t * siridb_server_new(
     if (SERVER_update_name(server))
     {
         ERR_ALLOC
-		siridb__server_free(server);
+        siridb__server_free(server);
         server = NULL;
     }
 
@@ -269,7 +269,7 @@ siridb_server_t * siridb_server_register(
             if (    (server->promises = imap_new()) == NULL ||
                     siridb_servers_register(siridb, server))
             {
-            	siridb__server_free(server);
+                siridb__server_free(server);
                 server = NULL;
             }
         }
@@ -341,18 +341,18 @@ int siridb_server_update_address(
         server->port = port;
 
         if FMT_AS_IPV6(server->address)
-		{
-			log_warning("Update server '%s' to '[%s]:%u'",
-					server->name,
-					server->address,
-					server->port);
-		}
+        {
+            log_warning("Update server '%s' to '[%s]:%u'",
+                    server->name,
+                    server->address,
+                    server->port);
+        }
         else
         {
-			log_warning("Update server '%s' to '%s:%u'",
-					server->name,
-					server->address,
-					server->port);
+            log_warning("Update server '%s' to '%s:%u'",
+                    server->name,
+                    server->address,
+                    server->port);
         }
         if (SERVER_update_name(server))
         {
@@ -386,69 +386,69 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 
     if (server->socket != NULL)
     {
-    	struct in_addr sa;
-    	struct in6_addr sa6;
-		sirinet_socket_t * ssocket = server->socket->data;
-		ssocket->origin = server;
-		ssocket->siridb = siridb;
-		siridb_server_incref(server);
-		uv_tcp_init(siri.loop, server->socket);
+        struct in_addr sa;
+        struct in6_addr sa6;
+        sirinet_socket_t * ssocket = server->socket->data;
+        ssocket->origin = server;
+        ssocket->siridb = siridb;
+        siridb_server_incref(server);
+        uv_tcp_init(siri.loop, server->socket);
 
-		if (inet_pton(AF_INET, server->address, &sa))
-		{
-			/* IPv4 */
-			struct sockaddr_in dest;
+        if (inet_pton(AF_INET, server->address, &sa))
+        {
+            /* IPv4 */
+            struct sockaddr_in dest;
 
-			uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
-			if (req == NULL)
-			{
-				ERR_ALLOC
-				sirinet_socket_decref(server->socket);
-			}
-			else
-			{
-				log_debug("Trying to connect to '%s'...", server->name);
-				uv_ip4_addr(server->address, server->port, &dest);
-				uv_tcp_connect(
-						req,
-						server->socket,
-						(const struct sockaddr *) &dest,
-						SERVER_on_connect);
-			}
-		}
-		else if (inet_pton(AF_INET6, server->address, &sa6))
-		{
-			/* IPv6 */
-			struct sockaddr_in6 dest6;
+            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            if (req == NULL)
+            {
+                ERR_ALLOC
+                sirinet_socket_decref(server->socket);
+            }
+            else
+            {
+                log_debug("Trying to connect to '%s'...", server->name);
+                uv_ip4_addr(server->address, server->port, &dest);
+                uv_tcp_connect(
+                        req,
+                        server->socket,
+                        (const struct sockaddr *) &dest,
+                        SERVER_on_connect);
+            }
+        }
+        else if (inet_pton(AF_INET6, server->address, &sa6))
+        {
+            /* IPv6 */
+            struct sockaddr_in6 dest6;
 
-			uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
-			if (req == NULL)
-			{
-				ERR_ALLOC
-				sirinet_socket_decref(server->socket);
-			}
-			else
-			{
-				log_debug("Trying to connect to '%s'...", server->name);
-				uv_ip6_addr(server->address, server->port, &dest6);
-				uv_tcp_connect(
-						req,
-						server->socket,
-						(const struct sockaddr *) &dest6,
-						SERVER_on_connect);
-			}
-		}
-		else
-		{
-			/* Try DNS */
-			if (SERVER_resolve_dns(
-					server,
-					dns_req_family_map[siri.cfg->ip_support],
-					SERVER_on_resolved))
-			{
-				sirinet_socket_decref(server->socket);
-			}
-		}
+            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            if (req == NULL)
+            {
+                ERR_ALLOC
+                sirinet_socket_decref(server->socket);
+            }
+            else
+            {
+                log_debug("Trying to connect to '%s'...", server->name);
+                uv_ip6_addr(server->address, server->port, &dest6);
+                uv_tcp_connect(
+                        req,
+                        server->socket,
+                        (const struct sockaddr *) &dest6,
+                        SERVER_on_connect);
+            }
+        }
+        else
+        {
+            /* Try DNS */
+            if (SERVER_resolve_dns(
+                    server,
+                    dns_req_family_map[siri.cfg->ip_support],
+                    SERVER_on_resolved))
+            {
+                sirinet_socket_decref(server->socket);
+            }
+        }
     }
 }
 
@@ -460,64 +460,64 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
  * callback will not be called.
  */
 static int SERVER_resolve_dns(
-		siridb_server_t * server,
-		int ai_family,
-		uv_getaddrinfo_cb getaddrinfo_cb)
+        siridb_server_t * server,
+        int ai_family,
+        uv_getaddrinfo_cb getaddrinfo_cb)
 {
 
-	struct addrinfo hints;
-	hints.ai_family = ai_family;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_NUMERICSERV;
+    struct addrinfo hints;
+    hints.ai_family = ai_family;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_NUMERICSERV;
 
-	uv_getaddrinfo_t * resolver =
-			(uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+    uv_getaddrinfo_t * resolver =
+            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
 
-	if (resolver == NULL)
-	{
-		ERR_ALLOC
-		return -1;
-	}
+    if (resolver == NULL)
+    {
+        ERR_ALLOC
+        return -1;
+    }
 
-	int result;
-	resolver->data = server;
+    int result;
+    resolver->data = server;
 
-	char port[6]= {'\0'};
-	sprintf(port, "%u", server->port);
+    char port[6]= {'\0'};
+    sprintf(port, "%u", server->port);
 
-	result = uv_getaddrinfo(
-			siri.loop,
-			resolver,
-			getaddrinfo_cb,
-			server->address,
-			port,
-			&hints);
+    result = uv_getaddrinfo(
+            siri.loop,
+            resolver,
+            getaddrinfo_cb,
+            server->address,
+            port,
+            &hints);
 
-	if (result)
-	{
-		log_error("getaddrinfo call error %s", uv_err_name(result));
-		free(resolver);
-	}
+    if (result)
+    {
+        log_error("getaddrinfo call error %s", uv_err_name(result));
+        free(resolver);
+    }
 
-	return result;
+    return result;
 }
 
 /*
  * Callback used to check if resolving an ip address was successful.
  */
 static void SERVER_on_resolved(
-		uv_getaddrinfo_t * resolver,
-		int status,
-		struct addrinfo * res)
+        uv_getaddrinfo_t * resolver,
+        int status,
+        struct addrinfo * res)
 {
-	siridb_server_t * server = (siridb_server_t *) resolver->data;
+    siridb_server_t * server = (siridb_server_t *) resolver->data;
 
-	if (status < 0)
+    if (status < 0)
     {
-		log_error("Cannot resolve ip address for server '%s' (error: %s)",
-        		server->name,
-        		uv_err_name(status));
+        log_error("Cannot resolve ip address for server '%s' (error: %s)",
+                server->name,
+                uv_err_name(status));
 
         sirinet_socket_decref(server->socket);
     }
@@ -525,44 +525,44 @@ static void SERVER_on_resolved(
     {
         if (Logger.level == LOGGER_DEBUG)
         {
-        	char addr[47] = {'\0'};  /* enough for both ipv4 and ipv6 */
+            char addr[47] = {'\0'};  /* enough for both ipv4 and ipv6 */
 
-        	switch (res->ai_family)
-        	{
-        	case AF_INET:
-				uv_ip4_name((struct sockaddr_in *) res->ai_addr, addr, 16);
-				break;
+            switch (res->ai_family)
+            {
+            case AF_INET:
+                uv_ip4_name((struct sockaddr_in *) res->ai_addr, addr, 16);
+                break;
 
-        	case AF_INET6:
-				uv_ip6_name((struct sockaddr_in6 *) res->ai_addr, addr, 46);
-				break;
+            case AF_INET6:
+                uv_ip6_name((struct sockaddr_in6 *) res->ai_addr, addr, 46);
+                break;
 
-        	default:
-        		sprintf(addr, "unsupported family");
-        	}
+            default:
+                sprintf(addr, "unsupported family");
+            }
 
-			log_debug(
-					"Resolved ip address '%s' for server '%s', "
-					"trying to connect...",
-					addr, server->name);
+            log_debug(
+                    "Resolved ip address '%s' for server '%s', "
+                    "trying to connect...",
+                    addr, server->name);
 
         }
         uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
-        	ERR_ALLOC
+            ERR_ALLOC
         }
         else
         {
-			uv_tcp_connect(
-					req,
-					server->socket,
-					(const struct sockaddr *) res->ai_addr,
-					SERVER_on_connect);
+            uv_tcp_connect(
+                    req,
+                    server->socket,
+                    (const struct sockaddr *) res->ai_addr,
+                    SERVER_on_connect);
         }
     }
 
-	uv_freeaddrinfo(res);
+    uv_freeaddrinfo(res);
     free(resolver);
 }
 
@@ -576,17 +576,17 @@ static void SERVER_write_cb(uv_write_t * req, int status)
     if (status)
     {
         log_error(
-			"Socket write error to server '%s' (pid: %" PRIu16 ", error: %s)",
-			promise->server->name,
-			promise->pid,
-			uv_strerror(status));
+            "Socket write error to server '%s' (pid: %" PRIu16 ", error: %s)",
+            promise->server->name,
+            promise->pid,
+            uv_strerror(status));
 
         if (imap_pop(promise->server->promises, promise->pid) == NULL)
         {
             log_critical(
-            		"Got a socket error but the promise is not found. "
-            		"(PID: %" PRIu16 ")",
-					promise->pid);
+                    "Got a socket error but the promise is not found. "
+                    "(PID: %" PRIu16 ")",
+                    promise->pid);
             return;
         }
 
@@ -613,7 +613,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     {
         log_critical(
                 "Timeout task is called on package (PID %" PRIu16
-				") for server '%s' "
+                ") for server '%s' "
                 "but we cannot find this promise!!",
                 promise->pid,
                 promise->server->name);
@@ -655,7 +655,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
 
         if (packer == NULL)
         {
-        	ERR_ALLOC
+            ERR_ALLOC
         }
         else
         {
@@ -716,20 +716,20 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     sirinet_promise_t * promise = imap_pop(server->promises, pkg->pid);
 
     log_debug(
-			"Response received (pid: %" PRIu16
-			", len: %" PRIu32 ", tp: %s) from '%s'",
-			pkg->pid,
-			pkg->len,
-			sirinet_bproto_server_str(pkg->tp),
-			server->name);
+            "Response received (pid: %" PRIu16
+            ", len: %" PRIu32 ", tp: %s) from '%s'",
+            pkg->pid,
+            pkg->len,
+            sirinet_bproto_server_str(pkg->tp),
+            server->name);
 
     if (promise == NULL)
     {
         log_warning(
                 "Received a package (PID %" PRIu16
-				") from server '%s' which has probably timed-out earlier.",
-				pkg->pid,
-				server->name);
+                ") from server '%s' which has probably timed-out earlier.",
+                pkg->pid,
+                server->name);
     }
     else
     {
@@ -987,10 +987,10 @@ int siridb_server_cexpr_cb(
     case CLERI_GID_K_IP_SUPPORT:
         return cexpr_str_cmp(
                 cond->operator,
-				sirinet_socket_ip_support_str(
-						(wserver->siridb->server == wserver->server) ?
-								siri.cfg->ip_support :
-								wserver->server->ip_support),
+                sirinet_socket_ip_support_str(
+                        (wserver->siridb->server == wserver->server) ?
+                                siri.cfg->ip_support :
+                                wserver->server->ip_support),
                 cond->str);
 
     case CLERI_GID_K_LIBUV:
@@ -1108,13 +1108,13 @@ int siridb_server_cexpr_cb(
     case CLERI_GID_K_REINDEX_PROGRESS:
         return cexpr_str_cmp(
                 cond->operator,
-				siridb_reindex_progress(wserver->siridb),
+                siridb_reindex_progress(wserver->siridb),
                 cond->str);
 
     case CLERI_GID_K_SYNC_PROGRESS:
         return cexpr_str_cmp(
                 cond->operator,
-				siridb_initsync_sync_progress(wserver->siridb),
+                siridb_initsync_sync_progress(wserver->siridb),
                 cond->str);
     }
 
@@ -1158,8 +1158,8 @@ static int SERVER_update_name(siridb_server_t * server)
 
     if FMT_AS_IPV6(server->address)
     {
-    	len += 2;
-    	fmt_as_ipv6 = 1;  /* true */
+        len += 2;
+        fmt_as_ipv6 = 1;  /* true */
     }
 
     /* append 'address' length */
@@ -1180,12 +1180,12 @@ static int SERVER_update_name(siridb_server_t * server)
 
     if (fmt_as_ipv6)
     {
-    	sprintf(server->name, "[%s]:%d", server->address, server->port);
+        sprintf(server->name, "[%s]:%d", server->address, server->port);
     }
     else
     {
-    	sprintf(server->name, "%s:%d", server->address, server->port);
-	}
+        sprintf(server->name, "%s:%d", server->address, server->port);
+    }
     return 0;
 }
 

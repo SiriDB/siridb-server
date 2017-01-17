@@ -166,7 +166,7 @@ void siridb_init_props(void)
     siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
             prop_duration_num;
     siridb_props[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
-    		prop_ip_support;
+            prop_ip_support;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
             prop_libuv;
     siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =

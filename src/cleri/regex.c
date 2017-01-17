@@ -134,7 +134,7 @@ static cleri_node_t *  REGEX_parse(
     {
         if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
         {
-        	pr->is_valid = -1; /* error occurred */
+            pr->is_valid = -1; /* error occurred */
         }
         return NULL;
     }
@@ -146,16 +146,16 @@ static cleri_node_t *  REGEX_parse(
         parent->len += node->len;
         if (cleri_children_add(parent->children, node))
         {
-        	 /* error occurred, reverse changes set node to NULL */
-        	pr->is_valid = -1;
-        	parent->len -= node->len;
-        	cleri_node_free(node);
-        	node = NULL;
+             /* error occurred, reverse changes set node to NULL */
+            pr->is_valid = -1;
+            parent->len -= node->len;
+            cleri_node_free(node);
+            node = NULL;
         }
     }
     else
     {
-    	pr->is_valid = -1; /* error occurred */
+        pr->is_valid = -1; /* error occurred */
     }
     return node;
 }

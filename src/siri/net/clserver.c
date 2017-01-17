@@ -33,11 +33,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WARNING_PKG_SIZE 1048576   	// 1MB
+#define WARNING_PKG_SIZE 1048576       // 1MB
 
 /*
  * note: this size is chosen to be 65535 but is not restricted to 16bit and
- * 		 can be larger if required.
+ *          can be larger if required.
  */
 #define MAX_QUERY_PKG_SIZE 65535
 
@@ -119,17 +119,17 @@ int sirinet_clserver_init(siri_t * siri)
     }
     else
     {
-		uv_ip6_addr(
-				"::",
-				siri->cfg->listen_client_port,
-				(struct sockaddr_in6 *) &client_addr);
+        uv_ip6_addr(
+                "::",
+                siri->cfg->listen_client_port,
+                (struct sockaddr_in6 *) &client_addr);
     }
 
     uv_tcp_bind(
-    		&client_server,
-			(const struct sockaddr *) &client_addr,
-			(siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
-					UV_TCP_IPV6ONLY : 0);
+            &client_server,
+            (const struct sockaddr *) &client_addr,
+            (siri->cfg->ip_support == IP_SUPPORT_IPV6ONLY) ?
+                    UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
             (uv_stream_t*) &client_server,
@@ -182,17 +182,17 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     if (Logger.level == LOGGER_DEBUG)
     {
-    	char addr_port[ADDR_BUF_SZ];
-    	if (sirinet_addr_and_port(addr_port, client) == 0)
-    	{
-			log_debug(
-					"Package received from client '%s' "
-					"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
-					addr_port,
-					pkg->pid,
-					pkg->len,
-					sirinet_cproto_client_str(pkg->tp));
-    	}
+        char addr_port[ADDR_BUF_SZ];
+        if (sirinet_addr_and_port(addr_port, client) == 0)
+        {
+            log_debug(
+                    "Package received from client '%s' "
+                    "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
+                    addr_port,
+                    pkg->pid,
+                    pkg->len,
+                    sirinet_cproto_client_str(pkg->tp));
+        }
     }
     else if (pkg->len >= WARNING_PKG_SIZE)
     {
@@ -202,7 +202,7 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
             log_warning(
                     "Got a large package from '%s' (pid: %d, len: %d, tp: %s)."
                     " A package size smaller than 1MB is recommended!",
-					addr_port,
+                    addr_port,
                     pkg->pid,
                     pkg->len,
                     sirinet_cproto_client_str(pkg->tp));
@@ -359,29 +359,29 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
-	if (pkg->len > MAX_QUERY_PKG_SIZE)
-	{
-		sirinet_pkg_t * package;
+    if (pkg->len > MAX_QUERY_PKG_SIZE)
+    {
+        sirinet_pkg_t * package;
 
-		log_error(
-				"Received a query exceeding the maximum size. "
-				"(%" PRIu32 ", max size: %u)",
-				pkg->len,
-				MAX_QUERY_PKG_SIZE);
+        log_error(
+                "Received a query exceeding the maximum size. "
+                "(%" PRIu32 ", max size: %u)",
+                pkg->len,
+                MAX_QUERY_PKG_SIZE);
 
-		package = sirinet_pkg_err(
-				pkg->pid,
-				15,
-				CPROTO_ERR_QUERY,
-				"Query too long.");
+        package = sirinet_pkg_err(
+                pkg->pid,
+                15,
+                CPROTO_ERR_QUERY,
+                "Query too long.");
 
-		if (package != NULL)
-		{
-			sirinet_pkg_send((uv_stream_t *) client, package);
-		}
+        if (package != NULL)
+        {
+            sirinet_pkg_send((uv_stream_t *) client, package);
+        }
 
-		return;
-	}
+        return;
+    }
 
     qp_unpacker_t unpacker;
     qp_obj_t qp_query;
@@ -419,20 +419,20 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     CHECK_SIRIDB(ssocket)
 
-	char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
 
     if (!siridb_user_check_access(
-			(siridb_user_t *) ssocket->origin,
-			SIRIDB_ACCESS_INSERT,
-			err_msg))
+            (siridb_user_t *) ssocket->origin,
+            SIRIDB_ACCESS_INSERT,
+            err_msg))
     {
-    	log_warning("(%s) %s",
-    			sirinet_cproto_server_str(CPROTO_ERR_USER_ACCESS),
-				err_msg);
+        log_warning("(%s) %s",
+                sirinet_cproto_server_str(CPROTO_ERR_USER_ACCESS),
+                err_msg);
         sirinet_pkg_t * package = sirinet_pkg_err(
                 pkg->pid,
                 strlen(err_msg),
-				CPROTO_ERR_USER_ACCESS,
+                CPROTO_ERR_USER_ACCESS,
                 err_msg);
 
         if (package != NULL)

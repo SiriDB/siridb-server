@@ -79,8 +79,8 @@ static cleri_node_t * KEYWORD_parse(
 
     if ((match_len = cleri_kwcache_match(pr, str)) < 0)
     {
-    	pr->is_valid = -1; /* error occurred */
-    	return NULL;
+        pr->is_valid = -1; /* error occurred */
+        return NULL;
     }
 
     if (match_len == cl_obj->via.keyword->len &&
@@ -104,7 +104,7 @@ static cleri_node_t * KEYWORD_parse(
         if (cleri_expecting_update(pr->expecting, cl_obj, str) == -1)
         {
             /* error occurred, node is already NULL */
-        	pr->is_valid = -1;
+            pr->is_valid = -1;
         }
     }
     return node;

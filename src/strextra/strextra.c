@@ -50,34 +50,34 @@ void strx_replace_char(char * sptr, char orig, char repl)
  */
 int strx_replace_str(char * str, char * o, char * r, size_t n)
 {
-	char buffer[n];
-	char * pos, * s;
-	size_t l, size = 0, olen = strlen(o), rlen = strlen(r);
+    char buffer[n];
+    char * pos, * s;
+    size_t l, size = 0, olen = strlen(o), rlen = strlen(r);
 
-	for (s = str; (pos = strstr(s, o)) != NULL; s = pos + olen)
-	{
-		l = pos - s;
+    for (s = str; (pos = strstr(s, o)) != NULL; s = pos + olen)
+    {
+        l = pos - s;
 
-		if (size + l + rlen >= n)
-		{
-			return -1;
-		}
+        if (size + l + rlen >= n)
+        {
+            return -1;
+        }
 
-		memcpy(buffer + size, s, l);
-		size += l;
+        memcpy(buffer + size, s, l);
+        size += l;
 
-		memcpy(buffer + size, r, rlen);
-		size += rlen;
+        memcpy(buffer + size, r, rlen);
+        size += rlen;
 
-	}
+    }
 
-	if (s != str)
-	{
-		memcpy(str, buffer, size);
-		str[size] = '\0';
-	}
+    if (s != str)
+    {
+        memcpy(str, buffer, size);
+        str[size] = '\0';
+    }
 
-	return 0;
+    return 0;
 }
 
 /*
@@ -126,13 +126,13 @@ void strx_trim(char ** str, char chr)
     // trim leading chars
     while ((chr && **str == chr) || (!chr && isspace(**str)))
     {
-    	(*str)++;
+        (*str)++;
     }
 
     // check all chars?
     if(**str == 0)
     {
-    	return;
+        return;
     }
 
     // trim trailing chars
@@ -140,7 +140,7 @@ void strx_trim(char ** str, char chr)
     while (end > *str &&
             ((chr && *end == chr) || (!chr && isspace(*end))))
     {
-    	end--;
+        end--;
     }
 
     // write new null terminator
@@ -168,13 +168,13 @@ bool strx_is_int(const char * str)
    // Handle negative numbers.
    if (*str == '-')
    {
-	   ++str;
+       ++str;
    }
 
    // Handle empty string or just "-".
    if (!*str)
    {
-	   return false;
+       return false;
    }
 
    // Check for non-digit chars in the rest of the string.
@@ -182,11 +182,11 @@ bool strx_is_int(const char * str)
    {
        if (!isdigit(*str))
        {
-    	   return false;
+           return false;
        }
        else
        {
-    	   ++str;
+           ++str;
        }
    }
 
@@ -206,7 +206,7 @@ bool strx_is_float(const char * str)
    // Handle empty string or just "-".
    if (!*str)
    {
-	   return false;
+       return false;
    }
 
    // Check for non-digit chars in the rest of the string.

@@ -149,7 +149,7 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
             snprintf(buffer,
                     ARGPARSE_ERR_SIZE,
                     "argument value exceeds character limit: %s",
-					current->argument->name);
+                    current->argument->name);
             break;
         default:
             *buffer = 0;
@@ -414,7 +414,7 @@ static int process_arg(
 
     if (strlen(argv[*argn]) >= ARGPARSE_MAX_LEN_ARG)
     {
-    	return ARGPARSE_ERR_ARGUMENT_TOO_LONG;
+        return ARGPARSE_ERR_ARGUMENT_TOO_LONG;
     }
 
     /* create a copy from the value into a buffer */

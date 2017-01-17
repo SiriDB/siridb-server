@@ -49,9 +49,9 @@ cproto_server_t siridb_auth_user_request(
     }
 
     if ((user = siridb_users_get_user(
-    		siridb->users,
-			username,
-			password)) == NULL)
+            siridb->users,
+            username,
+            password)) == NULL)
     {
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
@@ -96,13 +96,13 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_UNKNOWN_DBNAME;
     }
 
-    if (	(server = siridb_servers_by_uuid(siridb->servers, uuid)) == NULL ||
-    		server == siridb->server)
+    if (    (server = siridb_servers_by_uuid(siridb->servers, uuid)) == NULL ||
+            server == siridb->server)
     {
-    	/*
-    	 * Respond with unknown uuid when not found or in case its 'this'
-    	 * server.
-    	 */
+        /*
+         * Respond with unknown uuid when not found or in case its 'this'
+         * server.
+         */
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
     }
 

@@ -38,20 +38,20 @@ cleri_object_t * cleri_rule(uint32_t gid, cleri_object_t * cl_obj)
 
     if (cl_object != NULL)
     {
-		cl_object->via.rule =
-				(cleri_rule_t *) malloc(sizeof(cleri_rule_t));
+        cl_object->via.rule =
+                (cleri_rule_t *) malloc(sizeof(cleri_rule_t));
 
-		if (cl_object->via.rule == NULL)
-		{
-			free(cl_object);
-			cl_object = NULL;
-		}
-		else
-		{
-			cl_object->via.rule->gid = gid;
-			cl_object->via.rule->cl_obj = cl_obj;
-			cleri_object_incref(cl_obj);
-		}
+        if (cl_object->via.rule == NULL)
+        {
+            free(cl_object);
+            cl_object = NULL;
+        }
+        else
+        {
+            cl_object->via.rule->gid = gid;
+            cl_object->via.rule->cl_obj = cl_obj;
+            cleri_object_incref(cl_obj);
+        }
     }
 
     return cl_object;
@@ -127,7 +127,7 @@ static cleri_node_t * RULE_parse(
 
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         return NULL;
     }
 
@@ -136,7 +136,7 @@ static cleri_node_t * RULE_parse(
 
     if (nrule.tested == NULL)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         cleri_node_free(node);
         return NULL;
     }
@@ -149,7 +149,7 @@ static cleri_node_t * RULE_parse(
     rnode = cleri__parse_walk(
             pr,
             node,
-			nrule.root_obj,
+            nrule.root_obj,
             &nrule,
             CLERI_EXP_MODE_REQUIRED);
 
@@ -164,11 +164,11 @@ static cleri_node_t * RULE_parse(
         parent->len += node->len;
         if (cleri_children_add(parent->children, node))
         {
-			 /* error occurred, reverse changes set mg_node to NULL */
-        	pr->is_valid = -1;
-			parent->len -= node->len;
-			cleri_node_free(node);
-			node = NULL;
+             /* error occurred, reverse changes set mg_node to NULL */
+            pr->is_valid = -1;
+            parent->len -= node->len;
+            cleri_node_free(node);
+            node = NULL;
         }
     }
 

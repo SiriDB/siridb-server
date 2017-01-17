@@ -63,8 +63,8 @@ cleri_parse_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
      */
     if (pr->is_valid == -1)
     {
-    	cleri_parse_free(pr);
-    	return NULL;
+        cleri_parse_free(pr);
+        return NULL;
     }
 
     /* process the parse result */
@@ -75,7 +75,7 @@ cleri_parse_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
     {
         if (!isspace(*test))
         {
-        	at_end = false;
+            at_end = false;
             break;
         }
     }
@@ -89,13 +89,13 @@ cleri_parse_t * cleri_parse(cleri_grammar_t * grammar, const char * str)
                 pr->expecting,
                 end,
                 CLERI_EXP_MODE_REQUIRED) == -1 ||
-			cleri_expecting_update(
+            cleri_expecting_update(
                 pr->expecting,
                 CLERI_END_OF_STATEMENT,
                 end) == -1)
         {
-        	cleri_parse_free(pr);
-        	return NULL;
+            cleri_parse_free(pr);
+            return NULL;
         }
     }
 
@@ -139,7 +139,7 @@ cleri_node_t * cleri__parse_walk(
     /* set expecting mode */
     if (cleri_expecting_set_mode(pr->expecting, parent->str, mode) == -1)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         return NULL;
     }
 

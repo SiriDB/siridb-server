@@ -102,7 +102,7 @@ static cleri_node_t *  LIST_parse(
 
     if ((node = cleri_node_new(cl_obj, parent->str + parent->len, 0)) == NULL)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         return NULL;
     }
 
@@ -141,11 +141,11 @@ static cleri_node_t *  LIST_parse(
     parent->len += node->len;
     if (cleri_children_add(parent->children, node))
     {
-		 /* error occurred, reverse changes set mg_node to NULL */
-    	pr->is_valid = -1;
-		parent->len -= node->len;
-		cleri_node_free(node);
-		node = NULL;
+         /* error occurred, reverse changes set mg_node to NULL */
+        pr->is_valid = -1;
+        parent->len -= node->len;
+        cleri_node_free(node);
+        node = NULL;
     }
     return node;
 }

@@ -55,9 +55,9 @@ int siridb_median_find_n(
         uint64_t n)
 {
 #ifdef DEBUG
-	assert (points->len >= 2);
+    assert (points->len >= 2);
 #endif
-	int rc = 0;
+    int rc = 0;
     uint64_t i, npivot, size_l, size_r;
 
     size_l = size_r = 0;
@@ -68,54 +68,54 @@ int siridb_median_find_n(
         int64_t pivot, v;
 
         int64_t * arr_l =
-        		(int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
+                (int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
-        	log_critical("Memory allocation error occurred.");
-        	rc = -1;
+            log_critical("Memory allocation error occurred.");
+            rc = -1;
         }
         else
         {
             int64_t * arr_r = arr_l + points->len - 1;
-			int64_t * equal = arr_l;
-			uint64_t * equal_size = &size_l;
+            int64_t * equal = arr_l;
+            uint64_t * equal_size = &size_l;
 
-			pivot = points->data[npivot].val.int64;
+            pivot = points->data[npivot].val.int64;
 
-			for (i = 0; i < points->len; i++)
-			{
-				if (i == npivot)
-				{
-					continue;
-				}
-				v = points->data[i].val.int64;
-				if (v == pivot)
-				{
-					equal[(*equal_size)++] = v;
-					if (equal == arr_l)
-					{
-						equal = arr_r;
-						equal_size = &size_r;
-					}
-					else
-					{
-						equal = arr_l;
-						equal_size = &size_l;
-					}
-				}
-				else if (v > pivot)
-				{
-					arr_r[size_r++] = v;
-				}
-				else
-				{
-					arr_l[size_l++] = v;
-				}
-			}
-			point->val.int64 = (size_l == n) ? pivot : ((size_l > n) ?
-					find_n_int64(arr_l, size_l, arr_r, n) :
-					find_n_int64(arr_r, size_r, arr_l, n - size_l - 1));
+            for (i = 0; i < points->len; i++)
+            {
+                if (i == npivot)
+                {
+                    continue;
+                }
+                v = points->data[i].val.int64;
+                if (v == pivot)
+                {
+                    equal[(*equal_size)++] = v;
+                    if (equal == arr_l)
+                    {
+                        equal = arr_r;
+                        equal_size = &size_r;
+                    }
+                    else
+                    {
+                        equal = arr_l;
+                        equal_size = &size_l;
+                    }
+                }
+                else if (v > pivot)
+                {
+                    arr_r[size_r++] = v;
+                }
+                else
+                {
+                    arr_l[size_l++] = v;
+                }
+            }
+            point->val.int64 = (size_l == n) ? pivot : ((size_l > n) ?
+                    find_n_int64(arr_l, size_l, arr_r, n) :
+                    find_n_int64(arr_r, size_r, arr_l, n - size_l - 1));
         }
         free(arr_l);
     }
@@ -124,54 +124,54 @@ int siridb_median_find_n(
         double pivot, v;
 
         double * arr_l =
-        		(double *) malloc(sizeof(double) * 2 * (points->len - 1));
+                (double *) malloc(sizeof(double) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
-        	log_critical("Memory allocation error occurred.");
-        	rc = -1;
+            log_critical("Memory allocation error occurred.");
+            rc = -1;
         }
         else
         {
             double * arr_r = arr_l + points->len - 1;
-        	double * equal = arr_l;
-			uint64_t * equal_size = &size_l;
+            double * equal = arr_l;
+            uint64_t * equal_size = &size_l;
 
-			pivot = points->data[npivot].val.real;
-			for (i = 0; i < points->len; i++)
-			{
-				if (i == npivot)
-				{
-					continue;
-				}
-				v = points->data[i].val.real;
-				if (v == pivot)
-				{
-					equal[(*equal_size)++] = v;
-					if (equal == arr_l)
-					{
-						equal = arr_r;
-						equal_size = &size_r;
-					}
-					else
-					{
-						equal = arr_l;
-						equal_size = &size_l;
-					}
-				}
-				else if (v > pivot)
-				{
-					arr_r[size_r++] = v;
-				}
-				else
-				{
-					arr_l[size_l++] = v;
-				}
-			}
+            pivot = points->data[npivot].val.real;
+            for (i = 0; i < points->len; i++)
+            {
+                if (i == npivot)
+                {
+                    continue;
+                }
+                v = points->data[i].val.real;
+                if (v == pivot)
+                {
+                    equal[(*equal_size)++] = v;
+                    if (equal == arr_l)
+                    {
+                        equal = arr_r;
+                        equal_size = &size_r;
+                    }
+                    else
+                    {
+                        equal = arr_l;
+                        equal_size = &size_l;
+                    }
+                }
+                else if (v > pivot)
+                {
+                    arr_r[size_r++] = v;
+                }
+                else
+                {
+                    arr_l[size_l++] = v;
+                }
+            }
 
-			point->val.real = (size_l == n) ? pivot : (size_l > n) ?
-					find_n_double(arr_l, size_l, arr_r, n) :
-					find_n_double(arr_r, size_r, arr_l, n - size_l - 1);
+            point->val.real = (size_l == n) ? pivot : (size_l > n) ?
+                    find_n_double(arr_l, size_l, arr_r, n) :
+                    find_n_double(arr_r, size_r, arr_l, n - size_l - 1);
         }
         free(arr_l);
     }
@@ -179,14 +179,14 @@ int siridb_median_find_n(
 }
 
 int siridb_median_real(
-		siridb_point_t * point,
+        siridb_point_t * point,
         siridb_points_t * points,
         double percentage)
 {
 #ifdef DEBUG
-	assert (points->len >= 2);
+    assert (points->len >= 2);
 #endif
-	int rc = 0;
+    int rc = 0;
     uint64_t i, npivot, size_l, size_r, n;
     bool found_a, found_b;
 
@@ -201,75 +201,75 @@ int siridb_median_real(
         int64_t pivot, v, a, b;
 
         int64_t * arr_l =
-        		(int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
+                (int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
-        	log_critical("Memory allocation error occurred.");
-        	rc = -1;
+            log_critical("Memory allocation error occurred.");
+            rc = -1;
         }
         else
         {
             int64_t * arr_r = arr_l + points->len - 1;
-			int64_t * equal = arr_l;
-			uint64_t * equal_size = &size_l;
+            int64_t * equal = arr_l;
+            uint64_t * equal_size = &size_l;
 
-			a = b = 0;
-			pivot = points->data[npivot].val.int64;
-			for (i = 0; i < points->len; i++)
-			{
-				if (i == npivot)
-				{
-					continue;
-				}
-				v = points->data[i].val.int64;
-				if (v == pivot)
-				{
-					equal[(*equal_size)++] = v;
-					if (equal == arr_l)
-					{
-						equal = arr_r;
-						equal_size = &size_r;
-					}
-					else
-					{
-						equal = arr_l;
-						equal_size = &size_l;
-					}
-				}
-				else if (v > pivot)
-				{
-					arr_r[size_r++] = v;
-				}
-				else
-				{
-					arr_l[size_l++] = v;
-				}
-			}
+            a = b = 0;
+            pivot = points->data[npivot].val.int64;
+            for (i = 0; i < points->len; i++)
+            {
+                if (i == npivot)
+                {
+                    continue;
+                }
+                v = points->data[i].val.int64;
+                if (v == pivot)
+                {
+                    equal[(*equal_size)++] = v;
+                    if (equal == arr_l)
+                    {
+                        equal = arr_r;
+                        equal_size = &size_r;
+                    }
+                    else
+                    {
+                        equal = arr_l;
+                        equal_size = &size_l;
+                    }
+                }
+                else if (v > pivot)
+                {
+                    arr_r[size_r++] = v;
+                }
+                else
+                {
+                    arr_l[size_l++] = v;
+                }
+            }
 
-			if (size_l == n - 1)
-			{
-				a = pivot;
-				found_a = true;
-			}
-			else if (size_l == n)
-			{
-				b = pivot;
-				found_b = true;
-			}
+            if (size_l == n - 1)
+            {
+                a = pivot;
+                found_a = true;
+            }
+            else if (size_l == n)
+            {
+                b = pivot;
+                found_b = true;
+            }
 
-			point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
-				find_median_real_int64(
-						arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
-				find_median_real_int64(
-						arr_r,
-						size_r,
-						arr_l,
-						n - size_l - 1,
-						a,
-						b,
-						found_a,
-						found_b);
+            point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
+                find_median_real_int64(
+                        arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
+                find_median_real_int64(
+                        arr_r,
+                        size_r,
+                        arr_l,
+                        n - size_l - 1,
+                        a,
+                        b,
+                        found_a,
+                        found_b);
         }
         free(arr_l);
     }
@@ -278,73 +278,73 @@ int siridb_median_real(
         double pivot, v, a, b;
 
         double * arr_l =
-        		(double *) malloc(sizeof(double) * 2 * (points->len - 1));
+                (double *) malloc(sizeof(double) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
-        	log_critical("Memory allocation error occurred.");
-        	rc = -1;
+            log_critical("Memory allocation error occurred.");
+            rc = -1;
         }
         else
         {
             double * arr_r = arr_l + points->len - 1;
-			double * equal = arr_l;
-			uint64_t * equal_size = &size_l;
+            double * equal = arr_l;
+            uint64_t * equal_size = &size_l;
 
-			a = b = 0.0;
-			pivot = points->data[npivot].val.real;
-			for (i = 0; i < points->len; i++)
-			{
-				if (i == npivot)
-				{
-					continue;
-				}
-				v = points->data[i].val.real;
-				if (v == pivot)
-				{
-					equal[(*equal_size)++] = v;
-					if (equal == arr_l)
-					{
-						equal = arr_r;
-						equal_size = &size_r;
-					}
-					else
-					{
-						equal = arr_l;
-						equal_size = &size_l;
-					}
-				}
-				else if (v > pivot)
-				{
-					arr_r[size_r++] = v;
-				}
-				else
-				{
-					arr_l[size_l++] = v;
-				}
-			}
-			if (size_l == n - 1)
-			{
-				a = pivot;
-				found_a = true;
-			}
-			else if (size_l == n)
-			{
-				b = pivot;
-				found_b = true;
-			}
-			point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
-				find_median_real_double(
-						arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
-				find_median_real_double(
-						arr_r,
-						size_r,
-						arr_l,
-						n - size_l - 1,
-						a,
-						b,
-						found_a,
-						found_b);
+            a = b = 0.0;
+            pivot = points->data[npivot].val.real;
+            for (i = 0; i < points->len; i++)
+            {
+                if (i == npivot)
+                {
+                    continue;
+                }
+                v = points->data[i].val.real;
+                if (v == pivot)
+                {
+                    equal[(*equal_size)++] = v;
+                    if (equal == arr_l)
+                    {
+                        equal = arr_r;
+                        equal_size = &size_r;
+                    }
+                    else
+                    {
+                        equal = arr_l;
+                        equal_size = &size_l;
+                    }
+                }
+                else if (v > pivot)
+                {
+                    arr_r[size_r++] = v;
+                }
+                else
+                {
+                    arr_l[size_l++] = v;
+                }
+            }
+            if (size_l == n - 1)
+            {
+                a = pivot;
+                found_a = true;
+            }
+            else if (size_l == n)
+            {
+                b = pivot;
+                found_b = true;
+            }
+            point->val.real = ((!found_b && size_l > n) || size_l > n - 1) ?
+                find_median_real_double(
+                        arr_l, size_l, arr_r, n, a, b, found_a, found_b) :
+                find_median_real_double(
+                        arr_r,
+                        size_r,
+                        arr_l,
+                        n - size_l - 1,
+                        a,
+                        b,
+                        found_a,
+                        found_b);
         }
         free(arr_l);
     }
@@ -372,10 +372,10 @@ static double find_median_real_int64(
 
     for (i = 0; i < size; i++)
     {
-    	if (i == npivot)
-    	{
-    		continue;
-    	}
+        if (i == npivot)
+        {
+            continue;
+        }
         v = seq[i];
         if (v == pivot)
         {
@@ -449,10 +449,10 @@ static double find_median_real_double(
 
     for (i = 0; i < size; i++)
     {
-    	if (i == npivot)
-    	{
-    		continue;
-    	}
+        if (i == npivot)
+        {
+            continue;
+        }
         v = seq[i];
         if (v == pivot)
         {
@@ -521,10 +521,10 @@ static int64_t find_n_int64(
 
     for (i = 0; i < size; i++)
     {
-    	if (i == npivot)
-    	{
-    		continue;
-    	}
+        if (i == npivot)
+        {
+            continue;
+        }
         v = seq[i];
         if (v == pivot)
         {
@@ -580,10 +580,10 @@ static double find_n_double(
 
     for (i = 0; i < size; i++)
     {
-    	if (i == npivot)
-    	{
-    		continue;
-    	}
+        if (i == npivot)
+        {
+            continue;
+        }
         v = seq[i];
         if (v == pivot)
         {
@@ -610,12 +610,12 @@ static double find_n_double(
     }
     if (size_l == n)
     {
-    	return pivot;
+        return pivot;
     }
 
     if (size_l > n)
     {
-    	return find_n_double(seq, size_l, other, n);
+        return find_n_double(seq, size_l, other, n);
     }
 
     return find_n_double(other, size_r, seq, n - size_l - 1);

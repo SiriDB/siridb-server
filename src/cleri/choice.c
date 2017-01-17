@@ -136,7 +136,7 @@ static cleri_node_t * CHOICE_parse_most_greedy(
     {
         if ((node = cleri_node_new(cl_obj, str, 0)) == NULL)
         {
-        	pr->is_valid = -1;
+            pr->is_valid = -1;
             return NULL;
         }
         rnode = cleri__parse_walk(
@@ -161,11 +161,11 @@ static cleri_node_t * CHOICE_parse_most_greedy(
         parent->len += mg_node->len;
         if (cleri_children_add(parent->children, mg_node))
         {
-			 /* error occurred, reverse changes set mg_node to NULL */
-        	pr->is_valid = -1;
-        	parent->len -= mg_node->len;
-        	cleri_node_free(mg_node);
-        	mg_node = NULL;
+             /* error occurred, reverse changes set mg_node to NULL */
+            pr->is_valid = -1;
+            parent->len -= mg_node->len;
+            cleri_node_free(mg_node);
+            mg_node = NULL;
         }
     }
     return mg_node;
@@ -188,7 +188,7 @@ static cleri_node_t * CHOICE_parse_first_match(
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     if (node == NULL)
     {
-    	pr->is_valid = -1;
+        pr->is_valid = -1;
         return NULL;
     }
     while (olist != NULL)
@@ -204,11 +204,11 @@ static cleri_node_t * CHOICE_parse_first_match(
             parent->len += node->len;
             if (cleri_children_add(parent->children, node))
             {
-				 /* error occurred, reverse changes set mg_node to NULL */
-            	pr->is_valid = -1;
-				parent->len -= node->len;
-				cleri_node_free(node);
-				node = NULL;
+                 /* error occurred, reverse changes set mg_node to NULL */
+                pr->is_valid = -1;
+                parent->len -= node->len;
+                cleri_node_free(node);
+                node = NULL;
             }
             return node;
         }

@@ -24,7 +24,7 @@ static siri_cfg_t siri_cfg = {
         .heartbeat_interval=30,
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
         .optimize_interval=3600,
-		.ip_support=IP_SUPPORT_ALL,
+        .ip_support=IP_SUPPORT_ALL,
         .server_address="localhost",
         .default_db_path="/var/lib/siridb/"
 };
@@ -32,9 +32,9 @@ static siri_cfg_t siri_cfg = {
 static void SIRI_CFG_read_uint(
         cfgparser_t * cfgparser,
         const char * option_name,
-		int min,
-		int max,
-		uint32_t * value);
+        int min,
+        int max,
+        uint32_t * value);
 static void SIRI_CFG_read_address_port(
         cfgparser_t * cfgparser,
         const char * option_name,
@@ -75,24 +75,24 @@ void siri_cfg_init(siri_t * siri)
     SIRI_CFG_read_uint(
             cfgparser,
             "listen_client_port",
-			1,
-			65535,
-			&tmp);
+            1,
+            65535,
+            &tmp);
     siri_cfg.listen_client_port = (uint16_t) tmp;
 
     SIRI_CFG_read_uint(
             cfgparser,
             "optimize_interval",
-			0,
-			2419200,  /* 4 weeks */
+            0,
+            2419200,  /* 4 weeks */
             &siri_cfg.optimize_interval);
 
     tmp = siri_cfg.heartbeat_interval;
     SIRI_CFG_read_uint(
             cfgparser,
             "heartbeat_interval",
-			3,
-			300,
+            3,
+            300,
             &tmp);
     siri_cfg.heartbeat_interval = (uint16_t) tmp;
 
@@ -106,8 +106,8 @@ void siri_cfg_init(siri_t * siri)
 static void SIRI_CFG_read_uint(
         cfgparser_t * cfgparser,
         const char * option_name,
-		int min,
-		int max,
+        int min,
+        int max,
         uint32_t * value)
 {
     cfgparser_option_t * option;
@@ -146,8 +146,8 @@ static void SIRI_CFG_read_uint(
                 "Using default value: '%u'",
                 option_name,
                 siri.args->config,
-				min,
-				max,
+                min,
+                max,
                 option->val->integer,
                 *value);
     }
@@ -174,7 +174,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                 "ip_support",
                 siri.args->config,
                 cfgparser_errmsg(rc),
-				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                sirinet_socket_ip_support_str(siri_cfg.ip_support));
     }
     else if (option->tp != CFGPARSER_TP_STRING)
     {
@@ -184,32 +184,32 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                 "ip_support",
                 siri.args->config,
                 "error: expecting a string value",
-				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                sirinet_socket_ip_support_str(siri_cfg.ip_support));
     }
     else
     {
         if (strcmp(option->val->string, "ALL") == 0)
         {
-        	siri_cfg.ip_support = IP_SUPPORT_ALL;
+            siri_cfg.ip_support = IP_SUPPORT_ALL;
         }
         else if (strcmp(option->val->string, "IPV4ONLY") == 0)
         {
-        	siri_cfg.ip_support = IP_SUPPORT_IPV4ONLY;
+            siri_cfg.ip_support = IP_SUPPORT_IPV4ONLY;
         }
         else if (strcmp(option->val->string, "IPV6ONLY") == 0)
         {
-        	siri_cfg.ip_support = IP_SUPPORT_IPV6ONLY;
+            siri_cfg.ip_support = IP_SUPPORT_IPV6ONLY;
         }
         else
         {
             log_warning(
                     "Error reading '%s' in '%s': "
-					"error: expecting ALL, IPV4ONLY or IPV6ONLY bot got '%s'. "
+                    "error: expecting ALL, IPV4ONLY or IPV6ONLY bot got '%s'. "
                     "Using default value: '%s'",
                     "ip_support",
                     siri.args->config,
-					option->val->string,
-    				sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                    option->val->string,
+                    sirinet_socket_ip_support_str(siri_cfg.ip_support));
         }
     }
 }
@@ -247,10 +247,10 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     }
     else
     {
-    	memset(siri_cfg.default_db_path, 0, PATH_MAX);
+        memset(siri_cfg.default_db_path, 0, PATH_MAX);
 
-    	/* keep space left for a trailing slash and a terminator char */
-    	strncpy(siri_cfg.default_db_path,
+        /* keep space left for a trailing slash and a terminator char */
+        strncpy(siri_cfg.default_db_path,
                 option->val->string,
                 PATH_MAX - 2);
 
@@ -258,11 +258,11 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
 
         if (len == PATH_MAX - 2)
         {
-        	log_warning(
-        			"Default database path exceeds %d characters, please "
-        			"check your configuration file: %s",
-					PATH_MAX - 3,
-					siri.args->config);
+            log_warning(
+                    "Default database path exceeds %d characters, please "
+                    "check your configuration file: %s",
+                    PATH_MAX - 3,
+                    siri.args->config);
         }
 
         /* add trailing slash (/) if its not already there */
@@ -361,11 +361,11 @@ static void SIRI_CFG_read_address_port(
 
     if (gethostname(hostname, SIRI_CFG_MAX_LEN_ADDRESS))
     {
-    	log_debug(
-    			"Unable to read the systems host name. Since its only purpose "
-    			"is to apply this in the configuration file this might not be "
-    			"any problem. (using 'localhost' as fallback)");
-    	strcpy(hostname, "localhost");
+        log_debug(
+                "Unable to read the systems host name. Since its only purpose "
+                "is to apply this in the configuration file this might not be "
+                "any problem. (using 'localhost' as fallback)");
+        strcpy(hostname, "localhost");
     }
 
     rc = cfgparser_get_option(
@@ -375,28 +375,28 @@ static void SIRI_CFG_read_address_port(
                 option_name);
     if (rc != CFGPARSER_SUCCESS)
     {
-    	log_critical(
+        log_critical(
                 "Error reading '%s' in '%s': %s.",
                 option_name,
                 siri.args->config,
                 cfgparser_errmsg(rc));
-    	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
     else if (option->tp != CFGPARSER_TP_STRING)
     {
-    	log_critical(
+        log_critical(
                 "Error reading '%s' in '%s': %s. ",
                 option_name,
                 siri.args->config,
                 "error: expecting a string value");
-    	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
     else
     {
         if (*option->val->string == '[')
         {
-        	/* an IPv6 address... */
-        	for (port = address = option->val->string + 1; *port; port++)
+            /* an IPv6 address... */
+            for (port = address = option->val->string + 1; *port; port++)
             {
                 if (*port == ']')
                 {
@@ -408,10 +408,10 @@ static void SIRI_CFG_read_address_port(
         }
         else
         {
-        	port = address = option->val->string;
+            port = address = option->val->string;
         }
 
-    	for (; *port; port++)
+        for (; *port; port++)
         {
             if (*port == ':')
             {
@@ -424,14 +424,14 @@ static void SIRI_CFG_read_address_port(
         if (    !strlen(address) ||
                 strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
                 !strx_is_int(port) ||
-				strcpy(address_pt, address) == NULL ||
-				strx_replace_str(
-						address_pt,
-						"%HOSTNAME",
-						hostname,
-						SIRI_CFG_MAX_LEN_ADDRESS))
+                strcpy(address_pt, address) == NULL ||
+                strx_replace_str(
+                        address_pt,
+                        "%HOSTNAME",
+                        hostname,
+                        SIRI_CFG_MAX_LEN_ADDRESS))
         {
-        	log_critical(
+            log_critical(
                     "Error reading '%s' in '%s': "
                     "error: got an unexpected value '%s:%s'.",
                     option_name,
@@ -446,13 +446,13 @@ static void SIRI_CFG_read_address_port(
 
             if (test_port < 1 || test_port > 65535)
             {
-            	log_critical(
+                log_critical(
                         "Error reading '%s' in '%s': "
                         "error: port should be between 1 and 65535, got '%d'.",
                         option_name,
                         siri.args->config,
                         test_port);
-            	exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
             else
             {

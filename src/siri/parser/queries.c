@@ -48,12 +48,12 @@ if (q->series_tmp != NULL)                                      \
 }                                                               \
 if (q->slist != NULL)                                           \
 {                                                               \
-	siridb_series_t * series;									\
+    siridb_series_t * series;                                    \
     for (; q->slist_index < q->slist->len; q->slist_index++)    \
-    {                                                          		 	\
-    	series = (siridb_series_t *) q->slist->data[q->slist_index];	\
-        siridb_series_decref(series);									\
-    }                                                          			\
+    {                                                                       \
+        series = (siridb_series_t *) q->slist->data[q->slist_index];    \
+        siridb_series_decref(series);                                    \
+    }                                                                      \
     slist_free(q->slist);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
@@ -96,8 +96,8 @@ query_select_t * query_select_new(void)
         q_select->result = ct_new();  // a signal is raised in case of failure
         if (q_select->result == NULL)
         {
-        	free(q_select);
-        	q_select = NULL;
+            free(q_select);
+            q_select = NULL;
         }
     }
     return q_select;
@@ -228,10 +228,10 @@ void query_drop_free(uv_handle_t * handle)
 
     if (q_drop->shards_list != NULL)
     {
-    	siridb_shard_t * shard;
+        siridb_shard_t * shard;
         while (q_drop->shards_list->len)
         {
-        	shard = (siridb_shard_t *) slist_pop(q_drop->shards_list);
+            shard = (siridb_shard_t *) slist_pop(q_drop->shards_list);
             siridb_shard_decref(shard);
         }
 

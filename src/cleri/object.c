@@ -31,11 +31,11 @@ cleri_object_t * cleri_object_new(
     cl_object = (cleri_object_t *) malloc(sizeof(cleri_object_t));
     if (cl_object != NULL)
     {
-		cl_object->tp = tp;
-		cl_object->ref = 1;
-		cl_object->via.dummy = NULL;
-		cl_object->free_object = free_object;
-		cl_object->parse_object = parse_object;
+        cl_object->tp = tp;
+        cl_object->ref = 1;
+        cl_object->via.dummy = NULL;
+        cl_object->free_object = free_object;
+        cl_object->parse_object = parse_object;
     }
     return cl_object;
 }

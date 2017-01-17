@@ -28,9 +28,9 @@ cleri_kwcache_t * cleri_kwcache_new(void)
     kwcache = (cleri_kwcache_t *) malloc(sizeof(cleri_kwcache_t));
     if (kwcache != NULL)
     {
-		kwcache->len = 0;
-		kwcache->str = NULL;
-		kwcache->next = NULL;
+        kwcache->len = 0;
+        kwcache->str = NULL;
+        kwcache->next = NULL;
     }
     return kwcache;
 }

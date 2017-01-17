@@ -178,7 +178,7 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
  */
 void siridb_initsync_run(uv_timer_t * timer)
 {
-	siridb_t * siridb = (siridb_t *) timer->data;
+    siridb_t * siridb = (siridb_t *) timer->data;
     uv_timer_start(
             timer,
             (siridb->replicate->initsync->pkg == NULL) ?
@@ -366,8 +366,8 @@ static void INITSYNC_work(uv_timer_t * timer)
 
     if (siridb->insert_tasks)
     {
-    	siridb_initsync_run(timer);
-    	return;
+        siridb_initsync_run(timer);
+        return;
     }
 
     siridb_initsync_t * initsync = siridb->replicate->initsync;

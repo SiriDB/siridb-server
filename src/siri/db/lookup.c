@@ -59,23 +59,23 @@ siridb_lookup_t * siridb_lookup_new(uint_fast16_t num_pools)
     }
     else
     {
-    	uint_fast16_t n, i, m;
-    	uint_fast16_t counters[num_pools - 1];
+        uint_fast16_t n, i, m;
+        uint_fast16_t counters[num_pools - 1];
 
-    	for (n = 1, m = 2; n < num_pools; n++, m++)
+        for (n = 1, m = 2; n < num_pools; n++, m++)
         {
-    		for (i = 0; i < n; i++)
-    		{
-    			counters[i] = i;
-    		}
+            for (i = 0; i < n; i++)
+            {
+                counters[i] = i;
+            }
 
-    		for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
-    		{
-    			if (++counters[ (*lookup)[i] ] % m == 0)
-    			{
-    				(*lookup)[i] = n;
-    			}
-    		}
+            for (i = 0; i < SIRIDB_LOOKUP_SZ; i++)
+            {
+                if (++counters[ (*lookup)[i] ] % m == 0)
+                {
+                    (*lookup)[i] = n;
+                }
+            }
         }
     }
     return lookup;

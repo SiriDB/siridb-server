@@ -265,7 +265,7 @@ void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype)
         reindex->fd = fileno(reindex->fp);
         if (reindex->fd == -1)
         {
-        	log_critical("Error reading file descriptor: '%s'", reindex->fn);
+            log_critical("Error reading file descriptor: '%s'", reindex->fn);
             fclose(reindex->fp);
             reindex->fp = NULL;
         }
@@ -424,10 +424,10 @@ static void REINDEX_next(siridb_t * siridb)
     {
     case NEXT_SERIES_SET:
         uv_timer_start(
-        		siridb->reindex->timer,
-				REINDEX_work,
-				REINDEX_SLEEP * siridb->active_tasks,
-				0);
+                siridb->reindex->timer,
+                REINDEX_work,
+                REINDEX_SLEEP * siridb->active_tasks,
+                0);
         break;
 
     case NEXT_SERIES_END:
@@ -470,7 +470,7 @@ static void REINDEX_work(uv_timer_t * timer)
                     siridb->pools->lookup,
                     reindex->series->name) == siridb->server->pool ||
             (siridb->replica != NULL &&
-			 siridb_series_server_id(reindex->series) != siridb->server->id))
+             siridb_series_server_id(reindex->series) != siridb->server->id))
     {
         REINDEX_next(siridb);
     }

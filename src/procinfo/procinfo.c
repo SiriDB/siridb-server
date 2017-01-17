@@ -32,17 +32,17 @@ int procinfo_total_virtual_memory(void)
 
     if (file != NULL)
     {
-    	char line[128];
+        char line[128];
 
-		while (fgets(line, 128, file) != NULL)
-		{
-			if (strncmp(line, "VmSize:", 7) == 0)
-			{
-				result = parse_line(line);
-				break;
-			}
-		}
-		fclose(file);
+        while (fgets(line, 128, file) != NULL)
+        {
+            if (strncmp(line, "VmSize:", 7) == 0)
+            {
+                result = parse_line(line);
+                break;
+            }
+        }
+        fclose(file);
     }
 
     return result;
@@ -56,17 +56,17 @@ int procinfo_total_physical_memory(void)
 
     if (file != NULL)
     {
-    	char line[128];
+        char line[128];
 
-		while (fgets(line, 128, file) != NULL)
-		{
-			if (strncmp(line, "VmRSS:", 6) == 0)
-			{
-				result = parse_line(line);
-				break;
-			}
-		}
-		fclose(file);
+        while (fgets(line, 128, file) != NULL)
+        {
+            if (strncmp(line, "VmRSS:", 6) == 0)
+            {
+                result = parse_line(line);
+                break;
+            }
+        }
+        fclose(file);
     }
     return result;
 }

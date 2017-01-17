@@ -32,28 +32,28 @@ cleri_expecting_t * cleri_expecting_new(const char * str)
 
     if (expecting != NULL)
     {
-		expecting->str = str;
+        expecting->str = str;
 
-		if ((expecting->required = cleri_olist_new()) == NULL)
-		{
-			free(expecting);
-			return NULL;
-		}
+        if ((expecting->required = cleri_olist_new()) == NULL)
+        {
+            free(expecting);
+            return NULL;
+        }
 
-		if ((expecting->optional = cleri_olist_new()) == NULL)
-		{
-			free(expecting->required);
-			free(expecting);
-			return NULL;
-		}
+        if ((expecting->optional = cleri_olist_new()) == NULL)
+        {
+            free(expecting->required);
+            free(expecting);
+            return NULL;
+        }
 
-		if ((expecting->modes = EXPECTING_modes_new(str)) == NULL)
-		{
-			free(expecting->optional);
-			free(expecting->required);
-			free(expecting);
-			return NULL;
-		}
+        if ((expecting->modes = EXPECTING_modes_new(str)) == NULL)
+        {
+            free(expecting->optional);
+            free(expecting->required);
+            free(expecting);
+            return NULL;
+        }
     }
 
     return expecting;
@@ -204,9 +204,9 @@ static cleri_exp_modes_t * EXPECTING_modes_new(const char * str)
             (cleri_exp_modes_t *) malloc(sizeof(cleri_exp_modes_t));
     if (modes != NULL)
     {
-		modes->mode = CLERI_EXP_MODE_REQUIRED;
-		modes->next = NULL;
-		modes->str = str;
+        modes->mode = CLERI_EXP_MODE_REQUIRED;
+        modes->next = NULL;
+        modes->str = str;
     }
     return modes;
 }

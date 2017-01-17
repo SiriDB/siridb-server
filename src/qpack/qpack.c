@@ -224,7 +224,7 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
     qp_packer_t * packer = (qp_packer_t *) malloc(sizeof(qp_packer_t));
     if (packer != NULL)
     {
-    	packer->alloc_size = alloc_size;
+        packer->alloc_size = alloc_size;
         packer->buffer_size = packer->alloc_size;
         packer->len = 0;
 

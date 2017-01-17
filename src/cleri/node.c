@@ -35,27 +35,27 @@ cleri_node_t * cleri_node_new(
 
     if (node != NULL)
     {
-		node->cl_obj = cl_obj;
-		node->ref = 1;
+        node->cl_obj = cl_obj;
+        node->ref = 1;
 
-		node->str = str;
-		node->len = len;
+        node->str = str;
+        node->len = len;
 
-		if (cl_obj == NULL || cl_obj->tp <= CLERI_TP_THIS)
-		{
-			/* NULL when initializing the root node but we do need children */
-			node->children = cleri_children_new();
-			if (node->children == NULL)
-			{
-				free(node);
-				return NULL;
-			}
-		}
-		else
-		{
-			/* we do not need children for some objects */
-			node->children = NULL;
-		}
+        if (cl_obj == NULL || cl_obj->tp <= CLERI_TP_THIS)
+        {
+            /* NULL when initializing the root node but we do need children */
+            node->children = cleri_children_new();
+            if (node->children == NULL)
+            {
+                free(node);
+                return NULL;
+            }
+        }
+        else
+        {
+            /* we do not need children for some objects */
+            node->children = NULL;
+        }
     }
     return node;
 }

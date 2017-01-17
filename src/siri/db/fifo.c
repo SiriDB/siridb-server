@@ -117,11 +117,11 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
     case FFILE_NO_FREE_SPACE:
         if (fifo->in != fifo->out)
         {
-        	if (fclose(fifo->in->fp))
-			{
-				ERR_FILE
-			}
-        	fifo->in->fp = NULL;
+            if (fclose(fifo->in->fp))
+            {
+                ERR_FILE
+            }
+            fifo->in->fp = NULL;
         }
 
         fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, pkg);

@@ -21,8 +21,8 @@ cleri_children_t * cleri_children_new(void)
             (cleri_children_t *) malloc(sizeof(cleri_children_t));
     if (children != NULL)
     {
-		children->node = NULL;
-		children->next = NULL;
+        children->node = NULL;
+        children->next = NULL;
     }
     return children;
 }

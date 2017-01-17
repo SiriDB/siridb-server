@@ -55,11 +55,11 @@ static cexpr_t * CEXPR_walk_node(
 
 cexpr_t * cexpr_from_node(cleri_node_t * node)
 {
-	cexpr_t * tmp;
-	cexpr_t * cexpr = CEXPR_new();
+    cexpr_t * tmp;
+    cexpr_t * cexpr = CEXPR_new();
     if (cexpr == NULL)
     {
-    	return NULL;
+        return NULL;
     }
 
     int expecting = EXPECTING_PROP;
@@ -67,8 +67,8 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
 
     if (condition == NULL)
     {
-    	free(cexpr);
-    	return NULL;
+        free(cexpr);
+        return NULL;
     }
 
     /* create a list, we only need this list while building an expression */
@@ -82,9 +82,9 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
 
     if (tmp == NULL)
     {
-    	free(cexpr);
-    	free(condition);
-    	return NULL;
+        free(cexpr);
+        free(condition);
+        return NULL;
     }
 
     /* build the expression */
@@ -354,7 +354,7 @@ static cexpr_t * CEXPR_walk_node(
         cexpr_condition_t ** condition,
         int * expecting)
 {
-	cexpr_condition_t * tmp_condition;
+    cexpr_condition_t * tmp_condition;
     switch (*expecting)
     {
     case EXPECTING_PROP:
@@ -411,7 +411,7 @@ static cexpr_t * CEXPR_walk_node(
                 (*condition)->str = (char *) malloc(node->len -1);
                 if ((*condition)->str == NULL)
                 {
-                	return NULL;
+                    return NULL;
                 }
                 strx_extract_string((*condition)->str, node->str, node->len);
                 SET_CONDITION_AND_RETURN
@@ -509,27 +509,27 @@ static cexpr_t * CEXPR_walk_node(
                 cexpr = CEXPR_push_and(cexpr);
                 if (cexpr == NULL)
                 {
-                	return NULL;
+                    return NULL;
                 }
                 break;
             case CLERI_GID_K_OR:
                 cexpr = CEXPR_push_or(cexpr, list);
                 if (cexpr == NULL)
                 {
-                	return NULL;
+                    return NULL;
                 }
                 break;
             default:
                 log_critical(
                     "Only 'and' or 'or' keywords are expected, got type: %"
-					PRIu32,
+                    PRIu32,
                     node->cl_obj->via.keyword->gid);
                 assert (0);
             }
             tmp_condition = CEXPR_condition_new();
             if (tmp_condition == NULL)
             {
-            	return NULL;
+                return NULL;
             }
             *condition = tmp_condition;
             *expecting = EXPECTING_PROP;
@@ -576,10 +576,10 @@ static cexpr_t * CEXPR_new(void)
     cexpr_t * cexpr = (cexpr_t *) malloc(sizeof(cexpr_t));
     if (cexpr != NULL)
     {
-		cexpr->operator = CEXPR_AND;
-		cexpr->tp_a = VIA_NULL;
-		cexpr->tp_b = VIA_NULL;
-		cexpr->via_a.cexpr = NULL;
+        cexpr->operator = CEXPR_AND;
+        cexpr->tp_a = VIA_NULL;
+        cexpr->tp_b = VIA_NULL;
+        cexpr->via_a.cexpr = NULL;
     }
     return cexpr;
 }
@@ -594,8 +594,8 @@ static cexpr_condition_t * CEXPR_condition_new(void)
 
     if (condition != NULL)
     {
-		condition->int64 = 0;
-		condition->str = NULL;
+        condition->int64 = 0;
+        condition->str = NULL;
     }
 
     return condition;
@@ -620,10 +620,10 @@ static cexpr_t * CEXPR_push_and(cexpr_t * cexpr)
 
     if (new_cexpr != NULL)
     {
-		new_cexpr->tp_a = cexpr->tp_b;
-		new_cexpr->via_a = cexpr->via_b;
-		cexpr->tp_b = VIA_CEXPR;
-		cexpr->via_b.cexpr = new_cexpr;
+        new_cexpr->tp_a = cexpr->tp_b;
+        new_cexpr->via_a = cexpr->via_b;
+        cexpr->tp_b = VIA_CEXPR;
+        cexpr->via_b.cexpr = new_cexpr;
     }
     return new_cexpr;
 }
@@ -644,15 +644,15 @@ static cexpr_t * CEXPR_push_or(cexpr_t * cexpr, cexpr_list_t * list)
 
     if (new_cexpr != NULL)
     {
-		size_t selected = list->len - 1;
-		cexpr = list->cexpr[selected];
+        size_t selected = list->len - 1;
+        cexpr = list->cexpr[selected];
 
 
-		new_cexpr->operator = CEXPR_OR;
-		new_cexpr->tp_a = VIA_CEXPR;
-		new_cexpr->via_a.cexpr = cexpr;
+        new_cexpr->operator = CEXPR_OR;
+        new_cexpr->tp_a = VIA_CEXPR;
+        new_cexpr->via_a.cexpr = cexpr;
 
-		list->cexpr[selected] = new_cexpr;
+        list->cexpr[selected] = new_cexpr;
     }
 
     return new_cexpr;
@@ -688,8 +688,8 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
 
     if (new_cexpr == NULL)
     {
-    	/* memory allocation error */
-    	return NULL;
+        /* memory allocation error */
+        return NULL;
     }
 
 

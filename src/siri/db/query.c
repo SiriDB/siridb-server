@@ -129,7 +129,7 @@ void siridb_query_run(
 
     if (Logger.level == LOGGER_DEBUG && strstr(query->q, "password") == NULL)
     {
-    	log_debug("Parsing query (%d): %s", query->flags, query->q);
+        log_debug("Parsing query (%d): %s", query->flags, query->q);
     }
 
     /* increment active tasks */
@@ -168,7 +168,7 @@ void siridb_query_free(uv_handle_t * handle)
     /* free query result */
     if (query->pr != NULL)
     {
-    	cleri_parse_free(query->pr);
+        cleri_parse_free(query->pr);
     }
 
     /* decrement client reference counter */
@@ -261,7 +261,7 @@ void siridb_query_forward(
 
     if (packer == NULL)
     {
-    	ERR_ALLOC
+        ERR_ALLOC
         return;
     }
 
@@ -377,24 +377,24 @@ void siridb_query_forward(
  */
 int siridb_query_err_from_pkg(siridb_query_t * query, sirinet_pkg_t * pkg)
 {
-	qp_unpacker_t unpacker;
-	qp_obj_t qp_err;
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_err;
 
-	/* initialize unpacker */
-	qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    /* initialize unpacker */
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-	if (qp_is_map(qp_next(&unpacker, NULL)) &&
-	    qp_is_raw(qp_next(&unpacker, NULL)) && // error_msg
-		qp_is_raw(qp_next(&unpacker, &qp_err)) &&
-		qp_err.len < SIRIDB_MAX_SIZE_ERR_MSG)
-	{
-		memcpy(query->err_msg, qp_err.via.raw, qp_err.len);
-		query->err_msg[qp_err.len] = '\0';
-		return 0;
-	}
+    if (qp_is_map(qp_next(&unpacker, NULL)) &&
+        qp_is_raw(qp_next(&unpacker, NULL)) && // error_msg
+        qp_is_raw(qp_next(&unpacker, &qp_err)) &&
+        qp_err.len < SIRIDB_MAX_SIZE_ERR_MSG)
+    {
+        memcpy(query->err_msg, qp_err.via.raw, qp_err.len);
+        query->err_msg[qp_err.len] = '\0';
+        return 0;
+    }
 
-	/* package data did not have a valid error message */
-	return -1;
+    /* package data did not have a valid error message */
+    return -1;
 }
 
 void siridb_query_timeit_from_unpacker(
@@ -568,16 +568,16 @@ static void QUERY_parse(uv_async_t * handle)
     if (    walker == NULL ||
             (query->pr = cleri_parse(siri.grammar, query->q)) == NULL)
     {
-    	if (walker != NULL)
-    	{
+        if (walker != NULL)
+        {
             siridb_nodes_free(siridb_walker_free(walker));
-    	}
-    	else
-    	{
-    		ERR_ALLOC
-    	}
-    	sprintf(query->err_msg,
-    			"Memory allocation error or maximum recursion depth reached.");
+        }
+        else
+        {
+            ERR_ALLOC
+        }
+        sprintf(query->err_msg,
+                "Memory allocation error or maximum recursion depth reached.");
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }
@@ -827,7 +827,7 @@ static int QUERY_time_expr(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
                     "%" PRIu64,
-						siridb_time_parse(node->str, node->len) *
+                        siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
             if (n >= *size)
             {
@@ -862,7 +862,7 @@ static int QUERY_time_expr(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
                     "%" PRId64,
-					ts * walker->siridb->time->factor);
+                    ts * walker->siridb->time->factor);
 
             if (n >= *size)
             {

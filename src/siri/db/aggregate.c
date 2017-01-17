@@ -1071,7 +1071,7 @@ static int aggr_median(
         }
         else
         {
-        	point->val.real = points->data->val.real;
+            point->val.real = points->data->val.real;
         }
     }
     else if (points->len % 2 == 1)
@@ -1115,7 +1115,7 @@ static int aggr_median_high(
         }
         else
         {
-        	point->val.real = points->data->val.real;
+            point->val.real = points->data->val.real;
         }
     }
     else if (siridb_median_find_n(point, points, points->len / 2))
@@ -1150,11 +1150,11 @@ static int aggr_median_low(
         }
         else
         {
-        	point->val.real = points->data->val.real;
+            point->val.real = points->data->val.real;
         }
     }
     else if (siridb_median_find_n(point, points, (points->len - 1) / 2))
-	{
+    {
         sprintf(err_msg, "Memory allocation error in median low.");
         return -1;
     }
