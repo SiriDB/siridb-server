@@ -13,12 +13,12 @@ Compiled packages are available for Ubuntu (amd64 - 16.04 LTS xenial)
 	
 For creating a new or joining an existing database you need the manage tool:
 
-	wget https://storage.googleapis.com/siridb/manage/deb/siridb-manage_2.0.1_amd64.deb
+	wget https://github.com/transceptor-technology/siridb-manage/releases/download/2.0.1/siridb-manage_2.0.1_amd64.deb
 	sudo dpkg -i siridb-manage_2.0.1_amd64.deb
 	
 If you like to manage SiriDB from the terminal we have a prompt with auto-completion support available:
 
-	wget https://storage.googleapis.com/siridb/prompt/deb/siridb-prompt_2.0.2_amd64.deb
+	wget https://github.com/transceptor-technology/siridb-prompt/releases/download/2.0.2/siridb-prompt_2.0.2_amd64.deb
 	sudo dpkg -i siridb-prompt_2.0.2_amd64.deb
 
 
