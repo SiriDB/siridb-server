@@ -63,3 +63,6 @@ grammar/pygrammar/
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
+
+# VS Code
+.vscode/
