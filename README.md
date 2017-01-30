@@ -164,8 +164,7 @@ We created a basic HTTP server for SiriDB.
 
 Use your web browser to connect to http://127.0.0.1:8080, now you can access the SiriDB-HTTP prompt.
 
-
-![SiriDB Prompt](/img/introduction_gettingstarted_prompt.png)
+![SiriDB Prompt](http://siridb.net/img/introduction_gettingstarted_prompt.png)
 
 Enter the following query to see SiriDB in action:
 
@@ -173,7 +172,7 @@ Enter the following query to see SiriDB in action:
 
 The following two graphs should appear
 
-![SiriDB Prompt](/img/introduction_gettingstarted_query.png)
+![SiriDB Prompt](http://siridb.net/img/introduction_gettingstarted_query.png)
 
 Congratulations, you have just setup SiriDB and loaded an example dataset.
 The next chapter covers expanding this setup to a robust 4 node SiriDB cluster.
