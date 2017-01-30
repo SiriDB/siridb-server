@@ -6,6 +6,40 @@ SiriDB (C-implementation), for the full documentation visit: [http://siridb.net/
 Installation
 ------------
 
+Ubuntu
+======
+
+SiriDB is available as deb package and is supported to run on Ubuntu 16.04 (64 bit)
+
+prerequisites
+-------------
+SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily installed using apt:
+
+	apt install wget libexpat1 libuv1
+
+
+Deb packages for SiriDB are available on GitHub.
+
+* [siridb/server](https://github.com/transceptor-technology/siridb-server/releases/latest)
+* [siridb/manage](https://github.com/transceptor-technology/siridb-manage/releases/latest)
+* [siridb/prompt](https://github.com/transceptor-technology/siridb-prompt/releases/latest)
+* [siridb/http](https://github.com/transceptor-technology/siridb-http/releases/latest)
+
+Compile from source
+===================
+
+Install the following packages:
+
+`sudo apt install libuv1-dev uuid-dev libpcre3-dev`
+
+Replace Release with Debug for a debug build.
+
+```
+cd ./Release
+make clean
+make
+```
+
 Docker
 ======
 
@@ -30,26 +64,6 @@ When using docker there are a couple of things to consider:
 		--volumes-from=server-a \
 		siridb/manage
 ```
-
-Installation on Ubuntu
-======================
-
-SiriDB is available as deb package and is supported to run on Ubuntu 16.04 (64 bit)
-
-prerequisites
--------------
-SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily installed using apt:
-
-	apt install wget libexpat1 libuv1
-
-
-Deb packages for SiriDB are available on GitHub.
-
-* [siridb/server](https://github.com/transceptor-technology/siridb-server/releases/latest)
-* [siridb/manage](https://github.com/transceptor-technology/siridb-manage/releases/latest)
-* [siridb/prompt](https://github.com/transceptor-technology/siridb-prompt/releases/latest)
-* [siridb/http](https://github.com/transceptor-technology/siridb-http/releases/latest)
-
 
 Single SiriDB server setup
 ==========================
