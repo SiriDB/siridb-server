@@ -225,6 +225,16 @@ int siridb_buffer_load(siridb_t * siridb)
     return 0;
 }
 
+/*
+ * Reserve a space in the buffer for a new series. The position of this space
+ * in the buffer is read from siridb->empty_buffers so this list must have
+ * at least on spot available.
+ *
+ * Returns 0 if successful or -1 and a signal is raised in case of an error.
+ *
+ * Note that an available spot must be checked before calling this function.
+ * This functions has undefined behavior if no spot is found.
+ */
 static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
 {
     series->bf_offset = (long int) slist_pop(siridb->empty_buffers);
@@ -257,6 +267,13 @@ static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
     return 0;
 }
 
+/*
+ * Create new space in the buffer and use one position for the new series.
+ * The number of positions that will be allocated is defined by
+ * SIRIDB_BUFFER_CACHE and must be at least one to hold the new series.
+ *
+ * Returns 0 if successful or -1 and a signal is raised in case of an error.
+ */
 static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
 {
     long int buffer_pos;
