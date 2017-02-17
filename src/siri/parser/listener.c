@@ -1262,11 +1262,15 @@ static void enter_series_re(uv_async_t * handle)
     }
     else
     {
+        uv_mutex_lock(&siridb->series_mutex);
+
         q_wrapper->slist = imap_2slist_ref(
                 (   q_wrapper->update_cb == NULL ||
                     q_wrapper->update_cb == &imap_union_ref ||
                     q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
                         siridb->series_map : q_wrapper->series_map);
+
+        uv_mutex_unlock(&siridb->series_mutex);
 
         q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
                 q_wrapper->series_map : imap_new();
@@ -1645,9 +1649,13 @@ static void exit_count_series(uv_async_t * handle)
     }
     else
     {
+        uv_mutex_lock(&siridb->series_mutex);
+
         q_count->slist = imap_2slist_ref(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
+
+        uv_mutex_unlock(&siridb->series_mutex);
 
         if (q_count->slist == NULL)
         {
@@ -1685,8 +1693,13 @@ static void exit_count_series_length(uv_async_t * handle)
 
     if (q_count->where_expr == NULL)
     {
+        uv_mutex_lock(&siridb->series_mutex);
+
         slist_t * slist = imap_2slist((q_count->series_map == NULL) ?
                 siridb->series_map : q_count->series_map);
+
+        uv_mutex_unlock(&siridb->series_mutex);
+
         siridb_series_t * series;
 
         for (size_t i = 0; i < slist->len; i++)
@@ -1714,9 +1727,13 @@ static void exit_count_series_length(uv_async_t * handle)
     }
     else
     {
+        uv_mutex_lock(&siridb->series_mutex);
+
         q_count->slist = imap_2slist_ref(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
+
+        uv_mutex_unlock(&siridb->series_mutex);
 
         if (q_count->slist == NULL)
         {
@@ -2163,9 +2180,13 @@ static void exit_drop_series(uv_async_t * handle)
      * We transform or copy the references from imap to slist because we need
      * this list for both filtering or performing the actual drop.
      */
+    uv_mutex_lock(&siridb->series_mutex);
+
     q_drop->slist = (q_drop->series_map == NULL) ?
         imap_2slist_ref(siridb->series_map) :
         imap_slist_pop(q_drop->series_map);
+
+    uv_mutex_unlock(&siridb->series_mutex);
 
     if (q_drop->slist == NULL)
     {
@@ -2705,8 +2726,12 @@ static void exit_list_series(uv_async_t * handle)
     qp_add_raw(query->packer, "series", 6);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
+    uv_mutex_lock(&siridb->series_mutex);
+
     q_list->slist = imap_2slist_ref((q_list->series_map == NULL) ?
                     siridb->series_map : q_list->series_map);
+
+    uv_mutex_unlock(&siridb->series_mutex);
 
     if (q_list->slist == NULL)
     {
@@ -3133,6 +3158,7 @@ static void exit_select_aggregate(uv_async_t * handle)
                 else
                 {
                     q_select->slist = imap_2slist_ref(q_select->series_map);
+
                     if (q_select->slist == NULL)
                     {
                         MEM_ERR_RET

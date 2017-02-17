@@ -73,32 +73,6 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     {
         siridb = (siridb_t *) siridb_node->data;
 
-#ifdef DEBUG
-        /*
-         * Test series with overlap
-         */
-        uint32_t tcount = 0;
-        slist_t * temp = imap_slist(siridb->series_map);
-        for (size_t j = 0; j < temp->len; j++)
-        {
-            if (((siridb_series_t *) temp->data[j])->flags &
-                    SIRIDB_SERIES_HAS_OVERLAP)
-            {
-                tcount++;
-            }
-        }
-        log_debug("Series with overlap: %" PRIu32, tcount);
-        log_debug(
-                "Active tasks: %" PRIu16
-                " (inserts: %" PRIu16
-                ", queries: %" PRIu16 ")",
-                siridb->active_tasks,
-                siridb->insert_tasks,
-                siridb->active_tasks - siridb->insert_tasks);
-        log_debug("Max series id: %" PRIu32, siridb->max_series_id);
-
-#endif
-
         server_node = siridb->servers->first;
         while (server_node != NULL)
         {
