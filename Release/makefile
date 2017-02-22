@@ -57,7 +57,7 @@ all: siridb-server
 siridb-server: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc $(LDFLAGS) -o "siridb-server" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

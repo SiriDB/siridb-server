@@ -17,7 +17,7 @@ C_DEPS += \
 src/imap/%.o: ../src/imap/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -DDEBUG=1 -I../include -O0 -g3 -Wall $(CFLAGS) $(LDFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	gcc -DDEBUG=1 -I../include -O0 -g3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<" $(LDFLAGS)
 	@echo 'Finished building: $<'
 	@echo ' '
 

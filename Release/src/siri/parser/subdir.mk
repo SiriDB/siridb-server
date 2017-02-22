@@ -20,7 +20,7 @@ C_DEPS += \
 src/siri/parser/%.o: ../src/siri/parser/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -I../include -O3 -Wall $(CFLAGS) $(LDFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	gcc -I../include -O3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<" $(LDFLAGS)
 	@echo 'Finished building: $<'
 	@echo ' '
 
