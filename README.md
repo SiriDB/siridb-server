@@ -40,9 +40,9 @@ make clean
 make
 ```
 
-SiriDB Clients
-==============
-Currently we have a native [client](https://github.com/transceptor-technology/siridb-connector) available only for Python.
+SiriDB Client
+=============
+A native [client](https://github.com/transceptor-technology/siridb-connector) is available for Python.
 
 When not using Python you can still communicate to SiriDB using the [HTTP connector](https://github.com/transceptor-technology/siridb-http) which has support for JSON, MsgPack, CSV and QPack.
 
