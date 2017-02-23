@@ -8,7 +8,7 @@
  *
  * changes
  *  - initial version, 08-03-2016
- *
+ *  - fixed issue #53, 23-02-2017
  */
 #include <cleri/choice.h>
 #include <cleri/node.h>
