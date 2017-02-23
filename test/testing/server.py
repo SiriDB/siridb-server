@@ -6,11 +6,16 @@ import psutil
 import asyncio
 import time
 import socket
+import platform
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
 from .constants import BUILDTYPE
 from .constants import MAX_OPEN_FILES
+
+MEM_PROC = \
+    'memcheck-amd64-' if platform.architecture()[0] == '64bit' else \
+    'memcheck-x86-li'
 
 class Server:
     HOLD_TERM = False
@@ -66,10 +71,8 @@ class Server:
             pass
 
     def _get_pid_set(self):
-        # print(subprocess.check_output(['pgrep', 'memcheck-amd64-']))
         try:
-
-            ret = set(map(int, subprocess.check_output(['pgrep', 'memcheck-amd64-' if self.MEM_CHECK else 'siridb-server']).split()))
+            ret = set(map(int, subprocess.check_output(['pgrep', MEM_PROC if self.MEM_CHECK else 'siridb-server']).split()))
         except subprocess.CalledProcessError:
             ret = set()
         return ret
