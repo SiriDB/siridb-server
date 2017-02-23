@@ -184,7 +184,7 @@ static cleri_node_t * CHOICE_parse_first_match(
     cleri_node_t * node;
     cleri_node_t * rnode;
 
-    olist = cl_obj->via.sequence->olist;
+    olist = cl_obj->via.choice->olist;
     node = cleri_node_new(cl_obj, parent->str + parent->len, 0);
     if (node == NULL)
     {
