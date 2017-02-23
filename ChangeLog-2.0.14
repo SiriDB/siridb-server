@@ -1,0 +1,5 @@
+  * Inluding CFLAGS and LDFLAGS in mk files for better building support.
+    (reported by @deem0n, issue #52)
+
+  * Fixed error in choice.c which was causing an error on 32bit systems.
+    (reported by @AlmiS, issue #53)
