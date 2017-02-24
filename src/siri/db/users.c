@@ -101,6 +101,7 @@ int siridb_users_load(siridb_t * siridb)
     while (qp_is_array(qp_next(unpacker, NULL)) &&
             qp_next(unpacker, &qp_name) == QP_RAW &&
             qp_next(unpacker, &qp_password) == QP_RAW &&
+            qp_password.len > 12 &&  /* old and new passwords are > 12 */
             qp_next(unpacker, &qp_access_bit) == QP_INT64)
     {
         user = siridb_user_new();
@@ -234,7 +235,7 @@ siridb_user_t * siridb_users_get_user(
     }
 #ifndef __APPLE__
     /* Required for compatibility with version < 2.0.14 */
-    else
+    else if (user->password[0] == '$')
     {
         fallback_data.initialized = 0;
         fallback_pw = crypt_r(password, user->password, &fallback_data);
