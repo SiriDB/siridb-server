@@ -487,7 +487,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
 #endif
         sirinet_pkg_t * repl_pkg;
 
-        if ((siridb->replicate->initsync == NULL))
+        if (siridb->replicate->initsync == NULL)
         {
             pkg->tp = (flags & INSERT_FLAG_TEST) ?
                     BPROTO_INSERT_TEST_SERVER : (flags & INSERT_FLAG_TESTED) ?
