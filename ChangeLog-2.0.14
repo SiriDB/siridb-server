@@ -3,3 +3,7 @@
 
   * Fixed error in choice.c which was causing an error on 32bit systems.
     (reported by @AlmiS, issue #53)
+    
+  * Removed crypt dependency for building on Mac OSX. (issue #54)
+  
+  * Fixed some warnings for building on Mac OSX.
