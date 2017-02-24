@@ -4,5 +4,5 @@
 
 USER_OBJS :=
 
-LIBS := -luv -luuid -lm -lpcre -lcrypt
+LIBS := -luv -luuid -lm -lpcre
 
