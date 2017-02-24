@@ -11,7 +11,6 @@
  */
 #define _GNU_SOURCE
 #include <assert.h>
-#include <crypt.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/db/query.h>
@@ -22,6 +21,12 @@
 #include <string.h>
 #include <time.h>
 #include <xpath/xpath.h>
+#include <owcrypt/owcrypt.h>
+
+#ifndef __APPLE__
+/* Required for compatibility with version < 2.0.14 */
+#include <crypt.h>
+#endif
 
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"
@@ -187,6 +192,7 @@ int siridb_users_add_user(
     return 0;
 }
 
+
 /*
  * Returns NULL when the user is not found of when the given password is
  * incorrect. When *password is NULL the password will NOT be checked and
@@ -198,8 +204,14 @@ siridb_user_t * siridb_users_get_user(
         const char * password)
 {
     siridb_user_t * user;
-    char * pw;
-    struct crypt_data data;
+    char pw[OWCRYPT_SZ];
+
+#ifndef __APPLE__
+    /* Required for compatibility with version < 2.0.14 */
+    char * fallback_pw;
+    struct crypt_data fallback_data;
+#endif
+
 
     if ((user = llist_get(
             users,
@@ -214,11 +226,21 @@ siridb_user_t * siridb_users_get_user(
         return user;
     }
 
-
-    data.initialized = 0;
-    pw = crypt_r(password, user->password, &data);
-
-    return (strcmp(pw, user->password) == 0) ? user : NULL;
+    owcrypt(password, user->password, pw);
+    if (strcmp(pw, user->password) == 0)
+    {
+        return user;
+    }
+#ifndef __APPLE__
+    /* Required for compatibility with version < 2.0.14 */
+    else
+    {
+        fallback_data.initialized = 0;
+        fallback_pw = crypt_r(password, user->password, &fallback_data);
+        return (strcmp(fallback_pw, user->password) == 0) ? user : NULL;
+    }
+#endif
+    return NULL;
 }
 
 /*

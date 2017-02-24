@@ -26,6 +26,7 @@ src/llist \
 src/lock \
 src/logger \
 src/motd \
+src/owcrypt \
 src/procinfo \
 src/qpack \
 src/siri/args \

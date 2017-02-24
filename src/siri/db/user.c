@@ -11,7 +11,6 @@
  */
 #define _GNU_SOURCE
 #include <assert.h>
-#include <crypt.h>
 #include <logger/logger.h>
 #include <siri/db/access.h>
 #include <siri/db/db.h>
@@ -20,6 +19,7 @@
 #include <siri/err.h>
 #include <siri/grammar/grammar.h>
 #include <strextra/strextra.h>
+#include <owcrypt/owcrypt.h>
 #include <string.h>
 
 #define SIRIDB_MIN_PASSWORD_LEN 4
@@ -27,9 +27,6 @@
 #define SIRIDB_MIN_USER_LEN 2
 #define SIRIDB_MAX_USER_LEN 60
 
-#define SEED_CHARS "./0123456789" \
-    "abcdefghijklmnopqrstuvwxyz"  \
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 /*
  * Creates a new user with reference counter zero.
@@ -85,9 +82,8 @@ int siridb_user_set_password(
         const char * password,
         char * err_msg)
 {
-    char salt[] = "$1$........$";
-    char * encrypted;
-    struct crypt_data data;
+    char salt[OWCRYPT_SALT_SZ];
+    char encrypted[OWCRYPT_SZ];
 
     if (strlen(password) < SIRIDB_MIN_PASSWORD_LEN)
     {
@@ -110,14 +106,12 @@ int siridb_user_set_password(
                 "characters are allowed, no spaces, tabs etc.)");
         return -1;
     }
-    /* encrypt the users password */
-    for (size_t i = 3, len=strlen(SEED_CHARS); i < 11; i++)
-    {
-        salt[i] = SEED_CHARS[rand() % len];
-    }
 
-    data.initialized = 0;
-    encrypted = crypt_r(password, salt, &data);
+    /* generate a random salt */
+    owcrypt_gen_salt(salt);
+
+    /* encrypt the users password */
+    owcrypt(password, salt, encrypted);
 
     /* replace user password with encrypted password */
     free(user->password);

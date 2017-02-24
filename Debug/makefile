@@ -25,6 +25,7 @@ RM := rm
 -include src/siri/subdir.mk
 -include src/qpack/subdir.mk
 -include src/procinfo/subdir.mk
+-include src/owcrypt/subdir.mk
 -include src/motd/subdir.mk
 -include src/logger/subdir.mk
 -include src/lock/subdir.mk
