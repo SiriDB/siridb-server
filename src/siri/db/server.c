@@ -670,10 +670,10 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_string_term(packer, uv_version_string()) ||
                 qp_add_string_term(packer, ssocket->siridb->dbpath) ||
                 qp_add_string_term(packer, ssocket->siridb->buffer_path) ||
-                qp_add_int64(packer, (int64_t) abs(ssocket->siridb->buffer_size)) ||
-                qp_add_int32(packer, (int32_t) abs(siri.startup_time)) ||
+                qp_add_int64(packer, (int64_t) ssocket->siridb->buffer_size) ||
+                qp_add_int32(packer, (int32_t) siri.startup_time) ||
                 qp_add_string_term(packer, ssocket->siridb->server->address) ||
-                qp_add_int32(packer, (int32_t) abs(ssocket->siridb->server->port))) &&
+                qp_add_int32(packer, (int32_t) ssocket->siridb->server->port)) &&
                     (pkg = sirinet_pkg_new(
                             0,
                             packer->len,

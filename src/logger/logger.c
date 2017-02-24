@@ -81,7 +81,7 @@ const char * LOGGER_COLOR_MAP[LOGGER_NUM_LEVELS] =
 /*
  * Initialize the Logger.
  */
-void logger_init(struct _IO_FILE * ostream, int log_level)
+void logger_init(struct _LOGGER_IO_FILE * ostream, int log_level)
 {
     Logger.ostream = ostream;
     logger_set_level(log_level);

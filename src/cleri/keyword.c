@@ -73,7 +73,7 @@ static cleri_node_t * KEYWORD_parse(
         cleri_object_t * cl_obj,
         cleri_rule_store_t * rule)
 {
-    size_t match_len;
+    ssize_t match_len;
     cleri_node_t * node = NULL;
     const char * str = parent->str + parent->len;
 

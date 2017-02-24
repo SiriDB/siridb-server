@@ -211,7 +211,7 @@ static void prop_active_handles(
         int map)
 {
     SIRIDB_PROP_MAP("active_handles", 14)
-    qp_add_int32(packer, (int32_t) abs(siri.loop->active_handles));
+    qp_add_int32(packer, (int32_t) siri.loop->active_handles);
 }
 
 static void prop_buffer_path(
@@ -310,7 +310,7 @@ static void prop_max_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("max_open_files", 14)
-    qp_add_int32(packer, (int32_t) abs(siri.cfg->max_open_files));
+    qp_add_int32(packer, (int32_t) siri.cfg->max_open_files);
 }
 
 static void prop_mem_usage(
@@ -373,7 +373,7 @@ static void prop_startup_time(
         int map)
 {
     SIRIDB_PROP_MAP("startup_time", 12)
-    qp_add_int32(packer, (int32_t) abs(siri.startup_time));
+    qp_add_int32(packer, (int32_t) siri.startup_time);
 }
 
 static void prop_status(

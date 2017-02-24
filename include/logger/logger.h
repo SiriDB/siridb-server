@@ -11,6 +11,12 @@
  */
 #pragma once
 
+#ifdef __APPLE__
+#define _LOGGER_IO_FILE __sFILE
+#else
+#define _LOGGER_IO_FILE _IO_FILE
+#endif
+
 #define LOGGER_DEBUG 0
 #define LOGGER_INFO 1
 #define LOGGER_WARNING 2
@@ -23,7 +29,7 @@
 
 typedef struct logger_s
 {
-    struct _IO_FILE * ostream;
+    struct _LOGGER_IO_FILE * ostream;
     int level;
     const char * level_name;
     int flags;
@@ -31,7 +37,7 @@ typedef struct logger_s
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS];
 
-void logger_init(struct _IO_FILE * ostream, int log_level);
+void logger_init(struct _LOGGER_IO_FILE * ostream, int log_level);
 void logger_set_level(int log_level);
 const char * logger_level_name(int log_level);
 

@@ -628,7 +628,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 #endif
             qp_add_int32(
                     query->packer,
-                    (int32_t) abs(siri.loop->active_handles));
+                    (int32_t) siri.loop->active_handles);
             break;
         case CLERI_GID_K_LOG_LEVEL:
             qp_add_string(query->packer, Logger.level_name);
@@ -636,7 +636,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_MAX_OPEN_FILES:
             qp_add_int32(
                     query->packer,
-                    (int32_t) abs(siri.cfg->max_open_files));
+                    (int32_t) siri.cfg->max_open_files);
             break;
         case CLERI_GID_K_MEM_USAGE:
             qp_add_int32(
