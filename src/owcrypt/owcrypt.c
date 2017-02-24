@@ -52,6 +52,7 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
     unsigned char i, c, j;
     unsigned long long k;
     const char * p;
+    const char * w;
 
     for (i = 0; i < OWCRYPT_SALT_SZ; i++)
     {
@@ -61,13 +62,18 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
     encrypted[11] = '$';
     encrypted[12] = '0';
 
-    for (i = 13; i < OWCRYPT_SZ - 1; i++)
+    for (w = password, i = 13; i < OWCRYPT_SZ - 1; i++, w++)
     {
+        if (!*w)
+        {
+            w = password;
+        }
+
         for (k = 0, p = password; *p; p++)
         {
             for (c = 0; c < 11; c++)
             {
-                j = salt[c] + *p;
+                j = salt[c] + *p + *w;
                 k += j * P[(j + i) % 109];
             }
         }
