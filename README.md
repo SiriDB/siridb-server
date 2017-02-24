@@ -28,28 +28,36 @@ Deb packages for SiriDB are available on GitHub.
 Compile from source
 ===================
 
-Install the following packages:
-
-`sudo apt install libuv1-dev uuid-dev libpcre3-dev`
-
-Replace Release with Debug for a debug build.
-
 Linux
 -----
-```
-cd ./Release
-make clean
-make
-```
+
+Install the following requirements: (Ubnutu)
+
+    sudo apt install libpcre3-dev
+    sudo apt install libuv1-dev 
+    sudo apt install uuid-dev 
+
+Compile (replace Release with Debug for a debug build):
+
+    cd ./Release
+    make clean
+    make
 
 OSX
 ---
-```
-cd ./Release
-export CFLAGS="-I/usr/local/include"
-make clean
-make
-```
+Install the following requirements:
+
+    brew install pcre
+    brew install libuv
+    brew install ossp-uuid
+
+Compile (replace Release with Debug for a debug build):
+    
+    cd ./Release
+    export CFLAGS="-I/usr/local/include"
+    make clean
+    make
+
 
 SiriDB Client
 =============
