@@ -38,7 +38,6 @@ Linux
 -----
 ```
 cd ./Release
-export LDFLAGS="-lcrypt"
 make clean
 make
 ```

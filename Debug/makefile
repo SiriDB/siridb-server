@@ -49,6 +49,13 @@ endif
 
 -include ../makefile.defs
 
+OS := $(shell uname)
+ifeq ($(OS),Darwin)
+CRYPT := 
+else
+CRYPT := -lcrypt
+endif
+
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
@@ -58,7 +65,7 @@ all: siridb-server
 siridb-server: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LIBS) $(LDFLAGS)
+	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LIBS) $(CRYPT) $(LDFLAGS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

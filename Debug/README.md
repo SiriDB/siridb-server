@@ -2,7 +2,6 @@ Compile on linux
 ================
 
 
-    export LDFLAGS="-lcrypt"
     make clean
     make
 
