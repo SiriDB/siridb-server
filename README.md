@@ -34,8 +34,20 @@ Install the following packages:
 
 Replace Release with Debug for a debug build.
 
+Linux
+-----
 ```
 cd ./Release
+export LDFLAGS="-lcrypt"
+make clean
+make
+```
+
+OSX
+---
+```
+cd ./Release
+export CFLAGS="-I/usr/local/include"
 make clean
 make
 ```
