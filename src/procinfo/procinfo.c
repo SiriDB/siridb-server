@@ -100,27 +100,33 @@ long int procinfo_total_physical_memory(void)
 
 #ifdef __APPLE__
 long int procinfo_open_files(const char * path)
+{
     pid_t pid = getpid();
     size_t len = strlen(path);
     long int buffer_size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
+
+    if (buffer_size < 0)
+    {
+        return -1;
+    }
     struct proc_fdinfo * fd_info = (struct proc_fdinfo *) malloc(buffer_size);
     long int number_of_proc_fds = buffer_size / PROC_PIDLISTFD_SIZE;
-    long int i;
-    long int count = 0;
+    long int i, count = 0;
     for (i = 0; i < number_of_proc_fds; i++)
     {
         if (fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE)
         {
             struct vnode_fdinfowithpath vnode_info;
 
-            proc_pidfdinfo(
+            int res = proc_pidfdinfo(
                     pid,
                     fd_info[i].proc_fd,
                     PROC_PIDFDVNODEPATHINFO,
                     &vnode_info,
                     PROC_PIDFDVNODEPATHINFO_SIZE);
 
-            if (strncmp(path, vnode_info.pvip.vip_path, len) == 0)
+            if (    res == PROC_PIDFDVNODEPATHINFO_SIZE &&
+                    strncmp(path, vnode_info.pvip.vip_path, len) == 0)
             {
                 count++;
             }
@@ -128,7 +134,7 @@ long int procinfo_open_files(const char * path)
     }
     free(proc_fdinfo);
     return count;
-
+}
 #else
 long int procinfo_open_files(const char * path)
 {
