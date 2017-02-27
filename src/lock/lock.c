@@ -41,8 +41,8 @@ lock_t lock_lock(const char * path, int flags)
     pid_t pid = getpid();
     pid_t ppid = 0;
     char * lock_fn;
-    char * proc_name;
-    char * pproc_name;
+    char * proc_name = NULL;
+    char * pproc_name = NULL;
     char strpid[10] = {0};
     int is_locked;
     FILE * fp;
