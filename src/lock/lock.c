@@ -222,7 +222,11 @@ static int LOCK_get_process_name(char ** name, pid_t pid)
             &proc,
             PROC_PIDTBSDINFO_SIZE);
 
-    if (st != PROC_PIDTBSDINFO_SIZE)
+    if (st == 0)
+    {
+        return 0;
+    }
+    else if (st != PROC_PIDTBSDINFO_SIZE)
     {
         return -1;
     }
