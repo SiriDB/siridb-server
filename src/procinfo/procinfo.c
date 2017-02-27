@@ -70,7 +70,7 @@ long int procinfo_total_physical_memory(void)
             (task_info_t) &taskinfo,
             &outCount);
 
-    return (ret == KERN_SUCCESS) ? taskinfo.virtual_size / 1024 : -1;
+    return (ret == KERN_SUCCESS) ? taskinfo.resident_size / 1024 : -1;
 }
 #else
 long int procinfo_total_physical_memory(void)
