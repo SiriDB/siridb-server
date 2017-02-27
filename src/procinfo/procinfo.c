@@ -23,13 +23,17 @@
 #include <limits.h>
 #include <logger/logger.h>
 
+#ifdef __APPLE__
+#include <mach/task_info.h>
+#endif
 
-static int parse_line(char * line);
 
-int procinfo_total_virtual_memory(void)
+static long int parse_line(char * line);
+
+long int procinfo_total_virtual_memory(void)
 {
     /* Value is returned in KB */
-    int result = -1;
+    int64_t result = -1;
     FILE * file = fopen("/proc/self/status", "r");
 
     if (file != NULL)
@@ -50,10 +54,29 @@ int procinfo_total_virtual_memory(void)
     return result;
 }
 
-int procinfo_total_physical_memory(void)
+#ifdef __APPLE__
+long int procinfo_total_physical_memory(void)
+{
+    kern_return_t ret;
+    mach_msg_type_number_t outCount;
+    mach_task_basic_info_data_t taskinfo;
+
+    taskinfo.virtual_size = 0;
+    outCount = MACH_TASK_BASIC_INFO_COUNT;
+
+    ret = task_info(
+            mach_task_self(),
+            MACH_TASK_BASIC_INFO,
+            (task_info_t) &taskinfo,
+            &outCount);
+
+    return (ret == KERN_SUCCESS) ? taskinfo.virtual_size / 1024 : -1;
+}
+#else
+long int procinfo_total_physical_memory(void)
 {
     /* Value is returned in KB */
-    int result = -1;
+    long int result = -1;
     FILE * file = fopen("/proc/self/status", "r");
 
     if (file != NULL)
@@ -72,10 +95,11 @@ int procinfo_total_physical_memory(void)
     }
     return result;
 }
+#endif
 
-int procinfo_open_files(const char * path)
+long int procinfo_open_files(const char * path)
 {
-    int count = 0;
+    long int count = 0;
     DIR * dirp;
     struct dirent * entry;
     size_t len = strlen(path);
@@ -110,9 +134,10 @@ int procinfo_open_files(const char * path)
     return count;
 }
 
-static int parse_line(char * line)
+static long int parse_line(char * line)
 {
-    int i = strlen(line);
+    long int i = strlen(line);
+
     while (*line < '0' || *line > '9')
     {
         line++;
@@ -120,7 +145,7 @@ static int parse_line(char * line)
 
     line[i - 3] = '\0';
 
-    i = atoi(line);
+    i = atol(line);
 
     return i;
 }
