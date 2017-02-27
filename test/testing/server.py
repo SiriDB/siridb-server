@@ -58,9 +58,7 @@ class Server:
         config.set('siridb', 'optimize_interval', self.optimize_interval)
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
         config.set('siridb', 'default_db_path', self.dbpath)
-
-        config.add_section('sharding')
-        config.set('sharding', 'max_open_files', MAX_OPEN_FILES)
+        config.set('siridb', 'max_open_files', MAX_OPEN_FILES)
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
