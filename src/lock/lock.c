@@ -20,6 +20,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __APPLE__
+#include <libproc.h>
+#endif
+
 static lock_t LOCK_create(const char * lock_fn, pid_t pid);
 static int LOCK_get_process_name(char ** name, pid_t pid);
 
@@ -206,6 +210,33 @@ static lock_t LOCK_create(const char * lock_fn, pid_t pid)
  * In case 'name' is not NULL, 'calloc' is used to set the value and should
  * be destroyed using free(). When -1 is returned 'name' is always NULL.
  */
+#ifdef __APPLE__
+static int LOCK_get_process_name(char ** name, pid_t pid)
+{
+    struct proc_bsdinfo proc;
+
+    int st = proc_pidinfo(
+            pid,
+            PROC_PIDTBSDINFO,
+            0,
+            &proc,
+            PROC_PIDTBSDINFO_SIZE);
+
+    if (st != PROC_PIDTBSDINFO_SIZE)
+    {
+        return -1;
+    }
+
+    *name = strdup(proc.pbi_comm);
+
+    if (*name == NULL)
+    {
+        return -1;
+    }
+
+    return 0;
+}
+#else
 static int LOCK_get_process_name(char ** name, pid_t pid)
 {
     size_t n = 1024;
@@ -245,3 +276,4 @@ static int LOCK_get_process_name(char ** name, pid_t pid)
     }
     return 0;
 }
+#endif
