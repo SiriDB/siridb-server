@@ -13,3 +13,7 @@
   * Implemented memory usage and open files information on (Mac) OSX. 
     (issue #56)
   
+  * Added limit aggregation functionality. When using limit, a maximum number
+    of points argument is used with an aggregation function. The aggrgation
+    function is used only when more than the requisted points are found.
+    (issue #57)
