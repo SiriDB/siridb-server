@@ -24,6 +24,8 @@
 #include <logger/logger.h>
 
 #ifdef __APPLE__
+#include <mach/task.h>
+#include <mach/mach_init.h>
 #include <mach/task_info.h>
 #include <libproc.h>
 #endif
@@ -31,6 +33,9 @@
 
 static long int parse_line(char * line);
 
+/*
+ * Unused function.
+ */
 long int procinfo_total_virtual_memory(void)
 {
     /* Value is returned in KB */
@@ -71,7 +76,7 @@ long int procinfo_total_physical_memory(void)
             (task_info_t) &taskinfo,
             &outCount);
 
-    return (ret == KERN_SUCCESS) ? taskinfo.resident_size / 1024 : -1;
+    return (ret == KERN_SUCCESS) ? (long int) taskinfo.resident_size / 1024 : -1;
 }
 #else
 long int procinfo_total_physical_memory(void)
@@ -132,7 +137,7 @@ long int procinfo_open_files(const char * path)
             }
         }
     }
-    free(proc_fdinfo);
+    free(fd_info);
     return count;
 }
 #else
