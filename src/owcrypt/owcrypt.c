@@ -91,7 +91,7 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
 void owcrypt_gen_salt(char * salt)
 {
     int i;
-    for (i = 0; i < 11; i++)
+    for (i = 0; i < OWCRYPT_SALT_SZ; i++)
     {
         salt[i] = VCHARS[rand() % 64];
     }
