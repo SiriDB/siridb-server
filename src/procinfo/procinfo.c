@@ -64,19 +64,20 @@ long int procinfo_total_virtual_memory(void)
 long int procinfo_total_physical_memory(void)
 {
     kern_return_t ret;
-    mach_msg_type_number_t outCount;
+    mach_msg_type_number_t out_count;
     mach_task_basic_info_data_t taskinfo;
 
     taskinfo.virtual_size = 0;
-    outCount = MACH_TASK_BASIC_INFO_COUNT;
+    out_count = MACH_TASK_BASIC_INFO_COUNT;
 
     ret = task_info(
             mach_task_self(),
             MACH_TASK_BASIC_INFO,
             (task_info_t) &taskinfo,
-            &outCount);
+            &out_count);
 
-    return (ret == KERN_SUCCESS) ? (long int) taskinfo.resident_size / 1024 : -1;
+    return (ret == KERN_SUCCESS) ?
+            (long int) taskinfo.resident_size / 1024 : -1;
 }
 #else
 long int procinfo_total_physical_memory(void)

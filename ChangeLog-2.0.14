@@ -9,3 +9,7 @@
   * Fixed some warnings for building on (Mac) OSX.
 
   * Fixed locking database on (Mac) OSX. (issue #55)
+  
+  * Implemented memory usage and open files information on (Mac) OSX. 
+    (issue #56)
+  
