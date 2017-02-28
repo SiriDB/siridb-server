@@ -20,12 +20,12 @@ if __name__ == '__main__':
         pass
 
     with open(os.path.join(EXPOTR_PATH, 'grammar.c'),
-            'w',
-            encoding='utf-8') as f:
+              'w',
+              encoding='utf-8') as f:
         f.write(c_file)
     with open(os.path.join(EXPOTR_PATH, 'grammar.h'),
-            'w',
-            encoding='utf-8') as f:
+              'w',
+              encoding='utf-8') as f:
         f.write(h_file)
 
     print('\nFinished creating new c-grammar files...\n')
@@ -40,12 +40,11 @@ if __name__ == '__main__':
         pass
 
     with open(os.path.join(EXPOTR_PATH, 'grammar.js'),
-            'w',
-            encoding='utf-8') as f:
+              'w',
+              encoding='utf-8') as f:
         f.write(js_file)
 
     print('\nFinished creating new js-grammar file...\n')
-
 
     py_file = siri_grammar.export_py()
 
@@ -57,8 +56,8 @@ if __name__ == '__main__':
         pass
 
     with open(os.path.join(EXPOTR_PATH, 'grammar.py'),
-            'w',
-            encoding='utf-8') as f:
+              'w',
+              encoding='utf-8') as f:
         f.write(py_file)
 
     print('\nFinished creating new py-grammar file...\n')

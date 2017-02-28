@@ -503,6 +503,8 @@ static int test_aggr_count(void)
 
     aggr.gid = CLERI_GID_F_COUNT;
     aggr.group_by = 6;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -530,6 +532,8 @@ static int test_aggr_max(void)
 
     aggr.gid = CLERI_GID_F_MAX;
     aggr.group_by = 10;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -557,6 +561,8 @@ static int test_aggr_mean(void)
 
     aggr.gid = CLERI_GID_F_MEAN;
     aggr.group_by = 4;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -584,6 +590,8 @@ static int test_aggr_median(void)
 
     aggr.gid = CLERI_GID_F_MEDIAN;
     aggr.group_by = 7;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -611,6 +619,8 @@ static int test_aggr_median_high(void)
 
     aggr.gid = CLERI_GID_F_MEDIAN_HIGH;
     aggr.group_by = 7;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -638,6 +648,8 @@ static int test_aggr_median_low(void)
 
     aggr.gid = CLERI_GID_F_MEDIAN_LOW;
     aggr.group_by = 7;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -665,6 +677,8 @@ static int test_aggr_min(void)
 
     aggr.gid = CLERI_GID_F_MIN;
     aggr.group_by = 2;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -692,6 +706,8 @@ static int test_aggr_pvariance(void)
 
     aggr.gid = CLERI_GID_F_PVARIANCE;
     aggr.group_by = 5;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -719,6 +735,8 @@ static int test_aggr_sum(void)
 
     aggr.gid = CLERI_GID_F_SUM;
     aggr.group_by = 5;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 
@@ -746,6 +764,8 @@ static int test_aggr_variance(void)
 
     aggr.gid = CLERI_GID_F_VARIANCE;
     aggr.group_by = 6;
+    aggr.limit = 0;
+    aggr.offset = 0;
 
     result = siridb_aggregate_run(points, &aggr, err_msg);
 

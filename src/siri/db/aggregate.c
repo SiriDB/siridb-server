@@ -46,7 +46,8 @@ typedef int (* AGGR_cb)(
         char * err_msg);
 
 #define GROUP_TS(point) \
-    (point->ts + aggr->group_by - 1) / aggr->group_by * aggr->group_by
+    (point->ts + aggr->group_by - 1) / aggr->group_by * aggr->group_by + \
+    aggr->offset
 
 static AGGR_cb AGGREGATES[F_OFFSET];
 
@@ -55,6 +56,10 @@ static void AGGREGATE_free(siridb_aggr_t * aggr);
 static int AGGREGATE_init_filter(
         siridb_aggr_t * aggr,
         cleri_node_t * node,
+        char * err_msg);
+static siridb_points_t * AGGREGATE_limit(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
         char * err_msg);
 static siridb_points_t * AGGREGATE_derivative(
         siridb_points_t * source,
@@ -192,6 +197,80 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
                 switch (gid)
                 {
+                case CLERI_GID_F_LIMIT:
+                    AGGR_NEW
+                    {
+                        int64_t limit = children->node->children->node->
+                            children->next->next->node->result;
+
+                        if (limit <= 0)
+                        {
+                            sprintf(err_msg,
+                                    "Limit must be an integer value "
+                                    "larger than zero.");
+                            AGGREGATE_free(aggr);
+                            siridb_aggregate_list_free(slist);
+                            return NULL;
+                        }
+
+                        aggr->limit = limit;
+
+                        gid = children->node->children->node->children->next->
+                                next->next->next->node->children->node->
+                                cl_obj->via.dummy->gid;
+
+                        switch (gid)
+                        {
+                        case CLERI_GID_K_MEAN:
+                            aggr->gid = CLERI_GID_F_MEAN;
+                            break;
+
+                        case CLERI_GID_K_MEDIAN:
+                            aggr->gid = CLERI_GID_F_MEDIAN;
+                            break;
+
+                        case CLERI_GID_K_MEDIAN_LOW:
+                            aggr->gid = CLERI_GID_F_MEDIAN_LOW;
+                            break;
+
+                        case CLERI_GID_K_MEDIAN_HIGH:
+                            aggr->gid = CLERI_GID_F_MEDIAN_HIGH;
+                            break;
+
+                        case CLERI_GID_K_SUM:
+                            aggr->gid = CLERI_GID_F_SUM;
+                            break;
+
+                        case CLERI_GID_K_MIN:
+                            aggr->gid = CLERI_GID_F_MIN;
+                            break;
+
+                        case CLERI_GID_K_MAX:
+                            aggr->gid = CLERI_GID_F_MAX;
+                            break;
+
+                        case CLERI_GID_K_COUNT:
+                            aggr->gid = CLERI_GID_F_COUNT;
+                            break;
+
+                        case CLERI_GID_K_VARIANCE:
+                            aggr->gid = CLERI_GID_F_VARIANCE;
+                            break;
+
+                        case CLERI_GID_K_PVARIANCE:
+                            aggr->gid = CLERI_GID_F_PVARIANCE;
+                            break;
+
+                        default:
+                            assert (0);
+                            break;
+                        }
+                    }
+
+                    SLIST_APPEND
+
+                    break;
+
                 case CLERI_GID_F_FILTER:
                     AGGR_NEW
                     {
@@ -358,6 +437,11 @@ void siridb_aggregate_list_free(slist_t * alist)
     free(alist);
 }
 
+/*
+ * Return a new allocated points object or the same object as source.
+ * In case of an error NULL is returned and an error message is set or a
+ * signal is raised.
+ */
 siridb_points_t * siridb_aggregate_run(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -366,6 +450,11 @@ siridb_points_t * siridb_aggregate_run(
 #ifdef DEBUG
     assert (source->len);
 #endif
+
+    if (aggr->limit)
+    {
+        return AGGREGATE_limit(source, aggr, err_msg);
+    }
 
     if (aggr->group_by)
     {
@@ -405,6 +494,8 @@ static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
     {
         aggr->gid = gid;
         aggr->group_by = 0;
+        aggr->limit = 0;
+        aggr->offset = 0;
         aggr->timespan = 1.0;
         aggr->filter_tp = TP_INT;  /* when string we malloc/free
                                                   * aggr->filter_via.raw */
@@ -472,6 +563,25 @@ static int AGGREGATE_init_filter(
     }
 
     return 0;
+}
+
+static siridb_points_t * AGGREGATE_limit(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    if (source->len <= aggr->limit)
+    {
+        return source;
+    }
+
+    uint64_t timespan =
+            source->data[source->len - 1].ts - source->data[0].ts;
+
+    aggr->group_by = timespan / aggr->limit + 1;
+    aggr->offset = (source->data[0].ts - 1) % aggr->group_by;
+
+    return AGGREGATE_group_by(source, aggr, err_msg);
 }
 
 static siridb_points_t * AGGREGATE_derivative(
@@ -784,6 +894,7 @@ static siridb_points_t * AGGREGATE_group_by(
 
     if (points == NULL)
     {
+        sprintf(err_msg, "Memory allocation error.");
         return NULL;  /* signal is raised */
     }
 

@@ -438,9 +438,28 @@ class SiriGrammar(Grammar):
             r_float,
             most_greedy=True),
         ')')
+    f_limit = Sequence(
+        k_limit,
+        '(',
+        int_expr,
+        ',',
+        Choice(
+            k_mean,
+            k_median,
+            k_median_high,
+            k_median_low,
+            k_sum,
+            k_min,
+            k_max,
+            k_count,
+            k_variance,
+            k_pvariance,
+            most_greedy=False),
+        ')')
 
     aggregate_functions = List(Choice(
         f_points,
+        f_limit,
         f_mean,
         f_sum,
         f_median,

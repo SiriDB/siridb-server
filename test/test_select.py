@@ -176,6 +176,25 @@ class TestSelect(TestBase):
                 [1447253549, 538],
                 [1447254748, 537]]})
 
+        self.assertEqual(
+            await self.client0.query('select limit(300, mean) from "aggr"'),
+            {'aggr': DATA['aggr']})
+
+        self.assertEqual(
+            await self.client0.query('select limit(1, sum)  from "aggr"'),
+            {'aggr': [[1447254748, 9674]]})
+
+        self.assertEqual(
+            await self.client0.query('select limit(3, mean) from "aggr"'),
+            {'aggr': [
+                [1447250938, 532.8571428571429],
+                [1447252844, 367.6666666666667],
+                [1447254750, 534.0]]})
+
+        self.assertEqual(
+            await self.client0.query('select limit(2, max)  from "series float"'),
+            {'series float': [[1471254707, 1.5], [1471254713, -7.3]]})
+
         self.assertAlmostEqual(
             await self.client0.query('select variance(1471254712) from "variance"'),
             {'variance': [[1471254712, 1.3720238095238095]]})
@@ -189,6 +208,10 @@ class TestSelect(TestBase):
                 'Group by time must be an integer value larger than zero\.'):
             await self.client0.query('select mean(0) from "aggr"')
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Limit must be an integer value larger than zero\.'):
+            await self.client0.query('select limit(6 - 6, mean) from "aggr"')
 
         with self.assertRaisesRegexp(
                 QueryError,

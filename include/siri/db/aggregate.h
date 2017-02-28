@@ -26,6 +26,8 @@ typedef struct siridb_aggr_s
     cexpr_operator_t filter_opr;
     uint8_t filter_tp;
     uint64_t group_by;
+    uint64_t limit;
+    uint64_t offset;
     double timespan;  // used for derivative
     qp_via_t filter_via;
 } siridb_aggr_t;

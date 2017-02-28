@@ -3,7 +3,7 @@
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-01-05 15:50:35
+ * Created at: 2017-02-28 14:14:49
  */
 
 #pragma once
@@ -53,6 +53,7 @@ enum cleri_grammar_ids {
     CLERI_GID_F_DERIVATIVE,
     CLERI_GID_F_DIFFERENCE,
     CLERI_GID_F_FILTER,
+    CLERI_GID_F_LIMIT,
     CLERI_GID_F_MAX,
     CLERI_GID_F_MEAN,
     CLERI_GID_F_MEDIAN,

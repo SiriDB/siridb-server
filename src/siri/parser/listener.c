@@ -4261,7 +4261,10 @@ static void async_select_aggregate(uv_async_t * handle)
                     (siridb_aggr_t *) q_select->alist->data[i],
                     query->err_msg);
 
-            siridb_points_free(points);
+            if (aggr_points != points)
+            {
+                siridb_points_free(points);
+            }
 
             if (aggr_points == NULL)
             {
@@ -5206,7 +5209,10 @@ static int items_select_master_merge(
                     (siridb_aggr_t *) q_select->mlist->data[i],
                     query->err_msg);
 
-            siridb_points_free(points);
+            if (aggr_points != points)
+            {
+                siridb_points_free(points);
+            }
 
             if (aggr_points == NULL)
             {
