@@ -118,7 +118,7 @@ long int procinfo_open_files(const char * path)
         {
             struct vnode_fdinfowithpath vnode_info;
 
-            int res = proc_pidfdinfo(
+            int res = proc_pidinfo(
                     pid,
                     fd_info[i].proc_fd,
                     PROC_PIDFDVNODEPATHINFO,
