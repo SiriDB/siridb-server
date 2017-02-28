@@ -184,6 +184,11 @@ class TestSelect(TestBase):
             await self.client0.query('select pvariance(1471254715) from "pvariance"'),
             {'pvariance': [[1471254715, 1.25]]})
 
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Group by time must be an integer value larger than zero\.'):
+            await self.client0.query('select mean(0) from "aggr"')
+
 
         with self.assertRaisesRegexp(
                 QueryError,
