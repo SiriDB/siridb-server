@@ -114,18 +114,24 @@ long int procinfo_open_files(const char * path)
     {
         return -1;
     }
-    struct proc_fdinfo * fd_info = (struct proc_fdinfo *) malloc(buffer_size);
+    struct proc_fdinfo ** fd_info;
+    *fd_info = (struct proc_fdinfo *) malloc(buffer_size);
     long int number_of_proc_fds = buffer_size / PROC_PIDLISTFD_SIZE;
+
+    buffer_size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, *fd_info, buffer_size);
+    number_of_proc_fds = buffer_size / PROC_PIDLISTFD_SIZE;
+
     long int i, count = 0;
+
     for (i = 0; i < number_of_proc_fds; i++)
     {
-        if (fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE)
+        if ((*fd_info)[i].proc_fdtype == PROX_FDTYPE_VNODE)
         {
             struct vnode_fdinfowithpath vnode_info;
 
-            int res = proc_pidinfo(
+            int res = proc_pidfdinfo(
                     pid,
-                    fd_info[i].proc_fd,
+                    (*fd_info)[i].proc_fd,
                     PROC_PIDFDVNODEPATHINFO,
                     &vnode_info,
                     PROC_PIDFDVNODEPATHINFO_SIZE);
@@ -137,7 +143,7 @@ long int procinfo_open_files(const char * path)
             }
         }
     }
-    free(fd_info);
+    free(*fd_info);
     return count;
 }
 #else
