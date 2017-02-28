@@ -24,7 +24,7 @@ class TestUser(TestBase):
 
     @default_test_setup(3)
     async def run(self):
-        await self.client0.connect()
+        a = await self.client0.connect()
 
         result = await self.client0.query('list users ')
         self.assertEqual(result.pop('users'), [['iris', 'full']])
@@ -164,7 +164,7 @@ class TestUser(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
+    Server.HOLD_TERM = False
     Server.MEM_CHECK = True
     Server.BUILDTYPE = 'Debug'
     run_test(TestUser())
