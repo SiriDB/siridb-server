@@ -109,6 +109,7 @@ long int procinfo_open_files(const char * path)
     pid_t pid = getpid();
     size_t len = strlen(path);
     long int buffer_size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
+    long int buffer_used, number_of_proc_fds, i, count;
 
     if (buffer_size < 0)
     {
@@ -116,15 +117,16 @@ long int procinfo_open_files(const char * path)
     }
 
     struct proc_fdinfo * fd_info = (struct proc_fdinfo *) malloc(buffer_size);
+
     if (fd_info == NULL)
     {
         return -1;
     }
-    long int buffer_used = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, &fd_info, buffer_size);
-    long int number_of_proc_fds = buffer_used / PROC_PIDLISTFD_SIZE;
-    long int i, count = 0;
 
-    for (i = 0; i < number_of_proc_fds; i++)
+    buffer_used = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fd_info, buffer_size);
+    number_of_proc_fds = buffer_used / PROC_PIDLISTFD_SIZE;
+
+    for (i = 0, count = 0; i < number_of_proc_fds; i++)
     {
         if (fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE)
         {
