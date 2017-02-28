@@ -1,3 +1,34 @@
+siridb-server (2.0.14) xenial; urgency=medium
+
+  * Inluding CFLAGS and LDFLAGS in mk files for better building support.
+    (reported by @deem0n, issue #52)
+
+  * Fixed error in choice.c which was causing an error on 32bit systems.
+    (reported by @AlmiS, issue #53)
+    
+  * Removed crypt dependency for building on (Mac) OSX. (issue #54)
+  
+  * Fixed some warnings for building on (Mac) OSX.
+
+  * Fixed locking database on (Mac) OSX. (issue #55)
+  
+  * Implemented memory usage and open files information on (Mac) OSX. 
+    (issue #56)
+  
+  * Added limit aggregation functionality. When using limit, a maximum number
+    of points argument is used with an aggregation function. The aggrgation
+    function is used only when more than the maximum number of points are 
+    found. (issue #57)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 28 Feb 2017 15:24:48 +0000
+
+siridb-server (2.0.13) xenial; urgency=medium
+
+  * Fixed wrapping imap to slist functions with appropriate locks. 
+    (see issue #51)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 17 Feb 2017 13:46:53 +0000
+
 siridb-server (2.0.12) xenial; urgency=medium
 
   * Update help files.
