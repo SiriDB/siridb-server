@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#define OWCRYPT_SZ 96
-#define OWCRYPT_SALT_SZ 11
+#define OWCRYPT_SZ 64
+#define OWCRYPT_SALT_SZ 8
 
 void owcrypt(const char * password, const char * salt, char * encrypted);
 void owcrypt_gen_salt(char * salt);
