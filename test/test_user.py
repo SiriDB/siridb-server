@@ -25,7 +25,6 @@ class TestUser(TestBase):
     @default_test_setup(3)
     async def run(self):
         a = await self.client0.connect()
-        print(a)
 
         result = await self.client0.query('list users ')
         self.assertEqual(result.pop('users'), [['iris', 'full']])
