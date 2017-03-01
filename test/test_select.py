@@ -52,6 +52,12 @@ DATA = {
         [1471254705, 0.0], [1471254706, 0.25], [1471254707, 0.25],
         [1471254708, 1.25], [1471254709, 1.5], [1471254710, 1.75],
         [1471254711, 2.75], [1471254712, 3.25]
+    ],
+    'filter': [
+        [1471254705, 5],
+        [1471254710, -3],
+        [1471254715, -7],
+        [1471254720, 7]
     ]
 }
 
@@ -65,7 +71,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 51 point(s).'})
+            {'success_msg': 'Successfully inserted 55 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -251,7 +257,7 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query(
                 'select min(2h) prefix "min-", max(1h) prefix "max-" '
-                'from /.*/ where type == integer '
+                'from /.*/ where type == integer and name != "filter"'
                 'merge as "int_min_max" using median_low(1) => difference()'),
             {   'max-int_min_max': [
                     [1447254000, 3], [1447257600, -1], [1471255200, -532]],

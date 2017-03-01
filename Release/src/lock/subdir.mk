@@ -2,22 +2,22 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
-../src/lock/lock.c 
+../src/lock/lock.c
 
 OBJS += \
-./src/lock/lock.o 
+./src/lock/lock.o
 
 C_DEPS += \
-./src/lock/lock.d 
+./src/lock/lock.d
 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/lock/%.o: ../src/lock/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -I../include -O3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<" $(LDFLAGS)
+	gcc -I../include -O3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

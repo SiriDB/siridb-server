@@ -2,7 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
 ../src/cleri/children.c \
 ../src/cleri/choice.c \
@@ -23,7 +23,7 @@ C_SRCS += \
 ../src/cleri/sequence.c \
 ../src/cleri/this.c \
 ../src/cleri/token.c \
-../src/cleri/tokens.c 
+../src/cleri/tokens.c
 
 OBJS += \
 ./src/cleri/children.o \
@@ -45,7 +45,7 @@ OBJS += \
 ./src/cleri/sequence.o \
 ./src/cleri/this.o \
 ./src/cleri/token.o \
-./src/cleri/tokens.o 
+./src/cleri/tokens.o
 
 C_DEPS += \
 ./src/cleri/children.d \
@@ -67,14 +67,14 @@ C_DEPS += \
 ./src/cleri/sequence.d \
 ./src/cleri/this.d \
 ./src/cleri/token.d \
-./src/cleri/tokens.d 
+./src/cleri/tokens.d
 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/cleri/%.o: ../src/cleri/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -DDEBUG=1 -I../include -O0 -g3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<" $(LDFLAGS)
+	gcc -DDEBUG=1 -I../include -O0 -g3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

@@ -2,7 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
 ../src/siri/db/access.c \
 ../src/siri/db/aggregate.c \
@@ -39,7 +39,7 @@ C_SRCS += \
 ../src/siri/db/user.c \
 ../src/siri/db/users.c \
 ../src/siri/db/variance.c \
-../src/siri/db/walker.c 
+../src/siri/db/walker.c
 
 OBJS += \
 ./src/siri/db/access.o \
@@ -77,7 +77,7 @@ OBJS += \
 ./src/siri/db/user.o \
 ./src/siri/db/users.o \
 ./src/siri/db/variance.o \
-./src/siri/db/walker.o 
+./src/siri/db/walker.o
 
 C_DEPS += \
 ./src/siri/db/access.d \
@@ -115,14 +115,14 @@ C_DEPS += \
 ./src/siri/db/user.d \
 ./src/siri/db/users.d \
 ./src/siri/db/variance.d \
-./src/siri/db/walker.d 
+./src/siri/db/walker.d
 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/siri/db/%.o: ../src/siri/db/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -I../include -O3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<" $(LDFLAGS)
+	gcc -I../include -O3 -Wall $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
