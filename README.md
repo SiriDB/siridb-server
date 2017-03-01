@@ -55,6 +55,7 @@ Compile (replace Release with Debug for a debug build):
     
     cd ./Release
     export CFLAGS="-I/usr/local/include"
+    export LDFLAGS="-L/usr/local/lib"
     make clean
     make
 
