@@ -45,6 +45,7 @@ cproto_server_t siridb_auth_user_request(
 
     if ((siridb = siridb_get(siri.siridb_list, dbname)) == NULL)
     {
+        log_warning("User authentication request failed: unknown database");
         return CPROTO_ERR_AUTH_UNKNOWN_DB;
     }
 
@@ -53,6 +54,7 @@ cproto_server_t siridb_auth_user_request(
             username,
             password)) == NULL)
     {
+        log_warning("User authentication request failed: invalid credentials");
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
 
