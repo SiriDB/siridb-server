@@ -168,6 +168,10 @@ int siridb_series_add_point(
             }
         }
     }
+    else
+    {
+        LOGC("No buffer found for this series");
+    }
     return rc;
 }
 
@@ -265,10 +269,6 @@ siridb_series_t * siridb_series_new(
         const char * series_name,
         uint8_t tp)
 {
-#ifdef DEBUG
-    /* TODO: support string */
-    assert (tp != TP_STRING);
-#endif
     siridb_series_t * series;
     size_t len = strlen(series_name);
 
@@ -716,7 +716,7 @@ siridb_points_t * siridb_series_get_points(
         }
     }
 
-    size += series->buffer->len;
+    size += (series->buffer == NULL) ? 0 : series->buffer->len;
     points = siridb_points_new(size, series->tp);
 
     if (points == NULL)
@@ -737,30 +737,33 @@ siridb_points_t * siridb_series_get_points(
         /* errors can be ignored here */
     }
 
-    /* create pointer to buffer and get current length */
-    point = series->buffer->data;
-    len = series->buffer->len;
-
-    /* crop start buffer if needed */
-    if (start_ts != NULL)
+    if (series->buffer != NULL)
     {
-        for (; len && point->ts < *start_ts; point++, len--);
-    }
+        /* create pointer to buffer and get current length */
+        point = series->buffer->data;
+        len = series->buffer->len;
 
-    /* crop end buffer if needed */
-    if (end_ts != NULL && len)
-    {
-        siridb_point_t *__restrict p;
+        /* crop start buffer if needed */
+        if (start_ts != NULL)
+        {
+            for (; len && point->ts < *start_ts; point++, len--);
+        }
 
-        for (   p = point + len - 1;
-                len && p->ts >= *end_ts;
-                p--, len--);
-    }
+        /* crop end buffer if needed */
+        if (end_ts != NULL && len)
+        {
+            siridb_point_t *__restrict p;
 
-    /* add buffer points */
-    for (; len; point++, len--)
-    {
-        siridb_points_add_point(points, &point->ts, &point->val);
+            for (   p = point + len - 1;
+                    len && p->ts >= *end_ts;
+                    p--, len--);
+        }
+
+        /* add buffer points */
+        for (; len; point++, len--)
+        {
+            siridb_points_add_point(points, &point->ts, &point->val);
+        }
     }
 
     if (points->len < size)

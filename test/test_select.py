@@ -58,6 +58,9 @@ DATA = {
         [1471254710, -3],
         [1471254715, -7],
         [1471254720, 7]
+    ],
+    'log': [
+        [1471254705, 'Just a log string!']
     ]
 }
 
@@ -71,7 +74,12 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 55 point(s).'})
+            {'success_msg': 'Successfully inserted 56 point(s).'})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select * from "log"'),
+            {'log': [[1471254705, 'Just a log string.']]})
 
         self.assertEqual(
             await self.client0.query(
@@ -278,7 +286,7 @@ class TestSelect(TestBase):
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
