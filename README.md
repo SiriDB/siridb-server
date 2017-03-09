@@ -62,9 +62,9 @@ Compile (replace Release with Debug for a debug build):
 
 SiriDB Client
 =============
-A native [client](https://github.com/transceptor-technology/siridb-connector) is available for Python.
+A native client is available for [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector).
 
-When not using Python you can still communicate to SiriDB using the [HTTP connector](https://github.com/transceptor-technology/siridb-http) which has support for JSON, MsgPack, CSV and QPack.
+When not using Python or Go you can still communicate to SiriDB using the [HTTP connector](https://github.com/transceptor-technology/siridb-http) which has support for JSON, MsgPack, CSV and QPack.
 
 Docker
 ======
