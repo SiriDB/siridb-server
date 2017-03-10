@@ -18,6 +18,8 @@
 #include <string.h>
 #include <owcrypt/owcrypt.h>
 
+#define OLD_SALT_SZ 8
+
 #define VCHARS "./0123456789" \
     "abcdefghijklmnopqrstuvwxyz"  \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -38,36 +40,51 @@ static const int P[109] = {
  * Usage:
  *
  *  char[OWCRYPT_SZ] encrypted;
- *  owcrypt("my_password", "my11chrsalt", encrypted);
+ *  owcrypt1("my_password", "my11chrsalt", encrypted);
  *
  *  // Checking can be done like this:
  *  char[OWCRYPT_SZ] pw;
- *  owcrypt("pasword_to_check", encrypted, pw");
+ *  owcrypt1("pasword_to_check", encrypted, pw");
  *  if (strcmp(pw, encrypted) === 0) {
  *      // valid
  *  }
  *
  * Parameters:
  *  const char * password: must be a terminated string
- *  const char * salt: must be a string with at least a length 11.
- *  char * encrypted: must be able to hold at least 96 chars.
+ *  const char * salt: must be a string with at least a length OWCRYPT_SALT_SZ.
+ *  char * encrypted: must be able to hold at least OWCRYPT_SZ chars.
  */
 void owcrypt(const char * password, const char * salt, char * encrypted)
 {
-    unsigned int i, c, j;
-    unsigned long long k;
+    switch (salt[OWCRYPT_SALT_SZ - 1])
+    {
+    case '0':
+        return owcrypt0(password, salt, encrypted);
+    case '1':
+        return owcrypt1(password, salt, encrypted);
+    default:
+        assert(0);
+    }
+}
+
+void owcrypt1(const char * password, const char * salt, char * encrypted)
+{
+    unsigned int i, c, j, m, s;
+    unsigned long long k, t;
     const char * p;
     const char * w;
+
+    memset(encrypted, 0, OWCRYPT_SZ);
+
+    m = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 3;
+    s = OWCRYPT_SALT_SZ + 2;
 
     for (i = 0; i < OWCRYPT_SALT_SZ; i++)
     {
         encrypted[i] = salt[i];
     }
 
-    encrypted[OWCRYPT_SALT_SZ] = '$';
-    encrypted[OWCRYPT_SALT_SZ + 1] = '0';
-
-    for (w = password, i = OWCRYPT_SALT_SZ + 2; i < OWCRYPT_SZ - 1; i++, w++)
+    for (w = password, i = OWCRYPT_SALT_SZ; i < OWCRYPT_SZ - 1; i++, w++)
     {
         if (!*w)
         {
@@ -77,6 +94,46 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
         for (k = 0, p = password; *p; p++)
         {
             for (c = 0; c < OWCRYPT_SALT_SZ; c++)
+            {
+                j = salt[c] + *p + *w;
+                k += j * P[(j + i + k) % 109];
+            }
+        }
+        t = encrypted[i] + k;
+        encrypted[i] = VCHARS[t % 64];
+
+        j = s + (k % m);
+        t = encrypted[j] + k;
+        encrypted[j] = VCHARS[t % 64];
+    }
+    encrypted[OWCRYPT_SZ - 1] = '\0';
+}
+
+void owcrypt0(const char * password, const char * salt, char * encrypted)
+{
+    unsigned int i, c, j;
+    unsigned long long k;
+    const char * p;
+    const char * w;
+
+    for (i = 0; i < OLD_SALT_SZ; i++)
+    {
+        encrypted[i] = salt[i];
+    }
+
+    encrypted[OLD_SALT_SZ] = '$';
+    encrypted[OLD_SALT_SZ + 1] = '0';
+
+    for (w = password, i = OLD_SALT_SZ + 2; i < OWCRYPT_SZ - 1; i++, w++)
+    {
+        if (!*w)
+        {
+            w = password;
+        }
+
+        for (k = 0, p = password; *p; p++)
+        {
+            for (c = 0; c < OLD_SALT_SZ; c++)
             {
                 j = salt[c] + *p + *w;
                 k += j * P[(j + i + k) % 109];
@@ -96,8 +153,10 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
 void owcrypt_gen_salt(char * salt)
 {
     int i;
-    for (i = 0; i < OWCRYPT_SALT_SZ; i++)
+    for (i = 0; i < OWCRYPT_SALT_SZ - 2; i++)
     {
         salt[i] = VCHARS[rand() % 64];
     }
+    salt[OWCRYPT_SALT_SZ] = '$';
+    salt[OWCRYPT_SALT_SZ + 1] = '1';
 }
