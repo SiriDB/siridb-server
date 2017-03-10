@@ -1,12 +1,17 @@
 /*
- * owcrypt.c - One Way Encryption.
+ * owcrypt.c - One Way Encryption. (used for storing a database user password)
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
  * copyright    : 2017, Transceptor Technology
  *
- * changes
+ * changes:
  *  - initial version, 24-02-2017
+ *
+ * purpose:
+ *  - provide an encryption algorithm to prevent password guessing.
+ *  - passwords should be stored using one way encryption so the original
+ *    is lost.
  *
  */
 #include <stdlib.h>
