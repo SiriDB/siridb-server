@@ -66,3 +66,6 @@ grammar/pygrammar/
 
 # VS Code
 .vscode/
+
+# Test
+test/testdir

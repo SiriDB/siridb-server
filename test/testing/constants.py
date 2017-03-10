@@ -1,6 +1,6 @@
 BUILDTYPE = 'Debug'
-TEST_DIR = '/home/joente/workspace/testdir'
-SIRIDBC = '/home/joente/workspace/siridb-server/{BUILDTYPE}/siridb-server'
+TEST_DIR = './testdir'
+SIRIDBC = '../{BUILDTYPE}/siridb-server'
 MANAGE = 'siridb-manage'
 # VALGRIND = 'valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes -v '
 VALGRIND = 'valgrind --tool=memcheck '
