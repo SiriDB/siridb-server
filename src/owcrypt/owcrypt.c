@@ -16,6 +16,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <owcrypt/owcrypt.h>
 
 #define OLD_SALT_SZ 8
@@ -38,6 +39,15 @@ static const int P[109] = {
 
 static const unsigned int M = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 3;
 static const unsigned int S = OWCRYPT_SALT_SZ + 2;
+static void owcrypt0(
+        const char * password,
+        const char * salt,
+        char * encrypted);
+static void owcrypt1(
+        const char * password,
+        const char * salt,
+        char * encrypted);
+
 
 /*
  * Encrypts a password using a salt.
@@ -72,7 +82,27 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
     }
 }
 
-void owcrypt1(const char * password, const char * salt, char * encrypted)
+/*
+ * Generate a random salt.
+ *
+ * Make sure random is initialized, for example using:
+ *  srand(time(NULL));
+ */
+void owcrypt_gen_salt(char * salt)
+{
+    int i;
+    for (i = 0; i < OWCRYPT_SALT_SZ - 2; i++)
+    {
+        salt[i] = VCHARS[rand() % 64];
+    }
+    salt[OWCRYPT_SALT_SZ - 2] = '$';
+    salt[OWCRYPT_SALT_SZ - 1] = '1';
+}
+
+static void owcrypt1(
+        const char * password,
+        const char * salt,
+        char * encrypted)
 {
     unsigned int i, j, c;
     unsigned long int k, t;
@@ -106,7 +136,10 @@ void owcrypt1(const char * password, const char * salt, char * encrypted)
     }
 }
 
-void owcrypt0(const char * password, const char * salt, char * encrypted)
+static void owcrypt0(
+        const char * password,
+        const char * salt,
+        char * encrypted)
 {
     unsigned int i, c, j;
     unsigned long long k;
@@ -139,21 +172,4 @@ void owcrypt0(const char * password, const char * salt, char * encrypted)
         encrypted[i] = VCHARS[k % 64];
     }
     encrypted[OWCRYPT_SZ - 1] = '\0';
-}
-
-/*
- * Generate a random salt.
- *
- * Make sure random is initialized, for example using:
- *  srand(time(NULL));
- */
-void owcrypt_gen_salt(char * salt)
-{
-    int i;
-    for (i = 0; i < OWCRYPT_SALT_SZ - 2; i++)
-    {
-        salt[i] = VCHARS[rand() % 64];
-    }
-    salt[OWCRYPT_SALT_SZ - 2] = '$';
-    salt[OWCRYPT_SALT_SZ - 1] = '1';
 }
