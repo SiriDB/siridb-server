@@ -1,3 +1,5 @@
   * Removed LDFLAGS from *.mk files and format makefile (@deem0n, issue #58)
   
   * Added logging for invalid user authentication requests.
+  
+  * Update constants for running test scripts.
