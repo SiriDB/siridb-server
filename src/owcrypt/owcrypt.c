@@ -74,11 +74,14 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
     switch (salt[OWCRYPT_SALT_SZ - 1])
     {
     case '0':
-        return owcrypt0(password, salt, encrypted);
+        owcrypt0(password, salt, encrypted);
+        break;
     case '1':
-        return owcrypt1(password, salt, encrypted);
+        owcrypt1(password, salt, encrypted);
+        break;
     default:
-        assert(0);
+        encrypted[0] = '\0';
+        break;
     }
 }
 
