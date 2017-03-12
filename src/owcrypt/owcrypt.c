@@ -20,6 +20,8 @@
 
 #define OLD_SALT_SZ 8
 
+#define CRYPTSET(x) t = encrypted[x] + k; encrypted[x] = VCHARS[t % 64]
+
 #define VCHARS "./0123456789" \
     "abcdefghijklmnopqrstuvwxyz"  \
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -33,6 +35,9 @@ static const int P[109] = {
         733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823,
         827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919,
         929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997 };
+
+static const unsigned int M = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 3;
+static const unsigned int S = OWCRYPT_SALT_SZ + 2;
 
 /*
  * Encrypts a password using a salt.
@@ -69,15 +74,12 @@ void owcrypt(const char * password, const char * salt, char * encrypted)
 
 void owcrypt1(const char * password, const char * salt, char * encrypted)
 {
-    unsigned int i, c, j, m, s;
-    unsigned long long k, t;
+    unsigned int i, j, c;
+    unsigned long int k, t;
     const char * p;
     const char * w;
 
     memset(encrypted, 0, OWCRYPT_SZ);
-
-    m = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 3;
-    s = OWCRYPT_SALT_SZ + 2;
 
     for (i = 0; i < OWCRYPT_SALT_SZ; i++)
     {
@@ -95,18 +97,13 @@ void owcrypt1(const char * password, const char * salt, char * encrypted)
         {
             for (c = 0; c < OWCRYPT_SALT_SZ; c++)
             {
-                j = salt[c] + *p + *w;
-                k += j * P[(j + i + k) % 109];
+                k += P[(salt[c] + *p + *w + i + k) % 109];
             }
         }
-        t = encrypted[i] + k;
-        encrypted[i] = VCHARS[t % 64];
-
-        j = s + (k % m);
-        t = encrypted[j] + k;
-        encrypted[j] = VCHARS[t % 64];
+        j = S + (k % M);
+        CRYPTSET(i);
+        CRYPTSET(j);
     }
-    encrypted[OWCRYPT_SZ - 1] = '\0';
 }
 
 void owcrypt0(const char * password, const char * salt, char * encrypted)
@@ -157,6 +154,6 @@ void owcrypt_gen_salt(char * salt)
     {
         salt[i] = VCHARS[rand() % 64];
     }
-    salt[OWCRYPT_SALT_SZ] = '$';
-    salt[OWCRYPT_SALT_SZ + 1] = '1';
+    salt[OWCRYPT_SALT_SZ - 2] = '$';
+    salt[OWCRYPT_SALT_SZ - 1] = '1';
 }
