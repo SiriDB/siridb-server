@@ -37,8 +37,8 @@ static const int P[109] = {
         827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919,
         929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997 };
 
-static const unsigned int M = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 3;
-static const unsigned int S = OWCRYPT_SALT_SZ + 2;
+static const unsigned int M = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 1;
+static const unsigned int S = OWCRYPT_SALT_SZ;
 static void owcrypt0(
         const char * password,
         const char * salt,
@@ -106,8 +106,7 @@ static void owcrypt1(
 {
     unsigned int i, j, c;
     unsigned long int k, t;
-    const char * p;
-    const char * w;
+    const char * p, * w;
 
     memset(encrypted, 0, OWCRYPT_SZ);
 
