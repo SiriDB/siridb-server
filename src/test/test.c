@@ -65,10 +65,11 @@ static siridb_points_t * prepare_points(void)
     uint64_t timestamps[10] =   {3, 6, 7, 10, 11, 13, 14, 15, 25, 27};
     int64_t values[10] =        {1, 3, 0, 2,  4,  8,  3,  5,  6,  3};
     qp_via_t val;
+    int i;
 
     siridb_init_aggregates();
 
-    for (int i = 0; i < 10; i++)
+    for (i = 0; i < 10; i++)
     {
         val.int64 = values[i];
         siridb_points_add_point(points, &timestamps[i], &val);
