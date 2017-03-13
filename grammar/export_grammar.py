@@ -6,7 +6,6 @@ Date: 2016-10-10
 '''
 import os
 import sys
-sys.path.insert(0, '/home/joente/workspace/pyleri')
 from grammar import siri_grammar
 
 
