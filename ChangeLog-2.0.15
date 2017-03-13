@@ -3,3 +3,5 @@
   * Added logging for invalid user authentication requests.
   
   * Update constants for running test scripts.
+
+  * Keywords are now correctly set using case sensitive mode.

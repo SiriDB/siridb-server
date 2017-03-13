@@ -285,7 +285,10 @@ class SiriGrammar(Grammar):
     # where group
     where_group = Sequence(k_where, Prio(
         Sequence(k_series, int_operator, int_expr),
-        Sequence(Choice(k_expression, k_name, most_greedy=False), str_operator, string),
+        Sequence(
+            Choice(k_expression, k_name, most_greedy=False),
+            str_operator,
+            string),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -299,10 +302,19 @@ class SiriGrammar(Grammar):
 
     # where series
     where_series = Sequence(k_where, Prio(
-        Sequence(Choice(k_length, k_pool, most_greedy=False), int_operator, int_expr),
+        Sequence(
+            Choice(k_length, k_pool, most_greedy=False),
+            int_operator,
+            int_expr),
         Sequence(k_name, str_operator, string),
-        Sequence(Choice(k_start, k_end, most_greedy=False), int_operator, time_expr),
-        Sequence(k_type, bool_operator, Choice(k_string, k_integer, k_float, most_greedy=False)),
+        Sequence(
+            Choice(k_start, k_end, most_greedy=False),
+            int_operator,
+            time_expr),
+        Sequence(
+            k_type,
+            bool_operator,
+            Choice(k_string, k_integer, k_float, most_greedy=False)),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -342,10 +354,19 @@ class SiriGrammar(Grammar):
 
     # where shard
     where_shard = Sequence(k_where, Prio(
-        Sequence(Choice(k_sid, k_pool, k_size, most_greedy=False), int_operator, int_expr),
+        Sequence(
+            Choice(k_sid, k_pool, k_size, most_greedy=False),
+            int_operator,
+            int_expr),
         Sequence(Choice(k_server, k_status), str_operator, string),
-        Sequence(Choice(k_start, k_end, most_greedy=False), int_operator, time_expr),
-        Sequence(k_type, bool_operator, Choice(k_number, k_log, most_greedy=False)),
+        Sequence(
+            Choice(k_start, k_end, most_greedy=False),
+            int_operator,
+            time_expr),
+        Sequence(
+            k_type,
+            bool_operator,
+            Choice(k_number, k_log, most_greedy=False)),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))

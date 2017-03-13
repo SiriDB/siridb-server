@@ -6,6 +6,7 @@ Date: 2016-10-10
 '''
 import os
 import sys
+sys.path.insert(0, '/home/joente/workspace/pyleri')
 from grammar import siri_grammar
 
 
@@ -61,3 +62,19 @@ if __name__ == '__main__':
         f.write(py_file)
 
     print('\nFinished creating new py-grammar file...\n')
+
+    go_file = siri_grammar.export_go()
+
+    EXPOTR_PATH = 'gogrammar'
+
+    try:
+        os.makedirs(EXPOTR_PATH)
+    except FileExistsError:
+        pass
+
+    with open(os.path.join(EXPOTR_PATH, 'grammar.go'),
+              'w',
+              encoding='utf-8') as f:
+        f.write(go_file)
+
+    print('\nFinished creating new go-grammar file...\n')
