@@ -37,8 +37,8 @@ static const int P[109] = {
         827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919,
         929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997 };
 
-static const unsigned int M = OWCRYPT_SZ - OWCRYPT_SALT_SZ - 1;
-static const unsigned int S = OWCRYPT_SALT_SZ;
+static const unsigned int END = OWCRYPT_SZ - 1;
+
 static void owcrypt0(
         const char * password,
         const char * salt,
@@ -118,7 +118,7 @@ static void owcrypt1(
         encrypted[i] = salt[i];
     }
 
-    for (w = password, i = OWCRYPT_SALT_SZ; i < OWCRYPT_SZ - 1; i++, w++)
+    for (w = password, i = OWCRYPT_SALT_SZ; i < END; i++, w++)
     {
         if (!*w)
         {
@@ -132,9 +132,12 @@ static void owcrypt1(
                 k += P[(salt[c] + *p + *w + i + k) % 109];
             }
         }
-        j = S + (k % M);
         CRYPTSET(i);
-        CRYPTSET(j);
+
+        for (j = k % 3 + OWCRYPT_SALT_SZ, c = k % 5 + 1; j < END; j += c)
+        {
+            CRYPTSET(j);
+        }
     }
 }
 
@@ -145,8 +148,7 @@ static void owcrypt0(
 {
     unsigned int i, c, j;
     unsigned long long k;
-    const char * p;
-    const char * w;
+    const char * p, * w;
 
     for (i = 0; i < OLD_SALT_SZ; i++)
     {
