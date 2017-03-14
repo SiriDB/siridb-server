@@ -55,11 +55,11 @@ static void owcrypt1(
  * Usage:
  *
  *  char[OWCRYPT_SZ] encrypted;
- *  owcrypt1("my_password", "my11chrsalt", encrypted);
+ *  owcrypt("my_password", "saltsalt$1", encrypted);
  *
  *  // Checking can be done like this:
  *  char[OWCRYPT_SZ] pw;
- *  owcrypt1("pasword_to_check", encrypted, pw");
+ *  owcrypt("pasword_to_check", encrypted, pw");
  *  if (strcmp(pw, encrypted) === 0) {
  *      // valid
  *  }
