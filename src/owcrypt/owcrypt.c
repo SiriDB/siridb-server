@@ -132,6 +132,7 @@ static void owcrypt1(
                 k += P[(salt[c] + *p + *w + i + k) % 109];
             }
         }
+
         CRYPTSET(i);
 
         for (j = k % 3 + OWCRYPT_SALT_SZ, c = k % 5 + 1; j < END; j += c)
