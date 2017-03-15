@@ -24,7 +24,3 @@ if __name__ == '__main__':
     run_test(TestServer())
     run_test(TestUser())
 
-
-
-
-
