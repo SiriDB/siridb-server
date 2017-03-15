@@ -109,7 +109,7 @@ static void owcrypt1(
 {
     unsigned int i, j, c;
     unsigned long int k, t;
-    const char * p, * w;
+    unsigned const char * p, * w;
 
     memset(encrypted, 0, OWCRYPT_SZ);
 
@@ -118,21 +118,22 @@ static void owcrypt1(
         encrypted[i] = salt[i];
     }
 
-    for (w = password, i = OWCRYPT_SALT_SZ; i < END; i++, w++)
+    for (   w = (unsigned char *) password,
+            i = OWCRYPT_SALT_SZ;
+            i < END; i++, w++)
     {
         if (!*w)
         {
-            w = password;
+            w = (unsigned char *) password;
         }
 
-        for (k = 0, p = password; *p; p++)
+        for (k = 0, p = (unsigned char *) password; *p; p++)
         {
             for (c = 0; c < OWCRYPT_SALT_SZ; c++)
             {
                 k += P[(salt[c] + *p + *w + i + k) % 109];
             }
         }
-
         CRYPTSET(i);
 
         for (j = k % 3 + OWCRYPT_SALT_SZ, c = k % 5 + 1; j < END; j += c)
