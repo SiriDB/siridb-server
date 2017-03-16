@@ -277,9 +277,11 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
                 &qp_password,
                 &qp_dbname);
         package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
-
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send(client, package);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(client, package);
+        }
     }
     else
     {

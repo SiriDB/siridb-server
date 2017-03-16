@@ -5,3 +5,5 @@
   * Update constants for running test scripts.
   
   * Keywords are now correctly set using case sensitive mode.
+  
+  * Fixed NULL check on auth request.
