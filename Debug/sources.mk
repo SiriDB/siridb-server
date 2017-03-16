@@ -29,6 +29,7 @@ src/motd \
 src/owcrypt \
 src/procinfo \
 src/qpack \
+src/siri/admin \
 src/siri/args \
 src/siri \
 src/siri/cfg \

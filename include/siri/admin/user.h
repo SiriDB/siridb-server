@@ -9,11 +9,11 @@
  *  - initial version, 16-03-2017
  *
  */
+#pragma once
 #include <qpack/qpack.h>
 #include <siri/siri.h>
 
-#define PASSWORD_IS_ENCRYPTED 0
-#define PASSWORD_IS_ENCRYPTED 0
+typedef struct siri_s siri_t;
 
 typedef struct siri_admin_user_s
 {

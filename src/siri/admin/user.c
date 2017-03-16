@@ -12,9 +12,13 @@
 #include <siri/admin/user.h>
 #include <stddef.h>
 #include <owcrypt/owcrypt.h>
+#include <xpath/xpath.h>
 
 #define SIRI_ADMIN_USER_SCHEMA 1
 #define FILENAME ".users.dat"
+
+#define DEFAULT_USER "iris"
+#define DEFAULT_PASSWORD "siri"
 
 static int USER_free(siri_admin_user_t * user, void * args);
 static int USER_save(siri_admin_user_t * user, qp_fpacker_t * fpacker);
@@ -48,7 +52,12 @@ int siri_admin_user_init(siri_t * siri)
     if (!xpath_file_exist(fn))
     {
         /* missing file, lets create the first user */
-        return (siri_admin_user_new(siri, "iris", "siri", 0) ||
+        qp_name.via.raw = DEFAULT_USER;
+        qp_name.len = 4;
+        qp_password.via.raw = DEFAULT_PASSWORD;
+        qp_password.len = 4;
+
+        return (siri_admin_user_new(siri, &qp_name, &qp_password, 0) ||
                 siri_admin_user_save(siri));
     }
 
@@ -112,8 +121,8 @@ int siri_admin_user_new(
         return -1; /* memory allocation error */
     }
 
-    user->name = strndup(qp_name->via->raw, qp_name->len);
-    user->password = strndup(qp_password->via->raw, qp_password->len);
+    user->name = strndup(qp_name->via.raw, qp_name->len);
+    user->password = strndup(qp_password->via.raw, qp_password->len);
 
     if (!is_encrypted && user->password != NULL)
     {
@@ -128,7 +137,7 @@ int siri_admin_user_new(
 
         /* replace with encrypted password */
         free(user->password);
-        user->password = strndup(encrypted);
+        user->password = strdup(encrypted);
     }
 
     if (    user->name == NULL ||
@@ -163,7 +172,7 @@ int siri_admin_user_check(
         return -1;
     }
 
-    password= strndup(qp_password->via->raw, qp_password->len);
+    password= strndup(qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
     {
@@ -201,7 +210,7 @@ int siri_admin_user_change_password(
         return -1;
     }
 
-    password= strndup(qp_password->via->raw, qp_password->len);
+    password= strndup(qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
     {
@@ -246,7 +255,7 @@ int siri_admin_user_drop(siri_t * siri, qp_obj_t * qp_name)
         return -1;
     }
 
-    USER_free(user);
+    USER_free(user, NULL);
     return 0;
 }
 
@@ -319,5 +328,5 @@ static int USER_save(siri_admin_user_t * user, qp_fpacker_t * fpacker)
 
 inline static int USER_cmp(siri_admin_user_t * user, qp_obj_t * qp_name)
 {
-    return (strncmp(user->name, qp_name->via->raw, qp_name->len) == 0);
+    return (strncmp(user->name, qp_name->via.raw, qp_name->len) == 0);
 }

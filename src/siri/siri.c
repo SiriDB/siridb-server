@@ -21,6 +21,7 @@
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/async.h>
+#include <siri/admin/user.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/buffer.h>

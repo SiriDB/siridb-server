@@ -9,4 +9,7 @@
  *  - initial version, 16-03-2017
  *
  */
+#pragma once
+#include <qpack/qpack.h>
 
+int siri_admin_request(int tp, qp_unpacker_t * qp_unpacker);
