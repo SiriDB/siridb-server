@@ -76,6 +76,7 @@ static void on_reqfile(
         sirinet_pkg_t * pkg,
         sirinet_clserver_getfile getfile);
 static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -243,6 +244,9 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
             break;
         case CPROTO_REQ_FILE_GROUPS:
             on_reqfile(client, pkg, siridb_groups_get_file);
+            break;
+        case CPROTO_REQ_ADMIN:
+            on_req_admin(client, pkg);
             break;
         }
     }
@@ -785,6 +789,32 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     /* free the servers or NULL */
     slist_free(servers);
+}
+
+static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_username;
+    qp_obj_t qp_password;
+    qp_obj_t qp_request;
+    sirinet_pkg_t * package;
+
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_username) == QP_RAW &&
+            qp_next(&unpacker, &qp_password) == QP_RAW &&
+            qp_next(&unpacker, &qp_request) == QP_INT64)
+    {
+        rc = siri_admin_user_check(&qp_username, &qp_password);
+        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send(client, package);
+    }
+    else
+    {
+        log_error("Invalid administrative request received.");
+    }
 }
 
 /*

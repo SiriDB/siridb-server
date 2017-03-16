@@ -23,6 +23,8 @@ typedef enum
     CPROTO_REQ_FILE_SERVERS,                    // empty
     CPROTO_REQ_FILE_USERS,                      // empty
     CPROTO_REQ_FILE_GROUPS,                     // empty
+    /* Administrative API requests */
+    CPROTO_REQ_ADMIN=128,                       // (user, password, request, {...})
 } cproto_client_t;
 
 typedef enum
