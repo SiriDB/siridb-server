@@ -57,6 +57,7 @@ typedef struct siri_s
     siri_args_t * args;
     uv_mutex_t siridb_mutex;
     uint32_t startup_time;
+    llist_t * users;
 } siri_t;
 
 void siri_setup_logger(void);

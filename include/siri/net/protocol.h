@@ -23,7 +23,7 @@ typedef enum
     CPROTO_REQ_FILE_SERVERS,                    // empty
     CPROTO_REQ_FILE_USERS,                      // empty
     CPROTO_REQ_FILE_GROUPS,                     // empty
-    /* Administrative API requests */
+    /* Administrative API request */
     CPROTO_REQ_ADMIN=128,                       // (user, password, request, {...})
 } cproto_client_t;
 
@@ -50,6 +50,12 @@ typedef enum
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
     CPROTO_ERR_LOADING_DB,                      // empty
     CPROTO_ERR_FILE,                            // empty
+
+    /* Administrative API errors */
+    CPROTO_ERR_ADMIN_INVALID_REQUEST=96,        // empty
+    CPROTO_ERR_ADMIN_AUTHENTICATION,            // empty
+    CPROTO_ERR_ADMIN_MEMORY_ALLOCATION,         // empty
+
 } cproto_server_t;
 
 typedef enum

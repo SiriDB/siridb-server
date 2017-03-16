@@ -81,7 +81,8 @@ siri_t siri = {
         .cfg=NULL,
         .args=NULL,
         .status=SIRI_STATUS_LOADING,
-        .startup_time=0
+        .startup_time=0,
+        .users=NULL
 };
 
 void siri_setup_logger(void)
@@ -207,6 +208,9 @@ void siri_free(void)
 
     /* free siridb grammar */
     cleri_grammar_free(siri.grammar);
+
+    /* free siridb administrative users */
+    siri_admin_user_destroy(&siri);
 
     /* free event loop */
     free(siri.loop);

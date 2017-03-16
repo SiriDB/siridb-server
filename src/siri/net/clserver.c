@@ -800,22 +800,34 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_username;
     qp_obj_t qp_password;
     qp_obj_t qp_request;
-    sirinet_pkg_t * package;
+    sirinet_pkg_t * package = NULL;
+    uint8_t tp;
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
             qp_next(&unpacker, &qp_username) == QP_RAW &&
             qp_next(&unpacker, &qp_password) == QP_RAW &&
             qp_next(&unpacker, &qp_request) == QP_INT64)
     {
-        rc = siri_admin_user_check(&qp_username, &qp_password);
-        package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
+        tp = (siri_admin_user_check(&qp_username, &qp_password)) ?
+            CPROTO_ERR_ADMIN_AUTHENTICATION
+            :
+            siri_admin_request(qp_request.via.int64, &unpacker);
 
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send(client, package);
+        package = sirinet_pkg_new(pkg->pid, 0, tp, NULL);
     }
     else
     {
         log_error("Invalid administrative request received.");
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                CPROTO_ERR_ADMIN_INVALID_REQUEST,
+                NULL);
+    }
+    if (package != NULL)
+    {
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send(client, package);
     }
 }
 

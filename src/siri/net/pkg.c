@@ -1,5 +1,5 @@
 /*
- * pkg.h - SiriDB Package type.
+ * pkg.c - SiriDB Package type.
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
