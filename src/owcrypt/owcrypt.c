@@ -118,9 +118,9 @@ static void owcrypt1(
         encrypted[i] = salt[i];
     }
 
-    for (   w = (unsigned char *) password,
-            i = OWCRYPT_SALT_SZ;
-            i < END; i++, w++)
+    for (   w = (unsigned char *) password, i = OWCRYPT_SALT_SZ;
+            i < END;
+            i++, w++)
     {
         if (!*w)
         {
