@@ -9,6 +9,11 @@
  *  - initial version, 16-03-2017
  *
  */
+#include <qpack/qpack.h>
+#include <siri/siri.h>
+
+#define PASSWORD_IS_ENCRYPTED 0
+#define PASSWORD_IS_ENCRYPTED 0
 
 typedef struct siri_admin_user_s
 {
@@ -16,10 +21,20 @@ typedef struct siri_admin_user_s
     char * password; /* keeps an encrypted password */
 } siri_admin_user_t;
 
-
 int siri_admin_user_init(siri_t * siri);
 void siri_admin_user_destroy(siri_t * siri);
-int siri_admin_user_new(siri_t * siri, const char * name, const char * password);
-int siri_admin_user_check(siri_t * siri, const char * name, const char * password);
-int siri_admin_user_change_password(siri_t * siri, const char * name, const char * password);
-int siri_admin_user_drop(siri_t * siri, const char * name);
+int siri_admin_user_new(
+        siri_t * siri,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_password,
+        int is_encrypted);
+int siri_admin_user_check(
+        siri_t * siri,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_password);
+int siri_admin_user_change_password(
+        siri_t * siri,
+        qp_obj_t * qp_name,
+        qp_obj_t * qp_password);
+int siri_admin_user_drop(siri_t * siri, qp_obj_t * qp_name);
+int siri_admin_user_save(siri_t * siri);
