@@ -20,8 +20,8 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
+#include <siri/admin/account.h>
 #include <siri/async.h>
-#include <siri/admin/user.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/buffer.h>
@@ -66,6 +66,7 @@ static int closing_attempts = 40;  // times 3 seconds is 2 minutes
 
 #define N_SIGNALS 5
 static int signals[N_SIGNALS] = {
+        SIGHUP,
         SIGINT,
         SIGTERM,
         SIGSEGV,
@@ -83,7 +84,9 @@ siri_t siri = {
         .args=NULL,
         .status=SIRI_STATUS_LOADING,
         .startup_time=0,
-        .users=NULL
+        .accounts=NULL,
+        .dbname_regex=NULL,
+        .dbname_regex_extra=NULL
 };
 
 void siri_setup_logger(void)
@@ -149,7 +152,9 @@ int siri_start(void)
     uv_loop_init(siri.loop);
 
     /* initialize the back-end-, client- server and load databases */
-    if (    (rc = sirinet_bserver_init(&siri)) ||
+    if (    (rc = siri_admin_account_init(&siri)) ||
+            (rc = siri_admin_request_init()) ||
+            (rc = sirinet_bserver_init(&siri)) ||
             (rc = sirinet_clserver_init(&siri)) ||
             (rc = SIRI_load_databases()))
     {
@@ -210,8 +215,11 @@ void siri_free(void)
     /* free siridb grammar */
     cleri_grammar_free(siri.grammar);
 
-    /* free siridb administrative users */
-    siri_admin_user_destroy(&siri);
+    /* free siridb administrative accounts */
+    siri_admin_account_destroy(&siri);
+
+    /* free siridb admin request */
+    siri_admin_request_destroy();
 
     /* free event loop */
     free(siri.loop);
@@ -413,7 +421,7 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
         /* mark SiriDB as closing and remove ONLINE flag from servers. */
         SIRI_set_closing_state();
 
-        if (signum == SIGINT || signum == SIGTERM)
+        if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
         {
             log_warning("Asked SiriDB Server to stop (%d)", signum);
         }

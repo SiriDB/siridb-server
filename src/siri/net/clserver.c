@@ -1,3 +1,4 @@
+
 /*
  * clserver.c - TCP server for serving client requests.
  *
@@ -16,7 +17,7 @@
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/siri.h>
-#include <siri/admin/user.h>
+#include <siri/admin/account.h>
 #include <siri/admin/request.h>
 #include <siri/db/auth.h>
 #include <siri/db/insert.h>
@@ -804,19 +805,30 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_password;
     qp_obj_t qp_request;
     sirinet_pkg_t * package = NULL;
-    uint8_t tp;
+    cproto_server_t tp;
+    char err_msg[SIRI_MAX_SIZE_ERR_MSG];
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
             qp_next(&unpacker, &qp_username) == QP_RAW &&
             qp_next(&unpacker, &qp_password) == QP_RAW &&
             qp_next(&unpacker, &qp_request) == QP_INT64)
     {
-        tp = (siri_admin_user_check(&siri, &qp_username, &qp_password)) ?
-            CPROTO_ERR_ADMIN_AUTHENTICATION
+        tp = (siri_admin_account_check(
+                &siri,
+                &qp_username,
+                &qp_password,
+                err_msg)) ?
+            CPROTO_ERR_ADMIN
             :
-            siri_admin_request(qp_request.via.int64, &unpacker);
+            siri_admin_request(
+                    qp_request.via.int64,
+                    &unpacker,
+                    &qp_username,
+                    err_msg);
 
-        package = sirinet_pkg_new(pkg->pid, 0, tp, NULL);
+        package = (tp == CPROTO_ERR_ADMIN) ?
+                sirinet_pkg_err(pkg->pid, strlen(err_msg), tp, err_msg) :
+                sirinet_pkg_new(pkg->pid, 0, tp, NULL);
     }
     else
     {

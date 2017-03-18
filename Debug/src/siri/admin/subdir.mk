@@ -4,15 +4,15 @@
 
 # Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
-../src/siri/admin/user.c \
+../src/siri/admin/account.c \
 ../src/siri/admin/request.c
 
 OBJS += \
-./src/siri/admin/user.o \
+./src/siri/admin/account.o \
 ./src/siri/admin/request.o
 
 C_DEPS += \
-./src/siri/admin/user.d \
+./src/siri/admin/account.d \
 ./src/siri/admin/request.d
 
 

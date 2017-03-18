@@ -24,7 +24,7 @@ typedef enum
     CPROTO_REQ_FILE_USERS,                      // empty
     CPROTO_REQ_FILE_GROUPS,                     // empty
     /* Administrative API request */
-    CPROTO_REQ_ADMIN=128,                       // (user, password, request, {...})
+    CPROTO_REQ_ADMIN=32,                       // (user, password, request, {...})
 } cproto_client_t;
 
 typedef enum
@@ -36,6 +36,9 @@ typedef enum
     CPROTO_RES_ACK,                             // empty
     CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
     CPROTO_RES_FILE,                            // file content
+
+    /* Administrative API success */
+    CPROTO_SUCCESS_ADMIN=32,                    // empty
 
     /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                          // {"error_msg": ...}
@@ -52,9 +55,8 @@ typedef enum
     CPROTO_ERR_FILE,                            // empty
 
     /* Administrative API errors */
-    CPROTO_ERR_ADMIN_INVALID_REQUEST=96,        // empty
-    CPROTO_ERR_ADMIN_AUTHENTICATION,            // empty
-    CPROTO_ERR_ADMIN_MEMORY_ALLOCATION,         // empty
+    CPROTO_ERR_ADMIN=96,                        // {"error_msg": ...}
+    CPROTO_ERR_ADMIN_INVALID_REQUEST,           // empty
 
 } cproto_server_t;
 

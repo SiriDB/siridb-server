@@ -28,6 +28,7 @@ const char * sirinet_cproto_client_str(cproto_client_t n)
     case CPROTO_REQ_FILE_SERVERS: return "CPROTO_REQ_FILE_SERVERS";
     case CPROTO_REQ_FILE_USERS: return "CPROTO_REQ_FILE_USERS";
     case CPROTO_REQ_FILE_GROUPS: return "CPROTO_REQ_FILE_GROUPS";
+    case CPROTO_REQ_ADMIN: return "CPROTO_REQ_ADMIN";
     default:
         sprintf(protocol_str, "CPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
@@ -44,6 +45,7 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_RES_ACK: return "CPROTO_RES_ACK";
     case CPROTO_RES_INFO: return "CPROTO_RES_INFO";
     case CPROTO_RES_FILE: return "CPROTO_RES_FILE";
+    case CPROTO_SUCCESS_ADMIN: return "CPROTO_SUCCESS_ADMIN";
     case CPROTO_ERR_MSG: return "CPROTO_ERR_MSG";
     case CPROTO_ERR_QUERY: return "CPROTO_ERR_QUERY";
     case CPROTO_ERR_INSERT: return "CPROTO_ERR_INSERT";
@@ -56,6 +58,8 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_ERR_AUTH_UNKNOWN_DB: return "CPROTO_ERR_AUTH_UNKNOWN_DB";
     case CPROTO_ERR_LOADING_DB: return "CPROTO_ERR_LOADING_DB";
     case CPROTO_ERR_FILE: return "CPROTO_ERR_FILE";
+    case CPROTO_ERR_ADMIN: return "CPROTO_ERR_ADMIN";
+    case CPROTO_ERR_ADMIN_INVALID_REQUEST: return "CPROTO_ERR_ADMIN_INVALID_REQUEST";
     default:
         sprintf(protocol_str, "CPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
