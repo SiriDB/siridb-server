@@ -14,7 +14,11 @@
 #include <siri/admin/request.h>
 #include <siri/siri.h>
 #include <logger/logger.h>
+#include <pcre.h>
+#include <lock/lock.h>
 
+#define DB_CONF_FN "database.conf"
+#define DB_DAT_FN "database.dat"
 #define DEFAULT_CONF \
 "#\n" \
 "# Welcome to the SiriDB configuration file\n" \
@@ -48,13 +52,13 @@ int siri_admin_request_init(void)
     pcre * regex;
     pcre_extra * regex_extra;
 
-    pcre = pcre_compile(
+    regex = pcre_compile(
                 "^[a-zA-Z][a-zA-Z0-9-_]{,18}[a-zA-Z0-9]$",
                 0,
                 &pcre_error_str,
                 &pcre_error_offset,
                 NULL);
-    if (pcre == NULL)
+    if (regex == NULL)
     {
         return -1;
     }
@@ -67,9 +71,13 @@ int siri_admin_request_init(void)
     if(pcre_error_str != NULL)
     {
         free(regex_extra);
-        free(pcre);
+        free(regex);
         return -1;
     }
+
+    siri.dbname_regex = regex;
+    siri.dbname_regex_extra = regex_extra;
+
     return 0;
 }
 
@@ -235,10 +243,15 @@ static cproto_server_t ADMIN_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
 {
+    FILE * fp;
     qp_obj_t qp_key, qp_dbname;
     size_t dbpath_len;
     int pcre_exec_ret;
     int sub_str_vec[2];
+    int rc;
+    struct stat st = {0};
+    int8_t time_precision;
+    siridb_t * siridb;
 
     qp_dbname.tp = QP_HOOK;
 
@@ -262,7 +275,6 @@ static cproto_server_t ADMIN_on_new_database(
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
     }
 
-
     pcre_exec_ret = pcre_exec(
             siri.dbname_regex,
             siri.dbname_regex_extra,
@@ -279,13 +291,12 @@ static cproto_server_t ADMIN_on_new_database(
                 err_msg,
                 SIRI_MAX_SIZE_ERR_MSG,
                 "invalid database name: '%.*s'",
-                qp_dbname.len,
+                (int) qp_dbname.len,
                 qp_dbname.via.raw);
         return CPROTO_ERR_ADMIN;
     }
 
     dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;
-
     char dbpath[dbpath_len];
     sprintf(dbpath,
             "%s%.*s\\",
@@ -293,6 +304,124 @@ static cproto_server_t ADMIN_on_new_database(
             (int) qp_dbname.len,
             qp_dbname.via.raw);
 
+    if (stat(dbpath, &st) != -1)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "database directory already exists: %s",
+                dbpath);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    if (mkdir(dbpath, 0700) == -1)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "cannot create directory: %s",
+                dbpath);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    char dbfn[dbpath_len + strlen(DB_CONF_FN)];
+    sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);
+
+    fp = fopen(dbfn, "w");
+    if (fp == NULL)
+    {
+        ADMIN_rollback_new_database(dbpath);
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "cannot open file for writing: %s",
+                dbfn);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    rc = fputs(DEFAULT_CONF, fp);
+
+    if (fclose(fp) || rc < 0)
+    {
+        ADMIN_rollback_new_database(dbpath);
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "cannot write file: %s",
+                dbfn);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    sprintf(dbfn, "%s%s", dbpath, DB_DAT_FN);
+    fp = qp_open(dbfn, "w");
+    if (fp == NULL)
+    {
+        ADMIN_rollback_new_database(dbpath);
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "cannot open file for writing: %s",
+                dbfn);
+        return CPROTO_ERR_ADMIN;
+    }
+    rc = 0;
+    if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
+        qp_fadd_int8(fp, SIRIDB_SHEMA) ||
+        qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
+        qp_fadd_int8(fp, time_precession) ||
+        qp_fadd_int64(fp, buffer_size) ||
+        qp_fadd_int64(fp, duration_num) ||
+        qp_fadd_int64(fp, duration_log) ||
+        qp_fadd_string(fp, "NAIVE") ||
+        qp_fadd_double(fp, 1.0) ||
+        qp_fadd_type(fp, QP_ARRAY_CLOSE))
+    {
+        rc = -1;
+    }
+
+    if (qp_close(fp) || rc == -1)
+    {
+        ADMIN_rollback_new_database(dbpath);
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "cannot write file: %s",
+                dbfn);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
+    if (siridb == NULL)
+    {
+        ADMIN_rollback_new_database(dbpath);
+        sprintf(err_msg, "error loading database");
+        return CPROTO_ERR_ADMIN;
+    }
+
+    siridb->server->flags |= SERVER_FLAG_RUNNING;
+
+    /* Force one heart-beat */
+    siri_heartbeat_force();
+
+    return 0;
 }
 
-static int
+static void ADMIN_rollback_new_database(const char * dbpath)
+{
+    size_t dbpath_len = strlen(dbpath);
+    char dbfn[dbpath_len + strlen(DB_CONF_FN)];
+    sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);
+    unlink(dbfn);
+    sprintf(dbfn, "%s%s", dbpath, DB_DAT_FN);
+    unlink(dbfn);
+    if (rmdir(dbpath))
+    {
+        log_error("Roll-back creating new database has failed.");
+    }
+}
+
+static int8_t ADMIN_time_precision(qp_time_precision)
+{
+    if (qp_time_precision.tp)
+}
+

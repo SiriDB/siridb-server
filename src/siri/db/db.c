@@ -32,7 +32,6 @@
 #include <uuid/uuid.h>
 #include <xpath/xpath.h>
 
-#define SIRIDB_SHEMA 1
 
 /*
  * database.dat

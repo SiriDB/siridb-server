@@ -57,7 +57,7 @@ typedef enum
     /* Administrative API errors */
     CPROTO_ERR_ADMIN=96,                        // {"error_msg": ...}
     CPROTO_ERR_ADMIN_INVALID_REQUEST,           // empty
-
+    CPROTO_DEFERRED=127                         // deferred...
 } cproto_server_t;
 
 typedef enum
@@ -89,7 +89,7 @@ typedef enum
  * for error messages between 64.. 191.
  *
  * Client Success messages in range 0..63
- * Client Error messages in range 64..127
+ * Client Error messages in range 64..126 (127 is used as deferred)
  * Back-end Error messages in range 128..191
  * Back-end Success messages in range 192..254 (exclude 255)
  */

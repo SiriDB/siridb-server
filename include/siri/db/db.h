@@ -31,7 +31,7 @@
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
-
+#define SIRIDB_SHEMA 1
 #define SIRIDB_FLAG_REINDEXING 1
 
 #define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
