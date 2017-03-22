@@ -1,3 +1,17 @@
+siridb-server (2.0.15) xenial; urgency=medium
+
+  * Removed LDFLAGS from *.mk files and format makefile (@deem0n, issue #58)
+  
+  * Added logging for invalid user authentication requests.
+  
+  * Update constants for running test scripts.
+  
+  * Keywords are now correctly set using case sensitive mode.
+  
+  * Fixed NULL check on auth request.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 22 Mar 2017 10:30:39 +0000
+
 siridb-server (2.0.14) xenial; urgency=medium
 
   * Inluding CFLAGS and LDFLAGS in mk files for better building support.
