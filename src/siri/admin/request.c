@@ -16,7 +16,13 @@
 #include <logger/logger.h>
 #include <pcre.h>
 #include <lock/lock.h>
+#include <xmath/xmath.h>
+#include <unistd.h>
 
+#define DEFAULT_TIME_PRECISION 0
+#define DEFAULT_BUFFER_SIZE 1024
+#define DEFAULT_DURATION_NUM 604800
+#define DEFAULT_DURATION_LOG 86400
 #define DB_CONF_FN "database.conf"
 #define DB_DAT_FN "database.dat"
 #define DEFAULT_CONF \
@@ -43,6 +49,9 @@ static cproto_server_t ADMIN_on_drop_account(
 static cproto_server_t ADMIN_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
+static void ADMIN_rollback_new_database(const char * dbpath);
+static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision);
+static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision);
 
 int siri_admin_request_init(void)
 {
@@ -244,16 +253,27 @@ static cproto_server_t ADMIN_on_new_database(
         char * err_msg)
 {
     FILE * fp;
-    qp_obj_t qp_key, qp_dbname;
+    qp_obj_t
+        qp_key,
+        qp_dbname,
+        qp_time_precision,
+        qp_buffer_size,
+        qp_duration_num,
+        qp_duration_log;
     size_t dbpath_len;
     int pcre_exec_ret;
     int sub_str_vec[2];
     int rc;
     struct stat st = {0};
     int8_t time_precision;
+    int64_t buffer_size, duration_num, duration_log;
     siridb_t * siridb;
 
     qp_dbname.tp = QP_HOOK;
+    qp_time_precision.tp = QP_HOOK;
+    qp_buffer_size.tp = QP_HOOK;
+    qp_duration_num.tp = QP_HOOK;
+    qp_duration_log.tp = QP_HOOK;
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
@@ -267,12 +287,89 @@ static cproto_server_t ADMIN_on_new_database(
         {
             continue;
         }
+        if (    strncmp(qp_key.via.raw, "time_precision", qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_time_precision) == QP_RAW)
+        {
+            continue;
+        }
+        if (    strncmp(qp_key.via.raw, "buffer_size", qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_buffer_size) == QP_INT64)
+        {
+            continue;
+        }
+        if (    strncmp(qp_key.via.raw, "duration_num", qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_duration_num) == QP_INT64)
+        {
+            continue;
+        }
+        if (    strncmp(qp_key.via.raw, "duration_log", qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_duration_log) == QP_INT64)
+        {
+            continue;
+        }
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
     }
 
     if (qp_dbname.tp == QP_HOOK)
     {
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+    }
+
+    time_precision = (qp_time_precision.tp == QP_HOOK) ?
+            DEFAULT_TIME_PRECISION : ADMIN_time_precision(&qp_time_precision);
+    if (time_precision == -1)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "invalid time precision: '%.*s' (expecting s, ms, us or ns)",
+                (int) qp_time_precision.len,
+                qp_time_precision.via.raw);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    duration_num = (qp_duration_num.tp == QP_HOOK) ?
+            DEFAULT_DURATION_NUM * xmath_ipow(1000, time_precision):
+            ADMIN_duration(&qp_duration_num, time_precision);
+
+    if (duration_num == -1)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "invalid number duration: '%.*s' "
+                "(valid examples: 6h, 2d or 1w)",
+                (int) qp_duration_num.len,
+                qp_duration_num.via.raw);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    duration_log = (qp_duration_log.tp == QP_HOOK) ?
+            DEFAULT_DURATION_LOG * xmath_ipow(1000, time_precision):
+            ADMIN_duration(&qp_duration_log, time_precision);
+
+    if (duration_log == -1)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "invalid log duration: '%.*s' "
+                "(valid examples: 6h, 2d or 1w)",
+                (int) qp_duration_log.len,
+                qp_duration_log.via.raw);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    buffer_size = (qp_buffer_size.tp == QP_HOOK) ?
+            DEFAULT_BUFFER_SIZE : qp_buffer_size.via.int64;
+
+    if (buffer_size % 512 || buffer_size < 512)
+    {
+        sprintf(err_msg,
+                "invalid buffer size: '%" PRId64
+                "' (expecting a multiple of 512)",
+                buffer_size);
+        return CPROTO_ERR_ADMIN;
     }
 
     pcre_exec_ret = pcre_exec(
@@ -368,7 +465,7 @@ static cproto_server_t ADMIN_on_new_database(
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
         qp_fadd_int8(fp, SIRIDB_SHEMA) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
-        qp_fadd_int8(fp, time_precession) ||
+        qp_fadd_int8(fp, time_precision) ||
         qp_fadd_int64(fp, buffer_size) ||
         qp_fadd_int64(fp, duration_num) ||
         qp_fadd_int64(fp, duration_log) ||
@@ -420,8 +517,52 @@ static void ADMIN_rollback_new_database(const char * dbpath)
     }
 }
 
-static int8_t ADMIN_time_precision(qp_time_precision)
+static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision)
 {
-    if (qp_time_precision.tp)
+    if (qp_time_precision->tp != QP_RAW)
+    {
+        return -1;
+    }
+    if (qp_time_precision->len == 1 && qp_time_precision->via.raw[0] == 's')
+    {
+        return 0;
+    }
+    else if (qp_time_precision->len == 2 && qp_time_precision->via.raw[1] == 's')
+    {
+        switch (qp_time_precision->via.raw[0])
+        {
+        case 'm': return 1;
+        case 'u': return 2;
+        case 'n': return 3;
+        }
+    }
+    return -1;
+}
+
+static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
+{
+    char * endptr;
+    long int val;
+
+    if (qp_duration->tp != QP_RAW || qp_duration->len < 2)
+    {
+        return -1;
+    }
+
+    val = strtol(qp_duration->via.raw, &endptr, 10);
+
+    if (val < 1 || val > 99 || endptr == qp_duration->via.raw)
+    {
+        return -1;
+    }
+
+    switch (*endptr)
+    {
+    case 'h': return xmath_ipow(1000, time_precision) * val * 3600;
+    case 'd': return xmath_ipow(1000, time_precision) * val * 86400;
+    case 'w': return xmath_ipow(1000, time_precision) * val * 604800;
+    }
+
+    return -1;
 }
 

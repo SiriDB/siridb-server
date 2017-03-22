@@ -408,8 +408,10 @@ int siridb_from_unpacker(
         READ_DB_EXIT_WITH_ERROR("cannot create time instance.")
     }
 
-    /* read buffer size */
-    if (qp_next(unpacker, &qp_obj) != QP_INT64)
+    /* read buffer size, same buffer_size requirements are used in request.c */
+    if (    qp_next(unpacker, &qp_obj) != QP_INT64 ||
+            qp_obj.via.int64 % 512 ||
+            qp_obj.via.int64 < 512)
     {
         READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
     }
