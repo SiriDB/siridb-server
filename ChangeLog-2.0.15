@@ -1,9 +1,0 @@
-  * Removed LDFLAGS from *.mk files and format makefile (@deem0n, issue #58)
-  
-  * Added logging for invalid user authentication requests.
-  
-  * Update constants for running test scripts.
-  
-  * Keywords are now correctly set using case sensitive mode.
-  
-  * Fixed NULL check on auth request.
