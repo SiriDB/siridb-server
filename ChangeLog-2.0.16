@@ -1,0 +1,1 @@
+  * Fixed bug resize macro in qpack for packing >4GB large strings. 

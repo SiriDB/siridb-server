@@ -48,7 +48,7 @@ if (packer->len + LEN > packer->buffer_size)                            \
 }
 
 #define QP_PREPARE_RAW                                      \
-    QP_RESIZE((5 + len))                                    \
+    QP_RESIZE((9 + len))                                    \
     if (len < 100)                                          \
     {                                                       \
         packer->buffer[packer->len++] = 128 + len;          \
