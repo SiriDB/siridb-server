@@ -21,6 +21,7 @@
 #include <uuid/uuid.h>
 #include <siri/db/server.h>
 #include <siri/db/buffer.h>
+#include <siri/version.h>
 
 #define DEFAULT_TIME_PRECISION 1
 #define DEFAULT_BUFFER_SIZE 1024
@@ -47,14 +48,30 @@ static cproto_server_t ADMIN_on_change_password(
         char * err_msg);
 static cproto_server_t ADMIN_on_drop_account(
         qp_unpacker_t * qp_unpacker,
-        char * err_msg,
-        qp_obj_t * qp_account);
+        qp_obj_t * qp_account,
+        char * err_msg);
 static cproto_server_t ADMIN_on_new_database(
         qp_unpacker_t * qp_unpacker,
+        char * err_msg);
+static cproto_server_t ADMIN_on_get_version(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
+        char * err_msg);
+static cproto_server_t ADMIN_on_get_accounts(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
+        char * err_msg);
+static cproto_server_t ADMIN_on_get_databases(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
         char * err_msg);
 static void ADMIN_rollback_new_database(const char * dbpath);
 static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision);
 static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision);
+static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer);
+static int ADMIN_list_accounts(
+        siri_admin_account_t * account,
+        qp_packer_t * packer);
 
 int siri_admin_request_init(void)
 {
@@ -103,6 +120,7 @@ cproto_server_t siri_admin_request(
         int tp,
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
+        qp_packer_t ** packaddr,
         char * err_msg)
 {
     switch ((admin_request_t) tp)
@@ -112,9 +130,15 @@ cproto_server_t siri_admin_request(
     case ADMIN_CHANGE_PASSWORD:
         return ADMIN_on_change_password(qp_unpacker, err_msg);
     case ADMIN_DROP_ACCOUNT:
-        return ADMIN_on_drop_account(qp_unpacker, err_msg, qp_account);
+        return ADMIN_on_drop_account(qp_unpacker, qp_account, err_msg);
     case ADMIN_NEW_DATABASE:
         return ADMIN_on_new_database(qp_unpacker, err_msg);
+    case ADMIN_GET_VERSION:
+        return ADMIN_on_get_version(qp_unpacker, packaddr, err_msg);
+    case ADMIN_GET_ACCOUNTS:
+        return ADMIN_on_get_accounts(qp_unpacker, packaddr, err_msg);
+    case ADMIN_GET_DATABASES:
+        return ADMIN_on_get_databases(qp_unpacker, packaddr, err_msg);
     default:
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
     }
@@ -161,7 +185,7 @@ static cproto_server_t ADMIN_on_new_account(
             0,
             err_msg) ||
             siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_SUCCESS_ADMIN;
+                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
 static cproto_server_t ADMIN_on_change_password(
@@ -204,13 +228,13 @@ static cproto_server_t ADMIN_on_change_password(
             &qp_password,
             err_msg) ||
             siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_SUCCESS_ADMIN;
+                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
 static cproto_server_t ADMIN_on_drop_account(
         qp_unpacker_t * qp_unpacker,
-        char * err_msg,
-        qp_obj_t * qp_account)
+        qp_obj_t * qp_account,
+        char * err_msg)
 {
     qp_obj_t qp_key, qp_target;
 
@@ -248,7 +272,7 @@ static cproto_server_t ADMIN_on_drop_account(
             &qp_target,
             err_msg) ||
             siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_SUCCESS_ADMIN;
+                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
 static cproto_server_t ADMIN_on_new_database(
@@ -516,7 +540,89 @@ static cproto_server_t ADMIN_on_new_database(
     /* Force one heart-beat */
     siri_heartbeat_force();
 
-    return CPROTO_SUCCESS_ADMIN;
+    return CPROTO_ACK_ADMIN;
+}
+
+static cproto_server_t ADMIN_on_get_version(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
+        char * err_msg)
+{
+    qp_packer_t * packer = sirinet_packer_new(128);
+    if (packer != NULL)
+    {
+        if (!qp_add_type(packer, QP_ARRAY_OPEN) &&
+            !qp_add_string(packer, SIRIDB_VERSION) &&
+#ifdef DEBUG
+            !qp_add_string(packer, "DEBUG") &&
+#else
+            !qp_add_string(packer, "RELEASE") &&
+#endif
+            !qp_add_string(packer, SIRIDB_BUILD_DATE))
+        {
+            *packaddr = packer;
+            return CPROTO_ACK_ADMIN_DATA;
+        }
+
+        /* error, free packer */
+        qp_packer_free(packer);
+    }
+    sprintf(err_msg, "memory allocation error");
+    return CPROTO_ERR_ADMIN;
+}
+
+static cproto_server_t ADMIN_on_get_accounts(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
+        char * err_msg)
+{
+    qp_packer_t * packer = sirinet_packer_new(128);
+
+    if (packer != NULL)
+    {
+        qp_add_type(packer, QP_ARRAY_OPEN);
+
+        if (!llist_walk(
+                siri.accounts,
+                (llist_cb) ADMIN_list_accounts,
+                packer))
+        {
+            *packaddr = packer;
+            return CPROTO_ACK_ADMIN_DATA;
+        }
+
+        /* error, free packer */
+        qp_packer_free(packer);
+    }
+    sprintf(err_msg, "memory allocation error");
+    return CPROTO_ERR_ADMIN;
+}
+
+static cproto_server_t ADMIN_on_get_databases(
+        qp_unpacker_t * qp_unpacker,
+        qp_packer_t ** packaddr,
+        char * err_msg)
+{
+    qp_packer_t * packer = sirinet_packer_new(128);
+
+    if (packer != NULL)
+    {
+        qp_add_type(packer, QP_ARRAY_OPEN);
+
+        if (!llist_walk(
+                siri.siridb_list,
+                (llist_cb) ADMIN_list_databases,
+                packer))
+        {
+            *packaddr = packer;
+            return CPROTO_ACK_ADMIN_DATA;
+        }
+
+        /* error, free packer */
+        qp_packer_free(packer);
+    }
+    sprintf(err_msg, "memory allocation error");
+    return CPROTO_ERR_ADMIN;
 }
 
 static void ADMIN_rollback_new_database(const char * dbpath)
@@ -582,4 +688,14 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
     return -1;
 }
 
+static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer)
+{
+    return qp_add_string(packer, siridb->dbname);
+}
 
+static int ADMIN_list_accounts(
+        siri_admin_account_t * account,
+        qp_packer_t * packer)
+{
+    return qp_add_string(packer, account->account);
+}

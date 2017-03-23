@@ -38,7 +38,8 @@ typedef enum
     CPROTO_RES_FILE,                            // file content
 
     /* Administrative API success */
-    CPROTO_SUCCESS_ADMIN=32,                    // empty
+    CPROTO_ACK_ADMIN=32,                        // empty
+    CPROTO_ACK_ADMIN_DATA,                      // [...]
 
     /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                          // {"error_msg": ...}

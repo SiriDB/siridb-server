@@ -802,6 +802,7 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
     qp_unpacker_t unpacker;
+    qp_packer_t * packer = NULL;
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
     qp_obj_t qp_username;
     qp_obj_t qp_password;
@@ -826,11 +827,20 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
                     qp_request.via.int64,
                     &unpacker,
                     &qp_username,
+                    &packer,
                     err_msg);
 
-        package = (tp == CPROTO_DEFERRED) ? NULL : (tp == CPROTO_ERR_ADMIN) ?
-                sirinet_pkg_err(pkg->pid, strlen(err_msg), tp, err_msg) :
-                sirinet_pkg_new(pkg->pid, 0, tp, NULL);
+        package =
+                (tp == CPROTO_DEFERRED) ? NULL :
+                (tp == CPROTO_ERR_ADMIN) ? sirinet_pkg_err(
+                        pkg->pid,
+                        strlen(err_msg),
+                        tp,
+                        err_msg) :
+                (tp == CPROTO_ACK_ADMIN_DATA) ? sirinet_packer2pkg(
+                        packer,
+                        pkg->pid,
+                        tp) : sirinet_pkg_new(pkg->pid, 0, tp, NULL);
     }
     else
     {
