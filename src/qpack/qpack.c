@@ -1138,7 +1138,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            memcpy(&qp_obj->via.real, *unpacker->pt, sizeof(double));
+            memcpy(&qp_obj->via.real, unpacker->pt, sizeof(double));
         }
         unpacker->pt += sizeof(double);
         return QP_DOUBLE;
