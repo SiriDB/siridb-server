@@ -983,10 +983,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         return QP_INT64;
 
     case 124:
-#ifdef DEBUG
         /* Object hooks are not supported yet */
-        assert (0);
-#endif
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_HOOK;
@@ -1141,7 +1138,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            qp_obj->via.real = (double) *((double *) unpacker->pt);
+            memcpy(&qp_obj->via.real, *unpacker->pt, sizeof(double));
         }
         unpacker->pt += sizeof(double);
         return QP_DOUBLE;
