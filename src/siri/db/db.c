@@ -31,7 +31,7 @@
 #include <string.h>
 #include <uuid/uuid.h>
 #include <xpath/xpath.h>
-
+#include <slist/slist.h>
 
 /*
  * database.dat
@@ -164,6 +164,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     if (siridb_from_unpacker(
             unpacker,
             &siridb,
+            dbpath,
             err_msg))
     {
         log_error("Could not read '%s': %s", buffer, err_msg);
@@ -175,16 +176,6 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     qp_unpacker_ff_free(unpacker);
 
     log_info("Start loading database: '%s'", siridb->dbname);
-
-    /* set dbpath */
-    siridb->dbpath = strdup(dbpath);
-    if (siridb->dbpath == NULL)
-    {
-        ERR_ALLOC
-        siridb_decref(siridb);
-        cfgparser_free(cfgparser);
-        return NULL;
-    }
 
     /* read buffer_path from database.conf */
     rc = cfgparser_get_option(
@@ -341,6 +332,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,
+        const char * dbpath,
         char * err_msg)
 {
     *siridb = NULL;
@@ -368,6 +360,13 @@ int siridb_from_unpacker(
         sprintf(err_msg, "error: cannot create SiriDB instance");
         return -1;
     }
+
+    /* set dbpath */
+    if (((*siridb)->dbpath = strdup(dbpath)) == NULL)
+    {
+        READ_DB_EXIT_WITH_ERROR("cannot set dbpath.")
+    }
+
 
     /* read uuid */
     if (qp_next(unpacker, &qp_obj) != QP_RAW || qp_obj.len != 16)

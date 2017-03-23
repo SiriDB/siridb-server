@@ -18,8 +18,11 @@
 #include <lock/lock.h>
 #include <xmath/xmath.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
+#include <siri/db/server.h>
+#include <siri/db/buffer.h>
 
-#define DEFAULT_TIME_PRECISION 0
+#define DEFAULT_TIME_PRECISION 1
 #define DEFAULT_BUFFER_SIZE 1024
 #define DEFAULT_DURATION_NUM 604800
 #define DEFAULT_DURATION_LOG 86400
@@ -62,7 +65,7 @@ int siri_admin_request_init(void)
     pcre_extra * regex_extra;
 
     regex = pcre_compile(
-                "^[a-zA-Z][a-zA-Z0-9-_]{,18}[a-zA-Z0-9]$",
+                "^[a-zA-Z][a-zA-Z0-9-_]{0,18}[a-zA-Z0-9]$",
                 0,
                 &pcre_error_str,
                 &pcre_error_offset,
@@ -269,6 +272,14 @@ static cproto_server_t ADMIN_on_new_database(
     int64_t buffer_size, duration_num, duration_log;
     siridb_t * siridb;
 
+    if (siri.siridb_list->len == MAX_NUMBER_DB)
+    {
+        sprintf(err_msg,
+                "maximum number of databases is reached (%zd)",
+                siri.siridb_list->len);
+        return CPROTO_ERR_ADMIN;
+    }
+
     qp_dbname.tp = QP_HOOK;
     qp_time_precision.tp = QP_HOOK;
     qp_buffer_size.tp = QP_HOOK;
@@ -298,12 +309,12 @@ static cproto_server_t ADMIN_on_new_database(
             continue;
         }
         if (    strncmp(qp_key.via.raw, "duration_num", qp_key.len) == 0 &&
-                qp_next(qp_unpacker, &qp_duration_num) == QP_INT64)
+                qp_next(qp_unpacker, &qp_duration_num) == QP_RAW)
         {
             continue;
         }
         if (    strncmp(qp_key.via.raw, "duration_log", qp_key.len) == 0 &&
-                qp_next(qp_unpacker, &qp_duration_log) == QP_INT64)
+                qp_next(qp_unpacker, &qp_duration_log) == QP_RAW)
         {
             continue;
         }
@@ -363,12 +374,13 @@ static cproto_server_t ADMIN_on_new_database(
     buffer_size = (qp_buffer_size.tp == QP_HOOK) ?
             DEFAULT_BUFFER_SIZE : qp_buffer_size.via.int64;
 
-    if (buffer_size % 512 || buffer_size < 512)
+    if (buffer_size % 512 || buffer_size < 512 || buffer_size > MAX_BUFFER_SZ)
     {
         sprintf(err_msg,
-                "invalid buffer size: '%" PRId64
-                "' (expecting a multiple of 512)",
-                buffer_size);
+                "invalid buffer size: %" PRId64
+                " (expecting a multiple of 512 with a maximum of %" PRId64 ")",
+                buffer_size,
+                (int64_t) MAX_BUFFER_SZ);
         return CPROTO_ERR_ADMIN;
     }
 
@@ -396,7 +408,7 @@ static cproto_server_t ADMIN_on_new_database(
     dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;
     char dbpath[dbpath_len];
     sprintf(dbpath,
-            "%s%.*s\\",
+            "%s%.*s/",
             siri.cfg->default_db_path,
             (int) qp_dbname.len,
             qp_dbname.via.raw);
@@ -462,8 +474,12 @@ static cproto_server_t ADMIN_on_new_database(
         return CPROTO_ERR_ADMIN;
     }
     rc = 0;
+    uuid_t uuid;
+    uuid_generate(uuid);
+
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
         qp_fadd_int8(fp, SIRIDB_SHEMA) ||
+        qp_fadd_raw(fp, (const char *) uuid, 16) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
         qp_fadd_int8(fp, time_precision) ||
         qp_fadd_int64(fp, buffer_size) ||
@@ -500,7 +516,7 @@ static cproto_server_t ADMIN_on_new_database(
     /* Force one heart-beat */
     siri_heartbeat_force();
 
-    return 0;
+    return CPROTO_SUCCESS_ADMIN;
 }
 
 static void ADMIN_rollback_new_database(const char * dbpath)
@@ -565,4 +581,5 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
 
     return -1;
 }
+
 

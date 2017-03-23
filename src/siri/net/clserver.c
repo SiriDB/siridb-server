@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/db/server.h>
+#include <siri/db/access.h>
 
 #define WARNING_PKG_SIZE 1048576       // 1MB
 
@@ -841,6 +843,16 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     if (package != NULL)
     {
+        switch (package->tp)
+        {
+        case CPROTO_ERR_ADMIN_INVALID_REQUEST:
+            log_warning("Received an invalid manage request.");
+            break;
+        case CPROTO_ERR_ADMIN:
+            log_warning("Error handling manage request: %s", err_msg);
+            break;
+        }
+
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
     }

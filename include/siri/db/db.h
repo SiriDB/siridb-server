@@ -116,6 +116,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags);
 int siridb_from_unpacker(
         qp_unpacker_t * unpacker,
         siridb_t ** siridb,
+        const char * dbpath,
         char * err_msg);
 
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);

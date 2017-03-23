@@ -42,8 +42,6 @@ int siri_admin_account_init(siri_t * siri)
     qp_obj_t qp_password;
     int rc = 0;
 
-    LOGC("Init...");
-
     /* get administrative accounts file name */
     char fn[strlen(siri->cfg->default_db_path) + strlen(FILENAME) + 1];
 
