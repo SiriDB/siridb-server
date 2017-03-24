@@ -29,7 +29,8 @@ typedef enum sirinet_socket_tp
 {
     SOCKET_CLIENT,
     SOCKET_BACKEND,
-    SOCKET_SERVER
+    SOCKET_SERVER,
+    SOCKET_MANAGE
 } sirinet_socket_tp_t;
 
 typedef struct siridb_s siridb_t;

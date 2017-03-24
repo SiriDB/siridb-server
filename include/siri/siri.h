@@ -65,6 +65,11 @@ typedef struct siri_s
     /* initialized by sidi_admin_request_init */
     pcre * dbname_regex;
     pcre_extra * dbname_regex_extra;
+    imap_t * promises;
+    uint16_t pid;
+
+    /* socket and promises used for expanding (client) */
+    uv_tcp_t * socket;
 } siri_t;
 
 void siri_setup_logger(void);

@@ -426,27 +426,34 @@ void sirinet__socket_free(uv_stream_t * client)
 
     switch (ssocket->tp)
     {
-    case SOCKET_CLIENT:
+    case SOCKET_CLIENT:  // listens to client connections
         if (ssocket->origin != NULL)
         {
             siridb_user_t * user = (siridb_user_t *) ssocket->origin;
             siridb_user_decref(user);
         }
         break;
-    case SOCKET_BACKEND:
+    case SOCKET_BACKEND:  // listens to server connections
         if (ssocket->origin != NULL)
         {
             siridb_server_t * server = (siridb_server_t *) ssocket->origin;
             siridb_server_decref(server);
         }
         break;
-    case SOCKET_SERVER:
+    case SOCKET_SERVER:  // a server connection
         {
-            siridb_server_t * server = ssocket->origin;
+            siridb_server_t * server = (siridb_server_t *) ssocket->origin;
             server->socket = NULL;
             server->flags = 0;
             siridb_server_decref(server);
         }
+        break;
+    case SOCKET_MANAGE:  // a server manage connection
+        {
+            siri_admin_client_free((siri_admin_client_t *) ssocket->origin);
+            siri.socket = NULL;
+        }
+        break;
     }
     free(ssocket->buf);
     free(ssocket);

@@ -388,7 +388,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
     {
         struct in_addr sa;
         struct in6_addr sa6;
-        sirinet_socket_t * ssocket = server->socket->data;
+        sirinet_socket_t * ssocket = (sirinet_socket_t *) server->socket->data;
         ssocket->origin = server;
         ssocket->siridb = siridb;
         siridb_server_incref(server);
@@ -651,7 +651,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_on_data);
 
         sirinet_pkg_t * pkg;
-        qp_packer_t * packer = qp_packer_new(512);
+        qp_packer_t * packer = sirinet_packer_new(512);
 
         if (packer == NULL)
         {
@@ -659,8 +659,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
         }
         else
         {
-            if (!(
-                qp_add_type(packer, QP_ARRAY_OPEN) ||
+            if (qp_add_type(packer, QP_ARRAY_OPEN) ||
                 qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16) ||
                 qp_add_string_term(packer, ssocket->siridb->dbname) ||
                 qp_add_int16(packer, ssocket->siridb->server->flags) ||
@@ -673,13 +672,14 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_int64(packer, (int64_t) ssocket->siridb->buffer_size) ||
                 qp_add_int32(packer, (int32_t) siri.startup_time) ||
                 qp_add_string_term(packer, ssocket->siridb->server->address) ||
-                qp_add_int32(packer, (int32_t) ssocket->siridb->server->port)) &&
-                    (pkg = sirinet_pkg_new(
-                            0,
-                            packer->len,
-                            BPROTO_AUTH_REQUEST,
-                            packer->buffer)) != NULL)
+                qp_add_int32(packer, (int32_t) ssocket->siridb->server->port))
             {
+                qp_packer_free(packer);
+            }
+            else
+            {
+                pkg = sirinet_packer2pkg(packer, 0, BPROTO_AUTH_REQUEST);
+
                 if (siridb_server_send_pkg(
                         server,
                         pkg,
@@ -691,7 +691,6 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                     free(pkg);
                 }
             }
-            qp_packer_free(packer);
         }
     }
     else

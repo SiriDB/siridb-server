@@ -828,6 +828,8 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
                     &unpacker,
                     &qp_username,
                     &packer,
+                    client,
+                    pkg->pid,
                     err_msg);
 
         package =

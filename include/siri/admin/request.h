@@ -21,6 +21,7 @@ typedef enum
     ADMIN_CHANGE_PASSWORD,
     ADMIN_DROP_ACCOUNT,
     ADMIN_NEW_DATABASE,
+    ADMIN_NEW_POOL,
     /* return success with data */
     ADMIN_GET_VERSION=64,
     ADMIN_GET_ACCOUNTS,
@@ -34,4 +35,7 @@ cproto_server_t siri_admin_request(
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
         qp_packer_t ** packaddr,
+        uint16_t pid,
+        uv_stream_t * client,
         char * err_msg);
+void siri_admin_rollback(const char * dbpath);
