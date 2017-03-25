@@ -13,16 +13,13 @@
 #include <qpack/qpack.h>
 #include <siri/net/protocol.h>
 
-
 typedef enum
 {
-    /* return simple success */
-    ADMIN_NEW_ACCOUNT,
-    ADMIN_CHANGE_PASSWORD,
-    ADMIN_DROP_ACCOUNT,
-    ADMIN_NEW_DATABASE,
+    ADMIN_NEW_ACCOUNT_,
+    ADMIN_CHANGE_PASSWORD_,
+    ADMIN_DROP_ACCOUNT_,
+    ADMIN_NEW_DATABASE_,
     ADMIN_NEW_POOL,
-    /* return success with data */
     ADMIN_GET_VERSION=64,
     ADMIN_GET_ACCOUNTS,
     ADMIN_GET_DATABASES
@@ -38,4 +35,4 @@ cproto_server_t siri_admin_request(
         uint16_t pid,
         uv_stream_t * client,
         char * err_msg);
-void siri_admin_rollback(const char * dbpath);
+void siri_admin_request_rollback(const char * dbpath);

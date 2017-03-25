@@ -10,6 +10,7 @@
  *
  */
 #include <siri/admin/account.h>
+#include <siri/admin/client.h>
 #include <stddef.h>
 #include <siri/admin/request.h>
 #include <siri/siri.h>
@@ -96,7 +97,7 @@
     fp = fopen(dbfn, "w");                                                  \
     if (fp == NULL)                                                         \
     {                                                                       \
-        siri_admin_rollback(dbpath);                                        \
+        siri_admin_request_rollback(dbpath);                                        \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
@@ -109,7 +110,7 @@
                                                                             \
     if (fclose(fp) || rc < 0)                                               \
     {                                                                       \
-        siri_admin_rollback(dbpath);                                        \
+        siri_admin_request_rollback(dbpath);                                        \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
@@ -133,6 +134,8 @@ static cproto_server_t ADMIN_on_new_database(
         char * err_msg);
 static cproto_server_t ADMIN_on_new_pool(
         qp_unpacker_t * qp_unpacker,
+        uint16_t pid,
+        uv_stream_t * client,
         char * err_msg);
 static cproto_server_t ADMIN_on_get_version(
         qp_unpacker_t * qp_unpacker,
@@ -207,16 +210,16 @@ cproto_server_t siri_admin_request(
 {
     switch ((admin_request_t) tp)
     {
-    case ADMIN_NEW_ACCOUNT:
+    case ADMIN_NEW_ACCOUNT_:
         return ADMIN_on_new_account(qp_unpacker, err_msg);
-    case ADMIN_CHANGE_PASSWORD:
+    case ADMIN_CHANGE_PASSWORD_:
         return ADMIN_on_change_password(qp_unpacker, err_msg);
-    case ADMIN_DROP_ACCOUNT:
+    case ADMIN_DROP_ACCOUNT_:
         return ADMIN_on_drop_account(qp_unpacker, qp_account, err_msg);
-    case ADMIN_NEW_DATABASE:
+    case ADMIN_NEW_DATABASE_:
         return ADMIN_on_new_database(qp_unpacker, err_msg);
     case ADMIN_NEW_POOL:
-        return ADMIN_on_new_pool(qp_unpacker, err_msg);
+        return ADMIN_on_new_pool(qp_unpacker, pid, client, err_msg);
     case ADMIN_GET_VERSION:
         return ADMIN_on_get_version(qp_unpacker, packaddr, err_msg);
     case ADMIN_GET_ACCOUNTS:
@@ -498,7 +501,7 @@ static cproto_server_t ADMIN_on_new_database(
     fp = qp_open(dbfn, "w");
     if (fp == NULL)
     {
-        siri_admin_rollback(dbpath);
+        siri_admin_request_rollback(dbpath);
         snprintf(
                 err_msg,
                 SIRI_MAX_SIZE_ERR_MSG,
@@ -527,7 +530,7 @@ static cproto_server_t ADMIN_on_new_database(
 
     if (qp_close(fp) || rc == -1)
     {
-        siri_admin_rollback(dbpath);
+        siri_admin_request_rollback(dbpath);
         snprintf(
                 err_msg,
                 SIRI_MAX_SIZE_ERR_MSG,
@@ -539,7 +542,7 @@ static cproto_server_t ADMIN_on_new_database(
     siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
     if (siridb == NULL)
     {
-        siri_admin_rollback(dbpath);
+        siri_admin_request_rollback(dbpath);
         sprintf(err_msg, "error loading database");
         return CPROTO_ERR_ADMIN;
     }
@@ -554,6 +557,8 @@ static cproto_server_t ADMIN_on_new_database(
 
 static cproto_server_t ADMIN_on_new_pool(
         qp_unpacker_t * qp_unpacker,
+        uint16_t pid,
+        uv_stream_t * client,
         char * err_msg)
 {
     FILE * fp;
@@ -563,6 +568,7 @@ static cproto_server_t ADMIN_on_new_pool(
     int sub_str_vec[2];
     int rc;
     struct stat st = {0};
+    uint16_t port;
 
     if (siri.siridb_list->len == MAX_NUMBER_DB)
     {
@@ -623,9 +629,30 @@ static cproto_server_t ADMIN_on_new_pool(
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
     }
 
+    if (qp_port.via.int64 < 1 || qp_port.via.int64 > 65535)
+    {
+        sprintf(err_msg,
+                "invalid port number: %" PRId64
+                " (expecting a value between 0 and 65536)",
+                qp_port.via.int64);
+        return CPROTO_ERR_ADMIN;
+    }
+
+    port = (uint16_t) qp_port.via.int64;
+    LOGC("port: %u", port);
+
     CHECK_DBNAME_AND_CREATE_PATH
 
-    return CPROTO_DEFERRED;
+    return (siri_admin_client_request(
+            pid,
+            port,
+            &qp_host,
+            &qp_username,
+            &qp_password,
+            &qp_dbname,
+            dbpath,
+            client,
+            err_msg)) ? CPROTO_ERR_ADMIN : CPROTO_DEFERRED;
 }
 
 static cproto_server_t ADMIN_on_get_version(
@@ -710,7 +737,7 @@ static cproto_server_t ADMIN_on_get_databases(
     return CPROTO_ERR_ADMIN;
 }
 
-void siri_admin_rollback(const char * dbpath)
+void siri_admin_request_rollback(const char * dbpath)
 {
     size_t dbpath_len = strlen(dbpath);
     char dbfn[dbpath_len + strlen(DB_CONF_FN)];

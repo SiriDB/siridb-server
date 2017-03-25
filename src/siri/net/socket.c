@@ -11,6 +11,7 @@
  */
 #include <assert.h>
 #include <logger/logger.h>
+#include <siri/admin/client.h>
 #include <siri/err.h>
 #include <siri/net/protocol.h>
 #include <siri/net/socket.h>
@@ -22,24 +23,24 @@
 #define SUGGESTED_SIZE 65536
 
 #define CHECK_PKG(__buf)                                                    \
-    if (    (pkg->tp ^ 255) != pkg->checkbit ||                                \
+    if (    (pkg->tp ^ 255) != pkg->checkbit ||                             \
             (ssocket->tp == SOCKET_CLIENT &&                                \
-                    pkg->len > MAX_ALLOWED_PKG_SIZE))                        \
-    {                                                                        \
+                    pkg->len > MAX_ALLOWED_PKG_SIZE))                       \
+    {                                                                       \
         char addr_port[ADDR_BUF_SZ];                                        \
-        if (sirinet_addr_and_port(addr_port, client) == 0)                    \
-        {                                                                    \
-            log_error(                                                        \
-                "Got an illegal package or size too large from '%s', "        \
-                "closing connection "                                        \
-                "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",        \
+        if (sirinet_addr_and_port(addr_port, client) == 0)                  \
+        {                                                                   \
+            log_error(                                                      \
+                "Got an illegal package or size too large from '%s', "      \
+                "closing connection "                                       \
+                "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",     \
                 addr_port, pkg->pid, pkg->len, pkg->tp);                    \
-        }                                                                    \
+        }                                                                   \
         free(__buf);                                                        \
         ssocket->buf = NULL;                                                \
         ssocket->on_data = NULL;                                            \
-        sirinet_socket_decref(client);                                        \
-        return;                                                                \
+        sirinet_socket_decref(client);                                      \
+        return;                                                             \
     }
 
 
@@ -449,10 +450,8 @@ void sirinet__socket_free(uv_stream_t * client)
         }
         break;
     case SOCKET_MANAGE:  // a server manage connection
-        {
-            siri_admin_client_free((siri_admin_client_t *) ssocket->origin);
-            siri.socket = NULL;
-        }
+        siri_admin_client_free((siri_admin_client_t *) ssocket->origin);
+        siri.socket = NULL;
         break;
     }
     free(ssocket->buf);

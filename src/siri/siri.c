@@ -88,9 +88,7 @@ siri_t siri = {
         .accounts=NULL,
         .dbname_regex=NULL,
         .dbname_regex_extra=NULL,
-        .socket=NULL,
-        .promises=NULL
-};
+        .socket=NULL};
 
 void siri_setup_logger(void)
 {
