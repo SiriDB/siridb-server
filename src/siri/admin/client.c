@@ -42,6 +42,9 @@ static void CLIENT_send_pkg(
 static void CLIENT_on_error_msg(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
+static void CLIENT_on_request_status(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
 
 int siri_admin_client_request(
         uint16_t pid,
@@ -369,6 +372,7 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         }
     }
 }
+
 static void CLIENT_on_request_status(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -379,10 +383,11 @@ static void CLIENT_on_request_status(
     qp_obj_t qp_name;
     qp_obj_t qp_status;
     int columns_found = 0;
+    int servers_found = 0;
 
-    if (qp_is_map(qp_next(&unpacker, NULL)))
+    if (!qp_is_map(qp_next(&unpacker, NULL)))
     {
-        CLIENT_err(adm_client, "invalid server status response");
+        CLIENT_err(adm_client, "invalid server status response1");
         return;
     }
 
@@ -404,28 +409,61 @@ static void CLIENT_on_request_status(
             columns_found = 1;
             continue;
         }
-        if (    strncmp(qp_val.via.raw, "data", qp_val.len) == 0 &&
+        if (    strncmp(qp_val.via.raw, "servers", qp_val.len) == 0 &&
                 qp_is_array(qp_next(&unpacker, NULL)))
         {
-            while (qp_is_array(qp_next(&unpacker, NULL)))
+            qp_next(&unpacker, &qp_val);
+
+            while (qp_is_array(qp_val.tp))
             {
                 if (qp_next(&unpacker, &qp_name) == QP_RAW &&
                     qp_next(&unpacker, &qp_status) == QP_RAW)
                 {
-                    if (strncmp(qp_val.via.raw, "running", qp_val.len) != 0)
+                    if (strncmp(
+                            qp_status.via.raw,
+                            "running",
+                            qp_status.len) != 0)
                     {
-                        CLIENT_err(adm_client, "")
+                        CLIENT_err(
+                                adm_client,
+                                "server '%.*s' has status: '%.*s'",
+                                (int) qp_name.len,
+                                qp_name.via.raw,
+                                (int) qp_status.len,
+                                qp_status.via.raw);
+                        return;
                     }
+                    servers_found++;
                 }
                 else
                 {
                     CLIENT_err(adm_client, "invalid server status response");
                     return;
                 }
+                if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
+                {
+                    qp_next(&unpacker, &qp_val);
+                }
+            }
+            if (qp_val.tp == QP_ARRAY_CLOSE)
+            {
+                qp_next(&unpacker, &qp_val);
             }
             continue;
         }
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+
+        CLIENT_err(adm_client, "invalid server status response");
+        return;
+    }
+
+    if (!servers_found || !columns_found)
+    {
+        CLIENT_err(adm_client, "invalid server status response");
+    }
+    else
+    {
+        LOGC("Servers with status running: %d", servers_found);
+        CLIENT_err(adm_client, "success");
     }
 }
 
@@ -474,7 +512,7 @@ static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
 
         /* no need to check since this will always fit */
         qp_add_type(packer, QP_ARRAY1);
-        qp_add_string(packer, "list servers status");
+        qp_add_string(packer, "list servers name, status");
         pkg = sirinet_packer2pkg(packer, 0, CPROTO_REQ_QUERY);
         CLIENT_send_pkg(adm_client, pkg);
     }
