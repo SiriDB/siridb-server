@@ -23,7 +23,7 @@ class TestCluster(TestBase):
     title = 'Test siridb-cluster'
 
 
-    @default_test_setup(4, time_precision='s')
+    @default_test_setup(2, time_precision='s')
     async def run(self):
         # await self.client0.connect()
 

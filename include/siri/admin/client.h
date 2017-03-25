@@ -14,10 +14,11 @@
 #include <inttypes.h>
 #include <uv.h>
 #include <qpack/qpack.h>
+#include <siri/net/pkg.h>
 
 typedef struct siri_admin_client_s
 {
-    uint8_t status;
+    uint8_t request;
     uint8_t flags;
     uint16_t pid;
     uint16_t port;
@@ -27,6 +28,7 @@ typedef struct siri_admin_client_s
     char * dbname;
     char * dbpath;
     uv_stream_t * client;
+    sirinet_pkg_t * pkg;
 } siri_admin_client_t;
 
 int siri_admin_client_request(

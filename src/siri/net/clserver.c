@@ -403,9 +403,10 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
-            qp_next(&unpacker, &qp_query) == QP_RAW &&
-            qp_next(&unpacker, &qp_time_precision))
+            qp_next(&unpacker, &qp_query) == QP_RAW)
     {
+        qp_next(&unpacker, &qp_time_precision);
+
         if (qp_time_precision.tp == QP_INT64 &&
                 (tp = (siridb_timep_t) qp_time_precision.via.int64) !=
                 ssocket->siridb->time->precision)
