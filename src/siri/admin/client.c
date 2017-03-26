@@ -19,12 +19,15 @@
 #include <stdarg.h>
 
 #define CLIENT_REQUEST_TIMEOUT 15000  // 15 seconds
-#define CLIENT_FLAGS_TIMEOUT 1
 
 enum
 {
     CLIENT_REQUEST_INIT,
-    CLIENT_REQUEST_STATUS
+    CLIENT_REQUEST_STATUS,
+    CLIENT_REQUEST_POOLS,
+    CLIENT_REQUEST_FILE_USERS,
+    CLIENT_REQUEST_FILE_GROUPS,
+    CLIENT_REQUEST_FILE_SERVERS
 };
 
 static void CLIENT_write_cb(uv_write_t * req, int status);
@@ -42,6 +45,18 @@ static void CLIENT_send_pkg(
 static void CLIENT_on_error_msg(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
+static void CLIENT_on_file_servers(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
+static void CLIENT_on_file_groups(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
+static void CLIENT_on_file_users(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
+static void CLIENT_on_request_pools(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
 static void CLIENT_on_request_status(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
@@ -49,6 +64,8 @@ static void CLIENT_on_request_status(
 int siri_admin_client_request(
         uint16_t pid,
         uint16_t port,
+        int pool,
+        uuid_t * uuid,
         qp_obj_t * host,
         qp_obj_t * username,
         qp_obj_t * password,
@@ -94,6 +111,8 @@ int siri_admin_client_request(
     adm_client->client = client;
     adm_client->request = CLIENT_REQUEST_INIT;
     adm_client->flags = 0;
+    adm_client->pool = pool;
+    memcpy(&adm_client->uuid, uuid, 16);
 
     ssocket = (sirinet_socket_t *) siri.socket->data;
     ssocket->origin = (void *) adm_client;
@@ -334,6 +353,25 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
             case CLIENT_REQUEST_STATUS:
                 CLIENT_on_request_status(adm_client, pkg);
                 break;
+            case CLIENT_REQUEST_POOLS:
+                CLIENT_on_request_pools(adm_client, pkg);
+                break;
+            default:
+                CLIENT_err(adm_client, "unexpected query response");
+            }
+            break;
+        case CPROTO_RES_FILE:
+            switch (adm_client->request)
+            {
+            case CLIENT_REQUEST_FILE_USERS:
+                CLIENT_on_file_users(adm_client, pkg);
+                break;
+            case CLIENT_REQUEST_FILE_GROUPS:
+                CLIENT_on_file_groups(adm_client, pkg);
+                break;
+            case CLIENT_REQUEST_FILE_SERVERS:
+                CLIENT_on_file_servers(adm_client, pkg);
+                break;
             default:
                 CLIENT_err(adm_client, "unexpected query response");
             }
@@ -373,6 +411,226 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
+static void CLIENT_on_file_servers(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg)
+{
+    CLIENT_err(adm_client, "not finished yet...");
+}
+
+static void CLIENT_on_file_groups(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg)
+{
+    FILE * fp;
+    char fn[strlen(adm_client->dbpath) + 11]; // 11 = strlen("groups.dat") + 1
+    sprintf(fn, "%sgroups.dat", adm_client->dbpath);
+
+    fp = fopen(fn, "w");
+    if (fp == NULL)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+    }
+    else
+    {
+        int rc = fwrite(pkg->data, pkg->len, 1, fp);
+
+        if (fclose(fp) || rc != 1)
+        {
+            CLIENT_err(adm_client, "cannot write data to file: %s", fn);
+        }
+        else
+        {
+            adm_client->request = CLIENT_REQUEST_FILE_SERVERS;
+            sirinet_pkg_t * package =
+                    sirinet_pkg_new(0, 0, CPROTO_REQ_FILE_SERVERS, NULL);
+            if (package == NULL)
+            {
+                CLIENT_err(adm_client, "memory allocation error");
+            }
+            else
+            {
+                CLIENT_send_pkg(adm_client, package);
+            }
+        }
+    }
+}
+
+static void CLIENT_on_file_users(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg)
+{
+    FILE * fp;
+    char fn[strlen(adm_client->dbpath) + 10]; // 10 = strlen("users.dat") + 1
+    sprintf(fn, "%susers.dat", adm_client->dbpath);
+
+    fp = fopen(fn, "w");
+    if (fp == NULL)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+    }
+    else
+    {
+        int rc = fwrite(pkg->data, pkg->len, 1, fp);
+
+        if (fclose(fp) || rc != 1)
+        {
+            CLIENT_err(adm_client, "cannot write data to file: %s", fn);
+        }
+        else
+        {
+            adm_client->request = CLIENT_REQUEST_FILE_GROUPS;
+            sirinet_pkg_t * package =
+                    sirinet_pkg_new(0, 0, CPROTO_REQ_FILE_GROUPS, NULL);
+            if (package == NULL)
+            {
+                CLIENT_err(adm_client, "memory allocation error");
+            }
+            else
+            {
+                CLIENT_send_pkg(adm_client, package);
+            }
+        }
+    }
+}
+
+static void CLIENT_on_request_pools(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg)
+{
+    qp_unpacker_t unpacker;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_val;
+    qp_obj_t qp_pool;
+    qp_obj_t qp_servers;
+    int columns_found = 0;
+    int validate_pool = -1;
+
+    if (!qp_is_map(qp_next(&unpacker, NULL)))
+    {
+        CLIENT_err(adm_client, "invalid server status response");
+        return;
+    }
+
+    qp_next(&unpacker, &qp_val);
+
+    while (qp_val.tp == QP_RAW)
+    {
+        if (    strncmp(qp_val.via.raw, "columns", qp_val.len) == 0 &&
+                qp_is_array(qp_next(&unpacker, NULL)) &&
+                qp_next(&unpacker, &qp_val) == QP_RAW &&
+                strncmp(qp_val.via.raw, "pool", qp_val.len) == 0 &&
+                qp_next(&unpacker, &qp_val) == QP_RAW &&
+                strncmp(qp_val.via.raw, "servers", qp_val.len) == 0)
+        {
+            if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
+            {
+                qp_next(&unpacker, &qp_val);
+            }
+            columns_found = 1;
+            continue;
+        }
+        if (    strncmp(qp_val.via.raw, "pools", qp_val.len) == 0 &&
+                qp_is_array(qp_next(&unpacker, NULL)))
+        {
+            qp_next(&unpacker, &qp_val);
+
+            while (qp_is_array(qp_val.tp))
+            {
+                if (qp_next(&unpacker, &qp_pool) == QP_INT64 &&
+                    qp_next(&unpacker, &qp_servers) == QP_INT64)
+                {
+                    if (adm_client->pool < 0)
+                    {
+                        /* looking for a new pool */
+                        if (qp_pool.via.int64 > validate_pool)
+                        {
+                            validate_pool = qp_pool.via.int64;
+                        }
+                    }
+                    else
+                    {
+                        if (qp_pool.via.int64 == adm_client->pool)
+                        {
+                            if (qp_servers.via.int64 > 1)
+                            {
+                                CLIENT_err(
+                                        adm_client,
+                                        "pool %d has already %" PRId64
+                                        " servers",
+                                        adm_client->pool,
+                                        qp_servers.via.int64);
+                                return;
+                            }
+                            else
+                            {
+                                validate_pool = 0;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    CLIENT_err(adm_client, "invalid server status response");
+                    return;
+                }
+                if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
+                {
+                    qp_next(&unpacker, &qp_val);
+                }
+            }
+            if (qp_val.tp == QP_ARRAY_CLOSE)
+            {
+                qp_next(&unpacker, &qp_val);
+            }
+            continue;
+        }
+
+        CLIENT_err(adm_client, "invalid server status response");
+        return;
+    }
+
+    if (!columns_found)
+    {
+        CLIENT_err(adm_client, "invalid server status response");
+    }
+    else
+    {
+        sirinet_pkg_t * package;
+
+        if (adm_client->pool < 0)
+        {
+            if (validate_pool == -1)
+            {
+                CLIENT_err(adm_client, "invalid server status response");
+                return;
+            }
+            /* set new correct pool in case we request a new pool */
+            adm_client->pool = validate_pool + 1;
+            LOGC("New pool: %d", adm_client->pool);
+        }
+        else if (validate_pool == -1)
+        {
+            CLIENT_err(
+                    adm_client,
+                    "pool %d does not exist",
+                    adm_client->pool);
+            return;
+        }
+
+        adm_client->request = CLIENT_REQUEST_FILE_USERS;
+        package = sirinet_pkg_new(0, 0, CPROTO_REQ_FILE_USERS, NULL);
+        if (package == NULL)
+        {
+            CLIENT_err(adm_client, "memory allocation error");
+        }
+        else
+        {
+            CLIENT_send_pkg(adm_client, package);
+        }
+    }
+}
+
 static void CLIENT_on_request_status(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -387,7 +645,7 @@ static void CLIENT_on_request_status(
 
     if (!qp_is_map(qp_next(&unpacker, NULL)))
     {
-        CLIENT_err(adm_client, "invalid server status response1");
+        CLIENT_err(adm_client, "invalid server status response");
         return;
     }
 
@@ -462,8 +720,22 @@ static void CLIENT_on_request_status(
     }
     else
     {
-        LOGC("Servers with status running: %d", servers_found);
-        CLIENT_err(adm_client, "success");
+        sirinet_pkg_t * package;
+        qp_packer_t * packer = sirinet_packer_new(512);
+        if (packer == NULL)
+        {
+            CLIENT_err(adm_client, "memory allocation error");
+        }
+        else
+        {
+            adm_client->request = CLIENT_REQUEST_POOLS;
+
+            /* no need to check since this will always fit */
+            qp_add_type(packer, QP_ARRAY1);
+            qp_add_string(packer, "list pools pool, servers");
+            package = sirinet_packer2pkg(packer, 0, CPROTO_REQ_QUERY);
+            CLIENT_send_pkg(adm_client, package);
+        }
     }
 }
 
@@ -499,9 +771,8 @@ static void CLIENT_on_error_msg(
 
 static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
 {
-    qp_packer_t * packer = sirinet_packer_new(512);
     sirinet_pkg_t * pkg;
-
+    qp_packer_t * packer = sirinet_packer_new(512);
     if (packer == NULL)
     {
         CLIENT_err(adm_client, "memory allocation error");

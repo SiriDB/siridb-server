@@ -382,6 +382,7 @@ static cproto_server_t ADMIN_on_new_database(
     int8_t time_precision;
     int64_t buffer_size, duration_num, duration_log;
     siridb_t * siridb;
+    uuid_t uuid;
 
     if (siri.siridb_list->len == MAX_NUMBER_DB)
     {
@@ -510,7 +511,6 @@ static cproto_server_t ADMIN_on_new_database(
         return CPROTO_ERR_ADMIN;
     }
     rc = 0;
-    uuid_t uuid;
     uuid_generate(uuid);
 
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
@@ -569,6 +569,7 @@ static cproto_server_t ADMIN_on_new_pool(
     int rc;
     struct stat st = {0};
     uint16_t port;
+    uuid_t uuid;
 
     if (siri.siridb_list->len == MAX_NUMBER_DB)
     {
@@ -639,13 +640,15 @@ static cproto_server_t ADMIN_on_new_pool(
     }
 
     port = (uint16_t) qp_port.via.int64;
-    LOGC("port: %u", port);
+    uuid_generate(uuid);
 
     CHECK_DBNAME_AND_CREATE_PATH
 
     return (siri_admin_client_request(
             pid,
             port,
+            -1, // new pool
+            &uuid,
             &qp_host,
             &qp_username,
             &qp_password,

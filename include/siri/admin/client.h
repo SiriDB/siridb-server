@@ -15,6 +15,9 @@
 #include <uv.h>
 #include <qpack/qpack.h>
 #include <siri/net/pkg.h>
+#include <uuid/uuid.h>
+
+#define CLIENT_FLAGS_TIMEOUT 1
 
 typedef struct siri_admin_client_s
 {
@@ -22,6 +25,8 @@ typedef struct siri_admin_client_s
     uint8_t flags;
     uint16_t pid;
     uint16_t port;
+    uuid_t uuid;
+    int pool;  // -1 for a new pool
     char * host;
     char * username;
     char * password;
@@ -34,6 +39,8 @@ typedef struct siri_admin_client_s
 int siri_admin_client_request(
         uint16_t pid,
         uint16_t port,
+        int pool,
+        uuid_t * uuid,
         qp_obj_t * host,
         qp_obj_t * username,
         qp_obj_t * password,
