@@ -514,6 +514,22 @@ inline void siridb_decref_cb(siridb_t * siridb, void * args)
 }
 
 /*
+ * Typedef: sirinet_clserver_get_file
+ *
+ * Returns the length of the content for a file and set buffer with the file
+ * content. Note that malloc is used to allocate memory for the buffer.
+ *
+ * In case of an error -1 is returned and buffer will be set to NULL.
+ */
+ssize_t siridb_get_file(char ** buffer, siridb_t * siridb)
+{
+    /* get servers file name */
+    SIRIDB_GET_FN(fn, siridb->dbpath, "database.dat")
+
+    return xpath_get_content(buffer, fn);
+}
+
+/*
  * Returns the number of open files by the given database.
  * (includes both the database and buffer path)
  */

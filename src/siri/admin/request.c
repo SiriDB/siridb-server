@@ -132,10 +132,11 @@ static cproto_server_t ADMIN_on_drop_account(
 static cproto_server_t ADMIN_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
-static cproto_server_t ADMIN_on_new_pool(
+static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
         uv_stream_t * client,
+        int req,
         char * err_msg);
 static cproto_server_t ADMIN_on_get_version(
         qp_unpacker_t * qp_unpacker,
@@ -219,7 +220,19 @@ cproto_server_t siri_admin_request(
     case ADMIN_NEW_DATABASE_:
         return ADMIN_on_new_database(qp_unpacker, err_msg);
     case ADMIN_NEW_POOL:
-        return ADMIN_on_new_pool(qp_unpacker, pid, client, err_msg);
+        return ADMIN_on_new_replica_or_pool(
+                qp_unpacker,
+                pid,
+                client,
+                ADMIN_NEW_POOL,
+                err_msg);
+    case ADMIN_NEW_REPLICA:
+        return ADMIN_on_new_replica_or_pool(
+                qp_unpacker,
+                pid,
+                client,
+                ADMIN_NEW_REPLICA,
+                err_msg);
     case ADMIN_GET_VERSION:
         return ADMIN_on_get_version(qp_unpacker, packaddr, err_msg);
     case ADMIN_GET_ACCOUNTS:
@@ -555,14 +568,24 @@ static cproto_server_t ADMIN_on_new_database(
     return CPROTO_ACK_ADMIN;
 }
 
-static cproto_server_t ADMIN_on_new_pool(
+
+
+static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
         uv_stream_t * client,
+        int req,
         char * err_msg)
 {
     FILE * fp;
-    qp_obj_t qp_key, qp_dbname, qp_host, qp_port, qp_username, qp_password;
+    qp_obj_t
+        qp_key,
+        qp_dbname,
+        qp_pool,
+        qp_host,
+        qp_port,
+        qp_username,
+        qp_password;
     size_t dbpath_len;
     int pcre_exec_ret;
     int sub_str_vec[2];
@@ -581,6 +604,7 @@ static cproto_server_t ADMIN_on_new_pool(
 
 
     qp_dbname.tp = QP_HOOK;
+    qp_pool.tp = QP_HOOK;
     qp_host.tp = QP_HOOK;
     qp_port.tp = QP_HOOK;
     qp_username.tp = QP_HOOK;
@@ -595,6 +619,11 @@ static cproto_server_t ADMIN_on_new_pool(
     {
         if (    strncmp(qp_key.via.raw, "dbname", qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_dbname) == QP_RAW)
+        {
+            continue;
+        }
+        if (    strncmp(qp_key.via.raw, "pool", qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_pool) == QP_INT64)
         {
             continue;
         }
@@ -618,10 +647,15 @@ static cproto_server_t ADMIN_on_new_pool(
         {
             continue;
         }
+
         return CPROTO_ERR_ADMIN_INVALID_REQUEST;
     }
 
     if (qp_dbname.tp == QP_HOOK ||
+        (
+            (req == ADMIN_NEW_POOL && qp_pool.tp != QP_HOOK) ||
+            (req == ADMIN_NEW_REPLICA && qp_pool.tp == QP_HOOK)
+        ) ||
         qp_host.tp == QP_HOOK ||
         qp_port.tp == QP_HOOK ||
         qp_username.tp == QP_HOOK ||
@@ -647,7 +681,7 @@ static cproto_server_t ADMIN_on_new_pool(
     return (siri_admin_client_request(
             pid,
             port,
-            -1, // new pool
+            (req == ADMIN_NEW_POOL) ? -1 : qp_pool.via.int64, // -1 = new pool
             &uuid,
             &qp_host,
             &qp_username,

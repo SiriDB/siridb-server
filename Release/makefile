@@ -14,6 +14,7 @@ RM := rm
 -include src/test/subdir.mk
 -include src/strextra/subdir.mk
 -include src/slist/subdir.mk
+-include src/siri/admin/subdir.mk
 -include src/siri/parser/subdir.mk
 -include src/siri/net/subdir.mk
 -include src/siri/help/subdir.mk

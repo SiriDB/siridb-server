@@ -17,8 +17,12 @@
 #include <siri/net/protocol.h>
 #include <siri/admin/request.h>
 #include <stdarg.h>
+#include <lock/lock.h>
+#include <siri/db/server.h>
 
 #define CLIENT_REQUEST_TIMEOUT 15000  // 15 seconds
+#define CLIENT_FLAGS_TIMEOUT 1
+#define CLIENT_FLAGS_NO_ROLLBACK 2
 
 enum
 {
@@ -27,7 +31,9 @@ enum
     CLIENT_REQUEST_POOLS,
     CLIENT_REQUEST_FILE_USERS,
     CLIENT_REQUEST_FILE_GROUPS,
-    CLIENT_REQUEST_FILE_SERVERS
+    CLIENT_REQUEST_FILE_SERVERS,
+    CLIENT_REQUEST_FILE_DATABASE,
+    CLIENT_REQUEST_REGISTER_SERVER
 };
 
 static void CLIENT_write_cb(uv_write_t * req, int status);
@@ -43,6 +49,10 @@ static void CLIENT_send_pkg(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_error_msg(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg);
+static void CLIENT_on_register_server(siri_admin_client_t * adm_client);
+static void CLIENT_on_file_database(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_file_servers(
@@ -199,12 +209,17 @@ static void CLIENT_err(
 
     log_error(err_msg);
 
-    siri_admin_request_rollback(adm_client->dbpath);
+    if (~adm_client->flags & CLIENT_FLAGS_NO_ROLLBACK)
+    {
+        siri_admin_request_rollback(adm_client->dbpath);
+    }
 
     sirinet_socket_decref(siri.socket);
 
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
+
+
 
 static void CLIENT_send_pkg(
         siri_admin_client_t * adm_client,
@@ -372,6 +387,19 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
             case CLIENT_REQUEST_FILE_SERVERS:
                 CLIENT_on_file_servers(adm_client, pkg);
                 break;
+            case CLIENT_REQUEST_FILE_DATABASE:
+                CLIENT_on_file_database(adm_client, pkg);
+                break;
+            default:
+                CLIENT_err(adm_client, "unexpected query response");
+            }
+            break;
+        case CPROTO_RES_ACK:
+            switch (adm_client->request)
+            {
+            case CLIENT_REQUEST_REGISTER_SERVER:
+                CLIENT_on_register_server(adm_client);
+                break;
             default:
                 CLIENT_err(adm_client, "unexpected query response");
             }
@@ -411,11 +439,191 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
+static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
+{
+    sirinet_pkg_t * package = sirinet_pkg_new(
+            adm_client->pid,
+            0,
+            CPROTO_ACK_ADMIN,
+            NULL);
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(adm_client->client, package);
+    }
+
+    log_info(
+            "Finished registering server on database '%s'",
+            adm_client->dbname);
+
+    sirinet_socket_decref(siri.socket);
+    uv_close((uv_handle_t *) &siri.timer, NULL);
+}
+
+static void CLIENT_on_file_database(
+        siri_admin_client_t * adm_client,
+        sirinet_pkg_t * pkg)
+{
+    FILE * fp;
+    qp_unpacker_t unpacker;
+    qp_obj_t qp_uuid;
+    siridb_t * siridb;
+    int rc;
+    char fn[strlen(adm_client->dbpath) + 13]; // 13 = strlen("database.dat")+1
+    sprintf(fn, "%sdatabase.dat", adm_client->dbpath);
+
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+    if (qp_is_array(qp_next(&unpacker, NULL)) &&
+        /* schema check is not required at this moment but can be done here */
+        qp_next(&unpacker, NULL) == QP_INT64 &&
+        qp_next(&unpacker, &qp_uuid) == QP_RAW &&
+        qp_uuid.len == 16)
+    {
+        memcpy(unpacker.pt - 16, &adm_client->uuid, 16);
+    }
+    else
+    {
+        CLIENT_err(adm_client, "invalid database file received");
+        return;
+    }
+
+    fp = fopen(fn, "w");
+
+    if (fp == NULL)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+        return;
+    }
+
+    rc = fwrite(pkg->data, pkg->len, 1, fp);
+
+    if (fclose(fp) || rc != 1)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+        return;
+    }
+
+    siridb = siridb_new(adm_client->dbpath, LOCK_QUIT_IF_EXIST);
+
+    if (siridb == NULL)
+    {
+        CLIENT_err(adm_client, "error loading database");
+        return;
+    }
+
+    /* roll-back is not possible anymore */
+    adm_client->flags |= CLIENT_FLAGS_NO_ROLLBACK;
+
+    siridb->server->flags |= SERVER_FLAG_RUNNING;
+
+    /* Force one heart-beat */
+    siri_heartbeat_force();
+
+    sirinet_pkg_t * package;
+    qp_packer_t * packer = sirinet_packer_new(512);
+
+    if (packer == NULL)
+    {
+        CLIENT_err(adm_client, "memory allocation error");
+        return;
+    }
+
+    adm_client->request = CLIENT_REQUEST_REGISTER_SERVER;
+
+    if (qp_add_type(packer, QP_ARRAY4) ||
+        qp_add_raw(packer, (char *) &adm_client->uuid, 16) ||
+        qp_add_string(packer, siri.cfg->server_address) ||
+        qp_add_int32(packer, (int32_t) siri.cfg->listen_backend_port) ||
+        qp_add_int32(packer, (int32_t) adm_client->pool))
+    {
+        qp_packer_free(packer);
+        CLIENT_err(adm_client, "memory allocation error");
+        return;
+    }
+
+    package = sirinet_packer2pkg(packer, 0, CPROTO_REQ_REGISTER_SERVER);
+    CLIENT_send_pkg(adm_client, package);
+}
+
 static void CLIENT_on_file_servers(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
-    CLIENT_err(adm_client, "not finished yet...");
+    FILE * fp;
+    qp_unpacker_t unpacker;
+    qp_types_t tp;
+    int rc, n, close_num;
+    char fn[strlen(adm_client->dbpath) + 12]; // 12 = strlen("servers.dat") + 1
+    sprintf(fn, "%sservers.dat", adm_client->dbpath);
+
+    fp = fopen(fn, "w");
+    if (fp == NULL)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+        return;
+    }
+
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    tp = qp_next(&unpacker, NULL);
+    if (tp >= QP_ARRAY0 && tp <= QP_ARRAY5)
+    {
+        pkg->data[0] = QP_ARRAY_OPEN;
+    }
+    else if (tp != QP_ARRAY_OPEN)
+    {
+        CLIENT_err(adm_client, "invalid server status response");
+        return;
+    }
+
+    /* schema checking is not required at this moment but can be done here */
+    qp_next(&unpacker, NULL);
+
+    tp = qp_next(&unpacker, NULL);
+
+    if (!qp_is_array(tp))
+    {
+        CLIENT_err(adm_client, "invalid server status response");
+        return;
+    }
+
+    close_num = (tp == QP_ARRAY_OPEN) ? 1 : 0;
+
+    /* trim closing */
+    for (n = pkg->len; pkg->data[n - 1] == QP_ARRAY_CLOSE; n--);
+
+    rc = (fwrite(pkg->data, n, 1, fp) == 1) ? 0 : EOF;
+
+    if (close_num)
+    {
+        rc += qp_fadd_type(fp, QP_ARRAY_CLOSE);
+    }
+
+    rc += qp_fadd_type(fp, QP_ARRAY4);
+    rc += qp_fadd_raw(fp, (char *) &adm_client->uuid, 16);
+    rc += qp_fadd_string(fp, siri.cfg->server_address);
+    rc += qp_fadd_int32(fp, (int32_t) siri.cfg->listen_backend_port);
+    rc += qp_fadd_int32(fp, (int32_t) adm_client->pool);
+    rc += fclose(fp);
+
+    if (rc)
+    {
+        CLIENT_err(adm_client, "cannot write or create file: %s", fn);
+    }
+    else
+    {
+        sirinet_pkg_t * package;
+        adm_client->request = CLIENT_REQUEST_FILE_DATABASE;
+        package = sirinet_pkg_new(0, 0, CPROTO_REQ_FILE_DATABASE, NULL);
+        if (package == NULL)
+        {
+            CLIENT_err(adm_client, "memory allocation error");
+        }
+        else
+        {
+            CLIENT_send_pkg(adm_client, package);
+        }
+    }
 }
 
 static void CLIENT_on_file_groups(
@@ -607,7 +815,6 @@ static void CLIENT_on_request_pools(
             }
             /* set new correct pool in case we request a new pool */
             adm_client->pool = validate_pool + 1;
-            LOGC("New pool: %d", adm_client->pool);
         }
         else if (validate_pool == -1)
         {

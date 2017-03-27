@@ -17,8 +17,6 @@
 #include <siri/net/pkg.h>
 #include <uuid/uuid.h>
 
-#define CLIENT_FLAGS_TIMEOUT 1
-
 typedef struct siri_admin_client_s
 {
     uint8_t request;

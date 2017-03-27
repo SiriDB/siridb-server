@@ -28,6 +28,7 @@ const char * sirinet_cproto_client_str(cproto_client_t n)
     case CPROTO_REQ_FILE_SERVERS: return "CPROTO_REQ_FILE_SERVERS";
     case CPROTO_REQ_FILE_USERS: return "CPROTO_REQ_FILE_USERS";
     case CPROTO_REQ_FILE_GROUPS: return "CPROTO_REQ_FILE_GROUPS";
+    case CPROTO_REQ_FILE_DATABASE: return "CPROTO_REQ_FILE_DATABASE";
     case CPROTO_REQ_ADMIN: return "CPROTO_REQ_ADMIN";
     default:
         sprintf(protocol_str, "CPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
