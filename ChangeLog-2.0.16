@@ -1,3 +1,5 @@
   * Fixed bug resize macro in qpack for packing >4GB large strings.
   
   * Fixed bug in time-zone name checking. (issue #61)
+  
+  * Prevent loading database when buffer file is not found.

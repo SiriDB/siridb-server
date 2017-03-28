@@ -583,8 +583,6 @@ static cproto_server_t ADMIN_on_new_database(
     return CPROTO_ACK_ADMIN;
 }
 
-
-
 static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
