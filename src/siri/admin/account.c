@@ -212,7 +212,7 @@ int siri_admin_account_check(
     {
         USER_msg(
                 err_msg,
-                "incorrect password for server account '%.*s",
+                "incorrect password for server account '%.*s'",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;

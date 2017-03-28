@@ -532,7 +532,7 @@ iso8601_tz_t iso8601_tz(const char * tzname)
         buf[i] = tolower(tzname[i]);
     }
 
-    if (strncmp(buf, "naive", len) == 0)
+    if (len == strlen("naive") && strncmp(buf, "naive", len) == 0)
     {
         /* TZ=:localtime */
         return 0;

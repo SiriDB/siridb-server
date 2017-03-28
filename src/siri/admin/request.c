@@ -63,6 +63,20 @@
         return CPROTO_ERR_ADMIN;                                            \
     }                                                                       \
                                                                             \
+    if (llist_get(                                                          \
+            siri.siridb_list,                                               \
+            (llist_cb) ADMIN_find_database,                                 \
+            &qp_dbname) != NULL)                                            \
+    {                                                                       \
+        snprintf(                                                           \
+                err_msg,                                                    \
+                SIRI_MAX_SIZE_ERR_MSG,                                      \
+                "database name already exists: '%.*s'",                     \
+                (int) qp_dbname.len,                                        \
+                qp_dbname.via.raw);                                         \
+        return CPROTO_ERR_ADMIN;                                            \
+    }                                                                       \
+                                                                            \
     dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;     \
     char dbpath[dbpath_len];                                                \
     sprintf(dbpath,                                                         \
@@ -97,7 +111,7 @@
     fp = fopen(dbfn, "w");                                                  \
     if (fp == NULL)                                                         \
     {                                                                       \
-        siri_admin_request_rollback(dbpath);                                        \
+        siri_admin_request_rollback(dbpath);                                \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
@@ -110,7 +124,7 @@
                                                                             \
     if (fclose(fp) || rc < 0)                                               \
     {                                                                       \
-        siri_admin_request_rollback(dbpath);                                        \
+        siri_admin_request_rollback(dbpath);                                \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
@@ -153,6 +167,7 @@ static cproto_server_t ADMIN_on_get_databases(
 static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision);
 static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision);
 static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer);
+static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname);
 static int ADMIN_list_accounts(
         siri_admin_account_t * account,
         qp_packer_t * packer);
@@ -678,7 +693,7 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
 
     CHECK_DBNAME_AND_CREATE_PATH
 
-    return (siri_admin_client_request(
+    if (siri_admin_client_request(
             pid,
             port,
             (req == ADMIN_NEW_POOL) ? -1 : qp_pool.via.int64, // -1 = new pool
@@ -689,7 +704,12 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
             &qp_dbname,
             dbpath,
             client,
-            err_msg)) ? CPROTO_ERR_ADMIN : CPROTO_DEFERRED;
+            err_msg))
+    {
+        siri_admin_request_rollback(dbpath);
+        return CPROTO_ERR_ADMIN;
+    }
+    return CPROTO_DEFERRED;
 }
 
 static cproto_server_t ADMIN_on_get_version(
@@ -840,6 +860,13 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
 static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer)
 {
     return qp_add_string(packer, siridb->dbname);
+}
+
+static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname)
+{
+    return (
+        strlen(siridb->dbname) == dbname->len &&
+        strncmp(siridb->dbname, dbname->via.raw, dbname->len) == 0);
 }
 
 static int ADMIN_list_accounts(
