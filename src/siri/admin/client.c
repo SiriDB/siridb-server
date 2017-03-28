@@ -41,6 +41,14 @@ static void CLIENT_on_connect(uv_connect_t * req, int status);
 static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void CLIENT_request_timeout(uv_timer_t * handle);
 static void CLIENT_on_auth_success(siri_admin_client_t * adm_client);
+static int CLIENT_resolve_dns(
+        siri_admin_client_t * adm_client,
+        int ai_family,
+        char * err_msg);
+static void CLIENT_on_resolved(
+        uv_getaddrinfo_t * resolver,
+        int status,
+        struct addrinfo * res);
 static void CLIENT_err(
         siri_admin_client_t * adm_client,
         const char * fmt,
@@ -87,7 +95,7 @@ int siri_admin_client_request(
     sirinet_socket_t * ssocket;
     siri_admin_client_t * adm_client;
     struct in_addr sa;
-//    struct in6_addr sa6;
+    struct in6_addr sa6;
 
     if (siri.socket != NULL)
     {
@@ -163,11 +171,43 @@ int siri_admin_client_request(
                 siri.socket,
                 (const struct sockaddr *) &dest,
                 CLIENT_on_connect);
-
-        return 0;
     }
-    sprintf(err_msg, "invalid ipv4");
-    return -1;
+    else if (inet_pton(AF_INET6, adm_client->host, &sa6))
+    {
+        /* IPv6 */
+        struct sockaddr_in6 dest6;
+
+        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        if (req == NULL)
+        {
+            sirinet_socket_decref(siri.socket);
+            sprintf(err_msg, "memory allocation error");
+            return -1;
+        }
+        log_debug(
+                "Trying to connect to '%s:%u'...",
+                adm_client->host,
+                adm_client->port);
+        uv_ip6_addr(adm_client->host, adm_client->port, &dest6);
+        uv_tcp_connect(
+                req,
+                siri.socket,
+                (const struct sockaddr *) &dest6,
+                CLIENT_on_connect);
+    }
+    else
+    {
+        if (CLIENT_resolve_dns(
+                adm_client,
+                dns_req_family_map[siri.cfg->ip_support],
+                err_msg))
+        {
+            sirinet_socket_decref(siri.socket);
+            return -1;  /* err_msg is set */
+        }
+    }
+    uv_timer_init(siri.loop, &siri.timer);
+    return 0;
 }
 
 void siri_admin_client_free(siri_admin_client_t * adm_client)
@@ -182,6 +222,98 @@ void siri_admin_client_free(siri_admin_client_t * adm_client)
         free(adm_client->dbpath);
         free(adm_client);
     }
+}
+/*
+ * Try to get an ip address from dns.
+ *
+ * The callback should be checked if resolving succeeded. This function should
+ * return 0 when we can start an attempt. When the result is not zero, the
+ * callback will not be called.
+ */
+static int CLIENT_resolve_dns(
+        siri_admin_client_t * adm_client,
+        int ai_family,
+        char * err_msg)
+{
+    struct addrinfo hints;
+    hints.ai_family = ai_family;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_NUMERICSERV;
+
+    uv_getaddrinfo_t * resolver =
+            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+
+    if (resolver == NULL)
+    {
+        sprintf(err_msg, "memory allocation error");
+        return -1;
+    }
+
+    int result;
+    resolver->data = adm_client;
+
+    char port[6]= {'\0'};
+    sprintf(port, "%u", adm_client->port);
+
+    result = uv_getaddrinfo(
+            siri.loop,
+            resolver,
+            (uv_getaddrinfo_cb) CLIENT_on_resolved,
+            adm_client->host,
+            port,
+            &hints);
+
+    if (result)
+    {
+        snprintf(
+                err_msg,
+                SIRI_MAX_SIZE_ERR_MSG,
+                "getaddrinfo call error %s",
+                uv_err_name(result));
+        free(resolver);
+    }
+
+    return result;
+}
+
+/*
+ * Callback used to check if resolving an ip address was successful.
+ */
+static void CLIENT_on_resolved(
+        uv_getaddrinfo_t * resolver,
+        int status,
+        struct addrinfo * res)
+{
+    siri_admin_client_t * adm_client = (siri_admin_client_t *) resolver->data;
+
+    if (status < 0)
+    {
+        CLIENT_err(
+                adm_client,
+                "cannot resolve ip address for '%s' (error: %s)",
+                adm_client->host,
+                uv_err_name(status));
+    }
+    else
+    {
+        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        if (req == NULL)
+        {
+            CLIENT_err(adm_client, "memory allocation error");
+        }
+        else
+        {
+            uv_tcp_connect(
+                    req,
+                    siri.socket,
+                    (const struct sockaddr *) res->ai_addr,
+                    CLIENT_on_connect);
+        }
+    }
+
+    uv_freeaddrinfo(res);
+    free(resolver);
 }
 
 static void CLIENT_err(
@@ -218,8 +350,6 @@ static void CLIENT_err(
 
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
-
-
 
 static void CLIENT_send_pkg(
         siri_admin_client_t * adm_client,
@@ -283,8 +413,6 @@ static void CLIENT_on_connect(uv_connect_t * req, int status)
 {
     sirinet_socket_t * ssocket = req->handle->data;
     siri_admin_client_t * adm_client = (siri_admin_client_t *) ssocket->origin;
-
-    uv_timer_init(siri.loop, &siri.timer);
 
     if (status == 0)
     {

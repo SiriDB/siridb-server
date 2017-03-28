@@ -50,6 +50,8 @@ typedef struct sirinet_socket_s
     uv_tcp_t tcp;
 } sirinet_socket_t;
 
+int dns_req_family_map[3];
+
 const char * sirinet_socket_ip_support_str(uint8_t ip_support);
 uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
 void sirinet_socket_alloc_buffer(

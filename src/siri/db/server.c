@@ -28,9 +28,6 @@
 #define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
-/* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
-static int dns_req_family_map[3] = {AF_UNSPEC, AF_INET, AF_INET6};
-
 static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
 static void SERVER_write_cb(uv_write_t * req, int status);

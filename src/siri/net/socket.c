@@ -43,6 +43,8 @@
         return;                                                             \
     }
 
+/* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
+int dns_req_family_map[3] = {AF_UNSPEC, AF_INET, AF_INET6};
 
 const char * sirinet_socket_ip_support_str(uint8_t ip_support)
 {
