@@ -79,6 +79,13 @@ static void CLIENT_on_request_status(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg);
 
+/*
+ * Initializes a request for a new pool or replica and returns 0 when
+ * successful. In case of an error, err_msg will be set and a value other than
+ * 0 is returned. (a signal can be raised.) When successful and only when
+ * successful, a response will be send to the provided client using the given
+ * pid.
+ */
 int siri_admin_client_request(
         uint16_t pid,
         uint16_t port,
@@ -210,6 +217,9 @@ int siri_admin_client_request(
     return 0;
 }
 
+/*
+ * Destroy the client request. (will be called when the socket is destroyed)
+ */
 void siri_admin_client_free(siri_admin_client_t * adm_client)
 {
     if (adm_client != NULL)
@@ -226,9 +236,9 @@ void siri_admin_client_free(siri_admin_client_t * adm_client)
 /*
  * Try to get an ip address from dns.
  *
- * The callback should be checked if resolving succeeded. This function should
- * return 0 when we can start an attempt. When the result is not zero, the
- * callback will not be called.
+ * This function should return 0 when we can start an attempt for discovering
+ * dns. When the result is not zero, CLIENT_on_resolved will not be called and
+ * err_msg is set.
  */
 static int CLIENT_resolve_dns(
         siri_admin_client_t * adm_client,
@@ -316,6 +326,10 @@ static void CLIENT_on_resolved(
     free(resolver);
 }
 
+/*
+ * In case a client request fails, this function should be called to end
+ * the request. A package with the error message will be send to the client.
+ */
 static void CLIENT_err(
         siri_admin_client_t * adm_client,
         const char * fmt,
@@ -351,6 +365,14 @@ static void CLIENT_err(
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
 
+/*
+ * Send a package to the 'other' SiriDB server. This function can be used for
+ * sending api requests for all database information required to create the
+ * database. Note that all packages are send with the same pid so packages
+ * should be send in sequence, not parallel.
+ *
+ * Note: pkg will be freed by calling this function.
+ */
 static void CLIENT_send_pkg(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -398,7 +420,6 @@ static void CLIENT_write_cb(uv_write_t * req, int status)
     if (status)
     {
         uv_timer_stop(&siri.timer);
-
         CLIENT_err(adm_client, "socket write error: %s", uv_strerror(status));
     }
 
@@ -407,7 +428,9 @@ static void CLIENT_write_cb(uv_write_t * req, int status)
 }
 
 /*
- * This function can raise a SIGNAL.
+ * Called when a connection to the 'other' siridb server is made.
+ * An authentication request will be send by user/password since this will be
+ * using the client connection. (a signal can be raised)
  */
 static void CLIENT_on_connect(uv_connect_t * req, int status)
 {
@@ -464,7 +487,6 @@ static void CLIENT_on_connect(uv_connect_t * req, int status)
 
 /*
  * on-data call-back function.
- *In case the promise is found, promise->cb() will be called.
  */
 static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 {
@@ -567,6 +589,9 @@ static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
+/*
+ * Called when register server was successful.
+ */
 static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
 {
     sirinet_pkg_t * package = sirinet_pkg_new(
@@ -588,6 +613,9 @@ static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
 
+/*
+ * Called when database.dat is received.
+ */
 static void CLIENT_on_file_database(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -674,6 +702,9 @@ static void CLIENT_on_file_database(
     CLIENT_send_pkg(adm_client, package);
 }
 
+/*
+ * Called when servers.dat is received.
+ */
 static void CLIENT_on_file_servers(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -754,6 +785,9 @@ static void CLIENT_on_file_servers(
     }
 }
 
+/*
+ * Called when groups.dat is received.
+ */
 static void CLIENT_on_file_groups(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -792,6 +826,9 @@ static void CLIENT_on_file_groups(
     }
 }
 
+/*
+ * Called when users.dat is received.
+ */
 static void CLIENT_on_file_users(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -830,6 +867,11 @@ static void CLIENT_on_file_users(
     }
 }
 
+/*
+ * Called when 'list pools ...' response is received.
+ * This function will check which pool number will be assigned for a new pool
+ * or checks if a given pool for a new replica is valid.
+ */
 static void CLIENT_on_request_pools(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -966,6 +1008,12 @@ static void CLIENT_on_request_pools(
     }
 }
 
+/*
+ * Called when 'list servers ...' response is received.
+ * This function will check if each current server has status running.
+ * (this is a pre-check, the final register call does check for all servers
+ * to have the running status once more)
+ */
 static void CLIENT_on_request_status(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -1074,6 +1122,9 @@ static void CLIENT_on_request_status(
     }
 }
 
+/*
+ * Called when an error message is received.
+ */
 static void CLIENT_on_error_msg(
         siri_admin_client_t * adm_client,
         sirinet_pkg_t * pkg)
@@ -1104,6 +1155,9 @@ static void CLIENT_on_error_msg(
     }
 }
 
+/*
+ * Called when authentication is successful.
+ */
 static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
 {
     sirinet_pkg_t * pkg;
@@ -1125,7 +1179,7 @@ static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
 }
 
 /*
- * Timeout received.
+ * Timeout on a client request.
  */
 static void CLIENT_request_timeout(uv_timer_t * handle)
 {

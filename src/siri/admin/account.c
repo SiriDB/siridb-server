@@ -17,16 +17,16 @@
 #include <stdarg.h>
 #include <logger/logger.h>
 
-#define SIRI_ADMIN_USER_SCHEMA 1
+#define SIRI_ADMIN_ACCOUNT_SCHEMA 1
 #define FILENAME ".accounts.dat"
 
-#define DEFAULT_USER "iris"
+#define DEFAULT_ACCOUNT "iris"
 #define DEFAULT_PASSWORD "siri"
 
-static int USER_free(siri_admin_account_t * account, void * args);
-static int USER_save(siri_admin_account_t * account, qp_fpacker_t * fpacker);
-static void USER_msg(char * err_msg, char * fmt, ...);
-inline static int USER_cmp(
+static int ACCOUNT_free(siri_admin_account_t * account, void * args);
+static int ACCOUNT_save(siri_admin_account_t * account, qp_fpacker_t * fpacker);
+static void ACCOUNT_msg(char * err_msg, char * fmt, ...);
+inline static int ACCOUNT_cmp(
         siri_admin_account_t * account,
         qp_obj_t * qp_account);
 
@@ -58,7 +58,7 @@ int siri_admin_account_init(siri_t * siri)
     if (!xpath_file_exist(fn))
     {
         /* missing file, lets create the first account */
-        qp_account.via.raw = DEFAULT_USER;
+        qp_account.via.raw = DEFAULT_ACCOUNT;
         qp_account.len = 4;
         qp_password.via.raw = DEFAULT_PASSWORD;
         qp_password.len = 4;
@@ -78,7 +78,7 @@ int siri_admin_account_init(siri_t * siri)
 
     if (    !qp_is_array(qp_next(unpacker, NULL)) ||
             qp_next(unpacker, &qp_schema) != QP_INT64 ||
-            qp_schema.via.int64 != SIRI_ADMIN_USER_SCHEMA)
+            qp_schema.via.int64 != SIRI_ADMIN_ACCOUNT_SCHEMA)
     {
         log_critical("Invalid schema detected in '%s'", fn);
         qp_unpacker_ff_free(unpacker);
@@ -120,12 +120,12 @@ int siri_admin_account_new(
 
     account = (siri_admin_account_t *) llist_get(
             siri->accounts,
-            (llist_cb) USER_cmp,
+            (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
 
     if (account != NULL)
     {
-        USER_msg(
+        ACCOUNT_msg(
                 err_msg,
                 "server account '%.*s' already exists",
                 (int) qp_account->len,
@@ -136,7 +136,7 @@ int siri_admin_account_new(
     account = (siri_admin_account_t *) malloc(sizeof(siri_admin_account_t));
     if (account == NULL)
     {
-        USER_msg(err_msg, "memory allocation error");
+        ACCOUNT_msg(err_msg, "memory allocation error");
         return -1;
     }
 
@@ -163,7 +163,7 @@ int siri_admin_account_new(
             account->password == NULL ||
             llist_append(siri->accounts, account))
     {
-        USER_msg(err_msg, "memory allocation error");
+        ACCOUNT_msg(err_msg, "memory allocation error");
         return -1;
     }
     return 0;
@@ -184,12 +184,12 @@ int siri_admin_account_check(
 
     account = (siri_admin_account_t *) llist_get(
             siri->accounts,
-            (llist_cb) USER_cmp,
+            (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
 
     if (account == NULL)
     {
-        USER_msg(
+        ACCOUNT_msg(
                 err_msg,
                 "cannot find server account '%.*s'",
                 (int) qp_account->len,
@@ -201,7 +201,7 @@ int siri_admin_account_check(
 
     if (password == NULL)
     {
-        USER_msg(err_msg, "memory allocation error");
+        ACCOUNT_msg(err_msg, "memory allocation error");
         return -1;
     }
 
@@ -210,7 +210,7 @@ int siri_admin_account_check(
 
     if (strcmp(pw, account->password))
     {
-        USER_msg(
+        ACCOUNT_msg(
                 err_msg,
                 "incorrect password for server account '%.*s'",
                 (int) qp_account->len,
@@ -239,12 +239,12 @@ int siri_admin_account_change_password(
 
     account = (siri_admin_account_t *) llist_get(
             siri->accounts,
-            (llist_cb) USER_cmp,
+            (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
 
     if (account == NULL)
     {
-        USER_msg(
+        ACCOUNT_msg(
                 err_msg,
                 "cannot find server account '%.*s'",
                 (int) qp_account->len,
@@ -256,7 +256,7 @@ int siri_admin_account_change_password(
 
     if (password == NULL)
     {
-        USER_msg(err_msg, "memory allocation error");
+        ACCOUNT_msg(err_msg, "memory allocation error");
         return -1;
     }
 
@@ -271,7 +271,7 @@ int siri_admin_account_change_password(
     password = strdup(encrypted);
     if (password == NULL)
     {
-        USER_msg(err_msg, "memory allocation error");
+        ACCOUNT_msg(err_msg, "memory allocation error");
         return -1;
     }
 
@@ -295,11 +295,11 @@ int siri_admin_account_drop(
     siri_admin_account_t * account;
     account = (siri_admin_account_t *) llist_remove(
             siri->accounts,
-            (llist_cb) USER_cmp,
+            (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
     if (account == NULL)
     {
-        USER_msg(
+        ACCOUNT_msg(
                 err_msg,
                 "cannot find server account '%.*s'",
                 (int) qp_account->len,
@@ -307,7 +307,7 @@ int siri_admin_account_drop(
         return -1;
     }
 
-    USER_free(account, NULL);
+    ACCOUNT_free(account, NULL);
     return 0;
 }
 
@@ -318,7 +318,7 @@ void siri_admin_account_destroy(siri_t * siri)
 {
     if (siri->accounts != NULL)
     {
-        llist_free_cb(siri->accounts, (llist_cb) USER_free, NULL);
+        llist_free_cb(siri->accounts, (llist_cb) ACCOUNT_free, NULL);
     }
 }
 
@@ -343,21 +343,24 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRI_ADMIN_USER_SCHEMA) ||
+        qp_fadd_int16(fpacker, SIRI_ADMIN_ACCOUNT_SCHEMA) ||
 
         /* we can and should skip this if we have no accounts to save */
-        llist_walk(siri->accounts, (llist_cb) USER_save, fpacker) ||
+        llist_walk(siri->accounts, (llist_cb) ACCOUNT_save, fpacker) ||
 
         /* close file pointer */
         qp_close(fpacker))
     {
-        USER_msg(err_msg, "error saving server accounts");
+        ACCOUNT_msg(err_msg, "error saving server accounts");
         return EOF;
     }
     return 0;
 }
 
-static int USER_free(siri_admin_account_t * account, void * args)
+/*
+ * Destroy an account.
+ */
+static int ACCOUNT_free(siri_admin_account_t * account, void * args)
 {
     free(account->account);
     free(account->password);
@@ -368,7 +371,7 @@ static int USER_free(siri_admin_account_t * account, void * args)
 /*
  * Returns 0 if successful and -1 in case an error occurred.
  */
-static int USER_save(siri_admin_account_t * account, qp_fpacker_t * fpacker)
+static int ACCOUNT_save(siri_admin_account_t * account, qp_fpacker_t * fpacker)
 {
     int rc = 0;
 
@@ -379,7 +382,7 @@ static int USER_save(siri_admin_account_t * account, qp_fpacker_t * fpacker)
     return rc;
 }
 
-static void USER_msg(char * err_msg, char * fmt, ...)
+static void ACCOUNT_msg(char * err_msg, char * fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -394,7 +397,7 @@ static void USER_msg(char * err_msg, char * fmt, ...)
     va_end(args);
 }
 
-inline static int USER_cmp(
+inline static int ACCOUNT_cmp(
         siri_admin_account_t * account,
         qp_obj_t * qp_account)
 {

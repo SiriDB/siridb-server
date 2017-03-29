@@ -172,6 +172,9 @@ static int ADMIN_list_accounts(
         siri_admin_account_t * account,
         qp_packer_t * packer);
 
+/*
+ * Initialize administrative requests. (called once when initializing SiriDB)
+ */
 int siri_admin_request_init(void)
 {
     const char * pcre_error_str;
@@ -209,12 +212,20 @@ int siri_admin_request_init(void)
     return 0;
 }
 
+/*
+ * Destroy administrative requests. (only called when exiting SiriDB)
+ */
 void siri_admin_request_destroy(void)
 {
     free(siri.dbname_regex);
     free(siri.dbname_regex_extra);
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN or CPROTO_DEFERRED when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 cproto_server_t siri_admin_request(
         int tp,
         qp_unpacker_t * qp_unpacker,
@@ -259,6 +270,11 @@ cproto_server_t siri_admin_request(
     }
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 static cproto_server_t ADMIN_on_new_account(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
@@ -303,6 +319,11 @@ static cproto_server_t ADMIN_on_new_account(
                     CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 static cproto_server_t ADMIN_on_change_password(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
@@ -346,6 +367,11 @@ static cproto_server_t ADMIN_on_change_password(
                     CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 static cproto_server_t ADMIN_on_drop_account(
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
@@ -390,6 +416,11 @@ static cproto_server_t ADMIN_on_drop_account(
                     CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 static cproto_server_t ADMIN_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
@@ -583,6 +614,11 @@ static cproto_server_t ADMIN_on_new_database(
     return CPROTO_ACK_ADMIN;
 }
 
+/*
+ * Returns CPROTO_DEFERRED when successful.
+ * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
+ * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ */
 static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
@@ -710,6 +746,10 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
     return CPROTO_DEFERRED;
 }
 
+/*
+ * Returns CPROTO_ACK_ADMIN_DATA when successful.
+ * In case of an error CPROTO_ERR_ADMIN will be returned and err_msg is set
+ */
 static cproto_server_t ADMIN_on_get_version(
         qp_unpacker_t * qp_unpacker,
         qp_packer_t ** packaddr,
