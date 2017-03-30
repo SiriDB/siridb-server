@@ -133,6 +133,22 @@ int siri_admin_account_new(
         return -1;
     }
 
+    if (qp_account->len < 2)
+    {
+        ACCOUNT_msg(
+                err_msg,
+                "service account name should have at least 2 characters");
+        return -1;
+    }
+
+    if (qp_password->len < 2)
+    {
+        ACCOUNT_msg(
+                err_msg,
+                "service account password should have at least 2 characters");
+        return -1;
+    }
+
     account = (siri_admin_account_t *) malloc(sizeof(siri_admin_account_t));
     if (account == NULL)
     {
