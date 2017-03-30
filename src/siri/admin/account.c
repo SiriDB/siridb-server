@@ -20,7 +20,7 @@
 #define SIRI_ADMIN_ACCOUNT_SCHEMA 1
 #define FILENAME ".accounts.dat"
 
-#define DEFAULT_ACCOUNT "iris"
+#define DEFAULT_ACCOUNT "sa"
 #define DEFAULT_PASSWORD "siri"
 
 static int ACCOUNT_free(siri_admin_account_t * account, void * args);
