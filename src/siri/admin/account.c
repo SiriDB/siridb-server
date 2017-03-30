@@ -42,7 +42,7 @@ int siri_admin_account_init(siri_t * siri)
     qp_obj_t qp_password;
     int rc = 0;
 
-    /* get administrative accounts file name */
+    /* get service accounts file name */
     char fn[strlen(siri->cfg->default_db_path) + strlen(FILENAME) + 1];
 
     /* initialize linked list */
@@ -99,7 +99,7 @@ int siri_admin_account_init(siri_t * siri)
 }
 
 /*
- * Creates a new administrative account and returns 0 if successful. In case of
+ * Creates a new service account and returns 0 if successful. In case of
  * an error, -1 is returned, err_msg is set and a signal might be raised.
  *
  * When successful, the account is added to the siri->accounts linked list.
@@ -107,7 +107,7 @@ int siri_admin_account_init(siri_t * siri)
  * is_encrypted should be zero if the password is not encrypted yet.
  *
  * Note: the account will not be saved to disk. Call siri_admin_account_save()
- *       to save a new administrative account.
+ *       to save a new service account.
  */
 int siri_admin_account_new(
         siri_t * siri,
@@ -127,7 +127,7 @@ int siri_admin_account_new(
     {
         ACCOUNT_msg(
                 err_msg,
-                "server account '%.*s' already exists",
+                "service account '%.*s' already exists",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;
@@ -191,7 +191,7 @@ int siri_admin_account_check(
     {
         ACCOUNT_msg(
                 err_msg,
-                "cannot find server account '%.*s'",
+                "cannot find service account '%.*s'",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;
@@ -212,7 +212,7 @@ int siri_admin_account_check(
     {
         ACCOUNT_msg(
                 err_msg,
-                "incorrect password for server account '%.*s'",
+                "incorrect password for service account '%.*s'",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;
@@ -246,7 +246,7 @@ int siri_admin_account_change_password(
     {
         ACCOUNT_msg(
                 err_msg,
-                "cannot find server account '%.*s'",
+                "cannot find service account '%.*s'",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;
@@ -301,7 +301,7 @@ int siri_admin_account_drop(
     {
         ACCOUNT_msg(
                 err_msg,
-                "cannot find server account '%.*s'",
+                "cannot find service account '%.*s'",
                 (int) qp_account->len,
                 qp_account->via.raw);
         return -1;
@@ -312,7 +312,7 @@ int siri_admin_account_drop(
 }
 
 /*
- * Destroy administrative accounts. siri->accounts is allowed to be NULL.
+ * Destroy service accounts. siri->accounts is allowed to be NULL.
  */
 void siri_admin_account_destroy(siri_t * siri)
 {
@@ -329,7 +329,7 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
 {
     qp_fpacker_t * fpacker;
 
-    /* get administrative accounts file name */
+    /* get service accounts file name */
     char fn[strlen(siri->cfg->default_db_path) + strlen(FILENAME) + 1];
 
     /* make filename */
@@ -351,7 +351,7 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
         /* close file pointer */
         qp_close(fpacker))
     {
-        ACCOUNT_msg(err_msg, "error saving server accounts");
+        ACCOUNT_msg(err_msg, "error saving service accounts");
         return EOF;
     }
     return 0;
