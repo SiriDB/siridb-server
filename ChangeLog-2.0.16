@@ -15,4 +15,4 @@
     - new-pool          : Create a new pool for an existing database
     - new-replica       : Create a new replica for an existing database
     
-  * Added version check before expanding with a pool or replica. (issue #62)
+  * Added version check before creating a new pool or replica. (issue #62)
