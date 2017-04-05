@@ -885,6 +885,11 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
         return -1;
     }
 
+    if (endptr != qp_duration->via.raw + (qp_duration->len - 1))
+    {
+        return -1;
+    }
+
     switch (*endptr)
     {
     case 'h': return xmath_ipow(1000, time_precision) * val * 3600;

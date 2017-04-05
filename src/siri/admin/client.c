@@ -19,10 +19,13 @@
 #include <stdarg.h>
 #include <lock/lock.h>
 #include <siri/db/server.h>
+#include <siri/version.h>
 
-#define CLIENT_REQUEST_TIMEOUT 15000  // 15 seconds
+// 15 seconds
+#define CLIENT_REQUEST_TIMEOUT 15000
 #define CLIENT_FLAGS_TIMEOUT 1
 #define CLIENT_FLAGS_NO_ROLLBACK 2
+#define MAX_VERSION_LEN 12
 
 enum
 {
@@ -1023,8 +1026,10 @@ static void CLIENT_on_request_status(
     qp_obj_t qp_val;
     qp_obj_t qp_name;
     qp_obj_t qp_status;
+    qp_obj_t qp_version;
     int columns_found = 0;
     int servers_found = 0;
+    char version[MAX_VERSION_LEN];
 
     if (!qp_is_map(qp_next(&unpacker, NULL)))
     {
@@ -1041,7 +1046,9 @@ static void CLIENT_on_request_status(
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
                 strncmp(qp_val.via.raw, "name", qp_val.len) == 0 &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "status", qp_val.len) == 0)
+                strncmp(qp_val.via.raw, "status", qp_val.len) == 0 &&
+                qp_next(&unpacker, &qp_val) == QP_RAW &&
+                strncmp(qp_val.via.raw, "version", qp_val.len) == 0)
         {
             if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
             {
@@ -1058,8 +1065,28 @@ static void CLIENT_on_request_status(
             while (qp_is_array(qp_val.tp))
             {
                 if (qp_next(&unpacker, &qp_name) == QP_RAW &&
-                    qp_next(&unpacker, &qp_status) == QP_RAW)
+                    qp_next(&unpacker, &qp_status) == QP_RAW &&
+                    qp_next(&unpacker, &qp_version) == QP_RAW &&
+                    qp_version.len < MAX_VERSION_LEN)
                 {
+                    /* copy and null terminate version */
+                    memcpy(version, qp_version.via.raw, qp_version.len);
+                    version[qp_version.len] = '\0';
+
+                    if (siri_version_cmp(version, SIRIDB_VERSION))
+                    {
+                        CLIENT_err(
+                                adm_client,
+                                "server '%.*s' is running on version %s "
+                                "while version %s is expected. (all SiriBD "
+                                "servers should run the same version)",
+                                (int) qp_name.len,
+                                qp_name.via.raw,
+                                version,
+                                SIRIDB_VERSION);
+                        return;
+                    }
+
                     if (strncmp(
                             qp_status.via.raw,
                             "running",
@@ -1172,7 +1199,7 @@ static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
 
         /* no need to check since this will always fit */
         qp_add_type(packer, QP_ARRAY1);
-        qp_add_string(packer, "list servers name, status");
+        qp_add_string(packer, "list servers name, status, version");
         pkg = sirinet_packer2pkg(packer, 0, CPROTO_REQ_QUERY);
         CLIENT_send_pkg(adm_client, pkg);
     }

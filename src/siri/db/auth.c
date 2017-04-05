@@ -65,6 +65,10 @@ cproto_server_t siridb_auth_user_request(
     return CPROTO_RES_AUTH_SUCCESS;
 }
 
+/*
+ * Note: qp_version, qp_dbname, qp_min_version must by or type raw and must be
+ * null terminated.
+ */
 bproto_server_t siridb_auth_server_request(
         uv_stream_t * client,
         qp_obj_t * qp_uuid,
