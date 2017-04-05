@@ -5,12 +5,12 @@
   * Prevent loading database when buffer file is not found.
   
   * Implemented API calls for managing databases: (issue #60)
-    - change-password   : Change password for an account
-    - drop-account      : Remove an account
-    - get-accounts      : Returns all accounts
+    - change-password   : Change password for a service account
+    - drop-account      : Remove a service account
+    - get-accounts      : Returns all service accounts
     - get-databases     : Returns all database names
     - get-version       : Returns version information
-    - new-account       : Create an account for managing databases on a server
+    - new-account       : Create a service account
     - new-database      : Create a new database
     - new-pool          : Create a new pool for an existing database
     - new-replica       : Create a new replica for an existing database
