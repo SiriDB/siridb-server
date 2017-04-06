@@ -3,6 +3,10 @@ import logging
 import random
 import asyncio
 from .constants import MANAGE
+from .constants import ADMIN
+from .constants import TOOL
+
+VERBOSE = ' --verbose'
 
 class SiriDB:
 
@@ -28,23 +32,45 @@ class SiriDB:
             self.dbname,
             server.name))
 
-        rc = os.system(
-            '{manage} '
-            '--log-level {log_level} '
-            '--noroot --config {cfgfile} create-new '
-            '--dbname {dbname} '
-            '--time-precision {time_precision} '
-            '{bufpath}'
-            '--duration-log {duration_log} '
-            '--duration-num {duration_num} '
-            '--buffer-size {buffer_size}'.format(
-                manage=MANAGE,
-                log_level=self.LOG_LEVEL.lower(),
-                cfgfile=server.cfgfile,
-                bufpath=
-                    '' if not self.buffer_path
-                    else '--buffer-path {}'.format(self.buffer_path),
-                **vars(self)))
+        if TOOL == 'MANAGE':
+            rc = os.system(
+                '{manage} '
+                '--log-level {log_level} '
+                '--noroot --config {cfgfile} create-new '
+                '--dbname {dbname} '
+                '--time-precision {time_precision} '
+                '{bufpath}'
+                '--duration-log {duration_log} '
+                '--duration-num {duration_num} '
+                '--buffer-size {buffer_size}'.format(
+                    manage=MANAGE,
+                    log_level=self.LOG_LEVEL.lower(),
+                    cfgfile=server.cfgfile,
+                    bufpath=
+                        '' if not self.buffer_path
+                        else '--buffer-path {}'.format(self.buffer_path),
+                    **vars(self)))
+        elif TOOL == 'ADMIN':
+            rc = os.system(
+                '{admin} '
+                '-u sa -p siri -s {addr} '
+                'new-database '
+                '--db-name {dbname} '
+                '--time-precision {time_precision} '
+                '--duration-log {duration_log} '
+                '--duration-num {duration_num} '
+                '--buffer-size {buffer_size}'
+                '{verbose}'.format(
+                    admin=ADMIN,
+                    addr=server.addr,
+                    verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
+                    else ' >/dev/null',
+                    **vars(self)))
+        else:
+            logging.error(
+                'TOOL should be either MANAGE or ADMIN, got: {}'
+                .format(TOOL))
+            rc = 1
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
 
@@ -65,30 +91,56 @@ class SiriDB:
         if remote_server is None:
             remote_server = random.choice(self.servers)
 
-        rc = os.system(
-            '{manage} '
-            '--log-level {log_level} '
-            '--noroot --config {cfgfile} create-replica '
-            '--dbname {dbname} '
-            '--remote-address {remote_address} '
-            '--remote-port {remote_port} '
-            '--user {user} '
-            '--password {password} '
-            '--pool {pool} '
-            '{bufpath}'
-            '--buffer-size {buffer_size}'.format(
-                manage=MANAGE,
-                log_level=self.LOG_LEVEL.lower(),
-                cfgfile=server.cfgfile,
-                user=username,
-                password=password,
-                pool=pool,
-                bufpath=
-                    '' if not self.buffer_path
-                    else '--buffer-path {}'.format(self.buffer_path),
-                **vars(self),
-                remote_address=remote_server.server_address,
-                remote_port=remote_server.listen_client_port))
+        if TOOL == 'MANAGE':
+            rc = os.system(
+                '{manage} '
+                '--log-level {log_level} '
+                '--noroot --config {cfgfile} create-replica '
+                '--dbname {dbname} '
+                '--remote-address {remote_address} '
+                '--remote-port {remote_port} '
+                '--user {user} '
+                '--password {password} '
+                '--pool {pool} '
+                '{bufpath}'
+                '--buffer-size {buffer_size}'.format(
+                    manage=MANAGE,
+                    log_level=self.LOG_LEVEL.lower(),
+                    cfgfile=server.cfgfile,
+                    user=username,
+                    password=password,
+                    pool=pool,
+                    bufpath=
+                        '' if not self.buffer_path
+                        else '--buffer-path {}'.format(self.buffer_path),
+                    **vars(self),
+                    remote_address=remote_server.server_address,
+                    remote_port=remote_server.listen_client_port))
+        elif TOOL == 'ADMIN':
+            rc = os.system(
+                '{admin} '
+                '-u sa -p siri -s {addr} '
+                'new-replica '
+                '--db-name {dbname} '
+                '--db-server {dbaddr} '
+                '--db-user {dbuser} '
+                '--db-password {dbpassword} '
+                '--pool {pool} '
+                '--force{verbose}'.format(
+                    admin=ADMIN,
+                    addr=server.addr,
+                    dbaddr=remote_server.addr,
+                    dbuser=username,
+                    dbpassword=password,
+                    pool=pool,
+                    verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
+                    else ' >/dev/null',
+                    **vars(self)))
+        else:
+            logging.error(
+                'TOOL should be either MANAGE or ADMIN, got: {}'
+                .format(TOOL))
+            rc = 1
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
 
@@ -108,28 +160,52 @@ class SiriDB:
         if remote_server is None:
             remote_server = random.choice(self.servers)
 
-        rc = os.system(
-            '{manage} '
-            '--log-level {log_level} '
-            '--noroot --config {cfgfile} create-pool '
-            '--dbname {dbname} '
-            '--remote-address {remote_address} '
-            '--remote-port {remote_port} '
-            '--user {user} '
-            '--password {password} '
-            '{bufpath}'
-            '--buffer-size {buffer_size}'.format(
-                manage=MANAGE,
-                log_level=self.LOG_LEVEL.lower(),
-                cfgfile=server.cfgfile,
-                user=username,
-                password=password,
-                bufpath=
-                    '' if not self.buffer_path
-                    else '--buffer-path {}'.format(self.buffer_path),
-                **vars(self),
-                remote_address=remote_server.server_address,
-                remote_port=remote_server.listen_client_port))
+        if TOOL == 'MANAGE':
+            rc = os.system(
+                '{manage} '
+                '--log-level {log_level} '
+                '--noroot --config {cfgfile} create-pool '
+                '--dbname {dbname} '
+                '--remote-address {remote_address} '
+                '--remote-port {remote_port} '
+                '--user {user} '
+                '--password {password} '
+                '{bufpath}'
+                '--buffer-size {buffer_size}'.format(
+                    manage=MANAGE,
+                    log_level=self.LOG_LEVEL.lower(),
+                    cfgfile=server.cfgfile,
+                    user=username,
+                    password=password,
+                    bufpath=
+                        '' if not self.buffer_path
+                        else '--buffer-path {}'.format(self.buffer_path),
+                    **vars(self),
+                    remote_address=remote_server.server_address,
+                    remote_port=remote_server.listen_client_port))
+        elif TOOL == 'ADMIN':
+            rc = os.system(
+                '{admin} '
+                '-u sa -p siri -s {addr} '
+                'new-pool '
+                '--db-name {dbname} '
+                '--db-server {dbaddr} '
+                '--db-user {dbuser} '
+                '--db-password {dbpassword} '
+                '--force{verbose}'.format(
+                    admin=ADMIN,
+                    addr=server.addr,
+                    dbaddr=remote_server.addr,
+                    dbuser=username,
+                    dbpassword=password,
+                    verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
+                    else ' >/dev/null',
+                    **vars(self)))
+        else:
+            logging.error(
+                'TOOL should be either MANAGE or ADMIN, got: {}'
+                .format(TOOL))
+            rc = 1
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
 

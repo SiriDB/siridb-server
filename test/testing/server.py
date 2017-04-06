@@ -45,6 +45,10 @@ class Server:
         self.name = 'SiriDB:{}'.format(self.listen_backend_port)
         self.pid = None
 
+    @property
+    def addr(self):
+        return '{}:{}'.format(self.server_address, self.listen_client_port)
+
     def create(self):
         logging.info('Create server {}'.format(self.name))
 

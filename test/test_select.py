@@ -65,7 +65,7 @@ DATA = {
 class TestSelect(TestBase):
     title = 'Test select and aggregate functions'
 
-    @default_test_setup(3)
+    @default_test_setup(1)
     async def run(self):
         await self.client0.connect()
 
@@ -282,7 +282,7 @@ class TestSelect(TestBase):
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
+    Server.HOLD_TERM = False
+    Server.MEM_CHECK = False
     Server.BUILDTYPE = 'Debug'
     run_test(TestSelect())
