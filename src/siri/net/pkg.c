@@ -39,10 +39,6 @@ sirinet_pkg_t * sirinet_pkg_new(
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
 
-#ifdef DEBUG
-    assert (sizeof(sirinet_pkg_t) == sizeof(sirinet_pkg_t));
-#endif
-
     if (pkg == NULL)
     {
         ERR_ALLOC
@@ -59,26 +55,6 @@ sirinet_pkg_t * sirinet_pkg_new(
         {
             memcpy(pkg->data, data, len);
         }
-    }
-    return pkg;
-}
-
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- * (do not forget to run free(...) on the result. )
- */
-sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source)
-{
-    size_t size = sizeof(sirinet_pkg_t) + source->len;
-    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(size);
-
-    if (pkg == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        memcpy(pkg, source, size);
     }
     return pkg;
 }

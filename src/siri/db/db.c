@@ -46,7 +46,7 @@
 static siridb_t * SIRIDB_new(void);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
-    sprintf(err_msg, "error: " ERROR_MSG);  \
+    strcpy(err_msg, "error: " ERROR_MSG);   \
     siridb__free(*siridb);                  \
     *siridb = NULL;                         \
     return -1;

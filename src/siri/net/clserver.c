@@ -783,7 +783,7 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             pkg->tp = BPROTO_REGISTER_SERVER;
 
-            if (servers != NULL && (package = sirinet_pkg_copy(pkg)) != NULL)
+            if (servers != NULL && (package = sirinet_pkg_dup(pkg)) != NULL)
             {
                 /* make sure to decrement the client in the callback */
                 sirinet_socket_incref(client);

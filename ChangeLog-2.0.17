@@ -1,0 +1,2 @@
+  * Removed duplicated function sirinet_pkg_copy() which is replaced with
+    sirinet_pkg_dup().
