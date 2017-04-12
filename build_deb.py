@@ -227,7 +227,7 @@ if __name__ == '__main__':
     os.chmod(rules_file, os.stat(rules_file).st_mode | stat.S_IEXEC)
 
     with open(os.path.join(debian_path, 'links'), 'w') as f:
-        f.write('/usr/lib/siridb/server/{package} /usr/sbin/{package}\n'.format(
+        f.write('/usr/lib/siridb/server/{package} /usr/local/bin/{package}\n'.format(
             **config))
 
     with open(os.path.join(debian_path, 'install'), 'w') as f:
