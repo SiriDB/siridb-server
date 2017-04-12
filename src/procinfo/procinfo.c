@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <logger/logger.h>
-#include <procinfo.h>
+#include <procinfo/procinfo.h>
 #include <inttypes.h>
 
 #ifdef __APPLE__
