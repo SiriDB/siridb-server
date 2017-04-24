@@ -76,10 +76,10 @@ if (IS_MASTER)                                                              \
     if (nservers)                                                           \
     {                                                                       \
         sprintf(query->err_msg,                                             \
-                "At least %d servers are not running version %s "           \
+                "At least %d server%s not running version %s "              \
                 "or greater which is required for this query.",             \
-                nservers, _VERSION);                                        \
-        siridb_query_send_error(handle, CPROTO_ERR_POOL);                   \
+                nservers, (nservers == 1) ? " is" : "s are", _VERSION);     \
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);                  \
         return;                                                             \
     }                                                                       \
 }
@@ -3507,7 +3507,7 @@ static void exit_set_list_limit(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
-    MASTER_CHECK_VERSION(siridb, "2.0.18")
+    MASTER_CHECK_VERSION(siridb, "2.0.17")
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
@@ -3766,7 +3766,7 @@ static void exit_set_select_points_limit(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
-    MASTER_CHECK_VERSION(siridb, "2.0.18")
+    MASTER_CHECK_VERSION(siridb, "2.0.17")
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 

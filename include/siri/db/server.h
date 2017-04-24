@@ -27,7 +27,6 @@
 #define SERVER_FLAG_SYNCHRONIZING 2
 #define SERVER_FLAG_REINDEXING 4
 #define SERVER_FLAG_BACKUP_MODE 8
-//#define SERVER_FLAG_APPLYING_MODE 16
 #define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
                                          and will NEVER be set on 'this'
                                          server */

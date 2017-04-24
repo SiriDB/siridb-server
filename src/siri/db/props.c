@@ -73,6 +73,10 @@ static void prop_libuv(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_list_limit(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_log_level(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -98,6 +102,10 @@ static void prop_received_points(
         qp_packer_t * packer,
         int map);
 static void prop_reindex_progress(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_select_points_limit(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
@@ -169,6 +177,8 @@ void siridb_init_props(void)
             prop_ip_support;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
             prop_libuv;
+    siridb_props[CLERI_GID_K_LIST_LIMIT - KW_OFFSET] =
+            prop_list_limit;
     siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =
             prop_max_open_files;
     siridb_props[CLERI_GID_K_MEM_USAGE - KW_OFFSET] =
@@ -183,6 +193,8 @@ void siridb_init_props(void)
             prop_received_points;
     siridb_props[CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET] =
             prop_reindex_progress;
+    siridb_props[CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET] =
+            prop_select_points_limit;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] =
             prop_server;
     siridb_props[CLERI_GID_K_STARTUP_TIME - KW_OFFSET] =
@@ -295,6 +307,15 @@ static void prop_libuv(
     qp_add_string(packer, uv_version_string());
 }
 
+static void prop_list_limit(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("list_limit", 10)
+    qp_add_int64(packer, (int64_t) siridb->list_limit);
+}
+
 static void prop_log_level(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -356,6 +377,15 @@ static void prop_reindex_progress(
 {
     SIRIDB_PROP_MAP("reindex_progress", 16)
     qp_add_string(packer, siridb_reindex_progress(siridb));
+}
+
+static void prop_select_points_limit(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("select_points_limit", 19)
+    qp_add_int64(packer, (int64_t) siridb->select_points_limit);
 }
 
 static void prop_server(

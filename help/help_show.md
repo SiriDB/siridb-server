@@ -17,6 +17,7 @@ See available options for more info on each show command:
 - `show duration_num`: Returns the sharding duration for num data on *this* database.
 - `show ip_support`: Returns the ip support setting on *this* server.
 - `show libuv`: Returns the version of libuv on *this* server.
+- `show list_limit`: Returns the maximum value which can be used as limit in a list query.
 - `show log_level`: Returns the current log level for *this* server.
 - `show max_open_files`: Returns the maximum open files value used for sharding on *this* server (if this value is lower than expected, please check the log files for SiriDB as startup time).
 - `show mem_usage`: Returns the current memory usage in MB's on *this* server.
@@ -24,6 +25,7 @@ See available options for more info on each show command:
 - `show pool`: Returns the pool ID for *this* server.
 - `show received_points`: Returns the received points for *this* server. On each restart of the SiriDB Server the counter will reset to 0.
 - `show reindex_progress`: Returns the re-index status on *this* server. Only available when the database is re-indexing series over pools.
+- `show select_points_limit`: Returns the maximum number of points which can be returned with a select query.
 - `show server`: Returns *this* server name. The name has format *host:port*
 - `show startup_time`: Returns the time in seconds it took to startup the SiriDB database on *this* server.
 - `show status`: Returns the current status for *this* server.
