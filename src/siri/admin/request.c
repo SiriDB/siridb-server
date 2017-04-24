@@ -573,7 +573,7 @@ static cproto_server_t ADMIN_on_new_database(
     uuid_generate(uuid);
 
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
-        qp_fadd_int8(fp, SIRIDB_SHEMA) ||
+        qp_fadd_int8(fp, SIRIDB_SCHEMA) ||
         qp_fadd_raw(fp, (const char *) uuid, 16) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
         qp_fadd_int8(fp, time_precision) ||
@@ -581,7 +581,9 @@ static cproto_server_t ADMIN_on_new_database(
         qp_fadd_int64(fp, duration_num) ||
         qp_fadd_int64(fp, duration_log) ||
         qp_fadd_string(fp, "NAIVE") ||
-        qp_fadd_double(fp, 1.0) ||
+        qp_fadd_double(fp, DEF_DROP_THRESHOLD) ||
+        qp_fadd_int64(fp, DEF_SELECT_POINTS_LIMIT) ||
+        qp_fadd_int64(fp, DEF_LIST_LIMIT) ||
         qp_fadd_type(fp, QP_ARRAY_CLOSE))
     {
         rc = -1;

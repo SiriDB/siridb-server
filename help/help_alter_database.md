@@ -5,7 +5,7 @@ Syntax:
 
 	alter database set <option>
 
-Valid options are *drop_threshold* and *timezone*.
+Valid options are *drop_threshold*, *timezone*, *select_points_limit* and *list_limit*.
 
 drop_threshold
 --------------
@@ -58,3 +58,23 @@ Example:
 
 	# Set the default time zone to Europe/Amsterdam
 	alter database set timezone 'Europe/Amsterdam'  
+
+select\_points_limit
+-------------------
+Change the maximum points which can be returned by a select query. The default value is set to one million points to prevent a single query for taking to much memory.
+
+Example:
+
+    # Set the select points limit to 5 million
+    alter database set select_points_limit 5000000
+    
+list_limit
+----------
+Change the maximum value which can be used with a limit list statement. The default
+value is set to ten thousant to prevent queries using a large limit which could take a large amount of memory. The value should be a value greater than or equal to 1000.
+
+Example:
+
+    # Set the list limit to 50 thousant.
+    alter database set list_limit 50000
+    

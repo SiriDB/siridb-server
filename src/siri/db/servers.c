@@ -30,6 +30,7 @@
 
 static void SERVERS_walk_free(siridb_server_t * server, void * args);
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
+static int SERVERS_walk_chkver(siridb_server_t * server, const char * vesion);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -669,6 +670,18 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 }
 
 /*
+ * Returns the numbers of servers with a version less than the given version.
+ * If all servers are at least running the given version 0 is returned.
+ */
+int siridb_servers_check_version(siridb_t * siridb, char * version)
+{
+    return llist_walk(
+            siridb->servers,
+            (llist_cb) SERVERS_walk_chkver,
+            version);
+}
+
+/*
  * Return 0 if successful or -1 and a SIGNAL is raised in case of an error.
  */
 int siridb_servers_save(siridb_t * siridb)
@@ -729,4 +742,7 @@ static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
     return rc;
 }
 
-
+static int SERVERS_walk_chkver(siridb_server_t * server, const char * vesion)
+{
+    return siri_version_cmp(server->version, vesion) < 0;
+}

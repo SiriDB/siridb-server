@@ -31,8 +31,12 @@
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
-#define SIRIDB_SHEMA 1
+#define SIRIDB_SCHEMA 2
 #define SIRIDB_FLAG_REINDEXING 1
+
+#define DEF_DROP_THRESHOLD 1.0              // 100%
+#define DEF_SELECT_POINTS_LIMIT 1000000     // one million
+#define DEF_LIST_LIMIT 10000                // ten thousand
 
 #define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
     char FN[strlen(__path) + strlen(FILENAME) + 1]; 				\
@@ -77,11 +81,13 @@ typedef struct siridb_s
     uint16_t insert_tasks;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
+    uint32_t select_points_limit;
+    uint32_t list_limit;
     uuid_t uuid;
     iso8601_tz_t tz;
     size_t buffer_size;
     size_t buffer_len;
-    time_t start_ts;                  // in seconds, to calculate up-time.
+    time_t start_ts;                    // in seconds, to calculate up-time.
     uint64_t duration_num;              // number duration in s, ms, us or ns
     uint64_t duration_log;              // log duration in s, ms, us or ns
     char * dbname;
@@ -113,12 +119,6 @@ typedef struct siridb_s
 
 int siridb_is_db_path(const char * dbpath);
 siridb_t * siridb_new(const char * dbpath, int lock_flags);
-int siridb_from_unpacker(
-        qp_unpacker_t * unpacker,
-        siridb_t ** siridb,
-        const char * dbpath,
-        char * err_msg);
-
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
 void siridb_decref_cb(siridb_t * siridb, void * args);
 ssize_t siridb_get_file(char ** buffer, siridb_t * siridb);

@@ -95,6 +95,7 @@ class SiriGrammar(Grammar):
     k_libuv = Keyword('libuv')
     k_limit = Keyword('limit')
     k_list = Keyword('list')
+    k_list_limit = Keyword('list_limit')
     k_log = Keyword('log')
     k_log_level = Keyword('log_level')
     k_max = Keyword('max')
@@ -125,6 +126,7 @@ class SiriGrammar(Grammar):
     k_reindex_progress = Keyword('reindex_progress')
     k_revoke = Keyword('revoke')
     k_select = Keyword('select')
+    k_select_points_limit = Keyword('select_points_limit')
     k_series = Keyword('series')
     k_server = Keyword('server')
     k_servers = Keyword('servers')
@@ -512,14 +514,18 @@ class SiriGrammar(Grammar):
     set_drop_threshold = Sequence(k_set, k_drop_threshold, r_float)
     set_expression = Sequence(k_set, k_expression, r_regex)
     set_ignore_threshold = Sequence(k_set, k_ignore_threshold, _boolean)
+    set_list_limit = Sequence(k_set, k_list_limit, r_uinteger)
     set_log_level = Sequence(k_set, k_log_level, log_keywords)
     set_name = Sequence(k_set, k_name, string)
     set_password = Sequence(k_set, k_password, string)
     set_port = Sequence(k_set, k_port, r_uinteger)
+    set_select_points_limit = Sequence(k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
 
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
+        set_list_limit,
+        set_select_points_limit,
         set_timezone,
         most_greedy=False))
 
