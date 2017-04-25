@@ -28,8 +28,6 @@ SiriDB is highly-scalable, robust and super fast time series database.
 	
 ---------------------------------------
 
-, for the full documentation visit: [http://siridb.net/docs/](http://siridb.net/docs/)
-
 ## Installation
 ### Ubuntu
 For Ubnutu we have a deb package available which can be downloaded [here](https://github.com/transceptor-technology/siridb-server/releases/latest).
