@@ -276,6 +276,13 @@ class TestSelect(TestBase):
         self.assertIn('minimum-aggr', result)
         self.assertIn('aggr-maximum', result)
 
+        await self.client0.query('alter database set select_points_limit 10')
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Query has reached the maximum number of selected points.*'):
+            await self.client0.query(
+                'select * from /.*/')
+
         self.client0.close()
 
         return False

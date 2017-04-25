@@ -3,4 +3,7 @@
     
   * Fixed missing include (inttypes.h) in procinfo.c.
   
-  * Changed link location from /usr/sbin to /usr/local/bin in deb package. 
+  * Changed link location from /usr/sbin to /usr/local/bin in deb package.
+  
+  * Limits for returning data points and list items can now be configured.
+    (issue #64) 
