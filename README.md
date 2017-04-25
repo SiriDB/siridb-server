@@ -10,9 +10,9 @@ SiriDB is highly-scalable, robust and super fast time series database.
       * [OSX](#osx)
   * [Create or expand a database](#create-or-expand-a-database)
   * [Using SiriDB](#using-siridb)
-    * [SiriDB Prompt](#siridb-prompt)
     * [SiriDB Connectors](#siridb-connectors)
     * [SiriDB HTTP](#siridb-http)
+    * [SiriDB Prompt](#siridb-prompt)
   * [API](#api)
   * [Docker](#docker)
     * [Single SiriDB server setup](#single-siridb-server-setup)
@@ -75,14 +75,14 @@ make
 ## Using SiriDB
 SiriDB has several tools available to connect to a SiriDB database. 
 
-### SiriDB Prompt
-[SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
-
 ### SiriDB Connectors
 Native connectors are available for [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
 [SiriDB HTTP](https://github.com/transceptor-technology/siridb-http/blob/master/README.md) provides a HTTP API for SiriDB and has support for JSON, MsgPack, CSV and QPack. SiriDB HTTP also has an optional web interface ans SSL support.
+
+### SiriDB Prompt
+[SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
 
 ## API
 The API documentation for SiriDB can be found at https://siridb.net/docs.
