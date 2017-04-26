@@ -5,10 +5,6 @@ Syntax:
 
 	select <points/functions> from <match_series [<where>]> [<time_range>] [<merge_data>]
 
-points
-======
-Select original points.
-
 Example:
 
 	# Select points from "series-001"
