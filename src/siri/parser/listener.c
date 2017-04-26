@@ -1127,7 +1127,7 @@ static void enter_series_name(uv_async_t * handle)
 
     if (siridb_is_reindexing(siridb))
     {
-        series = ct_get(siridb->series, series_name);
+        series = (siridb_series_t *) ct_get(siridb->series, series_name);
     }
     else
     {
@@ -1137,9 +1137,7 @@ static void enter_series_name(uv_async_t * handle)
         /* check if this series belongs to 'this' pool and if so get the series */
         if (pool == siridb->server->pool)
         {
-            series = (siridb_series_t *) ct_get(
-                                siridb->series,
-                                series_name);
+            series = (siridb_series_t *) ct_get(siridb->series, series_name);
             if (series == NULL)
             {
                 /* the series does not exist */

@@ -65,7 +65,7 @@ DATA = {
 class TestSelect(TestBase):
     title = 'Test select and aggregate functions'
 
-    @default_test_setup(1)
+    @default_test_setup(3)
     async def run(self):
         await self.client0.connect()
 
@@ -282,6 +282,7 @@ class TestSelect(TestBase):
                 'Query has reached the maximum number of selected points.*'):
             await self.client0.query(
                 'select * from /.*/')
+        await self.client0.query('alter database set select_points_limit 1000000')
 
         self.client0.close()
 

@@ -23,6 +23,7 @@
 #include <siri/db/server.h>
 #include <siri/db/buffer.h>
 #include <siri/version.h>
+#include <siri/db/reindex.h>
 
 #define DEFAULT_TIME_PRECISION 1
 #define DEFAULT_BUFFER_SIZE 1024
@@ -105,7 +106,7 @@
         return CPROTO_ERR_ADMIN;                                            \
     }                                                                       \
                                                                             \
-    char dbfn[dbpath_len + strlen(DB_CONF_FN)];                             \
+    char dbfn[dbpath_len + max_filename_sz];                                \
     sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);                              \
                                                                             \
     fp = fopen(dbfn, "w");                                                  \
@@ -172,11 +173,19 @@ static int ADMIN_list_accounts(
         siri_admin_account_t * account,
         qp_packer_t * packer);
 
+static size_t max_filename_sz;
+
 /*
  * Initialize administrative requests. (called once when initializing SiriDB)
  */
 int siri_admin_request_init(void)
 {
+    max_filename_sz = xmath_max_size(
+            3,
+            strlen(DB_CONF_FN),
+            strlen(DB_DAT_FN),
+            strlen(REINDEX_FN));
+
     const char * pcre_error_str;
     int pcre_error_offset;
 
@@ -653,7 +662,6 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
         return CPROTO_ERR_ADMIN;
     }
 
-
     qp_dbname.tp = QP_HOOK;
     qp_pool.tp = QP_HOOK;
     qp_host.tp = QP_HOOK;
@@ -728,6 +736,22 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
     uuid_generate(uuid);
 
     CHECK_DBNAME_AND_CREATE_PATH
+
+    if (req == ADMIN_NEW_POOL)
+    {
+        sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
+        fp = fopen(dbfn, "w");
+        if (fp == NULL || fclose(fp))
+        {
+            siri_admin_request_rollback(dbpath);
+            snprintf(
+                    err_msg,
+                    SIRI_MAX_SIZE_ERR_MSG,
+                    "cannot open file for writing: %s",
+                    dbfn);
+            return CPROTO_ERR_ADMIN;
+        }
+    }
 
     if (siri_admin_client_request(
             pid,
@@ -837,10 +861,13 @@ static cproto_server_t ADMIN_on_get_databases(
 void siri_admin_request_rollback(const char * dbpath)
 {
     size_t dbpath_len = strlen(dbpath);
-    char dbfn[dbpath_len + strlen(DB_CONF_FN)];
+    char dbfn[dbpath_len + max_filename_sz];
+
     sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);
     unlink(dbfn);
     sprintf(dbfn, "%s%s", dbpath, DB_DAT_FN);
+    unlink(dbfn);
+    sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
     unlink(dbfn);
     if (rmdir(dbpath))
     {

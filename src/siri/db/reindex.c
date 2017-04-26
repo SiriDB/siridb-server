@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define REINDEX_FN ".reindex"
 #define REINDEX_SLEEP 100           // 100 milliseconds * active tasks
 #define REINDEX_RETRY 5000          // 5 seconds
 #define REINDEX_INITWAIT 20000      // 20 seconds

@@ -61,16 +61,16 @@ Example:
 
 select\_points_limit
 -------------------
-Change the maximum points which can be returned by a select query. The default value is set to one million points to prevent a single query for taking to much memory.
+Change the maximum points which can be returned by a select query. The default and recommended value is set to one million points. This value is chosen to prevent a single query for taking to much memory and ensures SiriDB can respond to almost any query in a reasonable amount of time. 
 
 Example:
 
-    # Set the select points limit to 5 million
+    # Increase the select points limit to 5 million
     alter database set select_points_limit 5000000
     
 list_limit
 ----------
-Change the maximum value which can be used as a limit for a list statement. The default value is set to ten thousand to prevent queries which could take a large amount of memory. The value must be greater than or equal to 1000.
+Change the maximum value which can be used as a limit for a list statement. The default and recommended value is set to ten thousand to prevent queries which could take a large amount of memory. The value must be greater than or equal to 1000.
 
 Example:
 
