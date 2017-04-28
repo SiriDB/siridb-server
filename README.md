@@ -1,6 +1,6 @@
 SiriDB Server
 =============
-SiriDB is highly-scalable, robust and super fast time series database.
+SiriDB is a highly-scalable, robust and super fast time series database.
 
 ---------------------------------------
   * [Installation](#installation)
@@ -126,7 +126,7 @@ First let's fire up our first SiriDB server:
 		--hostname=server-a \
 		siridb/server
 
-Using these two docker commands a bridged network for SiriDB has been created and the first server is started in a container. See our installation guide for more details.
+By using these two docker commands a bridged network for SiriDB has been created and the first server is started in a container. See our installation guide for more details.
 
 #### Create a database
 Next step, create a database using the SiriDB manage prompt, this prompt is available as a separate package or docker container. Since we're using docker for our getting started we use the container:
@@ -149,12 +149,12 @@ Let's look at what just happened, we created a database named **MyTimeSeriesData
 
 #### Insert data
 Now that we have a running database we might as well put it to good use.
-For our example we use the Google Finance data as this data is available for free for different stock markets. The complete list can be found [here](https://www.google.com/intl/en/googlefinance/disclaimer/).
+For our example we use the Google Finance data since this data is available for free for different stock markets. The complete list can be found [here](https://www.google.com/intl/en/googlefinance/disclaimer/).
 
-In order to format the data, we created a small python script that downloads the data and output's it as CSV. The source of this script can be found [here](https://github.com/transceptor-technology/siridb-demo/blob/master/demo_google_finance/data_google_finance.py). For this guide we created a docker container, as well as for this script.
+In order to format the data, we create a small python script that downloads the data and output's it as CSV. The source of this script can be found [here](https://github.com/transceptor-technology/siridb-demo/blob/master/demo_google_finance/data_google_finance.py). For this guide we created a docker container, as well as for this script.
 
 
-For this example we use IBM's ticker data:
+In this example we use IBM's ticker data:
 ```
 docker run -it \
 	--rm \
