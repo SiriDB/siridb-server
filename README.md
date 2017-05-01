@@ -13,7 +13,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [SiriDB Connectors](#siridb-connectors)
     * [SiriDB HTTP](#siridb-http)
     * [SiriDB Prompt](#siridb-prompt)
-  * [API](#api)
+  * [API/Query language](#query-language)
   * [Docker](#docker)
     * [Single SiriDB server setup](#single-siridb-server-setup)
       * [Get the SiriDB server up and running](#get-the-siridb-server-up-and-running)
@@ -82,8 +82,8 @@ Native connectors are available for [Python](https://github.com/transceptor-tech
 ### SiriDB Prompt
 [SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
 
-## API
-The API documentation for SiriDB can be found at https://siridb.net/docs.
+## Query language
+The query language documentation for SiriDB can be found at https://siridb.net/docs.
 
 ## Docker
 All SiriDB components are available from Docker Hub:
