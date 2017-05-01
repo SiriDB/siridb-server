@@ -83,7 +83,7 @@ Native connectors are available for [Python](https://github.com/transceptor-tech
 [SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
 
 ## Query language
-The query language documentation for SiriDB can be found at https://siridb.net/docs.
+Documentation about the query language can be found at https://siridb.net/docs.
 
 ## Docker
 All SiriDB components are available from Docker Hub:
