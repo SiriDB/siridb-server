@@ -30,7 +30,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
 
 ## Installation
 ### Ubuntu
-For Ubnutu we have a deb package available which can be downloaded [here](https://github.com/transceptor-technology/siridb-server/releases/latest).
+For Ubuntu we have a deb package available which can be downloaded [here](https://github.com/transceptor-technology/siridb-server/releases/latest).
 
 Note: SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily installed using apt:
 ```
@@ -39,7 +39,7 @@ apt install wget libexpat1 libuv1
 
 ### Compile from source
 #### Linux
-Install the following requirements: (Ubnutu)
+Install the following requirements: (Ubuntu)
 ```
 sudo apt install libpcre3-dev
 sudo apt install libuv1-dev 
