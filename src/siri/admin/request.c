@@ -23,6 +23,7 @@
 #include <siri/db/server.h>
 #include <siri/db/buffer.h>
 #include <siri/version.h>
+#include <siri/db/reindex.h>
 
 #define DEFAULT_TIME_PRECISION 1
 #define DEFAULT_BUFFER_SIZE 1024
@@ -105,7 +106,7 @@
         return CPROTO_ERR_ADMIN;                                            \
     }                                                                       \
                                                                             \
-    char dbfn[dbpath_len + strlen(DB_CONF_FN)];                             \
+    char dbfn[dbpath_len + max_filename_sz];                                \
     sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);                              \
                                                                             \
     fp = fopen(dbfn, "w");                                                  \
@@ -172,11 +173,19 @@ static int ADMIN_list_accounts(
         siri_admin_account_t * account,
         qp_packer_t * packer);
 
+static size_t max_filename_sz;
+
 /*
  * Initialize administrative requests. (called once when initializing SiriDB)
  */
 int siri_admin_request_init(void)
 {
+    max_filename_sz = xmath_max_size(
+            3,
+            strlen(DB_CONF_FN),
+            strlen(DB_DAT_FN),
+            strlen(REINDEX_FN));
+
     const char * pcre_error_str;
     int pcre_error_offset;
 
@@ -573,7 +582,7 @@ static cproto_server_t ADMIN_on_new_database(
     uuid_generate(uuid);
 
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
-        qp_fadd_int8(fp, SIRIDB_SHEMA) ||
+        qp_fadd_int8(fp, SIRIDB_SCHEMA) ||
         qp_fadd_raw(fp, (const char *) uuid, 16) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
         qp_fadd_int8(fp, time_precision) ||
@@ -581,7 +590,9 @@ static cproto_server_t ADMIN_on_new_database(
         qp_fadd_int64(fp, duration_num) ||
         qp_fadd_int64(fp, duration_log) ||
         qp_fadd_string(fp, "NAIVE") ||
-        qp_fadd_double(fp, 1.0) ||
+        qp_fadd_double(fp, DEF_DROP_THRESHOLD) ||
+        qp_fadd_int64(fp, DEF_SELECT_POINTS_LIMIT) ||
+        qp_fadd_int64(fp, DEF_LIST_LIMIT) ||
         qp_fadd_type(fp, QP_ARRAY_CLOSE))
     {
         rc = -1;
@@ -650,7 +661,6 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
                 siri.siridb_list->len);
         return CPROTO_ERR_ADMIN;
     }
-
 
     qp_dbname.tp = QP_HOOK;
     qp_pool.tp = QP_HOOK;
@@ -726,6 +736,22 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
     uuid_generate(uuid);
 
     CHECK_DBNAME_AND_CREATE_PATH
+
+    if (req == ADMIN_NEW_POOL)
+    {
+        sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
+        fp = fopen(dbfn, "w");
+        if (fp == NULL || fclose(fp))
+        {
+            siri_admin_request_rollback(dbpath);
+            snprintf(
+                    err_msg,
+                    SIRI_MAX_SIZE_ERR_MSG,
+                    "cannot open file for writing: %s",
+                    dbfn);
+            return CPROTO_ERR_ADMIN;
+        }
+    }
 
     if (siri_admin_client_request(
             pid,
@@ -835,10 +861,13 @@ static cproto_server_t ADMIN_on_get_databases(
 void siri_admin_request_rollback(const char * dbpath)
 {
     size_t dbpath_len = strlen(dbpath);
-    char dbfn[dbpath_len + strlen(DB_CONF_FN)];
+    char dbfn[dbpath_len + max_filename_sz];
+
     sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);
     unlink(dbfn);
     sprintf(dbfn, "%s%s", dbpath, DB_DAT_FN);
+    unlink(dbfn);
+    sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
     unlink(dbfn);
     if (rmdir(dbpath))
     {

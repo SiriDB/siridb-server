@@ -5,17 +5,13 @@ Syntax:
 
 	select <points/functions> from <match_series [<where>]> [<time_range>] [<merge_data>]
 
-points
-======
-Select original points.
-
 Example:
 
 	# Select points from "series-001"
 	select * from "series-001"
 
 functions
-----------
+---------
 It's possible to select multiple aggregate functions in one query. This has some
 advantages over performing multiple queries since the database in this case only
 needs to search for the series and points once. To find the requested aggregate
@@ -32,7 +28,7 @@ For more help on aggregate functions see `help functions`.
 
 Combine functions
 -----------------
-The aggregate function can be used together by parsing the result of one function
+The aggregate functions can be used together by parsing the result of one function
 to the next. It's also possible to use the same function twice which can be
 useful with for example difference.
 

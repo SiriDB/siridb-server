@@ -10,7 +10,6 @@
  *
  */
 #include <limits.h>
-#include <linux/limits.h>
 #include <logger/logger.h>
 #include <stdio.h>
 #include <stdlib.h>

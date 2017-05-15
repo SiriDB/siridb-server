@@ -669,6 +669,28 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 }
 
 /*
+ * Returns the numbers of servers with a version less than the given version.
+ * If all servers are at least running the given version 0 is returned.
+ */
+int siridb_servers_check_version(siridb_t * siridb, char * version)
+{
+    siridb_server_t * server;
+    int n = 0;
+    for (   llist_node_t * node = siridb->servers->first;
+            node != NULL;
+            node = node->next)
+    {
+        server = node->data;
+        if (server != siridb->server)
+        {
+            n += (server->version == NULL ||
+                  siri_version_cmp(server->version, version) < 0) ? 1 : 0;
+        }
+    }
+    return n;
+}
+
+/*
  * Return 0 if successful or -1 and a SIGNAL is raised in case of an error.
  */
 int siridb_servers_save(siridb_t * siridb)
@@ -728,5 +750,4 @@ static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
     rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
     return rc;
 }
-
 

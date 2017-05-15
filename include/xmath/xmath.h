@@ -12,5 +12,7 @@
 #pragma once
 
 #include <inttypes.h>
+#include <stddef.h>
 
 uint32_t xmath_ipow(int base, int exp);
+size_t xmath_max_size(size_t n, ...);

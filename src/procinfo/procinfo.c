@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <logger/logger.h>
+#include <procinfo/procinfo.h>
+#include <inttypes.h>
 
 #ifdef __APPLE__
 #include <mach/task.h>
