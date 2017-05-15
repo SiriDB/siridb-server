@@ -5,7 +5,7 @@ ENV SIRIDB_VERSION 2.0.16
 RUN \
   apt-get update && \
   apt-get install --yes --force-yes build-essential libuv1-dev uuid-dev libpcre3-dev wget && \
-  wget -P /tmp/ https://github.com/transceptor-technology/siridb-server/releases/download/2.0.16/siridb-server_${SIRIDB_VERSION}_amd64.deb && \
+  wget -P /tmp/ https://github.com/transceptor-technology/siridb-server/releases/download/${SIRIDB_VERSION}/siridb-server_${SIRIDB_VERSION}_amd64.deb && \
   dpkg -i /tmp/siridb-server_${SIRIDB_VERSION}_amd64.deb
   # mkdir -p /etc/siridb && \
   # cp /opt/src/siridb-server/siridb.conf /etc/siridb/siridb.conf
