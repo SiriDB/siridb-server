@@ -1,24 +1,23 @@
-FROM ubuntu:xenial
-MAINTAINER transceptor-technology "support@transceptor.technology"
-# Install SiriDB server
-ENV SIRIDB_VERSION 2.0.16
-RUN \
-  apt-get update && \
-  apt-get install --yes --force-yes build-essential libuv1-dev uuid-dev libpcre3-dev wget && \
-  wget -P /tmp/ https://github.com/transceptor-technology/siridb-server/releases/download/2.0.16/siridb-server_${SIRIDB_VERSION}_amd64.deb && \
-  dpkg -i /tmp/siridb-server_${SIRIDB_VERSION}_amd64.deb
-  # mkdir -p /etc/siridb && \
-  # cp /opt/src/siridb-server/siridb.conf /etc/siridb/siridb.conf
+FROM alpine
+RUN apk update && \
+    apk upgrade && \
+    apk add gcc make libuv-dev musl-dev pcre-dev util-linux-dev linux-headers git && \
+		cd /tmp && \
+    git clone https://github.com/transceptor-technology/siridb-server.git && \
+		cd siridb-server/Release && \
+		make clean && \
+		make && \
+		mkdir -p /etc/siridb && \
+		mkdir -p /var/lib/siridb && \
+		cp /tmp/siridb-server/siridb.conf /etc/siridb/siridb.conf && \
+		cp siridb-server /usr/local/bin/ && \
+		rm -rf /tmp/siridb-server
+# Configuration
 VOLUME ["/etc/siridb"] # config
+# Data
 VOLUME ["/var/lib/siridb/"]
-
 # Client connections
 EXPOSE 9000
 # back-end connections
 EXPOSE 9010
-
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-ENTRYPOINT ["/usr/sbin/siridb-server"]
+ENTRYPOINT ["/usr/local/bin/siridb-server"]
