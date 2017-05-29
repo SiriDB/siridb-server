@@ -65,7 +65,7 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 static uv_timer_t closing_timer;
 static int closing_attempts = 40;  // times 3 seconds is 2 minutes
 
-#define N_SIGNALS 5
+#define N_SIGNALS 6
 static int signals[N_SIGNALS] = {
         SIGHUP,
         SIGINT,
