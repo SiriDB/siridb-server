@@ -79,9 +79,6 @@ qp_packer_t * sirinet_packer_new(size_t alloc_size)
     else
     {
         packer->len = sizeof(sirinet_pkg_t);
-#ifdef DEBUG
-        ((sirinet_pkg_t *) packer->buffer)->tp = PKG___QP_TP;
-#endif
     }
 
     return packer;
@@ -99,11 +96,6 @@ sirinet_pkg_t * sirinet_packer2pkg(
         uint8_t tp)
 {
     sirinet_pkg_t * pkg = (sirinet_pkg_t *) packer->buffer;
-
-#ifdef DEBUG
-    assert (pkg->tp == PKG___QP_TP);
-#endif
-
 
     pkg->pid = pid;
     pkg->tp = tp;

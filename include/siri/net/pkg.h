@@ -15,8 +15,6 @@
 #include <qpack/qpack.h>
 #include <uv.h>
 
-#define PKG___QP_TP 255
-
 typedef struct sirinet_pkg_s
 {
     uint32_t len;   // length of data, sizeof(sirinet_pkg_t) is not included
