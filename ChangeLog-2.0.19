@@ -1,1 +1,3 @@
   * Get the realpath for the default configuration path. (issue #72)
+  
+  * Set correct array length for signal handlers.
