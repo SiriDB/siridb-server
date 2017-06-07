@@ -1,17 +1,21 @@
 FROM alpine
 RUN apk update && \
-    apk upgrade && \
-    apk add gcc make libuv-dev musl-dev pcre-dev util-linux-dev linux-headers git && \
+		apk upgrade && \
+		apk add gcc make libuv-dev musl-dev pcre-dev util-linux-dev linux-headers git && \
 		cd /tmp && \
-    git clone https://github.com/transceptor-technology/siridb-server.git && \
+		git clone https://github.com/transceptor-technology/siridb-server.git && \
 		cd siridb-server/Release && \
 		make clean && \
-		make && \
+		make
+
+FROM alpine:latest
+RUN apk update && \
+		apk add pcre libuv libuuid && \
 		mkdir -p /etc/siridb && \
 		mkdir -p /var/lib/siridb && \
-		cp /tmp/siridb-server/siridb.conf /etc/siridb/siridb.conf && \
-		cp siridb-server /usr/local/bin/ && \
-		rm -rf /tmp/siridb-server
+		mkdir -p /testme
+COPY --from=0 /tmp/siridb-server/siridb.conf /etc/siridb/siridb.conf
+COPY --from=0 /tmp/siridb-server/Release/siridb-server /usr/local/bin/
 # Configuration
 VOLUME ["/etc/siridb"] # config
 # Data
