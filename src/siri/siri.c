@@ -150,6 +150,10 @@ int siri_start(void)
 
     /* initialize the default event loop */
     siri.loop = (uv_loop_t *) malloc(sizeof(uv_loop_t));
+    if (siri.loop == NULL)
+    {
+    	return -1;
+    }
     uv_loop_init(siri.loop);
 
     /* initialize the back-end-, client- server and load databases */
