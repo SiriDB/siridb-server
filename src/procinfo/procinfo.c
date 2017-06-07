@@ -184,7 +184,6 @@ long int procinfo_open_files(const char * path)
             }
         }
     }
-
     closedir(dirp);
 
     return count;
