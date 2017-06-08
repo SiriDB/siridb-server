@@ -331,7 +331,6 @@ siridb_shard_t *  siridb_shard_create(
 
     if (imap_add(siridb->shards, id, shard) == -1)
     {
-        ERR_ALLOC
         siridb_shard_decref(shard);
         return NULL;
     }
