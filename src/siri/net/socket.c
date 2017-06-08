@@ -154,7 +154,6 @@ void sirinet_socket_on_data(
     if (ssocket->on_data == NULL)
     {
         char addr_port[ADDR_BUF_SZ];
-
         if (sirinet_addr_and_port(addr_port, client) == 0)
         {
             log_error(
@@ -162,7 +161,6 @@ void sirinet_socket_on_data(
                     "connection will be closed in a few seconds...",
                 addr_port);
         }
-
         return;
     }
 
