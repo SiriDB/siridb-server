@@ -5,3 +5,5 @@
   * Cleanup some debug code.
   
   * Check for successful malloc uv_loop.
+  
+  * Changed socket code and simplified buffer.

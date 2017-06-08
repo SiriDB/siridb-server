@@ -16,6 +16,7 @@
 #include <siri/net/pkg.h>
 
 #define ADDR_BUF_SZ 54
+#define RESET_BUF_SIZE 1048576  // 1 MB
 
 /* Warning: do not change the order! (maps to dns_req_family_map) */
 enum
@@ -47,6 +48,7 @@ typedef struct sirinet_socket_s
     void * origin;  /* can be a user, server or NULL */
     char * buf;
     size_t len;
+    size_t size;
     uv_tcp_t tcp;
 } sirinet_socket_t;
 
