@@ -216,13 +216,14 @@ void sirinet_socket_on_data(
 		return;
 	}
 
-    /* Call on-data function. */
+    /* call on-data function */
     (*ssocket->on_data)(client, pkg);
 
     ssocket->len -= total_sz;
 
 	if (ssocket->len > 0)
 	{
+		/* move data and call sirinet_socket_on_data() function again */
 		memmove(ssocket->buf, ssocket->buf + total_sz, ssocket->len);
 		sirinet_socket_on_data(client, 0, buf);
 	}
