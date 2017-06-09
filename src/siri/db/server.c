@@ -25,7 +25,8 @@
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
-#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
+#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    	// 5 seconds
+#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250	// max concurrent promises
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
 static int SERVER_update_name(siridb_server_t * server);
@@ -50,6 +51,7 @@ static int SERVER_resolve_dns(
         uv_getaddrinfo_cb getaddrinfo_cb);
 static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void SERVER_cancel_promise(sirinet_promise_t * promise);
+static void SERVER_upd_flag_queue_full(siridb_server_t * server);
 
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
@@ -122,12 +124,6 @@ inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
     return uuid_compare(sa->uuid, sb->uuid);
 }
 
-
-static int SERVER_register_pid(siridb_server_t * server)
-{
-
-}
-
 /*
  * This function can return -1 and raise a SIGNAL which means the 'cb'
  * function will NOT be called. Usually this function should return 0 which
@@ -153,7 +149,7 @@ int siridb_server_send_pkg(
     assert (cb != NULL);
 #endif
     int rc;
-    uint16_t n = 0;
+    uint8_t n = 0;
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
@@ -195,17 +191,18 @@ int siridb_server_send_pkg(
 	    promise->pid = server->pid++;
 	    rc = imap_add(server->promises, promise->pid, promise);
 
+	    if (rc == 0)
+	    {
+	    	SERVER_upd_flag_queue_full(server);
+	    	break;
+	    }
+
 	    if (rc == -1)
 	    {
 	        free(promise->timer);
 	        free(promise);
 	        free(req);
 	        return -1;  /* signal is raised */
-	    }
-
-	    if (rc == 0)
-	    {
-	    	break;
 	    }
 	}
 
@@ -214,7 +211,7 @@ int siridb_server_send_pkg(
     	log_critical(
     			"Maximum number pending packages for server '%s' is reached.",
 				server->name);
-        ERR_ALLOC
+    	ERR_C
     	free(promise->timer);
         free(promise);
         free(req);
@@ -593,6 +590,21 @@ static void SERVER_on_resolved(
 }
 
 /*
+ * Update SERVER_FLAG_QUEUE_FULL based on number of promises.
+ */
+static void SERVER_upd_flag_queue_full(siridb_server_t * server)
+{
+	if (server->promises->len >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
+	{
+		server->flags |= SERVER_FLAG_QUEUE_FULL;
+	}
+	else
+	{
+		server->flags &= ~SERVER_FLAG_QUEUE_FULL;
+	}
+}
+
+/*
  * Write call-back.
  */
 static void SERVER_write_cb(uv_write_t * req, int status)
@@ -615,6 +627,7 @@ static void SERVER_write_cb(uv_write_t * req, int status)
                     promise->pid);
             return;
         }
+        SERVER_upd_flag_queue_full(promise->server);
 
         uv_timer_stop(promise->timer);
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
@@ -647,6 +660,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     }
     else
     {
+    	SERVER_upd_flag_queue_full(promise->server);
         log_warning("Timeout on package (PID %" PRIu16 ") for server '%s'",
                 promise->pid,
                 promise->server->name);
@@ -758,6 +772,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
+    	SERVER_upd_flag_queue_full(promise->server);
         uv_timer_stop(promise->timer);
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
         promise->cb(promise, pkg, PROMISE_SUCCESS);
@@ -773,7 +788,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 char * siridb_server_str_status(siridb_server_t * server)
 {
     /* we must initialize the buffer according to the longest possible value */
-    char buffer[48] = {};
+    char buffer[128] = {};
     int n = 0;
     for (int i = 1; i < SERVER_FLAG_AUTHENTICATED; i *= 2)
     {
@@ -784,14 +799,17 @@ char * siridb_server_str_status(siridb_server_t * server)
             case SERVER_FLAG_RUNNING:
                 strcat(buffer, (!n) ? "running" : " | " "running");
                 break;
-            case SERVER_FLAG_BACKUP_MODE:
-                strcat(buffer, (!n) ? "backup-mode" : " | " "backup-mode");
-                break;
             case SERVER_FLAG_SYNCHRONIZING:
                 strcat(buffer, (!n) ? "synchronizing" : " | " "synchronizing");
                 break;
             case SERVER_FLAG_REINDEXING:
                 strcat(buffer, (!n) ? "re-indexing" : " | " "re-indexing");
+                break;
+            case SERVER_FLAG_BACKUP_MODE:
+                strcat(buffer, (!n) ? "backup-mode" : " | " "backup-mode");
+                break;
+            case SERVER_FLAG_QUEUE_FULL:
+                strcat(buffer, (!n) ? "queue-full" : " | " "queue-full");
                 break;
             }
             n = 1;

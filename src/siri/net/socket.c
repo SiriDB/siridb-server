@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ALLOWED_PKG_SIZE 20971520  // 20 MB
+#define MAX_ALLOWED_PKG_SIZE 20971520  	// 20 MB
 
 #define QUIT_SOCKET 					\
 	free(ssocket->buf);					\
@@ -53,7 +53,6 @@ void sirinet_socket_alloc_buffer(
         uv_buf_t * buf)
 {
     sirinet_socket_t * ssocket = (sirinet_socket_t *) handle->data;
-    size_t rest_sz;
 
     if (!ssocket->len && (!ssocket->size || ssocket->size > RESET_BUF_SIZE))
     {
@@ -69,8 +68,7 @@ void sirinet_socket_alloc_buffer(
         ssocket->len = 0;
     }
     buf->base = ssocket->buf + ssocket->len;
-    rest_sz = ssocket->size - ssocket->len;
-    buf->len = (rest_sz > suggested_size) ? suggested_size: rest_sz;
+    buf->len = ssocket->size - ssocket->len;
 }
 
 /*
@@ -216,7 +214,7 @@ void sirinet_socket_on_data(
 		return;
 	}
 
-    /* call on-data function */
+	/* call on-data function */
     (*ssocket->on_data)(client, pkg);
 
     ssocket->len -= total_sz;
