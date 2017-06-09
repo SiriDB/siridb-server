@@ -20,6 +20,7 @@
 
 static void IMAP_node_free(imap_node_t * node);
 static void IMAP_node_free_cb(imap_node_t * node, imap_free_cb cb);
+static int IMAP_set(imap_node_t * node, uint64_t id, void * data);
 static int IMAP_add(imap_node_t * node, uint64_t id, void * data);
 static void * IMAP_get(imap_node_t * node, uint64_t id);
 static void * IMAP_pop(imap_node_t * node, uint64_t id);
@@ -114,7 +115,7 @@ void imap_free(imap_t * imap, imap_free_cb cb)
  *
  * In case of an error we return -1 and a SIGNAL is raised.
  */
-int imap_add(imap_t * imap, uint64_t id, void * data)
+int imap_set(imap_t * imap, uint64_t id, void * data)
 {
 #ifdef DEBUG
     /* insert NULL is not allowed */
@@ -133,7 +134,7 @@ int imap_add(imap_t * imap, uint64_t id, void * data)
     }
     else
     {
-        rc = IMAP_add(nd, id - 1, data);
+        rc = IMAP_set(nd, id - 1, data);
 
         if (rc > 0)
         {
@@ -149,6 +150,52 @@ int imap_add(imap_t * imap, uint64_t id, void * data)
     }
 
     return rc;
+}
+
+/*
+ * Add data by id to the map.
+ *
+ * Returns 0 when data is added. Data will NOT be overwritten.
+ *
+ * In case of a memory error we return -1 and a SIGNAL is raised. When the id
+ * already exists -2 will be returned.
+ */
+int imap_add(imap_t * imap, uint64_t id, void * data)
+{
+#ifdef DEBUG
+    /* insert NULL is not allowed */
+    assert (data != NULL);
+#endif
+    imap_node_t * nd = imap->nodes + (id % IMAP_NODE_SZ);
+    id /= IMAP_NODE_SZ;
+
+    if (!id)
+    {
+        if (nd->data != NULL)
+        {
+        	return -2;
+        }
+
+        imap->len++;
+        nd->data = data;
+    }
+    else
+    {
+    	int rc = IMAP_add(nd, id - 1, data);
+        if (rc)
+        {
+            return rc;
+        }
+        imap->len++;
+    }
+
+    if (imap->slist != NULL && slist_append_safe(&imap->slist, data))
+    {
+        slist_free(imap->slist);
+        imap->slist = NULL;
+    }
+
+    return 0;
 }
 
 /*
@@ -701,7 +748,7 @@ static void IMAP_node_free_cb(imap_node_t * node, imap_free_cb cb)
  *
  * In case of an error we return -1 and a SIGNAL is raised.
  */
-static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
+static int IMAP_set(imap_node_t * node, uint64_t id, void * data)
 {
     if (!node->size)
     {
@@ -730,9 +777,59 @@ static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
         return rc;
     }
 
-    rc = IMAP_add(nd, id - 1, data);
+    rc = IMAP_set(nd, id - 1, data);
 
     if (rc > 0)
+    {
+        node->size++;
+    }
+
+    return rc;
+}
+
+/*
+ * Add data by id to the map.
+ *
+ * Returns 0 when data is added. Data will NOT be overwritten.
+ *
+ * In case of a memory error we return -1 and a SIGNAL is raised. If the id
+ * already exists -2 will be returned.
+ */
+static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
+{
+    if (!node->size)
+    {
+        node->nodes = (imap_node_t *) calloc(
+                IMAP_NODE_SZ,
+                sizeof(imap_node_t));
+
+        if (node->nodes == NULL)
+        {
+            ERR_ALLOC
+            return -1;
+        }
+    }
+
+    int rc;
+    imap_node_t * nd = node->nodes + (id % IMAP_NODE_SZ);
+    id /= IMAP_NODE_SZ;
+
+    if (!id)
+    {
+        if (nd->data != NULL)
+        {
+        	return -2;
+        }
+
+        nd->data = data;
+        node->size++;
+
+        return 0;
+    }
+
+    rc = IMAP_add(nd, id - 1, data);
+
+    if (rc == 0)
     {
         node->size++;
     }

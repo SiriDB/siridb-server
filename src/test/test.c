@@ -234,11 +234,11 @@ static int test_imap(void)
     test_start("Testing imap");
     imap_t * imap = imap_new();
 
-    imap_add(imap, 14, "Sasientje");
-    imap_add(imap, 20130602, "Iriske");
-    imap_add(imap, 726, "Job");
-    imap_add(imap, 2011, "Tijs");
-    imap_add(imap, 0, "Joente");
+    imap_set(imap, 14, "Sasientje");
+    imap_set(imap, 20130602, "Iriske");
+    imap_set(imap, 726, "Job");
+    imap_set(imap, 2011, "Tijs");
+    imap_set(imap, 0, "Joente");
 
     assert (imap->len == 5);
     assert (strcmp(imap_get(imap, 14), "Sasientje") == 0);
@@ -253,14 +253,14 @@ static int test_imap(void)
     imap_free(imap, NULL);
 
     imap = imap_new();
-    imap_add(imap, 42, "Sasientje");
+    imap_set(imap, 42, "Sasientje");
     assert (imap_walk(imap, (imap_cb) &test__imap_cb, "Sasientje") == 1);
     size_t n = 43;
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Sasientje");
     assert (n == 42);
     n = 1;
 
-    imap_add(imap, 3, "Iriske");
+    imap_set(imap, 3, "Iriske");
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
 
@@ -310,25 +310,25 @@ static void test__imap_setup(void)
     imap_dst = imap_new();
     imap_tmp = imap_new();
 
-    imap_add(imap_dst, series_a.id, &series_a);
+    imap_set(imap_dst, series_a.id, &series_a);
     series_a.ref++;
 
-    imap_add(imap_dst, series_b.id, &series_b);
+    imap_set(imap_dst, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_dst, series_c.id, &series_c);
+    imap_set(imap_dst, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_b.id, &series_b);
+    imap_set(imap_tmp, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_tmp, series_c.id, &series_c);
+    imap_set(imap_tmp, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_d.id, &series_d);
+    imap_set(imap_tmp, series_d.id, &series_d);
     series_d.ref++;
 
-    imap_add(imap_tmp, series_e.id, &series_e);
+    imap_set(imap_tmp, series_e.id, &series_e);
     series_e.ref++;
 }
 

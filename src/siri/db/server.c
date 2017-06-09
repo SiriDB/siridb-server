@@ -123,6 +123,11 @@ inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
 }
 
 
+static int SERVER_register_pid(siridb_server_t * server)
+{
+
+}
+
 /*
  * This function can return -1 and raise a SIGNAL which means the 'cb'
  * function will NOT be called. Usually this function should return 0 which
@@ -147,7 +152,8 @@ int siridb_server_send_pkg(
     assert (server->promises != NULL);
     assert (cb != NULL);
 #endif
-
+    int rc;
+    uint16_t n = 0;
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
@@ -172,7 +178,6 @@ int siridb_server_send_pkg(
      * will be destroyed before the server is destroyed.
      */
     promise->server = server;
-    pkg->pid = promise->pid = server->pid;
     promise->data = data;
 
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
@@ -184,13 +189,39 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-    if (imap_add(server->promises, promise->pid, promise) == -1)
+
+	while (++n)
+	{
+	    promise->pid = server->pid++;
+	    rc = imap_add(server->promises, promise->pid, promise);
+
+	    if (rc == -1)
+	    {
+	        free(promise->timer);
+	        free(promise);
+	        free(req);
+	        return -1;  /* signal is raised */
+	    }
+
+	    if (rc == 0)
+	    {
+	    	break;
+	    }
+	}
+
+    if (!n)
     {
-        free(promise->timer);
+    	log_critical(
+    			"Maximum number pending packages for server '%s' is reached.",
+				server->name);
+        ERR_ALLOC
+    	free(promise->timer);
         free(promise);
         free(req);
-        return -1;  /* signal is raised */
+        return -1;
     }
+
+    pkg->pid = promise->pid;
 
     uv_timer_init(siri.loop, promise->timer);
     uv_timer_start(
@@ -220,8 +251,6 @@ int siridb_server_send_pkg(
             &wrbuf,
             1,
             SERVER_write_cb);
-
-    server->pid++;
 
     return 0;
 }

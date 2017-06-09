@@ -311,7 +311,7 @@ siridb_series_t * siridb_series_new(
          */
         else
         {
-            imap_add(siridb->series_map, series->id, series);
+            imap_set(siridb->series_map, series->id, series);
             siridb_groups_add_series(siridb->groups, series);
         }
     }
@@ -1298,7 +1298,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
                     pt < end;
                     pt += sizeof(uint32_t))
             {
-                if (imap_add(
+                if (imap_set(
                         dropped,
                         (uint32_t) *((uint32_t *) pt),
                         (int *) DROPPED_DUMMY) == -1)
@@ -1378,7 +1378,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
                 ct_add(siridb->series, series->name, series);
 
                 /* add series to imap32 */
-                imap_add(siridb->series_map, series->id, series);
+                imap_set(siridb->series_map, series->id, series);
             }
         }
     }

@@ -238,7 +238,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
 
-    if (imap_add(siridb->shards, id, shard) == -1)
+    if (imap_set(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
         return -1;  /* signal is raised */
@@ -329,7 +329,7 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    if (imap_add(siridb->shards, id, shard) == -1)
+    if (imap_set(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
         return NULL;
