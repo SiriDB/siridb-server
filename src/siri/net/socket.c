@@ -54,7 +54,7 @@ void sirinet_socket_alloc_buffer(
 {
     sirinet_socket_t * ssocket = (sirinet_socket_t *) handle->data;
 
-    if (!ssocket->len && (!ssocket->size || ssocket->size > RESET_BUF_SIZE))
+    if (!ssocket->len && ssocket->size > RESET_BUF_SIZE)
     {
         free(ssocket->buf);
         ssocket->buf = (char *) malloc(suggested_size);
@@ -247,7 +247,7 @@ uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb)
     ssocket->on_data = cb;
     ssocket->buf = NULL;
     ssocket->len = 0;
-    ssocket->size = 0;
+    ssocket->size = -1; /* this will force allocating on first request */
     ssocket->origin = NULL;
     ssocket->siridb = NULL;
     ssocket->ref = 1;
