@@ -236,8 +236,10 @@ static int test_imap(void)
 
     imap_set(imap, 14, "Sasientje");
     imap_set(imap, 20130602, "Iriske");
-    imap_set(imap, 726, "Job");
-    imap_set(imap, 2011, "Tijs");
+    assert (imap_set(imap, 726, "Jip") == 1);
+    assert (imap_set(imap, 726, "Job") == 0);
+    assert (imap_add(imap, 726, "Jap") == -2);
+    assert (imap_add(imap, 2011, "Tijs") == 0);
     imap_set(imap, 0, "Joente");
 
     assert (imap->len == 5);
@@ -247,8 +249,8 @@ static int test_imap(void)
 
     assert (strcmp(imap_pop(imap, 726), "Job") == 0);
     assert (imap_pop(imap, 726) == NULL);
-
-    assert (imap->len == 4);
+    assert (strcmp(imap_pop(imap, 2011), "Tijs") == 0);
+    assert (imap->len == 3);
 
     imap_free(imap, NULL);
 

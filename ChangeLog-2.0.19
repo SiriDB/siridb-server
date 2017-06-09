@@ -7,3 +7,7 @@
   * Check for successful malloc uv_loop.
   
   * Changed socket code and simplified buffer.
+  
+  * Added a promises queue limit which prevents overwriting a pid in the
+    promises queue and prevents adding an insane amount of requests to a
+    single server. (issue #73)
