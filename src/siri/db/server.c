@@ -185,9 +185,12 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-
 	while (++n)
 	{
+		/*
+		 * Usually the first attempt is fine but in some rare case the pid
+		 * might still be in use and we should try another pid.
+		 */
 	    promise->pid = server->pid++;
 	    rc = imap_add(server->promises, promise->pid, promise);
 
@@ -199,18 +202,24 @@ int siridb_server_send_pkg(
 
 	    if (rc == -1)
 	    {
+	    	/* memory allocation error */
 	        free(promise->timer);
 	        free(promise);
 	        free(req);
 	        return -1;  /* signal is raised */
 	    }
+
+	    /* rc == -2, pid in use, try next pid */
 	}
 
     if (!n)
     {
-    	log_critical(
-    			"Maximum number pending packages for server '%s' is reached.",
-				server->name);
+    	/*
+    	 * The queue cannot contain more than SIRIDB_SERVER_PROMISES_QUEUE_SIZE
+    	 * promises so we should always find a free pid and this code should
+    	 * never be reached.
+    	 */
+    	log_critical("Cannot add promise to queue for '%s'", server->name);
     	ERR_C
     	free(promise->timer);
         free(promise);
