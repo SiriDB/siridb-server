@@ -469,7 +469,8 @@ void siridb_servers_send_flags(llist_t * servers)
  * Returns 1 (true) if all servers are online, 0 (false)
  * if at least one server is online. ('this' server is NOT included)
  *
- * A server is considered  'online' when connected and authenticated.
+ * Server is 'online' when at least running and authenticated but not
+ * queue-full
  */
 int siridb_servers_online(siridb_t * siridb)
 {

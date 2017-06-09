@@ -42,21 +42,23 @@
 
 
 /*
- * A server is  'connected' when at least connected.
+ * Server is 'connected' when at least connected.
  */
 #define siridb_server_is_connected(server) \
     (server->socket != NULL)
 
 /*
- * A server is  'online' when at least running and authenticated.
+ * Server is 'online' when at least running and authenticated but not
+ * queue-full
  */
 #define siridb_server_is_online(server) \
-((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
+((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE && \
+		(~server->flags & SERVER_FLAG_QUEUE_FULL))
 #define siridb_server_self_online(server) \
 ((server->flags & SERVER__SELF_ONLINE) == SERVER__SELF_ONLINE)
 
 /*
- * A server is  'available' when exactly running and authenticated.
+ * Server is 'available' when exactly running and authenticated.
  */
 #define siridb_server_is_available(server) \
 (server->flags == SERVER__IS_ONLINE)
@@ -64,7 +66,7 @@
 (server->flags == SERVER__SELF_ONLINE)
 
 /*
- * A server is  'synchronizing' when exactly running, authenticated and
+ * Server is 'synchronizing' when exactly running, authenticated and
  * synchronizing.
  */
 #define siridb_server_is_synchronizing(server) \
@@ -73,8 +75,8 @@
 (server->flags == SERVER__SELF_SYNCHRONIZING)
 
 /*
- * A server is  'accessible' when exactly running, authenticated and
- * optionally re-indexing.
+ * Server is 'accessible' when exactly running, authenticated and optionally
+ * re-indexing.
  */
 #define siridb_server_is_accessible(server) \
 (server->flags == SERVER__IS_ONLINE || server->flags == SERVER__IS_REINDEXING)
