@@ -28,6 +28,7 @@
 #include <siri/db/replicate.h>
 #include <siri/db/reindex.h>
 #include <siri/db/groups.h>
+#include <siri/db/tags.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
@@ -70,6 +71,7 @@ typedef struct siridb_fifo_s siridb_fifo_t;
 typedef struct siridb_replicate_s siridb_replicate_t;
 typedef struct siridb_reindex_s siridb_reindex_t;
 typedef struct siridb_groups_s siridb_groups_t;
+typedef struct siridb_tags_s siridb_tags_t;
 
 typedef struct siridb_s
 {
@@ -115,6 +117,7 @@ typedef struct siridb_s
     siridb_replicate_t * replicate;
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
+    siridb_tags_t * tags;
 } siridb_t;
 
 int siridb_is_db_path(const char * dbpath);

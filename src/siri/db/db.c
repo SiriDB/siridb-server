@@ -285,6 +285,14 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
+    /* load tags */
+    if ((siridb->tags = siridb_tags_new(siridb)) == NULL)
+    {
+        log_error("Cannot read tags for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return NULL;
+    }
+
     /* update series props */
     log_info("Updating series properties");
 
@@ -731,6 +739,11 @@ void siridb__free(siridb_t * siridb)
     if (siridb->groups != NULL)
     {
         siridb_groups_decref(siridb->groups);
+    }
+
+    if (siridb->tags != NULL)
+    {
+        siridb_tags_decref(siridb->tags);
     }
 
     /* unlock the database in case no siri_err occurred */

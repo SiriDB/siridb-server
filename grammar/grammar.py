@@ -146,6 +146,8 @@ class SiriGrammar(Grammar):
         Keyword('symmetric_difference'),
         most_greedy=False)
     k_sync_progress = Keyword('sync_progress')
+    k_tag = Keyword('tag')
+    k_tags = Keyword('tags')
     k_timeit = Keyword('timeit')
     k_timezone = Keyword('timezone')
     k_time_precision = Keyword('time_precision')
@@ -373,6 +375,14 @@ class SiriGrammar(Grammar):
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
 
+    # where tag
+    where_tag = Sequence(k_where, Prio(
+        Sequence(k_name, str_operator, string),
+        Sequence(k_series, int_operator, int_expr),
+        Sequence('(', THIS, ')'),
+        Sequence(THIS, k_and, THIS),
+        Sequence(THIS, k_or, THIS)))
+
     # where user
     where_user = Sequence(k_where, Prio(
         Sequence(k_name, str_operator, string),
@@ -564,6 +574,8 @@ class SiriGrammar(Grammar):
         k_shards, Optional(where_shard))
     count_shards_size = Sequence(
         k_shards, k_size, Optional(where_shard))
+    count_tags = Sequence(
+        k_tags, Optional(where_tag))
     count_users = Sequence(
         k_users, Optional(where_user))
     count_series_length = Sequence(
@@ -572,10 +584,8 @@ class SiriGrammar(Grammar):
         Optional(series_match),
         Optional(where_series))
 
-    create_group = Sequence(
-        k_group, group_name, k_for, r_regex)
-    create_user = Sequence(
-        k_user, string, set_password)
+    create_group = Sequence(k_group, group_name, k_for, r_regex)
+    create_user = Sequence(k_user, string, set_password)
 
     drop_group = Sequence(k_group, group_name)
     # Drop statement needs at least a series_math or where STMT or both
