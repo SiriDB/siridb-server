@@ -544,6 +544,8 @@ class SiriGrammar(Grammar):
         set_name,
         most_greedy=False))
 
+    alter_series = Sequence(k_series, )
+
     alter_server = Sequence(k_server, uuid, Choice(
         set_log_level,
         set_backup_mode,
