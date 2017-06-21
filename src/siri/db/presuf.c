@@ -80,7 +80,7 @@ siridb_presuf_t * siridb_presuf_add(
         while (children != NULL)
         {
             ps_children = children->node->children->node->children;
-            switch (ps_children->node->cl_obj->via.dummy->gid)
+            switch (ps_children->node->cl_obj->gid)
             {
             case CLERI_GID_K_PREFIX:
 #ifdef DEBUG

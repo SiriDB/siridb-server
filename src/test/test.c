@@ -18,8 +18,7 @@
 #include <stdlib.h>
 #include <qpack/qpack.h>
 #include <motd/motd.h>
-#include <cleri/grammar.h>
-#include <cleri/parse.h>
+#include <cleri/object.h>
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap/imap.h>

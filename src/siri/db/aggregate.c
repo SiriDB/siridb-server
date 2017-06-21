@@ -193,7 +193,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         {
             while (1)
             {
-                gid = children->node->children->node->cl_obj->via.dummy->gid;
+                gid = children->node->children->node->cl_obj->gid;
 
                 switch (gid)
                 {
@@ -217,7 +217,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
                         gid = children->node->children->node->children->next->
                                 next->next->next->node->children->node->
-                                cl_obj->via.dummy->gid;
+                                cl_obj->gid;
 
                         switch (gid)
                         {
@@ -525,7 +525,7 @@ static int AGGREGATE_init_filter(
         cleri_node_t * node,
         char * err_msg)
 {
-    switch (node->cl_obj->via.dummy->gid)
+    switch (node->cl_obj->gid)
     {
     case CLERI_GID_R_INTEGER:
         aggr->filter_tp = TP_INT;

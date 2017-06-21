@@ -35,7 +35,6 @@ RM := rm
 -include src/imap/subdir.mk
 -include src/expr/subdir.mk
 -include src/ctree/subdir.mk
--include src/cleri/subdir.mk
 -include src/cfgparser/subdir.mk
 -include src/cexpr/subdir.mk
 -include src/argparse/subdir.mk
