@@ -2,10 +2,10 @@
  * siri/grammar/grammar.h
  *
  * This grammar is generated using the Grammar.export_c() method and
- * should be used with the cleri module.
+ * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-06-22 10:32:36
+ * Created at: 2017-06-22 16:06:41
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -22,6 +22,7 @@ enum cleri_grammar_ids {
     CLERI_GID_AGGREGATE_FUNCTIONS,
     CLERI_GID_ALTER_DATABASE,
     CLERI_GID_ALTER_GROUP,
+    CLERI_GID_ALTER_SERIES,
     CLERI_GID_ALTER_SERVER,
     CLERI_GID_ALTER_SERVERS,
     CLERI_GID_ALTER_STMT,
@@ -39,6 +40,7 @@ enum cleri_grammar_ids {
     CLERI_GID_COUNT_SHARDS,
     CLERI_GID_COUNT_SHARDS_SIZE,
     CLERI_GID_COUNT_STMT,
+    CLERI_GID_COUNT_TAGS,
     CLERI_GID_COUNT_USERS,
     CLERI_GID_CREATE_GROUP,
     CLERI_GID_CREATE_STMT,
@@ -68,8 +70,8 @@ enum cleri_grammar_ids {
     CLERI_GID_GRANT_STMT,
     CLERI_GID_GRANT_USER,
     CLERI_GID_GROUP_COLUMNS,
-    CLERI_GID_GROUP_MATCH,
     CLERI_GID_GROUP_NAME,
+    CLERI_GID_GROUP_TAG_MATCH,
     CLERI_GID_HELP,
     CLERI_GID_HELP_ACCESS,
     CLERI_GID_HELP_ALTER,
@@ -207,6 +209,8 @@ enum cleri_grammar_ids {
     CLERI_GID_K_SUM,
     CLERI_GID_K_SYMMETRIC_DIFFERENCE,
     CLERI_GID_K_SYNC_PROGRESS,
+    CLERI_GID_K_TAG,
+    CLERI_GID_K_TAGS,
     CLERI_GID_K_TIMEIT,
     CLERI_GID_K_TIMEZONE,
     CLERI_GID_K_TIME_PRECISION,
@@ -214,6 +218,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_TRUE,
     CLERI_GID_K_TYPE,
     CLERI_GID_K_UNION,
+    CLERI_GID_K_UNTAG,
     CLERI_GID_K_UPTIME,
     CLERI_GID_K_USER,
     CLERI_GID_K_USERS,
@@ -276,8 +281,11 @@ enum cleri_grammar_ids {
     CLERI_GID_STRING,
     CLERI_GID_STR_OPERATOR,
     CLERI_GID_SUFFIX_EXPR,
+    CLERI_GID_TAG_NAME,
+    CLERI_GID_TAG_SERIES,
     CLERI_GID_TIMEIT_STMT,
     CLERI_GID_TIME_EXPR,
+    CLERI_GID_UNTAG_SERIES,
     CLERI_GID_USER_COLUMNS,
     CLERI_GID_UUID,
     CLERI_GID_WHERE_GROUP,
@@ -285,6 +293,7 @@ enum cleri_grammar_ids {
     CLERI_GID_WHERE_SERIES,
     CLERI_GID_WHERE_SERVER,
     CLERI_GID_WHERE_SHARD,
+    CLERI_GID_WHERE_TAG,
     CLERI_GID_WHERE_USER,
     CLERI_GID__BOOLEAN,
     CLERI_END // can be used to get the enum length

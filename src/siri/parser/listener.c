@@ -190,7 +190,7 @@ static void enter_create_stmt(uv_async_t * handle);
 static void enter_create_user(uv_async_t * handle);
 static void enter_drop_stmt(uv_async_t * handle);
 static void enter_grant_user(uv_async_t * handle);
-static void enter_group_match(uv_async_t * handle);
+static void enter_group_tag_match(uv_async_t * handle);
 static void enter_help(uv_async_t * handle);
 static void enter_limit_expr(uv_async_t * handle);
 static void enter_list_stmt(uv_async_t * handle);
@@ -403,7 +403,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
     siriparser_listen_enter[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
-    siriparser_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
+    siriparser_listen_enter[CLERI_GID_GROUP_TAG_MATCH] = enter_group_tag_match;
     siriparser_listen_enter[CLERI_GID_HELP] = enter_help;
     siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
@@ -759,7 +759,7 @@ static void enter_grant_user(uv_async_t * handle)
         }
     }
 }
-static void enter_group_match(uv_async_t * handle)
+static void enter_group_tag_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
@@ -773,20 +773,26 @@ static void enter_group_match(uv_async_t * handle)
         q_wrapper->pmap = NULL;
     }
 
-    char group_name[node->len - 1];
+    char group_or_tag[node->len - 1];
 
     /* extract series name */
-    strx_extract_string(group_name, node->str, node->len);
+    strx_extract_string(group_or_tag, node->str, node->len);
 
-    siridb_group_t * group =
-            (siridb_group_t *) ct_get(siridb->groups->groups, group_name);
+    siridb_group_t * group;
+    siridb_tag_t * tag;
 
-    if (group == NULL)
+
+    if ((group = (siridb_group_t *) ct_get(
+    		siridb->groups->groups,
+			group_or_tag)) == NULL &&
+		(tag = (siridb_tag_t *) ct_get(
+			siridb->tags->tags,
+			group_or_tag)) == NULL)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
-                "Cannot find group '%s'",
-                group_name);
+                "Cannot find group or tag '%s'",
+				group_or_tag);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
     }
     else
@@ -798,16 +804,40 @@ static void enter_group_match(uv_async_t * handle)
 
         if (q_wrapper->series_tmp != NULL)
         {
-            uv_mutex_lock(&siridb->groups->mutex);
-
-            for (size_t i = 0; i < group->series->len; i++)
+            if (group != NULL)
             {
-                series = (siridb_series_t *) group->series->data[i];
-                siridb_series_incref(series);
-                imap_set(q_wrapper->series_tmp, series->id, series);
-            }
+				uv_mutex_lock(&siridb->groups->mutex);
 
-            uv_mutex_unlock(&siridb->groups->mutex);
+				for (size_t i = 0; i < group->series->len; i++)
+				{
+					series = (siridb_series_t *) group->series->data[i];
+					siridb_series_incref(series);
+					imap_set(q_wrapper->series_tmp, series->id, series);
+				}
+
+				uv_mutex_unlock(&siridb->groups->mutex);
+            }
+            else
+            {
+            	slist_t * tag_series;
+
+            	assert (tag != NULL);
+
+            	uv_mutex_lock(&siridb->tags->mutex);
+
+            	tag_series = imap_slist(siridb->tags->tags);
+            	if (tag_series != NULL)
+            	{
+    				for (size_t i = 0; i < tag_series->len; i++)
+    				{
+    					series = (siridb_series_t *) tag_series->data[i];
+    					siridb_series_incref(series);
+    					imap_set(q_wrapper->series_tmp, series->id, series);
+    				}
+            	}
+
+				uv_mutex_unlock(&siridb->tags->mutex);
+            }
 
             if (q_wrapper->update_cb != NULL)
             {

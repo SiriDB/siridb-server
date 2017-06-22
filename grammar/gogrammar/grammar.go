@@ -4,7 +4,7 @@ package grammar
 // should be used with the goleri module.
 //
 // Source class: SiriGrammar
-// Created at: 2017-06-22 15:17:21
+// Created at: 2017-06-22 16:06:41
 
 import (
 	"regexp"
@@ -21,6 +21,7 @@ const (
 	GidAggregateFunctions = iota
 	GidAlterDatabase = iota
 	GidAlterGroup = iota
+	GidAlterSeries = iota
 	GidAlterServer = iota
 	GidAlterServers = iota
 	GidAlterStmt = iota
@@ -40,6 +41,7 @@ const (
 	GidCountShards = iota
 	GidCountShardsSize = iota
 	GidCountStmt = iota
+	GidCountTags = iota
 	GidCountUsers = iota
 	GidCreateGroup = iota
 	GidCreateStmt = iota
@@ -68,8 +70,8 @@ const (
 	GidGrantStmt = iota
 	GidGrantUser = iota
 	GidGroupColumns = iota
-	GidGroupMatch = iota
 	GidGroupName = iota
+	GidGroupTagMatch = iota
 	GidHelp = iota
 	GidHelpAccess = iota
 	GidHelpAlter = iota
@@ -207,6 +209,8 @@ const (
 	GidKSum = iota
 	GidKSymmetricDifference = iota
 	GidKSyncProgress = iota
+	GidKTag = iota
+	GidKTags = iota
 	GidKTimePrecision = iota
 	GidKTimeit = iota
 	GidKTimezone = iota
@@ -214,6 +218,7 @@ const (
 	GidKTrue = iota
 	GidKType = iota
 	GidKUnion = iota
+	GidKUntag = iota
 	GidKUptime = iota
 	GidKUser = iota
 	GidKUsers = iota
@@ -276,8 +281,11 @@ const (
 	GidStrOperator = iota
 	GidString = iota
 	GidSuffixExpr = iota
+	GidTagName = iota
+	GidTagSeries = iota
 	GidTimeExpr = iota
 	GidTimeitStmt = iota
+	GidUntagSeries = iota
 	GidUserColumns = iota
 	GidUuid = iota
 	GidWhereGroup = iota
@@ -285,6 +293,7 @@ const (
 	GidWhereSeries = iota
 	GidWhereServer = iota
 	GidWhereShard = iota
+	GidWhereTag = iota
 	GidWhereUser = iota
 )
 
@@ -411,6 +420,8 @@ func SiriGrammar() *goleri.Grammar {
 		goleri.NewKeyword(NoGid, "symmetric_difference", false),
 	)
 	kSyncProgress := goleri.NewKeyword(GidKSyncProgress, "sync_progress", false)
+	kTag := goleri.NewKeyword(GidKTag, "tag", false)
+	kTags := goleri.NewKeyword(GidKTags, "tags", false)
 	kTimeit := goleri.NewKeyword(GidKTimeit, "timeit", false)
 	kTimezone := goleri.NewKeyword(GidKTimezone, "timezone", false)
 	kTimePrecision := goleri.NewKeyword(GidKTimePrecision, "time_precision", false)
@@ -423,6 +434,7 @@ func SiriGrammar() *goleri.Grammar {
 		goleri.NewTokens(NoGid, ", |"),
 		goleri.NewKeyword(NoGid, "union", false),
 	)
+	kUntag := goleri.NewKeyword(GidKUntag, "untag", false)
 	kUptime := goleri.NewKeyword(GidKUptime, "uptime", false)
 	kUser := goleri.NewKeyword(GidKUser, "user", false)
 	kUsers := goleri.NewKeyword(GidKUsers, "users", false)
@@ -871,6 +883,43 @@ func SiriGrammar() *goleri.Grammar {
 			),
 		),
 	)
+	whereTag := goleri.NewSequence(
+		GidWhereTag,
+		kWhere,
+		goleri.NewPrio(
+			NoGid,
+			goleri.NewSequence(
+				NoGid,
+				kName,
+				strOperator,
+				string,
+			),
+			goleri.NewSequence(
+				NoGid,
+				kSeries,
+				intOperator,
+				intExpr,
+			),
+			goleri.NewSequence(
+				NoGid,
+				goleri.NewToken(NoGid, "("),
+				goleri.THIS,
+				goleri.NewToken(NoGid, ")"),
+			),
+			goleri.NewSequence(
+				NoGid,
+				goleri.THIS,
+				kAnd,
+				goleri.THIS,
+			),
+			goleri.NewSequence(
+				NoGid,
+				goleri.THIS,
+				kOr,
+				goleri.THIS,
+			),
+		),
+	)
 	whereUser := goleri.NewSequence(
 		GidWhereUser,
 		kWhere,
@@ -918,6 +967,7 @@ func SiriGrammar() *goleri.Grammar {
 	)
 	seriesName := goleri.NewRepeat(GidSeriesName, string, 1, 1)
 	groupName := goleri.NewRepeat(GidGroupName, rGraveStr, 1, 1)
+	tagName := goleri.NewRepeat(GidTagName, rGraveStr, 1, 1)
 	seriesRe := goleri.NewRepeat(GidSeriesRe, rRegex, 1, 1)
 	uuid := goleri.NewChoice(
 		GidUuid,
@@ -925,12 +975,12 @@ func SiriGrammar() *goleri.Grammar {
 		rUuidStr,
 		string,
 	)
-	groupMatch := goleri.NewRepeat(GidGroupMatch, rGraveStr, 1, 1)
+	groupTagMatch := goleri.NewRepeat(GidGroupTagMatch, rGraveStr, 1, 1)
 	seriesMatch := goleri.NewList(GidSeriesMatch, goleri.NewChoice(
 		NoGid,
 		false,
 		seriesName,
-		groupMatch,
+		groupTagMatch,
 		seriesRe,
 	), seriesSep, 1, 0, false)
 	limitExpr := goleri.NewSequence(
@@ -1200,6 +1250,16 @@ func SiriGrammar() *goleri.Grammar {
 		kTimezone,
 		string,
 	)
+	tagSeries := goleri.NewSequence(
+		GidTagSeries,
+		kTag,
+		tagName,
+	)
+	untagSeries := goleri.NewSequence(
+		GidUntagSeries,
+		kUntag,
+		tagName,
+	)
 	alterDatabase := goleri.NewSequence(
 		GidAlterDatabase,
 		kDatabase,
@@ -1221,6 +1281,18 @@ func SiriGrammar() *goleri.Grammar {
 			false,
 			setExpression,
 			setName,
+		),
+	)
+	alterSeries := goleri.NewSequence(
+		GidAlterSeries,
+		kSeries,
+		seriesMatch,
+		goleri.NewOptional(NoGid, whereSeries),
+		goleri.NewChoice(
+			NoGid,
+			false,
+			tagSeries,
+			untagSeries,
 		),
 	)
 	alterServer := goleri.NewSequence(
@@ -1290,6 +1362,11 @@ func SiriGrammar() *goleri.Grammar {
 		kShards,
 		kSize,
 		goleri.NewOptional(NoGid, whereShard),
+	)
+	countTags := goleri.NewSequence(
+		GidCountTags,
+		kTags,
+		goleri.NewOptional(NoGid, whereTag),
 	)
 	countUsers := goleri.NewSequence(
 		GidCountUsers,
@@ -1398,6 +1475,7 @@ func SiriGrammar() *goleri.Grammar {
 		goleri.NewChoice(
 			NoGid,
 			false,
+			alterSeries,
 			alterUser,
 			alterGroup,
 			alterServer,
@@ -1537,24 +1615,53 @@ func SiriGrammar() *goleri.Grammar {
 		), goleri.NewToken(NoGid, ","), 0, 0, false),
 	)
 	timeitStmt := goleri.NewRepeat(GidTimeitStmt, kTimeit, 1, 1)
-	helpAlterDatabase := goleri.NewKeyword(GidHelpAlterDatabase, "database", false)
-	helpAlterGroup := goleri.NewKeyword(GidHelpAlterGroup, "group", false)
 	helpAlterServers := goleri.NewKeyword(GidHelpAlterServers, "servers", false)
-	helpAlterServer := goleri.NewKeyword(GidHelpAlterServer, "server", false)
+	helpAlterGroup := goleri.NewKeyword(GidHelpAlterGroup, "group", false)
 	helpAlterUser := goleri.NewKeyword(GidHelpAlterUser, "user", false)
+	helpAlterServer := goleri.NewKeyword(GidHelpAlterServer, "server", false)
+	helpAlterDatabase := goleri.NewKeyword(GidHelpAlterDatabase, "database", false)
 	helpAlter := goleri.NewSequence(
 		GidHelpAlter,
 		kAlter,
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
 			true,
-			helpAlterDatabase,
-			helpAlterGroup,
 			helpAlterServers,
-			helpAlterServer,
+			helpAlterGroup,
 			helpAlterUser,
+			helpAlterServer,
+			helpAlterDatabase,
 		)),
 	)
+	helpTimeit := goleri.NewKeyword(GidHelpTimeit, "timeit", false)
+	helpSelect := goleri.NewKeyword(GidHelpSelect, "select", false)
+	helpAccess := goleri.NewKeyword(GidHelpAccess, "access", false)
+	helpCountUsers := goleri.NewKeyword(GidHelpCountUsers, "users", false)
+	helpCountPools := goleri.NewKeyword(GidHelpCountPools, "pools", false)
+	helpCountServers := goleri.NewKeyword(GidHelpCountServers, "servers", false)
+	helpCountSeries := goleri.NewKeyword(GidHelpCountSeries, "series", false)
+	helpCountGroups := goleri.NewKeyword(GidHelpCountGroups, "groups", false)
+	helpCountShards := goleri.NewKeyword(GidHelpCountShards, "shards", false)
+	helpCount := goleri.NewSequence(
+		GidHelpCount,
+		kCount,
+		goleri.NewOptional(NoGid, goleri.NewChoice(
+			NoGid,
+			true,
+			helpCountUsers,
+			helpCountPools,
+			helpCountServers,
+			helpCountSeries,
+			helpCountGroups,
+			helpCountShards,
+		)),
+	)
+	helpShow := goleri.NewKeyword(GidHelpShow, "show", false)
+	helpFunctions := goleri.NewKeyword(GidHelpFunctions, "functions", false)
+	helpGrant := goleri.NewKeyword(GidHelpGrant, "grant", false)
+	helpRevoke := goleri.NewKeyword(GidHelpRevoke, "revoke", false)
+	helpNoaccess := goleri.NewKeyword(GidHelpNoaccess, "noaccess", false)
+	helpTimezones := goleri.NewKeyword(GidHelpTimezones, "timezones", false)
 	helpDropShards := goleri.NewKeyword(GidHelpDropShards, "shards", false)
 	helpDropSeries := goleri.NewKeyword(GidHelpDropSeries, "series", false)
 	helpDropUser := goleri.NewKeyword(GidHelpDropUser, "user", false)
@@ -1573,13 +1680,11 @@ func SiriGrammar() *goleri.Grammar {
 			helpDropServer,
 		)),
 	)
-	helpNoaccess := goleri.NewKeyword(GidHelpNoaccess, "noaccess", false)
-	helpRevoke := goleri.NewKeyword(GidHelpRevoke, "revoke", false)
-	helpListPools := goleri.NewKeyword(GidHelpListPools, "pools", false)
-	helpListGroups := goleri.NewKeyword(GidHelpListGroups, "groups", false)
 	helpListShards := goleri.NewKeyword(GidHelpListShards, "shards", false)
 	helpListUsers := goleri.NewKeyword(GidHelpListUsers, "users", false)
 	helpListSeries := goleri.NewKeyword(GidHelpListSeries, "series", false)
+	helpListGroups := goleri.NewKeyword(GidHelpListGroups, "groups", false)
+	helpListPools := goleri.NewKeyword(GidHelpListPools, "pools", false)
 	helpListServers := goleri.NewKeyword(GidHelpListServers, "servers", false)
 	helpList := goleri.NewSequence(
 		GidHelpList,
@@ -1587,38 +1692,14 @@ func SiriGrammar() *goleri.Grammar {
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
 			true,
-			helpListPools,
-			helpListGroups,
 			helpListShards,
 			helpListUsers,
 			helpListSeries,
+			helpListGroups,
+			helpListPools,
 			helpListServers,
 		)),
 	)
-	helpCountUsers := goleri.NewKeyword(GidHelpCountUsers, "users", false)
-	helpCountPools := goleri.NewKeyword(GidHelpCountPools, "pools", false)
-	helpCountShards := goleri.NewKeyword(GidHelpCountShards, "shards", false)
-	helpCountGroups := goleri.NewKeyword(GidHelpCountGroups, "groups", false)
-	helpCountServers := goleri.NewKeyword(GidHelpCountServers, "servers", false)
-	helpCountSeries := goleri.NewKeyword(GidHelpCountSeries, "series", false)
-	helpCount := goleri.NewSequence(
-		GidHelpCount,
-		kCount,
-		goleri.NewOptional(NoGid, goleri.NewChoice(
-			NoGid,
-			true,
-			helpCountUsers,
-			helpCountPools,
-			helpCountShards,
-			helpCountGroups,
-			helpCountServers,
-			helpCountSeries,
-		)),
-	)
-	helpGrant := goleri.NewKeyword(GidHelpGrant, "grant", false)
-	helpTimezones := goleri.NewKeyword(GidHelpTimezones, "timezones", false)
-	helpShow := goleri.NewKeyword(GidHelpShow, "show", false)
-	helpAccess := goleri.NewKeyword(GidHelpAccess, "access", false)
 	helpCreateGroup := goleri.NewKeyword(GidHelpCreateGroup, "group", false)
 	helpCreateUser := goleri.NewKeyword(GidHelpCreateUser, "user", false)
 	helpCreate := goleri.NewSequence(
@@ -1631,9 +1712,6 @@ func SiriGrammar() *goleri.Grammar {
 			helpCreateUser,
 		)),
 	)
-	helpFunctions := goleri.NewKeyword(GidHelpFunctions, "functions", false)
-	helpTimeit := goleri.NewKeyword(GidHelpTimeit, "timeit", false)
-	helpSelect := goleri.NewKeyword(GidHelpSelect, "select", false)
 	help := goleri.NewSequence(
 		GidHelp,
 		kHelp,
@@ -1641,19 +1719,19 @@ func SiriGrammar() *goleri.Grammar {
 			NoGid,
 			true,
 			helpAlter,
-			helpDrop,
-			helpNoaccess,
-			helpRevoke,
-			helpList,
-			helpCount,
-			helpGrant,
-			helpTimezones,
-			helpShow,
-			helpAccess,
-			helpCreate,
-			helpFunctions,
 			helpTimeit,
 			helpSelect,
+			helpAccess,
+			helpCount,
+			helpShow,
+			helpFunctions,
+			helpGrant,
+			helpRevoke,
+			helpNoaccess,
+			helpTimezones,
+			helpDrop,
+			helpList,
+			helpCreate,
 		)),
 	)
 	START := goleri.NewSequence(

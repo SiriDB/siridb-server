@@ -158,6 +158,7 @@ class SiriGrammar(Grammar):
         Tokens(', |'),
         Keyword('union'),
         most_greedy=False)
+    k_untag = Keyword('untag')
     k_uptime = Keyword('uptime')
     k_user = Keyword('user')
     k_users = Keyword('users')
@@ -400,11 +401,12 @@ class SiriGrammar(Grammar):
 
     series_name = Repeat(string, 1, 1)
     group_name = Repeat(r_grave_str, 1, 1)
+    tag_name = Repeat(r_grave_str, 1, 1)
     series_re = Repeat(r_regex, 1, 1)
     uuid = Choice(r_uuid_str, string, most_greedy=False)
-    group_match = Repeat(r_grave_str, 1, 1)
+    group_tag_match = Repeat(r_grave_str, 1, 1)
     series_match = List(
-        Choice(series_name, group_match, series_re, most_greedy=False),
+        Choice(series_name, group_tag_match, series_re, most_greedy=False),
         series_sep, 1)
     limit_expr = Sequence(k_limit, int_expr)
 
@@ -532,7 +534,8 @@ class SiriGrammar(Grammar):
     set_select_points_limit = Sequence(
         k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
-
+    tag_series = Sequence(k_tag, tag_name)
+    untag_series = Sequence(k_untag, tag_name)
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
         set_list_limit,
@@ -545,7 +548,11 @@ class SiriGrammar(Grammar):
         set_name,
         most_greedy=False))
 
-    alter_series = Sequence(k_series, )
+    alter_series = Sequence(
+        k_series,
+        series_match,
+        Optional(where_series),
+        Choice(tag_series, untag_series, most_greedy=False))
 
     alter_server = Sequence(k_server, uuid, Choice(
         set_log_level,
@@ -626,6 +633,7 @@ class SiriGrammar(Grammar):
     revoke_user = Sequence(k_user, string)
 
     alter_stmt = Sequence(k_alter, Choice(
+        alter_series,
         alter_user,
         alter_group,
         alter_server,
