@@ -34,7 +34,7 @@ For Ubuntu we have a deb package available which can be downloaded [here](https:
 
 Note: SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily installed using apt:
 ```
-apt install wget libexpat1 libuv1
+apt install libexpat1 libuv1
 ```
 
 ### Compile from source

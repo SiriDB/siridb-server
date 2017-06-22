@@ -1534,7 +1534,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cleri_node_t * calc_node = query->nodes->node->children->node;
+    cleri_node_t * calc_node = query->nodes->node;
 
 #ifdef DEBUG
     assert (query->packer == NULL);

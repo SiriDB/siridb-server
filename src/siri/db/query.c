@@ -695,7 +695,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
     }
 
 
-    if (gid == CLERI_GID_TIME_EXPR)
+    if (gid == CLERI_GID_TIME_EXPR || gid == CLERI_GID_CALC_STMT)
     {
         char buffer[EXPR_MAX_SIZE];
         size_t size = EXPR_MAX_SIZE;
