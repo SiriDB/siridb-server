@@ -1,12 +1,14 @@
 /*
+ * siri/grammar/grammar.c
+ *
  * This grammar is generated using the Grammar.export_c() method and
  * should be used with the cleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-04-24 20:23:16
+ * Created at: 2017-06-22 10:32:36
  */
 
-#include <siri/grammar/grammar.h>
+#include "siri/grammar/grammar.h"
 #include <stdio.h>
 
 #define CLERI_CASE_SENSITIVE 0
@@ -722,9 +724,9 @@ cleri_grammar_t * compile_grammar(void)
         k_intersection,
         k_symmetric_difference
     );
-    cleri_object_t * series_name = cleri_repeat(CLERI_GID_SERIES_NAME, string, 1, 1);
-    cleri_object_t * group_name = cleri_repeat(CLERI_GID_GROUP_NAME, r_grave_str, 1, 1);
-    cleri_object_t * series_re = cleri_repeat(CLERI_GID_SERIES_RE, r_regex, 1, 1);
+    cleri_object_t * series_name = cleri_dup(CLERI_GID_SERIES_NAME, string);
+    cleri_object_t * group_name = cleri_dup(CLERI_GID_GROUP_NAME, r_grave_str);
+    cleri_object_t * series_re = cleri_dup(CLERI_GID_SERIES_RE, r_regex);
     cleri_object_t * uuid = cleri_choice(
         CLERI_GID_UUID,
         CLERI_FIRST_MATCH,
@@ -732,7 +734,7 @@ cleri_grammar_t * compile_grammar(void)
         r_uuid_str,
         string
     );
-    cleri_object_t * group_match = cleri_repeat(CLERI_GID_GROUP_MATCH, r_grave_str, 1, 1);
+    cleri_object_t * group_match = cleri_dup(CLERI_GID_GROUP_MATCH, r_grave_str);
     cleri_object_t * series_match = cleri_list(CLERI_GID_SERIES_MATCH, cleri_choice(
         CLERI_NONE,
         CLERI_FIRST_MATCH,
@@ -1287,7 +1289,7 @@ cleri_grammar_t * compile_grammar(void)
             alter_database
         )
     );
-    cleri_object_t * calc_stmt = cleri_repeat(CLERI_GID_CALC_STMT, time_expr, 1, 1);
+    cleri_object_t * calc_stmt = cleri_dup(CLERI_GID_CALC_STMT, time_expr);
     cleri_object_t * count_stmt = cleri_sequence(
         CLERI_GID_COUNT_STMT,
         2,
@@ -1434,9 +1436,75 @@ cleri_grammar_t * compile_grammar(void)
             k_who_am_i
         ), cleri_token(CLERI_NONE, ","), 0, 0, 0)
     );
-    cleri_object_t * timeit_stmt = cleri_repeat(CLERI_GID_TIMEIT_STMT, k_timeit, 1, 1);
+    cleri_object_t * timeit_stmt = cleri_dup(CLERI_GID_TIMEIT_STMT, k_timeit);
+    cleri_object_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_select = cleri_keyword(CLERI_GID_HELP_SELECT, "select", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_grant = cleri_keyword(CLERI_GID_HELP_GRANT, "grant", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_servers = cleri_keyword(CLERI_GID_HELP_COUNT_SERVERS, "servers", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_series = cleri_keyword(CLERI_GID_HELP_COUNT_SERIES, "series", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_pools = cleri_keyword(CLERI_GID_HELP_COUNT_POOLS, "pools", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_groups = cleri_keyword(CLERI_GID_HELP_COUNT_GROUPS, "groups", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_shards = cleri_keyword(CLERI_GID_HELP_COUNT_SHARDS, "shards", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count_users = cleri_keyword(CLERI_GID_HELP_COUNT_USERS, "users", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_count = cleri_sequence(
+        CLERI_GID_HELP_COUNT,
+        2,
+        k_count,
+        cleri_optional(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_MOST_GREEDY,
+            6,
+            help_count_servers,
+            help_count_series,
+            help_count_pools,
+            help_count_groups,
+            help_count_shards,
+            help_count_users
+        ))
+    );
+    cleri_object_t * help_list_pools = cleri_keyword(CLERI_GID_HELP_LIST_POOLS, "pools", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list_series = cleri_keyword(CLERI_GID_HELP_LIST_SERIES, "series", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list_servers = cleri_keyword(CLERI_GID_HELP_LIST_SERVERS, "servers", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list_users = cleri_keyword(CLERI_GID_HELP_LIST_USERS, "users", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list_shards = cleri_keyword(CLERI_GID_HELP_LIST_SHARDS, "shards", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list_groups = cleri_keyword(CLERI_GID_HELP_LIST_GROUPS, "groups", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_list = cleri_sequence(
+        CLERI_GID_HELP_LIST,
+        2,
+        k_list,
+        cleri_optional(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_MOST_GREEDY,
+            6,
+            help_list_pools,
+            help_list_series,
+            help_list_servers,
+            help_list_users,
+            help_list_shards,
+            help_list_groups
+        ))
+    );
+    cleri_object_t * help_revoke = cleri_keyword(CLERI_GID_HELP_REVOKE, "revoke", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter_group = cleri_keyword(CLERI_GID_HELP_ALTER_GROUP, "group", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter_servers = cleri_keyword(CLERI_GID_HELP_ALTER_SERVERS, "servers", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter_server = cleri_keyword(CLERI_GID_HELP_ALTER_SERVER, "server", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter_user = cleri_keyword(CLERI_GID_HELP_ALTER_USER, "user", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter_database = cleri_keyword(CLERI_GID_HELP_ALTER_DATABASE, "database", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_alter = cleri_sequence(
+        CLERI_GID_HELP_ALTER,
+        2,
+        k_alter,
+        cleri_optional(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_MOST_GREEDY,
+            5,
+            help_alter_group,
+            help_alter_servers,
+            help_alter_server,
+            help_alter_user,
+            help_alter_database
+        ))
+    );
     cleri_object_t * help_create_group = cleri_keyword(CLERI_GID_HELP_CREATE_GROUP, "group", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_create_user = cleri_keyword(CLERI_GID_HELP_CREATE_USER, "user", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_create = cleri_sequence(
@@ -1451,13 +1519,13 @@ cleri_grammar_t * compile_grammar(void)
             help_create_user
         ))
     );
-    cleri_object_t * help_functions = cleri_keyword(CLERI_GID_HELP_FUNCTIONS, "functions", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_show = cleri_keyword(CLERI_GID_HELP_SHOW, "show", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_noaccess = cleri_keyword(CLERI_GID_HELP_NOACCESS, "noaccess", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_drop_group = cleri_keyword(CLERI_GID_HELP_DROP_GROUP, "group", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_drop_user = cleri_keyword(CLERI_GID_HELP_DROP_USER, "user", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_drop_server = cleri_keyword(CLERI_GID_HELP_DROP_SERVER, "server", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_drop_series = cleri_keyword(CLERI_GID_HELP_DROP_SERIES, "series", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_drop_shards = cleri_keyword(CLERI_GID_HELP_DROP_SHARDS, "shards", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_drop_server = cleri_keyword(CLERI_GID_HELP_DROP_SERVER, "server", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_drop_user = cleri_keyword(CLERI_GID_HELP_DROP_USER, "user", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_drop = cleri_sequence(
         CLERI_GID_HELP_DROP,
         2,
@@ -1467,81 +1535,15 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_MOST_GREEDY,
             5,
             help_drop_group,
-            help_drop_series,
-            help_drop_shards,
+            help_drop_user,
             help_drop_server,
-            help_drop_user
+            help_drop_series,
+            help_drop_shards
         ))
     );
+    cleri_object_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_SENSITIVE);
+    cleri_object_t * help_functions = cleri_keyword(CLERI_GID_HELP_FUNCTIONS, "functions", CLERI_CASE_SENSITIVE);
     cleri_object_t * help_access = cleri_keyword(CLERI_GID_HELP_ACCESS, "access", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_series = cleri_keyword(CLERI_GID_HELP_LIST_SERIES, "series", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_servers = cleri_keyword(CLERI_GID_HELP_LIST_SERVERS, "servers", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_pools = cleri_keyword(CLERI_GID_HELP_LIST_POOLS, "pools", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_users = cleri_keyword(CLERI_GID_HELP_LIST_USERS, "users", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_groups = cleri_keyword(CLERI_GID_HELP_LIST_GROUPS, "groups", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list_shards = cleri_keyword(CLERI_GID_HELP_LIST_SHARDS, "shards", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_list = cleri_sequence(
-        CLERI_GID_HELP_LIST,
-        2,
-        k_list,
-        cleri_optional(CLERI_NONE, cleri_choice(
-            CLERI_NONE,
-            CLERI_MOST_GREEDY,
-            6,
-            help_list_series,
-            help_list_servers,
-            help_list_pools,
-            help_list_users,
-            help_list_groups,
-            help_list_shards
-        ))
-    );
-    cleri_object_t * help_alter_user = cleri_keyword(CLERI_GID_HELP_ALTER_USER, "user", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_alter_database = cleri_keyword(CLERI_GID_HELP_ALTER_DATABASE, "database", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_alter_server = cleri_keyword(CLERI_GID_HELP_ALTER_SERVER, "server", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_alter_group = cleri_keyword(CLERI_GID_HELP_ALTER_GROUP, "group", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_alter_servers = cleri_keyword(CLERI_GID_HELP_ALTER_SERVERS, "servers", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_alter = cleri_sequence(
-        CLERI_GID_HELP_ALTER,
-        2,
-        k_alter,
-        cleri_optional(CLERI_NONE, cleri_choice(
-            CLERI_NONE,
-            CLERI_MOST_GREEDY,
-            5,
-            help_alter_user,
-            help_alter_database,
-            help_alter_server,
-            help_alter_group,
-            help_alter_servers
-        ))
-    );
-    cleri_object_t * help_count_groups = cleri_keyword(CLERI_GID_HELP_COUNT_GROUPS, "groups", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count_pools = cleri_keyword(CLERI_GID_HELP_COUNT_POOLS, "pools", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count_users = cleri_keyword(CLERI_GID_HELP_COUNT_USERS, "users", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count_shards = cleri_keyword(CLERI_GID_HELP_COUNT_SHARDS, "shards", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count_series = cleri_keyword(CLERI_GID_HELP_COUNT_SERIES, "series", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count_servers = cleri_keyword(CLERI_GID_HELP_COUNT_SERVERS, "servers", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_count = cleri_sequence(
-        CLERI_GID_HELP_COUNT,
-        2,
-        k_count,
-        cleri_optional(CLERI_NONE, cleri_choice(
-            CLERI_NONE,
-            CLERI_MOST_GREEDY,
-            6,
-            help_count_groups,
-            help_count_pools,
-            help_count_users,
-            help_count_shards,
-            help_count_series,
-            help_count_servers
-        ))
-    );
-    cleri_object_t * help_noaccess = cleri_keyword(CLERI_GID_HELP_NOACCESS, "noaccess", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_show = cleri_keyword(CLERI_GID_HELP_SHOW, "show", CLERI_CASE_SENSITIVE);
-    cleri_object_t * help_revoke = cleri_keyword(CLERI_GID_HELP_REVOKE, "revoke", CLERI_CASE_SENSITIVE);
     cleri_object_t * help = cleri_sequence(
         CLERI_GID_HELP,
         2,
@@ -1550,20 +1552,20 @@ cleri_grammar_t * compile_grammar(void)
             CLERI_NONE,
             CLERI_MOST_GREEDY,
             14,
+            help_timeit,
             help_select,
             help_grant,
-            help_create,
-            help_functions,
-            help_timezones,
-            help_drop,
-            help_access,
-            help_list,
-            help_alter,
             help_count,
-            help_noaccess,
-            help_timeit,
+            help_list,
+            help_revoke,
+            help_alter,
+            help_create,
             help_show,
-            help_revoke
+            help_noaccess,
+            help_drop,
+            help_timezones,
+            help_functions,
+            help_access
         ))
     );
     cleri_object_t * START = cleri_sequence(

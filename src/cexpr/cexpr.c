@@ -366,7 +366,7 @@ static cexpr_t * CEXPR_walk_node(
 
         case CLERI_TP_KEYWORD:
             /* this is a property we are looking for */
-            (*condition)->prop = node->cl_obj->via.keyword->gid;
+            (*condition)->prop = node->cl_obj->gid;
             (*expecting) = EXPECTING_OPERATOR;
             return cexpr;
 
@@ -406,7 +406,7 @@ static cexpr_t * CEXPR_walk_node(
             SET_CONDITION_AND_RETURN
         case CLERI_TP_CHOICE:
             /* in case of a string, set the value and return */
-            if (node->cl_obj->via.choice->gid == CLERI_GID_STRING)
+            if (node->cl_obj->gid == CLERI_GID_STRING)
             {
                 (*condition)->str = (char *) malloc(node->len -1);
                 if ((*condition)->str == NULL)
@@ -420,7 +420,7 @@ static cexpr_t * CEXPR_walk_node(
             break;
         case CLERI_TP_KEYWORD:
             /* for some keywords we can do some work to speed up checks */
-            switch (node->cl_obj->via.keyword->gid)
+            switch (node->cl_obj->gid)
             {
             /* map boolean types */
             case CLERI_GID_K_TRUE:
@@ -487,7 +487,7 @@ static cexpr_t * CEXPR_walk_node(
                 (*condition)->int64 = LOGGER_CRITICAL; break;
 
             default:
-                (*condition)->int64 = node->cl_obj->via.keyword->gid;
+                (*condition)->int64 = node->cl_obj->gid;
             }
             SET_CONDITION_AND_RETURN
         default:
@@ -503,7 +503,7 @@ static cexpr_t * CEXPR_walk_node(
         switch (node->cl_obj->tp)
         {
         case CLERI_TP_KEYWORD:
-            switch (node->cl_obj->via.keyword->gid)
+            switch (node->cl_obj->gid)
             {
             case CLERI_GID_K_AND:
                 cexpr = CEXPR_push_and(cexpr);
@@ -523,7 +523,7 @@ static cexpr_t * CEXPR_walk_node(
                 log_critical(
                     "Only 'and' or 'or' keywords are expected, got type: %"
                     PRIu32,
-                    node->cl_obj->via.keyword->gid);
+                    node->cl_obj->gid);
                 assert (0);
             }
             tmp_condition = CEXPR_condition_new();

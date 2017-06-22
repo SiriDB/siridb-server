@@ -1038,7 +1038,7 @@ static void enter_set_ignore_threshold(uv_async_t * handle)
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
     if (    query->nodes->node->children->next->next->node->children->node->
-            cl_obj->via.dummy->gid == CLERI_GID_K_TRUE)
+            cl_obj->gid == CLERI_GID_K_TRUE)
     {
         q_drop->flags |= QUERIES_IGNORE_DROP_THRESHOLD;
     }
@@ -1332,7 +1332,7 @@ static void enter_series_sep(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
-    switch (query->nodes->node->children->node->cl_obj->via.dummy->gid)
+    switch (query->nodes->node->children->node->cl_obj->gid)
     {
     case CLERI_GID_K_UNION:
         q_wrapper->update_cb = &imap_union_ref;
@@ -1407,7 +1407,7 @@ static void enter_xxx_columns(uv_async_t * handle)
 
         if (slist_append_safe(
                 &qlist->props,
-                &columns->node->children->node->cl_obj->via.dummy->gid))
+                &columns->node->children->node->cl_obj->gid))
         {
             MEM_ERR_RET
         }
@@ -1534,7 +1534,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cleri_node_t * calc_node = query->nodes->node->children->node;
+    cleri_node_t * calc_node = query->nodes->node;
 
 #ifdef DEBUG
     assert (query->packer == NULL);
@@ -2563,7 +2563,7 @@ static void exit_help_xxx(uv_async_t * handle)
 #endif
 
         const char * help = siri_help_get(
-                query->nodes->node->cl_obj->via.dummy->gid,
+                query->nodes->node->cl_obj->gid,
                 (const char *) query->data,
                 query->err_msg);
 
@@ -3350,7 +3350,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
     siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
 
     int backup_mode = query->nodes->node->children->next->next->node->
-            children->node->cl_obj->via.dummy->gid == CLERI_GID_K_TRUE;
+            children->node->cl_obj->gid == CLERI_GID_K_TRUE;
 
     if (backup_mode ^ ((server->flags & SERVER_FLAG_BACKUP_MODE) != 0))
     {
@@ -3577,7 +3577,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
     int log_level;
 
-    switch (node->cl_obj->via.keyword->gid)
+    switch (node->cl_obj->gid)
     {
     case CLERI_GID_K_DEBUG:
         log_level = LOGGER_DEBUG;
@@ -3936,7 +3936,7 @@ static void exit_show_stmt(uv_async_t * handle)
         {
             /* get the callback */
             prop_cb = siridb_props[children->node->children->node->
-                                   cl_obj->via.keyword->gid - KW_OFFSET];
+                                   cl_obj->gid - KW_OFFSET];
 #ifdef DEBUG
             assert (prop_cb != NULL);  /* all props are implemented */
 #endif

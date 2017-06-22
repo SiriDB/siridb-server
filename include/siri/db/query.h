@@ -31,7 +31,7 @@ typedef enum
 #include <uv.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <cleri/parse.h>
+#include <cleri/object.h>
 #include <qpack/qpack.h>
 #include <siri/db/time.h>
 #include <siri/db/nodes.h>

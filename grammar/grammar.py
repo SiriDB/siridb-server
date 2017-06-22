@@ -529,7 +529,8 @@ class SiriGrammar(Grammar):
     set_name = Sequence(k_set, k_name, string)
     set_password = Sequence(k_set, k_password, string)
     set_port = Sequence(k_set, k_port, r_uinteger)
-    set_select_points_limit = Sequence(k_set, k_select_points_limit, r_uinteger)
+    set_select_points_limit = Sequence(
+        k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
 
     alter_database = Sequence(k_database, Choice(
