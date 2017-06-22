@@ -17,7 +17,6 @@ SUBDIRS := \
 src/argparse \
 src/cexpr \
 src/cfgparser \
-src/cleri \
 src/ctree \
 src/expr \
 src/imap \
