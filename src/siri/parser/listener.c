@@ -29,6 +29,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
+#include <siri/db/tag.h>
 #include <siri/db/user.h>
 #include <siri/db/users.h>
 #include <siri/err.h>
@@ -181,6 +182,7 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
+static void enter_alter_series(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
 static void enter_alter_servers(uv_async_t * handle);
 static void enter_alter_stmt(uv_async_t * handle);
@@ -211,6 +213,7 @@ static void enter_xxx_columns(uv_async_t * handle);
 
 static void exit_after_expr(uv_async_t * handle);
 static void exit_alter_group(uv_async_t * handle);
+static void exit_alter_series(uv_async_t * handle);
 static void exit_alter_user(uv_async_t * handle);
 static void exit_before_expr(uv_async_t * handle);
 static void exit_between_expr(uv_async_t * handle);
@@ -393,6 +396,7 @@ void siriparser_init_listener(void)
 
     siriparser_listen_enter[CLERI_GID_ACCESS_EXPR] = enter_access_expr;
     siriparser_listen_enter[CLERI_GID_ALTER_GROUP] = enter_alter_group;
+    siriparser_listen_enter[CLERI_GID_ALTER_SERIES] = enter_alter_series;
     siriparser_listen_enter[CLERI_GID_ALTER_SERVER] = enter_alter_server;
     siriparser_listen_enter[CLERI_GID_ALTER_SERVERS] = enter_alter_servers;
     siriparser_listen_enter[CLERI_GID_ALTER_STMT] = enter_alter_stmt;
@@ -434,6 +438,7 @@ void siriparser_init_listener(void)
 
     siriparser_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
     siriparser_listen_exit[CLERI_GID_ALTER_GROUP] = exit_alter_group;
+    siriparser_listen_exit[CLERI_GID_ALTER_SERIES] = exit_alter_series;
     siriparser_listen_exit[CLERI_GID_ALTER_USER] = exit_alter_user;
     siriparser_listen_exit[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
     siriparser_listen_exit[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
@@ -526,6 +531,16 @@ static void enter_alter_group(uv_async_t * handle)
 
         SIRIPARSER_NEXT_NODE
     }
+}
+
+static void enter_alter_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+
+	q_alter->alter_tp = QUERY_ALTER_SERIES;
+
+	SIRIPARSER_NEXT_NODE
 }
 
 static void enter_alter_server(uv_async_t * handle)
@@ -765,6 +780,9 @@ static void enter_group_tag_match(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * node = query->nodes->node;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    siridb_group_t * group;
+    siridb_tag_t * tag;
+    char group_or_tag[node->len - 1];
 
     /* we must send this query to all pools */
     if (q_wrapper->pmap != NULL)
@@ -773,14 +791,8 @@ static void enter_group_tag_match(uv_async_t * handle)
         q_wrapper->pmap = NULL;
     }
 
-    char group_or_tag[node->len - 1];
-
     /* extract series name */
     strx_extract_string(group_or_tag, node->str, node->len);
-
-    siridb_group_t * group;
-    siridb_tag_t * tag;
-
 
     if ((group = (siridb_group_t *) ct_get(
     		siridb->groups->groups,
@@ -817,7 +829,7 @@ static void enter_group_tag_match(uv_async_t * handle)
 
 				uv_mutex_unlock(&siridb->groups->mutex);
             }
-            else
+            else // tag != NULL
             {
             	slist_t * tag_series;
 
@@ -825,7 +837,8 @@ static void enter_group_tag_match(uv_async_t * handle)
 
             	uv_mutex_lock(&siridb->tags->mutex);
 
-            	tag_series = imap_slist(siridb->tags->tags);
+            	tag_series = imap_slist(tag->series);
+
             	if (tag_series != NULL)
             	{
     				for (size_t i = 0; i < tag_series->len; i++)
@@ -1493,6 +1506,12 @@ static void exit_alter_group(uv_async_t * handle)
     {
         SIRIPARSER_ASYNC_NEXT_NODE
     }
+}
+
+static void exit_alter_series(uv_async_t * handle)
+{
+	siridb_query_t * query = (siridb_query_t *) handle->data;
+	SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void exit_alter_user(uv_async_t * handle)

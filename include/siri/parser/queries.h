@@ -16,7 +16,7 @@
 #include <imap/imap.h>
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 #include <ctree/ctree.h>
 #include <siri/db/presuf.h>
 #include <siri/db/group.h>
@@ -39,6 +39,7 @@ typedef enum
     QUERY_ALTER_NONE,
     QUERY_ALTER_DATABASE,
     QUERY_ALTER_GROUP,
+    QUERY_ALTER_SERIES,
     QUERY_ALTER_SERVER,
     QUERY_ALTER_SERVERS,
     QUERY_ALTER_USER

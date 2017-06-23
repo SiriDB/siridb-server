@@ -5,12 +5,12 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-06-22 16:06:41
+ * Created at: 2017-06-23 10:02:00
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 
 cleri_grammar_t * compile_grammar(void);
 

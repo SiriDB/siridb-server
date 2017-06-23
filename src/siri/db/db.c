@@ -286,7 +286,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     }
 
     /* load tags */
-    if ((siridb->tags = siridb_tags_new(siridb)) == NULL)
+    if ((siridb->tags = siridb_tags_new(siridb->dbpath)) == NULL)
     {
         log_error("Cannot read tags for database '%s'", siridb->dbname);
         siridb_decref(siridb);

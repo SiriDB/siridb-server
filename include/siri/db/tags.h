@@ -15,13 +15,13 @@
 #include <ctree/ctree.h>
 #include <uv.h>
 
+#define SIRIDB_TAGS_PATH "tags/"
 
 #define TAGS_FLAG_DROPPED_SERIES 1
 #define TAGS_FLAG_REQUIRE_SAVE 2
 
 typedef struct siridb_tags_s
 {
-    uint8_t _pad0;
     uint8_t flags;
     uint8_t ref;
     char * path;
@@ -32,3 +32,7 @@ typedef struct siridb_tags_s
 
 siridb_tags_t * siridb_tags_new(const char * dbpath);
 void siridb_tags_decref(siridb_tags_t * tags);
+
+#define siridb_tags_require_save(__tags, __tag) 		\
+		__tags->flags |= TAGS_FLAG_REQUIRE_SAVE;		\
+		__tag->flags |= TAG_FLAG_REQUIRE_SAVE

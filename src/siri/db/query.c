@@ -10,7 +10,7 @@
  *
  */
 #include <assert.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 #include <expr/expr.h>
 #include <iso8601/iso8601.h>
 #include <logger/logger.h>
@@ -426,7 +426,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
     size_t len = 0;
     int count = 0;
     const char * expect;
-    cleri_object_t * cl_obj;
+    cleri_t * cl_obj;
 
     /* start building the error message */
     len = snprintf(query->err_msg,
