@@ -351,7 +351,7 @@ static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
     int rc = 0;
     rc += qp_add_type(packer, QP_ARRAY2);
     rc += qp_add_string_term(packer, group->name);
-    rc += qp_add_int64(packer, group->series->len);
+    rc += qp_add_int64(packer, (int64_t) group->series->len);
     return rc;
 }
 
@@ -451,6 +451,7 @@ static void GROUPS_loop(uv_work_t * work)
             if (groups->flags & GROUPS_FLAG_DROPPED_SERIES)
             {
                 GROUPS_cleanup(siridb->groups);
+
             }
             break;
 

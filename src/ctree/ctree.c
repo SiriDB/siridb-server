@@ -79,7 +79,8 @@ ct_t * ct_new(void)
 
 /*
  * Destroy ct-tree. Parsing NULL is NOT allowed.
- * Call-back function will be called on each item in the tree.
+ * Call-back function is allowed to be NULL but if supplied, the callback will
+ * be called on each item in the tree.
  */
 void ct_free(ct_t * ct, ct_free_cb cb)
 {

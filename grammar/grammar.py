@@ -271,6 +271,11 @@ class SiriGrammar(Grammar):
         k_series,
         most_greedy=False), ',', 1)
 
+    tag_columns = List(Choice(
+        k_name,
+        k_series,
+        most_greedy=False), ',', 1)
+
     user_columns = List(Choice(
         k_name,
         k_access,
@@ -627,6 +632,8 @@ class SiriGrammar(Grammar):
         k_servers, Optional(server_columns), Optional(where_server))
     list_shards = Sequence(
         k_shards, Optional(shard_columns), Optional(where_shard))
+    list_tags = Sequence(
+        k_tags, Optional(tag_columns), Optional(where_tag))
     list_users = Sequence(
         k_users, Optional(user_columns), Optional(where_user))
 
@@ -651,6 +658,7 @@ class SiriGrammar(Grammar):
         count_servers_received,
         count_shards,
         count_shards_size,
+        count_tags,
         count_users,
         count_series_length,
         most_greedy=True))
@@ -673,6 +681,7 @@ class SiriGrammar(Grammar):
 
     list_stmt = Sequence(k_list, Choice(
         list_series,
+        list_tags,
         list_users,
         list_shards,
         list_groups,

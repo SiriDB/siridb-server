@@ -14,6 +14,7 @@
 #include <logger/logger.h>
 #include <siri/db/auth.h>
 #include <siri/db/groups.h>
+#include <siri/db/tags.h>
 #include <siri/db/insert.h>
 #include <siri/db/query.h>
 #include <siri/db/replicate.h>
@@ -54,6 +55,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
 static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_tags(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
 
@@ -249,8 +251,10 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     case BPROTO_DISABLE_BACKUP_MODE:
         on_disable_backup_mode(client, pkg);
         break;
+    case BPROTO_REQ_TAGS:
+        on_req_tags(client, pkg);
+        break;
     }
-
 }
 
 static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
@@ -655,6 +659,19 @@ static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
     sirinet_pkg_t * package = siridb_groups_pkg(siridb->groups, pkg->pid);
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_req_tags(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(server)
+
+    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    sirinet_pkg_t * package = siridb_tags_pkg(siridb->tags, pkg->pid);
 
     if (package != NULL)
     {

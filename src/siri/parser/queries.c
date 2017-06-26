@@ -48,12 +48,12 @@ if (q->series_tmp != NULL)                                      \
 }                                                               \
 if (q->slist != NULL)                                           \
 {                                                               \
-    siridb_series_t * series;                                    \
+    siridb_series_t * series;                                   \
     for (; q->slist_index < q->slist->len; q->slist_index++)    \
-    {                                                                       \
+    {                                                                 	\
         series = (siridb_series_t *) q->slist->data[q->slist_index];    \
-        siridb_series_decref(series);                                    \
-    }                                                                      \
+        siridb_series_decref(series);                                   \
+    }                                                                   \
     slist_free(q->slist);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
@@ -196,6 +196,7 @@ void query_alter_free(uv_handle_t * handle)
     case QUERY_ALTER_NONE:
     case QUERY_ALTER_DATABASE:
     case QUERY_ALTER_SERVERS:
+    case QUERY_ALTER_SERIES:
         break;
     case QUERY_ALTER_GROUP:
         siridb_group_decref(q_alter->via.group);

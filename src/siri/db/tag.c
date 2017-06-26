@@ -15,20 +15,22 @@
 #include <siri/db/tag.h>
 #include <stdlib.h>
 #include <siri/db/series.h>
+#include <ctype.h>
+#include <uv.h>
+
 
 #define TAGFN_NUMBERS 9
 
 /*
  * Returns tag when successful or NULL in case of an error.
  */
-static siridb_tag_t * TAG_new(uint64_t id, const char * tags_path)
+siridb_tag_t * siridb_tag_new(uint32_t id, const char * tags_path)
 {
 	siridb_tag_t * tag = (siridb_tag_t *) malloc(sizeof(siridb_tag_t));
 	if (tag != NULL)
 	{
 		tag->ref = 1;
 		tag->flags = 0;
-		tag->n = 0;
 		tag->id = id;
 		tag->name = NULL;
 		;
@@ -36,7 +38,7 @@ static siridb_tag_t * TAG_new(uint64_t id, const char * tags_path)
 
 		if (asprintf(
 				&tag->fn,
-				"%s%0*" PRIu64 ".tag",
+				"%s%0*" PRIu32 ".tag",
 				tags_path,
 				TAGFN_NUMBERS,
 				id) < 0 || tag->series == NULL)
@@ -53,7 +55,9 @@ static siridb_tag_t * TAG_new(uint64_t id, const char * tags_path)
  */
 siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 {
-	siridb_tag_t * tag = TAG_new(siridb->tags->path, (uint64_t) atoll(fn));
+	siridb_tag_t * tag = siridb_tag_new(
+			(uint32_t) atoll(fn),
+			siridb->tags->path);
 	if (tag != NULL)
 	{
 		qp_unpacker_t * unpacker = qp_unpacker_ff(tag->fn);
@@ -69,7 +73,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 
 			if (!qp_is_array(qp_next(unpacker, NULL)) ||
 				qp_next(unpacker, &qp_tn) == QP_RAW ||
-				(tag->name = strndup(qp_tn->via->raw, qp_tn->len)) == NULL)
+				(tag->name = strndup(qp_tn.via.raw, qp_tn.len)) == NULL)
 			{
 				/* or a memory allocation error, but the same result */
 				log_critical(
@@ -86,7 +90,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 
 				while (qp_next(unpacker, &qp_series_id) == QP_INT64)
 				{
-					series_id = (uint64_t) qp_series_id->via->int64;
+					series_id = (uint64_t) qp_series_id.via.int64;
 					series = imap_get(siridb->series_map, series_id);
 
 					if (series == NULL)
@@ -96,7 +100,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 						log_error(
 								"cannot find series id %" PRId64
 								" which was tagged with '%s'",
-								qp_series_id->via->int64,
+								qp_series_id.via.int64,
 								tag->name);
 					}
 					else if (imap_add(tag->series, series_id, series) == 0)
@@ -118,7 +122,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 	return tag;
 }
 
-int siridb_tag_save(siridb_tag_t * tag, uv_mutex_t * lock)
+int siridb_tag_save(siridb_tag_t * tag)
 {
 	qp_fpacker_t * fpacker;
 
@@ -138,8 +142,6 @@ int siridb_tag_save(siridb_tag_t * tag, uv_mutex_t * lock)
 		return -1;
 	}
 
-	uv_mutex_lock(lock);
-
 	slist_t * series_list = imap_slist(tag->series);
 
 	if (series_list != NULL)
@@ -152,8 +154,6 @@ int siridb_tag_save(siridb_tag_t * tag, uv_mutex_t * lock)
 		}
 	}
 
-	uv_mutex_unlock(lock);
-
 	if (qp_close(fpacker) || series_list == NULL)
 	{
 		return -1;
@@ -163,12 +163,60 @@ int siridb_tag_save(siridb_tag_t * tag, uv_mutex_t * lock)
 }
 
 /*
+ * Returns true when the given property (CLERI keyword) needs a remote query
+ */
+int siridb_tag_is_remote_prop(uint32_t prop)
+{
+    return (prop == CLERI_GID_K_SERIES) ? 1 : 0;
+}
+
+/*
+ * This function can raise a SIGNAL. In this case the packer is not filled
+ * with the correct values.
+ */
+void siridb_tag_prop(siridb_tag_t * tag, qp_packer_t * packer, int prop)
+{
+    switch (prop)
+    {
+    case CLERI_GID_K_NAME:
+        qp_add_string(packer, tag->name);
+        break;
+    case CLERI_GID_K_SERIES:
+        qp_add_int64(packer, (int64_t) tag->n);
+        break;
+    }
+}
+
+int siridb_tag_cexpr_cb(siridb_tag_t * tag, cexpr_condition_t * cond)
+{
+    switch (cond->prop)
+    {
+    case CLERI_GID_K_NAME:
+        return cexpr_str_cmp(cond->operator, tag->name, cond->str);
+    case CLERI_GID_K_SERIES:
+        return cexpr_int_cmp(cond->operator, tag->n, cond->int64);
+    }
+
+    log_critical("Unknown group property received: %d", cond->prop);
+    assert (0);
+    return -1;
+}
+
+/*
  * Can be used as a callback, in other cases go for the macro.
  */
 void siridb__tag_decref(siridb_tag_t * tag)
 {
     if (!--tag->ref)
     {
+    	if ((tag->flags & TAG_FLAG_CLEANUP) && unlink(tag->fn))
+    	{
+			log_critical("Cannot remove tag file: '%s'", tag->fn);
+    	}
+    	else if (tag->flags & TAG_FLAG_REQUIRE_SAVE)
+    	{
+    		siridb_tag_save(tag);
+    	}
         siridb__tag_free(tag);
     }
 }
