@@ -74,7 +74,7 @@ make
 SiriDB has several tools available to connect to a SiriDB database. 
 
 ### SiriDB Connectors
-Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb), [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
+Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb), [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using C, Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
 [SiriDB HTTP](https://github.com/transceptor-technology/siridb-http/blob/master/README.md) provides a HTTP API for SiriDB and has support for JSON, MsgPack, Qpack, CSV and Socket.io. SiriDB HTTP also has an optional web interface and SSL support.
