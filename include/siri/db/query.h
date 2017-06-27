@@ -38,6 +38,7 @@ typedef enum
 #include <siri/db/series.h>
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
+#include <cleri/object.h>
 
 typedef struct cleri_parse_s cleri_parse_t;
 typedef struct siridb_node_list_s siridb_node_list_t;
