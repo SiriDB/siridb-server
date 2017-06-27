@@ -31,14 +31,13 @@ typedef enum
 #include <uv.h>
 #include <inttypes.h>
 #include <sys/time.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 #include <qpack/qpack.h>
 #include <siri/db/time.h>
 #include <siri/db/nodes.h>
 #include <siri/db/series.h>
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
-#include <cleri/object.h>
 
 typedef struct cleri_parse_s cleri_parse_t;
 typedef struct siridb_node_list_s siridb_node_list_t;

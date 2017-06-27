@@ -2,15 +2,15 @@
  * siri/grammar/grammar.h
  *
  * This grammar is generated using the Grammar.export_c() method and
- * should be used with the cleri module.
+ * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-06-22 10:32:36
+ * Created at: 2017-06-27 16:12:07
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 
 cleri_grammar_t * compile_grammar(void);
 

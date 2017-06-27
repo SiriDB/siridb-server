@@ -16,7 +16,7 @@
 #include <imap/imap.h>
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 #include <ctree/ctree.h>
 #include <siri/db/presuf.h>
 #include <siri/db/group.h>

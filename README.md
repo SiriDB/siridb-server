@@ -38,6 +38,10 @@ apt install libexpat1 libuv1
 ```
 
 ### Compile from source
+>From version 2.0.19 libcleri is not included as part of this source anyore
+>and needs to be installed separately. libcleri can be found here: 
+>[https://github.com/transceptor-technology/libcleri](https://github.com/transceptor-technology/libcleri)
+
 #### Linux
 Install the following requirements: (Ubuntu)
 ```
