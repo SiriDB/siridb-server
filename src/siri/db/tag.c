@@ -17,7 +17,8 @@
 #include <siri/db/series.h>
 #include <ctype.h>
 #include <uv.h>
-
+#include <unistd.h>
+#include <siri/grammar/grammar.h>
 
 #define TAGFN_NUMBERS 9
 
@@ -72,7 +73,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 			qp_obj_t qp_tn;
 
 			if (!qp_is_array(qp_next(unpacker, NULL)) ||
-				qp_next(unpacker, &qp_tn) == QP_RAW ||
+				qp_next(unpacker, &qp_tn) != QP_RAW ||
 				(tag->name = strndup(qp_tn.via.raw, qp_tn.len)) == NULL)
 			{
 				/* or a memory allocation error, but the same result */
@@ -122,6 +123,9 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 	return tag;
 }
 
+/*
+ * Lock is required
+ */
 int siridb_tag_save(siridb_tag_t * tag)
 {
 	qp_fpacker_t * fpacker;
@@ -182,7 +186,7 @@ void siridb_tag_prop(siridb_tag_t * tag, qp_packer_t * packer, int prop)
         qp_add_string(packer, tag->name);
         break;
     case CLERI_GID_K_SERIES:
-        qp_add_int64(packer, (int64_t) tag->n);
+        qp_add_int64(packer, (int64_t) tag->id);
         break;
     }
 }
@@ -194,7 +198,7 @@ int siridb_tag_cexpr_cb(siridb_tag_t * tag, cexpr_condition_t * cond)
     case CLERI_GID_K_NAME:
         return cexpr_str_cmp(cond->operator, tag->name, cond->str);
     case CLERI_GID_K_SERIES:
-        return cexpr_int_cmp(cond->operator, tag->n, cond->int64);
+        return cexpr_int_cmp(cond->operator, (int64_t) tag->id, cond->int64);
     }
 
     log_critical("Unknown group property received: %d", cond->prop);
@@ -209,14 +213,6 @@ void siridb__tag_decref(siridb_tag_t * tag)
 {
     if (!--tag->ref)
     {
-    	if ((tag->flags & TAG_FLAG_CLEANUP) && unlink(tag->fn))
-    	{
-			log_critical("Cannot remove tag file: '%s'", tag->fn);
-    	}
-    	else if (tag->flags & TAG_FLAG_REQUIRE_SAVE)
-    	{
-    		siridb_tag_save(tag);
-    	}
         siridb__tag_free(tag);
     }
 }
@@ -231,6 +227,16 @@ void siridb__tag_free(siridb_tag_t * tag)
 #ifdef DEBUG
     log_debug("Free tag: '%s'", tag->name);
 #endif
+
+	if ((tag->flags & TAG_FLAG_CLEANUP) && unlink(tag->fn))
+	{
+		log_critical("Cannot remove tag file: '%s'", tag->fn);
+	}
+	else if ((tag->flags & TAG_FLAG_REQUIRE_SAVE) && siridb_tag_save(tag))
+	{
+		log_critical("Cannot save tag file: '%s'", tag->fn);
+	}
+
     free(tag->name);
     free(tag->fn);
     if (tag->series != NULL)

@@ -141,6 +141,7 @@ query_count_t * query_count_new(void)
 
         q_count->tp = QUERIES_COUNT;
         q_count->n = 0;
+        q_count->tags_n = NULL;
     }
     return q_count;
 }
@@ -182,6 +183,7 @@ query_list_t * query_list_new(void)
         q_list->tp = QUERIES_LIST;
         q_list->props = NULL;
         q_list->limit = DEFAULT_LIST_LIMIT;
+        q_list->tags_n = NULL;
     }
     return q_list;
 }
@@ -219,6 +221,11 @@ void query_count_free(uv_handle_t * handle)
     query_count_t * q_count =
             (query_count_t *) ((siridb_query_t *) handle->data)->data;
 
+    if (q_count->tags_n != NULL)
+    {
+    	ct_free(q_count->tags_n, NULL);
+    }
+
     QUERIES_FREE(q_count, handle)
 }
 
@@ -250,6 +257,11 @@ void query_list_free(uv_handle_t * handle)
     if (q_list->props != NULL)
     {
         slist_free(q_list->props);
+    }
+
+    if (q_list->tags_n != NULL)
+    {
+    	ct_free(q_list->tags_n, NULL);
     }
 
     QUERIES_FREE(q_list, handle)

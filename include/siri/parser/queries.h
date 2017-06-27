@@ -83,6 +83,7 @@ typedef struct query_alter_s
 typedef struct query_count_s
 {
     QUERY_DEF
+	ct_t * tags_n;	// must be at the same position as tags_n in query_list_s
     size_t n;   // can be used as counter
 } query_count_t;
 
@@ -97,6 +98,7 @@ typedef struct query_drop_s
 typedef struct query_list_s
 {
     QUERY_DEF
+    ct_t * tags_n;	// must be at the same position as tags_n in query_count_s
     slist_t * props;  // will be freed
     size_t limit;
 } query_list_t;

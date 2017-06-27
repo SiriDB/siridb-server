@@ -16,7 +16,6 @@
 #include <logger/logger.h>
 #include <siri/db/server.h>
 #include <siri/heartbeat.h>
-#include <siri/db/tags.h>
 #include <uv.h>
 
 #ifdef DEBUG
@@ -73,8 +72,6 @@ static void HEARTBEAT_cb(uv_timer_t * handle)
     while (siridb_node != NULL)
     {
         siridb = (siridb_t *) siridb_node->data;
-
-        siridb_tags_cleanup(siridb->tags);
 
         server_node = siridb->servers->first;
         while (server_node != NULL)

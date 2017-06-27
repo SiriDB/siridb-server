@@ -18,7 +18,6 @@
 #define TAG_FLAG_CLEANUP 1
 #define TAG_FLAG_REQUIRE_SAVE 2
 
-
 typedef struct siridb_s siridb_t;
 
 typedef struct siridb_tag_s

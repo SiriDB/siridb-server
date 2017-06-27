@@ -51,6 +51,7 @@ int siridb_groups_drop_group(
         const char * name,
         char * err_msg);
 void siridb_groups_destroy(siridb_groups_t * groups);
+void siridb_groups_incref(siridb_groups_t * groups);
 void siridb_groups_decref(siridb_groups_t * groups);
 int siridb_groups_add_group(
         siridb_groups_t * groups,

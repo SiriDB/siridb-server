@@ -577,6 +577,7 @@ int siridb_series_flush_dropped(siridb_t * siridb)
     }
 
     siridb->groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
+    siridb->tags->flags |= TAGS_FLAG_DROPPED_SERIES;
 
     return rc;
 }

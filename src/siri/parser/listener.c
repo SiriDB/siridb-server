@@ -231,6 +231,7 @@ static void exit_count_servers(uv_async_t * handle);
 static void exit_count_servers_received(uv_async_t * handle);
 static void exit_count_shards(uv_async_t * handle);
 static void exit_count_shards_size(uv_async_t * handle);
+static void exit_count_tags(uv_async_t * handle);
 static void exit_count_users(uv_async_t * handle);
 static void exit_create_group(uv_async_t * handle);
 static void exit_create_user(uv_async_t * handle);
@@ -331,8 +332,8 @@ static int values_count_groups(siridb_group_t * group, uv_async_t * handle);
 static void finish_list_groups(uv_async_t * handle);
 static void finish_count_groups(uv_async_t * handle);
 
-static int values_list_tags(siridb_tag_t * tag, uv_async_t * handle);
-static int values_count_tags(siridb_tag_t * tag, uv_async_t * handle);
+static int values_list_tags(char * tn, void * data, uv_async_t * handle);
+static int values_count_tags(char * tn, void * data, uv_async_t * handle);
 static void finish_list_tags(uv_async_t * handle);
 static void finish_count_tags(uv_async_t * handle);
 
@@ -441,6 +442,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
     siriparser_listen_enter[CLERI_GID_SERIES_SEP] = enter_series_sep;
     siriparser_listen_enter[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
+    siriparser_listen_enter[CLERI_GID_TAG_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_TAG_SERIES] = enter_tag_series;
     siriparser_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siriparser_listen_enter[CLERI_GID_UNTAG_SERIES] = enter_untag_series;
@@ -450,6 +452,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_WHERE_SERIES] = enter_where_xxx;
     siriparser_listen_enter[CLERI_GID_WHERE_SERVER] = enter_where_xxx;
     siriparser_listen_enter[CLERI_GID_WHERE_SHARD] = enter_where_xxx;
+    siriparser_listen_enter[CLERI_GID_WHERE_TAG] = enter_where_xxx;
     siriparser_listen_enter[CLERI_GID_WHERE_USER] = enter_where_xxx;
 
 
@@ -467,6 +470,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_COUNT_SERVERS_RECEIVED] = exit_count_servers_received;
     siriparser_listen_exit[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
     siriparser_listen_exit[CLERI_GID_COUNT_SHARDS_SIZE] = exit_count_shards_size;
+    siriparser_listen_exit[CLERI_GID_COUNT_TAGS] = exit_count_tags;
     siriparser_listen_exit[CLERI_GID_COUNT_USERS] = exit_count_users;
     siriparser_listen_exit[CLERI_GID_CREATE_GROUP] = exit_create_group;
     siriparser_listen_exit[CLERI_GID_CREATE_USER] = exit_create_user;
@@ -1557,7 +1561,7 @@ static void enter_untag_series(uv_async_t * handle)
 		else if (~tag->flags & TAG_FLAG_CLEANUP)
 		{
 			tag = (siridb_tag_t *) ct_pop(siridb->tags->tags, tag->name);
-			tag |= TAG_FLAG_CLEANUP;
+			tag->flags |= TAG_FLAG_CLEANUP;
 			siridb_tag_decref(tag);
 		}
 		uv_mutex_unlock(&siridb->tags->mutex);
@@ -2212,6 +2216,32 @@ static void exit_count_shards_size(uv_async_t * handle)
         qp_add_int64(query->packer, q_count->n);
         SIRIPARSER_ASYNC_NEXT_NODE
     }
+}
+
+static void exit_count_tags(uv_async_t * handle)
+{
+	siridb_query_t * query = (siridb_query_t *) handle->data;
+	siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+
+	MASTER_CHECK_ACCESSIBLE(siridb)
+	MASTER_CHECK_VERSION(siridb, "2.0.19")
+
+	sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_TAGS, NULL);
+
+	if (pkg != NULL)
+	{
+		siri_async_incref(handle);
+
+		query->nodes->cb = (uv_async_cb) finish_count_tags;
+
+		siridb_pools_send_pkg(
+				siridb,
+				pkg,
+				0,
+				(sirinet_promises_cb) on_tags_response,
+				handle,
+				0);
+	}
 }
 
 static void exit_count_users(uv_async_t * handle)
@@ -3213,55 +3243,21 @@ static void exit_list_tags(uv_async_t * handle)
 	MASTER_CHECK_ACCESSIBLE(siridb)
 	MASTER_CHECK_VERSION(siridb, "2.0.19")
 
-	query_list_t * q_list = (query_list_t *) query->data;
+	sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_TAGS, NULL);
 
-	int is_local = (q_list->props == NULL);
-
-	/* if not is_local check for 'remote' columns */
-	if (!is_local)
+	if (pkg != NULL)
 	{
-		is_local = 1;
-		for (int i = 0; i < q_list->props->len; i++)
-		{
-			if (siridb_tag_is_remote_prop(
-					*((uint32_t *) q_list->props->data[i])))
-			{
-				is_local = 0;
-				break;
-			}
-		}
-	}
+		siri_async_incref(handle);
 
-	/* if is_local, check if we use 'remote' props in where expression */
-	if (is_local && q_list->where_expr != NULL)
-	{
-		is_local = !cexpr_contains(
-				q_list->where_expr,
-				siridb_tag_is_remote_prop);
-	}
+		query->nodes->cb = (uv_async_cb) finish_list_tags;
 
-	if (is_local)
-	{
-		finish_list_tags(handle);
-	}
-	else
-	{
-		sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_TAGS, NULL);
-
-		if (pkg != NULL)
-		{
-			siri_async_incref(handle);
-
-			query->nodes->cb = (uv_async_cb) finish_list_tags;
-
-			siridb_pools_send_pkg(
-					siridb,
-					pkg,
-					0,
-					(sirinet_promises_cb) on_tags_response,
-					handle,
-					0);
-		}
+		siridb_pools_send_pkg(
+				siridb,
+				pkg,
+				0,
+				(sirinet_promises_cb) on_tags_response,
+				handle,
+				0);
 	}
 }
 
@@ -5309,19 +5305,15 @@ static void on_tags_response(slist_t * promises, uv_async_t * handle)
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_list_t * q_list = (query_list_t *) query->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    siridb_tag_t * tag;
     qp_obj_t qp_name;
     qp_obj_t qp_series;
-    void ** data;
+    uint32_t ** data;
+    volatile uintptr_t iptr;
+    q_list->tags_n = siridb_tags_lookup(siridb->tags);
 
-    uv_mutex_lock(&siridb->tags->mutex);
-
-    ct_t * ctmap = siridb_tags_lookup(siridb->tags);
-
-    uv_mutex_unlock(&siridb->tags->mutex);
-
-    if (ctmap != NULL)
+    if (q_list->tags_n != NULL)
     {
 		for (size_t i = 0; i < promises->len; i++)
 		{
@@ -5347,20 +5339,22 @@ static void on_tags_response(slist_t * promises, uv_async_t * handle)
 							qp_series.via.int64 > 0)
 					{
 
-						data = ct_getaddr(
-								ctmap,
+						data = (uint32_t **) ct_getaddr(
+								q_list->tags_n,
 								qp_name.via.raw);
 						if (data == NULL)
 						{
-
-							(uintptr_t) *data =
-									(uintptr_t) qp_series.via.int64;
-							ct_add(ctmap, qp_name.via.raw, *data);
+							iptr = (uint32_t) qp_series.via.int64;
+							ct_add( q_list->tags_n,
+									qp_name.via.raw,
+									(uint32_t *) iptr);
 						}
 						else
 						{
-							(uintptr_t) *data +=
-									(uintptr_t) qp_series.via.int64;
+							uintptr_t val = (uintptr_t) *data;
+							val += qp_series.via.int64;
+							iptr = (uint32_t) val;
+							*data = (uint32_t *) iptr;
 						}
 					}
 				}
@@ -5370,9 +5364,6 @@ static void on_tags_response(slist_t * promises, uv_async_t * handle)
 			free(promise->data);
 			sirinet_promise_decref(promise);
 		}
-
-
-		ct_free(ctmap, NULL);
     }
 
     query->nodes->cb(handle);
@@ -6073,21 +6064,25 @@ static void finish_count_groups(uv_async_t * handle)
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
-static int values_list_tags(siridb_tag_t * tag, uv_async_t * handle)
+static int values_list_tags(char * tn, void * data, uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_tag_cexpr_cb;
     slist_t * props = ((query_list_t *) query->data)->props;
+    siridb_tag_t tag;
+    tag.name = tn;
+    uintptr_t n = (uintptr_t) data;
+    tag.id = (uint32_t) n;
 
-    if (where_expr == NULL || cexpr_run(where_expr, cb, tag))
+    if (where_expr == NULL || cexpr_run(where_expr, cb, &tag))
     {
         qp_add_type(query->packer, QP_ARRAY_OPEN);
 
         for (size_t i = 0; i < props->len; i++)
         {
             siridb_tag_prop(
-                    tag,
+                    &tag,
                     query->packer,
                     *((uint32_t *) props->data[i]));
         }
@@ -6100,20 +6095,26 @@ static int values_list_tags(siridb_tag_t * tag, uv_async_t * handle)
     return 0;
 }
 
-static int values_count_tags(siridb_tag_t * tag, uv_async_t * handle)
+static int values_count_tags(char * tn, void * data, uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_count_t * q_count = (query_count_t *) query->data;
+    siridb_tag_t tag;
+    tag.name = tn;
+    uintptr_t n = (uintptr_t) data;
+    tag.id = (uint32_t) n;
 
-    return cexpr_run(
+    q_count->n += cexpr_run(
             ((query_list_t *) query->data)->where_expr,
             (cexpr_cb_t) siridb_tag_cexpr_cb,
-			tag);
+			&tag);
+
+    return 0;
 }
 
 static void finish_list_tags(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_list_t * q_list = (query_list_t *) query->data;
 
     if (q_list->props == NULL)
@@ -6132,10 +6133,10 @@ static void finish_list_tags(uv_async_t * handle)
     qp_add_raw(query->packer, "tags", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    ct_valuesn(
-            siridb->tags->tags,
+    ct_itemsn(
+    		q_list->tags_n,
             &q_list->limit,
-            (ct_val_cb) values_list_tags,
+            (ct_item_cb) values_list_tags,
             handle);
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
@@ -6146,19 +6147,24 @@ static void finish_list_tags(uv_async_t * handle)
 static void finish_count_tags(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    size_t n = (q_count->where_expr == NULL) ?
-            siridb->tags->tags->len :
-            ct_values(
-                        siridb->tags->tags,
-                        (ct_val_cb) values_count_tags,
-                        handle);
+    if (q_count->where_expr == NULL)
+    {
+    	q_count->n = q_count->tags_n->len;
+    }
+    else
+    {
+    	LOGC("Here...");
+    	ct_items(
+    			q_count->tags_n,
+				(ct_item_cb) values_count_tags,
+				handle);
+    }
 
     qp_add_raw(query->packer, "tags", 4);
 
-    qp_add_int64(query->packer, n);
+    qp_add_int64(query->packer, q_count->n);
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

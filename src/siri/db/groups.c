@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <xpath/xpath.h>
+#include <siri/db/tags.h>
 
 #define SIRIDB_GROUPS_SCHEMA 1
 #define SIRIDB_GROUPS_FN "groups.dat"
@@ -76,7 +77,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
     }
     else
     {
-        groups->ref = 2;  // for the main thread and for the groups thread
+        groups->ref = 1;  // for the main thread and for the groups thread
         groups->fn = NULL;
         groups->groups = ct_new();
         groups->nseries = slist_new(SLIST_DEFAULT_SIZE);
@@ -115,6 +116,9 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
  */
 void siridb_groups_start(siridb_groups_t * groups)
 {
+	/* Increment groups reference */
+	siridb_groups_incref(groups);
+
     uv_queue_work(
             siri.loop,
             &groups->work,
@@ -335,6 +339,11 @@ int siridb_groups_drop_group(
     return 0;
 }
 
+void siridb_groups_incref(siridb_groups_t * groups)
+{
+	groups->ref++;
+}
+
 void siridb_groups_decref(siridb_groups_t * groups)
 {
     if (!--groups->ref)
@@ -421,6 +430,9 @@ static int GROUPS_2slist(siridb_group_t * group, slist_t * groups_list)
 static void GROUPS_loop(uv_work_t * work)
 {
     siridb_t * siridb = (siridb_t *) work->data;
+
+    siridb_tags_incref(siridb->tags);
+
     siridb_groups_t * groups = siridb->groups;
     uint64_t mod_test = 0;
 
@@ -451,7 +463,14 @@ static void GROUPS_loop(uv_work_t * work)
             if (groups->flags & GROUPS_FLAG_DROPPED_SERIES)
             {
                 GROUPS_cleanup(siridb->groups);
-
+            }
+            if (siridb->tags->flags & TAGS_FLAG_DROPPED_SERIES)
+            {
+            	siridb_tags_dropped_series(siridb->tags);
+            }
+            if (siridb->tags->flags & TAGS_FLAG_REQUIRE_SAVE)
+            {
+            	siridb_tags_save(siridb->tags);
             }
             break;
 
@@ -463,6 +482,8 @@ static void GROUPS_loop(uv_work_t * work)
             break;
         }
     }
+
+    siridb_tags_decref(siridb->tags);
 
     groups->status = GROUPS_CLOSED;
 }

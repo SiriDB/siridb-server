@@ -19,6 +19,7 @@
 
 #define SIRIDB_TAGS_PATH "tags/"
 
+#define TAGS_FLAG_DROPPED_SERIES 1
 #define TAGS_FLAG_REQUIRE_SAVE 2
 
 typedef struct siridb_s siridb_t;
@@ -36,15 +37,16 @@ typedef struct siridb_tags_s
 } siridb_tags_t;
 
 int siridb_tags_init(siridb_t * siridb);
+void siridb_tags_incref(siridb_tags_t * tags);
 void siridb_tags_decref(siridb_tags_t * tags);
 siridb_tag_t * siridb_tags_add(siridb_tags_t * tags, const char * name);
 sirinet_pkg_t * siridb_tags_pkg(siridb_tags_t * tags, uint16_t pid);
 ct_t * siridb_tags_lookup(siridb_tags_t * tags);
-int siridb__tags_cleanup(siridb_tags_t * tags);
+void siridb_tags_cleanup(uv_async_t * handle);
+void siridb_tags_dropped_series(siridb_tags_t * tags);
+void siridb_tags_save(siridb_tags_t * tags);
+
 
 #define siridb_tags_require_save(__tags, __tag) 		\
 		__tags->flags |= TAGS_FLAG_REQUIRE_SAVE;		\
 		__tag->flags |= TAG_FLAG_REQUIRE_SAVE
-
-#define siridb_tags_cleanup(__tags)								\
-		if (__tags->cleanup->len) siridb__tags_cleanup(__tags)
