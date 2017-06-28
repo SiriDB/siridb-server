@@ -11,3 +11,6 @@
   * Added a promises queue limit which prevents overwriting a pid in the
     promises queue and prevents adding an insane amount of requests to a
     single server. (issue #73)
+    
+  * Removed "cleri" from the source code and replaced this with libcleri.
+    https://github.com/transceptor-technology/libcleri
