@@ -27,6 +27,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/* max read buffer size used for reading from index file */
+#define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
+
 #define GET_FN(shrd)                                                        \
 /* we are sure this fits since the max possible length is checked */        \
 shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                       \
@@ -1173,6 +1176,199 @@ static int SHARD_truncate(siridb_shard_t * shard)
     return fsync(buffer_fd);
 }
 
+static int SHARD_apply_idx_num32(
+		siridb_t * siridb,
+        siridb_shard_t * shard,
+		char * pt,
+		size_t pos)
+{
+    uint16_t len;
+    uint32_t series_id;
+    siridb_series_t * series = imap_get(siridb->series_map, series_id);
+
+    series_id = *((uint32_t *) pt);
+    len = *((uint16_t *) (pt + 12));  // LEN POS IN INDEX
+
+    if (series == NULL)
+    {
+        if (!series_id || series_id > siridb->max_series_id)
+        {
+            log_error(
+                    "Unexpected Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) at "
+                    "position %ld. This indicates that this shard is "
+                    "probably corrupt. The next optimize cycle will most "
+                    "likely fix this shard but you might loose some data.",
+                    series_id,
+                    shard->id,
+                    shard->fn,
+                    pos);
+            shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+            return -1;
+        }
+
+        /* this shard has remove series, make sure the flag is set */
+        if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
+        {
+            log_debug(
+                    "At least Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) but "
+                    "does not exist anymore. We will remove the series on "
+                    "the next optimize cycle.",
+                    series_id,
+                    shard->id,
+                    shard->fn);
+            shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
+        }
+    }
+    else
+    {
+        if (siridb_series_add_idx(
+                series,
+                shard,
+                (uint64_t) *((uint32_t *) (pt + 4)), // START_TS IN HEADER
+                (uint64_t) *((uint32_t *) (pt + 8)), // END_TS IN HEADER
+                (uint32_t) pos,
+                len) == 0)
+        {
+            /* update the series length property */
+            series->length += len;
+        }
+        else
+        {
+            /* signal is raised */
+            log_critical("Cannot load index for Series ID %u", series->id);
+        }
+    }
+
+    return (int) len;
+}
+
+static int SHARD_apply_idx_num64(
+		siridb_t * siridb,
+        siridb_shard_t * shard,
+		char * pt,
+		size_t pos)
+{
+    uint16_t len;
+    uint32_t series_id;
+    siridb_series_t * series = imap_get(siridb->series_map, series_id);
+
+    series_id = *((uint32_t *) pt);
+    len = *((uint16_t *) (pt + 20));  // LEN POS IN INDEX
+
+    series = imap_get(siridb->series_map, series_id);
+
+    if (series == NULL)
+    {
+        if (!series_id || series_id > siridb->max_series_id)
+        {
+            log_error(
+                    "Unexpected Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) at "
+                    "position %d. This indicates that this shard is "
+                    "probably corrupt. The next optimize cycle will most "
+                    "likely fix this shard but you might loose some data.",
+                    series_id,
+                    shard->id,
+                    shard->fn,
+                    pos);
+            shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+            return -1;
+        }
+
+        /* this shard has remove series, make sure the flag is set */
+        if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
+        {
+            log_debug(
+                    "At least Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) but "
+                    "does not exist anymore. We will remove the series on "
+                    "the next optimize cycle.",
+                    series_id,
+                    shard->id,
+                    shard->fn);
+            shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
+        }
+    }
+    else
+    {
+        if (siridb_series_add_idx(
+                series,
+                shard,
+                (uint64_t) *((uint64_t *) (pt + 4)), // START_TS IN HEADER
+                (uint64_t) *((uint64_t *) (pt + 12)), // END_TS IN HEADER
+                (uint32_t) pos,
+                len) == 0)
+        {
+            /* update the series length property */
+            series->length += len;
+        }
+        else
+        {
+            /* signal is raised */
+            log_critical("Cannot load index for Series ID %u", series->id);
+        }
+    }
+
+    return (int) len;
+}
+
+static int SHARD_get_idx_num32(siridb_t * siridb, siridb_shard_t * shard)
+{
+	if (~shard->flags & SIRIDB_SHARD_HAS_INDEX)
+	{
+		return 0;
+	}
+	size_t i, n = SIRIDB_SHARD_MAX_CHUNK_SZ / IDX_NUM32_SZ;
+	char * fn = strdup(shard->fn);
+	char * data = (char *) malloc(n * IDX_NUM32_SZ);
+	char * pt;
+	int len;
+
+	if (fn == NULL || data == NULL)
+	{
+		log_critical("Memory allocation error");
+		free(fn);
+		free(data);
+		return -1;
+	}
+	FILE * fp = fopen(fn, "r");
+	if (fp == NULL)
+	{
+		log_critical("Cannot open index file for reading: '%s'", fn);
+		free(fn);
+		free(data);
+		return -1;
+	}
+
+
+	while ((n = fread(data, IDX_NUM32_SZ, n, fp)))
+	{
+		pt = data;
+		for (i = 0; i < n; i++, pt += IDX_NUM32_SZ)
+		{
+			len = SHARD_apply_idx_num32(
+					siridb,
+			        shard,
+					pt,
+					shard->size);
+			if (len < 0)
+			{
+				log_critical("Cannot open index file for reading: '%s'", fn);
+				free(fn);
+				free(data);
+				return -1;
+			}
+		}
+	}
+
+
+
+
+	return 0;
+}
+
 /*
  * Returns 0 if successful or -1 in case of an error.
  *
@@ -1186,74 +1382,17 @@ static int SHARD_load_idx_num32(
         FILE * fp)
 {
     char idx[IDX_NUM32_SZ];
-    siridb_series_t * series;
-    uint16_t len;
-    uint32_t series_id;
-    char * pt;
-    int rc;
-    long int pos;
-    size_t size;
+    int len, rc;
+    size_t size, pos;
 
     while ((size = fread(&idx, 1, IDX_NUM32_SZ, fp)) == IDX_NUM32_SZ)
     {
-        pt = idx;
-        series_id = *((uint32_t *) pt);
-        len = *((uint16_t *) (idx + 12));  // LEN POS IN INDEX
-        pos = shard->size + IDX_NUM32_SZ;
+    	pos = shard->size + IDX_NUM32_SZ;
 
-        series = imap_get(siridb->series_map, series_id);
-
-        if (series == NULL)
-        {
-            if (!series_id || series_id > siridb->max_series_id)
-            {
-                log_error(
-                        "Unexpected Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) at "
-                        "position %ld. This indicates that this shard is "
-                        "probably corrupt. The next optimize cycle will most "
-                        "likely fix this shard but you might loose some data.",
-                        series_id,
-                        shard->id,
-                        shard->fn,
-                        pos);
-                shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-                return -1;
-            }
-
-            /* this shard has remove series, make sure the flag is set */
-            if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
-            {
-                log_debug(
-                        "At least Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) but "
-                        "does not exist anymore. We will remove the series on "
-                        "the next optimize cycle.",
-                        series_id,
-                        shard->id,
-                        shard->fn);
-                shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
-            }
-        }
-        else
-        {
-            if (siridb_series_add_idx(
-                    series,
-                    shard,
-                    (uint64_t) *((uint32_t *) (idx + 4)), // START_TS IN HEADER
-                    (uint64_t) *((uint32_t *) (idx + 8)), // END_TS IN HEADER
-                    (uint32_t) pos,
-                    len) == 0)
-            {
-                /* update the series length property */
-                series->length += len;
-            }
-            else
-            {
-                /* signal is raised */
-                log_critical("Cannot load index for Series ID %u", series->id);
-            }
-        }
+    	if ((len = SHARD_apply_idx_num32(siridb, shard, idx, pos)) < 0)
+    	{
+    		return -1;
+    	}
 
         rc = fseeko(fp, len * 12, SEEK_CUR);  // 12 = NUM32 point size
         if (rc != 0)
@@ -1264,12 +1403,12 @@ static int SHARD_load_idx_num32(
                 "most likely fix this shard but you might loose some data.",
                 shard->id,
                 shard->fn,
-                pos);
+				pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
             return -1;
         }
 
-        shard->size = pos + len * 12;
+        shard->size = pos + (len * 12);
     }
 
     if (size)
@@ -1297,76 +1436,19 @@ static int SHARD_load_idx_num64(
         FILE * fp)
 {
     char idx[IDX_NUM64_SZ];
-    siridb_series_t * series;
-    uint16_t len;
-    uint32_t series_id;
-    char * pt;
-    int rc;
-    long int pos;
-    size_t size;
+    int len, rc;
+    size_t size, pos;
 
     while ((size = fread(&idx, 1, IDX_NUM64_SZ, fp)) == IDX_NUM64_SZ)
     {
-        pt = idx;
-        series_id = *((uint32_t *) pt);
-        len = *((uint16_t *) (idx + 20));  // LEN POS IN INDEX
         pos = shard->size + IDX_NUM64_SZ;
 
-        series = imap_get(siridb->series_map, series_id);
+    	if ((len = SHARD_apply_idx_num64(siridb, shard, idx, pos)) < 0)
+    	{
+    		return -1;
+    	}
 
-        if (series == NULL)
-        {
-            if (!series_id || series_id > siridb->max_series_id)
-            {
-                log_error(
-                        "Unexpected Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) at "
-                        "position %d. This indicates that this shard is "
-                        "probably corrupt. The next optimize cycle will most "
-                        "likely fix this shard but you might loose some data.",
-                        series_id,
-                        shard->id,
-                        shard->fn,
-                        pos);
-                shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-                return -1;
-            }
-
-            /* this shard has remove series, make sure the flag is set */
-            if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
-            {
-                log_debug(
-                        "At least Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) but "
-                        "does not exist anymore. We will remove the series on "
-                        "the next optimize cycle.",
-                        series_id,
-                        shard->id,
-                        shard->fn);
-                shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
-            }
-        }
-        else
-        {
-            if (siridb_series_add_idx(
-                    series,
-                    shard,
-                    (uint64_t) *((uint64_t *) (idx + 4)), // START_TS IN HEADER
-                    (uint64_t) *((uint64_t *) (idx + 12)), // END_TS IN HEADER
-                    (uint32_t) pos,
-                    len) == 0)
-            {
-                /* update the series length property */
-                series->length += len;
-            }
-            else
-            {
-                /* signal is raised */
-                log_critical("Cannot load index for Series ID %u", series->id);
-            }
-        }
-
-        rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM32 point size
+        rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM64 point size
         if (rc != 0)
         {
             log_error(
