@@ -27,7 +27,9 @@
 
 static siri_optimize_t optimize = {
         .pause=0,
-        .status=SIRI_OPTIMIZE_PENDING
+        .status=SIRI_OPTIMIZE_PENDING,
+		.idx_fp=NULL,
+		.idx_fn=NULL
 };
 
 static void OPTIMIZE_work(uv_work_t * work);
@@ -86,6 +88,20 @@ inline void siri_optimize_pause(void)
     if (optimize.status == SIRI_OPTIMIZE_PENDING)
     {
         optimize.status = SIRI_OPTIMIZE_PAUSED_MAIN;
+#ifdef DEBUG
+        assert (optimize->idx_fp == NULL && optimize->idx_fn == NULL);
+#endif
+    }
+    else if (optimize->idx_fp != NULL)
+    {
+#ifdef DEBUG
+        assert (optimize->idx_fn != NULL);
+#endif
+    	if (fclose(optimize->idx_fp))
+    	{
+    		log_critical("Closing index file failed: '%s'", optimize->idx_fn);
+    	}
+    	optimize->idx_fp = NULL;
     }
 }
 
@@ -98,10 +114,25 @@ inline void siri_optimize_continue(void)
 #ifdef DEBUG
     assert (optimize.pause);
 #endif
-    if (!--optimize.pause && optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
+
+    if (!--optimize.pause)
     {
-        log_debug("Optimize task was paused by the main thread, continue...");
-        optimize.status = SIRI_OPTIMIZE_PENDING;
+    	if (optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
+    	{
+			log_debug(
+					"Optimize was paused by the main thread, continue...");
+			optimize.status = SIRI_OPTIMIZE_PENDING;
+#ifdef DEBUG
+			assert (optimize->idx_fp == NULL && optimize->idx_fn == NULL);
+#endif
+    	}
+    	else if (optimize->idx_fn != NULL &&
+    		(optimize->idx_fp = fopen(optimize->idx_fn, "a")) == NULL)
+    	{
+    		log_error("Cannot re-open index file: '%s'", optimize->idx_fn);
+			free(optimize->idx_fn);
+			optimize->idx_fn = NULL;
+    	}
     }
 }
 
@@ -146,6 +177,68 @@ int siri_optimize_wait(void)
 
     }
     return optimize.status;
+}
+
+int siri_optimize_create_idx(const char * fn)
+{
+#ifdef DEBUG
+	assert (optimize.idx_fn == NULL && strlen(fn) > 3);
+#endif
+	/* copy file name */
+	optimize.idx_fn = strdup(fn);
+	if (optimize.idx_fn == NULL)
+	{
+		return -1;
+	}
+
+	/* replace last three characters from sdb to idx */
+	memcpy(optimize.idx_fn + strlen(fn) - 3, "idx", 3);
+
+	/* open file for writing */
+	optimize->idx_fp = fopen(optimize.idx_fn, "w");
+	if (optimize->idx_fp == NULL)
+	{
+		log_critical(
+				"Cannot open index file for writing: '%s'",
+				optimize.idx_fn);
+		free(optimize.idx_fn);
+		optimize.idx_fn = NULL;
+	}
+
+	return 0;
+}
+
+int siri_optimize_finish_idx(void)
+{
+	int rc = 0;
+
+#ifdef DEBUG
+	assert (optimize.idx_fp != NULL &&
+			optimize.idx_fn != NULL &&
+			strncmp(optimize.idx_fn, "__", 2) == 0);
+#endif
+
+	if (fclose(optimize.idx_fp))
+	{
+		log_critical("Closing index file failed: '%s'", optimize->idx_fn);
+		rc = -1;
+	}
+
+	optimize.idx_fp = NULL;
+
+	if (rename(optimize.idx_fn, optimize.idx_fn + 2))
+	{
+		log_critical(
+				"Rename failed: '%s' to '%s'",
+				optimize->idx_fn,
+				optimize.idx_fn + 2);
+		rc = -1;
+	}
+
+	free(optimize.idx_fn);
+	optimize.idx_fn = NULL;
+
+	return rc;
 }
 
 static void OPTIMIZE_work(uv_work_t * work)
@@ -216,7 +309,7 @@ static void OPTIMIZE_work(uv_work_t * work)
 #endif
             if (    !siri_err &&
                     optimize.status != SIRI_OPTIMIZE_CANCELLED &&
-                    shard->flags != SIRIDB_SHARD_OK &&
+                    (shard->flags & SIRIDB_SHARD_NEED_OPTIMIZE) &&
                     (~shard->flags & SIRIDB_SHARD_IS_REMOVED))
             {
                 log_info("Start optimizing shard id %" PRIu64 " (%" PRIu8 ")",
@@ -270,6 +363,19 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
         log_info("Finished optimize task in %d seconds with status: %d",
                 time(NULL) - optimize.start,
                 status);
+    }
+
+    if (optimize->idx_fn != NULL)
+    {
+    	log_debug("Cleanup open index file: '%s'", optimize->idx_fn);
+        if (optimize->idx_fp != NULL)
+        {
+        	fclose(optimize->idx_fp);
+        	optimize->idx_fp = NULL;
+        }
+
+    	free(optimize->idx_fn);
+    	optimize->idx_fn = NULL;
     }
 
     /* reset optimize status to pending if and only if the status is RUNNING */

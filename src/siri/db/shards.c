@@ -183,7 +183,8 @@ int siridb_shards_add_points(
                         shard,
                         points,
                         pstart,
-                        pend)) < 0)
+                        pend,
+						NULL)) < 0)
                 {
                     log_critical(
                             "Could not write points to shard id %" PRIu64,
@@ -206,7 +207,8 @@ int siridb_shards_add_points(
                                shard->replacing,
                                points,
                                pstart,
-                               pend);
+                               pend,
+							   NULL);
                     }
                 }
             }

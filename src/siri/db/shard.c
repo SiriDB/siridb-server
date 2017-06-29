@@ -103,7 +103,7 @@ sprintf(fn, "%s%s%" PRIu64 "%s", siridb->dbpath,                            \
 #define DEFAULT_MAX_CHUNK_SZ_NUM 800
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
-        {.repr="optimize-scheduled", .flag=SIRIDB_SHARD_MANUAL_OPTIMIZE},
+        {.repr="indexed", .flag=SIRIDB_SHARD_HAS_INDEX},
         {.repr="overlap", .flag=SIRIDB_SHARD_HAS_OVERLAP},
         {.repr="new-values", .flag=SIRIDB_SHARD_HAS_NEW_VALUES},
         {.repr="dropped-series", .flag=SIRIDB_SHARD_HAS_DROPPED_SERIES},
@@ -127,6 +127,14 @@ static int SHARD_load_idx_num64(
         FILE * fp);
 static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 static int SHARD_truncate(siridb_shard_t * shard);
+static int SHARD_write_header(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard,
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+		FILE * fp);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -275,7 +283,8 @@ siridb_shard_t *  siridb_shard_create(
     }
     shard->id = id;
     shard->ref = 1;
-    shard->flags = SIRIDB_SHARD_OK;
+    shard->flags = (replacing == NULL) ?
+    		SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
     shard->tp = tp;
     shard->replacing = replacing;
     shard->size = HEADER_SIZE;
@@ -424,12 +433,14 @@ long int siridb_shard_write_points(
         siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
-        uint_fast32_t end)
+        uint_fast32_t end,
+		FILE * idx_fp)
 {
     FILE * fp;
     uint16_t len = end - start;
     uint_fast32_t i;
     long int pos = EOF;
+    int header_sz;
 
     if (shard->fp->fp == NULL)
     {
@@ -442,57 +453,40 @@ long int siridb_shard_write_points(
     }
     fp = shard->fp->fp;
 
-    if (fseeko(fp, 0, SEEK_END) ||
-        fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
+    if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
     {
-        ERR_FILE
-        log_critical("Cannot write index header to file '%s'", shard->fn);
-        return EOF;
+    	header_sz = SHARD_write_header(
+    			siridb,
+				series,
+				shard,
+				points,
+				start,
+				end,
+				fp);
+    	pos = shard->size + header_sz;
+    }
+    else
+    {
+    	header_sz = SHARD_write_header(
+    			siridb,
+				series,
+				shard,
+				points,
+				start,
+				end,
+				idx_fp);
+    	pos = shard->size;
     }
 
-    switch (siridb->time->ts_sz)
+    if (header_sz < 0)
     {
-    case sizeof(uint32_t):
-        {
-            uint32_t start_ts = (uint32_t) points->data[start].ts;
-            uint32_t end_ts = (uint32_t) points->data[end - 1].ts;
-            if (fwrite(&start_ts, sizeof(uint32_t), 1, fp) != 1 ||
-                fwrite(&end_ts, sizeof(uint32_t), 1, fp) != 1)
-            {
-                ERR_FILE
-                log_critical("Cannot write index header to file '%s'",
-                        shard->fn);
-                return EOF;
-            }
-        }
-        /* TODO: this is not LOG compatible */
-        pos = shard->size + IDX_NUM32_SZ;
-        break;
-
-    case sizeof(uint64_t):
-        if (fwrite(&points->data[start].ts, sizeof(uint64_t), 1, fp) != 1 ||
-            fwrite(&points->data[end - 1].ts, sizeof(uint64_t), 1, fp) != 1)
-        {
-            ERR_FILE
-            log_critical("Cannot write index header to file '%s'",
-                    shard->fn);
-            return EOF;
-        }
-        /* TODO: this is not LOG compatible */
-        pos = shard->size + IDX_NUM64_SZ;
-        break;
-
-    default:
-        assert (0);
-        break;
+		ERR_FILE
+		log_critical(
+				"Cannot write index header for shard id %" PRIu64,
+				shard->id);
+		return EOF;
     }
 
-    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
-    {
-        ERR_FILE
-        log_critical("Cannot write index header to file '%s'", shard->fn);
-        return EOF;
-    }
 
     /* TODO: this works for both double and integer.
      * Add size values for strings and write string using 'old' way
@@ -766,6 +760,12 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         else
         {
             siridb_shard_incref(new_shard);
+            if (siri_optimize_create_idx(new_shard->fn))
+            {
+            	log_error(
+            			"Could not create an index file for shard id %" PRIu64
+						", continue anyway...", shard->id);
+            }
         }
     }
     else
@@ -1418,4 +1418,62 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
              (shard->replacing == NULL) ? "" : "__",
              shard->id,
              ".sdb");
+}
+
+
+static int SHARD_write_header(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_shard_t * shard,
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+		FILE * fp)
+{
+    uint16_t len = end - start;
+    int size = EOF;
+
+	if (fseeko(fp, 0, SEEK_END) ||
+		fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
+	{
+		return EOF;
+	}
+
+	switch (siridb->time->ts_sz)
+	{
+	case sizeof(uint32_t):
+		{
+			uint32_t start_ts = (uint32_t) points->data[start].ts;
+			uint32_t end_ts = (uint32_t) points->data[end - 1].ts;
+			if (fwrite(&start_ts, sizeof(uint32_t), 1, fp) != 1 ||
+				fwrite(&end_ts, sizeof(uint32_t), 1, fp) != 1)
+			{
+				return EOF;
+			}
+		}
+		/* TODO: this is not LOG compatible */
+		size = IDX_NUM32_SZ;
+		break;
+
+	case sizeof(uint64_t):
+		if (fwrite(&points->data[start].ts, sizeof(uint64_t), 1, fp) != 1 ||
+			fwrite(&points->data[end - 1].ts, sizeof(uint64_t), 1, fp) != 1)
+		{
+			return EOF;
+		}
+		/* TODO: this is not LOG compatible */
+		size = IDX_NUM64_SZ;
+		break;
+
+	default:
+		assert (0);
+		break;
+	}
+
+	if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
+	{
+		return EOF;
+	}
+
+	return size;
 }

@@ -80,6 +80,8 @@ const char series_type_map[3][8] = {
         "string"
 };
 
+const uint8_t SERIES_SFC = SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
+
 /*
  * Call-back used to compare series properties.
  *
@@ -435,21 +437,10 @@ int siridb_series_add_idx(
 
     idx = series->idx + i;
 
-    /* Check here for new values since we now can compare the current
-     * idx->shard with shard. We only set NEW_VALUES when we already have
-     * data for this series in the shard and when not loading and not set
-     * already. (NEW_VALUES is used for optimize detection and there is
-     * nothing to optimize if this is the fist data for this series inside
-     * the shard.
-     */
-    if (    ((shard->flags &
-                (SIRIDB_SHARD_HAS_NEW_VALUES |
-                        SIRIDB_SHARD_IS_LOADING)) == 0) &&
-            ((i > 0 && series->idx[i - 1].shard == shard) ||
-            (i < series->idx_len - 1 && idx->shard == shard)))
+    /* Do not set the new values check when shard is loading. */
+    if (!(shard->flags & SERIES_SFC))
     {
         shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
-        siridb_shard_write_flags(shard);
     }
 
     idx->start_ts = start_ts;
@@ -926,7 +917,8 @@ int siridb_series_optimize_shard(
                 shard,
                 points,
                 pstart,
-                pend)) == EOF)
+                pend,
+				siri.optimize->idx_fp)) == EOF)
         {
             log_critical(
                     "Cannot write points to shard id '%" PRIu64 "'",

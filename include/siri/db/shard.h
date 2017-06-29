@@ -15,16 +15,20 @@
 #include <siri/db/points.h>
 #include <siri/db/series.h>
 #include <siri/file/handler.h>
+#include <stdio.h>
 
 /* flags */
 #define SIRIDB_SHARD_OK 0
-#define SIRIDB_SHARD_MANUAL_OPTIMIZE 1
+#define SIRIDB_SHARD_HAS_INDEX 1
 #define SIRIDB_SHARD_HAS_OVERLAP 2
 #define SIRIDB_SHARD_HAS_NEW_VALUES 4
 #define SIRIDB_SHARD_HAS_DROPPED_SERIES 8
 #define SIRIDB_SHARD_IS_REMOVED 16
 #define SIRIDB_SHARD_IS_LOADING 32
 #define SIRIDB_SHARD_IS_CORRUPT 64
+
+// HAS_OVERLAP + HAS_NEW_VALUES + HAS_DROPPED_SERIES + IS_CORRUPT
+#define SIRIDB_SHARD_NEED_OPTIMIZE 78
 
 /* types */
 #define SIRIDB_SHARD_TP_NUMBER 0
@@ -88,7 +92,8 @@ long int siridb_shard_write_points(
         siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
-        uint_fast32_t end);
+        uint_fast32_t end,
+		FILE * idx_fp);
 
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
