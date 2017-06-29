@@ -40,6 +40,6 @@ void siri_optimize_pause(void);
 void siri_optimize_continue(void);
 int siri_optimize_wait(void);
 int siri_optimize_create_idx(const char * fn);
-int siri_optimize_finish_idx(void);
+int siri_optimize_finish_idx(int remove_old);
 
 #define SIRI_OPTIMZE_IS_PAUSED (siri.optimize->status >= SIRI_OPTIMIZE_PAUSED)

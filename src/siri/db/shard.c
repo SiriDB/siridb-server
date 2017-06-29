@@ -283,8 +283,6 @@ siridb_shard_t *  siridb_shard_create(
     }
     shard->id = id;
     shard->ref = 1;
-    shard->flags = (replacing == NULL) ?
-    		SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
     shard->tp = tp;
     shard->replacing = replacing;
     shard->size = HEADER_SIZE;
@@ -298,6 +296,9 @@ siridb_shard_t *  siridb_shard_create(
         siridb_shard_decref(shard);
         return NULL;
     }
+
+    shard->flags = (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
+    		SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
@@ -760,12 +761,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         else
         {
             siridb_shard_incref(new_shard);
-            if (siri_optimize_create_idx(new_shard->fn))
-            {
-            	log_error(
-            			"Could not create an index file for shard id %" PRIu64
-						", continue anyway...", shard->id);
-            }
         }
     }
     else
@@ -821,8 +816,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         }
 
         series = slist->data[i];
-
-
 
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
@@ -891,6 +884,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
     /* make sure both shards files are closed */
     siri_fp_close(new_shard->replacing->fp);
     siri_fp_close(new_shard->fp);
+    ;
 
     /*
      * Closing files or writing to the new shard might have produced
@@ -911,8 +905,10 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         /* remove the old shard file, this is not critical */
         unlink(new_shard->replacing->fn);
 
-        /* rename the temporary shard file to the correct shard filename */
-        if (rename(new_shard->fn, new_shard->replacing->fn))
+        /* rename the temporary files to the correct file names */
+        if (siri_optimize_finish_idx(
+        		new_shard->replacing->flags & SIRIDB_SHARD_HAS_INDEX) ||
+        	rename(new_shard->fn, new_shard->replacing->fn))
         {
             free(tmp);
             log_critical(

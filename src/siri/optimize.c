@@ -88,20 +88,6 @@ inline void siri_optimize_pause(void)
     if (optimize.status == SIRI_OPTIMIZE_PENDING)
     {
         optimize.status = SIRI_OPTIMIZE_PAUSED_MAIN;
-#ifdef DEBUG
-        assert (optimize->idx_fp == NULL && optimize->idx_fn == NULL);
-#endif
-    }
-    else if (optimize->idx_fp != NULL)
-    {
-#ifdef DEBUG
-        assert (optimize->idx_fn != NULL);
-#endif
-    	if (fclose(optimize->idx_fp))
-    	{
-    		log_critical("Closing index file failed: '%s'", optimize->idx_fn);
-    	}
-    	optimize->idx_fp = NULL;
     }
 }
 
@@ -114,25 +100,10 @@ inline void siri_optimize_continue(void)
 #ifdef DEBUG
     assert (optimize.pause);
 #endif
-
-    if (!--optimize.pause)
+    if (!--optimize.pause && optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
     {
-    	if (optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
-    	{
-			log_debug(
-					"Optimize was paused by the main thread, continue...");
-			optimize.status = SIRI_OPTIMIZE_PENDING;
-#ifdef DEBUG
-			assert (optimize->idx_fp == NULL && optimize->idx_fn == NULL);
-#endif
-    	}
-    	else if (optimize->idx_fn != NULL &&
-    		(optimize->idx_fp = fopen(optimize->idx_fn, "a")) == NULL)
-    	{
-    		log_error("Cannot re-open index file: '%s'", optimize->idx_fn);
-			free(optimize->idx_fn);
-			optimize->idx_fn = NULL;
-    	}
+        log_debug("Optimize task was paused by the main thread, continue...");
+        optimize.status = SIRI_OPTIMIZE_PENDING;
     }
 }
 
@@ -150,7 +121,22 @@ int siri_optimize_wait(void)
         assert (optimize.status == SIRI_OPTIMIZE_RUNNING);
 #endif
         optimize.status = SIRI_OPTIMIZE_PAUSED;
+
+        /* close open index file in case this is required */
+        if (optimize->idx_fp != NULL)
+        {
+        	log_info("Closing index file: '%s'", optimize->idx_fn);
+        	if (fclose(optimize->idx_fp))
+        	{
+        		log_critical(
+        				"Closing index file failed: '%s'",
+        				optimize->idx_fn);
+        	}
+        	optimize->idx_fp = NULL;
+        }
+
         log_info("Optimize task is paused, wait until we can continue...");
+
         sleep(5);
 
         while (optimize.pause)
@@ -164,6 +150,15 @@ int siri_optimize_wait(void)
         case SIRI_OPTIMIZE_PAUSED:
             log_info("Continue optimize task...");
             optimize.status = SIRI_OPTIMIZE_RUNNING;
+
+            if (optimize->idx_fn != NULL &&
+				(optimize->idx_fp = fopen(optimize->idx_fn, "a")) == NULL)
+			{
+				log_error("Cannot re-open index file: '%s'", optimize->idx_fn);
+				free(optimize->idx_fn);
+				optimize->idx_fn = NULL;
+			}
+
             break;
 
         case SIRI_OPTIMIZE_CANCELLED:
@@ -188,6 +183,7 @@ int siri_optimize_create_idx(const char * fn)
 	optimize.idx_fn = strdup(fn);
 	if (optimize.idx_fn == NULL)
 	{
+		log_error("Memory allocation error");
 		return -1;
 	}
 
@@ -198,19 +194,26 @@ int siri_optimize_create_idx(const char * fn)
 	optimize->idx_fp = fopen(optimize.idx_fn, "w");
 	if (optimize->idx_fp == NULL)
 	{
-		log_critical(
+		log_error(
 				"Cannot open index file for writing: '%s'",
 				optimize.idx_fn);
 		free(optimize.idx_fn);
 		optimize.idx_fn = NULL;
+		return -1;
 	}
 
 	return 0;
 }
 
-int siri_optimize_finish_idx(void)
+int siri_optimize_finish_idx(int remove_old)
 {
 	int rc = 0;
+
+	if (optimize.idx_fn == NULL)
+	{
+		log_debug("No index file was created");
+		return 0;
+	}
 
 #ifdef DEBUG
 	assert (optimize.idx_fp != NULL &&
@@ -222,6 +225,11 @@ int siri_optimize_finish_idx(void)
 	{
 		log_critical("Closing index file failed: '%s'", optimize->idx_fn);
 		rc = -1;
+	}
+
+	if (remove_old && unlink(optimize.idx_fn + 2))
+	{
+		log_warning("Cannot remove file: '%s'", optimize.idx_fn + 2);
 	}
 
 	optimize.idx_fp = NULL;
