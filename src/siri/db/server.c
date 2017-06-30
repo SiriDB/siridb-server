@@ -26,7 +26,7 @@
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 #define SIRIDB_SERVER_FLAGS_TIMEOUT 5000        // 5 seconds
-#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250    // max concurrent promises
+#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250   // max concurrent promises
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
 static int SERVER_update_name(siridb_server_t * server);
