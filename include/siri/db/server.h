@@ -27,7 +27,7 @@
 #define SERVER_FLAG_SYNCHRONIZING 2
 #define SERVER_FLAG_REINDEXING 4
 #define SERVER_FLAG_BACKUP_MODE 8
-#define SERVER_FLAG_QUEUE_FULL 16	  /* never set on 'this' server */
+#define SERVER_FLAG_QUEUE_FULL 16      /* never set on 'this' server */
 #define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
                                          and will NEVER be set on 'this'
                                          server */
@@ -53,7 +53,7 @@
  */
 #define siridb_server_is_online(server) \
 ((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE && \
-		(~server->flags & SERVER_FLAG_QUEUE_FULL))
+        (~server->flags & SERVER_FLAG_QUEUE_FULL))
 #define siridb_server_self_online(server) \
 ((server->flags & SERVER__SELF_ONLINE) == SERVER__SELF_ONLINE)
 
@@ -178,4 +178,4 @@ void siridb__server_free(siridb_server_t * server);
  * and each promise->cb() will be called.
  */
 #define siridb_server_decref(server__) \
-	if (!--server__->ref) siridb__server_free(server__)
+    if (!--server__->ref) siridb__server_free(server__)

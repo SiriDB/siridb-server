@@ -19,16 +19,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ALLOWED_PKG_SIZE 20971520  	// 20 MB
+#define MAX_ALLOWED_PKG_SIZE 20971520      // 20 MB
 
-#define QUIT_SOCKET 					\
-	free(ssocket->buf);					\
-	ssocket->buf = NULL;				\
-	ssocket->len = 0;					\
-	ssocket->size = 0;					\
-	ssocket->on_data = NULL;			\
-	sirinet_socket_decref(client);		\
-	return;
+#define QUIT_SOCKET                     \
+    free(ssocket->buf);                    \
+    ssocket->buf = NULL;                \
+    ssocket->len = 0;                    \
+    ssocket->size = 0;                    \
+    ssocket->on_data = NULL;            \
+    sirinet_socket_decref(client);        \
+    return;
 
 /* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
 int dns_req_family_map[3] = {AF_UNSPEC, AF_INET, AF_INET6};
@@ -162,23 +162,23 @@ void sirinet_socket_on_data(
         return;
     }
 
-	if (nread < 0)
-	{
-		if (nread != UV_EOF)
-		{
-			log_error("Read error: %s", uv_err_name(nread));
-		}
-		QUIT_SOCKET
-	}
+    if (nread < 0)
+    {
+        if (nread != UV_EOF)
+        {
+            log_error("Read error: %s", uv_err_name(nread));
+        }
+        QUIT_SOCKET
+    }
 
-	ssocket->len += nread;
+    ssocket->len += nread;
 
-	if (ssocket->len < sizeof(sirinet_pkg_t))
-	{
-		return;
-	}
+    if (ssocket->len < sizeof(sirinet_pkg_t))
+    {
+        return;
+    }
 
-	pkg = (sirinet_pkg_t *) ssocket->buf;
+    pkg = (sirinet_pkg_t *) ssocket->buf;
     if (    (pkg->tp ^ 255) != pkg->checkbit ||
             (ssocket->tp == SOCKET_CLIENT && pkg->len > MAX_ALLOWED_PKG_SIZE))
     {
@@ -194,37 +194,37 @@ void sirinet_socket_on_data(
         QUIT_SOCKET
     }
 
-	total_sz = sizeof(sirinet_pkg_t) + pkg->len;
-	if (ssocket->len < total_sz)
-	{
-		if (ssocket->size < total_sz)
-		{
-			char * tmp = realloc(ssocket->buf, total_sz);
-			if (tmp == NULL)
-			{
-				log_critical(
-					"Cannot allocate size for package "
-					"(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
-					pkg->pid, pkg->len, pkg->tp);
-				QUIT_SOCKET
-			}
-			ssocket->buf = tmp;
-			ssocket->size = total_sz;
-		}
-		return;
-	}
+    total_sz = sizeof(sirinet_pkg_t) + pkg->len;
+    if (ssocket->len < total_sz)
+    {
+        if (ssocket->size < total_sz)
+        {
+            char * tmp = realloc(ssocket->buf, total_sz);
+            if (tmp == NULL)
+            {
+                log_critical(
+                    "Cannot allocate size for package "
+                    "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %" PRIu8 ")",
+                    pkg->pid, pkg->len, pkg->tp);
+                QUIT_SOCKET
+            }
+            ssocket->buf = tmp;
+            ssocket->size = total_sz;
+        }
+        return;
+    }
 
-	/* call on-data function */
+    /* call on-data function */
     (*ssocket->on_data)(client, pkg);
 
     ssocket->len -= total_sz;
 
-	if (ssocket->len > 0)
-	{
-		/* move data and call sirinet_socket_on_data() function again */
-		memmove(ssocket->buf, ssocket->buf + total_sz, ssocket->len);
-		sirinet_socket_on_data(client, 0, buf);
-	}
+    if (ssocket->len > 0)
+    {
+        /* move data and call sirinet_socket_on_data() function again */
+        memmove(ssocket->buf, ssocket->buf + total_sz, ssocket->len);
+        sirinet_socket_on_data(client, 0, buf);
+    }
 }
 
 /*

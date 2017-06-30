@@ -39,7 +39,7 @@
 #define DEF_LIST_LIMIT 10000                // ten thousand
 
 #define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
-    char FN[strlen(__path) + strlen(FILENAME) + 1]; 				\
+    char FN[strlen(__path) + strlen(FILENAME) + 1];                 \
     sprintf(FN, "%s%s", __path, FILENAME);
 
 /* Schema File Check

@@ -439,7 +439,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
      */
     while (query->pr->expect != NULL)
     {
-    	cl_obj = query->pr->expect->cl_obj;
+        cl_obj = query->pr->expect->cl_obj;
         if (cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
         {
             expect = "end_of_statement";
@@ -478,7 +478,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             /* the best result we get is to handle all, but it will not break
              * in case we did not specify some elements.
              */
-        	query->pr->expect = query->pr->expect->next;
+            query->pr->expect = query->pr->expect->next;
             continue;
         }
         /* we use count = 0 to print the first one, then for the others

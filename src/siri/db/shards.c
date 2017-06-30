@@ -33,8 +33,8 @@
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 
-static bool is_shard_fn(const char * fn);
-static bool is_temp_shard_fn(const char * fn);
+static bool is_shard_fn(const char * fn, const char * ext);
+static bool is_temp_fn(const char * fn);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -80,23 +80,22 @@ int siridb_shards_load(siridb_t * siridb)
 
     for (n = 0; n < total; n++)
     {
-        if (is_temp_shard_fn(shard_list[n]->d_name))
+        if (is_temp_fn(shard_list[n]->d_name))
         {
             snprintf(buffer, PATH_MAX, "%s%s",
                    path, shard_list[n]->d_name);
 
-            log_warning("Temporary shard found, we will remove file: '%s'",
-                   buffer);
+            log_warning("Removing temporary file: '%s'", buffer);
 
             if (unlink(buffer))
             {
-                log_error("Could not remove temporary file: '%s'", buffer);
+                log_error("Error while removing temporary file: '%s'", buffer);
                 rc = -1;
                 break;
             }
         }
 
-        if (!is_shard_fn(shard_list[n]->d_name))
+        if (!is_shard_fn(shard_list[n]->d_name, ".sdb"))
         {
             continue;
         }
@@ -184,7 +183,7 @@ int siridb_shards_add_points(
                         points,
                         pstart,
                         pend,
-						NULL)) < 0)
+                        NULL)) < 0)
                 {
                     log_critical(
                             "Could not write points to shard id %" PRIu64,
@@ -208,7 +207,7 @@ int siridb_shards_add_points(
                                points,
                                pstart,
                                pend,
-							   NULL);
+                               NULL);
                     }
                 }
             }
@@ -219,8 +218,9 @@ int siridb_shards_add_points(
 
 /*
  * Returns true if fn is a shard filename, false if not.
+ * Argument ext should be either ".sdb" or ".idx".
  */
-static bool is_shard_fn(const char * fn)
+static bool is_shard_fn(const char * fn, const char * ext)
 {
     if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
     {
@@ -233,13 +233,13 @@ static bool is_shard_fn(const char * fn)
         fn++;
     }
 
-    return (strcmp(fn, ".sdb") == 0);
+    return (strcmp(fn, ext) == 0);
 }
 
 /*
- * Returns true if fn is a temp shard filename, false if not.
+ * Returns true if fn is a temp shard or index filename, false if not.
  */
-static bool is_temp_shard_fn(const char * fn)
+static bool is_temp_fn(const char * fn)
 {
     for (int i = 0; i < 2; i++, fn++)
     {
@@ -248,5 +248,5 @@ static bool is_temp_shard_fn(const char * fn)
             return false;
         }
     }
-    return is_shard_fn(fn);
+    return is_shard_fn(fn, ".sdb") || is_shard_fn(fn, ".idx");
 }

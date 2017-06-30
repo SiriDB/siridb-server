@@ -21,9 +21,9 @@
 /* Warning: do not change the order! (maps to dns_req_family_map) */
 enum
 {
-	IP_SUPPORT_ALL,
-	IP_SUPPORT_IPV4ONLY,
-	IP_SUPPORT_IPV6ONLY
+    IP_SUPPORT_ALL,
+    IP_SUPPORT_IPV4ONLY,
+    IP_SUPPORT_IPV6ONLY
 };
 
 typedef enum sirinet_socket_tp
@@ -68,8 +68,8 @@ void sirinet_socket_on_data(
 void sirinet__socket_free(uv_stream_t * client);
 
 #define sirinet_socket_incref(client) \
-	((sirinet_socket_t *) client->data)->ref++
+    ((sirinet_socket_t *) client->data)->ref++
 
 #define sirinet_socket_decref(client) \
-	if (!--((sirinet_socket_t *) client->data)->ref) \
-		uv_close((uv_handle_t *) client, (uv_close_cb) sirinet__socket_free)
+    if (!--((sirinet_socket_t *) client->data)->ref) \
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet__socket_free)

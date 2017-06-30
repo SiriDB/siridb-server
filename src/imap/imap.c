@@ -173,7 +173,7 @@ int imap_add(imap_t * imap, uint64_t id, void * data)
     {
         if (nd->data != NULL)
         {
-        	return -2;
+            return -2;
         }
 
         imap->len++;
@@ -181,7 +181,7 @@ int imap_add(imap_t * imap, uint64_t id, void * data)
     }
     else
     {
-    	int rc = IMAP_add(nd, id - 1, data);
+        int rc = IMAP_add(nd, id - 1, data);
         if (rc)
         {
             return rc;
@@ -818,7 +818,7 @@ static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
     {
         if (nd->data != NULL)
         {
-        	return -2;
+            return -2;
         }
 
         nd->data = data;

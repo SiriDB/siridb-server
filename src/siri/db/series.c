@@ -918,7 +918,7 @@ int siridb_series_optimize_shard(
                 points,
                 pstart,
                 pend,
-				siri.optimize->idx_fp)) == EOF)
+                siri.optimize->idx_fp)) == EOF)
         {
             log_critical(
                     "Cannot write points to shard id '%" PRIu64 "'",

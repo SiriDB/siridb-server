@@ -25,8 +25,8 @@
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
-#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    	// 5 seconds
-#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250	// max concurrent promises
+#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000        // 5 seconds
+#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250    // max concurrent promises
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
 static int SERVER_update_name(siridb_server_t * server);
@@ -185,43 +185,43 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-	while (++n)
-	{
-		/*
-		 * Usually the first attempt is fine but in some rare case the pid
-		 * might still be in use and we should try another pid.
-		 */
-	    promise->pid = server->pid++;
-	    rc = imap_add(server->promises, promise->pid, promise);
+    while (++n)
+    {
+        /*
+         * Usually the first attempt is fine but in some rare case the pid
+         * might still be in use and we should try another pid.
+         */
+        promise->pid = server->pid++;
+        rc = imap_add(server->promises, promise->pid, promise);
 
-	    if (rc == 0)
-	    {
-	    	SERVER_upd_flag_queue_full(server);
-	    	break;
-	    }
+        if (rc == 0)
+        {
+            SERVER_upd_flag_queue_full(server);
+            break;
+        }
 
-	    if (rc == -1)
-	    {
-	    	/* memory allocation error */
-	        free(promise->timer);
-	        free(promise);
-	        free(req);
-	        return -1;  /* signal is raised */
-	    }
+        if (rc == -1)
+        {
+            /* memory allocation error */
+            free(promise->timer);
+            free(promise);
+            free(req);
+            return -1;  /* signal is raised */
+        }
 
-	    /* rc == -2, pid in use, try next pid */
-	}
+        /* rc == -2, pid in use, try next pid */
+    }
 
     if (!n)
     {
-    	/*
-    	 * The queue cannot contain more than SIRIDB_SERVER_PROMISES_QUEUE_SIZE
-    	 * promises so we should always find a free pid and this code should
-    	 * never be reached.
-    	 */
-    	log_critical("Cannot add promise to queue for '%s'", server->name);
-    	ERR_C
-    	free(promise->timer);
+        /*
+         * The queue cannot contain more than SIRIDB_SERVER_PROMISES_QUEUE_SIZE
+         * promises so we should always find a free pid and this code should
+         * never be reached.
+         */
+        log_critical("Cannot add promise to queue for '%s'", server->name);
+        ERR_C
+        free(promise->timer);
         free(promise);
         free(req);
         return -1;
@@ -603,14 +603,14 @@ static void SERVER_on_resolved(
  */
 static void SERVER_upd_flag_queue_full(siridb_server_t * server)
 {
-	if (server->promises->len >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
-	{
-		server->flags |= SERVER_FLAG_QUEUE_FULL;
-	}
-	else
-	{
-		server->flags &= ~SERVER_FLAG_QUEUE_FULL;
-	}
+    if (server->promises->len >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
+    {
+        server->flags |= SERVER_FLAG_QUEUE_FULL;
+    }
+    else
+    {
+        server->flags &= ~SERVER_FLAG_QUEUE_FULL;
+    }
 }
 
 /*
@@ -669,7 +669,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     }
     else
     {
-    	SERVER_upd_flag_queue_full(promise->server);
+        SERVER_upd_flag_queue_full(promise->server);
         log_warning("Timeout on package (PID %" PRIu16 ") for server '%s'",
                 promise->pid,
                 promise->server->name);
@@ -781,7 +781,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
-    	SERVER_upd_flag_queue_full(promise->server);
+        SERVER_upd_flag_queue_full(promise->server);
         uv_timer_stop(promise->timer);
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
         promise->cb(promise, pkg, PROMISE_SUCCESS);

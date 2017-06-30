@@ -58,4 +58,4 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond);
  * Decrement user reference counter and free the user when zero is reached.
  */
 #define siridb_user_decref(user__) \
-	if (!--user__->ref) siridb__user_free(user__)
+    if (!--user__->ref) siridb__user_free(user__)

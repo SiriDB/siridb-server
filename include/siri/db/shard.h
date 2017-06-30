@@ -85,7 +85,7 @@ int siridb_shard_cexpr_cb(
 void siridb_shard_status(char * str, siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
-int siridb_shard_remove(siridb_shard_t * shard);
+
 long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -93,7 +93,7 @@ long int siridb_shard_write_points(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
-		FILE * idx_fp);
+        FILE * idx_fp);
 
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
@@ -148,5 +148,12 @@ void siridb__shard_decref(siridb_shard_t * shard);
  *
  * A signal can be raised in case closing the shard file fails.
  */
-#define siridb_shard_decref(shard__) 	\
-		if (!--shard__->ref) siridb__shard_free(shard__)
+#define siridb_shard_decref(shard__)     \
+        if (!--shard__->ref) siridb__shard_free(shard__)
+
+
+#define siridb_shard_idx_file(Name__, Fn__)         \
+        size_t Len__ = strlen(Fn__);                \
+        char Name__[Len__ + 1];                     \
+        memcpy(Name__, Fn__, Len__ - 3);            \
+        memcpy(Name__ + Len__ - 3, "idx", 4)

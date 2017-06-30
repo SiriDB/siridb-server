@@ -28,8 +28,8 @@
 static siri_optimize_t optimize = {
         .pause=0,
         .status=SIRI_OPTIMIZE_PENDING,
-		.idx_fp=NULL,
-		.idx_fn=NULL
+        .idx_fp=NULL,
+        .idx_fn=NULL
 };
 
 static void OPTIMIZE_work(uv_work_t * work);
@@ -123,16 +123,16 @@ int siri_optimize_wait(void)
         optimize.status = SIRI_OPTIMIZE_PAUSED;
 
         /* close open index file in case this is required */
-        if (optimize->idx_fp != NULL)
+        if (optimize.idx_fp != NULL)
         {
-        	log_info("Closing index file: '%s'", optimize->idx_fn);
-        	if (fclose(optimize->idx_fp))
-        	{
-        		log_critical(
-        				"Closing index file failed: '%s'",
-        				optimize->idx_fn);
-        	}
-        	optimize->idx_fp = NULL;
+            log_info("Closing index file: '%s'", optimize.idx_fn);
+            if (fclose(optimize.idx_fp))
+            {
+                log_critical(
+                        "Closing index file failed: '%s'",
+                        optimize.idx_fn);
+            }
+            optimize.idx_fp = NULL;
         }
 
         log_info("Optimize task is paused, wait until we can continue...");
@@ -151,13 +151,13 @@ int siri_optimize_wait(void)
             log_info("Continue optimize task...");
             optimize.status = SIRI_OPTIMIZE_RUNNING;
 
-            if (optimize->idx_fn != NULL &&
-				(optimize->idx_fp = fopen(optimize->idx_fn, "a")) == NULL)
-			{
-				log_error("Cannot re-open index file: '%s'", optimize->idx_fn);
-				free(optimize->idx_fn);
-				optimize->idx_fn = NULL;
-			}
+            if (optimize.idx_fn != NULL &&
+                (optimize.idx_fp = fopen(optimize.idx_fn, "a")) == NULL)
+            {
+                log_error("Cannot re-open index file: '%s'", optimize.idx_fn);
+                free(optimize.idx_fn);
+                optimize.idx_fn = NULL;
+            }
 
             break;
 
@@ -177,76 +177,72 @@ int siri_optimize_wait(void)
 int siri_optimize_create_idx(const char * fn)
 {
 #ifdef DEBUG
-	assert (optimize.idx_fn == NULL && strlen(fn) > 3);
+    assert (optimize.idx_fn == NULL && strlen(fn) > 3);
 #endif
-	/* copy file name */
-	optimize.idx_fn = strdup(fn);
-	if (optimize.idx_fn == NULL)
-	{
-		log_error("Memory allocation error");
-		return -1;
-	}
+    /* copy file name */
+    optimize.idx_fn = strdup(fn);
+    if (optimize.idx_fn == NULL)
+    {
+        log_error("Memory allocation error");
+        return -1;
+    }
 
-	/* replace last three characters from sdb to idx */
-	memcpy(optimize.idx_fn + strlen(fn) - 3, "idx", 3);
+    /* replace last three characters from sdb to idx */
+    memcpy(optimize.idx_fn + strlen(fn) - 3, "idx", 3);
 
-	/* open file for writing */
-	optimize->idx_fp = fopen(optimize.idx_fn, "w");
-	if (optimize->idx_fp == NULL)
-	{
-		log_error(
-				"Cannot open index file for writing: '%s'",
-				optimize.idx_fn);
-		free(optimize.idx_fn);
-		optimize.idx_fn = NULL;
-		return -1;
-	}
+    /* open file for writing */
+    optimize.idx_fp = fopen(optimize.idx_fn, "w");
+    if (optimize.idx_fp == NULL)
+    {
+        log_error(
+                "Cannot open index file for writing: '%s'",
+                optimize.idx_fn);
+        free(optimize.idx_fn);
+        optimize.idx_fn = NULL;
+        return -1;
+    }
 
-	return 0;
+    return 0;
 }
 
-int siri_optimize_finish_idx(int remove_old)
+int siri_optimize_finish_idx(const char * fn, int remove_old)
 {
-	int rc = 0;
+    int rc = 0;
 
-	if (optimize.idx_fn == NULL)
-	{
-		log_debug("No index file was created");
-		return 0;
-	}
+    siridb_shard_idx_file(buffer, fn);
 
-#ifdef DEBUG
-	assert (optimize.idx_fp != NULL &&
-			optimize.idx_fn != NULL &&
-			strncmp(optimize.idx_fn, "__", 2) == 0);
-#endif
+    if (optimize.idx_fn == NULL)
+    {
+        log_warning("No index file was created");
+        return 0;
+    }
 
-	if (fclose(optimize.idx_fp))
-	{
-		log_critical("Closing index file failed: '%s'", optimize->idx_fn);
-		rc = -1;
-	}
+    if (fclose(optimize.idx_fp))
+    {
+        log_critical("Closing index file failed: '%s'", optimize.idx_fn);
+        rc = -1;
+    }
 
-	if (remove_old && unlink(optimize.idx_fn + 2))
-	{
-		log_warning("Cannot remove file: '%s'", optimize.idx_fn + 2);
-	}
+    if (remove_old && unlink(buffer))
+    {
+        log_warning("Cannot remove file: '%s'", buffer);
+    }
 
-	optimize.idx_fp = NULL;
+    optimize.idx_fp = NULL;
 
-	if (rename(optimize.idx_fn, optimize.idx_fn + 2))
-	{
-		log_critical(
-				"Rename failed: '%s' to '%s'",
-				optimize->idx_fn,
-				optimize.idx_fn + 2);
-		rc = -1;
-	}
+    if (rename(optimize.idx_fn, buffer))
+    {
+        log_critical(
+                "Rename failed: '%s' to '%s'",
+                optimize.idx_fn,
+                buffer);
+        rc = -1;
+    }
 
-	free(optimize.idx_fn);
-	optimize.idx_fn = NULL;
+    free(optimize.idx_fn);
+    optimize.idx_fn = NULL;
 
-	return rc;
+    return rc;
 }
 
 static void OPTIMIZE_work(uv_work_t * work)
@@ -334,6 +330,26 @@ static void OPTIMIZE_work(uv_work_t * work)
                         "Optimizing shard id %" PRIu64 " has failed with a "
                         "critical error", shard->id);
                 }
+
+                if (optimize.idx_fn != NULL)
+                {
+                    log_debug(
+                            "Cleanup temporary index file: '%s'",
+                            optimize.idx_fn);
+                    if (optimize.idx_fp != NULL)
+                    {
+                        fclose(optimize.idx_fp);
+                        optimize.idx_fp = NULL;
+                    }
+                    if (unlink(optimize.idx_fn))
+                    {
+                        log_error(
+                                "Failed to remove file: '%s'",
+                                optimize.idx_fn);
+                    }
+                    free(optimize.idx_fn);
+                    optimize.idx_fn = NULL;
+                }
             }
 
             /* decrement ref for the shard which was incremented earlier */
@@ -371,19 +387,6 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
         log_info("Finished optimize task in %d seconds with status: %d",
                 time(NULL) - optimize.start,
                 status);
-    }
-
-    if (optimize->idx_fn != NULL)
-    {
-    	log_debug("Cleanup open index file: '%s'", optimize->idx_fn);
-        if (optimize->idx_fp != NULL)
-        {
-        	fclose(optimize->idx_fp);
-        	optimize->idx_fp = NULL;
-        }
-
-    	free(optimize->idx_fn);
-    	optimize->idx_fn = NULL;
     }
 
     /* reset optimize status to pending if and only if the status is RUNNING */
