@@ -30,12 +30,6 @@
 /* max read buffer size used for reading from index file */
 #define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
-#define GET_FN(shrd)                                                        \
-/* we are sure this fits since the max possible length is checked */        \
-shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                       \
-sprintf(fn, "%s%s%" PRIu64 "%s", siridb->dbpath,                            \
-            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
-
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
 
