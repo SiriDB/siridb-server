@@ -17,6 +17,7 @@ MEM_PROC = \
     'memcheck-amd64-' if platform.architecture()[0] == '64bit' else \
     'memcheck-x86-li'
 
+
 class Server:
     HOLD_TERM = False
     GEOMETRY = '140x60'

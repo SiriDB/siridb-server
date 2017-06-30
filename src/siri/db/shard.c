@@ -1226,6 +1226,13 @@ static int SHARD_truncate(siridb_shard_t * shard)
     return fsync(buffer_fd);
 }
 
+/*
+ * This function applies the index on the appropriate series. In case the
+ * series is not found, a log line will be displayed if this is the first
+ * one in the shard which is not found. The next series which cannot be found
+ * is simply ignored. In case the series id is not possible (invalid id),
+ * then an log error is displayed and the return value will be -1.
+ */
 static int SHARD_apply_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
@@ -1300,6 +1307,13 @@ static int SHARD_apply_idx_num(
     return (int) len;
 }
 
+/*
+ * Read an index file for a shard in case the shard has flag
+ * SIRIDB_SHARD_HAS_INDEX set. Returns 0 in case the index was read successful
+ * and if the flag was not set. Returns a negative value in case of an error.
+ *
+ * Member shard->size will be updated according the index.
+ */
 static int SHARD_get_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
@@ -1448,7 +1462,13 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
              ".sdb");
 }
 
-
+/*
+ * Write a header for a chunk of points. The header can be written to argument
+ * fp which should be a pointer to the index, or the shard file.
+ *
+ * In case of an error the function return EOF, otherwise the size which is
+ * written.
+ */
 static int SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
