@@ -131,7 +131,6 @@ int siridb_shard_get_points_log64(
         uint8_t has_overlap);
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
-int siridb_shard_write_flags(siridb_shard_t * shard);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);
 

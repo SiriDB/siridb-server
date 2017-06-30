@@ -971,27 +971,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 }
 
 /*
- * Returns 0 if successful or EOF in case of an error.
- */
-int siridb_shard_write_flags(siridb_shard_t * shard)
-{
-    if (shard->fp->fp == NULL)
-    {
-        if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
-        {
-            log_critical(
-                    "Cannot open file '%s', skip writing status",
-                    shard->fn);
-            return EOF;
-        }
-    }
-    return (fseeko(shard->fp->fp, HEADER_FLAGS, SEEK_SET) ||
-            fputc(shard->flags, shard->fp->fp) == EOF ||
-            fflush(shard->fp->fp)) ? EOF : 0;
-}
-
-
-/*
  * This function can be used instead of the macro function when needed as
  * callback.
  *
