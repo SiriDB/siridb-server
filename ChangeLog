@@ -1,3 +1,17 @@
+siridb-server (2.0.20) xenial; urgency=medium
+
+  * Replaced a few tabs with spaces for indentation.
+  
+  * Improve startup speed by creating separate index files for the shards
+    while optimizing. (issue #75)
+    
+  * Fixed accidentally removing a shard from the index by the optimize thread.
+    This was very unlikely to happen but technically a shard could be dropped
+    and been re-created between checking the shard flags and locking the 
+    shards mutex for replacing the shard in the index.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 30 Jun 2017 20:50:13 +0000
+
 siridb-server (2.0.19) xenial; urgency=medium
 
   * Get the realpath for the default configuration path. (issue #72)
