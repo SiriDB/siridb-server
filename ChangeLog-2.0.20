@@ -1,4 +1,4 @@
-  * Changed some tabs to space in the code.
+  * Replaced a few tabs with spaces for indentation.
   
   * Improve startup speed by creating separate index files for the shards
     while optimizing. (issue #75)
