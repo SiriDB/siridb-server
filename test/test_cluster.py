@@ -22,22 +22,22 @@ from testing import UserAuthError
 class TestCluster(TestBase):
     title = 'Test siridb-cluster'
 
-    @default_test_setup(2, time_precision='s')
+    @default_test_setup(4, time_precision='s')
     async def run(self):
         await self.client0.connect()
 
         await self.db.add_pool(self.server1)
         await self.assertIsRunning(self.db, self.client0, timeout=12)
 
-        # await asyncio.sleep(35)
+        await asyncio.sleep(45)
 
-        # await self.db.add_replica(self.server2, 0)
-        # await self.assertIsRunning(self.db, self.client0, timeout=12)
+        await self.db.add_replica(self.server2, 0)
+        await self.assertIsRunning(self.db, self.client0, timeout=12)
 
-        # await asyncio.sleep(35)
+        await asyncio.sleep(45)
 
-        # await self.db.add_replica(self.server3, 1)
-        # await self.assertIsRunning(self.db, self.client0, timeout=12)
+        await self.db.add_replica(self.server3, 1)
+        await self.assertIsRunning(self.db, self.client0, timeout=12)
 
         # await asyncio.sleep(35)
 
@@ -48,8 +48,6 @@ class TestCluster(TestBase):
 
         # await self.db.add_pool(self.server5)
         # await self.assertIsRunning(self.db, self.client0, timeout=12)
-
-
 
         # await self.db.add_replica(self.server1, 0)
         # await asyncio.sleep(5)
