@@ -5,5 +5,5 @@
     
   * Fixed accidentally removing a shard from the index by the optimize thread.
     This was very unlikely to happen but technically a shard could be dropped
-    and been re-created between checking the shard flag and locking the index
-    and popping the shard. 
+    and been re-created between checking the shard flags and locking the 
+    shards mutex for replacing the shard in the index. 
