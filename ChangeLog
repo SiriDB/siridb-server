@@ -27,8 +27,6 @@ siridb-server (2.0.18) xenial; urgency=medium
   
   * Update help files.
   
-  * Remove cleri code from project and use libcleri instead.
-
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 02 May 2017 08:18:55 +0000
 
 siridb-server (2.0.17) xenial; urgency=medium

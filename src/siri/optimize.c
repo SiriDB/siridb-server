@@ -174,6 +174,14 @@ int siri_optimize_wait(void)
     return optimize.status;
 }
 
+/*
+ * Create an index file created from the given file name. (The index file
+ * will be equal the the given file name except for the extension which will
+ * be changed to .idx
+ *
+ * Returns 0 if successful and -1 in case of an error. In case of an error
+ * both optimize.idx_fn and optimize.idx_fp will be NULL.
+ */
 int siri_optimize_create_idx(const char * fn)
 {
 #ifdef DEBUG
@@ -205,6 +213,15 @@ int siri_optimize_create_idx(const char * fn)
     return 0;
 }
 
+/*
+ * When a shard optimization has finished, this function closes the temporary
+ * index file and renames the file to the final name. (__ will be stripped
+ * from the file name)
+ *
+ * If no index file was created then this function simply return 0.
+ * Argument 'remove_old' should be only set to true (1) in case the 'old'
+ * shard file had an index which can be removed.
+ */
 int siri_optimize_finish_idx(const char * fn, int remove_old)
 {
     int rc = 0;
