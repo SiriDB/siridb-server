@@ -179,8 +179,15 @@ if __name__ == '__main__':
     os.makedirs(target_path)
     os.makedirs(debian_source_path)
 
+    with open(os.path.join(debian_source_path, 'include-binaries'), 'w') as f:
+        f.write('/usr/lib/libcleri.so')
+
     shutil.copy2(source_path, os.path.join(target_path, config['package']))
     shutil.copytree('help', os.path.join(target_path, 'help'))
+
+    shutil.copy2(
+        '/usr/lib/libcleri.so',
+        os.path.join(pkg_src_path, 'usr', 'lib', 'libcleri.so'))
 
     db_path = os.path.join(pkg_src_path, 'var', 'lib', 'siridb')
     os.makedirs(db_path)
