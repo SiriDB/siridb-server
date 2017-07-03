@@ -672,6 +672,9 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 /*
  * Returns the numbers of servers with a version less than the given version.
  * If all servers are at least running the given version 0 is returned.
+ *
+ * Note: *this* server is not checked and is expected to have at least the
+ *       required version.
  */
 int siridb_servers_check_version(siridb_t * siridb, char * version)
 {
@@ -681,7 +684,7 @@ int siridb_servers_check_version(siridb_t * siridb, char * version)
             node != NULL;
             node = node->next)
     {
-        server = node->data;
+        server = (siridb_server_t *) node->data;
         if (server != siridb->server)
         {
             n += (server->version == NULL ||
