@@ -1,3 +1,9 @@
+siridb-server (2.0.20-1) xenial; urgency=medium
+
+  * Include libcleri in deb pacakge.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 03 Jul 2017 09:09:44 +0000
+
 siridb-server (2.0.20) xenial; urgency=medium
 
   * Replaced a few tabs with spaces for indentation.
