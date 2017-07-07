@@ -998,22 +998,22 @@ static void enter_select_stmt(uv_async_t * handle)
             (!IS_MASTER || siridb_is_reindexing(siridb)) ?
                     NULL : imap_new();
 
+    /* child is always the ',' and child->next the node */
     child = query->nodes->node->children->next->node->children->next;
-
     while (child != NULL)
     {
         q_select->nselects++;
         child = child->next->next;
     }
 
-    query->free_cb = (uv_close_cb) query_select_free;
-
     if (q_select->nselects > 1)
     {
-        /* not critical, everything works if points_map is NULL */
+        /* We have more than one select request, let's use points caching.
+         * (Not critical, everything works if points_map is NULL) */
         q_select->points_map = imap_new();
     }
 
+    query->free_cb = (uv_close_cb) query_select_free;
     query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
 
     if (query->packer == NULL)
