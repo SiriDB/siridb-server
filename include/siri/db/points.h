@@ -42,6 +42,7 @@ void siridb_points_add_point(
         siridb_points_t *__restrict points,
         uint64_t * ts,
         qp_via_t * val);
+siridb_points_t * siridb_points_copy(siridb_points_t * points);
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer);
 int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer);
 siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg);

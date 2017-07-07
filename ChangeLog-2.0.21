@@ -1,0 +1,2 @@
+  * Use points_map for caching series data when multiple select requests are
+    used in a single query. (issue #76)

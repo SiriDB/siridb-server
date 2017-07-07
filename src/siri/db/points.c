@@ -16,6 +16,7 @@
 #include <assert.h>
 #include <siri/err.h>
 #include <unistd.h>
+#include <string.h>
 
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
@@ -42,7 +43,8 @@ siridb_points_t * siridb_points_new(size_t size, points_tp tp)
         points->len = 0;
         points->tp = tp;
         points->content = NULL;
-        points->data = (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
+        points->data =
+                (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
         if (points->data == NULL)
         {
             ERR_ALLOC
@@ -51,6 +53,38 @@ siridb_points_t * siridb_points_new(size_t size, points_tp tp)
         }
     }
     return points;
+}
+
+/*
+ * Returns a copy of points or NULL in case of an error. NULL is also returned
+ * if points is NULL.
+ */
+siridb_points_t * siridb_points_copy(siridb_points_t * points)
+{
+    if (points == NULL)
+    {
+        return NULL;
+    }
+    siridb_points_t * cpoints =
+            (siridb_points_t *) malloc(sizeof(siridb_points_t));
+    if (cpoints != NULL)
+    {
+        size_t sz = sizeof(siridb_point_t) * points->len;
+        cpoints->len = points->len;
+        cpoints->tp = points->tp;
+        cpoints->content = NULL;
+        cpoints->data = (siridb_point_t *) malloc(sz);
+        if (cpoints->data == NULL)
+        {
+            free(cpoints);
+            cpoints = NULL;
+        }
+        else
+        {
+            memcpy(cpoints->data, points->data, sz);
+        }
+    }
+    return cpoints;
 }
 
 /*

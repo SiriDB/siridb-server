@@ -976,6 +976,8 @@ static void enter_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_select_t * q_select;
+    cleri_children_t * child;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_SELECT)
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -984,9 +986,9 @@ static void enter_select_stmt(uv_async_t * handle)
     assert (query->packer == NULL && query->data == NULL);
 #endif
 
-    query->data = query_select_new();
+    query->data = q_select = query_select_new();
 
-    if (query->data == NULL)
+    if (q_select == NULL)
     {
         MEM_ERR_RET
     }
@@ -996,7 +998,21 @@ static void enter_select_stmt(uv_async_t * handle)
             (!IS_MASTER || siridb_is_reindexing(siridb)) ?
                     NULL : imap_new();
 
+    child = query->nodes->node->children->next->node->children->next;
+
+    while (child != NULL)
+    {
+        q_select->nselects++;
+        child = child->next->next;
+    }
+
     query->free_cb = (uv_close_cb) query_select_free;
+
+    if (q_select->nselects > 1)
+    {
+        /* not critical, everything works if points_map is NULL */
+        q_select->points_map = imap_new();
+    }
 
     query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
 
@@ -3141,6 +3157,8 @@ static void exit_select_aggregate(uv_async_t * handle)
     }
     else
     {
+        q_select->nselects--;
+
         if (!siridb_presuf_is_unique(q_select->presuf))
         {
             snprintf(query->err_msg,
@@ -4391,15 +4409,33 @@ static void async_select_aggregate(uv_async_t * handle)
         async_more = 1;
     }
 
-    uv_mutex_lock(&siridb->series_mutex);
+    points = (q_select->points_map == NULL) ?
+            NULL :
+            q_select->nselects ?
+                siridb_points_copy(imap_get(q_select->points_map, series->id)):
+                imap_pop(q_select->points_map, series->id);
 
-    points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
-            NULL : siridb_series_get_points(
-                    series,
-                    q_select->start_ts,
-                    q_select->end_ts);
+    if (points == NULL)
+    {
+        uv_mutex_lock(&siridb->series_mutex);
 
-    uv_mutex_unlock(&siridb->series_mutex);
+        points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
+                NULL : siridb_series_get_points(
+                        series,
+                        q_select->start_ts,
+                        q_select->end_ts);
+        uv_mutex_unlock(&siridb->series_mutex);
+
+        if (q_select->points_map != NULL && points != NULL)
+        {
+            siridb_points_t * cpoints = siridb_points_copy(points);
+            if (cpoints != NULL &&
+                imap_add(q_select->points_map, series->id, cpoints))
+            {
+                siridb_points_free(cpoints);
+            }
+        }
+    }
 
     if (points != NULL)
     {

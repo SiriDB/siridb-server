@@ -90,6 +90,7 @@ query_select_t * query_select_new(void)
         q_select->presuf = siridb_presuf_new();  // NULL
         q_select->merge_as = NULL;
         q_select->n = 0;
+        q_select->nselects = 1;
         q_select->points_map = NULL;
         q_select->alist = NULL;
         q_select->mlist = NULL;
