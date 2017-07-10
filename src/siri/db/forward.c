@@ -147,7 +147,7 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
             log_critical("One pool is unreachable while re-indexing!");
             free(pkg);
             /*
-             * TODO: we can add the package to some retry queue for this pool
+             * TODO: we can add the package to some retry queue for this pool.
              */
         }
         else
