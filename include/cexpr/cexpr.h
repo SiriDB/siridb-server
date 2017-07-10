@@ -12,7 +12,7 @@
 #pragma once
 #include <inttypes.h>
 #include <qpack/qpack.h>
-#include <cleri/node.h>
+#include <cleri/cleri.h>
 
 #define CEXPR_MAX_CURLY_DEPTH 6
 

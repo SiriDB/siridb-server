@@ -804,7 +804,7 @@ static void enter_group_match(uv_async_t * handle)
             {
                 series = (siridb_series_t *) group->series->data[i];
                 siridb_series_incref(series);
-                imap_add(q_wrapper->series_tmp, series->id, series);
+                imap_set(q_wrapper->series_tmp, series->id, series);
             }
 
             uv_mutex_unlock(&siridb->groups->mutex);
@@ -976,6 +976,8 @@ static void enter_select_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_select_t * q_select;
+    cleri_children_t * child;
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_SELECT)
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -984,9 +986,9 @@ static void enter_select_stmt(uv_async_t * handle)
     assert (query->packer == NULL && query->data == NULL);
 #endif
 
-    query->data = query_select_new();
+    query->data = q_select = query_select_new();
 
-    if (query->data == NULL)
+    if (q_select == NULL)
     {
         MEM_ERR_RET
     }
@@ -996,8 +998,22 @@ static void enter_select_stmt(uv_async_t * handle)
             (!IS_MASTER || siridb_is_reindexing(siridb)) ?
                     NULL : imap_new();
 
-    query->free_cb = (uv_close_cb) query_select_free;
+    /* child is always the ',' and child->next the node */
+    child = query->nodes->node->children->next->node->children->next;
+    while (child != NULL)
+    {
+        q_select->nselects++;
+        child = child->next->next;
+    }
 
+    if (q_select->nselects > 1)
+    {
+        /* We have more than one select request, let's use points caching.
+         * (Not critical, everything works if points_map is NULL) */
+        q_select->points_map = imap_new();
+    }
+
+    query->free_cb = (uv_close_cb) query_select_free;
     query->packer = sirinet_packer_new(QP_SUGGESTED_SIZE);
 
     if (query->packer == NULL)
@@ -1038,7 +1054,7 @@ static void enter_set_ignore_threshold(uv_async_t * handle)
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
     if (    query->nodes->node->children->next->next->node->children->node->
-            cl_obj->via.dummy->gid == CLERI_GID_K_TRUE)
+            cl_obj->gid == CLERI_GID_K_TRUE)
     {
         q_drop->flags |= QUERIES_IGNORE_DROP_THRESHOLD;
     }
@@ -1149,7 +1165,7 @@ static void enter_series_name(uv_async_t * handle)
                 return;
             }
         }
-        else if (q_wrapper->pmap != NULL && imap_add(
+        else if (q_wrapper->pmap != NULL && imap_set(
                 q_wrapper->pmap,
                 pool,
                 (siridb_pool_t *) (siridb->pools->pool + pool)) < 0)
@@ -1179,7 +1195,7 @@ static void enter_series_name(uv_async_t * handle)
         if (    q_wrapper->update_cb == NULL ||
                 q_wrapper->update_cb == &imap_union_ref)
         {
-            if (imap_add(q_wrapper->series_map, series->id, series) == 1)
+            if (imap_set(q_wrapper->series_map, series->id, series) == 1)
             {
                 siridb_series_incref(series);
             }
@@ -1213,7 +1229,7 @@ static void enter_series_name(uv_async_t * handle)
 
             if (q_wrapper->series_map != NULL && series != NULL)
             {
-                if (imap_add(q_wrapper->series_map, series->id, series) != 1)
+                if (imap_set(q_wrapper->series_map, series->id, series) != 1)
                 {
                     siridb_series_decref(series);
                     MEM_ERR_RET
@@ -1222,7 +1238,7 @@ static void enter_series_name(uv_async_t * handle)
         }
         else if (q_wrapper->update_cb == &imap_symmetric_difference_ref)
         {
-            switch (imap_add(q_wrapper->series_map, series->id, series))
+            switch (imap_set(q_wrapper->series_map, series->id, series))
             {
             case 0:
                 series = (siridb_series_t *) imap_pop(
@@ -1332,7 +1348,7 @@ static void enter_series_sep(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
-    switch (query->nodes->node->children->node->cl_obj->via.dummy->gid)
+    switch (query->nodes->node->children->node->cl_obj->gid)
     {
     case CLERI_GID_K_UNION:
         q_wrapper->update_cb = &imap_union_ref;
@@ -1407,7 +1423,7 @@ static void enter_xxx_columns(uv_async_t * handle)
 
         if (slist_append_safe(
                 &qlist->props,
-                &columns->node->children->node->cl_obj->via.dummy->gid))
+                &columns->node->children->node->cl_obj->gid))
         {
             MEM_ERR_RET
         }
@@ -1534,7 +1550,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cleri_node_t * calc_node = query->nodes->node->children->node;
+    cleri_node_t * calc_node = query->nodes->node;
 
 #ifdef DEBUG
     assert (query->packer == NULL);
@@ -2563,7 +2579,7 @@ static void exit_help_xxx(uv_async_t * handle)
 #endif
 
         const char * help = siri_help_get(
-                query->nodes->node->cl_obj->via.dummy->gid,
+                query->nodes->node->cl_obj->gid,
                 (const char *) query->data,
                 query->err_msg);
 
@@ -3141,6 +3157,8 @@ static void exit_select_aggregate(uv_async_t * handle)
     }
     else
     {
+        q_select->nselects--;
+
         if (!siridb_presuf_is_unique(q_select->presuf))
         {
             snprintf(query->err_msg,
@@ -3350,7 +3368,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
     siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
 
     int backup_mode = query->nodes->node->children->next->next->node->
-            children->node->cl_obj->via.dummy->gid == CLERI_GID_K_TRUE;
+            children->node->cl_obj->gid == CLERI_GID_K_TRUE;
 
     if (backup_mode ^ ((server->flags & SERVER_FLAG_BACKUP_MODE) != 0))
     {
@@ -3577,7 +3595,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
     int log_level;
 
-    switch (node->cl_obj->via.keyword->gid)
+    switch (node->cl_obj->gid)
     {
     case CLERI_GID_K_DEBUG:
         log_level = LOGGER_DEBUG;
@@ -3936,7 +3954,7 @@ static void exit_show_stmt(uv_async_t * handle)
         {
             /* get the callback */
             prop_cb = siridb_props[children->node->children->node->
-                                   cl_obj->via.keyword->gid - KW_OFFSET];
+                                   cl_obj->gid - KW_OFFSET];
 #ifdef DEBUG
             assert (prop_cb != NULL);  /* all props are implemented */
 #endif
@@ -4223,7 +4241,7 @@ static void async_filter_series(uv_async_t * handle)
                 (cexpr_cb_t) siridb_series_cexpr_cb,
                 series))
         {
-            imap_add(q_wrapper->series_map, series->id, series);
+            imap_set(q_wrapper->series_map, series->id, series);
         }
         else
         {
@@ -4391,15 +4409,39 @@ static void async_select_aggregate(uv_async_t * handle)
         async_more = 1;
     }
 
-    uv_mutex_lock(&siridb->series_mutex);
+    /* We try to read the points from the cache in case a cache is created.
+     * If there are more select functions left we create a copy of the cache.
+     * When this is the last select function we pop from the cache since the
+     * points are no longer required.
+     */
+    points = (q_select->points_map == NULL) ?
+            NULL :
+            q_select->nselects ?
+                siridb_points_copy(imap_get(q_select->points_map, series->id)):
+                imap_pop(q_select->points_map, series->id);
 
-    points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
-            NULL : siridb_series_get_points(
-                    series,
-                    q_select->start_ts,
-                    q_select->end_ts);
+    if (points == NULL)
+    {
+        uv_mutex_lock(&siridb->series_mutex);
 
-    uv_mutex_unlock(&siridb->series_mutex);
+        points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
+                NULL : siridb_series_get_points(
+                        series,
+                        q_select->start_ts,
+                        q_select->end_ts);
+        uv_mutex_unlock(&siridb->series_mutex);
+
+        /* when having a cache and points, add a copy of points to the cache */
+        if (q_select->points_map != NULL && points != NULL)
+        {
+            siridb_points_t * cpoints = siridb_points_copy(points);
+            if (cpoints != NULL &&
+                imap_add(q_select->points_map, series->id, cpoints))
+            {
+                siridb_points_free(cpoints);
+            }
+        }
+    }
 
     if (points != NULL)
     {
@@ -4520,7 +4562,7 @@ static void async_series_re(uv_async_t * handle)
                 0);                    // length of sub_str_vec
 
         if (    pcre_exec_ret ||
-                imap_add(q_wrapper->series_tmp, series->id, series) != 1)
+                imap_set(q_wrapper->series_tmp, series->id, series) != 1)
         {
             siridb_series_decref(series);
         }

@@ -48,12 +48,12 @@ if (q->series_tmp != NULL)                                      \
 }                                                               \
 if (q->slist != NULL)                                           \
 {                                                               \
-    siridb_series_t * series;                                    \
+    siridb_series_t * series;                                   \
     for (; q->slist_index < q->slist->len; q->slist_index++)    \
-    {                                                                       \
+    {                                                                   \
         series = (siridb_series_t *) q->slist->data[q->slist_index];    \
-        siridb_series_decref(series);                                    \
-    }                                                                      \
+        siridb_series_decref(series);                                   \
+    }                                                                   \
     slist_free(q->slist);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
@@ -90,6 +90,7 @@ query_select_t * query_select_new(void)
         q_select->presuf = siridb_presuf_new();  // NULL
         q_select->merge_as = NULL;
         q_select->n = 0;
+        q_select->nselects = 1;  // we have at least one select function
         q_select->points_map = NULL;
         q_select->alist = NULL;
         q_select->mlist = NULL;

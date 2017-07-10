@@ -3,3 +3,4 @@
 {package}: dir-in-usr-local
 {package}: file-in-usr-local
 {package}: file-in-unusual-dir
+{package}: sharedobject-in-library-directory-missing-soname usr/lib/libcleri.so

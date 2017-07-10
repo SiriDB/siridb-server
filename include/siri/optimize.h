@@ -13,6 +13,7 @@
 
 #include <uv.h>
 #include <siri/siri.h>
+#include <stdio.h>
 
 #define SIRI_OPTIMIZE_PENDING 0
 #define SIRI_OPTIMIZE_RUNNING 1
@@ -29,6 +30,8 @@ typedef struct siri_optimize_s
     time_t start;
     uv_work_t work;
     uint16_t pause;
+    FILE * idx_fp;
+    char * idx_fn;
 } siri_optimize_t;
 
 void siri_optimize_init(siri_t * siri);
@@ -36,6 +39,7 @@ void siri_optimize_stop(siri_t * siri);
 void siri_optimize_pause(void);
 void siri_optimize_continue(void);
 int siri_optimize_wait(void);
-
+int siri_optimize_create_idx(const char * fn);
+int siri_optimize_finish_idx(const char * fn, int remove_old);
 
 #define SIRI_OPTIMZE_IS_PAUSED (siri.optimize->status >= SIRI_OPTIMIZE_PAUSED)

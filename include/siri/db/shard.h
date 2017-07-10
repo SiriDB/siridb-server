@@ -15,16 +15,20 @@
 #include <siri/db/points.h>
 #include <siri/db/series.h>
 #include <siri/file/handler.h>
+#include <stdio.h>
 
 /* flags */
 #define SIRIDB_SHARD_OK 0
-#define SIRIDB_SHARD_MANUAL_OPTIMIZE 1
+#define SIRIDB_SHARD_HAS_INDEX 1
 #define SIRIDB_SHARD_HAS_OVERLAP 2
 #define SIRIDB_SHARD_HAS_NEW_VALUES 4
 #define SIRIDB_SHARD_HAS_DROPPED_SERIES 8
 #define SIRIDB_SHARD_IS_REMOVED 16
 #define SIRIDB_SHARD_IS_LOADING 32
 #define SIRIDB_SHARD_IS_CORRUPT 64
+
+// HAS_OVERLAP + HAS_NEW_VALUES + HAS_DROPPED_SERIES + IS_CORRUPT
+#define SIRIDB_SHARD_NEED_OPTIMIZE 78
 
 /* types */
 #define SIRIDB_SHARD_TP_NUMBER 0
@@ -81,14 +85,15 @@ int siridb_shard_cexpr_cb(
 void siridb_shard_status(char * str, siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
-int siridb_shard_remove(siridb_shard_t * shard);
+
 long int siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
-        uint_fast32_t end);
+        uint_fast32_t end,
+        FILE * idx_fp);
 
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
@@ -126,7 +131,6 @@ int siridb_shard_get_points_log64(
         uint8_t has_overlap);
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
-int siridb_shard_write_flags(siridb_shard_t * shard);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);
 
@@ -143,5 +147,12 @@ void siridb__shard_decref(siridb_shard_t * shard);
  *
  * A signal can be raised in case closing the shard file fails.
  */
-#define siridb_shard_decref(shard__) 	\
-		if (!--shard__->ref) siridb__shard_free(shard__)
+#define siridb_shard_decref(shard__)     \
+        if (!--shard__->ref) siridb__shard_free(shard__)
+
+
+#define siridb_shard_idx_file(Name__, Fn__)         \
+        size_t Len__ = strlen(Fn__);                \
+        char Name__[Len__ + 1];                     \
+        memcpy(Name__, Fn__, Len__ - 3);            \
+        memcpy(Name__ + Len__ - 3, "idx", 4)

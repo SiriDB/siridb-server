@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <cleri/node.h>
+#include <cleri/cleri.h>
 
 
 #define SIRIDB_ACCESS_SHOW      1

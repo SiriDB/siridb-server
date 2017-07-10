@@ -34,10 +34,14 @@ For Ubuntu we have a deb package available which can be downloaded [here](https:
 
 Note: SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily installed using apt:
 ```
-apt install wget libexpat1 libuv1
+apt install libexpat1 libuv1
 ```
 
 ### Compile from source
+>From version 2.0.19 libcleri is not included as part of this source anymore
+>and needs to be installed separately. libcleri can be found here: 
+>[https://github.com/transceptor-technology/libcleri](https://github.com/transceptor-technology/libcleri)
+
 #### Linux
 Install the following requirements: (Ubuntu)
 ```
@@ -74,7 +78,7 @@ make
 SiriDB has several tools available to connect to a SiriDB database. 
 
 ### SiriDB Connectors
-Native connectors are available for [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
+Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb), [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using C, Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
 [SiriDB HTTP](https://github.com/transceptor-technology/siridb-http/blob/master/README.md) provides a HTTP API for SiriDB and has support for JSON, MsgPack, Qpack, CSV and Socket.io. SiriDB HTTP also has an optional web interface and SSL support.

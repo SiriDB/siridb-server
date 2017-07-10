@@ -41,6 +41,7 @@ typedef void (*imap_update_cb)(
 
 imap_t * imap_new(void);
 void imap_free(imap_t * imap, imap_free_cb cb);
+int imap_set(imap_t * imap, uint64_t id, void * data);
 int imap_add(imap_t * imap, uint64_t id, void * data);
 void * imap_get(imap_t * imap, uint64_t id);
 void * imap_pop(imap_t * imap, uint64_t id);

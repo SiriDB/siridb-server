@@ -18,8 +18,7 @@
 #include <stdlib.h>
 #include <qpack/qpack.h>
 #include <motd/motd.h>
-#include <cleri/grammar.h>
-#include <cleri/parse.h>
+#include <cleri/cleri.h>
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap/imap.h>
@@ -234,11 +233,13 @@ static int test_imap(void)
     test_start("Testing imap");
     imap_t * imap = imap_new();
 
-    imap_add(imap, 14, "Sasientje");
-    imap_add(imap, 20130602, "Iriske");
-    imap_add(imap, 726, "Job");
-    imap_add(imap, 2011, "Tijs");
-    imap_add(imap, 0, "Joente");
+    imap_set(imap, 14, "Sasientje");
+    imap_set(imap, 20130602, "Iriske");
+    assert (imap_set(imap, 726, "Jip") == 1);
+    assert (imap_set(imap, 726, "Job") == 0);
+    assert (imap_add(imap, 726, "Jap") == -2);
+    assert (imap_add(imap, 2011, "Tijs") == 0);
+    imap_set(imap, 0, "Joente");
 
     assert (imap->len == 5);
     assert (strcmp(imap_get(imap, 14), "Sasientje") == 0);
@@ -247,20 +248,20 @@ static int test_imap(void)
 
     assert (strcmp(imap_pop(imap, 726), "Job") == 0);
     assert (imap_pop(imap, 726) == NULL);
-
-    assert (imap->len == 4);
+    assert (strcmp(imap_pop(imap, 2011), "Tijs") == 0);
+    assert (imap->len == 3);
 
     imap_free(imap, NULL);
 
     imap = imap_new();
-    imap_add(imap, 42, "Sasientje");
+    imap_set(imap, 42, "Sasientje");
     assert (imap_walk(imap, (imap_cb) &test__imap_cb, "Sasientje") == 1);
     size_t n = 43;
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Sasientje");
     assert (n == 42);
     n = 1;
 
-    imap_add(imap, 3, "Iriske");
+    imap_set(imap, 3, "Iriske");
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
 
@@ -310,25 +311,25 @@ static void test__imap_setup(void)
     imap_dst = imap_new();
     imap_tmp = imap_new();
 
-    imap_add(imap_dst, series_a.id, &series_a);
+    imap_set(imap_dst, series_a.id, &series_a);
     series_a.ref++;
 
-    imap_add(imap_dst, series_b.id, &series_b);
+    imap_set(imap_dst, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_dst, series_c.id, &series_c);
+    imap_set(imap_dst, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_b.id, &series_b);
+    imap_set(imap_tmp, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_tmp, series_c.id, &series_c);
+    imap_set(imap_tmp, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_d.id, &series_d);
+    imap_set(imap_tmp, series_d.id, &series_d);
     series_d.ref++;
 
-    imap_add(imap_tmp, series_e.id, &series_e);
+    imap_set(imap_tmp, series_e.id, &series_e);
     series_e.ref++;
 }
 

@@ -57,4 +57,4 @@ void siridb__group_free(siridb_group_t * group);
 
 #define siridb_group_incref(group) group->ref++
 #define siridb_group_decref(group__) \
-		if (!--group__->ref) siridb__group_free(group__)
+        if (!--group__->ref) siridb__group_free(group__)

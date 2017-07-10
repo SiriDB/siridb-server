@@ -1,9 +1,57 @@
+siridb-server (2.0.21) xenial; urgency=medium
+
+  * Use points_map for caching series data when multiple select requests are
+    used in a single query. (issue #76)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 10 Jul 2017 11:43:31 +0000
+
+siridb-server (2.0.20-1) xenial; urgency=medium
+
+  * Include libcleri in deb package.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 03 Jul 2017 09:09:44 +0000
+
+siridb-server (2.0.20) xenial; urgency=medium
+
+  * Replaced a few tabs with spaces for indentation.
+
+  * Improve startup speed by creating separate index files for the shards
+    while optimizing. (issue #75)
+
+  * Fixed accidentally removing a shard from the index by the optimize thread.
+    This was very unlikely to happen but technically a shard could be dropped
+    and been re-created between checking the shard flags and locking the
+    shards mutex for replacing the shard in the index.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 30 Jun 2017 20:50:13 +0000
+
+siridb-server (2.0.19) xenial; urgency=medium
+
+  * Get the realpath for the default configuration path. (issue #72)
+
+  * Set correct array length for signal handlers.
+
+  * Cleanup some debug code.
+
+  * Check for successful malloc uv_loop.
+
+  * Changed socket code and simplified buffer.
+
+  * Added a promises queue limit which prevents overwriting a pid in the
+    promises queue and prevents adding an insane amount of requests to a
+    single server. (issue #73)
+
+  * Removed "cleri" from the source code and replaced this with libcleri.
+    https://github.com/transceptor-technology/libcleri
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 29 Jun 2017 07:54:41 +0000
+
 siridb-server (2.0.18) xenial; urgency=medium
 
   * Removed line `#include <linux/limits.h>` from `xpath`. (issue #67)
-  
-  * Write .reindex file when ading a new pool. (issue #69)
-  
+
+  * Write .reindex file when adding a new pool. (issue #69)
+
   * Update help files.
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 02 May 2017 08:18:55 +0000
@@ -12,11 +60,11 @@ siridb-server (2.0.17) xenial; urgency=medium
 
   * Removed duplicated function sirinet_pkg_copy() which is replaced with
     sirinet_pkg_dup().
-    
+
   * Fixed missing include (inttypes.h) in procinfo.c.
-  
+
   * Changed link location from /usr/sbin to /usr/local/bin in deb package.
-  
+
   * Limits for returning data points and list items can now be configured.
     (issue #64)
 
@@ -25,11 +73,11 @@ siridb-server (2.0.17) xenial; urgency=medium
 siridb-server (2.0.16) xenial; urgency=medium
 
   * Fixed bug resize macro in qpack for packing >4GB large strings.
-  
+
   * Fixed bug in time-zone name checking. (issue #61)
-  
+
   * Prevent loading database when buffer file is not found.
-  
+
   * Implemented API calls for managing databases: (issue #60)
     - change-password   : Change password for a service account
     - drop-account      : Remove a service account
@@ -40,11 +88,11 @@ siridb-server (2.0.16) xenial; urgency=medium
     - new-database      : Create a new database
     - new-pool          : Create a new pool for an existing database
     - new-replica       : Create a new replica for an existing database
-    SiriDB Admin Tool can be used to talk with the new API and provides both a 
-    command-line and a graphical web interface. Pre-compiled versions for 
+    SiriDB Admin Tool can be used to talk with the new API and provides both a
+    command-line and a graphical web interface. Pre-compiled versions for
     different platforms can be found and downloaded from:
     https://github.com/transceptor-technology/siridb-admin/releases/latest
-    
+
   * Added version check before creating a new pool or replica. (issue #62)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 07 Apr 2017 08:26:14 +0000
@@ -52,13 +100,13 @@ siridb-server (2.0.16) xenial; urgency=medium
 siridb-server (2.0.15) xenial; urgency=medium
 
   * Removed LDFLAGS from *.mk files and format makefile (@deem0n, issue #58)
-  
+
   * Added logging for invalid user authentication requests.
-  
+
   * Update constants for running test scripts.
-  
+
   * Keywords are now correctly set using case sensitive mode.
-  
+
   * Fixed NULL check on auth request.
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 22 Mar 2017 10:30:39 +0000
@@ -70,26 +118,26 @@ siridb-server (2.0.14) xenial; urgency=medium
 
   * Fixed error in choice.c which was causing an error on 32bit systems.
     (reported by @AlmiS, issue #53)
-    
+
   * Removed crypt dependency for building on (Mac) OSX. (issue #54)
-  
+
   * Fixed some warnings for building on (Mac) OSX.
 
   * Fixed locking database on (Mac) OSX. (issue #55)
-  
-  * Implemented memory usage and open files information on (Mac) OSX. 
+
+  * Implemented memory usage and open files information on (Mac) OSX.
     (issue #56)
-  
+
   * Added limit aggregation functionality. When using limit, a maximum number
     of points argument is used with an aggregation function. The aggrgation
-    function is used only when more than the maximum number of points are 
+    function is used only when more than the maximum number of points are
     found. (issue #57)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 28 Feb 2017 15:24:48 +0000
 
 siridb-server (2.0.13) xenial; urgency=medium
 
-  * Fixed wrapping imap to slist functions with appropriate locks. 
+  * Fixed wrapping imap to slist functions with appropriate locks.
     (see issue #51)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 17 Feb 2017 13:46:53 +0000
@@ -104,12 +152,12 @@ siridb-server (2.0.12) xenial; urgency=medium
 
 siridb-server (2.0.11) xenial; urgency=medium
 
-  * Pre allocate buffer space which improves performance for creating new 
+  * Pre allocate buffer space which improves performance for creating new
     series. (see issue #47)
-    
+
   * Fixed sending a correct error message to a client for list and count
     statements in case a specific series does not exist. (issue #48)
-    
+
   * Update help files.
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 05 Dec 2016 09:47:10 +0000
@@ -123,23 +171,23 @@ siridb-server (2.0.10) xenial; urgency=medium
 
   * Fixed identifying a corrupt shard when an invalid header size is found
     at the end of a shard while loading a database. (issue #45)
-    
+
   * Re-use space in buffer when series are dropped. (issue #46)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 22 Nov 2016 15:05:07 +0000
 
 siridb-server (2.0.9) xenial; urgency=medium
 
-  * Use macros for formatting integer types instead of casting to a specific 
+  * Use macros for formatting integer types instead of casting to a specific
     type.
-    
-  * Removed unneeded 'siridb_mutex' from heart-beat task. 
-  
+
+  * Removed unneeded 'siridb_mutex' from heart-beat task.
+
   * Fixed possible double free on socket. (see issue #39)
-  
+
   * Fixed reading an alternative buffer path from the configuration file.
     (issue #40)
-    
+
   * Fixed dropping shards when followed by an optimize task. (issue #42)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 10 Nov 2016 08:21:07 +0000
@@ -153,11 +201,11 @@ siridb-server (2.0.8) xenial; urgency=medium
 siridb-server (2.0.7) xenial; urgency=medium
 
   * Fixed memory leak in "alter group set expression". (issue #36)
-  
+
   * Fixed bug in saving groups when groups are created while the statement
     did not end with the expression, but with an extra space or comment.
     (see issue #37)
-    
+
   * Added __restrict keyword for extra optimizations.
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 07 Nov 2016 11:04:52 +0000
@@ -166,10 +214,10 @@ siridb-server (2.0.6) xenial; urgency=medium
 
   * Fixed memory leak when using multiple regular expressions in one query.
     (issue #33)
-    
+
   * Fixed memory leak in difference, symmetric_difference and intersection
     functions on the imap object. (see issue #34)
-    
+
   * Fixed memory leak when creating an invalid group. (issue #35)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 04 Nov 2016 21:03:31 +0000
@@ -177,19 +225,19 @@ siridb-server (2.0.6) xenial; urgency=medium
 siridb-server (2.0.5) xenial; urgency=medium
 
   * Changed CLOCK_REALTIME to CLOCK_MONOTONIC for monitoring startup time.
-  
+
   * Fixed bug using filter aggregation. (issue #29)
-  
+
   * Fixed bug in median, median_low and median_high when using on series
     with large values. (issue #30)
-    
-  * Check for successful memory allocations in cexpr object. 
-  
+
+  * Check for successful memory allocations in cexpr object.
+
   * Wrap socket around uv_tcp_t instead of two separate mallocs.
-  
-  * Fixed possible stack overflow error by checking for a max recursion depth 
+
+  * Fixed possible stack overflow error by checking for a max recursion depth
     when parsing a query. (issue #31)
-    
+
   * Fixed possible stack overflow error by checking for a maximum query length.
     (see issue #32)
 
@@ -203,49 +251,49 @@ siridb-server (2.0.4) xenial; urgency=medium
 
 siridb-server (2.0.3) xenial; urgency=medium
 
-  * Fixed bug in network handler. The wrong size could be allocated when 
+  * Fixed bug in network handler. The wrong size could be allocated when
     receiving multiple packages in a stream. (issue #27)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 27 Oct 2016 20:41:58 +0000
 
 siridb-server (2.0.2) xenial; urgency=medium
 
-  * Check user for permissions when inserting data. Only authentication was 
+  * Check user for permissions when inserting data. Only authentication was
     checked, not if the user had 'insert' privileges. (issue #16)
-    
+
   * Minor performance updates by creating macros for frequently used
     functions. (see issue #17 for more info)
-    
-  * Store reference counter for a series object in an uint32_t. This solves 
+
+  * Store reference counter for a series object in an uint32_t. This solves
     a bug on big endian systems. (issue #18)
-    
+
   * Remove server_id and idx_tp from series object and set those as flags.
     This removed the unneeded pads and saves 8 bytes for each series object.
-    
+
   * Honor ip_support setting when sending a dns request. (issue #19)
-  
-  * Fixed a bug in listing and counting servers when using one of the 
-    properties 'sync_progress' or 'reindex_progress'. 
+
+  * Fixed a bug in listing and counting servers when using one of the
+    properties 'sync_progress' or 'reindex_progress'.
     (reported by Koos Joosten, issue #20)
-    
+
   * Fixed a bug when a select query is using a greater start time than end
-    time. Instead of trying to answer to the query we now respond with an 
-    error informing the user the given query is not allowed. 
-    (reported by Koos Joosten, issue #21) 
-    
+    time. Instead of trying to answer to the query we now respond with an
+    error informing the user the given query is not allowed.
+    (reported by Koos Joosten, issue #21)
+
   * Fixed typo in log message.
-  
+
   * Fixed bug in median (and median_low, median_high) when applying on a large
     data set. (reported by Koos Joosten, issue #22)
-    
+
   * Improve median, median_high and median_low algorithm. (see issue #23)
-  
+
   * Fixed bug in 'drop series' statement. (reported by Koos Joosten, issue #24)
-  
+
   * Fixed bug in creating a new replica. Possible data loss could occur when
     creating a new replica. (see issue #25)
-    
-  * Fixed bug in dropping items from the internal compact tree. 
+
+  * Fixed bug in dropping items from the internal compact tree.
     (reported by Koos Joosten, issue #26)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 26 Oct 2016 13:42:39 +0000
@@ -255,42 +303,42 @@ siridb-server (2.0.1) xenial; urgency=medium
   * Only try to load a database from a directory containing at least the
     files 'database.conf' and 'database.dat'. This prevents trying to load
     from directories like lost+found etc. (issue #1)
-    
+
   * Increased UV_THREADPOOL_SIZE from four to eight and prevent SiriDB
     from loading more than four databases. (issue #2)
-    
+
   * Removed unneeded msgpack.h dependency. (issue #3)
-  
+
   * To prevent compile warning on 32-bit linux we now cast int64_t and uint64_t
-    to "lld" (long long) and "llu" (unsigned long long). (issue #4)  
-    
+    to "lld" (long long) and "llu" (unsigned long long). (issue #4)
+
   * Dependencies in cleri (with siridb) are removed. (issue #5)
-  
-  * Respond with BPROTO_AUTH_ERR_UNKNOWN_UUID in case the authentication 
+
+  * Respond with BPROTO_AUTH_ERR_UNKNOWN_UUID in case the authentication
     request contains the servers own UUID. (issue #6)
-    
+
   * Added CPROTO_REQ_FILE_GROUPS to type translate function. (issue #7)
-  
-  * Added support for an optimize interval of zero which disables the 
+
+  * Added support for an optimize interval of zero which disables the
     optimize task. (enhancement issue #8)
-    
+
   * Implemented configuration file changes (see issue #9)
-  
+
   * Fixed resolving an ip address for a given hostname or fqdn. (for more
     information see issue #10)
-    
+
   * Fixed writing uninitialized data while enabling or disabling backup mode
     by setting the correct package size. (issue #11)
-    
+
   * Accept a variable %HOSTNAME in the configuration file. This is now used
     for the default value, 'server_name = %HOSTNAME:9010'. (issue #12)
 
   * Parse ipv6 addresses given in the configuration file correctly.
     (see issue #13)
-    
+
   * Added support for ipv6 while discovering an address using dns. (issue #14)
-  
-  * Added property 'ip_support' to the grammar so we can view the current 
+
+  * Added property 'ip_support' to the grammar so we can view the current
     setting with 'show' and 'list servers'. (issue #15)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 21 Oct 2016 14:31:20 +0000

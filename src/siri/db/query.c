@@ -10,7 +10,7 @@
  *
  */
 #include <assert.h>
-#include <cleri/olist.h>
+#include <cleri/cleri.h>
 #include <expr/expr.h>
 #include <iso8601/iso8601.h>
 #include <logger/logger.h>
@@ -426,15 +426,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
     size_t len = 0;
     int count = 0;
     const char * expect;
-    cleri_olist_t * expecting;
-
-    /* remove comment from suggestions since this is boring info */
-    cleri_expecting_remove(query->pr->expecting, CLERI_GID_R_COMMENT);
-
-    /* we always need required since cleri uses required as its final
-     * suggestions tree.
-     */
-    expecting = query->pr->expecting->required;
+    cleri_t * cl_obj;
 
     /* start building the error message */
     len = snprintf(query->err_msg,
@@ -445,25 +437,26 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
     /* expand the error message with suggestions. we try to add nice names
      * for regular expressions etc.
      */
-    while (expecting != NULL && expecting->cl_obj != NULL)
+    while (query->pr->expect != NULL)
     {
-        if (expecting->cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
+        cl_obj = query->pr->expect->cl_obj;
+        if (cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
         {
             expect = "end_of_statement";
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_KEYWORD)
+        else if (cl_obj->tp == CLERI_TP_KEYWORD)
         {
-            expect = expecting->cl_obj->via.keyword->keyword;
+            expect = cl_obj->via.keyword->keyword;
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_TOKENS)
+        else if (cl_obj->tp == CLERI_TP_TOKENS)
         {
-            expect = expecting->cl_obj->via.tokens->spaced;
+            expect = cl_obj->via.tokens->spaced;
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_TOKEN)
+        else if (cl_obj->tp == CLERI_TP_TOKEN)
         {
-            expect = expecting->cl_obj->via.token->token;
+            expect = cl_obj->via.token->token;
         }
-        else switch (expecting->cl_obj->via.dummy->gid)
+        else switch (cl_obj->gid)
         {
         case CLERI_GID_R_SINGLEQ_STR:
             expect = "single_quote_str"; break;
@@ -485,7 +478,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             /* the best result we get is to handle all, but it will not break
              * in case we did not specify some elements.
              */
-            expecting = expecting->next;
+            query->pr->expect = query->pr->expect->next;
             continue;
         }
         /* we use count = 0 to print the first one, then for the others
@@ -498,7 +491,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
                     "%s",
                     expect);
         }
-        else if (expecting->next == NULL || expecting->next->cl_obj == NULL)
+        else if (query->pr->expect->next == NULL)
         {
             len += snprintf(query->err_msg + len,
                     SIRIDB_MAX_SIZE_ERR_MSG - len,
@@ -513,7 +506,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
                     expect);
         }
 
-        expecting = expecting->next;
+        query->pr->expect = query->pr->expect->next;
     }
 
     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
@@ -682,7 +675,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
     cleri_children_t * current;
     uv_async_cb func;
 
-    gid = node->cl_obj->via.dummy->gid;
+    gid = node->cl_obj->gid;
 
     /*
      * When GID is 0 this means CLERI_NONE
@@ -701,8 +694,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         }
     }
 
-
-    if (gid == CLERI_GID_TIME_EXPR)
+    if (gid == CLERI_GID_TIME_EXPR || gid == CLERI_GID_CALC_STMT)
     {
         char buffer[EXPR_MAX_SIZE];
         size_t size = EXPR_MAX_SIZE;
@@ -811,7 +803,7 @@ static int QUERY_time_expr(
 
     case CLERI_TP_REGEX:
         /* can be an integer or time string like 2d or something */
-        switch (node->cl_obj->via.regex->gid)
+        switch (node->cl_obj->gid)
         {
         case CLERI_GID_R_INTEGER:
             if (node->len >= *size)
@@ -968,7 +960,7 @@ static int QUERY_rebuild(
 
     case CLERI_TP_CHOICE:
     case CLERI_TP_RULE:
-        switch (node->cl_obj->via.dummy->gid)
+        switch (node->cl_obj->gid)
         {
         case CLERI_GID_UUID:
             {

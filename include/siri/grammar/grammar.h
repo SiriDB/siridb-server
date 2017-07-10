@@ -1,15 +1,16 @@
 /*
+ * siri/grammar/grammar.h
+ *
  * This grammar is generated using the Grammar.export_c() method and
- * should be used with the cleri module.
+ * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-04-24 20:23:16
+ * Created at: 2017-06-27 16:12:07
  */
+#ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
+#define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 
-#pragma once
-
-#include <siri/grammar/grammar.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 
 cleri_grammar_t * compile_grammar(void);
 
@@ -288,4 +289,6 @@ enum cleri_grammar_ids {
     CLERI_GID__BOOLEAN,
     CLERI_END // can be used to get the enum length
 };
+
+#endif /* CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_ */
 

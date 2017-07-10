@@ -247,22 +247,22 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     }
     else
     {
-    	if (strlen(option->val->string) >= PATH_MAX -2 ||
-    		realpath(
-    			option->val->string,
-				siri_cfg.default_db_path) == NULL)
+        if (strlen(option->val->string) >= PATH_MAX -2 ||
+            realpath(
+                option->val->string,
+                siri_cfg.default_db_path) == NULL)
         {
-        	log_warning(
-        			"Could not resolve default database path: %s, please "
-        			"check your configuration file: %s",
-					option->val->string,
-					siri.args->config);
-			memset(siri_cfg.default_db_path, 0, PATH_MAX);
+            log_warning(
+                    "Could not resolve default database path: %s, please "
+                    "check your configuration file: %s",
+                    option->val->string,
+                    siri.args->config);
+            memset(siri_cfg.default_db_path, 0, PATH_MAX);
 
-			/* keep space left for a trailing slash and a terminator char */
-			strncpy(siri_cfg.default_db_path,
-					option->val->string,
-					PATH_MAX - 2);
+            /* keep space left for a trailing slash and a terminator char */
+            strncpy(siri_cfg.default_db_path,
+                    option->val->string,
+                    PATH_MAX - 2);
         }
 
         len = strlen(siri_cfg.default_db_path);

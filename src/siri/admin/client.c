@@ -753,8 +753,8 @@ static void CLIENT_on_file_servers(
 
     /* trim closing */
     for (n = pkg->len;
-    	 (unsigned char) pkg->data[n - 1] == QP_ARRAY_CLOSE;
-    	 n--);
+         (unsigned char) pkg->data[n - 1] == QP_ARRAY_CLOSE;
+         n--);
 
     rc = (fwrite(pkg->data, n, 1, fp) == 1) ? 0 : EOF;
 
