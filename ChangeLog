@@ -1,3 +1,10 @@
+siridb-server (2.0.21) xenial; urgency=medium
+
+  * Use points_map for caching series data when multiple select requests are
+    used in a single query. (issue #76)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 10 Jul 2017 11:43:31 +0000
+
 siridb-server (2.0.20-1) xenial; urgency=medium
 
   * Include libcleri in deb package.
