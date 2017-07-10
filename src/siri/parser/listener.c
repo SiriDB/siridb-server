@@ -4409,6 +4409,11 @@ static void async_select_aggregate(uv_async_t * handle)
         async_more = 1;
     }
 
+    /* We try to read the points from the cache in case a cache is created.
+     * If there are more select functions left we create a copy of the cache.
+     * When this is the last select function we pop from the cache since the
+     * points are no longer required.
+     */
     points = (q_select->points_map == NULL) ?
             NULL :
             q_select->nselects ?
@@ -4426,6 +4431,7 @@ static void async_select_aggregate(uv_async_t * handle)
                         q_select->end_ts);
         uv_mutex_unlock(&siridb->series_mutex);
 
+        /* when having a cache and points, add a copy of points to the cache */
         if (q_select->points_map != NULL && points != NULL)
         {
             siridb_points_t * cpoints = siridb_points_copy(points);
