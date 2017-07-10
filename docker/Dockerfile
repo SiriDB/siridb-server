@@ -1,4 +1,4 @@
-FROM alpine
+FROM alpine:latest
 RUN apk update && \
 		apk upgrade && \
 		apk add gcc make libuv-dev musl-dev pcre-dev util-linux-dev linux-headers git && \
