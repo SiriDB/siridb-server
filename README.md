@@ -38,8 +38,7 @@ Note: SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily in
 apt install libexpat1 libuv1
 ```
 
->The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. 
->You might want to view or change this file before starting SiriDB.
+The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You might want to view or change this file before starting SiriDB.
 
 ### Compile from source
 >From version 2.0.19 libcleri is not included as part of this source anymore
