@@ -8,6 +8,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [Compile from source](#compile-from-source)
       * [Linux](#linux)
       * [OSX](#osx)
+      * [Configuration](#configuration)
   * [Create or expand a database](#create-or-expand-a-database)
   * [Using SiriDB](#using-siridb)
     * [SiriDB Connectors](#siridb-connectors)
@@ -36,6 +37,9 @@ Note: SiriDB requires *libexpat1* and *libuv1*, these libraries can be easily in
 ```
 apt install libexpat1 libuv1
 ```
+
+>The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. 
+>You might want to view or change this file before starting SiriDB.
 
 ### Compile from source
 >From version 2.0.19 libcleri is not included as part of this source anymore
@@ -71,6 +75,16 @@ export LDFLAGS="-L/usr/local/lib"
 make clean
 make
 ```
+#### Configuration
+SiriDB requires a configuration file to run. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument.
+
+```
+$ siridb-server -c /my/path/siridb.conf
+```
+
+An example configuration file can be found here:
+[https://github.com/transceptor-technology/siridb-server/blob/master/siridb.conf](#https://github.com/transceptor-technology/siridb-server/blob/master/siridb.conf)
+
 ## Create or expand a database
 [SiriDB Admin](https://github.com/transceptor-technology/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/transceptor-technology/siridb-admin/blob/master/README.md) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/transceptor-technology/siridb-admin/releases/latest).
 
