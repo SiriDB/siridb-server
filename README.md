@@ -264,3 +264,305 @@ The following two graphs should appear
 ![SiriDB Prompt](http://siridb.net/img/introduction_gettingstarted_query.png)
 
 Your all set now, have fun!
+
+
+# SiriDB using Docker
+
+All of SiriDB's components are also available as Docker images on [Docker Hub](https://hub.docker.com/u/siridb/)
+
+* SiriDB server ([siridb/server](https://hub.docker.com/r/siridb/server/))
+* SiriDB admin tool ([siridb/admin](https://hub.docker.com/r/siridb/manage/))
+* SiriDB prompt ([siridb/prompt](https://hub.docker.com/r/siridb/prompt/))
+* SiriDB HTTP ([siridb/http](https://hub.docker.com/r/siridb/http/))
+
+The following guide helps you to quickly setup and use SiriDB so you can try it out and kick its tires.
+This guide uses docker to setup the environment.
+If you haven't installed docker yet we'd like to direct you to the docker getting started [guide](https://docs.docker.com/engine/getstarted/).
+
+If you need help getting started please don't hesitate to [contact](info@siridb.net) us.
+
+**Note** When using docker there are a couple of things to consider:
+
+1. Use **hostnames** for your containers as this makes it easier to maintain and troubleshoot your SiriDB cluster.
+2. The default database location is */var/lib/siridb* use a **data volumes** or **data volume containers** to ensure data is persistent.
+
+## Get the SiriDB server up and running
+
+Let's fire up our first SiriDB server using docker incantation's :-)
+
+First step is to we create a bridged network to connect all SiriDB's components.
+
+```
+docker network create -d bridge siridb-net
+```
+
+
+
+```
+docker run -d \
+  --network=siridb-net \
+  --name=server-a \
+  --hostname=server-a \
+  siridb/server
+```
+
+This command started a SiriDB server instance named "server-a" as a docker container and connected this server to the "siridb-net" network.
+
+## Create a database
+Next step, create a database using the SiriDB manage prompt, this prompt is available as a separate package or docker container. Since we're using docker for our getting started we use the container:
+
+```
+docker run -it --rm \
+  --network=siridb-net \
+  siridb/admin \
+    -u sa \
+    -p siri \
+    -s server-a \
+    new-database \
+      --db-name MyTimeSeriesDatabase \
+      --time-precision s
+```
+
+## Insert data
+Now that we have a running database we might as well put it to good use.
+For our example we use the Google Finance data since this data is available for free for different stock markets. The complete list can be found [here](https://www.google.com/intl/en/googlefinance/disclaimer/).
+
+In order to format the data, we create a small python script that downloads the data and output's it as CSV. The source of this script can be found [here](https://github.com/transceptor-technology/siridb-demo/blob/master/demo_google_finance/data_google_finance.py). For this guide we created a docker container, as well as for this script.
+
+
+In this example we use IBM's ticker data:
+```
+docker run -it \
+	--rm \
+	siridb/demo_google_finance \
+		-t IBM \
+		-i 300 \
+		-d 50 > /tmp/ibm_ticker.csv
+```
+Please be patient as this script might take a couple of seconds to complete.
+The output is piped to a file in the */tmp* folder.
+
+>**Note**
+> You can learn more about the parameters of our google finance script by using the *--help* option at startup, e.g. *docker run -it --rm siridb/demo_google_finance --help*
+
+Using the docker prompt we can load the data we just fetched into our database, in order to access the data in our local */tmp* folder we need to mount this folder in our docker container.
+
+```
+docker run -it \
+	--rm \
+	--network=siridb-net \
+	-v /tmp:/tmp \
+	siridb/prompt \
+		-u iris \
+		-p siri \
+		-d MyTimeSeriesDatabase \
+		-s server-a:9000
+```
+
+The SiriDB prompt should appear now, using the SiriDB `import_csv` command the ticker data can be loaded into SiriDB.
+```
+import_csv /tmp/ibm_ticker.csv
+```
+Use the `list series` command to list the just inserted time series:
+```
+iris@MyTimeSeriesDatabase> list series
+name
+━━━━━━━━━━━━━━━━━━━━━━━━━
+GOOGLE-FINANCE-IBM-CLOSE
+GOOGLE-FINANCE-IBM-HIGH
+GOOGLE-FINANCE-IBM-LOW
+GOOGLE-FINANCE-IBM-OPEN
+GOOGLE-FINANCE-IBM-VOLUME
+
+iris@MyTimeSeriesDatabase>
+```
+Feel free to play around in the prompt, our autocomplete routine and built-in help might prove useful.
+
+
+------------------
+
+#### SiriDB HTTP server
+We created a basic HTTP server for SiriDB.
+```
+docker run -it \
+	--rm \
+	--network=siridb-net \
+	-p 8080:8080 siridb/http \
+		-u iris \
+		-p siri \
+		-d MyTimeSeriesDatabase \
+		-s server-a:9000
+```
+Use your web browser to connect to http://127.0.0.1:8080, now you can access the SiriDB-HTTP prompt.
+
+![SiriDB Prompt](http://siridb.net/img/introduction_gettingstarted_prompt.png)
+
+Enter the following query to see SiriDB in action:
+```
+select mean(1d) => difference () from /GOOGLE-FINANCE-IBM-(OPEN|CLOSE)/
+```
+
+The following two graphs should appear
+
+![SiriDB Prompt](http://siridb.net/img/introduction_gettingstarted_query.png)
+
+Congratulations, you have just setup SiriDB and loaded an example dataset.
+The next chapter covers expanding this setup to a robust 4 node SiriDB cluster.
+
+### Advanced setup
+In this section we expand the previously created setup to a full blown 4 node SiriDB cluster.
+Each of the servers are running in their own docker container.
+* `server-a` and `server-b` are replica's and form `pool0`,
+* `server-c` and `server-d` are also replica's and form `pool 1`.
+
+This section assumes you've followed the Single server setup. Next we'll see SiriDB's scalability in action :-)
+
+The diagram below shows the final SiriDB environment of this exercise:
+
+		╔════════════════════════════════════════╗
+		║ SiriDB Cluster                         ║
+		║  ┏━━━━━━━━━━━━━━━┓  ┏━━━━━━━━━━━━━━━┓  ║
+		║  ┃    pool 0     ┃  ┃    pool 1     ┃  ║
+		║  ┃┌─────────────┐┃  ┃┌─────────────┐┃  ║
+		║  ┃│   SiriDB    │┃  ┃│   SiriDB    │┃  ║
+		║  ┃│  server A   │┃  ┃│  server C   │┃  ║
+		║  ┃└─────────────┘┃  ┃└─────────────┘┃  ║
+		║  ┃       ▲       ┃  ┃       ▲       ┃  ║
+		║  ┃       │       ┃  ┃       │       ┃  ║
+		║  ┃       ▼       ┃  ┃       ▼       ┃  ║
+		║  ┃┌─────────────┐┃  ┃┌─────────────┐┃  ║
+		║  ┃│   SiriDB    │┃  ┃│   SiriDB    │┃  ║
+		║  ┃│  server B   │┃  ┃│  server D   │┃  ║
+		║  ┃└─────────────┘┃  ┃└─────────────┘┃  ║
+		║  ┗━━━━━━━━━━━━━━━┛  ┗━━━━━━━━━━━━━━━┛  ║
+		╚════════════════════════════════════════╝
+
+#### Infrastructure
+Our advanced getting started infrastructure consists of the following docker components:
+
+- a bridged network connecting all SiriDB containers.
+- 4 SiriDB server containers named server-a up to server-d
+- 1 SiriDB manage container
+- 1 SiriDB prompt container
+
+The diagram below shows what the final infrastructure will look like:
+
+		╔════════════════════════════════════════════════════════════════╗
+		║ Docker host                                                    ║
+		║            ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐     ║
+		║            │ SiriDB  │ │ SiriDB  │ │ SiriDB  │ │ SiriDB  │     ║
+		║            │container│ │container│ │container│ │container│     ║
+		║            │server-a │ │server-b │ │server-c │ │server-d │     ║
+		║            └─────────┘ └─────────┘ └─────────┘ └─────────┘     ║
+		║                 │           │           │           │          ║
+		║───siridb-net────●─────●─────●───────────●─────●─────●─────     ║
+		║                       │                       │                ║
+		║                  ┌─────────┐             ┌─────────┐           ║
+		║                  │ SiriDB  │             │ SiriDB  │           ║
+		║                  │container│             │container│           ║
+		║                  │ manage  │             │ prompt  │           ║
+		║                  └─────────┘             └─────────┘           ║
+		╚════════════════════════════════════════════════════════════════╝
+
+
+#### Verify the getting started setup
+We start of by using the SiriDB prompt to verify our installation.
+
+	docker run -it --rm \
+		--network=siridb-net \
+		siridb/prompt \
+			-u iris \
+			-p siri \
+			-d MyTimeSeriesDatabase \
+			-s server-a:9000
+
+Use the `list servers` command to show the current servers available, there should be only *server_a* if you have followed our guide completely.
+
+	iris@MyTimeSeriesDatabase> list servers
+	name          ┃ pool ┃ version ┃ online ┃ status
+	━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━
+	server-a:9010 │ 0    │ 2.0.11  │ True   │ running
+
+#### Create a replica
+As we care for data, the next step is to create a replica.
+
+The first step is to start a second SiriDB server container, server-b to be precise.
+
+	docker run -d \
+		--network=siridb-net \
+		--name=server-b\
+		--hostname=server-b \
+		siridb/server
+
+The second step is that we create the actual replica using the siridb-manage command.
+Note: it can take a couple of seconds for the server to boot up, if you try too soon you might receive the following error: *Unable to get local SiriDB info, please check if SiriDB is running and listening to 127.0.0.1:9000*
+
+	docker run -it --rm \
+		--network container:server-b \
+		--volumes-from=server-b \
+		siridb/manage create-replica \
+			--dbname MyTimeSeriesDatabase \
+			--remote-address server-a \
+			--remote-port 9000 \
+			--user iris \
+			--password siri \
+			--pool 0
+
+#### Add an additional pool
+As data grows over time SiriDB can easily be expanded by adding pools.
+In the following steps we add a pool and make the pool high available by ensuring it is a replica.
+
+>**Note**
+> It is important to know that we can only continue expanding our cluster if all servers are in a running state!
+> Use the SiriDB prompt and the list servers command to verify this.
+
+If you have ensured that all servers are running we can continue by starting our third SiriDB server container (server-c)
+
+	docker run -d \
+		--network=siridb-net \
+		--name=server-c \
+		--hostname=server-c \
+		siridb/server
+
+The next step is to create the actual additional pool using the manage prompt and the **create-pool** command
+
+	docker run -it --rm \
+		--network container:server-c \
+		--volumes-from=server-c \
+	  siridb/manage create-pool \
+			--dbname MyTimeSeriesDatabase \
+			--remote-address server-a \
+			--remote-port 9000 \
+			--user iris \
+			--password siri
+
+To top it all off we create a replica of server-c.
+
+	# Start the fourth and last SiriDB container (server-d)
+	docker run -d \
+		--network=siridb-net \
+		--name=server-d \
+		--hostname=server-d \
+		siridb/server
+
+	# Use the siridb/manage container to create a replica of our just created pool 1
+	docker run -it --rm \
+		--network container:server-d \
+		--volumes-from=server-d \
+		siridb/manage create-replica \
+			--dbname MyTimeSeriesDatabase \
+			--remote-address server-c \
+			--remote-port 9000 \
+			--user iris \
+			--password siri \
+			--pool 1
+
+If all went according to plan a 'list servers' command shows the following output:
+
+	iris@MyTimeSeriesDatabase> list servers
+	name          ┃ pool ┃ version ┃ online ┃ status
+	━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━
+	server-a:9010 │ 0    │ 2.0.11  │ True   │ running
+	server-b:9010 │ 0    │ 2.0.11  │ True   │ running
+	server-c:9010 │ 1    │ 2.0.11  │ True   │ running
+	server-d:9010 │ 1    │ 2.0.11  │ True   │ running
