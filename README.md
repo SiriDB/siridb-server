@@ -1,4 +1,4 @@
-caSiriDB Server
+SiriDB Server
 =============
 SiriDB is a highly-scalable, robust and super fast time series database.
 
@@ -90,9 +90,9 @@ Native connectors are available for [C](https://github.com/transceptor-technolog
 Documentation about the query language can be found at http://siridb.net/docs.
 
 
-# SiriDB by Example
+## SiriDB by Example
 
-## SiriDB installation
+### SiriDB installation
 
 Our SiriDB setup consists of an Ubuntu server, for this example we used Ubuntu server 16.04.2
 On this server we install the following SiriDB components:
@@ -103,12 +103,12 @@ On this server we install the following SiriDB components:
 * SiriDB HTTP
 
 
-### SiriDB Server
+#### SiriDB Server
 Let's start with the SiriDB server installation.
 First we install the prerequisites:
 
 ```
-apt install libexpat1 libuv1
+sudo apt install libexpat1 libuv1
 ```
 
 Next step is downloading, installing and starting SiriDB server:
@@ -116,11 +116,11 @@ Next step is downloading, installing and starting SiriDB server:
 ```
 cd /tmp
 wget https://github.com/transceptor-technology/siridb-server/releases/download/2.0.21/siridb-server_2.0.21_amd64.deb
-dpkg -i ./siridb-server_2.0.21_amd64.deb
+sudo dpkg -i ./siridb-server_2.0.21_amd64.deb
 sudo systemctl start siridb-server.service
 ```
 
-### SiriDB admin tool
+#### SiriDB admin tool
 
 SiriDB admin tool is used for managing SiriDB service accounts and databases. SiriDB-Admin can be used both by command-line arguments and a graphical web-interface.
 
@@ -128,8 +128,8 @@ The SiriDB admin tool is distributed for multiple platforms as a binary tool, as
 
 ```
 wget https://github.com/transceptor-technology/siridb-admin/releases/download/1.1.2/siridb-admin_1.1.2_linux_amd64.bin
-cp siridb-admin_1.1.2_linux_amd64.bin /usr/local/bin/siridb-admin
-chmod +x /usr/local/bin/siridb-admin
+sudo cp siridb-admin_1.1.2_linux_amd64.bin /usr/local/bin/siridb-admin
+sudo chmod +x /usr/local/bin/siridb-admin
 ```
 
 ### SiriDB prompt
@@ -140,7 +140,7 @@ Last component we need is the SiriDB prompt which we also install on our Ubuntu 
 
 ```
 wget https://github.com/transceptor-technology/siridb-prompt/releases/download/2.0.5/siridb-prompt_2.0.5_amd64.deb
-dpkg -i ./siridb-prompt_2.0.5_amd64.deb
+sudo dpkg -i ./siridb-prompt_2.0.5_amd64.deb
 ```
 
 ### SiriDB HTTP
@@ -149,15 +149,15 @@ SiriDB HTTP provides a HTTP API and optional web interface for SiriDB.
 
 ```
 wget https://github.com/transceptor-technology/siridb-http/releases/download/2.0.1/siridb-http_2.0.1_linux_amd64.bin
-mv siridb-http_2.0.1_linux_amd64.bin /usr/local/bin/siridb-http
-chmod +x /usr/local/bin/siridb-http
+sudo mv siridb-http_2.0.1_linux_amd64.bin /usr/local/bin/siridb-http
+sudo chmod +x /usr/local/bin/siridb-http
 ```
 
 
 
 ## SiriDB create a database
 
-Using the SiriDB we create our first database.
+Using the SiriDB Admin tool we create our first database.
 
 ```
 siridb-admin  \
