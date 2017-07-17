@@ -14,7 +14,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [SiriDB HTTP](#siridb-http)
     * [SiriDB Prompt](#siridb-prompt)
   * [API/Query language](#query-language)
-  * [Docker](#docker)
+  * [Tutorial](#docker)
     * [Single SiriDB server setup](#single-siridb-server-setup)
       * [Get the SiriDB server up and running](#get-the-siridb-server-up-and-running)
       * [Create a database](#create-a-database)
@@ -90,7 +90,7 @@ Native connectors are available for [C](https://github.com/transceptor-technolog
 Documentation about the query language can be found at http://siridb.net/docs.
 
 
-## SiriDB by Example
+## Tutorial
 
 ### SiriDB installation
 
