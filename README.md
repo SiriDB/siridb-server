@@ -74,19 +74,19 @@ An example configuration file can be found here:
 [https://github.com/transceptor-technology/siridb-server/blob/master/siridb.conf](#https://github.com/transceptor-technology/siridb-server/blob/master/siridb.conf)
 
 ## Create or expand a database
-[SiriDB Admin](https://github.com/transceptor-technology/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/transceptor-technology/siridb-admin/blob/master/README.md) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/transceptor-technology/siridb-admin/releases/latest).
+[SiriDB Admin](https://github.com/transceptor-technology/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/transceptor-technology/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/transceptor-technology/siridb-admin/releases/latest).
 
 ## Using SiriDB
 SiriDB has several tools available to connect to a SiriDB database. 
 
 ### SiriDB Connectors
-Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb), [Python](https://github.com/transceptor-technology/siridb-connector) and [Go](https://github.com/transceptor-technology/go-siridb-connector). When not using C, Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
+Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb#readme), [Python](https://github.com/transceptor-technology/siridb-connector#readme) and [Go](https://github.com/transceptor-technology/go-siridb-connector#readme). When not using C, Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
-[SiriDB HTTP](https://github.com/transceptor-technology/siridb-http/blob/master/README.md) provides a HTTP API for SiriDB and has support for JSON, MsgPack, Qpack, CSV and Socket.io. SiriDB HTTP also has an optional web interface and SSL support.
+[SiriDB HTTP](https://github.com/transceptor-technology/siridb-http#readme) provides a HTTP API for SiriDB and has support for JSON, MsgPack, Qpack, CSV and Socket.io. SiriDB HTTP also has an optional web interface and SSL support.
 
 ### SiriDB Prompt
-[SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
+[SiriDB Prompt](https://github.com/transceptor-technology/siridb-prompt#readme) can be used as a command line SiriDB client with auto-completion support and can be used to load json or csv data into a SiriDB database. Click [here](https://github.com/transceptor-technology/siridb-prompt/blob/master/README.md) for more information about SiriDB Prompt.
 
 ## Query language
 Documentation about the query language can be found at http://siridb.net/docs.
