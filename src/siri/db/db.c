@@ -817,6 +817,7 @@ static siridb_t * SIRIDB_new(void)
                         siridb->pools = NULL;
                         siridb->max_series_id = 0;
                         siridb->received_points = 0;
+                        siridb->selected_points = 0;
                         siridb->drop_threshold = DEF_DROP_THRESHOLD;
                         siridb->select_points_limit = DEF_SELECT_POINTS_LIMIT;
                         siridb->list_limit = DEF_LIST_LIMIT;

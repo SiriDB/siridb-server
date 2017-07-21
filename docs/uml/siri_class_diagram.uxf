@@ -24,8 +24,6 @@ duration_log: uint64_t
 dbname: *char
 dbpath: *char
 buffer_path: *char
-index: *char
-index_size: size_t
 time: *siridb_time_t
 server: *siridb_server_t
 replica: *siridb_server_t

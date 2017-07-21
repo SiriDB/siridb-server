@@ -73,6 +73,7 @@ class SiriGrammar(Grammar):
     k_error = Keyword('error')
     k_expression = Keyword('expression')
     k_false = Keyword('false')
+    k_fifo_files = Keyword('fifo_files')
     k_filter = Keyword('filter')
     k_float = Keyword('float')
     k_for = Keyword('for')
@@ -127,6 +128,7 @@ class SiriGrammar(Grammar):
     k_revoke = Keyword('revoke')
     k_select = Keyword('select')
     k_select_points_limit = Keyword('select_points_limit')
+    k_selected_points = Keyword('selected_points')
     k_series = Keyword('series')
     k_server = Keyword('server')
     k_servers = Keyword('servers')
@@ -258,6 +260,7 @@ class SiriGrammar(Grammar):
         k_open_files,
         k_received_points,
         k_reindex_progress,
+        k_selected_points,
         k_sync_progress,
         k_uptime,
         most_greedy=False), ',', 1)
@@ -333,6 +336,7 @@ class SiriGrammar(Grammar):
             k_mem_usage,
             k_open_files,
             k_received_points,
+            k_selected_points,
             k_uptime,
             most_greedy=False), int_operator, int_expr),
         Sequence(Choice(
@@ -561,6 +565,10 @@ class SiriGrammar(Grammar):
         k_servers,
         k_received_points,
         Optional(where_server))
+    count_servers_selected = Sequence(
+        k_servers,
+        k_selected_points,
+        Optional(where_server))
     count_shards = Sequence(
         k_shards, Optional(where_shard))
     count_shards_size = Sequence(
@@ -629,6 +637,7 @@ class SiriGrammar(Grammar):
         count_series,
         count_servers,
         count_servers_received,
+        count_servers_selected,
         count_shards,
         count_shards_size,
         count_users,
@@ -697,6 +706,7 @@ class SiriGrammar(Grammar):
         k_pool,
         k_received_points,
         k_reindex_progress,
+        k_selected_points,
         k_select_points_limit,
         k_server,
         k_startup_time,

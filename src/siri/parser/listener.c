@@ -1869,7 +1869,7 @@ static void exit_count_servers_received(uv_async_t * handle)
     siridb_server_walker_t wserver = {siridb->server, siridb};
     if (where_expr == NULL || cexpr_run(where_expr, cb, &wserver))
     {
-        q_count-> n += siridb->received_points;
+        q_count->n += siridb->received_points;
     }
 
     if (IS_MASTER)
@@ -5292,6 +5292,10 @@ static void master_select_work(uv_work_t * work)
     uv_async_t * handle = (uv_async_t *) work->data;
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_select_t * q_select = (query_select_t *) query->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb->selected_points += q_select->n;
+    LOGC("Selected points: %zu", siridb->selected_points);
+
     int rc = ct_items(
             q_select->result,
             (q_select->merge_as == NULL) ?

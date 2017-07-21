@@ -94,8 +94,8 @@ typedef struct siridb_s
     char * dbpath;
     char * buffer_path;
     double drop_threshold;
-    size_t index_size;
     size_t received_points;
+    size_t selected_points;
     slist_t * empty_buffers;
     siridb_time_t * time;
     siridb_server_t * server;
