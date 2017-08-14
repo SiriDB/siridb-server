@@ -254,6 +254,7 @@ class SiriGrammar(Grammar):
         k_status,
         # Remote properties
         k_active_handles,
+        k_fifo_files,
         k_log_level,
         k_max_open_files,
         k_mem_usage,
@@ -329,6 +330,7 @@ class SiriGrammar(Grammar):
         Sequence(Choice(
             k_active_handles,
             k_buffer_size,
+            k_fifo_files,
             k_port,
             k_pool,
             k_startup_time,
@@ -696,6 +698,7 @@ class SiriGrammar(Grammar):
         k_drop_threshold,
         k_duration_log,
         k_duration_num,
+        k_fifo_files,
         k_ip_support,
         k_libuv,
         k_list_limit,

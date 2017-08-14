@@ -295,6 +295,16 @@ void siridb_fifo_free(siridb_fifo_t * fifo)
 }
 
 /*
+ * returns the number of fifo files.
+ * (in case fifo is NULL, the return value will be zero)
+ */
+size_t siridb_fifo_size(siridb_fifo_t * fifo)
+{
+    return (fifo == NULL) ? 0 : fifo->fifos->len + 1;
+}
+
+
+/*
  * returns 1 and a signal can be set if a file close has failed
  */
 static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)

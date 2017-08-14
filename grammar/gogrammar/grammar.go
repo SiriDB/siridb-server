@@ -4,7 +4,7 @@ package grammar
 // should be used with the goleri module.
 //
 // Source class: SiriGrammar
-// Created at: 2017-06-27 16:12:07
+// Created at: 2017-08-14 15:06:00
 
 import (
 	"regexp"
@@ -37,6 +37,7 @@ const (
 	GidCountSeriesLength = iota
 	GidCountServers = iota
 	GidCountServersReceived = iota
+	GidCountServersSelected = iota
 	GidCountShards = iota
 	GidCountShardsSize = iota
 	GidCountStmt = iota
@@ -140,6 +141,7 @@ const (
 	GidKError = iota
 	GidKExpression = iota
 	GidKFalse = iota
+	GidKFifoFiles = iota
 	GidKFilter = iota
 	GidKFloat = iota
 	GidKFor = iota
@@ -191,6 +193,7 @@ const (
 	GidKRevoke = iota
 	GidKSelect = iota
 	GidKSelectPointsLimit = iota
+	GidKSelectedPoints = iota
 	GidKSeries = iota
 	GidKServer = iota
 	GidKServers = iota
@@ -329,6 +332,7 @@ func SiriGrammar() *goleri.Grammar {
 	kError := goleri.NewKeyword(GidKError, "error", false)
 	kExpression := goleri.NewKeyword(GidKExpression, "expression", false)
 	kFalse := goleri.NewKeyword(GidKFalse, "false", false)
+	kFifoFiles := goleri.NewKeyword(GidKFifoFiles, "fifo_files", false)
 	kFilter := goleri.NewKeyword(GidKFilter, "filter", false)
 	kFloat := goleri.NewKeyword(GidKFloat, "float", false)
 	kFor := goleri.NewKeyword(GidKFor, "for", false)
@@ -390,6 +394,7 @@ func SiriGrammar() *goleri.Grammar {
 	kRevoke := goleri.NewKeyword(GidKRevoke, "revoke", false)
 	kSelect := goleri.NewKeyword(GidKSelect, "select", false)
 	kSelectPointsLimit := goleri.NewKeyword(GidKSelectPointsLimit, "select_points_limit", false)
+	kSelectedPoints := goleri.NewKeyword(GidKSelectedPoints, "selected_points", false)
 	kSeries := goleri.NewKeyword(GidKSeries, "series", false)
 	kServer := goleri.NewKeyword(GidKServer, "server", false)
 	kServers := goleri.NewKeyword(GidKServers, "servers", false)
@@ -554,12 +559,14 @@ func SiriGrammar() *goleri.Grammar {
 		kStartupTime,
 		kStatus,
 		kActiveHandles,
+		kFifoFiles,
 		kLogLevel,
 		kMaxOpenFiles,
 		kMemUsage,
 		kOpenFiles,
 		kReceivedPoints,
 		kReindexProgress,
+		kSelectedPoints,
 		kSyncProgress,
 		kUptime,
 	), goleri.NewToken(NoGid, ","), 1, 0, false)
@@ -737,6 +744,7 @@ func SiriGrammar() *goleri.Grammar {
 					false,
 					kActiveHandles,
 					kBufferSize,
+					kFifoFiles,
 					kPort,
 					kPool,
 					kStartupTime,
@@ -744,6 +752,7 @@ func SiriGrammar() *goleri.Grammar {
 					kMemUsage,
 					kOpenFiles,
 					kReceivedPoints,
+					kSelectedPoints,
 					kUptime,
 				),
 				intOperator,
@@ -1280,6 +1289,12 @@ func SiriGrammar() *goleri.Grammar {
 		kReceivedPoints,
 		goleri.NewOptional(NoGid, whereServer),
 	)
+	countServersSelected := goleri.NewSequence(
+		GidCountServersSelected,
+		kServers,
+		kSelectedPoints,
+		goleri.NewOptional(NoGid, whereServer),
+	)
 	countShards := goleri.NewSequence(
 		GidCountShards,
 		kShards,
@@ -1417,6 +1432,7 @@ func SiriGrammar() *goleri.Grammar {
 			countSeries,
 			countServers,
 			countServersReceived,
+			countServersSelected,
 			countShards,
 			countShardsSize,
 			countUsers,
@@ -1513,6 +1529,7 @@ func SiriGrammar() *goleri.Grammar {
 			kDropThreshold,
 			kDurationLog,
 			kDurationNum,
+			kFifoFiles,
 			kIpSupport,
 			kLibuv,
 			kListLimit,
@@ -1523,6 +1540,7 @@ func SiriGrammar() *goleri.Grammar {
 			kPool,
 			kReceivedPoints,
 			kReindexProgress,
+			kSelectedPoints,
 			kSelectPointsLimit,
 			kServer,
 			kStartupTime,
@@ -1537,123 +1555,123 @@ func SiriGrammar() *goleri.Grammar {
 		), goleri.NewToken(NoGid, ","), 0, 0, false),
 	)
 	timeitStmt := goleri.NewRepeat(GidTimeitStmt, kTimeit, 1, 1)
-	helpTimeit := goleri.NewKeyword(GidHelpTimeit, "timeit", false)
-	helpSelect := goleri.NewKeyword(GidHelpSelect, "select", false)
-	helpCountUsers := goleri.NewKeyword(GidHelpCountUsers, "users", false)
-	helpCountSeries := goleri.NewKeyword(GidHelpCountSeries, "series", false)
-	helpCountServers := goleri.NewKeyword(GidHelpCountServers, "servers", false)
-	helpCountPools := goleri.NewKeyword(GidHelpCountPools, "pools", false)
-	helpCountShards := goleri.NewKeyword(GidHelpCountShards, "shards", false)
-	helpCountGroups := goleri.NewKeyword(GidHelpCountGroups, "groups", false)
-	helpCount := goleri.NewSequence(
-		GidHelpCount,
-		kCount,
-		goleri.NewOptional(NoGid, goleri.NewChoice(
-			NoGid,
-			true,
-			helpCountUsers,
-			helpCountSeries,
-			helpCountServers,
-			helpCountPools,
-			helpCountShards,
-			helpCountGroups,
-		)),
-	)
+	helpShow := goleri.NewKeyword(GidHelpShow, "show", false)
 	helpRevoke := goleri.NewKeyword(GidHelpRevoke, "revoke", false)
-	helpDropSeries := goleri.NewKeyword(GidHelpDropSeries, "series", false)
-	helpDropGroup := goleri.NewKeyword(GidHelpDropGroup, "group", false)
-	helpDropUser := goleri.NewKeyword(GidHelpDropUser, "user", false)
-	helpDropShards := goleri.NewKeyword(GidHelpDropShards, "shards", false)
-	helpDropServer := goleri.NewKeyword(GidHelpDropServer, "server", false)
-	helpDrop := goleri.NewSequence(
-		GidHelpDrop,
-		kDrop,
-		goleri.NewOptional(NoGid, goleri.NewChoice(
-			NoGid,
-			true,
-			helpDropSeries,
-			helpDropGroup,
-			helpDropUser,
-			helpDropShards,
-			helpDropServer,
-		)),
-	)
+	helpNoaccess := goleri.NewKeyword(GidHelpNoaccess, "noaccess", false)
+	helpFunctions := goleri.NewKeyword(GidHelpFunctions, "functions", false)
 	helpGrant := goleri.NewKeyword(GidHelpGrant, "grant", false)
 	helpAccess := goleri.NewKeyword(GidHelpAccess, "access", false)
-	helpCreateUser := goleri.NewKeyword(GidHelpCreateUser, "user", false)
-	helpCreateGroup := goleri.NewKeyword(GidHelpCreateGroup, "group", false)
-	helpCreate := goleri.NewSequence(
-		GidHelpCreate,
-		kCreate,
-		goleri.NewOptional(NoGid, goleri.NewChoice(
-			NoGid,
-			true,
-			helpCreateUser,
-			helpCreateGroup,
-		)),
-	)
-	helpShow := goleri.NewKeyword(GidHelpShow, "show", false)
-	helpFunctions := goleri.NewKeyword(GidHelpFunctions, "functions", false)
-	helpTimezones := goleri.NewKeyword(GidHelpTimezones, "timezones", false)
+	helpListUsers := goleri.NewKeyword(GidHelpListUsers, "users", false)
+	helpListPools := goleri.NewKeyword(GidHelpListPools, "pools", false)
+	helpListSeries := goleri.NewKeyword(GidHelpListSeries, "series", false)
+	helpListServers := goleri.NewKeyword(GidHelpListServers, "servers", false)
 	helpListGroups := goleri.NewKeyword(GidHelpListGroups, "groups", false)
 	helpListShards := goleri.NewKeyword(GidHelpListShards, "shards", false)
-	helpListPools := goleri.NewKeyword(GidHelpListPools, "pools", false)
-	helpListServers := goleri.NewKeyword(GidHelpListServers, "servers", false)
-	helpListSeries := goleri.NewKeyword(GidHelpListSeries, "series", false)
-	helpListUsers := goleri.NewKeyword(GidHelpListUsers, "users", false)
 	helpList := goleri.NewSequence(
 		GidHelpList,
 		kList,
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
 			true,
+			helpListUsers,
+			helpListPools,
+			helpListSeries,
+			helpListServers,
 			helpListGroups,
 			helpListShards,
-			helpListPools,
-			helpListServers,
-			helpListSeries,
-			helpListUsers,
 		)),
 	)
-	helpAlterUser := goleri.NewKeyword(GidHelpAlterUser, "user", false)
 	helpAlterDatabase := goleri.NewKeyword(GidHelpAlterDatabase, "database", false)
-	helpAlterServer := goleri.NewKeyword(GidHelpAlterServer, "server", false)
 	helpAlterGroup := goleri.NewKeyword(GidHelpAlterGroup, "group", false)
 	helpAlterServers := goleri.NewKeyword(GidHelpAlterServers, "servers", false)
+	helpAlterServer := goleri.NewKeyword(GidHelpAlterServer, "server", false)
+	helpAlterUser := goleri.NewKeyword(GidHelpAlterUser, "user", false)
 	helpAlter := goleri.NewSequence(
 		GidHelpAlter,
 		kAlter,
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
 			true,
-			helpAlterUser,
 			helpAlterDatabase,
-			helpAlterServer,
 			helpAlterGroup,
 			helpAlterServers,
+			helpAlterServer,
+			helpAlterUser,
 		)),
 	)
-	helpNoaccess := goleri.NewKeyword(GidHelpNoaccess, "noaccess", false)
+	helpCountSeries := goleri.NewKeyword(GidHelpCountSeries, "series", false)
+	helpCountServers := goleri.NewKeyword(GidHelpCountServers, "servers", false)
+	helpCountGroups := goleri.NewKeyword(GidHelpCountGroups, "groups", false)
+	helpCountShards := goleri.NewKeyword(GidHelpCountShards, "shards", false)
+	helpCountUsers := goleri.NewKeyword(GidHelpCountUsers, "users", false)
+	helpCountPools := goleri.NewKeyword(GidHelpCountPools, "pools", false)
+	helpCount := goleri.NewSequence(
+		GidHelpCount,
+		kCount,
+		goleri.NewOptional(NoGid, goleri.NewChoice(
+			NoGid,
+			true,
+			helpCountSeries,
+			helpCountServers,
+			helpCountGroups,
+			helpCountShards,
+			helpCountUsers,
+			helpCountPools,
+		)),
+	)
+	helpSelect := goleri.NewKeyword(GidHelpSelect, "select", false)
+	helpCreateGroup := goleri.NewKeyword(GidHelpCreateGroup, "group", false)
+	helpCreateUser := goleri.NewKeyword(GidHelpCreateUser, "user", false)
+	helpCreate := goleri.NewSequence(
+		GidHelpCreate,
+		kCreate,
+		goleri.NewOptional(NoGid, goleri.NewChoice(
+			NoGid,
+			true,
+			helpCreateGroup,
+			helpCreateUser,
+		)),
+	)
+	helpTimezones := goleri.NewKeyword(GidHelpTimezones, "timezones", false)
+	helpDropGroup := goleri.NewKeyword(GidHelpDropGroup, "group", false)
+	helpDropUser := goleri.NewKeyword(GidHelpDropUser, "user", false)
+	helpDropServer := goleri.NewKeyword(GidHelpDropServer, "server", false)
+	helpDropSeries := goleri.NewKeyword(GidHelpDropSeries, "series", false)
+	helpDropShards := goleri.NewKeyword(GidHelpDropShards, "shards", false)
+	helpDrop := goleri.NewSequence(
+		GidHelpDrop,
+		kDrop,
+		goleri.NewOptional(NoGid, goleri.NewChoice(
+			NoGid,
+			true,
+			helpDropGroup,
+			helpDropUser,
+			helpDropServer,
+			helpDropSeries,
+			helpDropShards,
+		)),
+	)
+	helpTimeit := goleri.NewKeyword(GidHelpTimeit, "timeit", false)
 	help := goleri.NewSequence(
 		GidHelp,
 		kHelp,
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
 			true,
-			helpTimeit,
-			helpSelect,
-			helpCount,
+			helpShow,
 			helpRevoke,
-			helpDrop,
+			helpNoaccess,
+			helpFunctions,
 			helpGrant,
 			helpAccess,
-			helpCreate,
-			helpShow,
-			helpFunctions,
-			helpTimezones,
 			helpList,
 			helpAlter,
-			helpNoaccess,
+			helpCount,
+			helpSelect,
+			helpCreate,
+			helpTimezones,
+			helpDrop,
+			helpTimeit,
 		)),
 	)
 	START := goleri.NewSequence(

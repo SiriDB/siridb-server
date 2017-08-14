@@ -15,6 +15,7 @@
 #include <siri/db/query.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/fifo.h>
 #include <siri/err.h>
 #include <siri/net/promise.h>
 #include <siri/net/socket.h>
@@ -1133,6 +1134,12 @@ int siridb_server_cexpr_cb(
                 (int64_t) (procinfo_total_physical_memory() / 1024),
                 cond->int64);
 
+    case CLERI_GID_K_FIFO_FILES:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) siridb_fifo_size(wserver->siridb->fifo),
+                cond->int64);
+
     case CLERI_GID_K_OPEN_FILES:
         return cexpr_int_cmp(
                 cond->operator,
@@ -1143,6 +1150,12 @@ int siridb_server_cexpr_cb(
         return cexpr_int_cmp(
                 cond->operator,
                 wserver->siridb->received_points,
+                cond->int64);
+
+    case CLERI_GID_K_SELECTED_POINTS:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->siridb->selected_points,
                 cond->int64);
 
     case CLERI_GID_K_UPTIME:

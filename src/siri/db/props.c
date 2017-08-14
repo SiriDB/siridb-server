@@ -17,6 +17,7 @@
 #include <siri/db/reindex.h>
 #include <siri/db/time.h>
 #include <siri/grammar/grammar.h>
+#include <siri/db/fifo.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stdio.h>
@@ -65,6 +66,10 @@ static void prop_duration_num(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_fifo_files(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_ip_support(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -102,6 +107,10 @@ static void prop_received_points(
         qp_packer_t * packer,
         int map);
 static void prop_reindex_progress(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_selected_points(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
@@ -173,6 +182,8 @@ void siridb_init_props(void)
             prop_duration_log;
     siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
             prop_duration_num;
+    siridb_props[CLERI_GID_K_FIFO_FILES - KW_OFFSET] =
+            prop_fifo_files;
     siridb_props[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
             prop_ip_support;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
@@ -193,6 +204,8 @@ void siridb_init_props(void)
             prop_received_points;
     siridb_props[CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET] =
             prop_reindex_progress;
+    siridb_props[CLERI_GID_K_SELECTED_POINTS - KW_OFFSET] =
+            prop_selected_points;
     siridb_props[CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET] =
             prop_select_points_limit;
     siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] =
@@ -289,6 +302,15 @@ static void prop_duration_num(
     qp_add_int64(packer, (int64_t) siridb->duration_num);
 }
 
+static void prop_fifo_files(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("fifo_files", 10)
+    qp_add_int32(packer, (int32_t) siridb_fifo_size(siridb->fifo));
+}
+
 static void prop_ip_support(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -377,6 +399,15 @@ static void prop_reindex_progress(
 {
     SIRIDB_PROP_MAP("reindex_progress", 16)
     qp_add_string(packer, siridb_reindex_progress(siridb));
+}
+
+static void prop_selected_points(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("selected_points", 15)
+    qp_add_int64(packer, (int64_t) siridb->selected_points);
 }
 
 static void prop_select_points_limit(

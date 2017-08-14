@@ -644,6 +644,11 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
                     query->packer,
                     (int32_t) (procinfo_total_physical_memory() / 1024));
             break;
+        case CLERI_GID_K_FIFO_FILES:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) siridb_fifo_size(siridb->fifo));
+            break;
         case CLERI_GID_K_OPEN_FILES:
             qp_add_int32(query->packer, siridb_open_files(siridb));
             break;
@@ -652,6 +657,9 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             break;
         case CLERI_GID_K_REINDEX_PROGRESS:
             qp_add_string(query->packer, siridb_reindex_progress(siridb));
+            break;
+        case CLERI_GID_K_SELECTED_POINTS:
+            qp_add_int64(query->packer, siridb->selected_points);
             break;
         case CLERI_GID_K_SYNC_PROGRESS:
             qp_add_string(query->packer, siridb_initsync_sync_progress(siridb));
