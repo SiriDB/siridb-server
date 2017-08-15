@@ -221,6 +221,7 @@ static void exit_count_series(uv_async_t * handle);
 static void exit_count_series_length(uv_async_t * handle);
 static void exit_count_servers(uv_async_t * handle);
 static void exit_count_servers_received(uv_async_t * handle);
+static void exit_count_servers_selected(uv_async_t * handle);
 static void exit_count_shards(uv_async_t * handle);
 static void exit_count_shards_size(uv_async_t * handle);
 static void exit_count_users(uv_async_t * handle);
@@ -444,6 +445,7 @@ void siriparser_init_listener(void)
     siriparser_listen_exit[CLERI_GID_COUNT_SERIES_LENGTH] = exit_count_series_length;
     siriparser_listen_exit[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
     siriparser_listen_exit[CLERI_GID_COUNT_SERVERS_RECEIVED] = exit_count_servers_received;
+    siriparser_listen_exit[CLERI_GID_COUNT_SERVERS_SELECTED] = exit_count_servers_selected;
     siriparser_listen_exit[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
     siriparser_listen_exit[CLERI_GID_COUNT_SHARDS_SIZE] = exit_count_shards_size;
     siriparser_listen_exit[CLERI_GID_COUNT_USERS] = exit_count_users;
@@ -1870,6 +1872,37 @@ static void exit_count_servers_received(uv_async_t * handle)
     if (where_expr == NULL || cexpr_run(where_expr, cb, &wserver))
     {
         q_count->n += siridb->received_points;
+    }
+
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_SERVERS,
+                (sirinet_promises_cb) on_count_xxx_response,
+                0);
+    }
+    else
+    {
+        qp_add_int64(query->packer, q_count->n);
+        SIRIPARSER_ASYNC_NEXT_NODE
+    }
+}
+
+static void exit_count_servers_selected(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    query_count_t * q_count = (query_count_t *) query->data;
+    cexpr_t * where_expr = q_count->where_expr;
+    cexpr_cb_t cb = (cexpr_cb_t) siridb_server_cexpr_cb;
+
+    qp_add_raw(query->packer, "servers_selected_points", 23);
+
+    siridb_server_walker_t wserver = {siridb->server, siridb};
+    if (where_expr == NULL || cexpr_run(where_expr, cb, &wserver))
+    {
+        q_count->n += siridb->selected_points;
     }
 
     if (IS_MASTER)

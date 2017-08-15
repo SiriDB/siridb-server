@@ -80,7 +80,7 @@ SiriDB knows four update functions:
 
 * difference (alias: **-**)
 * symmentric_difference (alias: **^**)
-* union (aliasses: **,** and **|**)
+* union (aliases: **,** and **|**)
 * intersection (alias: **&**)
 
 examples
