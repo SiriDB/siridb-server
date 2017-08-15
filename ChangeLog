@@ -1,3 +1,10 @@
+siridb-server (2.0.22) xenial; urgency=medium
+
+  * Added two new server properties, fifo_files and selected_points.
+    (issue #41)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 15 Aug 2017 07:39:12 +0000
+
 siridb-server (2.0.21) xenial; urgency=medium
 
   * Use points_map for caching series data when multiple select requests are
