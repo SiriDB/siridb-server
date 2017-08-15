@@ -5327,7 +5327,6 @@ static void master_select_work(uv_work_t * work)
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb->selected_points += q_select->n;
-    LOGC("Selected points: %zu", siridb->selected_points);
 
     int rc = ct_items(
             q_select->result,
