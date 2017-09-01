@@ -5689,6 +5689,9 @@ static void finish_count_groups(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
+    /* Note: ct_values(..values_count_groups..) can only result in a positive
+     *       value.
+     */
     size_t n = (q_count->where_expr == NULL) ?
             siridb->groups->groups->len :
             (size_t) ct_values(
