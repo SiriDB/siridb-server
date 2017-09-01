@@ -14,7 +14,9 @@
  *  - initial version, 21-04-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <iso8601/iso8601.h>
 #include <stdlib.h>
 #include <time.h>

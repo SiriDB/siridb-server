@@ -9,7 +9,9 @@
  *  - initial version, 04-05-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>

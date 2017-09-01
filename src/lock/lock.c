@@ -11,7 +11,9 @@
  *  - initial version, 13-07-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <lock/lock.h>
 #include <xpath/xpath.h>
 #include <stddef.h>

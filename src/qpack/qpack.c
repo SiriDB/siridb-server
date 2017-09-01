@@ -9,7 +9,9 @@
  *  - initial version, 11-03-2016
  *          ((l + n) // 4 + 1) * 4
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <qpack/qpack.h>
 #include <stdlib.h>
 #include <stdio.h>

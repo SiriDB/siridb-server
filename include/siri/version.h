@@ -13,7 +13,7 @@
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
-#define SIRIDB_VERSION_PATCH 22
+#define SIRIDB_VERSION_PATCH 23
 
 #define SIRIDB_STRINGIFY(num) #num
 #define SIRIDB_VERSION_STR(major,minor,patch) \

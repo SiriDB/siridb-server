@@ -9,7 +9,9 @@
  *  - initial version, 22-07-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <siri/db/initsync.h>
 #include <siri/err.h>
 #include <stddef.h>

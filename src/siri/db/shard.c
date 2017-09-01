@@ -10,7 +10,9 @@
  *  - initial version, 04-04-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <ctree/ctree.h>
 #include <imap/imap.h>

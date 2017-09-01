@@ -10,7 +10,9 @@
  *  - initial version, 09-03-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <lock/lock.h>
 #include <lock/lock.h>

@@ -9,7 +9,9 @@
  *  - initial version, 10-03-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <cfgparser/cfgparser.h>
 #include <lock/lock.h>

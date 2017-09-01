@@ -27,7 +27,9 @@
  *  Note:   One exception to 'not allowed' are the free functions
  *          since they only run when no other references to the object exist.
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/db.h>

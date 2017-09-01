@@ -22,7 +22,9 @@
  *
  *  - Drop server is not allowed while re-indexing.
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>

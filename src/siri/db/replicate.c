@@ -10,7 +10,9 @@
  *  - initial version, 11-07-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/fifo.h>
