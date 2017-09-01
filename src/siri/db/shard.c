@@ -427,7 +427,7 @@ int siridb_shard_cexpr_cb(
  * Make sure 'str' is a pointer to a string which can hold at least
  * SIRIDB_SHARD_STR_MAX.
  */
-void siridb_shard_status(char * str, siridb_shard_t * shard)
+int siridb_shard_status(char * str, siridb_shard_t * shard)
 {
     char * pt = str;
 
@@ -450,8 +450,9 @@ void siridb_shard_status(char * str, siridb_shard_t * shard)
 
     if (pt == str)
     {
-        sprintf(pt, "ok");
+        pt += sprintf(pt, "ok");
     }
+    return pt - str;
 }
 
 /*

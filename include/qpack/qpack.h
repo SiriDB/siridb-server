@@ -168,16 +168,8 @@ static inline int qp_is_raw_term(qp_obj_t * qp_obj)
 
 /* Add to packer functions */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
-
-/* shortcuts for qp_add_raw() */
-static inline int qp_add_string(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str));
-}
-static inline int qp_add_string_term(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str) + 1);
-}
+int qp_add_string(qp_packer_t * packer, const char * str);
+int qp_add_string_term(qp_packer_t * packer, const char * str);
 
 int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
 int qp_add_double(qp_packer_t * packer, double real);

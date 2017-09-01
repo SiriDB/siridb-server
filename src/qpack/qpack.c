@@ -416,6 +416,16 @@ int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
     return 0;
 }
 
+/* shortcuts for qp_add_raw() */
+int qp_add_string(qp_packer_t * packer, const char * str)
+{
+    return qp_add_raw(packer, str, strlen(str));
+}
+int qp_add_string_term(qp_packer_t * packer, const char * str)
+{
+    return qp_add_raw(packer, str, strlen(str) + 1);
+}
+
 /*
  * Adds a raw string to the packer and appends a terminator (0) so the written
  * length is len + 1

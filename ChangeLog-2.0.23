@@ -3,3 +3,6 @@
   * Better use of inline functions and resolved compiler warnings.
   
   * Prevent error messages to grow larger than the maximum size. (issue #82)
+  
+  * Change return value for siridb_shard_status() from void to int containing
+    the number of characters written. 

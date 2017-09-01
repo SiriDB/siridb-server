@@ -3004,8 +3004,8 @@ static void exit_list_shards(uv_async_t * handle)
                 case CLERI_GID_K_STATUS:
                     {
                         char buffer[SIRIDB_SHARD_STATUS_STR_MAX];
-                        siridb_shard_status(buffer, vshard.shard);
-                        qp_add_string(query->packer, buffer);
+                        int n = siridb_shard_status(buffer, vshard.shard);
+                        qp_add_raw(query->packer, buffer, n);
                     }
                     break;
                 }
