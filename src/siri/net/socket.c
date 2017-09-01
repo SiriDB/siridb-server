@@ -143,6 +143,7 @@ void sirinet_socket_on_data(
     sirinet_socket_t * ssocket = (sirinet_socket_t *) client->data;
     sirinet_pkg_t * pkg;
     size_t total_sz;
+    uint8_t check;
 
     /*
      * ssocket->on_data is NULL when 'sirinet_socket_decref' is called from
@@ -179,7 +180,8 @@ void sirinet_socket_on_data(
     }
 
     pkg = (sirinet_pkg_t *) ssocket->buf;
-    if (    (pkg->tp ^ 255) != pkg->checkbit ||
+    check = pkg->tp ^ 255;
+    if (    check != pkg->checkbit ||
             (ssocket->tp == SOCKET_CLIENT && pkg->len > MAX_ALLOWED_PKG_SIZE))
     {
         char addr_port[ADDR_BUF_SZ];

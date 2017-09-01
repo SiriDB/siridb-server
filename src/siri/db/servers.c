@@ -747,7 +747,9 @@ int siridb_servers_save(siridb_t * siridb)
     return 0;
 }
 
-static void SERVERS_walk_free(siridb_server_t * server, void * args)
+static void SERVERS_walk_free(
+        siridb_server_t * server,
+        void * args __attribute__((unused)))
 {
     siridb_server_decref(server);
 }

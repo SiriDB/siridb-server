@@ -24,7 +24,7 @@
 static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points);
 static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
 static void POINTS_simple_sort(siridb_points_t * points);
-static int POINTS_compare(const void * a, const void * b);
+static inline int POINTS_compare(const void * a, const void * b);
 static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points);
 
 /*
@@ -167,9 +167,7 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
 /*
  * Returns 0 if successful or -1 and a SIGNAL is raised in case of an error.
  */
-inline int siridb_points_raw_pack(
-        siridb_points_t * points,
-        qp_packer_t * packer)
+int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
 {
     return (qp_add_type(packer, QP_ARRAY_OPEN) ||
             qp_add_int8(packer, points->tp) ||
@@ -484,7 +482,7 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
     }
 }
 
-inline static int POINTS_compare(const void * a, const void * b)
+static inline int POINTS_compare(const void * a, const void * b)
 {
     return (((siridb_point_t *) a)->ts - ((siridb_point_t *) b)->ts);
 }

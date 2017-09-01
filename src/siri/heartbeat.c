@@ -55,7 +55,7 @@ void siri_heartbeat_force(void)
     HEARTBEAT_cb(NULL);
 }
 
-static void HEARTBEAT_cb(uv_timer_t * handle)
+static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
 {
     siridb_t * siridb;
     siridb_server_t * server;

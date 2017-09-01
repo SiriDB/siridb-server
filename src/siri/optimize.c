@@ -60,7 +60,7 @@ void siri_optimize_init(siri_t * siri)
     }
 }
 
-void siri_optimize_stop(siri_t * siri)
+void siri_optimize_stop(void)
 {
     /*
      * Main Thread
@@ -82,7 +82,7 @@ void siri_optimize_stop(siri_t * siri)
  * Increment pause. This is not just a simple boolean because more than one
  * siridb database can pause the optimize task.
  */
-inline void siri_optimize_pause(void)
+void siri_optimize_pause(void)
 {
     optimize.pause++;
     if (optimize.status == SIRI_OPTIMIZE_PENDING)
@@ -95,7 +95,7 @@ inline void siri_optimize_pause(void)
  * Decrement pause. This is not just a simple boolean because more than one
  * siridb database can pause the optimize task.
  */
-inline void siri_optimize_continue(void)
+void siri_optimize_continue(void)
 {
 #ifdef DEBUG
     assert (optimize.pause);
@@ -262,7 +262,7 @@ int siri_optimize_finish_idx(const char * fn, int remove_old)
     return rc;
 }
 
-static void OPTIMIZE_work(uv_work_t * work)
+static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 {
     /*
      * Optimize Thread
@@ -393,7 +393,9 @@ static void OPTIMIZE_work(uv_work_t * work)
     slist_free(slsiridb);
 }
 
-static void OPTIMIZE_work_finish(uv_work_t * work, int status)
+static void OPTIMIZE_work_finish(
+        uv_work_t * work  __attribute__((unused)),
+        int status)
 {
     /*
      * Main Thread
@@ -416,7 +418,7 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
 /*
  * Start the optimize task. (will start a new thread performing the work)
  */
-static void OPTIMIZE_cb(uv_timer_t * handle)
+static void OPTIMIZE_cb(uv_timer_t * handle  __attribute__((unused)))
 {
     /*
      * Main Thread

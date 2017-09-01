@@ -368,7 +368,7 @@ static void SIRI_CFG_read_address_port(
     char hostname[SIRI_CFG_MAX_LEN_ADDRESS];
     cfgparser_option_t * option;
     cfgparser_return_t rc;
-    uint16_t test_port;
+    int test_port;
 
     if (gethostname(hostname, SIRI_CFG_MAX_LEN_ADDRESS))
     {
@@ -467,7 +467,7 @@ static void SIRI_CFG_read_address_port(
             }
             else
             {
-                *port_pt = test_port;
+                *port_pt = (uint16_t) test_port;
             }
 
             log_debug("Read '%s' from config: %s:%d",

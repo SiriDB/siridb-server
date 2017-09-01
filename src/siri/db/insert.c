@@ -1326,7 +1326,7 @@ static int INSERT_read_points(
             return ERR_EXPECTING_INTEGER_TS;
         }
 
-        if (!siridb_int64_valid_ts(siridb, qp_obj->via.int64))
+        if (!siridb_int64_valid_ts(siridb->time, qp_obj->via.int64))
         {
             return ERR_TIMESTAMP_OUT_OF_RANGE;
         }

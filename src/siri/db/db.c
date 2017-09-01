@@ -559,7 +559,7 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 /*
  * Sometimes we need a callback function and cannot use a macro expansion.
  */
-inline void siridb_decref_cb(siridb_t * siridb, void * args)
+void siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
 {
     siridb_decref(siridb);
 }

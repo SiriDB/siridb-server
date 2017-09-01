@@ -15,7 +15,6 @@
 #include <qpack/qpack.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -157,7 +156,7 @@ void qp_unpacker_ff_free(qp_unpacker_t * unpacker)
 qp_unpacker_t * qp_unpacker_ff(const char * fn)
 {
     FILE * fp;
-    size_t size;
+    ssize_t size;
     qp_unpacker_t * unpacker;
 
     fp = fopen(fn, "r");
@@ -287,43 +286,6 @@ int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
     memcpy(packer->buffer + packer->len, start, size);
     packer->len += size;
     return 0;
-}
-
-inline int qp_is_array(qp_types_t tp)
-{
-    return tp == QP_ARRAY_OPEN || (tp >= QP_ARRAY0 && tp <= QP_ARRAY5);
-}
-
-inline int qp_is_map(qp_types_t tp)
-{
-    return tp == QP_MAP_OPEN || (tp >= QP_MAP0 && tp <= QP_MAP5);
-}
-
-inline int qp_is_close(qp_types_t tp)
-{
-    return tp >= QP_ARRAY_CLOSE;
-}
-
-inline int qp_is_raw(qp_types_t tp)
-{
-    return tp == QP_RAW;
-}
-
-inline int qp_is_int(qp_types_t tp)
-{
-    return tp == QP_INT64;
-}
-
-inline int qp_is_double(qp_types_t tp)
-{
-    return tp == QP_DOUBLE;
-}
-
-inline int qp_is_raw_term(qp_obj_t * qp_obj)
-{
-    return (qp_obj->tp == QP_RAW &&
-            qp_obj->len &&
-            qp_obj->via.raw[qp_obj->len - 1] == '\0');
 }
 
 /*
@@ -471,28 +433,6 @@ int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
     packer->len += len;
     packer->buffer[packer->len - 1] = '\0';
     return 0;
-}
-
-/*
- * Adds a 0 terminated string to the packer but note that the terminator itself
- * will NOT be written. (Use qp_add_string_term() instead if you want the
- * destination to be 0 terminated
- *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-inline int qp_add_string(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str));
-}
-
-/*
- * Like qp_add_string() but includes the 0 terminator.
- *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-inline int qp_add_string_term(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str) + 1);
 }
 
 /*
@@ -653,7 +593,7 @@ int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
 
-    return (fputc(tp, fpacker) == tp) ? 0 : EOF;
+    return (fputc(tp, fpacker) == (int) tp) ? 0 : EOF;
 }
 
 /*
@@ -1438,3 +1378,5 @@ static qp_types_t QP_print_unpacker(
     }
     return qp_next(unpacker, qp_obj);
 }
+
+int qp_is_array(qp_types_t tp);

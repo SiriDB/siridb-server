@@ -231,7 +231,7 @@ void siridb_init_props(void)
 }
 
 static void prop_active_handles(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -312,7 +312,7 @@ static void prop_fifo_files(
 }
 
 static void prop_ip_support(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -321,7 +321,7 @@ static void prop_ip_support(
 }
 
 static void prop_libuv(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -339,7 +339,7 @@ static void prop_list_limit(
 }
 
 static void prop_log_level(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -348,7 +348,7 @@ static void prop_log_level(
 }
 
 static void prop_max_open_files(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -357,7 +357,7 @@ static void prop_max_open_files(
 }
 
 static void prop_mem_usage(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -429,7 +429,7 @@ static void prop_server(
 }
 
 static void prop_startup_time(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -502,7 +502,7 @@ static void prop_uuid(
 }
 
 static void prop_version(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {
@@ -511,7 +511,7 @@ static void prop_version(
 }
 
 static void prop_who_am_i(
-        siridb_t * siridb,
+        siridb_t * siridb __attribute__((unused)),
         qp_packer_t * packer,
         int map)
 {

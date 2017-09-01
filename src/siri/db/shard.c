@@ -131,12 +131,11 @@ static int SHARD_load_idx_num(
         siridb_shard_t * shard,
         FILE * fp,
         int is_num64);
-static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
+static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 static int SHARD_truncate(siridb_shard_t * shard);
 static int SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
-        siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
@@ -492,7 +491,6 @@ long int siridb_shard_write_points(
         header_sz = SHARD_write_header(
                 siridb,
                 series,
-                shard,
                 points,
                 start,
                 end,
@@ -504,7 +502,6 @@ long int siridb_shard_write_points(
         header_sz = SHARD_write_header(
                 siridb,
                 series,
-                shard,
                 points,
                 start,
                 end,
@@ -552,7 +549,7 @@ long int siridb_shard_write_points(
     shard->size = pos + (siridb->time->ts_sz + 8) * len;
 
 #ifdef DEBUG
-    assert (shard->size == ftello(fp));
+    assert (shard->size == (size_t) ftello(fp));
 #endif
 
     return pos;
@@ -745,11 +742,11 @@ int siridb_shard_get_points_num64(
  * COPY from siridb_shard_get_points_num32
  */
 int siridb_shard_get_points_log32(
-        siridb_points_t * points,
-        idx_t * idx,
-        uint64_t * start_ts,
-        uint64_t * end_ts,
-        uint8_t has_overlap)
+        siridb_points_t * points __attribute__((unused)),
+        idx_t * idx __attribute__((unused)),
+        uint64_t * start_ts __attribute__((unused)),
+        uint64_t * end_ts __attribute__((unused)),
+        uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
 }
@@ -758,11 +755,11 @@ int siridb_shard_get_points_log32(
  * COPY from siridb_shard_get_points_num32
  */
 int siridb_shard_get_points_log64(
-        siridb_points_t * points,
-        idx_t * idx,
-        uint64_t * start_ts,
-        uint64_t * end_ts,
-        uint8_t has_overlap)
+        siridb_points_t * points __attribute__((unused)),
+        idx_t * idx __attribute__((unused)),
+        uint64_t * start_ts __attribute__((unused)),
+        uint64_t * end_ts __attribute__((unused)),
+        uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
 }
@@ -987,7 +984,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
  *
  * A signal can be raised in case closing the shard file fails.
  */
-inline void siridb__shard_decref(siridb_shard_t * shard)
+void siridb__shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
     {
@@ -1375,8 +1372,8 @@ static int SHARD_load_idx_num(
         FILE * fp,
         int is_num64)
 {
-    const int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
-    const int tv_sz = is_num64 ? 16 : 12;
+    const unsigned int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
+    const unsigned int tv_sz = is_num64 ? 16 : 12;
 
     char idx[idx_sz];
     int len, rc;
@@ -1429,7 +1426,7 @@ static int SHARD_load_idx_num(
  *
  * Returns the length of 'fn' or a negative value in case of an error.
  */
-inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
+static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
@@ -1451,7 +1448,6 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 static int SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
-        siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,

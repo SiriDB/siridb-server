@@ -217,7 +217,7 @@ int siridb_groups_add_group(
     return rc;
 }
 
-inline void siridb_groups_destroy(siridb_groups_t * groups)
+void siridb_groups_destroy(siridb_groups_t * groups)
 {
     groups->status = GROUPS_STOPPING;
 }
@@ -360,7 +360,9 @@ static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
 /*
  * Main thread.
  */
-static int GROUPS_nseries(siridb_group_t * group, void * data)
+static int GROUPS_nseries(
+        siridb_group_t * group,
+        void * data __attribute__((unused)))
 {
     group->n = group->series->len;
     return 0;
@@ -468,7 +470,9 @@ static void GROUPS_loop(uv_work_t * work)
     groups->status = GROUPS_CLOSED;
 }
 
-static void GROUPS_loop_finish(uv_work_t * work, int status)
+static void GROUPS_loop_finish(
+        uv_work_t * work,
+        int status __attribute__((unused)))
 {
     /*
      * Main Thread

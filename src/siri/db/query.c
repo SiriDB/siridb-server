@@ -329,7 +329,6 @@ void siridb_query_forward(
                 {
                     /* if slist is NULL, a signal is raised */
                     siridb_pools_send_pkg_2some(
-                            siridb,
                             borrow_list,
                             pkg,
                             0,
@@ -719,7 +718,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         }
 
         /* check if timestamp is valid */
-        if (!siridb_int64_valid_ts(walker->siridb, node->result))
+        if (!siridb_int64_valid_ts(walker->siridb->time, node->result))
         {
             return EXPR_TIME_OUT_OF_RANGE;
         }
@@ -793,7 +792,7 @@ static int QUERY_time_expr(
                 *size,
                 "%" PRIu64,
                 walker->now);
-        if (n >= *size)
+        if (n >= (ssize_t) *size)
         {
             return EXPR_TOO_LONG;
         }
@@ -821,7 +820,7 @@ static int QUERY_time_expr(
                     "%" PRIu64,
                         siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
-            if (n >= *size)
+            if (n >= (ssize_t) *size)
             {
                 return EXPR_TOO_LONG;
             }
@@ -856,7 +855,7 @@ static int QUERY_time_expr(
                     "%" PRId64,
                     ts * walker->siridb->time->factor);
 
-            if (n >= *size)
+            if (n >= (ssize_t) *size)
             {
                 return EXPR_TOO_LONG;
             }
@@ -978,7 +977,7 @@ static int QUERY_rebuild(
                             *size,
                             "%s ",
                             uuid);
-                    if (n >= *size)
+                    if (n >= (ssize_t) *size)
                     {
                         return QUERY_TOO_LONG;
                     }
@@ -996,7 +995,7 @@ static int QUERY_rebuild(
                         *size,
                         "%" PRId64 " ",
                         node->result);
-                if (n >= *size)
+                if (n >= (ssize_t) *size)
                 {
                     return QUERY_TOO_LONG;
                 }

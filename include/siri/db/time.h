@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <time.h>
 
-struct siridb_s;
+typedef struct siridb_s siridb_t;
 struct timespec;
 
 typedef enum siridb_time_tp
@@ -40,10 +40,14 @@ siridb_time_t * siridb_time_new(siridb_timep_t precision);
 
 const char * siridb_time_short_map[SIRIDB_TIME_END];
 
-int siridb_int64_valid_ts(struct siridb_s * siridb, int64_t ts);
+static inline int siridb_int64_valid_ts(siridb_time_t * time, int64_t ts)
+{
+    return (time->precision == SIRIDB_TIME_SECONDS) ?
+         ts >= 0 && ts < 4294967296 : ts >= 0;
+}
 
-uint32_t siridb_time_in_seconds(struct siridb_s * siridb, int64_t ts);
+uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts);
 
-uint64_t siridb_time_now(struct siridb_s * siridb, struct timespec now);
+uint64_t siridb_time_now(siridb_t * siridb, struct timespec now);
 
 uint64_t siridb_time_parse(const char * str, size_t len);

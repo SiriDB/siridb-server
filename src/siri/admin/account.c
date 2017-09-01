@@ -26,7 +26,7 @@
 static int ACCOUNT_free(siri_admin_account_t * account, void * args);
 static int ACCOUNT_save(siri_admin_account_t * account, qp_fpacker_t * fpacker);
 static void ACCOUNT_msg(char * err_msg, char * fmt, ...);
-inline static int ACCOUNT_cmp(
+static int ACCOUNT_cmp(
         siri_admin_account_t * account,
         qp_obj_t * qp_account);
 
@@ -376,7 +376,9 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
 /*
  * Destroy an account.
  */
-static int ACCOUNT_free(siri_admin_account_t * account, void * args)
+static int ACCOUNT_free(
+        siri_admin_account_t * account,
+        void * args __attribute__((unused)))
 {
     free(account->account);
     free(account->password);
@@ -413,7 +415,7 @@ static void ACCOUNT_msg(char * err_msg, char * fmt, ...)
     va_end(args);
 }
 
-inline static int ACCOUNT_cmp(
+static int ACCOUNT_cmp(
         siri_admin_account_t * account,
         qp_obj_t * qp_account)
 {

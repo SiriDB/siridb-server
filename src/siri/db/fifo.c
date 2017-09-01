@@ -70,7 +70,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     }
 
     fifo->max_id = (fifo->fifos->len) ?
-            ((siridb_ffile_t *) fifo->fifos->last->data)->id : -1;
+            (ssize_t) ((siridb_ffile_t *) fifo->fifos->last->data)->id : -1;
 
     fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, NULL);
     if (fifo->in == NULL)
@@ -309,7 +309,9 @@ size_t siridb_fifo_size(siridb_fifo_t * fifo)
 /*
  * returns 1 and a signal can be set if a file close has failed
  */
-static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
+static int FIFO_walk_free(
+        siridb_ffile_t * ffile,
+        void * args __attribute__((unused)))
 {
     siridb_ffile_free(ffile);
     return 1;

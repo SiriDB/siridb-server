@@ -37,14 +37,6 @@ void siridb_presuf_cleanup(void)
 }
 
 /*
- * A new prefix-suffix object is simple a NULL pointer.
- */
-inline siridb_presuf_t * siridb_presuf_new(void)
-{
-    return NULL;
-}
-
-/*
  * Destroy prefix-suffix object.
  */
 void siridb_presuf_free(siridb_presuf_t * presuf)
@@ -83,9 +75,6 @@ siridb_presuf_t * siridb_presuf_add(
             switch (ps_children->node->cl_obj->gid)
             {
             case CLERI_GID_K_PREFIX:
-#ifdef DEBUG
-                assert (nps->prefix == NULL);
-#endif
                 nps->prefix =
                         (char *) malloc(ps_children->next->node->len + 1);
                 if (nps->prefix != NULL)
@@ -98,9 +87,6 @@ siridb_presuf_t * siridb_presuf_add(
                 }
                 break;
             case CLERI_GID_K_SUFFIX:
-#ifdef DEBUG
-                assert (nps->suffix == NULL);
-#endif
                 nps->suffix =
                         (char *) malloc(ps_children->next->node->len + 1);
                 if (nps->suffix != NULL)

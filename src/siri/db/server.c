@@ -116,16 +116,6 @@ siridb_server_t * siridb_server_new(
 }
 
 /*
- * Returns < 0 if the uuid from server A is less than uuid from server B.
- * Returns > 0 if the uuid from server A is greater than uuid from server B.
- * Returns 0 when uuid server A and B are equal.
- */
-inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
-{
-    return uuid_compare(sa->uuid, sb->uuid);
-}
-
-/*
  * This function can return -1 and raise a SIGNAL which means the 'cb'
  * function will NOT be called. Usually this function should return 0 which
  * means that we try to send the package and the 'cb' function can be checked

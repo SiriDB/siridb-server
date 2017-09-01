@@ -24,6 +24,7 @@
 #include <time.h>
 #include <xpath/xpath.h>
 #include <owcrypt/owcrypt.h>
+#include <siri/db/access.h>
 
 
 #ifndef __APPLE__
@@ -34,7 +35,7 @@
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"
 
-inline static int USERS_cmp(siridb_user_t * user, const char * name);
+static inline int USERS_cmp(siridb_user_t * user, const char * name);
 static int USERS_free(siridb_user_t * user, void * args);
 static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker);
 
@@ -196,7 +197,6 @@ int siridb_users_add_user(
     return 0;
 }
 
-
 /*
  * Returns NULL when the user is not found of when the given password is
  * incorrect. When *password is NULL the password will NOT be checked and
@@ -333,12 +333,14 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     return rc;
 }
 
-inline static int USERS_cmp(siridb_user_t * user, const char * name)
+static inline int USERS_cmp(siridb_user_t * user, const char * name)
 {
     return (strcmp(user->name, name) == 0);
 }
 
-static int USERS_free(siridb_user_t * user, void * args)
+static int USERS_free(
+        siridb_user_t * user,
+        void * args __attribute__((unused)))
 {
     siridb_user_decref(user);
     return 0;

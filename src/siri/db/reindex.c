@@ -51,7 +51,7 @@
 static const long int SIZE2 = 2 * sizeof(uint32_t);
 static const size_t PCKSZ = sizeof(sirinet_pkg_t) + 5;
 
-inline static int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex);
+static inline int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex);
 static int REINDEX_create_cb(siridb_series_t * series, FILE * fp);
 static int REINDEX_unlink(siridb_reindex_t * reindex);
 static int REINDEX_next_series_id(siridb_reindex_t * reindex);
@@ -647,7 +647,7 @@ static int REINDEX_create_cb(siridb_series_t * series, FILE * fp)
  *
  * Returns the length of 'fn' or a negative value in case of an error.
  */
-inline static int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex)
+static inline int REINDEX_fn(siridb_t * siridb, siridb_reindex_t * reindex)
 {
      return asprintf(
              &reindex->fn,

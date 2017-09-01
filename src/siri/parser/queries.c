@@ -87,7 +87,7 @@ query_select_t * query_select_new(void)
         q_select->tp = QUERIES_SELECT;
         q_select->start_ts = NULL;
         q_select->end_ts = NULL;
-        q_select->presuf = siridb_presuf_new();  // NULL
+        q_select->presuf = NULL;
         q_select->merge_as = NULL;
         q_select->n = 0;
         q_select->nselects = 1;  // we have at least one select function

@@ -433,7 +433,7 @@ slist_t * imap_2slist_ref(imap_t * imap)
 void imap_union_ref(
         imap_t * dest,
         imap_t * imap,
-        imap_free_cb decref_cb)
+        imap_free_cb decref_cb __attribute__((unused)))
 {
     if (dest->slist != NULL)
     {

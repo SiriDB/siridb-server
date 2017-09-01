@@ -396,7 +396,9 @@ static void SIRI_try_close(uv_timer_t * handle)
     }
 }
 
-static void SIRI_signal_handler(uv_signal_t * req, int signum)
+static void SIRI_signal_handler(
+        uv_signal_t * req __attribute__((unused)),
+        int signum)
 {
     if (signum == SIGPIPE)
     {
@@ -415,7 +417,7 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
     else
     {
         /* stop optimize task */
-        siri_optimize_stop(&siri);
+        siri_optimize_stop();
 
         /* stop heart-beat task */
         siri_heartbeat_stop(&siri);
@@ -453,7 +455,9 @@ static void SIRI_signal_handler(uv_signal_t * req, int signum)
     }
 }
 
-static void SIRI_walk_close_handlers(uv_handle_t * handle, void * arg)
+static void SIRI_walk_close_handlers(
+        uv_handle_t * handle,
+        void * arg __attribute__((unused)))
 {
     if (uv_is_closing(handle))
     {

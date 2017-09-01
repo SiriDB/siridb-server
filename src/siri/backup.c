@@ -157,7 +157,7 @@ static void BACKUP_cb(uv_timer_t * timer)
     llist_walk((llist_t *) timer->data, (llist_cb) BACKUP_walk, NULL);
 }
 
-static void BACKUP_walk(siridb_t * siridb, void * args)
+static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
 {
     if (    siridb->replicate != NULL &&
             siridb->replicate->status == REPLICATE_PAUSED &&

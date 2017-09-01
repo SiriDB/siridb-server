@@ -2651,7 +2651,7 @@ static void exit_list_groups(uv_async_t * handle)
     if (!is_local)
     {
         is_local = 1;
-        for (int i = 0; i < q_list->props->len; i++)
+        for (size_t i = 0; i < q_list->props->len; i++)
         {
             if (siridb_group_is_remote_prop(
                     *((uint32_t *) q_list->props->data[i])))
@@ -2841,7 +2841,7 @@ static void exit_list_servers(uv_async_t * handle)
     /* if is_local, check if we need ask for 'remote' columns */
     if (is_local && q_list->props != NULL)
     {
-        for (int i = 0; i < q_list->props->len; i++)
+        for (size_t i = 0; i < q_list->props->len; i++)
         {
             if (siridb_server_is_remote_prop(
                     *((uint32_t *) q_list->props->data[i])))
@@ -5691,7 +5691,7 @@ static void finish_count_groups(uv_async_t * handle)
 
     size_t n = (q_count->where_expr == NULL) ?
             siridb->groups->groups->len :
-            ct_values(
+            (size_t) ct_values(
                         siridb->groups->groups,
                         (ct_val_cb) values_count_groups,
                         handle);

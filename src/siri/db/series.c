@@ -1511,7 +1511,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
  */
 static void SERIES_update_start(siridb_series_t *__restrict series)
 {
-    series->start = series->idx_len ? series->idx->start_ts : -1;
+    series->start = series->idx_len ? series->idx->start_ts : UINT64_MAX;
 
     if (series->buffer->len)
     {

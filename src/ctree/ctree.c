@@ -282,7 +282,7 @@ void * ct_pop(ct_t * ct, const char * key)
  *
  * (in case of -1 (allocation error) a SIGNAL is raised)
  */
-inline int ct_items(ct_t * ct, ct_item_cb cb, void * args)
+int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 {
     size_t n = 1;
     int rc = ct_itemsn(ct, &n, cb, args);

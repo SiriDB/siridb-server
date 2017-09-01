@@ -62,12 +62,6 @@ uint64_t siridb_time_parse(const char * str, size_t len)
     return 0;
 }
 
-inline int siridb_int64_valid_ts(siridb_t * siridb, int64_t ts)
-{
-    return (siridb->time->precision == SIRIDB_TIME_SECONDS) ?
-         ts >= 0 && ts < 4294967296 : ts >= 0;
-}
-
 uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts)
 {
     return ts / siridb->time->factor;

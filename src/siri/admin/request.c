@@ -777,7 +777,7 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
  * In case of an error CPROTO_ERR_ADMIN will be returned and err_msg is set
  */
 static cproto_server_t ADMIN_on_get_version(
-        qp_unpacker_t * qp_unpacker,
+        qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
 {
@@ -805,7 +805,7 @@ static cproto_server_t ADMIN_on_get_version(
 }
 
 static cproto_server_t ADMIN_on_get_accounts(
-        qp_unpacker_t * qp_unpacker,
+        qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
 {
@@ -832,7 +832,7 @@ static cproto_server_t ADMIN_on_get_accounts(
 }
 
 static cproto_server_t ADMIN_on_get_databases(
-        qp_unpacker_t * qp_unpacker,
+        qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
 {

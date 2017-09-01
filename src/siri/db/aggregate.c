@@ -961,8 +961,8 @@ static siridb_points_t * AGGREGATE_group_by(
 static int aggr_count(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
-        char * err_msg)
+        siridb_aggr_t * aggr __attribute__((unused)),
+        char * err_msg __attribute__((unused)))
 {
     point->val.int64 = points->len;
     return 0;
@@ -1017,7 +1017,7 @@ static int aggr_derivative(
 static int aggr_difference(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1075,7 +1075,7 @@ static int aggr_difference(
 static int aggr_max(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1119,7 +1119,7 @@ static int aggr_max(
 static int aggr_mean(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1161,7 +1161,7 @@ static int aggr_mean(
 static int aggr_median(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1205,7 +1205,7 @@ static int aggr_median(
 static int aggr_median_high(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1240,7 +1240,7 @@ static int aggr_median_high(
 static int aggr_median_low(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1275,7 +1275,7 @@ static int aggr_median_low(
 static int aggr_min(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1319,7 +1319,7 @@ static int aggr_min(
 static int aggr_pvariance(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1348,7 +1348,7 @@ static int aggr_pvariance(
 static int aggr_sum(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1402,7 +1402,7 @@ static int aggr_sum(
 static int aggr_variance(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG

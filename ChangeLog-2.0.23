@@ -1,1 +1,3 @@
   * Test before defining macro _GNU_SOURCE.
+  
+  * Better use of inline functions and resolved compiler warnings.

@@ -276,7 +276,9 @@ static int test__imap_decref_cb(char * series)
     return 1;
 }
 
-static int test__imap_id_count_cb(char * series, void * data)
+static int test__imap_id_count_cb(
+        char * series,
+        void * data __attribute__((unused)))
 {
     return ((siridb_series_t *) series)->id;
 }
@@ -348,7 +350,7 @@ static int test_imap_union(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_a.id +
             series_b.id +
             series_c.id +
@@ -380,7 +382,7 @@ static int test_imap_intersection(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_b.id +
             series_c.id));
 
@@ -409,7 +411,7 @@ static int test_imap_difference(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == series_a.id);
+                NULL) == (int) series_a.id);
 
     imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
@@ -436,7 +438,7 @@ static int test_imap_symmetric_difference(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_a.id +
             series_d.id +
             series_e.id));
@@ -486,7 +488,7 @@ static int test_points(void)
     for (size_t i = 0; i < points->len; i++)
     {
         point = points->data + i;
-        assert (i == point->val.int64);
+        assert (i == (size_t) point->val.int64);
     }
 
     siridb_points_free(points);
@@ -916,7 +918,7 @@ int test_strx_to_double(void)
     return test_end(TEST_OK);
 }
 
-int run_tests(int flags)
+int run_tests(void)
 {
     timeit_t start;
     timeit_start(&start);

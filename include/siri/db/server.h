@@ -136,7 +136,16 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool);
 
-int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
+/*
+ * Returns < 0 if the uuid from server A is less than uuid from server B.
+ * Returns > 0 if the uuid from server A is greater than uuid from server B.
+ * Returns 0 when uuid server A and B are equal.
+ */
+static inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
+{
+    return uuid_compare(sa->uuid, sb->uuid);
+}
+
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_send_pkg(
         siridb_server_t * server,
