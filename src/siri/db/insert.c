@@ -370,6 +370,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         siridb_t * siridb =
                 ((sirinet_socket_t *) insert->client->data)->siridb;
 
+        int n = 0;
         char msg[MAX_INSERT_MSG];
 
         /* the packer size is big enough to hold MAX_INSERT_MSG + some overhead
@@ -385,7 +386,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 promise = promises->data[i];
                 if (siri_err || promise == NULL)
                 {
-                    snprintf(msg,
+                    n = snprintf(msg,
                             MAX_INSERT_MSG,
                             "Critical error occurred on '%s'",
                             siridb->server->name);
@@ -396,7 +397,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 
                 if (pkg == NULL || pkg->tp != BPROTO_ACK_INSERT)
                 {
-                    snprintf(msg,
+                    n = snprintf(msg,
                             MAX_INSERT_MSG,
                             "Error occurred while sending points to at "
                             "least '%s'",
@@ -419,7 +420,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
             else
             {
                 qp_add_raw(packer, "success_msg", 11);
-                snprintf(msg,
+                n = snprintf(msg,
                         MAX_INSERT_MSG,
                         "Successfully inserted %zd point(s).",
                         insert->npoints);
@@ -427,7 +428,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 siridb->received_points += insert->npoints;
             }
 
-            qp_add_string(packer, msg);
+            qp_add_raw(packer, msg, (n < MAX_INSERT_MSG) ? n : MAX_INSERT_MSG);
 
             sirinet_pkg_t * response_pkg = sirinet_packer2pkg(
                     packer,
