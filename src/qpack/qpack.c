@@ -1378,5 +1378,3 @@ static qp_types_t QP_print_unpacker(
     }
     return qp_next(unpacker, qp_obj);
 }
-
-int qp_is_array(qp_types_t tp);
