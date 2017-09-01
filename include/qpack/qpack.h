@@ -203,9 +203,9 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
 int qp_fadd_double(qp_fpacker_t * fpacker, double real);
 
 /* creates a valid qpack buffer of length 3 holding an int16 type. */
-#define QP_PACK_INT16(buffer, n) \
-char buffer[3];\
-buffer[0] = QP_INT16; \
-memcpy(&buffer[1], &n, 2);
+#define QP_PACK_INT16(BUF__, N__) \
+char BUF__[3];\
+BUF__[0] = QP_INT16; \
+memcpy(&BUF__[1], &N__, 2);
 
 
