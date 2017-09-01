@@ -4013,14 +4013,13 @@ static void exit_timeit_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     struct timespec end;
-
+    char * name =
+            ((sirinet_socket_t *) query->client->data)->siridb->server->name;
     clock_gettime(CLOCK_REALTIME, &end);
 
     qp_add_type(query->timeit, QP_MAP2);
     qp_add_raw(query->timeit, "server", 6);
-    qp_add_string(
-            query->timeit,
-            ((sirinet_socket_t *) query->client->data)->siridb->server->name);
+    qp_add_string(query->timeit, name);
     qp_add_raw(query->timeit, "time", 4);
     qp_add_double(query->timeit,
             (double) (end.tv_sec - query->start.tv_sec) +

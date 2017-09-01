@@ -421,8 +421,8 @@ void siridb_query_timeit_from_unpacker(
 
 static void QUERY_send_invalid_error(uv_async_t * handle)
 {
+    size_t len;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    size_t len = 0;
     int count = 0;
     const char * expect;
     cleri_t * cl_obj;
@@ -480,6 +480,13 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             query->pr->expect = query->pr->expect->next;
             continue;
         }
+
+        /* make sure len is not greater than the maximum size */
+        if (len > SIRIDB_MAX_SIZE_ERR_MSG)
+        {
+            len = SIRIDB_MAX_SIZE_ERR_MSG;
+        }
+
         /* we use count = 0 to print the first one, then for the others
          * a comma prefix and the last with -or-
          */
