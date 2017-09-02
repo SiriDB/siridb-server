@@ -102,7 +102,8 @@ void ct_free(ct_t * ct, ct_free_cb cb)
  *
  * In case of an error, NULL is returned and a SIGNAL is raised.
  *
- * WARN: This function is not protected against empty keys.
+ * WARN: This function is not protected against empty keys so make sure
+ *       a key has at least one 'real' character and a terminator.
  */
 void ** ct_get_sure(ct_t * ct, const char * key)
 {
@@ -116,10 +117,11 @@ void ** ct_get_sure(ct_t * ct, const char * key)
     }
 
     nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
+    key++;
 
     if (*nd != NULL)
     {
-        data = CT_get_sure(*nd, key + 1);
+        data = CT_get_sure(*nd, key);
         if (data != NULL && *data == CT_EMPTY)
         {
             ct->len++;
@@ -127,7 +129,6 @@ void ** ct_get_sure(ct_t * ct, const char * key)
     }
     else
     {
-        key++;
         *nd = CT_node_new(key, strlen(key), CT_EMPTY);
         if (*nd != NULL)
         {
@@ -161,10 +162,11 @@ int ct_add(ct_t * ct, const char * key, void * data)
     }
 
     nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
+    key++;
 
     if (*nd != NULL)
     {
-        rc = CT_add(*nd, key + 1, data);
+        rc = CT_add(*nd, key, data);
         if (rc == CT_OK)
         {
             ct->len++;
@@ -172,7 +174,6 @@ int ct_add(ct_t * ct, const char * key, void * data)
     }
     else
     {
-        key++;
         *nd = CT_node_new(key, strlen(key), data);
         if (*nd == NULL)
         {

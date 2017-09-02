@@ -216,8 +216,15 @@ static int test_ctree(void)
     assert (strcmp(ct_get(ct, "Iris2"), "is gewoon Iris2") == 0);
     assert (ct->len == 1);
 
+    /* This will hit all steps in dec node */
     assert (ct_add(ct, "I", "Een korte naam") == CT_OK);
     assert (ct_add(ct, "t", "Een andere naam") == CT_OK);
+    assert (strcmp(ct_pop(ct, "Iris2"), "is gewoon Iris2") == 0);
+
+    /* This will hit the pop merge...*/
+    assert (ct_add(ct, "Iris", "Hoi Iris") == CT_OK);
+    assert (strcmp(ct_pop(ct, "I"), "Een korte naam") == 0);
+    assert (ct_add(ct, "t", "Iris?") == CT_EXISTS);
 
 
     ct_free(ct, NULL);
