@@ -18,3 +18,5 @@
     
   * Removed unused ct_itemsn() function. Since ct_items() shared logic with
     this function we could also cleanup some code.
+    
+  * Added -Wextra compiler option in all .mk files.
