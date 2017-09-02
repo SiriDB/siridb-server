@@ -283,18 +283,22 @@ static void master_select_work(uv_work_t * handle);
 static void master_select_work_finish(uv_work_t * work, int status);
 static int items_select_master(
         const char * name,
+        size_t len,
         siridb_points_t * points,
         uv_async_t * handle);
 static int items_select_master_merge(
         const char * name,
+        size_t len,
         slist_t * plist,
         uv_async_t * handle);
-int items_select_other(
+static int items_select_other(
         const char * name,
+        size_t len,
         siridb_points_t * points,
         uv_async_t * handle);
-int items_select_other_merge(
+static int items_select_other_merge(
         const char * name,
+        size_t len,
         slist_t * plist,
         uv_async_t * handle);
 static void on_select_unpack_points(
@@ -5327,22 +5331,16 @@ static void master_select_work(uv_work_t * work)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb->selected_points += q_select->n;
 
-    int rc = ct_items(
+    if (ct_items(
             q_select->result,
             (q_select->merge_as == NULL) ?
                     (ct_item_cb) &items_select_master
                     :
                     (ct_item_cb) &items_select_master_merge,
-            handle);
-
-    switch (rc)
+            handle))
     {
-    case -1:
         sprintf(query->err_msg, "Memory allocation error.");
-        /* no break */
-    case 1:
         query->flags |= SIRIDB_QUERY_FLAG_ERR;
-        break;
     }
 }
 
@@ -5381,12 +5379,13 @@ static void master_select_work_finish(uv_work_t * work, int status)
 
 static int items_select_master(
         const char * name,
+        size_t len,
         siridb_points_t * points,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    if (    qp_add_string(query->packer, name) ||
+    if (    qp_add_raw(query->packer, name, len) ||
             siridb_points_pack(points, query->packer))
     {
         sprintf(query->err_msg, "Memory allocation error.");
@@ -5398,6 +5397,7 @@ static int items_select_master(
 
 static int items_select_master_merge(
         const char * name,
+        size_t len,
         slist_t * plist,
         uv_async_t * handle)
 {
@@ -5405,7 +5405,7 @@ static int items_select_master_merge(
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_points_t * points;
 
-    if (qp_add_string(query->packer, name))
+    if (qp_add_raw(query->packer, name, len))
     {
         sprintf(query->err_msg, "Memory allocation error.");
         return -1;
@@ -5475,26 +5475,28 @@ static int items_select_master_merge(
     return 0;
 }
 
-int items_select_other(
+static int items_select_other(
         const char * name,
+        size_t len,
         siridb_points_t * points,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    return (qp_add_string_term(query->packer, name) ||
+    return (qp_add_raw_term(query->packer, name, len) ||
             siridb_points_raw_pack(points, query->packer));
 }
 
-int items_select_other_merge(
+static int items_select_other_merge(
         const char * name,
+        size_t len,
         slist_t * plist,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     int rc;
 
-    rc = qp_add_string_term(query->packer, name);
+    rc = qp_add_raw_term(query->packer, name, len);
 
     rc += qp_add_type(query->packer, QP_ARRAY_OPEN);
 
@@ -5521,9 +5523,7 @@ static void on_select_unpack_points(
 
     while ( q_select->n <= select_points_limit &&
             qp_is_raw(qp_next(unpacker, qp_name)) &&
-#ifdef DEBUG
             qp_is_raw_term(qp_name) &&
-#endif
             qp_is_array(qp_next(unpacker, NULL)) &&
             qp_is_int(qp_next(unpacker, qp_tp)) &&
             qp_is_int(qp_next(unpacker, qp_len)) &&
@@ -5533,10 +5533,6 @@ static void on_select_unpack_points(
 
         if (points != NULL)
         {
-#ifdef DEBUG
-            assert (qp_len->via.int64 * sizeof(siridb_point_t) ==
-                    qp_points->len);
-#endif
             points->len = qp_len->via.int64;
 
             memcpy(points->data, qp_points->via.raw, qp_points->len);

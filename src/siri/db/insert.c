@@ -504,6 +504,7 @@ static int8_t INSERT_local_work(
      */
     while ( !siri_err &&
             qp_is_raw_term(qp_series_name) &&
+            qp_series_name->via.raw[0] != '\0' &&
             (n -= WEIGHT_SERIES) > 0)
     {
         series = (siridb_series_t **) ct_get_sure(

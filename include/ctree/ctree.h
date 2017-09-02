@@ -35,7 +35,7 @@ typedef struct ct_node_s
     uint8_t n;
     uint8_t size;
     uint8_t pad0;
-    uint32_t pad1;
+    uint32_t len;
     ct_nodes_t * nodes;
     char * key;
     void * data;
@@ -50,7 +50,11 @@ typedef struct ct_s
     ct_nodes_t * nodes;
 } ct_t;
 
-typedef int (*ct_item_cb)(const char * key, void * data, void * args);
+typedef int (*ct_item_cb)(
+        const char * key,
+        size_t len,
+        void * data,
+        void * args);
 typedef int (*ct_val_cb)(void * data, void * args);
 typedef void (*ct_free_cb)(void * data);
 
