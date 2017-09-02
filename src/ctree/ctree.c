@@ -284,10 +284,10 @@ void * ct_pop(ct_t * ct, const char * key)
  * Looping stops on the first call-back returning a non-zero value.
  *
  * Returns 0 when the call-back is called on all items, -1 in case of
- * an allocation error or when looping did not finish because of a non
+ * an allocation error or 1 when looping did not finish because of a non
  * zero return value.
  *
- * (in case of -1 a SIGNAL mighte be raised)
+ * (in case of -1 a SIGNAL is raised)
  */
 int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 {
@@ -357,10 +357,10 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
 /*
  * Loop over all items in the tree and perform the call-back on each item.
  * Walking stops either when the call-back is called on each item or
- * when 'pn' is zero. 'pn' will be decremented by one on each successful
- * call-back.
+ * when a callback return a non zero value.
  *
- * Returns 0 when successful or -1 and a SIGNAL is raised in case of an error.
+ * Returns 0 when successful or -1 and a SIGNAL is raised in case of an error
+ * or 1 if looping has stopped because a failed callback.
  */
 static int CT_items(
         ct_node_t * node,
@@ -388,12 +388,13 @@ static int CT_items(
 
     if (node->data != NULL && (*cb)(*buffer, len, node->data, args))
     {
-        return -1;
+        return 1;
     }
 
     if (node->nodes != NULL)
     {
         ct_node_t * nd;
+        int rc;
 
         for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
@@ -402,9 +403,10 @@ static int CT_items(
                 continue;
             }
             *(*buffer + len) = (char) (i + node->offset * BLOCKSZ);
-            if (CT_items(nd, len + 1, buffer_sz, buffer, cb, args))
+            rc = CT_items(nd, len + 1, buffer_sz, buffer, cb, args);
+            if (rc)
             {
-                return -1;
+                return rc;
             }
         }
     }

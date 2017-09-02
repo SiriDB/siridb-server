@@ -5330,16 +5330,20 @@ static void master_select_work(uv_work_t * work)
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb->selected_points += q_select->n;
-
-    if (ct_items(
+    int rc = ct_items(
             q_select->result,
             (q_select->merge_as == NULL) ?
                     (ct_item_cb) &items_select_master
                     :
                     (ct_item_cb) &items_select_master_merge,
-            handle))
+            handle);
+
+    switch (rc)
     {
+    case -1:
         sprintf(query->err_msg, "Memory allocation error.");
+        /* no break */
+    case 1:
         query->flags |= SIRIDB_QUERY_FLAG_ERR;
     }
 }
