@@ -11,12 +11,12 @@
     The key is no longer terminated so the length must be used.
     
   * Updated the node object for ctree with the key length so we can skip a
-    few strlen() calls when doing a loopup.
+    few strlen() calls when doing a lookup.
     
-  * We do not save the terminator charater on ctree nodes anymore. All get and 
+  * We do not save the terminator character on ctree nodes anymore. All get and
     set functions are updated to work without the string termination.
     
   * Removed unused ct_itemsn() function. Since ct_items() shared logic with
-    this function we could also cleanup some code.
+    this function we could also clean some additional code.
     
   * Added -Wextra compiler option in all .mk files.
