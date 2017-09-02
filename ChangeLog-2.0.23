@@ -7,8 +7,14 @@
   * Change return value for siridb_shard_status() from void to int containing
     the number of characters written.
     
-  * Updated ct_items() and ct_itemsn() callback function and added the length
-    of the key. The key is no longer terminated so the length must be used.
+  * Updated ct_items() callback function and added the length of the key. 
+    The key is no longer terminated so the length must be used.
     
   * Updated the node object for ctree with the key length so we can skip a
-    few strlen() calls when doing a loopup. 
+    few strlen() calls when doing a loopup.
+    
+  * We do not save the terminator charater on ctree nodes anymore. All get and 
+    set functions are updated to work without the string termination.
+    
+  * Removed unused ct_itemsn() function. Since ct_items() shared logic with
+    this function we could also cleanup some code.

@@ -1018,7 +1018,7 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
         node->offset = 255;
         node->n = 0;
         node->nodes = NULL;
-        if (node->len)
+        if (len)
         {
             if ((node->key = (char *) malloc(len)) == NULL)
             {
