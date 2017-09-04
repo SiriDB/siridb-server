@@ -226,6 +226,14 @@ static int test_ctree(void)
     assert (strcmp(ct_pop(ct, "I"), "Een korte naam") == 0);
     assert (ct_add(ct, "t", "Iris?") == CT_EXISTS);
 
+    /* Makes sure all possible return values for CT_add are hit */
+    assert (ct_add(ct, "IrIs", "Hoi IrIs") == CT_OK);
+    assert (ct_add(ct, "Ir", "Hoi Ir") == CT_OK);
+
+    /* Hits a recursive CT_add */
+    assert (ct_add(ct, "Iri!!", "Hoi Ir!") == CT_OK);
+
+
     ct_free(ct, NULL);
 
     return test_end(TEST_OK);
