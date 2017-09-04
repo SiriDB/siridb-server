@@ -205,7 +205,7 @@ static int test_ctree(void)
     // get_sure with new key should create a CT_EMPTY
     assert (ct_is_empty(*ct_get_sure(ct, "Sasha")));
 
-    // len should be 2 by now
+    // len should be 4 by now
     assert (ct->len == 4);
     assert (ct_get(ct, "Dummy") == NULL);
     assert (strcmp(ct_getn(ct, "Iris1!", 5), "is gewoon Iris1") == 0);
@@ -225,7 +225,6 @@ static int test_ctree(void)
     assert (ct_add(ct, "Iris", "Hoi Iris") == CT_OK);
     assert (strcmp(ct_pop(ct, "I"), "Een korte naam") == 0);
     assert (ct_add(ct, "t", "Iris?") == CT_EXISTS);
-
 
     ct_free(ct, NULL);
 

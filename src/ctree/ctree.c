@@ -577,7 +577,7 @@ static int CT_add(
         }
     }
 
-    if  (*key)
+    if (*key)
     {
         uint8_t k = (uint8_t) *key;
 
