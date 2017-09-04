@@ -1009,29 +1009,28 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
     if (node == NULL)
     {
         ERR_ALLOC
+        return NULL;
+    }
+    node->len = len;
+    node->data = data;
+    node->size = 0;
+    node->offset = 255;
+    node->n = 0;
+    node->nodes = NULL;
+    if (len)
+    {
+        node->key = (char *) malloc(len);
+        if (node->key == NULL)
+        {
+            ERR_ALLOC
+            free(node);
+            return NULL;
+        }
+        memcpy(node->key, key, len);
     }
     else
     {
-        node->len = len;
-        node->data = data;
-        node->size = 0;
-        node->offset = 255;
-        node->n = 0;
-        node->nodes = NULL;
-        if (len)
-        {
-            if ((node->key = (char *) malloc(len)) == NULL)
-            {
-                ERR_ALLOC
-                free(node);
-                node = NULL;
-            }
-            memcpy(node->key, key, len);
-        }
-        else
-        {
-            node->key = NULL;
-        }
+        node->key = NULL;
     }
     return node;
 }

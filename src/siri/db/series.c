@@ -1552,6 +1552,7 @@ static void SERIES_update_end(siridb_series_t *__restrict series)
     {
         series->end = 0;
     }
+
     if (series->buffer->len)
     {
         siridb_point_t * point = series->buffer->data +
