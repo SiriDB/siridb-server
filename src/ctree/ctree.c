@@ -494,7 +494,7 @@ static int CT_add(
         char * pt = node->key + n;
         if (*key != *pt)
         {
-            char * tmp;
+            size_t new_sz;
             uint8_t k = (uint8_t) *pt;
 
             /* create new nodes */
@@ -557,10 +557,20 @@ static int CT_add(
             /* write terminator */
             *pt = 0;
 
-            /* re-allocate the key to free some space, may return NULL */
-            size_t new_sz = pt - node->key;
-            tmp = (char *) realloc(node->key, new_sz);
-            node->key = tmp;
+            /* re-allocate the key to free some space */
+            if ((new_sz = pt - node->key))
+            {
+                char * tmp = (char *) realloc(node->key, new_sz);
+                if (tmp != NULL)
+                {
+                    node->key = tmp;
+                }
+            }
+            else
+            {
+                free(node->key);
+                node->key = NULL;
+            }
             node->len = new_sz;
 
             return CT_OK;
@@ -734,7 +744,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
         char * pt = node->key + n;
         if (*key != *pt)
         {
-            char * tmp;
+            size_t new_sz;
             uint8_t k = (uint8_t) *pt;
 
             /* create new nodes */
@@ -774,10 +784,20 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
                 return NULL;  /* signal is raised */
             }
 
-            /* re-allocate the key to free some space, may return NULL */
-            size_t new_sz = pt - node->key;
-            tmp = (char *) realloc(node->key, new_sz);
-            node->key = tmp;
+            /* re-allocate the key to free some space */
+            if ((new_sz = pt - node->key))
+            {
+                char * tmp = (char *) realloc(node->key, new_sz);
+                if (tmp != NULL)
+                {
+                    node->key = tmp;
+                }
+            }
+            else
+            {
+                free(node->key);
+                node->key = NULL;
+            }
             node->len = new_sz;
 
             if (!*key)
