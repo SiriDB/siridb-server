@@ -15,6 +15,7 @@
 #include <qpack/qpack.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -54,20 +55,20 @@ if (packer->len + LEN > packer->buffer_size)                            \
     {                                                       \
         packer->buffer[packer->len++] = 128 + len;          \
     }                                                       \
-    else if (len < 256)                                     \
+    else if (len <= UINT8_MAX)                              \
     {                                                       \
         uint8_t length = (uint8_t) len;                     \
         packer->buffer[packer->len++] = QP_RAW8;            \
         packer->buffer[packer->len++] = length;             \
     }                                                       \
-    else if (len < 65536)                                   \
+    else if (len <= UINT16_MAX)                             \
     {                                                       \
         uint16_t length = (uint16_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW16;           \
         memcpy(packer->buffer + packer->len, &length, 2);   \
         packer->len += 2;                                   \
     }                                                       \
-    else if (len < 4294967296)                              \
+    else if (len <= UINT32_MAX)                             \
     {                                                       \
         uint32_t length = (uint32_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW32;           \
@@ -618,7 +619,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 256)
+    else if (len <= UINT8_MAX)
     {
         if (    fputc(QP_RAW8, fpacker) == EOF ||
                 fputc(len, fpacker) == EOF)
@@ -626,7 +627,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 65536)
+    else if (len <= UINT16_MAX)
     {
         if (    fputc(QP_RAW16, fpacker) == EOF ||
                 fwrite(&len, sizeof(uint16_t), 1, fpacker) != 1)
@@ -634,7 +635,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 4294967296)
+    else if (len <= UINT32_MAX)
     {
         if (    fputc(QP_RAW32, fpacker) == EOF ||
                 fwrite(&len, sizeof(uint32_t), 1, fpacker) != 1)

@@ -41,7 +41,7 @@
 #include <siri/db/server.h>
 #include <siri/db/access.h>
 
-const long int WARNING_PKG_SIZE = RESET_BUF_SIZE;
+const unsigned long int WARNING_PKG_SIZE = RESET_BUF_SIZE;
 
 /*
  * note: this size is chosen to be 65535 but is not restricted to 16bit and
