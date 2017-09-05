@@ -5338,6 +5338,9 @@ static void master_select_work(uv_work_t * work)
                     (ct_item_cb) &items_select_master_merge,
             handle);
 
+    /* Do not set an error message when rc==1 since in that case the message
+     * is already set.
+     */
     switch (rc)
     {
     case -1:
@@ -5352,8 +5355,7 @@ static void master_select_work_finish(uv_work_t * work, int status)
 {
     if (status)
     {
-        log_error("Select work failed (error: %s)",
-                uv_strerror(status));
+        log_error("Select work failed (error: %s)", uv_strerror(status));
     }
     else if (!siri_err)
     {
