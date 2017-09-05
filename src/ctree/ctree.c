@@ -1057,9 +1057,6 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
  */
 static int CT_node_resize(ct_node_t * node, uint8_t pos)
 {
-#ifdef DEBUG
-    assert (pos < 8);
-#endif
     int rc = 0;
 
     if (node->nodes == NULL)
@@ -1106,13 +1103,10 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
         ct_nodes_t * tmp;
         uint8_t diff = pos - node->offset - node->n + 1;
         uint8_t oldn = node->n;
-        node->n += diff;
+        node->n += diff;  // assert node->n > 0
         tmp = (ct_nodes_t *) realloc(
                 node->nodes,
                 node->n * sizeof(ct_nodes_t));
-#ifdef DEBUG
-        assert (node->n);
-#endif
         if (tmp == NULL)
         {
             ERR_ALLOC
