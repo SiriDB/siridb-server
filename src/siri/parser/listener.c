@@ -5430,9 +5430,7 @@ static int items_select_master_merge(
         points = slist_pop(plist);
         break;
     default:
-        points = siridb_points_merge(
-                                plist,
-                                query->err_msg);
+        points = siridb_points_merge(plist, query->err_msg);
         break;
     }
 
