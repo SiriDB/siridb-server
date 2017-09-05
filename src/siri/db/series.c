@@ -22,6 +22,9 @@
  *          since they only run when no other references to the object exist.
  */
 #include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
@@ -30,8 +33,6 @@
 #include <siri/db/shards.h>
 #include <siri/err.h>
 #include <siri/siri.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <xpath/xpath.h>
 

@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <inttypes.h>
 #include <assert.h>
 #include <logger/logger.h>
@@ -70,7 +71,7 @@ ct_t * ct_new(void)
     {
         ct->len = 0;
         ct->nodes = NULL;
-        ct->offset = 255;
+        ct->offset = UINT8_MAX;
         ct->n = 0;
     }
     return ct;
@@ -554,9 +555,6 @@ static int CT_add(
                 (*node->nodes)[k - node->offset * BLOCKSZ] = nd;
             }
 
-            /* write terminator */
-            *pt = 0;
-
             /* re-allocate the key to free some space */
             if ((new_sz = pt - node->key))
             {
@@ -773,9 +771,6 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
             node->nodes = new_nodes;
             node->offset = k / BLOCKSZ;
             node->n = 1;
-
-            /* write terminator */
-            *pt = 0;
 
             k = (uint8_t) *key;
 
@@ -1034,7 +1029,7 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
     node->len = len;
     node->data = data;
     node->size = 0;
-    node->offset = 255;
+    node->offset = UINT8_MAX;
     node->n = 0;
     node->nodes = NULL;
     if (len)
