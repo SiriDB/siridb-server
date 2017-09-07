@@ -60,7 +60,7 @@ typedef struct siridb_query_s
     uint8_t ref;
     uint8_t flags;
     uint16_t pid;
-    siridb_timep_t time_precision;
+    float factor;
     void * data;
     uv_stream_t * client;
     char * q;
@@ -77,7 +77,7 @@ void siridb_query_run(
         uv_stream_t * client,
         const char * q,
         size_t q_len,
-        siridb_timep_t time_precision,
+        float factor,
         int flags);
 void siridb_query_free(uv_handle_t * handle);
 void siridb_send_query_result(uv_async_t * handle);

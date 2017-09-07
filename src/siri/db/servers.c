@@ -413,7 +413,7 @@ siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid)
 
     while (node != NULL)
     {
-        server = node->data;
+        server = (siridb_server_t *) node->data;
         if (uuid_compare(server->uuid, uuid) == 0)
         {
             return server;
@@ -430,8 +430,27 @@ siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name)
 
     while (node != NULL)
     {
-        server = node->data;
+        server = (siridb_server_t *) node->data;
         if (strcmp(server->name, name) == 0)
+        {
+            return server;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+siridb_server_t * siridb_servers_by_replica(
+        llist_t * servers,
+        siridb_server_t * replica)
+{
+
+    llist_node_t * node = servers->first;
+    siridb_server_t * server;
+    while (node != NULL)
+    {
+        server = (siridb_server_t *) node->data;
+        if (server != replica && server->pool == replica->pool)
         {
             return server;
         }
@@ -467,7 +486,7 @@ void siridb_servers_send_flags(llist_t * servers)
 
 /*
  * Returns 1 (true) if all servers are online, 0 (false)
- * if at least one server is online. ('this' server is NOT included)
+ * if at least one server is not online. ('this' server is NOT included)
  *
  * Server is 'online' when at least running and authenticated but not
  * queue-full
@@ -489,7 +508,7 @@ int siridb_servers_online(siridb_t * siridb)
 
 /*
  * Returns 1 (true) if all servers are available, 0 (false)
- * if at least one server is unavailable. ('this' server is NOT included)
+ * if at least one server is not available. ('this' server is NOT included)
  *
  * A server is  'available' when and ONLY when connected and authenticated.
  */

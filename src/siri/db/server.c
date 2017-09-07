@@ -811,6 +811,9 @@ char * siridb_server_str_status(siridb_server_t * server)
             case SERVER_FLAG_QUEUE_FULL:
                 strcat(buffer, (!n) ? "queue-full" : " | " "queue-full");
                 break;
+            case SERVER_FLAG_UNAVAILABLE:
+                strcat(buffer, (!n) ? "unavailable" : " | " "unavailable");
+                break;
             }
             n = 1;
         }
@@ -1293,6 +1296,28 @@ static void SERVER_on_flags_update_response(
                 "Error while sending flags update to '%s' (%s)",
                 promise->server->name,
                 sirinet_promise_strstatus(status));
+
+        if (promise->server->socket != NULL)
+        {
+            sirinet_socket_t * ssocket =
+                    (sirinet_socket_t *) promise->server->socket->data;
+            siridb_server_t * replica = siridb_servers_by_replica(
+                    ssocket->siridb->servers,
+                    promise->server);
+            if (replica != NULL && (
+                    replica == ssocket->siridb->server ||
+                    siridb_server_is_accessible(replica)))
+            {
+                /* we only set the status unavailable if we have an accessible
+                 * replica or when we are the replica
+                 */
+                log_warning(
+                        "Set status for server '%s' to unavailable. "
+                        "(unavailable status will be removed after a new status "
+                        "is received)", promise->server->name);
+                promise->server->flags |= SERVER_FLAG_UNAVAILABLE;
+            }
+        }
     }
     else if (pkg->tp == BPROTO_ACK_FLAGS)
     {

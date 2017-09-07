@@ -15,7 +15,7 @@
 #endif
 #include <assert.h>
 #include <lock/lock.h>
-#include <lock/lock.h>
+#include <math.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/siri.h>
@@ -403,6 +403,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_unpacker_t unpacker;
     qp_obj_t qp_query;
     qp_obj_t qp_time_precision;
+    float factor;
     siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
 
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
@@ -418,13 +419,15 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
         {
             tp %= SIRIDB_TIME_END;
         }
+        factor = (tp == SIRIDB_TIME_DEFAULT) ? 0.0 :
+                pow(1000.0, tp - ssocket->siridb->time->precision);
 
         siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query.via.raw,
                 qp_query.len,
-                tp,
+                factor,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
     else

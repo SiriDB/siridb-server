@@ -13,7 +13,6 @@
 #include <cexpr/cexpr.h>
 #include <inttypes.h>
 #include <logger/logger.h>
-#include <math.h>
 #include <qpack/qpack.h>
 #include <siri/async.h>
 #include <siri/db/aggregate.h>
@@ -1555,7 +1554,6 @@ static void exit_between_expr(uv_async_t * handle)
 static void exit_calc_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     cleri_node_t * calc_node = query->nodes->node;
 
 #ifdef DEBUG
@@ -1572,14 +1570,13 @@ static void exit_calc_stmt(uv_async_t * handle)
     qp_add_type(query->packer, QP_MAP_OPEN);
     qp_add_raw(query->packer, "calc", 4);
 
-    if (query->time_precision == SIRIDB_TIME_DEFAULT)
+    if (!query->factor)
     {
         qp_add_int64(query->packer, calc_node->result);
     }
     else
     {
-        double factor =
-                pow(1000.0, query->time_precision - siridb->time->precision);
+        double factor = (double) query->factor;
         qp_add_int64(query->packer, (int64_t) (calc_node->result * factor));
     }
 
@@ -1641,7 +1638,7 @@ static void exit_count_pools(uv_async_t * handle)
     }
     else
     {
-        MASTER_CHECK_ONLINE(siridb)
+        MASTER_CHECK_ACCESSIBLE(siridb)
 
         q_count->n = cexpr_run(
                 q_count->where_expr,
@@ -1734,7 +1731,7 @@ static void exit_count_series_length(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    MASTER_CHECK_ONLINE(siridb)
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     qp_add_raw(query->packer, "series_length", 13);
 
@@ -5391,6 +5388,11 @@ static int items_select_master(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
+    if (query->factor)
+    {
+        siridb_points_ts_correction(points, (double) query->factor);
+    }
+
     if (    qp_add_raw(query->packer, name, len) ||
             siridb_points_pack(points, query->packer))
     {
@@ -5465,6 +5467,11 @@ static int items_select_master_merge(
          * is still not NULL. (error message is set)
          */
         return -1;
+    }
+
+    if (query->factor)
+    {
+        siridb_points_ts_correction(points, (double) query->factor);
     }
 
     if (siridb_points_pack(points, query->packer))

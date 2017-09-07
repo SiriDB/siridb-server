@@ -32,15 +32,14 @@
 #include <sys/time.h>
 #include <siri/err.h>
 
-#ifndef DEBUG
-#include <math.h>
-#else
+#ifdef DEBUG
 #include <motd/motd.h>
 #endif
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
+#define SIRIDB_FWD_SERVERS_TIMEOUT 5000  // 5 seconds
 
 static void QUERY_send_invalid_error(uv_async_t * handle);
 static void QUERY_parse(uv_async_t * handle);
@@ -68,7 +67,7 @@ void siridb_query_run(
         uv_stream_t * client,
         const char * q,
         size_t q_len,
-        siridb_timep_t time_precision,
+        float factor,
         int flags)
 {
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
@@ -109,8 +108,8 @@ void siridb_query_run(
     query->client = client;
     query->flags = flags;
 
-    /* bind time precision (this can never be equal to the SiriDB precision) */
-    query->time_precision = time_precision;
+    /* bind time precision factor */
+    query->factor = factor;
 
     /* set the default callback, this might change when custom
      * data is linked to the query handle
@@ -265,12 +264,10 @@ void siridb_query_forward(
         return;
     }
 
-    qp_add_type(packer, QP_ARRAY2);
+    qp_add_type(packer, QP_ARRAY1);
 
     /* add the query to the packer */
     QUERY_to_packer(packer, query);
-
-    qp_add_int8(packer, query->time_precision);
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, packer->len, 0, packer->buffer);
 
@@ -290,7 +287,7 @@ void siridb_query_forward(
                     siridb_servers_send_pkg(
                             servers,
                             pkg,
-                            0,
+                            SIRIDB_FWD_SERVERS_TIMEOUT,
                             cb,
                             handle);
                     slist_free(servers);
@@ -531,14 +528,13 @@ static void QUERY_send_no_query(uv_async_t * handle)
     qp_add_raw(query->packer, "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
 
-    if (query->time_precision == SIRIDB_TIME_DEFAULT)
+    if (!query->factor)
     {
         qp_add_int64(query->packer, (int64_t) ts);
     }
     else
     {
-        double factor =
-                pow(1000.0, query->time_precision - siridb->time->precision);
+        double factor = (double) query->factor;
         qp_add_int64(query->packer, (int64_t) (ts * factor));
     }
 

@@ -444,7 +444,6 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     qp_obj_t qp_query;
-    qp_obj_t qp_time_precision;
 
     if (flags & SIRIDB_QUERY_FLAG_UPDATE_REPLICA)
     {
@@ -457,15 +456,14 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     }
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
-            qp_next(&unpacker, &qp_query) == QP_RAW &&
-            qp_next(&unpacker, &qp_time_precision) == QP_INT64)
+            qp_next(&unpacker, &qp_query) == QP_RAW)
     {
         siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query.via.raw,
                 qp_query.len,
-                (siridb_timep_t) qp_time_precision.via.int64,
+                0.0,
                 0);
     }
     else

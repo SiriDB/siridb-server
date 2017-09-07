@@ -133,8 +133,7 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
     qp_add_type(packer, QP_ARRAY_OPEN);
     if (points->len)
     {
-        siridb_point_t * point;
-        point = points->data;
+        siridb_point_t * point = points->data;
         switch (points->tp)
         {
         case TP_INT:
@@ -162,6 +161,15 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
     qp_add_type(packer, QP_ARRAY_CLOSE);
 
     return siri_err;
+}
+
+void siridb_points_ts_correction(siridb_points_t * points, double factor)
+{
+    siridb_point_t * point = points->data;
+    for (size_t i = 0; i < points->len; i++, point++)
+    {
+        point->ts *= factor;
+    }
 }
 
 /*

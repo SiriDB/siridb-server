@@ -1,0 +1,9 @@
+  * Implemented time-precision for select statements.
+  
+  * When queue-full status is set, leave it set even when a new status update 
+    is received.
+    
+  * Mark a server as unavailable when a time-out on a flags package is
+    received. The unavailable status prevents sending select queries and
+    insert new data to this server.
+  
