@@ -33,6 +33,7 @@ static siri_optimize_t optimize = {
 };
 
 static void OPTIMIZE_work(uv_work_t * work);
+static void OPTIMIZE_cleanup(slist_t * slsiridb);
 static void OPTIMIZE_work_finish(uv_work_t * work, int status);
 static void OPTIMIZE_cb(uv_timer_t * handle);
 
@@ -296,7 +297,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
     if (siri_err)
     {
-        /* signal is set when slsiridb is NULL */
+        OPTIMIZE_cleanup(slsiridb);
         return;
     }
 
@@ -316,6 +317,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         if (slshards == NULL)
         {
+            OPTIMIZE_cleanup(slsiridb);
             return;  /* signal is raised */
         }
 
@@ -383,14 +385,22 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         log_debug("Finished optimizing database '%s'", siridb->dbname);
 #endif
     }
+    OPTIMIZE_cleanup(slsiridb);
+}
 
-    for (size_t i = 0; i < slsiridb->len; i++)
+static void OPTIMIZE_cleanup(slist_t * slsiridb)
+{
+    if (slsiridb != NULL)
     {
-        siridb = (siridb_t *) slsiridb->data[i];
-        siridb_decref(siridb);
-    }
+        siridb_t * siridb;
+        for (size_t i = 0; i < slsiridb->len; i++)
+        {
+            siridb = (siridb_t *) slsiridb->data[i];
+            siridb_decref(siridb);
+        }
 
-    slist_free(slsiridb);
+        slist_free(slsiridb);
+    }
 }
 
 static void OPTIMIZE_work_finish(
@@ -414,6 +424,7 @@ static void OPTIMIZE_work_finish(
         optimize.status = SIRI_OPTIMIZE_PENDING;
     }
 }
+
 
 /*
  * Start the optimize task. (will start a new thread performing the work)

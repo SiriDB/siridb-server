@@ -76,10 +76,9 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
         server_node = siridb->servers->first;
         while (server_node != NULL)
         {
-            server = server_node->data;
+            server = (siridb_server_t *) server_node->data;
 
-            if (    server != siridb->server &&
-                    server->socket == NULL)
+            if (server != siridb->server && server->socket == NULL)
             {
                 siridb_server_connect(siridb, server);
             }
