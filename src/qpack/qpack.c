@@ -86,8 +86,8 @@ if (packer->len + LEN > packer->buffer_size)                            \
 {                                                           \
     QP_UNPACK_CHECK_SZ(sizeof(uintx_t))                     \
     size_t sz = (size_t) *((uintx_t *) unpacker->pt);       \
-    QP_UNPACK_CHECK_SZ(sz)                                  \
     unpacker->pt += sizeof(uintx_t);                        \
+    QP_UNPACK_CHECK_SZ(sz)                                  \
     if (qp_obj != NULL)                                     \
     {                                                       \
         qp_obj->tp = QP_RAW;                                \

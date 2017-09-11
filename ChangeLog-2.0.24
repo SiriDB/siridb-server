@@ -8,3 +8,5 @@
     insert new data to this server.
   
   * Cleanup optimize task in case a memory allocation error has occurred.
+  
+  * Fixed QPack length check for strings.
