@@ -49,7 +49,7 @@ static int64_t expr_factor(const char ** expression)
     else if (**expression == '(')
     {
         (*expression)++; // '('
-        int result = expr_expression(expression);
+        int64_t result = expr_expression(expression);
         (*expression)++; // ')'
         return result;
     }
