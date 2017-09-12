@@ -14,4 +14,4 @@
   
   * Fixed QPack length check for strings. Corrupt or invalid qpack data can
     contain a string length which is not actually available within the data.
-    This fix corrects the check for such string.
+    This fix corrects the check for such invalid string length.
