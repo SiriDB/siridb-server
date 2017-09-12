@@ -6,10 +6,12 @@
     
   * Mark a server as unavailable when a time-out on a flags package is
     received. The unavailable status prevents sending select queries and
-    insert new data to this server. This status flag is never applied in case
-    this is the only server in a pool and will be removed when a new status
-    update from the target server is received.
+    insert new data to this server. This status flag will never be applied to
+    the 'last' server in a pool and will be removed when a new status update 
+    from the flagged server is received.
   
   * Cleanup optimize task in case a memory allocation error has occurred.
   
-  * Fixed QPack length check for strings.
+  * Fixed QPack length check for strings. Corrupt or invalid qpack data can
+    contain a string length which is not actually available within the data.
+    This fix corrects the check for such string.
