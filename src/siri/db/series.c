@@ -273,7 +273,6 @@ siridb_series_t * siridb_series_new(
     assert (tp != TP_STRING);
 #endif
     siridb_series_t * series;
-    size_t len = strlen(series_name);
 
     siridb->max_series_id++;
     series = SERIES_new(
@@ -286,12 +285,11 @@ siridb_series_t * siridb_series_new(
     if (series != NULL)
     {
         /* add series to the store */
-        if (
-                qp_fadd_type(siridb->store, QP_ARRAY3) ||
-                qp_fadd_raw(siridb->store, series_name, len + 1) ||
-                qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-                qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
-                qp_flush(siridb->store))
+        if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
+            qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
+            qp_fadd_int32(siridb->store, (int32_t) series->id) ||
+            qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+            qp_flush(siridb->store))
         {
             ERR_FILE
             log_critical("Cannot write series '%s' to store.", series_name);
