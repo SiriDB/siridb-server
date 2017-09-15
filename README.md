@@ -80,7 +80,13 @@ An example configuration file can be found here:
 SiriDB has several tools available to connect to a SiriDB database. 
 
 ### SiriDB Connectors
-Native connectors are available for [C](https://github.com/transceptor-technology/libsiridb#readme), [Python](https://github.com/transceptor-technology/siridb-connector#readme) and [Go](https://github.com/transceptor-technology/go-siridb-connector#readme). When not using C, Python or Go you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
+The following native connectors are available:
+ - [C/C++](https://github.com/transceptor-technology/libsiridb#readme)
+ - [Python](https://github.com/transceptor-technology/siridb-connector#readme)
+ - [Go](https://github.com/transceptor-technology/go-siridb-connector#readme)
+ - [Node.js](https://github.com/transceptor-technology/siridb-nodejs-addon#readme)
+ 
+When not using one of the above, you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
 [SiriDB HTTP](https://github.com/transceptor-technology/siridb-http#readme) provides a HTTP API for SiriDB and has support for JSON, MsgPack, Qpack, CSV and Socket.io. SiriDB HTTP also has an optional web interface and SSL support.
