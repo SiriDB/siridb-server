@@ -303,7 +303,7 @@ int ct_items(ct_t * ct, ct_item_cb cb, void * args)
         ERR_ALLOC
         return -1;
     }
-    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
+    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; !rc && i < end; i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {

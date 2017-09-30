@@ -1,1 +1,3 @@
-  * Removed obsolete strlen() call when creating a new series. 
+  * Removed obsolete strlen() call when creating a new series.
+
+  * Fixed bug in ctree when looping over items.
