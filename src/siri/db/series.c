@@ -1366,10 +1366,11 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
             if (series != NULL)
             {
                 /* add series to c-tree */
-                ct_add(siridb->series, series->name, series);
-
-                /* add series to imap32 */
-                imap_set(siridb->series_map, series->id, series);
+                if (ct_add(siridb->series, series->name, series) ||
+                    imap_add(siridb->series_map, series->id, series))
+                {
+                    return -1;
+                }
             }
         }
     }

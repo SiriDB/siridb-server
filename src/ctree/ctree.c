@@ -58,22 +58,21 @@ static char dummy = '\1';
 void * CT_EMPTY = &dummy;
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 ct_t * ct_new(void)
 {
     ct_t * ct = (ct_t *) malloc(sizeof(ct_t));
     if (ct == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        ct->len = 0;
-        ct->nodes = NULL;
-        ct->offset = UINT8_MAX;
-        ct->n = 0;
-    }
+
+    ct->len = 0;
+    ct->nodes = NULL;
+    ct->offset = UINT8_MAX;
+    ct->n = 0;
+
     return ct;
 }
 
@@ -101,7 +100,7 @@ void ct_free(ct_t * ct, ct_free_cb cb)
  * Returns an item from the list or CT_EMPTY if the key does not exist.
  * The address or CT_EMPTY should then be used to set a new value.
  *
- * In case of an error, NULL is returned and a SIGNAL is raised.
+ * In case of an error, NULL is returned.
  *
  * WARN: This function is not protected against empty keys so make sure
  *       a key has at least one 'real' character and a terminator.
@@ -145,7 +144,7 @@ void ** ct_get_sure(ct_t * ct, const char * key)
  * exists and CT_OK (0) if not. When the key exists the value will not
  * be overwritten. CT_EXISTS is also returned when the key has length 0.
  *
- * In case of an error, CT_ERR (-1) will be returned and a SIGNAL is raised.
+ * In case of an error, CT_ERR (-1) will be returned.
  */
 int ct_add(ct_t * ct, const char * key, void * data)
 {
@@ -482,8 +481,7 @@ static void CT_valuesn(
 /*
  * Returns CT_OK when the item is added, CT_EXISTS if the item already exists,
  * or CT_ERR in case or an error.
- * In case of CT_ERR a SIGNAL is raised too and in case of CT_EXISTS the
- * existing item is not overwritten.
+ * In case of CT_EXISTS the existing item is not overwritten.
  */
 static int CT_add(
         ct_node_t * node,
@@ -503,7 +501,6 @@ static int CT_add(
                     (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
             if (new_nodes == NULL)
             {
-                ERR_ALLOC
                 return CT_ERR;
             }
 
@@ -733,7 +730,7 @@ static void * CT_getn(ct_node_t * node, const char * key, size_t n)
 
 /*
  * Returns a item from the tree or CT_EMPTY in case the item is not found.
- * In case of an error, NULL is returned and a SIGNAL is raised.
+ * In case of an error, NULL is returned.
  */
 static void ** CT_get_sure(ct_node_t * node, const char * key)
 {
@@ -750,7 +747,6 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
                     (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
             if (new_nodes == NULL)
             {
-                ERR_ALLOC
                 return NULL;
             }
 
@@ -926,10 +922,7 @@ static void CT_merge_node(ct_node_t * node)
 }
 
 /*
- * A SIGNAL can be raised in case an error occurred. If this happens the node
- * size will still be decremented by one but the tree is not optionally merged.
- * This means that in case of an error its still possible to call ct_free() or
- * ct_free_cb() to destroy the tree.
+ * This function can fail but in that case the tree is still usable.
  */
 static void CT_dec_node(ct_node_t * node)
 {
@@ -1016,14 +1009,13 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
 {
     ct_node_t * node = (ct_node_t *) malloc(sizeof(ct_node_t));
     if (node == NULL)
     {
-        ERR_ALLOC
         return NULL;
     }
     node->len = len;
@@ -1037,7 +1029,6 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
         node->key = (char *) malloc(len);
         if (node->key == NULL)
         {
-            ERR_ALLOC
             free(node);
             return NULL;
         }
@@ -1051,7 +1042,7 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
 }
 
 /*
- * Returns 0 is successful or -1 and a SIGNAL is raised in case of an error.
+ * Returns 0 is successful or -1 in case of an error.
  *
  * In case of an error, 'ct' remains unchanged.
  */
@@ -1064,7 +1055,6 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
         node->nodes = (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
         if (node->nodes == NULL)
         {
-            ERR_ALLOC
             rc = -1;
         }
         else
@@ -1084,7 +1074,6 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
                 node->n * sizeof(ct_nodes_t));
         if (tmp == NULL && node->n)
         {
-            ERR_ALLOC
             node->n -= diff;
             rc = -1;
         }
@@ -1109,7 +1098,6 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
                 node->n * sizeof(ct_nodes_t));
         if (tmp == NULL)
         {
-            ERR_ALLOC
             node->n -= diff;
             rc = -1;
         }

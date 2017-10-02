@@ -513,10 +513,11 @@ static int8_t INSERT_local_work(
 
         if (series == NULL)
         {
+            ERR_ALLOC
             log_critical(
                     "Error getting or create series: '%s'",
                     qp_series_name->via.raw);
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
+            return INSERT_LOCAL_ERROR;
         }
 
         qp_next(unpacker, NULL); // array open
@@ -670,8 +671,9 @@ static int INSERT_local_work_test(
                 if (series == NULL ||
                     ct_add(siridb->series, series->name, series))
                 {
+                    ERR_ALLOC
                     log_critical("Error creating series: '%s'", series_name);
-                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                    return INSERT_LOCAL_ERROR;
                 }
 
                 n -= WEIGHT_NEW_SERIES;

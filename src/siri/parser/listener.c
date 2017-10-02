@@ -752,16 +752,18 @@ static void enter_grant_user(uv_async_t * handle)
                 siridb_access_from_children((cleri_children_t *) query->data);
 
         query_alter_t * q_alter = query->data = query_alter_new();
-        if (q_alter != NULL)
+        if (q_alter == NULL)
         {
-            siridb_user_incref(user);
-
-            query->free_cb = (uv_close_cb) query_alter_free;
-            q_alter->alter_tp = QUERY_ALTER_USER;
-            q_alter->via.user = user;
-
-            SIRIPARSER_NEXT_NODE
+            MEM_ERR_RET
         }
+
+        siridb_user_incref(user);
+
+        query->free_cb = (uv_close_cb) query_alter_free;
+        q_alter->alter_tp = QUERY_ALTER_USER;
+        q_alter->via.user = user;
+
+        SIRIPARSER_NEXT_NODE
     }
 }
 static void enter_group_match(uv_async_t * handle)

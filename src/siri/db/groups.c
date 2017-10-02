@@ -86,10 +86,11 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         uv_mutex_init(&groups->mutex);
         groups->work.data = (siridb_t *) siridb;
 
-        if (groups->groups == NULL || groups->nseries == NULL)
+        if (!groups->groups || !groups->nseries || !groups->ngroups)
         {
+            ERR_ALLOC
             GROUPS_free(groups);
-            groups = NULL;  /* signal is raised */
+            groups = NULL;
         }
         else if (asprintf(
                     &groups->fn,

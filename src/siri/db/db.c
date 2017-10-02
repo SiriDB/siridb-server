@@ -770,6 +770,7 @@ static siridb_t * SIRIDB_new(void)
         siridb->series = ct_new();
         if (siridb->series == NULL)
         {
+            ERR_ALLOC
             free(siridb);
             siridb = NULL;  /* signal is raised */
         }
