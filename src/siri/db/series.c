@@ -282,40 +282,49 @@ siridb_series_t * siridb_series_new(
             siridb->server->pool,
             series_name);
 
-    if (series != NULL)
+    if (series == NULL)
     {
-        /* add series to the store */
-        if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
-            qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
-            qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-            qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
-            qp_flush(siridb->store))
-        {
-            ERR_FILE
-            log_critical("Cannot write series '%s' to store.", series_name);
-            siridb__series_free(series);
-            series = NULL;
-        }
-        /* create a buffer for series (except string series) */
-        else if (
-                tp != TP_STRING &&
-                siridb_buffer_new_series(siridb, series))
-        {
-            /* signal is raised */
-            log_critical("Could not create buffer for series '%s'.",
-                    series_name);
-            siridb__series_free(series);
-            series = NULL;
-        }
-        /* We only should add the series to series_map and assume the caller
-         * takes responsibility adding the series to SiriDB -> series
-         */
-        else
-        {
-            imap_set(siridb->series_map, series->id, series);
-            siridb_groups_add_series(siridb->groups, series);
-        }
+        return NULL;  /* signal is raised */
     }
+    /* add series to the store */
+    if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
+        qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
+        qp_fadd_int32(siridb->store, (int32_t) series->id) ||
+        qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+        qp_flush(siridb->store))
+    {
+        ERR_FILE
+        log_critical("Cannot write series '%s' to store.", series_name);
+        siridb__series_free(series);
+        return NULL;
+    }
+
+    /* create a buffer for series (except string series) */
+    if (tp != TP_STRING && siridb_buffer_new_series(siridb, series))
+    {
+        /* signal is raised */
+        log_critical("Could not create buffer for series '%s'.",
+                series_name);
+        siridb__series_free(series);
+        return NULL;
+    }
+
+    /* We only should add the series to series_map and assume the caller
+     * takes responsibility adding the series to SiriDB -> series
+     */
+    if (imap_add(siridb->series_map, series->id, series))
+    {
+        log_critical("Error adding series '%s' to the internal map.",
+                series_name);
+        siridb__series_free(series);
+        ERR_ALLOC
+        return NULL;
+    }
+
+    /* we can ignore the result code since this is not critical and logging
+     * is done by the function.
+     */
+    siridb_groups_add_series(siridb->groups, series);
 
     return series;
 }

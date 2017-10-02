@@ -135,7 +135,6 @@ int siridb_servers_load(siridb_t * siridb)
             {
                 /* if this is me, bind server to siridb->server */
                 siridb->server = server;
-
             }
             else
             {
@@ -143,7 +142,8 @@ int siridb_servers_load(siridb_t * siridb)
                 server->promises = imap_new();
                 if (server->promises == NULL)
                 {
-                    rc = -1;  /* signal is raised */
+                    log_critical("Memory allocation error");
+                    rc = -1;
                 }
             }
         }

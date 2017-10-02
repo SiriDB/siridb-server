@@ -803,31 +803,37 @@ static void enter_group_match(uv_async_t * handle)
         q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
                 q_wrapper->series_map : imap_new();
 
-        if (q_wrapper->series_tmp != NULL)
+        if (q_wrapper->series_tmp == NULL)
         {
-            uv_mutex_lock(&siridb->groups->mutex);
-
-            for (size_t i = 0; i < group->series->len; i++)
-            {
-                series = (siridb_series_t *) group->series->data[i];
-                siridb_series_incref(series);
-                imap_set(q_wrapper->series_tmp, series->id, series);
-            }
-
-            uv_mutex_unlock(&siridb->groups->mutex);
-
-            if (q_wrapper->update_cb != NULL)
-            {
-                (*q_wrapper->update_cb)(
-                        q_wrapper->series_map,
-                        q_wrapper->series_tmp,
-                        (imap_free_cb) &siridb__series_decref);
-            }
-
-            q_wrapper->series_tmp = NULL;
-
-            SIRIPARSER_ASYNC_NEXT_NODE
+            MEM_ERR_RET
         }
+
+        uv_mutex_lock(&siridb->groups->mutex);
+
+        for (size_t i = 0; i < group->series->len; i++)
+        {
+            series = (siridb_series_t *) group->series->data[i];
+            siridb_series_incref(series);
+            if (imap_add(q_wrapper->series_tmp, series->id, series))
+            {
+                log_critical("Cannot add series to temporary map.");
+                siridb_series_decref(series);
+            }
+        }
+
+        uv_mutex_unlock(&siridb->groups->mutex);
+
+        if (q_wrapper->update_cb != NULL)
+        {
+            (*q_wrapper->update_cb)(
+                    q_wrapper->series_map,
+                    q_wrapper->series_tmp,
+                    (imap_free_cb) &siridb__series_decref);
+        }
+
+        q_wrapper->series_tmp = NULL;
+
+        SIRIPARSER_ASYNC_NEXT_NODE
     }
 }
 
@@ -1234,7 +1240,16 @@ static void enter_series_name(uv_async_t * handle)
 
             q_wrapper->series_map = imap_new();
 
-            if (q_wrapper->series_map != NULL && series != NULL)
+            if (q_wrapper->series_map == NULL)
+            {
+                if (series != NULL)
+                {
+                    siridb_series_decref(series);
+                }
+                MEM_ERR_RET
+            }
+
+            if (series != NULL)
             {
                 if (imap_set(q_wrapper->series_map, series->id, series) != 1)
                 {
@@ -1259,7 +1274,7 @@ static void enter_series_name(uv_async_t * handle)
                 break;
 
             default:
-                MEM_ERR_RET  // signal is raised
+                MEM_ERR_RET
             }
         }
         else
@@ -4276,7 +4291,11 @@ static void async_filter_series(uv_async_t * handle)
                 (cexpr_cb_t) siridb_series_cexpr_cb,
                 series))
         {
-            imap_set(q_wrapper->series_map, series->id, series);
+            if (imap_add(q_wrapper->series_map, series->id, series))
+            {
+                log_critical("Cannot add filtered series to internal map.");
+                siridb_series_decref(series);
+            }
         }
         else
         {
@@ -4597,7 +4616,7 @@ static void async_series_re(uv_async_t * handle)
                 0);                    // length of sub_str_vec
 
         if (    pcre_exec_ret ||
-                imap_set(q_wrapper->series_tmp, series->id, series) != 1)
+                imap_add(q_wrapper->series_tmp, series->id, series))
         {
             siridb_series_decref(series);
         }

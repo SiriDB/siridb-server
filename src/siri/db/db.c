@@ -772,7 +772,7 @@ static siridb_t * SIRIDB_new(void)
         {
             ERR_ALLOC
             free(siridb);
-            siridb = NULL;  /* signal is raised */
+            siridb = NULL;
         }
         else
         {
@@ -781,7 +781,8 @@ static siridb_t * SIRIDB_new(void)
             {
                 ct_free(siridb->series, NULL);
                 free(siridb);
-                siridb = NULL;  /* signal is raised */
+                siridb = NULL;
+                ERR_ALLOC
             }
             else
             {
@@ -791,7 +792,9 @@ static siridb_t * SIRIDB_new(void)
                     imap_free(siridb->series_map, NULL);
                     ct_free(siridb->series, NULL);
                     free(siridb);
-                    siridb = NULL;  /* signal is raised */
+                    siridb = NULL;
+                    ERR_ALLOC
+
                 }
                 else
                 {

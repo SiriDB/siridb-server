@@ -197,7 +197,8 @@ int siridb_server_send_pkg(
             free(promise->timer);
             free(promise);
             free(req);
-            return -1;  /* signal is raised */
+            ERR_ALLOC
+            return -1;
         }
 
         /* rc == -2, pid in use, try next pid */

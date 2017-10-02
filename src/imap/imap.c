@@ -43,7 +43,7 @@ static void IMAP_symmetric_difference_ref(
         imap_free_cb decref_cb);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 imap_t * imap_new(void)
 {
@@ -52,13 +52,12 @@ imap_t * imap_new(void)
             sizeof(imap_t) + IMAP_NODE_SZ * sizeof(imap_node_t));
     if (imap == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        imap->len = 0;
-        imap->slist = NULL;
-    }
+
+    imap->len = 0;
+    imap->slist = NULL;
+
     return imap;
 }
 
@@ -113,7 +112,7 @@ void imap_free(imap_t * imap, imap_free_cb cb)
  *
  * Returns 0 when data is overwritten and 1 if a new id/value is set.
  *
- * In case of an error we return -1 and a SIGNAL is raised.
+ * In case of an error we return -1.
  */
 int imap_set(imap_t * imap, uint64_t id, void * data)
 {
@@ -157,8 +156,8 @@ int imap_set(imap_t * imap, uint64_t id, void * data)
  *
  * Returns 0 when data is added. Data will NOT be overwritten.
  *
- * In case of a memory error we return -1 and a SIGNAL is raised. When the id
- * already exists -2 will be returned.
+ * In case of a memory error we return -1. When the id already exists -2 will
+ * be returned.
  */
 int imap_add(imap_t * imap, uint64_t id, void * data)
 {
@@ -746,7 +745,7 @@ static void IMAP_node_free_cb(imap_node_t * node, imap_free_cb cb)
  *
  * Returns 0 when data is overwritten and 1 if a new id/value is set.
  *
- * In case of an error we return -1 and a SIGNAL is raised.
+ * In case of an error we return -1.
  */
 static int IMAP_set(imap_node_t * node, uint64_t id, void * data)
 {
@@ -758,7 +757,6 @@ static int IMAP_set(imap_node_t * node, uint64_t id, void * data)
 
         if (node->nodes == NULL)
         {
-            ERR_ALLOC
             return -1;
         }
     }
@@ -792,7 +790,7 @@ static int IMAP_set(imap_node_t * node, uint64_t id, void * data)
  *
  * Returns 0 when data is added. Data will NOT be overwritten.
  *
- * In case of a memory error we return -1 and a SIGNAL is raised. If the id
+ * In case of a memory error we return -1. If the id
  * already exists -2 will be returned.
  */
 static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
@@ -805,7 +803,6 @@ static int IMAP_add(imap_node_t * node, uint64_t id, void * data)
 
         if (node->nodes == NULL)
         {
-            ERR_ALLOC
             return -1;
         }
     }

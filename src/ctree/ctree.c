@@ -17,7 +17,6 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <logger/logger.h>
-#include <siri/err.h>
 
 /* initial buffer size, this is not fixed but can grow if needed */
 #define CT_BUF_SIZE 128
@@ -113,7 +112,7 @@ void ** ct_get_sure(ct_t * ct, const char * key)
 
     if (CT_node_resize((ct_node_t *) ct, k / BLOCKSZ))
     {
-        return NULL;  /* signal is raised */
+        return NULL;
     }
 
     nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
@@ -287,8 +286,6 @@ void * ct_pop(ct_t * ct, const char * key)
  * Returns 0 when the call-back is called on all items, -1 in case of
  * an allocation error or 1 when looping did not finish because of a non
  * zero return value.
- *
- * (in case of -1 a SIGNAL is raised)
  */
 int ct_items(ct_t * ct, ct_item_cb cb, void * args)
 {
@@ -299,7 +296,6 @@ int ct_items(ct_t * ct, ct_item_cb cb, void * args)
     char * buffer = (char *) malloc(buffer_sz);
     if (buffer == NULL)
     {
-        ERR_ALLOC
         return -1;
     }
     for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; !rc && i < end; i++)
@@ -360,8 +356,8 @@ void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
  * Walking stops either when the call-back is called on each item or
  * when a callback return a non zero value.
  *
- * Returns 0 when successful or -1 and a SIGNAL is raised in case of an error
- * or 1 if looping has stopped because a failed callback.
+ * Returns 0 when successful or -1 in case of an error or 1 if looping has
+ * stopped because a failed callback.
  */
 static int CT_items(
         ct_node_t * node,
@@ -378,7 +374,6 @@ static int CT_items(
         tmp = (char *) realloc(*buffer, buffer_sz);
         if (tmp == NULL)
         {
-            ERR_ALLOC;
             return -1;
         }
         *buffer = tmp;
@@ -538,7 +533,7 @@ static int CT_add(
 
                 if (CT_node_resize(node, k / BLOCKSZ))
                 {
-                    return CT_ERR;  /* signal is raised */
+                    return CT_ERR;
                 }
                 key++;
                 nd = CT_node_new(key, strlen(key), data);
@@ -580,7 +575,7 @@ static int CT_add(
         {
             if (CT_node_resize(node, k / BLOCKSZ))
             {
-                return CT_ERR;  /* signal is raised */
+                return CT_ERR;
             }
             key++;
             ct_node_t * nd = CT_node_new(key, strlen(key), data);
@@ -597,7 +592,7 @@ static int CT_add(
 
         if (CT_node_resize(node, k / BLOCKSZ))
         {
-            return CT_ERR;  /* signal is raised */
+            return CT_ERR;
         }
 
         ct_node_t ** nd = &(*node->nodes)[k - node->offset * BLOCKSZ];
@@ -772,7 +767,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             if (CT_node_resize(node, k / BLOCKSZ))
             {
-                return NULL;  /* signal is raised */
+                return NULL;
             }
 
             /* re-allocate the key to free some space */
@@ -818,7 +813,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
             if (CT_node_resize(node, k / BLOCKSZ))
             {
-                return NULL;  /* signal is raised */
+                return NULL;
             }
             key++;
             ct_node_t * nd = CT_node_new(key, strlen(key), CT_EMPTY);
@@ -829,7 +824,7 @@ static void ** CT_get_sure(ct_node_t * node, const char * key)
 
         if (CT_node_resize(node, k / BLOCKSZ))
         {
-            return NULL;  /* signal is raised */
+            return NULL;
         }
 
         ct_node_t ** nd = &(*node->nodes)[k - node->offset * BLOCKSZ];

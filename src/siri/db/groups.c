@@ -128,10 +128,12 @@ void siridb_groups_start(siridb_groups_t * groups)
 /*
  * Returns 0 if successful or -1 in case of an error.
  */
-void siridb_groups_add_series(
+int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series)
 {
+    int rc = 0;
+
     uv_mutex_lock(&groups->mutex);
 
     if (slist_append_safe(&groups->nseries, series) == 0)
@@ -142,9 +144,12 @@ void siridb_groups_add_series(
     {
         log_critical("Error while initializing series '%s' for groups",
                 series->name);
+        rc = -1;
     }
 
     uv_mutex_unlock(&groups->mutex);
+
+    return rc;
 }
 
 /*

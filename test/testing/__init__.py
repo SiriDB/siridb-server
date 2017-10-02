@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import logging
 import time
@@ -23,17 +24,16 @@ async def _run_test(test, loglevel):
     logger.setLevel(loglevel)
 
     start = time.time()
+    print('{:.<76}'.format(test.title), end='')
+    sys.stdout.flush()
+
     try:
         await test.run()
     except Exception as e:
-        print('{:.<76}FAILED ({:.2f} seconds)'.format(
-            test.title,
-            time.time() - start))
+        print('FAILED ({:.2f} seconds)'.format(time.time() - start))
         raise e
     else:
-        print('{:.<80}OK ({:.2f} seconds)'.format(
-            test.title,
-            time.time() - start))
+        print('OK ({:.2f} seconds)'.format(time.time() - start))
 
     logger.setLevel('CRITICAL')
 

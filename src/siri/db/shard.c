@@ -281,7 +281,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     if (imap_set(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
-        return -1;  /* signal is raised */
+        return -1;
     }
 
     /* remove LOADING flag from shard status */
@@ -374,6 +374,7 @@ siridb_shard_t *  siridb_shard_create(
     if (imap_set(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
+        ERR_ALLOC
         return NULL;
     }
 
