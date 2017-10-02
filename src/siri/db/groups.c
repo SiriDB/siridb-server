@@ -680,9 +680,19 @@ static void GROUPS_cleanup(siridb_groups_t * groups)
 
     slist_t * groups_list = slist_new(groups->groups->len);
 
-    ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
+    if (groups_list != NULL)
+    {
+        ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
+    }
 
     uv_mutex_unlock(&groups->mutex);
+
+    if (groups_list == NULL)
+    {
+        log_critical("Groups cleanup failed because of an allocation error.");
+        groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
+        return;
+    }
 
     siridb_group_t * group;
 
