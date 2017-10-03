@@ -5533,6 +5533,10 @@ static int items_select_master_merge(
     return 0;
 }
 
+/*
+ * Returns 0 when successful and -1 in case of an error.
+ * (a SIGNAL is raised in case of an error)
+ */
 static int items_select_other(
         const char * name,
         size_t len,
@@ -5545,6 +5549,10 @@ static int items_select_other(
             siridb_points_raw_pack(points, query->packer);
 }
 
+/*
+ * Returns 0 when successful and -1 in case of an error.
+ * (a SIGNAL is raised in case of an error)
+ */
 static int items_select_other_merge(
         const char * name,
         size_t len,
