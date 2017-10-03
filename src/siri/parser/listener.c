@@ -5545,8 +5545,8 @@ static int items_select_other(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    return qp_add_raw_term(query->packer, name, len) ||
-            siridb_points_raw_pack(points, query->packer);
+    return -(qp_add_raw_term(query->packer, name, len) ||
+            siridb_points_raw_pack(points, query->packer));
 }
 
 /*
@@ -5570,7 +5570,7 @@ static int items_select_other_merge(
                 query->packer);
     }
 
-    return rc || qp_add_type(query->packer, QP_ARRAY_CLOSE);
+    return -(rc || qp_add_type(query->packer, QP_ARRAY_CLOSE));
 }
 
 static void on_select_unpack_points(

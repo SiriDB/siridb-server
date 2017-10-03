@@ -177,14 +177,14 @@ void siridb_points_ts_correction(siridb_points_t * points, double factor)
  */
 int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
 {
-    return (qp_add_type(packer, QP_ARRAY_OPEN) ||
+    return -(qp_add_type(packer, QP_ARRAY_OPEN) ||
             qp_add_int8(packer, points->tp) ||
             qp_add_int32(packer, points->len) ||
             qp_add_raw(
                 packer,
                 (char *) points->data,
                 points->len * sizeof(siridb_point_t)) ||
-            qp_add_type(packer, QP_ARRAY_CLOSE)) ? -1 : 0;
+            qp_add_type(packer, QP_ARRAY_CLOSE));
 }
 
 /*
