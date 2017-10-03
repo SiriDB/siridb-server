@@ -295,7 +295,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
     uv_mutex_unlock(&siri.siridb_mutex);
 
-    if (siri_err)
+    if (siri_err || slsiridb == NULL)
     {
         OPTIMIZE_cleanup(slsiridb);
         return;
@@ -317,8 +317,9 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         if (slshards == NULL)
         {
+            log_error("Error creating reference list for shards.");
             OPTIMIZE_cleanup(slsiridb);
-            return;  /* signal is raised */
+            return;
         }
 
         sleep(1);

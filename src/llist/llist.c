@@ -11,28 +11,24 @@
  */
 
 #include <stddef.h>
-#include <llist/llist.h>
 #include <stdlib.h>
-#include <siri/err.h>
+#include <llist/llist.h>
 
 static llist_node_t * LLIST_node_new(void * data);
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 llist_t * llist_new(void)
 {
     llist_t * llist = (llist_t *) malloc(sizeof(llist_t));
     if (llist == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        llist->len = 0;
-        llist->first = NULL;
-        llist->last = NULL;
-    }
+    llist->len = 0;
+    llist->first = NULL;
+    llist->last = NULL;
     return llist;
 }
 
@@ -58,7 +54,7 @@ void llist_free_cb(llist_t * llist, llist_cb cb, void * args)
 /*
  * Appends to the end of the list.
  *
- * Returns 0 if successful; -1 and a signal is raised in case an error occurred.
+ * Returns 0 if successful or -1 in case an error occurred.
  * (in case of an error, the list remains unchanged)
  */
 int llist_append(llist_t * llist, void * data)
@@ -66,7 +62,7 @@ int llist_append(llist_t * llist, void * data)
     llist_node_t * node = LLIST_node_new(data);
     if (node == NULL)
     {
-        return -1;  /* a signal is raised */
+        return -1;
     }
 
     llist->len++;
@@ -250,7 +246,7 @@ void * llist_get(llist_t * llist, llist_cb cb, void * args)
 
 /*
  * Copy the linked list to a simple list.
- * (returns NULL and sets a signal in case an error has occurred)
+ * (returns NULL in case an error has occurred)
  */
 slist_t * llist2slist(llist_t * llist)
 {
@@ -258,7 +254,6 @@ slist_t * llist2slist(llist_t * llist)
 
     if (slist == NULL)
     {
-        /* signal is set be slist_new() */
         return NULL;
     }
 
@@ -276,7 +271,7 @@ slist_t * llist2slist(llist_t * llist)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 static llist_node_t * LLIST_node_new(void * data)
 {
@@ -284,7 +279,6 @@ static llist_node_t * LLIST_node_new(void * data)
     llist_node = (llist_node_t *) malloc(sizeof(llist_node_t));
     if (llist_node == NULL)
     {
-        ERR_ALLOC
         return NULL;
     }
     llist_node->data = data;

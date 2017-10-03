@@ -15,7 +15,6 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/median.h>
 #include <siri/db/variance.h>
-#include <siri/err.h>
 #include <siri/grammar/grammar.h>
 #include <slist/slist.h>
 #include <stddef.h>
@@ -32,7 +31,6 @@ if ((aggr = AGGREGATE_new(gid)) == NULL)            \
 #define SLIST_APPEND                                \
 if (slist_append_safe(&slist, aggr))                \
 {                                                   \
-    ERR_ALLOC                                       \
     sprintf(err_msg, "Memory allocation error.");   \
     AGGREGATE_free(aggr);                           \
     siridb_aggregate_list_free(slist);              \
@@ -175,7 +173,7 @@ void siridb_init_aggregates(void)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred and the err_msg will be set.
  */
 slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 {
@@ -294,7 +292,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 {
                     AGGREGATE_free(aggr);
                     siridb_aggregate_list_free(slist);
-                    return NULL;
+                    return NULL;  /* err_msg is set */
                 }
             }
 
@@ -477,25 +475,22 @@ siridb_points_t * siridb_aggregate_run(
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
 {
     siridb_aggr_t * aggr = (siridb_aggr_t *) malloc(sizeof(siridb_aggr_t));
     if (aggr == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        aggr->gid = gid;
-        aggr->group_by = 0;
-        aggr->limit = 0;
-        aggr->offset = 0;
-        aggr->timespan = 1.0;
-        aggr->filter_tp = TP_INT;  /* when string we malloc/free
-                                                  * aggr->filter_via.raw */
-    }
+    aggr->gid = gid;
+    aggr->group_by = 0;
+    aggr->limit = 0;
+    aggr->offset = 0;
+    aggr->timespan = 1.0;
+    aggr->filter_tp = TP_INT;  /* when string we must
+                                * malloc/free * aggr->filter_via.raw */
     return aggr;
 }
 
@@ -513,8 +508,7 @@ static void AGGREGATE_free(siridb_aggr_t * aggr)
 
 /*
  * Returns 0 if successful or -1 in case or an error.
- * A signal is raised in case of an allocation error and the err_msg is set
- * for any error.
+ * The err_msg is set for any error.
  */
 static int AGGREGATE_init_filter(
         siridb_aggr_t * aggr,
@@ -538,7 +532,6 @@ static int AGGREGATE_init_filter(
         aggr->filter_via.raw = (char *) malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
-            ERR_ALLOC
             sprintf(err_msg, "Memory allocation error.");
             return -1;
         }

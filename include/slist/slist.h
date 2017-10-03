@@ -11,23 +11,26 @@
  */
 #pragma once
 
+#define SLIST_DEFAULT_SIZE 8
+
+typedef struct slist_s slist_t;
+typedef struct slist_object_s slist_object_t;
+
 #include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
 
-#define SLIST_DEFAULT_SIZE 8
-
-typedef struct slist_object_s
+struct slist_object_s
 {
     uint32_t ref;
-} slist_object_t;
+};
 
-typedef struct slist_s
+struct slist_s
 {
     size_t size;
     size_t len;
     void * data[];
-} slist_t;
+};
 
 slist_t * slist_new(size_t size);
 slist_t * slist_copy(slist_t * source);

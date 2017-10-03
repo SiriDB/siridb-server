@@ -301,6 +301,7 @@ void siridb_query_forward(
                 else
                 {
                     free(pkg);
+                    ERR_ALLOC
                 }
             }
             break;

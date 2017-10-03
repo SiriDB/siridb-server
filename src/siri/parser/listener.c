@@ -936,6 +936,12 @@ static void enter_merge_as(uv_async_t * handle)
                 query->nodes->node->children->next->next->next->node->
                     children->node->children->next->node->children,
                 query->err_msg);
+
+        if (q_select->mlist == NULL)
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
     }
 
     SIRIPARSER_ASYNC_NEXT_NODE
@@ -1761,6 +1767,11 @@ static void exit_count_series_length(uv_async_t * handle)
 
         uv_mutex_unlock(&siridb->series_mutex);
 
+        if (slist == NULL)
+        {
+            MEM_ERR_RET
+        }
+
         siridb_series_t * series;
 
         for (size_t i = 0; i < slist->len; i++)
@@ -1952,6 +1963,7 @@ static void exit_count_shards(uv_async_t * handle)
     }
     else
     {
+        uint64_t duration;
         siridb_shard_view_t vshard = {
                 .server=siridb->server
         };
@@ -1959,9 +1971,13 @@ static void exit_count_shards(uv_async_t * handle)
         uv_mutex_lock(&siridb->shards_mutex);
 
         slist_t * shards_list = imap_2slist_ref(siridb->shards);
-        uint64_t duration;
 
         uv_mutex_unlock(&siridb->shards_mutex);
+
+        if (shards_list == NULL)
+        {
+            MEM_ERR_RET
+        }
 
         for (size_t i = 0; i < shards_list->len; i++)
         {
@@ -2453,6 +2469,11 @@ static void exit_drop_shards(uv_async_t * handle)
     q_drop->shards_list = imap_2slist_ref(siridb->shards);
 
     uv_mutex_unlock(&siridb->shards_mutex);
+
+    if (q_drop->shards_list == NULL)
+    {
+        MEM_ERR_RET
+    }
 
     if (q_drop->where_expr != NULL)
     {
@@ -2949,6 +2970,11 @@ static void exit_list_shards(uv_async_t * handle)
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
+    if (shards_list == NULL)
+    {
+        MEM_ERR_RET
+    }
+
     if (q_list->props == NULL)
     {
         q_list->props = slist_new(5);
@@ -3169,38 +3195,40 @@ static void exit_select_aggregate(uv_async_t * handle)
         /* we transform the references from imap to slist */
         q_select->slist = imap_slist_pop(q_select->series_map);
 
-        if (q_select->slist != NULL)
+        if (q_select->slist == NULL)
         {
-            /* now we can simply destroy the imap */
-            imap_free(q_select->series_map, NULL);
-
-            /* create a new one */
-            q_select->series_map = imap_new();
-
-            if (q_select->series_map == NULL)
-            {
-                MEM_ERR_RET
-            }
-
-            uv_async_t * next =
-                    (uv_async_t *) malloc(sizeof(uv_async_t));
-
-            if (next == NULL)
-            {
-                MEM_ERR_RET
-            }
-
-            next->data = handle->data;
-
-            uv_async_init(
-                    siri.loop,
-                    next,
-                    (uv_async_cb) async_filter_series);
-            uv_async_send(next);
-
-            uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-
+            MEM_ERR_RET
         }
+
+        /* now we can simply destroy the imap */
+        imap_free(q_select->series_map, NULL);
+
+        /* create a new one */
+        q_select->series_map = imap_new();
+
+        if (q_select->series_map == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_filter_series);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+
     }
     else if (siridb_presuf_add(&q_select->presuf, query->nodes->node) == NULL)
     {
@@ -3248,34 +3276,32 @@ static void exit_select_aggregate(uv_async_t * handle)
                 if (q_select->alist == NULL)
                 {
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                    return;
                 }
-                else
+                q_select->slist = imap_2slist_ref(q_select->series_map);
+
+                if (q_select->slist == NULL)
                 {
-                    q_select->slist = imap_2slist_ref(q_select->series_map);
-
-                    if (q_select->slist == NULL)
-                    {
-                        MEM_ERR_RET
-                    }
-
-                    uv_async_t * next =
-                            (uv_async_t *) malloc(sizeof(uv_async_t));
-
-                    if (next == NULL)
-                    {
-                        MEM_ERR_RET
-                    }
-
-                    next->data = handle->data;
-
-                    uv_async_init(
-                            siri.loop,
-                            next,
-                            (uv_async_cb) async_select_aggregate);
-                    uv_async_send(next);
-
-                    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+                    MEM_ERR_RET
                 }
+
+                uv_async_t * next =
+                        (uv_async_t *) malloc(sizeof(uv_async_t));
+
+                if (next == NULL)
+                {
+                    MEM_ERR_RET
+                }
+
+                next->data = handle->data;
+
+                uv_async_init(
+                        siri.loop,
+                        next,
+                        (uv_async_cb) async_select_aggregate);
+                uv_async_send(next);
+
+                uv_close((uv_handle_t *) handle, (uv_close_cb) free);
             }
             else
             {
@@ -5515,8 +5541,8 @@ static int items_select_other(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    return (qp_add_raw_term(query->packer, name, len) ||
-            siridb_points_raw_pack(points, query->packer));
+    return qp_add_raw_term(query->packer, name, len) ||
+            siridb_points_raw_pack(points, query->packer);
 }
 
 static int items_select_other_merge(
@@ -5526,20 +5552,17 @@ static int items_select_other_merge(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    int rc;
+    int rc = qp_add_raw_term(query->packer, name, len) ||
+            qp_add_type(query->packer, QP_ARRAY_OPEN);
 
-    rc = qp_add_raw_term(query->packer, name, len);
-
-    rc += qp_add_type(query->packer, QP_ARRAY_OPEN);
-
-    for (size_t i = 0; i < plist->len; i++)
+    for (size_t i = 0; !rc && i < plist->len; i++)
     {
-        rc += siridb_points_raw_pack(
+        rc = siridb_points_raw_pack(
                 (siridb_points_t * ) plist->data[i],
                 query->packer);
     }
-    rc += qp_add_type(query->packer, QP_ARRAY_CLOSE);
-    return rc;
+
+    return rc || qp_add_type(query->packer, QP_ARRAY_CLOSE);
 }
 
 static void on_select_unpack_points(

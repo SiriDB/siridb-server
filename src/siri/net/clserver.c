@@ -754,16 +754,27 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         /* make a copy of the current servers */
         servers = siridb_servers_other2slist(siridb);
-
-        log_info("Register a new server");
-        new_server = siridb_server_register(siridb, pkg->data, pkg->len);
-
-        pkg->tp = BPROTO_REGISTER_SERVER;
-
-        if (new_server == NULL)
+        if (servers == NULL)
         {
-            /* a signal might be raised */
-            package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
+            sprintf(err_msg, "Memory allocation error.");
+            package = sirinet_pkg_err(
+                    pkg->pid,
+                    strlen(err_msg),
+                    CPROTO_ERR_SERVER,
+                    err_msg);
+        }
+        else
+        {
+            log_info("Register a new server");
+            new_server = siridb_server_register(siridb, pkg->data, pkg->len);
+
+            pkg->tp = BPROTO_REGISTER_SERVER;
+
+            if (new_server == NULL)
+            {
+                /* a signal might be raised */
+                package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
+            }
         }
     }
 

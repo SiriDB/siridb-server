@@ -47,7 +47,8 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (fifo->fifos == NULL)
     {
         free(fifo);
-        return NULL;  /* signal is raised */
+        ERR_ALLOC
+        return NULL;
     }
 
     fifo->in = NULL;
@@ -83,7 +84,8 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (llist_append(fifo->fifos, fifo->in))
     {
         siridb_fifo_free(fifo);
-        return NULL;  /* signal is raised */
+        ERR_ALLOC
+        return NULL;
     }
 
     /* we have at least one fifo in the list */
@@ -136,9 +138,9 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
             siridb_ffile_unlink(fifo->out);
             fifo->out = fifo->in;
         }
-        else
+        else if (llist_append(fifo->fifos, fifo->in))
         {
-            llist_append(fifo->fifos, fifo->in);
+            ERR_ALLOC;
         }
         break;
     case FFILE_SUCCESS:
@@ -363,9 +365,9 @@ static int FIFO_init(siridb_fifo_t * fifo)
                 {
                     uint64_t id = strtoull(fifo_list[n]->d_name, NULL, 10);
                     ffile = siridb_ffile_new(id, fifo->path, NULL);
-                    if (ffile != NULL)
+                    if (ffile != NULL && llist_append(fifo->fifos, ffile))
                     {
-                        llist_append(fifo->fifos, ffile);
+                        ERR_ALLOC;
                     }
                     free(fn);
                 }

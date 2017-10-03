@@ -63,7 +63,7 @@ int siridb_users_load(siridb_t * siridb)
     siridb->users = llist_new();
     if (siridb->users == NULL)
     {
-        return -1;  /* signal is raised */
+        return -1;
     }
 
     /* get user access file name */
@@ -129,7 +129,8 @@ int siridb_users_load(siridb_t * siridb)
                 if (llist_append(siridb->users, user))
                 {
                     siridb_user_decref(user);
-                    rc = -1;  /* signal is raised */
+                    ERR_ALLOC
+                    rc = -1;
                 }
             }
         }
@@ -179,6 +180,7 @@ int siridb_users_add_user(
     if (llist_append(siridb->users, user))
     {
         /* this is critical, a signal is raised */
+        ERR_ALLOC
         sprintf(err_msg, "Memory allocation error.");
         return -1;
     }

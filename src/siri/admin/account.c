@@ -32,7 +32,7 @@ static int ACCOUNT_cmp(
 
 /*
  * Initialize siri->accounts. Returns 0 if successful or -1 in case of an error
- * (a signal might be raised in case of an error)
+ * (a signal might be raised because of qpack)
  */
 int siri_admin_account_init(siri_t * siri)
 {
@@ -100,7 +100,7 @@ int siri_admin_account_init(siri_t * siri)
 
 /*
  * Creates a new service account and returns 0 if successful. In case of
- * an error, -1 is returned, err_msg is set and a signal might be raised.
+ * an error, -1 is returned, err_msg is set.
  *
  * When successful, the account is added to the siri->accounts linked list.
  *

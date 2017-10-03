@@ -54,7 +54,8 @@ int siridb_servers_load(siridb_t * siridb)
     siridb->servers = llist_new();
     if (siridb->servers == NULL)
     {
-        return -1;  /* signal is raised */
+        ERR_ALLOC
+        return -1;
     }
 
     /* get servers file name */
@@ -79,7 +80,8 @@ int siridb_servers_load(siridb_t * siridb)
         if (llist_append(siridb->servers, server))
         {
             siridb_server_decref(server);
-            return -1;  /* signal is raised */
+            ERR_ALLOC
+            return -1;
         }
 
         siridb->server = server;
@@ -129,7 +131,7 @@ int siridb_servers_load(siridb_t * siridb)
             if (llist_append(siridb->servers, server))
             {
                 siridb_server_decref(server);
-                rc = -1;  /* signal is raised */
+                rc = -1;
             }
             else if (uuid_compare(server->uuid, siridb->uuid) == 0)
             {
@@ -300,7 +302,8 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
     if (llist_append(siridb->servers, server) || siridb_servers_save(siridb))
     {
         log_critical("Cannot save server '%s'", server->name);
-        return -1;  /* a signal is raised in this case */
+        ERR_ALLOC
+        return -1;
     }
 
     siridb_server_incref(server);
@@ -325,26 +328,28 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
  *
  * Note: this function does not increase the servers reference counter.
  *
- * In case of an error, NULL is returned and a SIGNAL is raised.
+ * In case of an error, NULL is returned.
  */
 slist_t * siridb_servers_other2slist(siridb_t * siridb)
 {
+    siridb_server_t * server;
     slist_t * servers = slist_new(siridb->servers->len - 1);
-    if (servers != NULL)
+    if (servers == NULL)
     {
-        siridb_server_t * server;
+        return NULL;
+    }
 
-        for (   llist_node_t * node = siridb->servers->first;
-                node != NULL;
-                node = node->next)
+    for (   llist_node_t * node = siridb->servers->first;
+            node != NULL;
+            node = node->next)
+    {
+        server = node->data;
+        if (server != siridb->server)
         {
-            server = node->data;
-            if (server != siridb->server)
-            {
-                slist_append(servers, server);
-            }
+            slist_append(servers, server);
         }
     }
+
     return servers;
 }
 

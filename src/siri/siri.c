@@ -144,6 +144,10 @@ int siri_start(void)
 
     /* create store for SiriDB instances */
     siri.siridb_list = llist_new();
+    if (siri.siridb_list == NULL)
+    {
+        return -1;
+    }
 
     /* initialize file handler for shards */
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
@@ -183,7 +187,13 @@ int siri_start(void)
     siri_heartbeat_init(&siri);
 
     /* initialize backup (bind siri.backup) */
-    siri_backup_init(&siri);
+    if (siri_backup_init(&siri))
+    {
+        SIRI_destroy();
+        free(siri.loop);
+        siri.loop = NULL;
+        return -1;
+    }
 
     /* update siridb status to running */
     SIRI_set_running_state();

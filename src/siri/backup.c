@@ -27,12 +27,17 @@ uv_timer_t backup;
 static void BACKUP_cb(uv_timer_t * timer);
 static void BACKUP_walk(siridb_t * siridb, void * args);
 
-void siri_backup_init(siri_t * siri)
+int siri_backup_init(siri_t * siri)
 {
     siri->backup = &backup;
     siri->backup->data = llist_new();
+    if (siri->backup->data == NULL)
+    {
+        return -1;
+    }
 
     uv_timer_init(siri->loop, siri->backup);
+    return 0;
 }
 
 void siri_backup_destroy(siri_t * siri)
@@ -53,7 +58,8 @@ void siri_backup_destroy(siri_t * siri)
 }
 
 /*
- * Returns 0 when successful or -1 and a signal is raised in case of an error.
+ * Returns 0 when successful or -1 and a signal might be raised in case
+ * of an error.
  */
 int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 {
@@ -66,7 +72,7 @@ int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 
     if (llist_append(llist, siridb))
     {
-        return -1;  /* a signal is raised */
+        return -1;
     }
 
     siridb_incref(siridb);
@@ -213,7 +219,13 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
          */
         slist_t * shard_list = imap_2slist(siridb->shards);
 
-        for (size_t i = 0; i < shard_list->len; i++)
+        if (shard_list == NULL)
+        {
+            log_critical(
+                    "Cannot create shard list so not all shard files "
+                    "will be closed in backup mode.");
+        }
+        else for (size_t i = 0; i < shard_list->len; i++)
         {
             shard = (siridb_shard_t *) shard_list->data[i];
 

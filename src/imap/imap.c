@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <imap/imap.h>
 #include <logger/logger.h>
-#include <siri/err.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -308,7 +307,7 @@ void imap_walkn(imap_t * imap, size_t * n, imap_cb cb, void * data)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  *
  * When successful a BORROWED pointer to slist is returned.
  */
@@ -342,7 +341,7 @@ slist_t * imap_slist(imap_t * imap)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  *
  * When successful a the slist is returned and imap->slist is set to NULL.
  *
@@ -357,7 +356,7 @@ slist_t * imap_slist_pop(imap_t * imap)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  *
  * When successful a NEW slist is returned.
  */
@@ -380,7 +379,7 @@ slist_t * imap_2slist(imap_t * imap)
  * are different for each object. Best is to handle the decrement while looping
  * over the returned list.
  *
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 slist_t * imap_2slist_ref(imap_t * imap)
 {

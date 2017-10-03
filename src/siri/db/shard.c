@@ -844,7 +844,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (slist == NULL)
     {
-        return -1;  /* signal is raised */
+        ERR_ALLOC
+        return -1;
     }
 
     sleep(1);
@@ -1047,37 +1048,40 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
     {
         slist_t * slist = imap_2slist_ref(siridb->series_map);
 
-        if (slist != NULL)
+        if (slist == NULL)
         {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    siridb_series_remove_shard(siridb, series, shard);
-                    siridb_series_remove_shard(siridb, series, pop_shard);
-                }
-                siridb_series_decref(series);
-            }
-            slist_free(slist);
+            ERR_ALLOC
         }
+        else for (size_t i = 0; i < slist->len; i++)
+        {
+            series = (siridb_series_t *) slist->data[i];
+            if (shard->id % siridb->duration_num == series->mask)
+            {
+                siridb_series_remove_shard(siridb, series, shard);
+                siridb_series_remove_shard(siridb, series, pop_shard);
+            }
+            siridb_series_decref(series);
+        }
+
+        slist_free(slist);
     }
     else
     {
         slist_t * slist = imap_2slist(siridb->series_map);
 
-        if (slist != NULL)
+        if (slist == NULL)
         {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    siridb_series_remove_shard(siridb, series, shard);
-                }
-            }
-            slist_free(slist);
+            ERR_ALLOC
         }
+        else for (size_t i = 0; i < slist->len; i++)
+        {
+            series = (siridb_series_t *) slist->data[i];
+            if (shard->id % siridb->duration_num == series->mask)
+            {
+                siridb_series_remove_shard(siridb, series, shard);
+            }
+        }
+        slist_free(slist);
     }
 
     if (pop_shard != NULL)

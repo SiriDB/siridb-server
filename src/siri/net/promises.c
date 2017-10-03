@@ -42,7 +42,8 @@ sirinet_promises_t * sirinet_promises_new(
         if (promises->promises == NULL)
         {
             free(promises);
-            promises = NULL;  /* signal is raised */
+            promises = NULL;
+            ERR_ALLOC
         }
     }
     return promises;
