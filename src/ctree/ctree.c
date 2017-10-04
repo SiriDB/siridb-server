@@ -28,7 +28,6 @@ static int CT_add(
         ct_node_t * node,
         const char * key,
         void * data);
-static void * CT_getn(ct_node_t * node, const char * key, size_t n);
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
 static void CT_dec_node(ct_node_t * node);
 static void CT_merge_node(ct_node_t * node);
@@ -160,17 +159,14 @@ void ** ct_getaddr(ct_t * ct, const char * key)
     {
         return NULL;
     }
+
     nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
 
-    while (1)
+    while (nd && !strncmp(nd->key, ++key, nd->len))
     {
-        key++;
-        if (strncmp(nd->key, key, nd->len)) return NULL;
-
         key += nd->len;
 
         if (!*key) return &nd->data;
-
         if (!nd->nodes) return NULL;
 
         k = (uint8_t) *key;
@@ -182,9 +178,9 @@ void ** ct_getaddr(ct_t * ct, const char * key)
         }
 
         nd = (*nd->nodes)[k - nd->offset * BLOCKSZ];
-
-        if (!nd) return NULL;
     }
+
+    return NULL;
 }
 
 /*
@@ -192,6 +188,7 @@ void ** ct_getaddr(ct_t * ct, const char * key)
  */
 void * ct_getn(ct_t * ct, const char * key, size_t n)
 {
+    size_t diff = 1;
     ct_node_t * nd;
     uint8_t k = (uint8_t) *key;
     uint8_t pos = k / BLOCKSZ;
@@ -200,9 +197,35 @@ void * ct_getn(ct_t * ct, const char * key, size_t n)
     {
         return NULL;
     }
+
     nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
 
-    return (nd == NULL) ? NULL : CT_getn(nd, key + 1, n - 1);
+    while (nd)
+    {
+        key += diff;
+        n -= diff;
+
+        if (n < nd->len || strncmp(nd->key, key, nd->len))
+        {
+            return NULL;
+        }
+
+        if (nd->len == n) return nd->data;
+        if (!nd->nodes) return NULL;
+
+        k = (uint8_t) key[nd->len];
+        pos = k / BLOCKSZ;
+
+        if (pos < nd->offset || pos >= nd->offset + nd->n)
+        {
+            return NULL;
+        }
+
+        diff = nd->len + 1; /* n - diff is at least 0 */
+        nd = (*nd->nodes)[k - nd->offset * BLOCKSZ];
+    }
+
+    return NULL;
 }
 
 /*
@@ -584,39 +607,6 @@ static int CT_add(
     node->data = data;
 
     return CT_OK;
-}
-
-/*
- * Returns an item or NULL if the key does not exist.
- */
-static void * CT_getn(ct_node_t * node, const char * key, size_t n)
-{
-    if (n < node->len || strncmp(node->key, key, node->len))
-    {
-        return NULL;
-    }
-
-    if (node->len == n)
-    {
-        return node->data;
-    }
-
-    if (node->nodes != NULL)
-    {
-        size_t diff = node->len + 1; /* n - diff is at least 0 */
-        uint8_t k = (uint8_t) key[node->len];
-        uint8_t pos = k / BLOCKSZ;
-
-        if (pos < node->offset || pos >= node->offset + node->n)
-        {
-            return NULL;
-        }
-
-        ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
-        return (nd == NULL) ? NULL : CT_getn(nd, key + diff, n - diff);
-    }
-
-    return NULL;
 }
 
 /*
