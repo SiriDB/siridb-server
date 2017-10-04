@@ -260,8 +260,7 @@ int siridb_series_add_pcache(
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
- * This function adds the new series to siridb->series_map but not to
- * the compact tree: siridb->series.
+ * This function adds the new series to siridb->series_map and siridb->series.
  */
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
@@ -309,13 +308,20 @@ siridb_series_t * siridb_series_new(
         return NULL;
     }
 
-    /* We only should add the series to series_map and assume the caller
-     * takes responsibility adding the series to SiriDB -> series
-     */
     if (imap_add(siridb->series_map, series->id, series))
     {
-        log_critical("Error adding series '%s' to the internal map.",
+        log_critical("Error adding series '%s' to the internal imap.",
                 series_name);
+        siridb__series_free(series);
+        ERR_ALLOC
+        return NULL;
+    }
+
+    if (ct_add(siridb->series, series->name, series))
+    {
+        log_critical("Error adding series '%s' to the internal smap.",
+                series_name);
+        imap_pop(siridb->series_map, series->id);
         siridb__series_free(series);
         ERR_ALLOC
         return NULL;

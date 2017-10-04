@@ -28,11 +28,8 @@ static int CT_add(
         ct_node_t * node,
         const char * key,
         void * data);
-static void * CT_get(ct_node_t * node, const char * key);
-static void ** CT_getaddr(ct_node_t * node, const char * key);
 static void * CT_getn(ct_node_t * node, const char * key, size_t n);
 static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key);
-static void ** CT_get_sure(ct_node_t * node, const char * key);
 static void CT_dec_node(ct_node_t * node);
 static void CT_merge_node(ct_node_t * node);
 static int CT_items(
@@ -52,9 +49,6 @@ static void CT_valuesn(
         ct_val_cb cb,
         void * args);
 static void CT_free(ct_node_t * node, ct_free_cb cb);
-
-static char dummy = '\1';
-void * CT_EMPTY = &dummy;
 
 /*
  * Returns NULL in case an error has occurred.
@@ -93,49 +87,6 @@ void ct_free(ct_t * ct, ct_free_cb cb)
         free(ct->nodes);
     }
     free(ct);
-}
-
-/*
- * Returns an item from the list or CT_EMPTY if the key does not exist.
- * The address or CT_EMPTY should then be used to set a new value.
- *
- * In case of an error, NULL is returned.
- *
- * WARN: This function is not protected against empty keys so make sure
- *       a key has at least one 'real' character and a terminator.
- */
-void ** ct_get_sure(ct_t * ct, const char * key)
-{
-    ct_node_t ** nd;
-    void ** data = NULL;
-    uint8_t k = (uint8_t) *key;
-
-    if (CT_node_resize((ct_node_t *) ct, k / BLOCKSZ))
-    {
-        return NULL;
-    }
-
-    nd = &(*ct->nodes)[k - ct->offset * BLOCKSZ];
-    key++;
-
-    if (*nd != NULL)
-    {
-        data = CT_get_sure(*nd, key);
-        if (data != NULL && *data == CT_EMPTY)
-        {
-            ct->len++;
-        }
-    }
-    else
-    {
-        *nd = CT_node_new(key, strlen(key), CT_EMPTY);
-        if (*nd != NULL)
-        {
-            data = &(*nd)->data;
-            ct->len++;
-        }
-    }
-    return data;
 }
 
 /*
@@ -192,17 +143,8 @@ int ct_add(ct_t * ct, const char * key, void * data)
  */
 void * ct_get(ct_t * ct, const char * key)
 {
-    ct_node_t * nd;
-    uint8_t k = (uint8_t) *key;
-    uint8_t pos = k / BLOCKSZ;
-
-    if (!*key || pos < ct->offset || pos >= ct->offset + ct->n)
-    {
-        return NULL;
-    }
-    nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
-
-    return (nd == NULL) ? NULL : CT_get(nd, key + 1);
+    void ** data = ct_getaddr(ct, key);
+    return (data) ? *data : NULL;
 }
 
 /*
@@ -220,7 +162,29 @@ void ** ct_getaddr(ct_t * ct, const char * key)
     }
     nd = (*ct->nodes)[k - ct->offset * BLOCKSZ];
 
-    return (nd == NULL) ? NULL : CT_getaddr(nd, key + 1);
+    while (1)
+    {
+        key++;
+        if (strncmp(nd->key, key, nd->len)) return NULL;
+
+        key += nd->len;
+
+        if (!*key) return &nd->data;
+
+        if (!nd->nodes) return NULL;
+
+        k = (uint8_t) *key;
+        pos = k / BLOCKSZ;
+
+        if (pos < nd->offset || pos >= nd->offset + nd->n)
+        {
+            return NULL;
+        }
+
+        nd = (*nd->nodes)[k - nd->offset * BLOCKSZ];
+
+        if (!nd) return NULL;
+    }
 }
 
 /*
@@ -625,74 +589,6 @@ static int CT_add(
 /*
  * Returns an item or NULL if the key does not exist.
  */
-static void * CT_get(ct_node_t * node, const char * key)
-{
-    if (strncmp(node->key, key, node->len))
-    {
-        return NULL;
-    }
-
-    key += node->len;
-
-    if (!*key)
-    {
-        return node->data;
-    }
-
-    if (node->nodes != NULL)
-    {
-        uint8_t k = (uint8_t) *key;
-        uint8_t pos = k / BLOCKSZ;
-
-        if (pos < node->offset || pos >= node->offset + node->n)
-        {
-            return NULL;
-        }
-
-        ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
-
-        return (nd == NULL) ? NULL : CT_get(nd, key + 1);
-    }
-    return NULL;
-}
-
-/*
- * Returns an address of an item or NULL if the key does not exist.
- */
-static void ** CT_getaddr(ct_node_t * node, const char * key)
-{
-    if (strncmp(node->key, key, node->len))
-    {
-        return NULL;
-    }
-
-    key += node->len;
-
-    if (!*key)
-    {
-        return &node->data;
-    }
-
-    if (node->nodes != NULL)
-    {
-        uint8_t k = (uint8_t) *key;
-        uint8_t pos = k / BLOCKSZ;
-
-        if (pos < node->offset || pos >= node->offset + node->n)
-        {
-            return NULL;
-        }
-
-        ct_node_t * nd = (*node->nodes)[k - node->offset * BLOCKSZ];
-
-        return (nd == NULL) ? NULL : CT_getaddr(nd, key + 1);
-    }
-    return NULL;
-}
-
-/*
- * Returns an item or NULL if the key does not exist.
- */
 static void * CT_getn(ct_node_t * node, const char * key, size_t n)
 {
     if (n < node->len || strncmp(node->key, key, node->len))
@@ -721,136 +617,6 @@ static void * CT_getn(ct_node_t * node, const char * key, size_t n)
     }
 
     return NULL;
-}
-
-/*
- * Returns a item from the tree or CT_EMPTY in case the item is not found.
- * In case of an error, NULL is returned.
- */
-static void ** CT_get_sure(ct_node_t * node, const char * key)
-{
-    for (size_t n = 0; n < node->len; n++, key++)
-    {
-        char * pt = node->key + n;
-        if (*key != *pt)
-        {
-            size_t new_sz;
-            uint8_t k = (uint8_t) *pt;
-
-            /* create new nodes */
-            ct_nodes_t * new_nodes =
-                    (ct_nodes_t *) calloc(1, sizeof(ct_nodes_t));
-            if (new_nodes == NULL)
-            {
-                return NULL;
-            }
-
-            /* bind the -rest- of current node to the new nodes */
-            ct_node_t * nd = (*new_nodes)[k % BLOCKSZ] =
-                    CT_node_new(pt + 1, node->len - n - 1, node->data);
-            if (nd == NULL)
-            {
-                return NULL;
-            }
-
-            nd->size = node->size;
-            nd->nodes = node->nodes;
-            nd->offset = node->offset;
-            nd->n = node->n;
-
-            /* the current nodes should become the new nodes */
-            node->nodes = new_nodes;
-            node->offset = k / BLOCKSZ;
-            node->n = 1;
-
-            k = (uint8_t) *key;
-
-            if (CT_node_resize(node, k / BLOCKSZ))
-            {
-                return NULL;
-            }
-
-            /* re-allocate the key to free some space */
-            if ((new_sz = pt - node->key))
-            {
-                char * tmp = (char *) realloc(node->key, new_sz);
-                if (tmp != NULL)
-                {
-                    node->key = tmp;
-                }
-            }
-            else
-            {
-                free(node->key);
-                node->key = NULL;
-            }
-            node->len = new_sz;
-
-            if (!*key)
-            {
-                node->size = 1;
-                node->data = CT_EMPTY;
-                return &node->data;
-            }
-
-            node->size = 2;
-            node->data = NULL;
-            key++;
-            nd = CT_node_new(key, strlen(key), CT_EMPTY);
-            return (nd == NULL) ?
-                NULL :
-                &((*node->nodes)[k - node->offset * BLOCKSZ] = nd)->data;
-        }
-    }
-
-    if (*key)
-    {
-        uint8_t k = (uint8_t) *key;
-
-        if (node->nodes == NULL)
-        {
-            node->size = 1;
-
-            if (CT_node_resize(node, k / BLOCKSZ))
-            {
-                return NULL;
-            }
-            key++;
-            ct_node_t * nd = CT_node_new(key, strlen(key), CT_EMPTY);
-            return (nd == NULL) ?
-                NULL :
-                &((*node->nodes)[k - node->offset * BLOCKSZ] = nd)->data;
-        }
-
-        if (CT_node_resize(node, k / BLOCKSZ))
-        {
-            return NULL;
-        }
-
-        ct_node_t ** nd = &(*node->nodes)[k - node->offset * BLOCKSZ];
-        key++;
-        if (*nd != NULL)
-        {
-            return CT_get_sure(*nd, key);
-        }
-
-        node->size++;
-
-        *nd = CT_node_new(key, strlen(key), CT_EMPTY);
-        if (*nd == NULL)
-        {
-            return NULL; /* error */
-        }
-
-        return &(*nd)->data;
-    }
-
-    if (node->data == NULL)
-    {
-        node->data = CT_EMPTY;
-    }
-
-    return &node->data;
 }
 
 /*
