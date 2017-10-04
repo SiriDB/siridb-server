@@ -3,3 +3,8 @@
   * Fixed bug in ctree when looping over items.
   
   * Removed signal raising from all collection classes.
+  
+  * Removed ct_get_sure() function and improved the ct_get(), ct_getn() and 
+    ct_getaddr() functions.
+  
+  * Improved imap_get() function.
