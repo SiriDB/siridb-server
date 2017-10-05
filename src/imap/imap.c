@@ -208,8 +208,7 @@ void * imap_get(imap_t * imap, uint64_t id)
         if (!id) return nd->data;
         if (!nd->nodes) return NULL;
 
-        id--;
-        nd = nd->nodes + (id % IMAP_NODE_SZ);
+        nd = nd->nodes + (--id % IMAP_NODE_SZ);
     }
 }
 
