@@ -1,3 +1,18 @@
+siridb-server (2.0.25) xenial; urgency=medium
+
+  * Removed obsolete strlen() call when creating a new series.
+
+  * Fixed bug in ctree when looping over items. (issue #84)
+  
+  * Removed signal raising from all collection classes.
+  
+  * Removed ct_get_sure() function and improved the ct_get(), ct_getn() and 
+    ct_getaddr() functions.
+  
+  * Improved imap_get() function.
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 05 Oct 2017 07:09:19 +0000
+
 siridb-server (2.0.24) xenial; urgency=medium
 
   * Implemented time-precision for select statements. We can later extend the
