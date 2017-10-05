@@ -1,6 +1,6 @@
   * Removed obsolete strlen() call when creating a new series.
 
-  * Fixed bug in ctree when looping over items. (see issue #84)
+  * Fixed bug in ctree when looping over items. (issue #84)
   
   * Removed signal raising from all collection classes.
   
