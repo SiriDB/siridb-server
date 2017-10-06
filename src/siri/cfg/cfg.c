@@ -204,7 +204,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
         {
             log_warning(
                     "Error reading '%s' in '%s': "
-                    "error: expecting ALL, IPV4ONLY or IPV6ONLY bot got '%s'. "
+                    "error: expecting ALL, IPV4ONLY or IPV6ONLY but got '%s'. "
                     "Using default value: '%s'",
                     "ip_support",
                     siri.args->config,
