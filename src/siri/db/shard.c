@@ -21,6 +21,7 @@
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
+#include <siri/optimize.h>
 #include <siri/err.h>
 #include <siri/file/pointer.h>
 #include <siri/siri.h>

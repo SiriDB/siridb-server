@@ -327,10 +327,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         for (size_t i = 0; i < slshards->len; i++)
         {
             shard = (siridb_shard_t *) slshards->data[i];
-#ifdef DEBUG
-            /* SIRIDB_SHARD_IS_LOADING cannot be set at this point */
-            assert (~shard->flags & SIRIDB_SHARD_IS_LOADING);
-#endif
+
             if (    !siri_err &&
                     optimize.status != SIRI_OPTIMIZE_CANCELLED &&
                     (shard->flags & SIRIDB_SHARD_NEED_OPTIMIZE) &&
@@ -425,7 +422,6 @@ static void OPTIMIZE_work_finish(
         optimize.status = SIRI_OPTIMIZE_PENDING;
     }
 }
-
 
 /*
  * Start the optimize task. (will start a new thread performing the work)
