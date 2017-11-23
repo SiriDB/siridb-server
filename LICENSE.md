@@ -1,4 +1,4 @@
-MIT License (Expat)
+MIT License
 
 Copyright (c) 2016 Transceptor Technology
 
