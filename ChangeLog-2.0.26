@@ -1,2 +1,4 @@
   * Added bind_server_address and bind_client_address as configuration
     options. By default siridb should only listen to 127.0.0.1 (localhost).
+    
+  * Added -f to makefiles. (fixes make clean) (@paulgevers)
