@@ -50,6 +50,7 @@
 #include <unistd.h>
 #include <xpath/xpath.h>
 
+
 static void SIRI_signal_handler(uv_signal_t * req, int signum);
 static int SIRI_load_databases(void);
 static void SIRI_close_handlers(void);
@@ -235,6 +236,9 @@ void siri_free(void)
 
     /* free siridb admin request */
     siri_admin_request_destroy();
+
+    /* free config */
+    siri_cfg_destroy(&siri);
 
     /* free event loop */
     free(siri.loop);

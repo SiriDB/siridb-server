@@ -21,6 +21,8 @@
 static siri_cfg_t siri_cfg = {
         .listen_client_port=9000,
         .listen_backend_port=9010,
+        .bind_client_addr=NULL,
+        .bind_backend_addr=NULL,
         .heartbeat_interval=30,
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
         .optimize_interval=3600,
@@ -40,6 +42,10 @@ static void SIRI_CFG_read_address_port(
         const char * option_name,
         char * address_pt,
         uint16_t * port_pt);
+static void SIRI_CFG_read_addr(
+        cfgparser_t * cfgparser,
+        const char * option_name,
+        char ** dest);
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
@@ -100,7 +106,23 @@ void siri_cfg_init(siri_t * siri)
     SIRI_CFG_read_max_open_files(cfgparser);
     SIRI_CFG_read_ip_support(cfgparser);
 
+    SIRI_CFG_read_addr(
+            cfgparser,
+            "bind_client_address",
+            &siri_cfg.bind_client_addr);
+
+    SIRI_CFG_read_addr(
+            cfgparser,
+            "bind_server_address",
+            &siri_cfg.bind_backend_addr);
+
     cfgparser_free(cfgparser);
+}
+
+void siri_cfg_destroy(siri_t * siri)
+{
+    free(siri->cfg->bind_backend_addr);
+    free(siri->cfg->bind_client_addr);
 }
 
 static void SIRI_CFG_read_uint(
@@ -214,6 +236,48 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
     }
 }
 
+static void SIRI_CFG_read_addr(
+        cfgparser_t * cfgparser,
+        const char * option_name,
+        char ** dest)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    struct in_addr sa;
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "siridb",
+                option_name);
+    if (rc != CFGPARSER_SUCCESS)
+    {
+        return;
+    }
+    if (option->tp != CFGPARSER_TP_STRING)
+    {
+        log_error(
+                "Error reading '%s' in '%s': %s. ",
+                option_name,
+                siri.args->config,
+                "error: expecting a string value");
+        return;
+    }
+    if (!inet_pton(AF_INET, option->val->string, &sa) &&
+        !inet_pton(AF_INET6, option->val->string, &sa))
+    {
+        log_error(
+                "Error reading '%s' in '%s': %s. ",
+                option_name,
+                siri.args->config,
+                "error: expecting a valid IPv4 or IPv6 address");
+        return;
+    }
+    *dest = strdup(option->val->string);
+    if (!(*dest))
+    {
+        log_error("Error allocating memory for address.");
+    }
+}
 
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
 {

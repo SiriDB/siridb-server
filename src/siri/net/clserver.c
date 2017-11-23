@@ -110,6 +110,8 @@ int sirinet_clserver_init(siri_t * siri)
 #endif
 
     int rc;
+    int ip_v6 = 0;  /* false */
+    char * ip;
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -119,19 +121,38 @@ int sirinet_clserver_init(siri_t * siri)
     /* make sure data is set to NULL so we later on can check this value. */
     client_server.data = NULL;
 
-    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    if (siri->cfg->bind_client_addr != NULL)
     {
-        uv_ip4_addr(
-                "0.0.0.0",
-                siri->cfg->listen_client_port,
-                (struct sockaddr_in *) &client_addr);
+        struct in_addr sa;
+        if (inet_pton(AF_INET6, siri->cfg->bind_client_addr, &sa))
+        {
+            ip_v6 = 1;  /* true */
+        }
+        ip = siri->cfg->bind_client_addr;
+    }
+    else if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        ip = "0.0.0.0";
     }
     else
     {
+        ip = "::";
+        ip_v6 = 1;  /* true */
+    }
+
+    if (ip_v6)
+    {
         uv_ip6_addr(
-                "::",
+                ip,
                 siri->cfg->listen_client_port,
                 (struct sockaddr_in6 *) &client_addr);
+    }
+    else
+    {
+        uv_ip4_addr(
+                ip,
+                siri->cfg->listen_client_port,
+                (struct sockaddr_in *) &client_addr);
     }
 
     uv_tcp_bind(
