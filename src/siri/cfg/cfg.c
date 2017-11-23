@@ -244,6 +244,7 @@ static void SIRI_CFG_read_addr(
     cfgparser_option_t * option;
     cfgparser_return_t rc;
     struct in_addr sa;
+    struct in6_addr sa6;
     rc = cfgparser_get_option(
                 &option,
                 cfgparser,
@@ -263,7 +264,7 @@ static void SIRI_CFG_read_addr(
         return;
     }
     if (!inet_pton(AF_INET, option->val->string, &sa) &&
-        !inet_pton(AF_INET6, option->val->string, &sa))
+        !inet_pton(AF_INET6, option->val->string, &sa6))
     {
         log_error(
                 "Error reading '%s' in '%s': %s. ",

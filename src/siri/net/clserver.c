@@ -123,8 +123,8 @@ int sirinet_clserver_init(siri_t * siri)
 
     if (siri->cfg->bind_client_addr != NULL)
     {
-        struct in_addr sa;
-        if (inet_pton(AF_INET6, siri->cfg->bind_client_addr, &sa))
+        struct in6_addr sa6;
+        if (inet_pton(AF_INET6, siri->cfg->bind_client_addr, &sa6))
         {
             ip_v6 = 1;  /* true */
         }
