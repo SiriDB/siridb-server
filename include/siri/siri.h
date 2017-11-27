@@ -23,6 +23,7 @@
 #include <siri/args/args.h>
 #include <llist/llist.h>
 
+#define SIRI_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_BUILD_DATE __DATE__ " " __TIME__
 #define MAX_NUMBER_DB 4
 
@@ -57,6 +58,17 @@ typedef struct siri_s
     siri_args_t * args;
     uv_mutex_t siridb_mutex;
     uint32_t startup_time;
+
+    /* initialized by sidi_admin_account_init */
+    llist_t * accounts;
+
+    /* initialized by sidi_admin_request_init */
+    pcre * dbname_regex;
+    pcre_extra * dbname_regex_extra;
+
+    /* socket and promises used for expanding (client) */
+    uv_tcp_t * socket;
+    uv_timer_t timer;
 } siri_t;
 
 void siri_setup_logger(void);

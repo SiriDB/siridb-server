@@ -1,3 +1,4 @@
+
 /*
  * clserver.c - TCP server for serving client requests.
  *
@@ -9,12 +10,17 @@
  *  - initial version, 09-03-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <lock/lock.h>
-#include <lock/lock.h>
+#include <math.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
+#include <siri/siri.h>
+#include <siri/admin/account.h>
+#include <siri/admin/request.h>
 #include <siri/db/auth.h>
 #include <siri/db/insert.h>
 #include <siri/db/query.h>
@@ -32,8 +38,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <siri/db/server.h>
+#include <siri/db/access.h>
 
-#define WARNING_PKG_SIZE 1048576       // 1MB
+const unsigned long int WARNING_PKG_SIZE = RESET_BUF_SIZE;
 
 /*
  * note: this size is chosen to be 65535 but is not restricted to 16bit and
@@ -76,6 +84,7 @@ static void on_reqfile(
         sirinet_pkg_t * pkg,
         sirinet_clserver_getfile getfile);
 static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         uv_stream_t * stream,
@@ -101,6 +110,8 @@ int sirinet_clserver_init(siri_t * siri)
 #endif
 
     int rc;
+    int ip_v6 = 0;  /* false */
+    char * ip;
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -110,19 +121,38 @@ int sirinet_clserver_init(siri_t * siri)
     /* make sure data is set to NULL so we later on can check this value. */
     client_server.data = NULL;
 
-    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    if (siri->cfg->bind_client_addr != NULL)
     {
-        uv_ip4_addr(
-                "0.0.0.0",
-                siri->cfg->listen_client_port,
-                (struct sockaddr_in *) &client_addr);
+        struct in6_addr sa6;
+        if (inet_pton(AF_INET6, siri->cfg->bind_client_addr, &sa6))
+        {
+            ip_v6 = 1;  /* true */
+        }
+        ip = siri->cfg->bind_client_addr;
+    }
+    else if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        ip = "0.0.0.0";
     }
     else
     {
+        ip = "::";
+        ip_v6 = 1;  /* true */
+    }
+
+    if (ip_v6)
+    {
         uv_ip6_addr(
-                "::",
+                ip,
                 siri->cfg->listen_client_port,
                 (struct sockaddr_in6 *) &client_addr);
+    }
+    else
+    {
+        uv_ip4_addr(
+                ip,
+                siri->cfg->listen_client_port,
+                (struct sockaddr_in *) &client_addr);
     }
 
     uv_tcp_bind(
@@ -244,6 +274,12 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
         case CPROTO_REQ_FILE_GROUPS:
             on_reqfile(client, pkg, siridb_groups_get_file);
             break;
+        case CPROTO_REQ_FILE_DATABASE:
+            on_reqfile(client, pkg, siridb_get_file);
+            break;
+        case CPROTO_REQ_ADMIN:
+            on_req_admin(client, pkg);
+            break;
         }
     }
     else
@@ -277,9 +313,11 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
                 &qp_password,
                 &qp_dbname);
         package = sirinet_pkg_new(pkg->pid, 0, rc, NULL);
-
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send(client, package);
+        if (package != NULL)
+        {
+            /* ignore result code, signal can be raised */
+            sirinet_pkg_send(client, package);
+        }
     }
     else
     {
@@ -386,27 +424,31 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_unpacker_t unpacker;
     qp_obj_t qp_query;
     qp_obj_t qp_time_precision;
+    float factor;
     siridb_timep_t tp = SIRIDB_TIME_DEFAULT;
 
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
-            qp_next(&unpacker, &qp_query) == QP_RAW &&
-            qp_next(&unpacker, &qp_time_precision))
+            qp_next(&unpacker, &qp_query) == QP_RAW)
     {
+        qp_next(&unpacker, &qp_time_precision);
+
         if (qp_time_precision.tp == QP_INT64 &&
                 (tp = (siridb_timep_t) qp_time_precision.via.int64) !=
                 ssocket->siridb->time->precision)
         {
             tp %= SIRIDB_TIME_END;
         }
+        factor = (tp == SIRIDB_TIME_DEFAULT) ? 0.0 :
+                pow(1000.0, tp - ssocket->siridb->time->precision);
 
         siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query.via.raw,
                 qp_query.len,
-                tp,
+                factor,
                 SIRIDB_QUERY_FLAG_MASTER);
     }
     else
@@ -733,16 +775,27 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     {
         /* make a copy of the current servers */
         servers = siridb_servers_other2slist(siridb);
-
-        log_info("Register a new server");
-        new_server = siridb_server_register(siridb, pkg->data, pkg->len);
-
-        pkg->tp = BPROTO_REGISTER_SERVER;
-
-        if (new_server == NULL)
+        if (servers == NULL)
         {
-            /* a signal might be raised */
-            package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
+            sprintf(err_msg, "Memory allocation error.");
+            package = sirinet_pkg_err(
+                    pkg->pid,
+                    strlen(err_msg),
+                    CPROTO_ERR_SERVER,
+                    err_msg);
+        }
+        else
+        {
+            log_info("Register a new server");
+            new_server = siridb_server_register(siridb, pkg->data, pkg->len);
+
+            pkg->tp = BPROTO_REGISTER_SERVER;
+
+            if (new_server == NULL)
+            {
+                /* a signal might be raised */
+                package = sirinet_pkg_new(pkg->pid, 0, CPROTO_ERR, NULL);
+            }
         }
     }
 
@@ -767,7 +820,7 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
             pkg->tp = BPROTO_REGISTER_SERVER;
 
-            if (servers != NULL && (package = sirinet_pkg_copy(pkg)) != NULL)
+            if (servers != NULL && (package = sirinet_pkg_dup(pkg)) != NULL)
             {
                 /* make sure to decrement the client in the callback */
                 sirinet_socket_incref(client);
@@ -785,6 +838,77 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
 
     /* free the servers or NULL */
     slist_free(servers);
+}
+
+static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
+{
+    qp_unpacker_t unpacker;
+    qp_packer_t * packer = NULL;
+    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+    qp_obj_t qp_username;
+    qp_obj_t qp_password;
+    qp_obj_t qp_request;
+    sirinet_pkg_t * package = NULL;
+    cproto_server_t tp;
+    char err_msg[SIRI_MAX_SIZE_ERR_MSG];
+
+    if (    qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_username) == QP_RAW &&
+            qp_next(&unpacker, &qp_password) == QP_RAW &&
+            qp_next(&unpacker, &qp_request) == QP_INT64)
+    {
+        tp = (siri_admin_account_check(
+                &siri,
+                &qp_username,
+                &qp_password,
+                err_msg)) ?
+            CPROTO_ERR_ADMIN
+            :
+            siri_admin_request(
+                    qp_request.via.int64,
+                    &unpacker,
+                    &qp_username,
+                    &packer,
+                    pkg->pid,
+                    client,
+                    err_msg);
+
+        package =
+                (tp == CPROTO_DEFERRED) ? NULL :
+                (tp == CPROTO_ERR_ADMIN) ? sirinet_pkg_err(
+                        pkg->pid,
+                        strlen(err_msg),
+                        tp,
+                        err_msg) :
+                (tp == CPROTO_ACK_ADMIN_DATA) ? sirinet_packer2pkg(
+                        packer,
+                        pkg->pid,
+                        tp) : sirinet_pkg_new(pkg->pid, 0, tp, NULL);
+    }
+    else
+    {
+        log_error("Invalid administrative request received.");
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                CPROTO_ERR_ADMIN_INVALID_REQUEST,
+                NULL);
+    }
+    if (package != NULL)
+    {
+        switch (package->tp)
+        {
+        case CPROTO_ERR_ADMIN_INVALID_REQUEST:
+            log_warning("Received an invalid manage request.");
+            break;
+        case CPROTO_ERR_ADMIN:
+            log_warning("Error handling manage request: %s", err_msg);
+            break;
+        }
+
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send(client, package);
+    }
 }
 
 /*

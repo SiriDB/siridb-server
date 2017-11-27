@@ -12,7 +12,6 @@
 #include <limits.h>
 #include <logger/logger.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>

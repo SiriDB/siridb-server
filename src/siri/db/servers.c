@@ -54,7 +54,8 @@ int siridb_servers_load(siridb_t * siridb)
     siridb->servers = llist_new();
     if (siridb->servers == NULL)
     {
-        return -1;  /* signal is raised */
+        ERR_ALLOC
+        return -1;
     }
 
     /* get servers file name */
@@ -79,7 +80,8 @@ int siridb_servers_load(siridb_t * siridb)
         if (llist_append(siridb->servers, server))
         {
             siridb_server_decref(server);
-            return -1;  /* signal is raised */
+            ERR_ALLOC
+            return -1;
         }
 
         siridb->server = server;
@@ -129,13 +131,12 @@ int siridb_servers_load(siridb_t * siridb)
             if (llist_append(siridb->servers, server))
             {
                 siridb_server_decref(server);
-                rc = -1;  /* signal is raised */
+                rc = -1;
             }
             else if (uuid_compare(server->uuid, siridb->uuid) == 0)
             {
                 /* if this is me, bind server to siridb->server */
                 siridb->server = server;
-
             }
             else
             {
@@ -143,7 +144,8 @@ int siridb_servers_load(siridb_t * siridb)
                 server->promises = imap_new();
                 if (server->promises == NULL)
                 {
-                    rc = -1;  /* signal is raised */
+                    log_critical("Memory allocation error");
+                    rc = -1;
                 }
             }
         }
@@ -300,7 +302,8 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
     if (llist_append(siridb->servers, server) || siridb_servers_save(siridb))
     {
         log_critical("Cannot save server '%s'", server->name);
-        return -1;  /* a signal is raised in this case */
+        ERR_ALLOC
+        return -1;
     }
 
     siridb_server_incref(server);
@@ -325,26 +328,28 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
  *
  * Note: this function does not increase the servers reference counter.
  *
- * In case of an error, NULL is returned and a SIGNAL is raised.
+ * In case of an error, NULL is returned.
  */
 slist_t * siridb_servers_other2slist(siridb_t * siridb)
 {
+    siridb_server_t * server;
     slist_t * servers = slist_new(siridb->servers->len - 1);
-    if (servers != NULL)
+    if (servers == NULL)
     {
-        siridb_server_t * server;
+        return NULL;
+    }
 
-        for (   llist_node_t * node = siridb->servers->first;
-                node != NULL;
-                node = node->next)
+    for (   llist_node_t * node = siridb->servers->first;
+            node != NULL;
+            node = node->next)
+    {
+        server = node->data;
+        if (server != siridb->server)
         {
-            server = node->data;
-            if (server != siridb->server)
-            {
-                slist_append(servers, server);
-            }
+            slist_append(servers, server);
         }
     }
+
     return servers;
 }
 
@@ -413,7 +418,7 @@ siridb_server_t * siridb_servers_by_uuid(llist_t * servers, uuid_t uuid)
 
     while (node != NULL)
     {
-        server = node->data;
+        server = (siridb_server_t *) node->data;
         if (uuid_compare(server->uuid, uuid) == 0)
         {
             return server;
@@ -430,8 +435,27 @@ siridb_server_t * siridb_servers_by_name(llist_t * servers, const char * name)
 
     while (node != NULL)
     {
-        server = node->data;
+        server = (siridb_server_t *) node->data;
         if (strcmp(server->name, name) == 0)
+        {
+            return server;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+siridb_server_t * siridb_servers_by_replica(
+        llist_t * servers,
+        siridb_server_t * replica)
+{
+
+    llist_node_t * node = servers->first;
+    siridb_server_t * server;
+    while (node != NULL)
+    {
+        server = (siridb_server_t *) node->data;
+        if (server != replica && server->pool == replica->pool)
         {
             return server;
         }
@@ -467,9 +491,10 @@ void siridb_servers_send_flags(llist_t * servers)
 
 /*
  * Returns 1 (true) if all servers are online, 0 (false)
- * if at least one server is online. ('this' server is NOT included)
+ * if at least one server is not online. ('this' server is NOT included)
  *
- * A server is considered  'online' when connected and authenticated.
+ * Server is 'online' when at least running and authenticated but not
+ * queue-full
  */
 int siridb_servers_online(siridb_t * siridb)
 {
@@ -488,7 +513,7 @@ int siridb_servers_online(siridb_t * siridb)
 
 /*
  * Returns 1 (true) if all servers are available, 0 (false)
- * if at least one server is unavailable. ('this' server is NOT included)
+ * if at least one server is not available. ('this' server is NOT included)
  *
  * A server is  'available' when and ONLY when connected and authenticated.
  */
@@ -643,6 +668,11 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
                     query->packer,
                     (int32_t) (procinfo_total_physical_memory() / 1024));
             break;
+        case CLERI_GID_K_FIFO_FILES:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) siridb_fifo_size(siridb->fifo));
+            break;
         case CLERI_GID_K_OPEN_FILES:
             qp_add_int32(query->packer, siridb_open_files(siridb));
             break;
@@ -651,6 +681,9 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             break;
         case CLERI_GID_K_REINDEX_PROGRESS:
             qp_add_string(query->packer, siridb_reindex_progress(siridb));
+            break;
+        case CLERI_GID_K_SELECTED_POINTS:
+            qp_add_int64(query->packer, siridb->selected_points);
             break;
         case CLERI_GID_K_SYNC_PROGRESS:
             qp_add_string(query->packer, siridb_initsync_sync_progress(siridb));
@@ -666,6 +699,31 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
     return 1;  // true
+}
+
+/*
+ * Returns the numbers of servers with a version less than the given version.
+ * If all servers are at least running the given version 0 is returned.
+ *
+ * Note: *this* server is not checked and is expected to have at least the
+ *       required version.
+ */
+int siridb_servers_check_version(siridb_t * siridb, char * version)
+{
+    siridb_server_t * server;
+    int n = 0;
+    for (   llist_node_t * node = siridb->servers->first;
+            node != NULL;
+            node = node->next)
+    {
+        server = (siridb_server_t *) node->data;
+        if (server != siridb->server)
+        {
+            n += (server->version == NULL ||
+                  siri_version_cmp(server->version, version) < 0) ? 1 : 0;
+        }
+    }
+    return n;
 }
 
 /*
@@ -713,7 +771,9 @@ int siridb_servers_save(siridb_t * siridb)
     return 0;
 }
 
-static void SERVERS_walk_free(siridb_server_t * server, void * args)
+static void SERVERS_walk_free(
+        siridb_server_t * server,
+        void * args __attribute__((unused)))
 {
     siridb_server_decref(server);
 }
@@ -728,5 +788,4 @@ static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
     rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
     return rc;
 }
-
 

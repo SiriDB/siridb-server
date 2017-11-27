@@ -21,7 +21,7 @@ When no columns are provided the default is used. (name)
 match series
 ------------
 
-Series can be matched using different methods. Groups and especially indexed groups can help to quickly get the required series even in a database with over a million unique series.
+Series can be matched using different methods. Groups can help to quickly get the required series even in a database with millions of unique series.
 
 
 syntax:
@@ -80,7 +80,7 @@ SiriDB knows four update functions:
 
 * difference (alias: **-**)
 * symmentric_difference (alias: **^**)
-* union (aliasses: **,** and **|**)
+* union (aliases: **,** and **|**)
 * intersection (alias: **&**)
 
 examples

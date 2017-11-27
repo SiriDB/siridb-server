@@ -9,7 +9,9 @@
  *  - initial version, 22-07-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <siri/db/initsync.h>
 #include <siri/err.h>
 #include <stddef.h>
@@ -32,7 +34,7 @@ static int INITSYNC_create_cb(siridb_series_t * series, FILE * fp);
 static void INITSYNC_work(uv_timer_t * timer);
 static void INITSYNC_next_series_id(siridb_t * siridb);
 static int INITSYNC_unlink(siridb_initsync_t * initsync);
-inline static int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync);
+static inline int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync);
 static void INITSYNC_pause(siridb_replicate_t * replicate);
 static void INITSYNC_send(uv_timer_t * timer);
 static void INITSYNC_on_insert_response(
@@ -125,7 +127,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
                         ERR_FILE
                         siridb_initsync_free(&initsync);
                     }
-                    else if (initsync->size < sizeof(uint32_t))
+                    else if (initsync->size < (long int) sizeof(uint32_t))
                     {
                         log_warning("Empty synchronization file found...");
                         INITSYNC_unlink(initsync);
@@ -502,7 +504,7 @@ static int INITSYNC_create_cb(siridb_series_t * series, FILE * fp)
  *
  * Returns the length of 'fn' or a negative value in case of an error.
  */
-inline static int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync)
+static inline int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync)
 {
      return asprintf(
              &initsync->fn,

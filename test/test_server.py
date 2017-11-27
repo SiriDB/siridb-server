@@ -32,6 +32,7 @@ class TestServer(TestBase):
 
         await self.db.add_pool(self.server1)
         await self.assertIsRunning(self.db, self.client0, timeout=12)
+        await asyncio.sleep(5)
 
         await self.client1.connect()
 

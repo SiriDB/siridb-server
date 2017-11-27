@@ -53,7 +53,6 @@ void siridb_pools_send_pkg(
         void * data,
         int flags);
 void siridb_pools_send_pkg_2some(
-        siridb_t * siridb,
         slist_t * slist,
         sirinet_pkg_t * pkg,
         uint64_t timeout,

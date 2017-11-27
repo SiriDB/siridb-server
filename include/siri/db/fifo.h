@@ -10,6 +10,7 @@
  *
  */
 #pragma once
+#include <stddef.h>
 #include <siri/db/db.h>
 #include <llist/llist.h>
 #include <siri/db/ffile.h>
@@ -26,6 +27,7 @@ typedef struct siridb_fifo_s
 
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb);
 void siridb_fifo_free(siridb_fifo_t * fifo);
+size_t siridb_fifo_size(siridb_fifo_t * fifo);
 int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_fifo_pop(siridb_fifo_t * fifo);
 int siridb_fifo_commit(siridb_fifo_t * fifo);

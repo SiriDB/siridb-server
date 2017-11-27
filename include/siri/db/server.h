@@ -27,14 +27,15 @@
 #define SERVER_FLAG_SYNCHRONIZING 2
 #define SERVER_FLAG_REINDEXING 4
 #define SERVER_FLAG_BACKUP_MODE 8
-//#define SERVER_FLAG_APPLYING_MODE 16
-#define SERVER_FLAG_AUTHENTICATED 32  /* must be the last (we depend on this)
-                                         and will NEVER be set on 'this'
-                                         server */
+#define SERVER_FLAG_QUEUE_FULL 16       /* never set on 'this' server */
+#define SERVER_FLAG_UNAVAILABLE 32      /* never set on 'this' server */
+#define SERVER_FLAG_AUTHENTICATED 64    /* must be the last (we depend on this)
+                                           and will NEVER be set on 'this'
+                                           server */
 
-#define SERVER__IS_ONLINE 33  // RUNNING + AUTHENTICATED
-#define SERVER__IS_SYNCHRONIZING 35  // RUNNING + SYNCHRONIZING + AUTHENTICATED
-#define SERVER__IS_REINDEXING 37  // RUNNING + REINDEXING + AUTHENTICATED
+#define SERVER__IS_ONLINE 65  // RUNNING + AUTHENTICATED
+#define SERVER__IS_SYNCHRONIZING 67  // RUNNING + SYNCHRONIZING + AUTHENTICATED
+#define SERVER__IS_REINDEXING 69  // RUNNING + REINDEXING + AUTHENTICATED
 
 #define SERVER__SELF_ONLINE 1  // RUNNING
 #define SERVER__SELF_SYNCHRONIZING 3  // RUNNING + SYNCHRONIZING
@@ -42,21 +43,23 @@
 
 
 /*
- * A server is  'connected' when at least connected.
+ * Server is 'connected' when at least connected.
  */
 #define siridb_server_is_connected(server) \
     (server->socket != NULL)
 
 /*
- * A server is  'online' when at least running and authenticated.
+ * Server is 'online' when at least running and authenticated but not
+ * queue-full. (unavailable status is intentionally ignored)
  */
 #define siridb_server_is_online(server) \
-((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE)
+((server->flags & SERVER__IS_ONLINE) == SERVER__IS_ONLINE && \
+        (~server->flags & SERVER_FLAG_QUEUE_FULL))
 #define siridb_server_self_online(server) \
 ((server->flags & SERVER__SELF_ONLINE) == SERVER__SELF_ONLINE)
 
 /*
- * A server is  'available' when exactly running and authenticated.
+ * Server is 'available' when exactly running and authenticated.
  */
 #define siridb_server_is_available(server) \
 (server->flags == SERVER__IS_ONLINE)
@@ -64,7 +67,7 @@
 (server->flags == SERVER__SELF_ONLINE)
 
 /*
- * A server is  'synchronizing' when exactly running, authenticated and
+ * Server is 'synchronizing' when exactly running, authenticated and
  * synchronizing.
  */
 #define siridb_server_is_synchronizing(server) \
@@ -73,8 +76,8 @@
 (server->flags == SERVER__SELF_SYNCHRONIZING)
 
 /*
- * A server is  'accessible' when exactly running, authenticated and
- * optionally re-indexing.
+ * Server is 'accessible' when exactly running, authenticated and optionally
+ * re-indexing.
  */
 #define siridb_server_is_accessible(server) \
 (server->flags == SERVER__IS_ONLINE || server->flags == SERVER__IS_REINDEXING)
@@ -97,7 +100,6 @@ typedef struct siridb_server_s
     uint16_t pool;
     uint8_t flags; /* do not use flags above 16384 */
     uint8_t id; /* set when added to a pool to either 0 or 1 */
-    uuid_t uuid;
     char * name; /* this is a format for address:port but we use it a lot */
     char * address;
     imap_t * promises;
@@ -112,6 +114,7 @@ typedef struct siridb_server_s
     char * dbpath;
     char * buffer_path;
     size_t buffer_size;
+    uuid_t uuid;
 } siridb_server_t;
 
 typedef struct siridb_server_walker_s
@@ -134,7 +137,16 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool);
 
-int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb);
+/*
+ * Returns < 0 if the uuid from server A is less than uuid from server B.
+ * Returns > 0 if the uuid from server A is greater than uuid from server B.
+ * Returns 0 when uuid server A and B are equal.
+ */
+static inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
+{
+    return uuid_compare(sa->uuid, sb->uuid);
+}
+
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_send_pkg(
         siridb_server_t * server,
@@ -165,8 +177,11 @@ siridb_server_t * siridb_server_register(
         size_t len);
 void siridb__server_free(siridb_server_t * server);
 
+/* This will remove the unavailable status but the authenticated and queue_full
+ * flags are kept.
+ */
 #define siridb_server_update_flags(org, new) \
-    org = new | (org & SERVER_FLAG_AUTHENTICATED)
+    org = new | (org & (SERVER_FLAG_AUTHENTICATED | SERVER_FLAG_QUEUE_FULL))
 
 #define siridb_server_incref(server) server->ref++
 
@@ -176,4 +191,4 @@ void siridb__server_free(siridb_server_t * server);
  * and each promise->cb() will be called.
  */
 #define siridb_server_decref(server__) \
-	if (!--server__->ref) siridb__server_free(server__)
+    if (!--server__->ref) siridb__server_free(server__)

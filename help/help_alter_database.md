@@ -5,7 +5,7 @@ Syntax:
 
 	alter database set <option>
 
-Valid options are *drop_threshold* and *timezone*.
+Valid options are *drop_threshold*, *timezone*, *select_points_limit* and *list_limit*.
 
 drop_threshold
 --------------
@@ -58,3 +58,22 @@ Example:
 
 	# Set the default time zone to Europe/Amsterdam
 	alter database set timezone 'Europe/Amsterdam'  
+
+select\_points_limit
+-------------------
+Change the maximum points which can be returned by a select query. The default and recommended value is set to one million points. This value is chosen to prevent a single query for taking to much memory and ensures SiriDB can respond to almost any query in a reasonable amount of time. 
+
+Example:
+
+    # Increase the select points limit to 5 million
+    alter database set select_points_limit 5000000
+    
+list_limit
+----------
+Change the maximum value which can be used as a limit for a list statement. The default and recommended value is set to ten thousand to prevent queries which could take a large amount of memory. The value must be greater than or equal to 1000.
+
+Example:
+
+    # Set the list limit to 50 thousand.
+    alter database set list_limit 50000
+    

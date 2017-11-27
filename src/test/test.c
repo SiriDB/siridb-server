@@ -18,8 +18,7 @@
 #include <stdlib.h>
 #include <qpack/qpack.h>
 #include <motd/motd.h>
-#include <cleri/grammar.h>
-#include <cleri/parse.h>
+#include <cleri/cleri.h>
 #include <ctree/ctree.h>
 #include <timeit/timeit.h>
 #include <imap/imap.h>
@@ -65,10 +64,11 @@ static siridb_points_t * prepare_points(void)
     uint64_t timestamps[10] =   {3, 6, 7, 10, 11, 13, 14, 15, 25, 27};
     int64_t values[10] =        {1, 3, 0, 2,  4,  8,  3,  5,  6,  3};
     qp_via_t val;
+    int i;
 
     siridb_init_aggregates();
 
-    for (int i = 0; i < 10; i++)
+    for (i = 0; i < 10; i++)
     {
         val.int64 = values[i];
         siridb_points_add_point(points, &timestamps[i], &val);
@@ -199,22 +199,31 @@ static int test_ctree(void)
     // key exists
     assert (ct_add(ct, "Iris", "Iris?") == CT_EXISTS);
 
-    // get_sure should return the corrent result
-    assert (strcmp(*ct_get_sure(ct, "Iris"), "is gewoon Iris") == 0);
-
-    // get_sure with new key should create a CT_EMPTY
-    assert (ct_is_empty(*ct_get_sure(ct, "Sasha")));
-
-    // len should be 2 by now
-    assert (ct->len == 4);
-    assert (ct_get(ct, "Dummy") == NULL);
+    // len should be 3 by now
+    assert (ct->len == 3);
     assert (strcmp(ct_getn(ct, "Iris1!", 5), "is gewoon Iris1") == 0);
     assert (strcmp(ct_get(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris"), "is gewoon Iris") == 0);
     assert (strcmp(ct_pop(ct, "Iris1"), "is gewoon Iris1") == 0);
-    assert (ct_pop(ct, "Sasha") == CT_EMPTY);
     assert (strcmp(ct_get(ct, "Iris2"), "is gewoon Iris2") == 0);
     assert (ct->len == 1);
+
+    /* This will hit all steps in dec node */
+    assert (ct_add(ct, "I", "Een korte naam") == CT_OK);
+    assert (ct_add(ct, "t", "Een andere naam") == CT_OK);
+    assert (strcmp(ct_pop(ct, "Iris2"), "is gewoon Iris2") == 0);
+
+    /* This will hit the pop merge...*/
+    assert (ct_add(ct, "Iris", "Hoi Iris") == CT_OK);
+    assert (strcmp(ct_pop(ct, "I"), "Een korte naam") == 0);
+    assert (ct_add(ct, "t", "Iris?") == CT_EXISTS);
+
+    /* Makes sure all possible return values for CT_add are hit */
+    assert (ct_add(ct, "IrIs", "Hoi IrIs") == CT_OK);
+    assert (ct_add(ct, "Ir", "Hoi Ir") == CT_OK);
+
+    /* Hits a recursive CT_add */
+    assert (ct_add(ct, "Iri!!", "Hoi Ir!") == CT_OK);
 
 
     ct_free(ct, NULL);
@@ -233,11 +242,13 @@ static int test_imap(void)
     test_start("Testing imap");
     imap_t * imap = imap_new();
 
-    imap_add(imap, 14, "Sasientje");
-    imap_add(imap, 20130602, "Iriske");
-    imap_add(imap, 726, "Job");
-    imap_add(imap, 2011, "Tijs");
-    imap_add(imap, 0, "Joente");
+    imap_set(imap, 14, "Sasientje");
+    imap_set(imap, 20130602, "Iriske");
+    assert (imap_set(imap, 726, "Jip") == 1);
+    assert (imap_set(imap, 726, "Job") == 0);
+    assert (imap_add(imap, 726, "Jap") == -2);
+    assert (imap_add(imap, 2011, "Tijs") == 0);
+    imap_set(imap, 0, "Joente");
 
     assert (imap->len == 5);
     assert (strcmp(imap_get(imap, 14), "Sasientje") == 0);
@@ -246,20 +257,20 @@ static int test_imap(void)
 
     assert (strcmp(imap_pop(imap, 726), "Job") == 0);
     assert (imap_pop(imap, 726) == NULL);
-
-    assert (imap->len == 4);
+    assert (strcmp(imap_pop(imap, 2011), "Tijs") == 0);
+    assert (imap->len == 3);
 
     imap_free(imap, NULL);
 
     imap = imap_new();
-    imap_add(imap, 42, "Sasientje");
+    imap_set(imap, 42, "Sasientje");
     assert (imap_walk(imap, (imap_cb) &test__imap_cb, "Sasientje") == 1);
     size_t n = 43;
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Sasientje");
     assert (n == 42);
     n = 1;
 
-    imap_add(imap, 3, "Iriske");
+    imap_set(imap, 3, "Iriske");
     imap_walkn(imap, &n, (imap_cb) &test__imap_cb, "Iriske");
     assert (strcmp(imap_pop(imap, 3), "Iriske") == 0);
 
@@ -274,7 +285,9 @@ static int test__imap_decref_cb(char * series)
     return 1;
 }
 
-static int test__imap_id_count_cb(char * series, void * data)
+static int test__imap_id_count_cb(
+        char * series,
+        void * data __attribute__((unused)))
 {
     return ((siridb_series_t *) series)->id;
 }
@@ -309,25 +322,25 @@ static void test__imap_setup(void)
     imap_dst = imap_new();
     imap_tmp = imap_new();
 
-    imap_add(imap_dst, series_a.id, &series_a);
+    imap_set(imap_dst, series_a.id, &series_a);
     series_a.ref++;
 
-    imap_add(imap_dst, series_b.id, &series_b);
+    imap_set(imap_dst, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_dst, series_c.id, &series_c);
+    imap_set(imap_dst, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_b.id, &series_b);
+    imap_set(imap_tmp, series_b.id, &series_b);
     series_b.ref++;
 
-    imap_add(imap_tmp, series_c.id, &series_c);
+    imap_set(imap_tmp, series_c.id, &series_c);
     series_c.ref++;
 
-    imap_add(imap_tmp, series_d.id, &series_d);
+    imap_set(imap_tmp, series_d.id, &series_d);
     series_d.ref++;
 
-    imap_add(imap_tmp, series_e.id, &series_e);
+    imap_set(imap_tmp, series_e.id, &series_e);
     series_e.ref++;
 }
 
@@ -346,7 +359,7 @@ static int test_imap_union(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_a.id +
             series_b.id +
             series_c.id +
@@ -378,7 +391,7 @@ static int test_imap_intersection(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_b.id +
             series_c.id));
 
@@ -407,7 +420,7 @@ static int test_imap_difference(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == series_a.id);
+                NULL) == (int) series_a.id);
 
     imap_free(imap_dst, (imap_free_cb) test__imap_decref_cb);
     assert (series_a.ref == 0);
@@ -434,7 +447,7 @@ static int test_imap_symmetric_difference(void)
     assert (imap_walk(
                 imap_dst,
                 (imap_cb) &test__imap_id_count_cb,
-                NULL) == (
+                NULL) == (int) (
             series_a.id +
             series_d.id +
             series_e.id));
@@ -484,7 +497,7 @@ static int test_points(void)
     for (size_t i = 0; i < points->len; i++)
     {
         point = points->data + i;
-        assert (i == point->val.int64);
+        assert (i == (size_t) point->val.int64);
     }
 
     siridb_points_free(points);
@@ -914,7 +927,7 @@ int test_strx_to_double(void)
     return test_end(TEST_OK);
 }
 
-int run_tests(int flags)
+int run_tests(void)
 {
     timeit_t start;
     timeit_start(&start);

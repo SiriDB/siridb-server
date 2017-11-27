@@ -12,6 +12,8 @@ typedef struct siri_cfg_s
 {
     uint16_t listen_client_port;
     uint16_t listen_backend_port;
+    char * bind_client_addr;
+    char * bind_backend_addr;
     uint16_t heartbeat_interval;
     uint16_t max_open_files;
     uint32_t optimize_interval;
@@ -21,3 +23,4 @@ typedef struct siri_cfg_s
 } siri_cfg_t;
 
 void siri_cfg_init(siri_t * siri);
+void siri_cfg_destroy(siri_t * siri);

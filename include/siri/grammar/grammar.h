@@ -1,15 +1,16 @@
 /*
+ * siri/grammar/grammar.h
+ *
  * This grammar is generated using the Grammar.export_c() method and
- * should be used with the cleri module.
+ * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2017-02-28 14:14:49
+ * Created at: 2017-08-14 15:06:00
  */
+#ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
+#define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 
-#pragma once
-
-#include <siri/grammar/grammar.h>
-#include <cleri/object.h>
+#include <cleri/cleri.h>
 
 cleri_grammar_t * compile_grammar(void);
 
@@ -35,6 +36,7 @@ enum cleri_grammar_ids {
     CLERI_GID_COUNT_SERIES_LENGTH,
     CLERI_GID_COUNT_SERVERS,
     CLERI_GID_COUNT_SERVERS_RECEIVED,
+    CLERI_GID_COUNT_SERVERS_SELECTED,
     CLERI_GID_COUNT_SHARDS,
     CLERI_GID_COUNT_SHARDS_SIZE,
     CLERI_GID_COUNT_STMT,
@@ -139,6 +141,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_ERROR,
     CLERI_GID_K_EXPRESSION,
     CLERI_GID_K_FALSE,
+    CLERI_GID_K_FIFO_FILES,
     CLERI_GID_K_FILTER,
     CLERI_GID_K_FLOAT,
     CLERI_GID_K_FOR,
@@ -158,6 +161,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_LIBUV,
     CLERI_GID_K_LIMIT,
     CLERI_GID_K_LIST,
+    CLERI_GID_K_LIST_LIMIT,
     CLERI_GID_K_LOG,
     CLERI_GID_K_LOG_LEVEL,
     CLERI_GID_K_MAX,
@@ -188,6 +192,8 @@ enum cleri_grammar_ids {
     CLERI_GID_K_REINDEX_PROGRESS,
     CLERI_GID_K_REVOKE,
     CLERI_GID_K_SELECT,
+    CLERI_GID_K_SELECTED_POINTS,
+    CLERI_GID_K_SELECT_POINTS_LIMIT,
     CLERI_GID_K_SERIES,
     CLERI_GID_K_SERVER,
     CLERI_GID_K_SERVERS,
@@ -260,10 +266,12 @@ enum cleri_grammar_ids {
     CLERI_GID_SET_DROP_THRESHOLD,
     CLERI_GID_SET_EXPRESSION,
     CLERI_GID_SET_IGNORE_THRESHOLD,
+    CLERI_GID_SET_LIST_LIMIT,
     CLERI_GID_SET_LOG_LEVEL,
     CLERI_GID_SET_NAME,
     CLERI_GID_SET_PASSWORD,
     CLERI_GID_SET_PORT,
+    CLERI_GID_SET_SELECT_POINTS_LIMIT,
     CLERI_GID_SET_TIMEZONE,
     CLERI_GID_SHARD_COLUMNS,
     CLERI_GID_SHOW_STMT,
@@ -284,4 +292,6 @@ enum cleri_grammar_ids {
     CLERI_GID__BOOLEAN,
     CLERI_END // can be used to get the enum length
 };
+
+#endif /* CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_ */
 

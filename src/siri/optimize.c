@@ -27,10 +27,13 @@
 
 static siri_optimize_t optimize = {
         .pause=0,
-        .status=SIRI_OPTIMIZE_PENDING
+        .status=SIRI_OPTIMIZE_PENDING,
+        .idx_fp=NULL,
+        .idx_fn=NULL
 };
 
 static void OPTIMIZE_work(uv_work_t * work);
+static void OPTIMIZE_cleanup(slist_t * slsiridb);
 static void OPTIMIZE_work_finish(uv_work_t * work, int status);
 static void OPTIMIZE_cb(uv_timer_t * handle);
 
@@ -58,7 +61,7 @@ void siri_optimize_init(siri_t * siri)
     }
 }
 
-void siri_optimize_stop(siri_t * siri)
+void siri_optimize_stop(void)
 {
     /*
      * Main Thread
@@ -80,7 +83,7 @@ void siri_optimize_stop(siri_t * siri)
  * Increment pause. This is not just a simple boolean because more than one
  * siridb database can pause the optimize task.
  */
-inline void siri_optimize_pause(void)
+void siri_optimize_pause(void)
 {
     optimize.pause++;
     if (optimize.status == SIRI_OPTIMIZE_PENDING)
@@ -93,7 +96,7 @@ inline void siri_optimize_pause(void)
  * Decrement pause. This is not just a simple boolean because more than one
  * siridb database can pause the optimize task.
  */
-inline void siri_optimize_continue(void)
+void siri_optimize_continue(void)
 {
 #ifdef DEBUG
     assert (optimize.pause);
@@ -119,7 +122,22 @@ int siri_optimize_wait(void)
         assert (optimize.status == SIRI_OPTIMIZE_RUNNING);
 #endif
         optimize.status = SIRI_OPTIMIZE_PAUSED;
+
+        /* close open index file in case this is required */
+        if (optimize.idx_fp != NULL)
+        {
+            log_info("Closing index file: '%s'", optimize.idx_fn);
+            if (fclose(optimize.idx_fp))
+            {
+                log_critical(
+                        "Closing index file failed: '%s'",
+                        optimize.idx_fn);
+            }
+            optimize.idx_fp = NULL;
+        }
+
         log_info("Optimize task is paused, wait until we can continue...");
+
         sleep(5);
 
         while (optimize.pause)
@@ -133,6 +151,15 @@ int siri_optimize_wait(void)
         case SIRI_OPTIMIZE_PAUSED:
             log_info("Continue optimize task...");
             optimize.status = SIRI_OPTIMIZE_RUNNING;
+
+            if (optimize.idx_fn != NULL &&
+                (optimize.idx_fp = fopen(optimize.idx_fn, "a")) == NULL)
+            {
+                log_error("Cannot re-open index file: '%s'", optimize.idx_fn);
+                free(optimize.idx_fn);
+                optimize.idx_fn = NULL;
+            }
+
             break;
 
         case SIRI_OPTIMIZE_CANCELLED:
@@ -148,7 +175,95 @@ int siri_optimize_wait(void)
     return optimize.status;
 }
 
-static void OPTIMIZE_work(uv_work_t * work)
+/*
+ * Create an index file created from the given file name. (The index file
+ * will be equal the the given file name except for the extension which will
+ * be changed to .idx
+ *
+ * Returns 0 if successful and -1 in case of an error. In case of an error
+ * both optimize.idx_fn and optimize.idx_fp will be NULL.
+ */
+int siri_optimize_create_idx(const char * fn)
+{
+#ifdef DEBUG
+    assert (optimize.idx_fn == NULL && strlen(fn) > 3);
+#endif
+    /* copy file name */
+    optimize.idx_fn = strdup(fn);
+    if (optimize.idx_fn == NULL)
+    {
+        log_error("Memory allocation error");
+        return -1;
+    }
+
+    /* replace last three characters from sdb to idx */
+    memcpy(optimize.idx_fn + strlen(fn) - 3, "idx", 3);
+
+    /* open file for writing */
+    optimize.idx_fp = fopen(optimize.idx_fn, "w");
+    if (optimize.idx_fp == NULL)
+    {
+        log_error(
+                "Cannot open index file for writing: '%s'",
+                optimize.idx_fn);
+        free(optimize.idx_fn);
+        optimize.idx_fn = NULL;
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * When a shard optimization has finished, this function closes the temporary
+ * index file and renames the file to the final name. (__ will be stripped
+ * from the file name)
+ *
+ * If no index file was created then this function simply return 0.
+ * Argument 'remove_old' should be only set to true (1) in case the 'old'
+ * shard file had an index which can be removed.
+ */
+int siri_optimize_finish_idx(const char * fn, int remove_old)
+{
+    int rc = 0;
+
+    siridb_shard_idx_file(buffer, fn);
+
+    if (optimize.idx_fn == NULL)
+    {
+        log_warning("No index file was created");
+        return 0;
+    }
+
+    if (fclose(optimize.idx_fp))
+    {
+        log_critical("Closing index file failed: '%s'", optimize.idx_fn);
+        rc = -1;
+    }
+
+    if (remove_old && unlink(buffer))
+    {
+        log_warning("Cannot remove file: '%s'", buffer);
+    }
+
+    optimize.idx_fp = NULL;
+
+    if (rename(optimize.idx_fn, buffer))
+    {
+        log_critical(
+                "Rename failed: '%s' to '%s'",
+                optimize.idx_fn,
+                buffer);
+        rc = -1;
+    }
+
+    free(optimize.idx_fn);
+    optimize.idx_fn = NULL;
+
+    return rc;
+}
+
+static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 {
     /*
      * Optimize Thread
@@ -180,9 +295,9 @@ static void OPTIMIZE_work(uv_work_t * work)
 
     uv_mutex_unlock(&siri.siridb_mutex);
 
-    if (siri_err)
+    if (siri_err || slsiridb == NULL)
     {
-        /* signal is set when slsiridb is NULL */
+        OPTIMIZE_cleanup(slsiridb);
         return;
     }
 
@@ -202,7 +317,9 @@ static void OPTIMIZE_work(uv_work_t * work)
 
         if (slshards == NULL)
         {
-            return;  /* signal is raised */
+            log_error("Error creating reference list for shards.");
+            OPTIMIZE_cleanup(slsiridb);
+            return;
         }
 
         sleep(1);
@@ -210,13 +327,10 @@ static void OPTIMIZE_work(uv_work_t * work)
         for (size_t i = 0; i < slshards->len; i++)
         {
             shard = (siridb_shard_t *) slshards->data[i];
-#ifdef DEBUG
-            /* SIRIDB_SHARD_IS_LOADING cannot be set at this point */
-            assert (~shard->flags & SIRIDB_SHARD_IS_LOADING);
-#endif
+
             if (    !siri_err &&
                     optimize.status != SIRI_OPTIMIZE_CANCELLED &&
-                    shard->flags != SIRIDB_SHARD_OK &&
+                    (shard->flags & SIRIDB_SHARD_NEED_OPTIMIZE) &&
                     (~shard->flags & SIRIDB_SHARD_IS_REMOVED))
             {
                 log_info("Start optimizing shard id %" PRIu64 " (%" PRIu8 ")",
@@ -232,6 +346,26 @@ static void OPTIMIZE_work(uv_work_t * work)
                     log_critical(
                         "Optimizing shard id %" PRIu64 " has failed with a "
                         "critical error", shard->id);
+                }
+
+                if (optimize.idx_fn != NULL)
+                {
+                    log_debug(
+                            "Cleanup temporary index file: '%s'",
+                            optimize.idx_fn);
+                    if (optimize.idx_fp != NULL)
+                    {
+                        fclose(optimize.idx_fp);
+                        optimize.idx_fp = NULL;
+                    }
+                    if (unlink(optimize.idx_fn))
+                    {
+                        log_error(
+                                "Failed to remove file: '%s'",
+                                optimize.idx_fn);
+                    }
+                    free(optimize.idx_fn);
+                    optimize.idx_fn = NULL;
                 }
             }
 
@@ -249,17 +383,27 @@ static void OPTIMIZE_work(uv_work_t * work)
         log_debug("Finished optimizing database '%s'", siridb->dbname);
 #endif
     }
-
-    for (size_t i = 0; i < slsiridb->len; i++)
-    {
-        siridb = (siridb_t *) slsiridb->data[i];
-        siridb_decref(siridb);
-    }
-
-    slist_free(slsiridb);
+    OPTIMIZE_cleanup(slsiridb);
 }
 
-static void OPTIMIZE_work_finish(uv_work_t * work, int status)
+static void OPTIMIZE_cleanup(slist_t * slsiridb)
+{
+    if (slsiridb != NULL)
+    {
+        siridb_t * siridb;
+        for (size_t i = 0; i < slsiridb->len; i++)
+        {
+            siridb = (siridb_t *) slsiridb->data[i];
+            siridb_decref(siridb);
+        }
+
+        slist_free(slsiridb);
+    }
+}
+
+static void OPTIMIZE_work_finish(
+        uv_work_t * work  __attribute__((unused)),
+        int status)
 {
     /*
      * Main Thread
@@ -282,7 +426,7 @@ static void OPTIMIZE_work_finish(uv_work_t * work, int status)
 /*
  * Start the optimize task. (will start a new thread performing the work)
  */
-static void OPTIMIZE_cb(uv_timer_t * handle)
+static void OPTIMIZE_cb(uv_timer_t * handle  __attribute__((unused)))
 {
     /*
      * Main Thread

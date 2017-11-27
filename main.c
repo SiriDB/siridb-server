@@ -52,7 +52,7 @@ int main(int argc, char * argv[])
 #ifdef DEBUG
     int rc;
     /* run tests when we are in debug mode */
-    rc = run_tests(0);
+    rc = run_tests();
     if (rc)
     {
         exit(1);

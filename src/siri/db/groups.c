@@ -27,7 +27,9 @@
  *  Note:   One exception to 'not allowed' are the free functions
  *          since they only run when no other references to the object exist.
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/db.h>
@@ -84,10 +86,11 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         uv_mutex_init(&groups->mutex);
         groups->work.data = (siridb_t *) siridb;
 
-        if (groups->groups == NULL || groups->nseries == NULL)
+        if (!groups->groups || !groups->nseries || !groups->ngroups)
         {
+            ERR_ALLOC
             GROUPS_free(groups);
-            groups = NULL;  /* signal is raised */
+            groups = NULL;
         }
         else if (asprintf(
                     &groups->fn,
@@ -125,10 +128,12 @@ void siridb_groups_start(siridb_groups_t * groups)
 /*
  * Returns 0 if successful or -1 in case of an error.
  */
-void siridb_groups_add_series(
+int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series)
 {
+    int rc = 0;
+
     uv_mutex_lock(&groups->mutex);
 
     if (slist_append_safe(&groups->nseries, series) == 0)
@@ -139,9 +144,12 @@ void siridb_groups_add_series(
     {
         log_critical("Error while initializing series '%s' for groups",
                 series->name);
+        rc = -1;
     }
 
     uv_mutex_unlock(&groups->mutex);
+
+    return rc;
 }
 
 /*
@@ -215,7 +223,7 @@ int siridb_groups_add_group(
     return rc;
 }
 
-inline void siridb_groups_destroy(siridb_groups_t * groups)
+void siridb_groups_destroy(siridb_groups_t * groups)
 {
     groups->status = GROUPS_STOPPING;
 }
@@ -358,7 +366,9 @@ static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer)
 /*
  * Main thread.
  */
-static int GROUPS_nseries(siridb_group_t * group, void * data)
+static int GROUPS_nseries(
+        siridb_group_t * group,
+        void * data __attribute__((unused)))
 {
     group->n = group->series->len;
     return 0;
@@ -466,7 +476,9 @@ static void GROUPS_loop(uv_work_t * work)
     groups->status = GROUPS_CLOSED;
 }
 
-static void GROUPS_loop_finish(uv_work_t * work, int status)
+static void GROUPS_loop_finish(
+        uv_work_t * work,
+        int status __attribute__((unused)))
 {
     /*
      * Main Thread
@@ -668,9 +680,19 @@ static void GROUPS_cleanup(siridb_groups_t * groups)
 
     slist_t * groups_list = slist_new(groups->groups->len);
 
-    ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
+    if (groups_list != NULL)
+    {
+        ct_values(groups->groups, (ct_val_cb) GROUPS_2slist, groups_list);
+    }
 
     uv_mutex_unlock(&groups->mutex);
+
+    if (groups_list == NULL)
+    {
+        log_critical("Groups cleanup failed because of an allocation error.");
+        groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
+        return;
+    }
 
     siridb_group_t * group;
 

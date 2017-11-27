@@ -15,6 +15,7 @@
 #include <siri/db/query.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/fifo.h>
 #include <siri/err.h>
 #include <siri/net/promise.h>
 #include <siri/net/socket.h>
@@ -25,11 +26,9 @@
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
-#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000    // 5 seconds
+#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000        // 5 seconds
+#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250   // max concurrent promises
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
-
-/* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
-static int dns_req_family_map[3] = {AF_UNSPEC, AF_INET, AF_INET6};
 
 static int SERVER_update_name(siridb_server_t * server);
 static void SERVER_timeout_pkg(uv_timer_t * handle);
@@ -53,6 +52,7 @@ static int SERVER_resolve_dns(
         uv_getaddrinfo_cb getaddrinfo_cb);
 static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void SERVER_cancel_promise(sirinet_promise_t * promise);
+static void SERVER_upd_flag_queue_full(siridb_server_t * server);
 
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
@@ -116,17 +116,6 @@ siridb_server_t * siridb_server_new(
 }
 
 /*
- * Returns < 0 if the uuid from server A is less than uuid from server B.
- * Returns > 0 if the uuid from server A is greater than uuid from server B.
- * Returns 0 when uuid server A and B are equal.
- */
-inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
-{
-    return uuid_compare(sa->uuid, sb->uuid);
-}
-
-
-/*
  * This function can return -1 and raise a SIGNAL which means the 'cb'
  * function will NOT be called. Usually this function should return 0 which
  * means that we try to send the package and the 'cb' function can be checked
@@ -150,7 +139,8 @@ int siridb_server_send_pkg(
     assert (server->promises != NULL);
     assert (cb != NULL);
 #endif
-
+    int rc;
+    uint8_t n = 0;
     sirinet_promise_t * promise =
             (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
@@ -175,7 +165,6 @@ int siridb_server_send_pkg(
      * will be destroyed before the server is destroyed.
      */
     promise->server = server;
-    pkg->pid = promise->pid = server->pid;
     promise->data = data;
 
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
@@ -187,13 +176,50 @@ int siridb_server_send_pkg(
         return -1;
     }
 
-    if (imap_add(server->promises, promise->pid, promise) == -1)
+    while (++n)
     {
+        /*
+         * Usually the first attempt is fine but in some rare case the pid
+         * might still be in use and we should try another pid.
+         */
+        promise->pid = server->pid++;
+        rc = imap_add(server->promises, promise->pid, promise);
+
+        if (rc == 0)
+        {
+            SERVER_upd_flag_queue_full(server);
+            break;
+        }
+
+        if (rc == -1)
+        {
+            /* memory allocation error */
+            free(promise->timer);
+            free(promise);
+            free(req);
+            ERR_ALLOC
+            return -1;
+        }
+
+        /* rc == -2, pid in use, try next pid */
+    }
+
+    if (!n)
+    {
+        /*
+         * The queue cannot contain more than SIRIDB_SERVER_PROMISES_QUEUE_SIZE
+         * promises so we should always find a free pid and this code should
+         * never be reached.
+         */
+        log_critical("Cannot add promise to queue for '%s'", server->name);
+        ERR_C
         free(promise->timer);
         free(promise);
         free(req);
-        return -1;  /* signal is raised */
+        return -1;
     }
+
+    pkg->pid = promise->pid;
 
     uv_timer_init(siri.loop, promise->timer);
     uv_timer_start(
@@ -223,8 +249,6 @@ int siridb_server_send_pkg(
             &wrbuf,
             1,
             SERVER_write_cb);
-
-    server->pid++;
 
     return 0;
 }
@@ -388,7 +412,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
     {
         struct in_addr sa;
         struct in6_addr sa6;
-        sirinet_socket_t * ssocket = server->socket->data;
+        sirinet_socket_t * ssocket = (sirinet_socket_t *) server->socket->data;
         ssocket->origin = server;
         ssocket->siridb = siridb;
         siridb_server_incref(server);
@@ -567,6 +591,21 @@ static void SERVER_on_resolved(
 }
 
 /*
+ * Update SERVER_FLAG_QUEUE_FULL based on number of promises.
+ */
+static void SERVER_upd_flag_queue_full(siridb_server_t * server)
+{
+    if (server->promises->len >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
+    {
+        server->flags |= SERVER_FLAG_QUEUE_FULL;
+    }
+    else
+    {
+        server->flags &= ~SERVER_FLAG_QUEUE_FULL;
+    }
+}
+
+/*
  * Write call-back.
  */
 static void SERVER_write_cb(uv_write_t * req, int status)
@@ -589,6 +628,7 @@ static void SERVER_write_cb(uv_write_t * req, int status)
                     promise->pid);
             return;
         }
+        SERVER_upd_flag_queue_full(promise->server);
 
         uv_timer_stop(promise->timer);
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
@@ -621,6 +661,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
     }
     else
     {
+        SERVER_upd_flag_queue_full(promise->server);
         log_warning("Timeout on package (PID %" PRIu16 ") for server '%s'",
                 promise->pid,
                 promise->server->name);
@@ -651,7 +692,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 sirinet_socket_on_data);
 
         sirinet_pkg_t * pkg;
-        qp_packer_t * packer = qp_packer_new(512);
+        qp_packer_t * packer = sirinet_packer_new(512);
 
         if (packer == NULL)
         {
@@ -659,8 +700,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
         }
         else
         {
-            if (!(
-                qp_add_type(packer, QP_ARRAY_OPEN) ||
+            if (qp_add_type(packer, QP_ARRAY_OPEN) ||
                 qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16) ||
                 qp_add_string_term(packer, ssocket->siridb->dbname) ||
                 qp_add_int16(packer, ssocket->siridb->server->flags) ||
@@ -673,13 +713,14 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_int64(packer, (int64_t) ssocket->siridb->buffer_size) ||
                 qp_add_int32(packer, (int32_t) siri.startup_time) ||
                 qp_add_string_term(packer, ssocket->siridb->server->address) ||
-                qp_add_int32(packer, (int32_t) ssocket->siridb->server->port)) &&
-                    (pkg = sirinet_pkg_new(
-                            0,
-                            packer->len,
-                            BPROTO_AUTH_REQUEST,
-                            packer->buffer)) != NULL)
+                qp_add_int32(packer, (int32_t) ssocket->siridb->server->port))
             {
+                qp_packer_free(packer);
+            }
+            else
+            {
+                pkg = sirinet_packer2pkg(packer, 0, BPROTO_AUTH_REQUEST);
+
                 if (siridb_server_send_pkg(
                         server,
                         pkg,
@@ -691,7 +732,6 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                     free(pkg);
                 }
             }
-            qp_packer_free(packer);
         }
     }
     else
@@ -733,6 +773,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
     else
     {
+        SERVER_upd_flag_queue_full(promise->server);
         uv_timer_stop(promise->timer);
         uv_close((uv_handle_t *) promise->timer, (uv_close_cb) free);
         promise->cb(promise, pkg, PROMISE_SUCCESS);
@@ -748,7 +789,7 @@ static void SERVER_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 char * siridb_server_str_status(siridb_server_t * server)
 {
     /* we must initialize the buffer according to the longest possible value */
-    char buffer[48] = {};
+    char buffer[128] = {};
     int n = 0;
     for (int i = 1; i < SERVER_FLAG_AUTHENTICATED; i *= 2)
     {
@@ -759,14 +800,20 @@ char * siridb_server_str_status(siridb_server_t * server)
             case SERVER_FLAG_RUNNING:
                 strcat(buffer, (!n) ? "running" : " | " "running");
                 break;
-            case SERVER_FLAG_BACKUP_MODE:
-                strcat(buffer, (!n) ? "backup-mode" : " | " "backup-mode");
-                break;
             case SERVER_FLAG_SYNCHRONIZING:
                 strcat(buffer, (!n) ? "synchronizing" : " | " "synchronizing");
                 break;
             case SERVER_FLAG_REINDEXING:
                 strcat(buffer, (!n) ? "re-indexing" : " | " "re-indexing");
+                break;
+            case SERVER_FLAG_BACKUP_MODE:
+                strcat(buffer, (!n) ? "backup-mode" : " | " "backup-mode");
+                break;
+            case SERVER_FLAG_QUEUE_FULL:
+                strcat(buffer, (!n) ? "queue-full" : " | " "queue-full");
+                break;
+            case SERVER_FLAG_UNAVAILABLE:
+                strcat(buffer, (!n) ? "unavailable" : " | " "unavailable");
                 break;
             }
             n = 1;
@@ -1081,6 +1128,12 @@ int siridb_server_cexpr_cb(
                 (int64_t) (procinfo_total_physical_memory() / 1024),
                 cond->int64);
 
+    case CLERI_GID_K_FIFO_FILES:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) siridb_fifo_size(wserver->siridb->fifo),
+                cond->int64);
+
     case CLERI_GID_K_OPEN_FILES:
         return cexpr_int_cmp(
                 cond->operator,
@@ -1091,6 +1144,12 @@ int siridb_server_cexpr_cb(
         return cexpr_int_cmp(
                 cond->operator,
                 wserver->siridb->received_points,
+                cond->int64);
+
+    case CLERI_GID_K_SELECTED_POINTS:
+        return cexpr_int_cmp(
+                cond->operator,
+                wserver->siridb->selected_points,
                 cond->int64);
 
     case CLERI_GID_K_UPTIME:
@@ -1238,6 +1297,28 @@ static void SERVER_on_flags_update_response(
                 "Error while sending flags update to '%s' (%s)",
                 promise->server->name,
                 sirinet_promise_strstatus(status));
+
+        if (promise->server->socket != NULL)
+        {
+            sirinet_socket_t * ssocket =
+                    (sirinet_socket_t *) promise->server->socket->data;
+            siridb_server_t * replica = siridb_servers_by_replica(
+                    ssocket->siridb->servers,
+                    promise->server);
+            if (replica != NULL && (
+                    replica == ssocket->siridb->server ||
+                    siridb_server_is_accessible(replica)))
+            {
+                /* we only set the status unavailable if we have an accessible
+                 * replica or when we are the replica
+                 */
+                log_warning(
+                        "Set status for server '%s' to unavailable. "
+                        "(unavailable status will be removed after a new status "
+                        "is received)", promise->server->name);
+                promise->server->flags |= SERVER_FLAG_UNAVAILABLE;
+            }
+        }
     }
     else if (pkg->tp == BPROTO_ACK_FLAGS)
     {

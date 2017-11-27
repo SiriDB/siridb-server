@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <cleri/node.h>
+#include <cleri/cleri.h>
 #include <siri/db/db.h>
 #include <uv.h>
 

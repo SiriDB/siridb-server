@@ -10,23 +10,25 @@
  *
  */
 #pragma once
+
+typedef struct llist_s llist_t;
+typedef struct llist_node_s llist_node_t;
+
 #include <stdio.h>
 #include <slist/slist.h>
 
-typedef struct slist_s slist_t;
-
-typedef struct llist_node_s
+struct llist_node_s
 {
     void * data;
-    struct llist_node_s * next;
-} llist_node_t;
+    llist_node_t * next;
+};
 
-typedef struct llist_s
+struct llist_s
 {
     size_t len;
     llist_node_t * first;
     llist_node_t * last;
-} llist_t;
+};
 
 typedef int (*llist_cb)(void * data, void * args);
 

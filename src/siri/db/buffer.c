@@ -138,6 +138,11 @@ int siridb_buffer_load(siridb_t * siridb)
 
     if ((fp = fopen(fn, "r")) == NULL)
     {
+        if (siridb->series_map->len)
+        {
+            log_critical("Buffer file '%s' not found.", fn);
+            return -1;
+        }
         log_warning("Buffer file '%s' not found, create a new one.", fn);
 
         if ((fp = fopen(fn, "w")) == NULL)

@@ -30,7 +30,7 @@ typedef points_tp series_tp;
 #define SIRIDB_SERIES_HAS_OVERLAP 1
 #define SIRIDB_SERIES_IS_DROPPED 2
 #define SIRIDB_SERIES_INIT_REPL 4
-#define SIRIDB_SERIES_IS_SERVER_ONE 8 	/* if not set its server_id 0 */
+#define SIRIDB_SERIES_IS_SERVER_ONE 8     /* if not set its server_id 0 */
 #define SIRIDB_SERIES_IS_32BIT_TS 16    /* if not set its a 64 bit ts */
 #define SIRIDB_SERIES_IS_LOG 32         /* if not set its numeric (int/real) */
 
@@ -138,7 +138,7 @@ void siridb__series_decref(siridb_series_t * series);
  * reached.
  */
 #define siridb_series_decref(series__) \
-		if (!--series__->ref) siridb__series_free(series__)
+        if (!--series__->ref) siridb__series_free(series__)
 
 
 #define siridb_series_server_id(series) \

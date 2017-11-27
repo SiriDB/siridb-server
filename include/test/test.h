@@ -11,4 +11,4 @@
  */
 #pragma once
 
-int run_tests(int flags);
+int run_tests(void);

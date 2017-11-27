@@ -23,6 +23,9 @@ typedef enum
     CPROTO_REQ_FILE_SERVERS,                    // empty
     CPROTO_REQ_FILE_USERS,                      // empty
     CPROTO_REQ_FILE_GROUPS,                     // empty
+    CPROTO_REQ_FILE_DATABASE,                   // empty
+    /* Administrative API request */
+    CPROTO_REQ_ADMIN=32,                       // (user, password, request, {...})
 } cproto_client_t;
 
 typedef enum
@@ -34,6 +37,10 @@ typedef enum
     CPROTO_RES_ACK,                             // empty
     CPROTO_RES_INFO,                            // [version, [dnname1, ...]]
     CPROTO_RES_FILE,                            // file content
+
+    /* Administrative API success */
+    CPROTO_ACK_ADMIN=32,                        // empty
+    CPROTO_ACK_ADMIN_DATA,                      // [...]
 
     /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                          // {"error_msg": ...}
@@ -48,6 +55,11 @@ typedef enum
     CPROTO_ERR_AUTH_UNKNOWN_DB,                 // empty
     CPROTO_ERR_LOADING_DB,                      // empty
     CPROTO_ERR_FILE,                            // empty
+
+    /* Administrative API errors */
+    CPROTO_ERR_ADMIN=96,                        // {"error_msg": ...}
+    CPROTO_ERR_ADMIN_INVALID_REQUEST,           // empty
+    CPROTO_DEFERRED=127                         // deferred...
 } cproto_server_t;
 
 typedef enum
@@ -79,7 +91,7 @@ typedef enum
  * for error messages between 64.. 191.
  *
  * Client Success messages in range 0..63
- * Client Error messages in range 64..127
+ * Client Error messages in range 64..126 (127 is used as deferred)
  * Back-end Error messages in range 128..191
  * Back-end Success messages in range 192..254 (exclude 255)
  */

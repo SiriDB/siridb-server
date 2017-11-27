@@ -13,15 +13,10 @@
 #include <logger/logger.h>
 #include <siri/async.h>
 
-inline void siri_async_incref(uv_async_t * handle)
-{
-    ((siri_async_t *) handle->data)->ref++;
-}
-
 /*
  * Used as uv_close_cb for closing  uv_async_t
  */
-inline void siri_async_close(uv_handle_t * handle)
+void siri_async_close(uv_handle_t * handle)
 {
     siri_async_decref((uv_async_t **) &handle);
 }

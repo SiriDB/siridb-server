@@ -14,7 +14,9 @@
  *  - initial version, 21-04-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <iso8601/iso8601.h>
 #include <stdlib.h>
 #include <time.h>
@@ -532,7 +534,7 @@ iso8601_tz_t iso8601_tz(const char * tzname)
         buf[i] = tolower(tzname[i]);
     }
 
-    if (strncmp(buf, "naive", len) == 0)
+    if (len == strlen("naive") && strncmp(buf, "naive", len) == 0)
     {
         /* TZ=:localtime */
         return 0;

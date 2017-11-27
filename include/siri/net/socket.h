@@ -16,20 +16,22 @@
 #include <siri/net/pkg.h>
 
 #define ADDR_BUF_SZ 54
+#define RESET_BUF_SIZE 1048576  // 1 MB
 
 /* Warning: do not change the order! (maps to dns_req_family_map) */
 enum
 {
-	IP_SUPPORT_ALL,
-	IP_SUPPORT_IPV4ONLY,
-	IP_SUPPORT_IPV6ONLY
+    IP_SUPPORT_ALL,
+    IP_SUPPORT_IPV4ONLY,
+    IP_SUPPORT_IPV6ONLY
 };
 
 typedef enum sirinet_socket_tp
 {
     SOCKET_CLIENT,
     SOCKET_BACKEND,
-    SOCKET_SERVER
+    SOCKET_SERVER,
+    SOCKET_MANAGE
 } sirinet_socket_tp_t;
 
 typedef struct siridb_s siridb_t;
@@ -46,8 +48,11 @@ typedef struct sirinet_socket_s
     void * origin;  /* can be a user, server or NULL */
     char * buf;
     size_t len;
+    size_t size;
     uv_tcp_t tcp;
 } sirinet_socket_t;
+
+int dns_req_family_map[3];
 
 const char * sirinet_socket_ip_support_str(uint8_t ip_support);
 uv_tcp_t * sirinet_socket_new(sirinet_socket_tp_t tp, on_data_cb_t cb);
@@ -63,8 +68,8 @@ void sirinet_socket_on_data(
 void sirinet__socket_free(uv_stream_t * client);
 
 #define sirinet_socket_incref(client) \
-	((sirinet_socket_t *) client->data)->ref++
+    ((sirinet_socket_t *) client->data)->ref++
 
 #define sirinet_socket_decref(client) \
-	if (!--((sirinet_socket_t *) client->data)->ref) \
-		uv_close((uv_handle_t *) client, (uv_close_cb) sirinet__socket_free)
+    if (!--((sirinet_socket_t *) client->data)->ref) \
+        uv_close((uv_handle_t *) client, (uv_close_cb) sirinet__socket_free)

@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <cleri/node.h>
+#include <cleri/cleri.h>
 
 typedef struct siridb_presuf_s siridb_presuf_t;
 
@@ -24,7 +24,6 @@ typedef struct siridb_presuf_s
 } siridb_presuf_t;
 
 
-siridb_presuf_t * siridb_presuf_new(void);
 void siridb_presuf_free(siridb_presuf_t * presuf);
 siridb_presuf_t * siridb_presuf_add(
         siridb_presuf_t ** presuf,

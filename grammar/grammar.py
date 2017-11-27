@@ -73,6 +73,7 @@ class SiriGrammar(Grammar):
     k_error = Keyword('error')
     k_expression = Keyword('expression')
     k_false = Keyword('false')
+    k_fifo_files = Keyword('fifo_files')
     k_filter = Keyword('filter')
     k_float = Keyword('float')
     k_for = Keyword('for')
@@ -95,6 +96,7 @@ class SiriGrammar(Grammar):
     k_libuv = Keyword('libuv')
     k_limit = Keyword('limit')
     k_list = Keyword('list')
+    k_list_limit = Keyword('list_limit')
     k_log = Keyword('log')
     k_log_level = Keyword('log_level')
     k_max = Keyword('max')
@@ -125,6 +127,8 @@ class SiriGrammar(Grammar):
     k_reindex_progress = Keyword('reindex_progress')
     k_revoke = Keyword('revoke')
     k_select = Keyword('select')
+    k_select_points_limit = Keyword('select_points_limit')
+    k_selected_points = Keyword('selected_points')
     k_series = Keyword('series')
     k_server = Keyword('server')
     k_servers = Keyword('servers')
@@ -250,12 +254,14 @@ class SiriGrammar(Grammar):
         k_status,
         # Remote properties
         k_active_handles,
+        k_fifo_files,
         k_log_level,
         k_max_open_files,
         k_mem_usage,
         k_open_files,
         k_received_points,
         k_reindex_progress,
+        k_selected_points,
         k_sync_progress,
         k_uptime,
         most_greedy=False), ',', 1)
@@ -285,7 +291,10 @@ class SiriGrammar(Grammar):
     # where group
     where_group = Sequence(k_where, Prio(
         Sequence(k_series, int_operator, int_expr),
-        Sequence(Choice(k_expression, k_name, most_greedy=False), str_operator, string),
+        Sequence(
+            Choice(k_expression, k_name, most_greedy=False),
+            str_operator,
+            string),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -299,10 +308,19 @@ class SiriGrammar(Grammar):
 
     # where series
     where_series = Sequence(k_where, Prio(
-        Sequence(Choice(k_length, k_pool, most_greedy=False), int_operator, int_expr),
+        Sequence(
+            Choice(k_length, k_pool, most_greedy=False),
+            int_operator,
+            int_expr),
         Sequence(k_name, str_operator, string),
-        Sequence(Choice(k_start, k_end, most_greedy=False), int_operator, time_expr),
-        Sequence(k_type, bool_operator, Choice(k_string, k_integer, k_float, most_greedy=False)),
+        Sequence(
+            Choice(k_start, k_end, most_greedy=False),
+            int_operator,
+            time_expr),
+        Sequence(
+            k_type,
+            bool_operator,
+            Choice(k_string, k_integer, k_float, most_greedy=False)),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -312,6 +330,7 @@ class SiriGrammar(Grammar):
         Sequence(Choice(
             k_active_handles,
             k_buffer_size,
+            k_fifo_files,
             k_port,
             k_pool,
             k_startup_time,
@@ -319,6 +338,7 @@ class SiriGrammar(Grammar):
             k_mem_usage,
             k_open_files,
             k_received_points,
+            k_selected_points,
             k_uptime,
             most_greedy=False), int_operator, int_expr),
         Sequence(Choice(
@@ -342,10 +362,19 @@ class SiriGrammar(Grammar):
 
     # where shard
     where_shard = Sequence(k_where, Prio(
-        Sequence(Choice(k_sid, k_pool, k_size, most_greedy=False), int_operator, int_expr),
+        Sequence(
+            Choice(k_sid, k_pool, k_size, most_greedy=False),
+            int_operator,
+            int_expr),
         Sequence(Choice(k_server, k_status), str_operator, string),
-        Sequence(Choice(k_start, k_end, most_greedy=False), int_operator, time_expr),
-        Sequence(k_type, bool_operator, Choice(k_number, k_log, most_greedy=False)),
+        Sequence(
+            Choice(k_start, k_end, most_greedy=False),
+            int_operator,
+            time_expr),
+        Sequence(
+            k_type,
+            bool_operator,
+            Choice(k_number, k_log, most_greedy=False)),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -491,14 +520,19 @@ class SiriGrammar(Grammar):
     set_drop_threshold = Sequence(k_set, k_drop_threshold, r_float)
     set_expression = Sequence(k_set, k_expression, r_regex)
     set_ignore_threshold = Sequence(k_set, k_ignore_threshold, _boolean)
+    set_list_limit = Sequence(k_set, k_list_limit, r_uinteger)
     set_log_level = Sequence(k_set, k_log_level, log_keywords)
     set_name = Sequence(k_set, k_name, string)
     set_password = Sequence(k_set, k_password, string)
     set_port = Sequence(k_set, k_port, r_uinteger)
+    set_select_points_limit = Sequence(
+        k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
 
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
+        set_list_limit,
+        set_select_points_limit,
         set_timezone,
         most_greedy=False))
 
@@ -532,6 +566,10 @@ class SiriGrammar(Grammar):
     count_servers_received = Sequence(
         k_servers,
         k_received_points,
+        Optional(where_server))
+    count_servers_selected = Sequence(
+        k_servers,
+        k_selected_points,
         Optional(where_server))
     count_shards = Sequence(
         k_shards, Optional(where_shard))
@@ -601,6 +639,7 @@ class SiriGrammar(Grammar):
         count_series,
         count_servers,
         count_servers_received,
+        count_servers_selected,
         count_shards,
         count_shards_size,
         count_users,
@@ -659,8 +698,10 @@ class SiriGrammar(Grammar):
         k_drop_threshold,
         k_duration_log,
         k_duration_num,
+        k_fifo_files,
         k_ip_support,
         k_libuv,
+        k_list_limit,
         k_log_level,
         k_max_open_files,
         k_mem_usage,
@@ -668,6 +709,8 @@ class SiriGrammar(Grammar):
         k_pool,
         k_received_points,
         k_reindex_progress,
+        k_selected_points,
+        k_select_points_limit,
         k_server,
         k_startup_time,
         k_status,

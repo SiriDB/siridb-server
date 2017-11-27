@@ -1,10 +1,8 @@
 Aggregate functions
 ===================
-With SiriDB it's possible to request points for a time series and perform a function
-on the data before returning the result. Although you could also request the original points
-and perform your own functions on the data, using functions in SiriDB can save some network traffic.
+SiriDB supports multiple build-in aggregation and filter functions. Using these functions can be useful to reduce network traffic. Note that multiple functions can be combined using the arrow `=>` sign. (see `help select` for more information on how to use and combine functions)
 
-For help on how to use functions see `help select`.
+List of supported aggregation and filter functions:
 
 limit
 -----

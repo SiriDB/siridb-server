@@ -1,5 +1,5 @@
 /*
- * pkg.h - SiriDB Package type.
+ * pkg.c - SiriDB Package type.
  *
  * author       : Jeroen van der Heijden
  * email        : jeroen@transceptor.technology
@@ -39,10 +39,6 @@ sirinet_pkg_t * sirinet_pkg_new(
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
 
-#ifdef DEBUG
-    assert (sizeof(sirinet_pkg_t) == sizeof(sirinet_pkg_t));
-#endif
-
     if (pkg == NULL)
     {
         ERR_ALLOC
@@ -59,26 +55,6 @@ sirinet_pkg_t * sirinet_pkg_new(
         {
             memcpy(pkg->data, data, len);
         }
-    }
-    return pkg;
-}
-
-/*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
- * (do not forget to run free(...) on the result. )
- */
-sirinet_pkg_t * sirinet_pkg_copy(sirinet_pkg_t * source)
-{
-    size_t size = sizeof(sirinet_pkg_t) + source->len;
-    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(size);
-
-    if (pkg == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
-    {
-        memcpy(pkg, source, size);
     }
     return pkg;
 }
@@ -103,9 +79,6 @@ qp_packer_t * sirinet_packer_new(size_t alloc_size)
     else
     {
         packer->len = sizeof(sirinet_pkg_t);
-#ifdef DEBUG
-        ((sirinet_pkg_t *) packer->buffer)->tp = PKG___QP_TP;
-#endif
     }
 
     return packer;
@@ -123,11 +96,6 @@ sirinet_pkg_t * sirinet_packer2pkg(
         uint8_t tp)
 {
     sirinet_pkg_t * pkg = (sirinet_pkg_t *) packer->buffer;
-
-#ifdef DEBUG
-    assert (pkg->tp == PKG___QP_TP);
-#endif
-
 
     pkg->pid = pid;
     pkg->tp = tp;

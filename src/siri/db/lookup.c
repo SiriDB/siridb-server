@@ -84,7 +84,7 @@ siridb_lookup_t * siridb_lookup_new(uint_fast16_t num_pools)
 /*
  * Destroy lookup.
  */
-inline void siridb_lookup_free(siridb_lookup_t * lookup)
+void siridb_lookup_free(siridb_lookup_t * lookup)
 {
     free(lookup);
 }

@@ -4,7 +4,7 @@
 
 -include ../makefile.init
 
-RM := rm
+RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
@@ -14,6 +14,7 @@ RM := rm
 -include src/test/subdir.mk
 -include src/strextra/subdir.mk
 -include src/slist/subdir.mk
+-include src/siri/admin/subdir.mk
 -include src/siri/parser/subdir.mk
 -include src/siri/net/subdir.mk
 -include src/siri/help/subdir.mk
@@ -34,7 +35,6 @@ RM := rm
 -include src/imap/subdir.mk
 -include src/expr/subdir.mk
 -include src/ctree/subdir.mk
--include src/cleri/subdir.mk
 -include src/cfgparser/subdir.mk
 -include src/cexpr/subdir.mk
 -include src/argparse/subdir.mk

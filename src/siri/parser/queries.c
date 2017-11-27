@@ -14,7 +14,6 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/query.h>
 #include <siri/db/shard.h>
-#include <siri/err.h>
 #include <siri/parser/queries.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -48,12 +47,12 @@ if (q->series_tmp != NULL)                                      \
 }                                                               \
 if (q->slist != NULL)                                           \
 {                                                               \
-    siridb_series_t * series;                                    \
+    siridb_series_t * series;                                   \
     for (; q->slist_index < q->slist->len; q->slist_index++)    \
-    {                                                                       \
+    {                                                                   \
         series = (siridb_series_t *) q->slist->data[q->slist_index];    \
-        siridb_series_decref(series);                                    \
-    }                                                                      \
+        siridb_series_decref(series);                                   \
+    }                                                                   \
     slist_free(q->slist);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
@@ -78,31 +77,30 @@ query_select_t * query_select_new(void)
 
     if (q_select == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        QUERIES_NEW(q_select)
+    QUERIES_NEW(q_select)
 
-        q_select->tp = QUERIES_SELECT;
-        q_select->start_ts = NULL;
-        q_select->end_ts = NULL;
-        q_select->presuf = siridb_presuf_new();  // NULL
-        q_select->merge_as = NULL;
-        q_select->n = 0;
-        q_select->points_map = NULL;
-        q_select->alist = NULL;
-        q_select->mlist = NULL;
-        q_select->result = ct_new();  // a signal is raised in case of failure
-        if (q_select->result == NULL)
-        {
-            free(q_select);
-            q_select = NULL;
-        }
+    q_select->tp = QUERIES_SELECT;
+    q_select->start_ts = NULL;
+    q_select->end_ts = NULL;
+    q_select->presuf = NULL;
+    q_select->merge_as = NULL;
+    q_select->n = 0;
+    q_select->nselects = 1;  // we have at least one select function
+    q_select->points_map = NULL;
+    q_select->alist = NULL;
+    q_select->mlist = NULL;
+    q_select->result = ct_new();
+
+    if (q_select->result == NULL)
+    {
+        free(q_select);
+        return NULL;
     }
+
     return q_select;
 }
-
 
 query_alter_t * query_alter_new(void)
 {
@@ -111,17 +109,15 @@ query_alter_t * query_alter_new(void)
 
     if (q_alter == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        QUERIES_NEW(q_alter)
 
-        q_alter->tp = QUERIES_ALTER;
-        q_alter->alter_tp = QUERY_ALTER_NONE;
-        q_alter->via.dummy = NULL;
-        q_alter->n = 0;
-    }
+    QUERIES_NEW(q_alter)
+
+    q_alter->tp = QUERIES_ALTER;
+    q_alter->alter_tp = QUERY_ALTER_NONE;
+    q_alter->via.dummy = NULL;
+    q_alter->n = 0;
 
     return q_alter;
 }
@@ -133,15 +129,14 @@ query_count_t * query_count_new(void)
 
     if (q_count == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        QUERIES_NEW(q_count)
 
-        q_count->tp = QUERIES_COUNT;
-        q_count->n = 0;
-    }
+    QUERIES_NEW(q_count)
+
+    q_count->tp = QUERIES_COUNT;
+    q_count->n = 0;
+
     return q_count;
 }
 
@@ -152,17 +147,16 @@ query_drop_t * query_drop_new(void)
 
     if (q_drop == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        QUERIES_NEW(q_drop)
 
-        q_drop->tp = QUERIES_DROP;
-        q_drop->n = 0;
-        q_drop->flags = 0;
-        q_drop->shards_list = NULL;
-    }
+    QUERIES_NEW(q_drop)
+
+    q_drop->tp = QUERIES_DROP;
+    q_drop->n = 0;
+    q_drop->flags = 0;
+    q_drop->shards_list = NULL;
+
     return q_drop;
 }
 
@@ -173,16 +167,15 @@ query_list_t * query_list_new(void)
 
     if (q_list == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        QUERIES_NEW(q_list)
 
-        q_list->tp = QUERIES_LIST;
-        q_list->props = NULL;
-        q_list->limit = DEFAULT_LIST_LIMIT;
-    }
+    QUERIES_NEW(q_list)
+
+    q_list->tp = QUERIES_LIST;
+    q_list->props = NULL;
+    q_list->limit = DEFAULT_LIST_LIMIT;
+
     return q_list;
 }
 

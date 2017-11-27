@@ -10,7 +10,9 @@
  *
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <ctype.h>
 #include <logger/logger.h>
@@ -119,7 +121,7 @@ siridb_ffile_t * siridb_ffile_new(
             return NULL;
         }
 
-        if ((ffile->size = ftello(ffile->fp)) >= sizeof(uint32_t))
+        if ((ffile->size = ftello(ffile->fp)) >= (off_t) sizeof(uint32_t))
         {
             ffile->free_space = 0;
             if (    fseeko(ffile->fp, -(long int) sizeof(uint32_t), SEEK_END) ||

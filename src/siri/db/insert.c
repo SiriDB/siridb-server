@@ -370,6 +370,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         siridb_t * siridb =
                 ((sirinet_socket_t *) insert->client->data)->siridb;
 
+        int n = 0;
         char msg[MAX_INSERT_MSG];
 
         /* the packer size is big enough to hold MAX_INSERT_MSG + some overhead
@@ -385,7 +386,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 promise = promises->data[i];
                 if (siri_err || promise == NULL)
                 {
-                    snprintf(msg,
+                    n = snprintf(msg,
                             MAX_INSERT_MSG,
                             "Critical error occurred on '%s'",
                             siridb->server->name);
@@ -396,7 +397,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 
                 if (pkg == NULL || pkg->tp != BPROTO_ACK_INSERT)
                 {
-                    snprintf(msg,
+                    n = snprintf(msg,
                             MAX_INSERT_MSG,
                             "Error occurred while sending points to at "
                             "least '%s'",
@@ -419,7 +420,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
             else
             {
                 qp_add_raw(packer, "success_msg", 11);
-                snprintf(msg,
+                n = snprintf(msg,
                         MAX_INSERT_MSG,
                         "Successfully inserted %zd point(s).",
                         insert->npoints);
@@ -427,7 +428,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 siridb->received_points += insert->npoints;
             }
 
-            qp_add_string(packer, msg);
+            qp_add_raw(packer, msg, (n < MAX_INSERT_MSG) ? n : MAX_INSERT_MSG);
 
             sirinet_pkg_t * response_pkg = sirinet_packer2pkg(
                     packer,
@@ -490,7 +491,7 @@ static int8_t INSERT_local_work(
         siridb_pcache_t ** pcache)
 {
     qp_types_t tp;
-    siridb_series_t ** series;
+    siridb_series_t * series;
     qp_obj_t qp_series_ts;
     qp_obj_t qp_series_val;
     uint64_t * ts;
@@ -503,33 +504,26 @@ static int8_t INSERT_local_work(
      */
     while ( !siri_err &&
             qp_is_raw_term(qp_series_name) &&
+            qp_series_name->via.raw[0] != '\0' &&
             (n -= WEIGHT_SERIES) > 0)
     {
-        series = (siridb_series_t **) ct_get_sure(
-                siridb->series,
-                qp_series_name->via.raw);
-
-        if (series == NULL)
-        {
-            log_critical(
-                    "Error getting or create series: '%s'",
-                    qp_series_name->via.raw);
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
-        }
+        series = (siridb_series_t *) ct_get(
+            siridb->series,
+            qp_series_name->via.raw);
 
         qp_next(unpacker, NULL); // array open
         qp_next(unpacker, NULL); // first point array2
         qp_next(unpacker, &qp_series_ts); // first ts
         qp_next(unpacker, &qp_series_val); // first val
 
-        if (ct_is_empty(*series))
+        if (series == NULL)
         {
-            *series = siridb_series_new(
+            series = siridb_series_new(
                     siridb,
                     qp_series_name->via.raw,
                     SIRIDB_QP_MAP2_TP(qp_series_val.tp));
 
-            if (*series == NULL)
+            if (series == NULL)
             {
                 log_critical(
                         "Error creating series: '%s'",
@@ -541,11 +535,11 @@ static int8_t INSERT_local_work(
         }
 
         ts = (uint64_t *) &qp_series_ts.via.int64;
-        SERIES_UPDATE_TS((*series))
+        SERIES_UPDATE_TS(series)
 
         if (siridb_series_add_point(
                 siridb,
-                *series,
+                series,
                 ts,
                 &qp_series_val.via))
         {
@@ -556,7 +550,7 @@ static int8_t INSERT_local_work(
         {
             if (*pcache == NULL)
             {
-                *pcache = siridb_pcache_new((*series)->tp);
+                *pcache = siridb_pcache_new(series->tp);
                 if (*pcache == NULL)
                 {
                     return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -564,7 +558,7 @@ static int8_t INSERT_local_work(
             }
             else
             {
-                (*pcache)->tp = (*series)->tp;
+                (*pcache)->tp = series->tp;
                 (*pcache)->len = 0;
             }
 
@@ -574,7 +568,7 @@ static int8_t INSERT_local_work(
                 qp_next(unpacker, &qp_series_val); // val
 
                 ts = (uint64_t *) &qp_series_ts.via.int64;
-                SERIES_UPDATE_TS((*series))
+                SERIES_UPDATE_TS(series)
 
                 if (siridb_pcache_add_point(
                         *pcache,
@@ -590,7 +584,7 @@ static int8_t INSERT_local_work(
 
             if (siridb_series_add_pcache(
                     siridb,
-                    *series,
+                    series,
                     *pcache))
             {
                 return INSERT_LOCAL_ERROR;  /* signal is raised */
@@ -665,11 +659,11 @@ static int INSERT_local_work_test(
                         series_name,
                         SIRIDB_QP_MAP2_TP(qp_series_val.tp));
 
-                if (series == NULL ||
-                    ct_add(siridb->series, series->name, series))
+                if (series == NULL)
                 {
+                    ERR_ALLOC
                     log_critical("Error creating series: '%s'", series_name);
-                    return INSERT_LOCAL_ERROR;  /* signal is raised */
+                    return INSERT_LOCAL_ERROR;
                 }
 
                 n -= WEIGHT_NEW_SERIES;
@@ -1326,7 +1320,7 @@ static int INSERT_read_points(
             return ERR_EXPECTING_INTEGER_TS;
         }
 
-        if (!siridb_int64_valid_ts(siridb, qp_obj->via.int64))
+        if (!siridb_int64_valid_ts(siridb->time, qp_obj->via.int64))
         {
             return ERR_TIMESTAMP_OUT_OF_RANGE;
         }

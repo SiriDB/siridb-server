@@ -15,7 +15,6 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/median.h>
 #include <siri/db/variance.h>
-#include <siri/err.h>
 #include <siri/grammar/grammar.h>
 #include <slist/slist.h>
 #include <stddef.h>
@@ -32,7 +31,6 @@ if ((aggr = AGGREGATE_new(gid)) == NULL)            \
 #define SLIST_APPEND                                \
 if (slist_append_safe(&slist, aggr))                \
 {                                                   \
-    ERR_ALLOC                                       \
     sprintf(err_msg, "Memory allocation error.");   \
     AGGREGATE_free(aggr);                           \
     siridb_aggregate_list_free(slist);              \
@@ -175,253 +173,249 @@ void siridb_init_aggregates(void)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred and the err_msg will be set.
  */
 slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 {
     uint32_t gid;
+    siridb_aggr_t * aggr;
     slist_t * slist = slist_new(SLIST_DEFAULT_SIZE);
     if (slist == NULL)
     {
         sprintf(err_msg, "Memory allocation error.");
+        return NULL;
     }
-    else
-    {
-        siridb_aggr_t * aggr;
 
-        if (slist != NULL)
+    while (1)
+    {
+        gid = children->node->children->node->cl_obj->gid;
+
+        switch (gid)
         {
-            while (1)
+        case CLERI_GID_F_LIMIT:
+            AGGR_NEW
             {
-                gid = children->node->children->node->cl_obj->via.dummy->gid;
+                int64_t limit = children->node->children->node->
+                    children->next->next->node->result;
+
+                if (limit <= 0)
+                {
+                    sprintf(err_msg,
+                            "Limit must be an integer value "
+                            "larger than zero.");
+                    AGGREGATE_free(aggr);
+                    siridb_aggregate_list_free(slist);
+                    return NULL;
+                }
+
+                aggr->limit = limit;
+
+                gid = children->node->children->node->children->next->
+                        next->next->next->node->children->node->
+                        cl_obj->gid;
 
                 switch (gid)
                 {
-                case CLERI_GID_F_LIMIT:
-                    AGGR_NEW
-                    {
-                        int64_t limit = children->node->children->node->
-                            children->next->next->node->result;
-
-                        if (limit <= 0)
-                        {
-                            sprintf(err_msg,
-                                    "Limit must be an integer value "
-                                    "larger than zero.");
-                            AGGREGATE_free(aggr);
-                            siridb_aggregate_list_free(slist);
-                            return NULL;
-                        }
-
-                        aggr->limit = limit;
-
-                        gid = children->node->children->node->children->next->
-                                next->next->next->node->children->node->
-                                cl_obj->via.dummy->gid;
-
-                        switch (gid)
-                        {
-                        case CLERI_GID_K_MEAN:
-                            aggr->gid = CLERI_GID_F_MEAN;
-                            break;
-
-                        case CLERI_GID_K_MEDIAN:
-                            aggr->gid = CLERI_GID_F_MEDIAN;
-                            break;
-
-                        case CLERI_GID_K_MEDIAN_LOW:
-                            aggr->gid = CLERI_GID_F_MEDIAN_LOW;
-                            break;
-
-                        case CLERI_GID_K_MEDIAN_HIGH:
-                            aggr->gid = CLERI_GID_F_MEDIAN_HIGH;
-                            break;
-
-                        case CLERI_GID_K_SUM:
-                            aggr->gid = CLERI_GID_F_SUM;
-                            break;
-
-                        case CLERI_GID_K_MIN:
-                            aggr->gid = CLERI_GID_F_MIN;
-                            break;
-
-                        case CLERI_GID_K_MAX:
-                            aggr->gid = CLERI_GID_F_MAX;
-                            break;
-
-                        case CLERI_GID_K_COUNT:
-                            aggr->gid = CLERI_GID_F_COUNT;
-                            break;
-
-                        case CLERI_GID_K_VARIANCE:
-                            aggr->gid = CLERI_GID_F_VARIANCE;
-                            break;
-
-                        case CLERI_GID_K_PVARIANCE:
-                            aggr->gid = CLERI_GID_F_PVARIANCE;
-                            break;
-
-                        default:
-                            assert (0);
-                            break;
-                        }
-                    }
-
-                    SLIST_APPEND
-
+                case CLERI_GID_K_MEAN:
+                    aggr->gid = CLERI_GID_F_MEAN;
                     break;
 
-                case CLERI_GID_F_FILTER:
-                    AGGR_NEW
-                    {
-                        cleri_node_t * onode;
-                        if (    children->node->children->node->children->
-                                next->next->next->next == NULL)
-                        {
-                            aggr->filter_opr = CEXPR_EQ;
-                            onode = children->node->children->node->
-                                    children->next->next->node->
-                                    children->node;
-                        }
-                        else
-                        {
-                            aggr->filter_opr = cexpr_operator_fn(
-                                    children->node->children->node->
-                                    children->next->next->node->
-                                    children->node);
-                            onode = children->node->children->node->
-                                    children->next->next->next->node->
-                                    children->node;
-                        }
-                        if (AGGREGATE_init_filter(aggr, onode, err_msg))
-                        {
-                            AGGREGATE_free(aggr);
-                            siridb_aggregate_list_free(slist);
-                            return NULL;
-                        }
-                    }
-
-                    SLIST_APPEND
-
+                case CLERI_GID_K_MEDIAN:
+                    aggr->gid = CLERI_GID_F_MEDIAN;
                     break;
 
-                case CLERI_GID_F_DERIVATIVE:
-                    AGGR_NEW
-                    {
-                        cleri_node_t * dlist = children->node->children->
-                                node->children->next->next->node;
-
-                        if (dlist->children->node != NULL)
-                        {
-                            /* result is at least positive, checked earlier */
-                            aggr->timespan =
-                                    (double) dlist->children->node->result;
-
-                            if (!aggr->timespan)
-                            {
-                                sprintf(err_msg,
-                                        "Time-span must be an integer value "
-                                        "larger than zero.");
-                                AGGREGATE_free(aggr);
-                                siridb_aggregate_list_free(slist);
-                                return NULL;
-                            }
-
-                            if (dlist->children->next != NULL)
-                            {
-                                /* result is always positive */
-                                aggr->group_by = dlist->children->next->next->
-                                        node->result;
-
-                                if (!aggr->group_by)
-                                {
-                                    sprintf(err_msg,
-                                            "Group by time must be an integer "
-                                            "value larger than zero.");
-                                    AGGREGATE_free(aggr);
-                                    siridb_aggregate_list_free(slist);
-                                    return NULL;
-                                }
-
-                                aggr->timespan /= (double) aggr->group_by;
-                            }
-                        }
-                    }
-
-                    SLIST_APPEND
-
+                case CLERI_GID_K_MEDIAN_LOW:
+                    aggr->gid = CLERI_GID_F_MEDIAN_LOW;
                     break;
 
-                case CLERI_GID_F_DIFFERENCE:
-                    AGGR_NEW
-                    if (children->node->children->node->children->
-                                next->next->next != NULL)
-                    {
-                        /* result is always positive, checked earlier */
-                        aggr->group_by = children->node->children->node->
-                                children->next->next->node->children->
-                                node->result;
-
-                        if (!aggr->group_by)
-                        {
-                            sprintf(err_msg,
-                                    "Group by time must be an integer value "
-                                    "larger than zero.");
-                            AGGREGATE_free(aggr);
-                            siridb_aggregate_list_free(slist);
-                            return NULL;
-                        }
-                    }
-
-                    SLIST_APPEND
-
+                case CLERI_GID_K_MEDIAN_HIGH:
+                    aggr->gid = CLERI_GID_F_MEDIAN_HIGH;
                     break;
 
-                case CLERI_GID_F_COUNT:
-                case CLERI_GID_F_MAX:
-                case CLERI_GID_F_MEAN:
-                case CLERI_GID_F_MEDIAN:
-                case CLERI_GID_F_MEDIAN_HIGH:
-                case CLERI_GID_F_MEDIAN_LOW:
-                case CLERI_GID_F_MIN:
-                case CLERI_GID_F_PVARIANCE:
-                case CLERI_GID_F_SUM:
-                case CLERI_GID_F_VARIANCE:
-                    AGGR_NEW
-                    aggr->group_by = children->node->children->node->children->
-                            next->next->node->result;
-
-                    if (!aggr->group_by)
-                    {
-                        sprintf(err_msg,
-                                "Group by time must be an integer value "
-                                "larger than zero.");
-                        AGGREGATE_free(aggr);
-                        siridb_aggregate_list_free(slist);
-                        return NULL;
-                    }
-
-                    SLIST_APPEND
-
+                case CLERI_GID_K_SUM:
+                    aggr->gid = CLERI_GID_F_SUM;
                     break;
 
-                case CLERI_GID_F_POINTS:
+                case CLERI_GID_K_MIN:
+                    aggr->gid = CLERI_GID_F_MIN;
+                    break;
+
+                case CLERI_GID_K_MAX:
+                    aggr->gid = CLERI_GID_F_MAX;
+                    break;
+
+                case CLERI_GID_K_COUNT:
+                    aggr->gid = CLERI_GID_F_COUNT;
+                    break;
+
+                case CLERI_GID_K_VARIANCE:
+                    aggr->gid = CLERI_GID_F_VARIANCE;
+                    break;
+
+                case CLERI_GID_K_PVARIANCE:
+                    aggr->gid = CLERI_GID_F_PVARIANCE;
                     break;
 
                 default:
                     assert (0);
                     break;
                 }
-
-                if (children->next == NULL)
-                {
-                    break;
-                }
-
-                children = children->next->next;
             }
+
+            SLIST_APPEND
+
+            break;
+
+        case CLERI_GID_F_FILTER:
+            AGGR_NEW
+            {
+                cleri_node_t * onode;
+                if (    children->node->children->node->children->
+                        next->next->next->next == NULL)
+                {
+                    aggr->filter_opr = CEXPR_EQ;
+                    onode = children->node->children->node->
+                            children->next->next->node->
+                            children->node;
+                }
+                else
+                {
+                    aggr->filter_opr = cexpr_operator_fn(
+                            children->node->children->node->
+                            children->next->next->node->
+                            children->node);
+                    onode = children->node->children->node->
+                            children->next->next->next->node->
+                            children->node;
+                }
+                if (AGGREGATE_init_filter(aggr, onode, err_msg))
+                {
+                    AGGREGATE_free(aggr);
+                    siridb_aggregate_list_free(slist);
+                    return NULL;  /* err_msg is set */
+                }
+            }
+
+            SLIST_APPEND
+
+            break;
+
+        case CLERI_GID_F_DERIVATIVE:
+            AGGR_NEW
+            {
+                cleri_node_t * dlist = children->node->children->
+                        node->children->next->next->node;
+
+                if (dlist->children->node != NULL)
+                {
+                    /* result is at least positive, checked earlier */
+                    aggr->timespan =
+                            (double) dlist->children->node->result;
+
+                    if (!aggr->timespan)
+                    {
+                        sprintf(err_msg,
+                                "Time-span must be an integer value "
+                                "larger than zero.");
+                        AGGREGATE_free(aggr);
+                        siridb_aggregate_list_free(slist);
+                        return NULL;
+                    }
+
+                    if (dlist->children->next != NULL)
+                    {
+                        /* result is always positive */
+                        aggr->group_by = dlist->children->next->next->
+                                node->result;
+
+                        if (!aggr->group_by)
+                        {
+                            sprintf(err_msg,
+                                    "Group by time must be an integer "
+                                    "value larger than zero.");
+                            AGGREGATE_free(aggr);
+                            siridb_aggregate_list_free(slist);
+                            return NULL;
+                        }
+
+                        aggr->timespan /= (double) aggr->group_by;
+                    }
+                }
+            }
+
+            SLIST_APPEND
+
+            break;
+
+        case CLERI_GID_F_DIFFERENCE:
+            AGGR_NEW
+            if (children->node->children->node->children->
+                        next->next->next != NULL)
+            {
+                /* result is always positive, checked earlier */
+                aggr->group_by = children->node->children->node->
+                        children->next->next->node->children->
+                        node->result;
+
+                if (!aggr->group_by)
+                {
+                    sprintf(err_msg,
+                            "Group by time must be an integer value "
+                            "larger than zero.");
+                    AGGREGATE_free(aggr);
+                    siridb_aggregate_list_free(slist);
+                    return NULL;
+                }
+            }
+
+            SLIST_APPEND
+
+            break;
+
+        case CLERI_GID_F_COUNT:
+        case CLERI_GID_F_MAX:
+        case CLERI_GID_F_MEAN:
+        case CLERI_GID_F_MEDIAN:
+        case CLERI_GID_F_MEDIAN_HIGH:
+        case CLERI_GID_F_MEDIAN_LOW:
+        case CLERI_GID_F_MIN:
+        case CLERI_GID_F_PVARIANCE:
+        case CLERI_GID_F_SUM:
+        case CLERI_GID_F_VARIANCE:
+            AGGR_NEW
+            aggr->group_by = children->node->children->node->children->
+                    next->next->node->result;
+
+            if (!aggr->group_by)
+            {
+                sprintf(err_msg,
+                        "Group by time must be an integer value "
+                        "larger than zero.");
+                AGGREGATE_free(aggr);
+                siridb_aggregate_list_free(slist);
+                return NULL;
+            }
+
+            SLIST_APPEND
+
+            break;
+
+        case CLERI_GID_F_POINTS:
+            break;
+
+        default:
+            assert (0);
+            break;
         }
+
+        if (children->next == NULL)
+        {
+            break;
+        }
+
+        children = children->next->next;
     }
+
     return slist;
 }
 
@@ -481,25 +475,22 @@ siridb_points_t * siridb_aggregate_run(
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
 {
     siridb_aggr_t * aggr = (siridb_aggr_t *) malloc(sizeof(siridb_aggr_t));
     if (aggr == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
-    {
-        aggr->gid = gid;
-        aggr->group_by = 0;
-        aggr->limit = 0;
-        aggr->offset = 0;
-        aggr->timespan = 1.0;
-        aggr->filter_tp = TP_INT;  /* when string we malloc/free
-                                                  * aggr->filter_via.raw */
-    }
+    aggr->gid = gid;
+    aggr->group_by = 0;
+    aggr->limit = 0;
+    aggr->offset = 0;
+    aggr->timespan = 1.0;
+    aggr->filter_tp = TP_INT;  /* when string we must
+                                * malloc/free * aggr->filter_via.raw */
     return aggr;
 }
 
@@ -517,15 +508,14 @@ static void AGGREGATE_free(siridb_aggr_t * aggr)
 
 /*
  * Returns 0 if successful or -1 in case or an error.
- * A signal is raised in case of an allocation error and the err_msg is set
- * for any error.
+ * The err_msg is set for any error.
  */
 static int AGGREGATE_init_filter(
         siridb_aggr_t * aggr,
         cleri_node_t * node,
         char * err_msg)
 {
-    switch (node->cl_obj->via.dummy->gid)
+    switch (node->cl_obj->gid)
     {
     case CLERI_GID_R_INTEGER:
         aggr->filter_tp = TP_INT;
@@ -542,7 +532,6 @@ static int AGGREGATE_init_filter(
         aggr->filter_via.raw = (char *) malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
-            ERR_ALLOC
             sprintf(err_msg, "Memory allocation error.");
             return -1;
         }
@@ -961,8 +950,8 @@ static siridb_points_t * AGGREGATE_group_by(
 static int aggr_count(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
-        char * err_msg)
+        siridb_aggr_t * aggr __attribute__((unused)),
+        char * err_msg __attribute__((unused)))
 {
     point->val.int64 = points->len;
     return 0;
@@ -1017,7 +1006,7 @@ static int aggr_derivative(
 static int aggr_difference(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1075,7 +1064,7 @@ static int aggr_difference(
 static int aggr_max(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1119,7 +1108,7 @@ static int aggr_max(
 static int aggr_mean(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1161,7 +1150,7 @@ static int aggr_mean(
 static int aggr_median(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1205,7 +1194,7 @@ static int aggr_median(
 static int aggr_median_high(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1240,7 +1229,7 @@ static int aggr_median_high(
 static int aggr_median_low(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1275,7 +1264,7 @@ static int aggr_median_low(
 static int aggr_min(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1319,7 +1308,7 @@ static int aggr_min(
 static int aggr_pvariance(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1348,7 +1337,7 @@ static int aggr_pvariance(
 static int aggr_sum(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG
@@ -1402,7 +1391,7 @@ static int aggr_sum(
 static int aggr_variance(
         siridb_point_t * point,
         siridb_points_t * points,
-        siridb_aggr_t * aggr,
+        siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
 #ifdef DEBUG

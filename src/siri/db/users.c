@@ -9,7 +9,9 @@
  *  - initial version, 04-05-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
@@ -22,6 +24,7 @@
 #include <time.h>
 #include <xpath/xpath.h>
 #include <owcrypt/owcrypt.h>
+#include <siri/db/access.h>
 
 
 #ifndef __APPLE__
@@ -32,7 +35,7 @@
 #define SIRIDB_USERS_SCHEMA 1
 #define SIRIDB_USERS_FN "users.dat"
 
-inline static int USERS_cmp(siridb_user_t * user, const char * name);
+static inline int USERS_cmp(siridb_user_t * user, const char * name);
 static int USERS_free(siridb_user_t * user, void * args);
 static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker);
 
@@ -60,7 +63,7 @@ int siridb_users_load(siridb_t * siridb)
     siridb->users = llist_new();
     if (siridb->users == NULL)
     {
-        return -1;  /* signal is raised */
+        return -1;
     }
 
     /* get user access file name */
@@ -126,7 +129,8 @@ int siridb_users_load(siridb_t * siridb)
                 if (llist_append(siridb->users, user))
                 {
                     siridb_user_decref(user);
-                    rc = -1;  /* signal is raised */
+                    ERR_ALLOC
+                    rc = -1;
                 }
             }
         }
@@ -176,6 +180,7 @@ int siridb_users_add_user(
     if (llist_append(siridb->users, user))
     {
         /* this is critical, a signal is raised */
+        ERR_ALLOC
         sprintf(err_msg, "Memory allocation error.");
         return -1;
     }
@@ -193,7 +198,6 @@ int siridb_users_add_user(
 
     return 0;
 }
-
 
 /*
  * Returns NULL when the user is not found of when the given password is
@@ -331,12 +335,14 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     return rc;
 }
 
-inline static int USERS_cmp(siridb_user_t * user, const char * name)
+static inline int USERS_cmp(siridb_user_t * user, const char * name)
 {
     return (strcmp(user->name, name) == 0);
 }
 
-static int USERS_free(siridb_user_t * user, void * args)
+static int USERS_free(
+        siridb_user_t * user,
+        void * args __attribute__((unused)))
 {
     siridb_user_decref(user);
     return 0;

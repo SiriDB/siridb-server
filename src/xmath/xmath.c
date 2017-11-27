@@ -10,6 +10,7 @@
  *
  */
 #include <xmath/xmath.h>
+#include <stdarg.h>
 
 /*
  * Got this from : (Elias Yarrkov)
@@ -30,3 +31,16 @@ uint32_t xmath_ipow(int base, int exp)
     return result;
 }
 
+size_t xmath_max_size(size_t n, ...)
+{
+    size_t t, m = 0;
+    va_list args;
+    va_start(args, n);
+    while (n--)
+    {
+        t = va_arg(args, size_t);
+        m = (t > m) ? t : m;
+    }
+    va_end(args);
+    return m;
+}

@@ -26,7 +26,8 @@
  *
  * Warning: this function should not be used on 'this' pool.
  *
- * A server is  'online' when at least connected and authenticated.
+ * Server is 'online' when at least running and authenticated but not
+ * queue-full
  */
 int siridb_pool_online(siridb_pool_t * pool)
 {

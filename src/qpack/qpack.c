@@ -9,11 +9,13 @@
  *  - initial version, 11-03-2016
  *          ((l + n) // 4 + 1) * 4
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <qpack/qpack.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdint.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -48,25 +50,25 @@ if (packer->len + LEN > packer->buffer_size)                            \
 }
 
 #define QP_PREPARE_RAW                                      \
-    QP_RESIZE((5 + len))                                    \
+    QP_RESIZE((9 + len))                                    \
     if (len < 100)                                          \
     {                                                       \
         packer->buffer[packer->len++] = 128 + len;          \
     }                                                       \
-    else if (len < 256)                                     \
+    else if (len <= UINT8_MAX)                              \
     {                                                       \
         uint8_t length = (uint8_t) len;                     \
         packer->buffer[packer->len++] = QP_RAW8;            \
         packer->buffer[packer->len++] = length;             \
     }                                                       \
-    else if (len < 65536)                                   \
+    else if (len <= UINT16_MAX)                             \
     {                                                       \
         uint16_t length = (uint16_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW16;           \
         memcpy(packer->buffer + packer->len, &length, 2);   \
         packer->len += 2;                                   \
     }                                                       \
-    else if (len < 4294967296)                              \
+    else if (len <= UINT32_MAX)                             \
     {                                                       \
         uint32_t length = (uint32_t) len;                   \
         packer->buffer[packer->len++] = QP_RAW32;           \
@@ -84,8 +86,8 @@ if (packer->len + LEN > packer->buffer_size)                            \
 {                                                           \
     QP_UNPACK_CHECK_SZ(sizeof(uintx_t))                     \
     size_t sz = (size_t) *((uintx_t *) unpacker->pt);       \
-    QP_UNPACK_CHECK_SZ(sz)                                  \
     unpacker->pt += sizeof(uintx_t);                        \
+    QP_UNPACK_CHECK_SZ(sz)                                  \
     if (qp_obj != NULL)                                     \
     {                                                       \
         qp_obj->tp = QP_RAW;                                \
@@ -155,7 +157,7 @@ void qp_unpacker_ff_free(qp_unpacker_t * unpacker)
 qp_unpacker_t * qp_unpacker_ff(const char * fn)
 {
     FILE * fp;
-    size_t size;
+    ssize_t size;
     qp_unpacker_t * unpacker;
 
     fp = fopen(fn, "r");
@@ -287,43 +289,6 @@ int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
     return 0;
 }
 
-inline int qp_is_array(qp_types_t tp)
-{
-    return tp == QP_ARRAY_OPEN || (tp >= QP_ARRAY0 && tp <= QP_ARRAY5);
-}
-
-inline int qp_is_map(qp_types_t tp)
-{
-    return tp == QP_MAP_OPEN || (tp >= QP_MAP0 && tp <= QP_MAP5);
-}
-
-inline int qp_is_close(qp_types_t tp)
-{
-    return tp >= QP_ARRAY_CLOSE;
-}
-
-inline int qp_is_raw(qp_types_t tp)
-{
-    return tp == QP_RAW;
-}
-
-inline int qp_is_int(qp_types_t tp)
-{
-    return tp == QP_INT64;
-}
-
-inline int qp_is_double(qp_types_t tp)
-{
-    return tp == QP_DOUBLE;
-}
-
-inline int qp_is_raw_term(qp_obj_t * qp_obj)
-{
-    return (qp_obj->tp == QP_RAW &&
-            qp_obj->len &&
-            qp_obj->via.raw[qp_obj->len - 1] == '\0');
-}
-
 /*
  * Print qpack content.
  */
@@ -452,6 +417,16 @@ int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
     return 0;
 }
 
+/* shortcuts for qp_add_raw() */
+int qp_add_string(qp_packer_t * packer, const char * str)
+{
+    return qp_add_raw(packer, str, strlen(str));
+}
+int qp_add_string_term(qp_packer_t * packer, const char * str)
+{
+    return qp_add_raw(packer, str, strlen(str) + 1);
+}
+
 /*
  * Adds a raw string to the packer and appends a terminator (0) so the written
  * length is len + 1
@@ -469,28 +444,6 @@ int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
     packer->len += len;
     packer->buffer[packer->len - 1] = '\0';
     return 0;
-}
-
-/*
- * Adds a 0 terminated string to the packer but note that the terminator itself
- * will NOT be written. (Use qp_add_string_term() instead if you want the
- * destination to be 0 terminated
- *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-inline int qp_add_string(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str));
-}
-
-/*
- * Like qp_add_string() but includes the 0 terminator.
- *
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-inline int qp_add_string_term(qp_packer_t * packer, const char * str)
-{
-    return qp_add_raw(packer, str, strlen(str) + 1);
 }
 
 /*
@@ -651,7 +604,7 @@ int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
 
-    return (fputc(tp, fpacker) == tp) ? 0 : EOF;
+    return (fputc(tp, fpacker) == (int) tp) ? 0 : EOF;
 }
 
 /*
@@ -666,7 +619,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 256)
+    else if (len <= UINT8_MAX)
     {
         if (    fputc(QP_RAW8, fpacker) == EOF ||
                 fputc(len, fpacker) == EOF)
@@ -674,7 +627,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 65536)
+    else if (len <= UINT16_MAX)
     {
         if (    fputc(QP_RAW16, fpacker) == EOF ||
                 fwrite(&len, sizeof(uint16_t), 1, fpacker) != 1)
@@ -682,7 +635,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
             return EOF;
         }
     }
-    else if (len < 4294967296)
+    else if (len <= UINT32_MAX)
     {
         if (    fputc(QP_RAW32, fpacker) == EOF ||
                 fwrite(&len, sizeof(uint32_t), 1, fpacker) != 1)
@@ -983,10 +936,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         return QP_INT64;
 
     case 124:
-#ifdef DEBUG
         /* Object hooks are not supported yet */
-        assert (0);
-#endif
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_HOOK;
@@ -1141,7 +1091,7 @@ qp_types_t qp_next(qp_unpacker_t * unpacker, qp_obj_t * qp_obj)
         if (qp_obj != NULL)
         {
             qp_obj->tp = QP_DOUBLE;
-            qp_obj->via.real = (double) *((double *) unpacker->pt);
+            memcpy(&qp_obj->via.real, unpacker->pt, sizeof(double));
         }
         unpacker->pt += sizeof(double);
         return QP_DOUBLE;

@@ -14,6 +14,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define QP_SUGGESTED_SIZE 65536
 
@@ -134,19 +135,43 @@ void qp_print(char * pt, size_t len);
     qp_print(unpacker->pt, unpacker->end - unpacker->pt)
 
 /* Test functions */
-extern int qp_is_array(qp_types_t tp);
-extern int qp_is_map(qp_types_t tp);
-extern int qp_is_close(qp_types_t tp);
-extern int qp_is_raw(qp_types_t tp);
-extern int qp_is_int(qp_types_t tp);
-extern int qp_is_double(qp_types_t tp);
-extern int qp_is_raw_term(qp_obj_t * qp_obj);
+static inline int qp_is_array(qp_types_t tp)
+{
+    return tp == QP_ARRAY_OPEN || (tp >= QP_ARRAY0 && tp <= QP_ARRAY5);
+}
+static inline int qp_is_raw(qp_types_t tp)
+{
+    return tp == QP_RAW;
+}
+static inline int qp_is_map(qp_types_t tp)
+{
+    return tp == QP_MAP_OPEN || (tp >= QP_MAP0 && tp <= QP_MAP5);
+}
+static inline int qp_is_close(qp_types_t tp)
+{
+    return tp >= QP_ARRAY_CLOSE;
+}
+static inline int qp_is_int(qp_types_t tp)
+{
+    return tp == QP_INT64;
+}
+static inline int qp_is_double(qp_types_t tp)
+{
+    return tp == QP_DOUBLE;
+}
+static inline int qp_is_raw_term(qp_obj_t * qp_obj)
+{
+    return (qp_obj->tp == QP_RAW &&
+            qp_obj->len &&
+            qp_obj->via.raw[qp_obj->len - 1] == '\0');
+}
 
 /* Add to packer functions */
 int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
-int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
 int qp_add_string(qp_packer_t * packer, const char * str);
 int qp_add_string_term(qp_packer_t * packer, const char * str);
+
+int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
 int qp_add_double(qp_packer_t * packer, double real);
 int qp_add_int8(qp_packer_t * packer, int8_t integer);
 int qp_add_int16(qp_packer_t * packer, int16_t integer);
@@ -170,9 +195,9 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer);
 int qp_fadd_double(qp_fpacker_t * fpacker, double real);
 
 /* creates a valid qpack buffer of length 3 holding an int16 type. */
-#define QP_PACK_INT16(buffer, n) \
-char buffer[3];\
-buffer[0] = QP_INT16; \
-memcpy(&buffer[1], &n, 2);
+#define QP_PACK_INT16(BUF__, N__) \
+char BUF__[3];\
+BUF__[0] = QP_INT16; \
+memcpy(&BUF__[1], &N__, 2);
 
 

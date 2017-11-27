@@ -10,7 +10,7 @@
  *
  */
 #include <assert.h>
-#include <cleri/olist.h>
+#include <cleri/cleri.h>
 #include <expr/expr.h>
 #include <iso8601/iso8601.h>
 #include <logger/logger.h>
@@ -32,15 +32,14 @@
 #include <sys/time.h>
 #include <siri/err.h>
 
-#ifndef DEBUG
-#include <math.h>
-#else
+#ifdef DEBUG
 #include <motd/motd.h>
 #endif
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
+#define SIRIDB_FWD_SERVERS_TIMEOUT 5000  // 5 seconds
 
 static void QUERY_send_invalid_error(uv_async_t * handle);
 static void QUERY_parse(uv_async_t * handle);
@@ -68,7 +67,7 @@ void siridb_query_run(
         uv_stream_t * client,
         const char * q,
         size_t q_len,
-        siridb_timep_t time_precision,
+        float factor,
         int flags)
 {
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
@@ -109,8 +108,8 @@ void siridb_query_run(
     query->client = client;
     query->flags = flags;
 
-    /* bind time precision (this can never be equal to the SiriDB precision) */
-    query->time_precision = time_precision;
+    /* bind time precision factor */
+    query->factor = factor;
 
     /* set the default callback, this might change when custom
      * data is linked to the query handle
@@ -265,12 +264,16 @@ void siridb_query_forward(
         return;
     }
 
+    /*
+     * For backwards compatibility with SiriDB version < 2.0.24 we send an
+     * extra value SIRIDB_TIME_DEFAULT.
+     */
     qp_add_type(packer, QP_ARRAY2);
 
     /* add the query to the packer */
     QUERY_to_packer(packer, query);
+    qp_add_int8(packer, SIRIDB_TIME_DEFAULT);  /* Only for version < 2.0.24 */
 
-    qp_add_int8(packer, query->time_precision);
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, packer->len, 0, packer->buffer);
 
@@ -290,7 +293,7 @@ void siridb_query_forward(
                     siridb_servers_send_pkg(
                             servers,
                             pkg,
-                            0,
+                            SIRIDB_FWD_SERVERS_TIMEOUT,
                             cb,
                             handle);
                     slist_free(servers);
@@ -298,6 +301,7 @@ void siridb_query_forward(
                 else
                 {
                     free(pkg);
+                    ERR_ALLOC
                 }
             }
             break;
@@ -329,7 +333,6 @@ void siridb_query_forward(
                 {
                     /* if slist is NULL, a signal is raised */
                     siridb_pools_send_pkg_2some(
-                            siridb,
                             borrow_list,
                             pkg,
                             0,
@@ -422,19 +425,11 @@ void siridb_query_timeit_from_unpacker(
 
 static void QUERY_send_invalid_error(uv_async_t * handle)
 {
+    size_t len;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    size_t len = 0;
     int count = 0;
     const char * expect;
-    cleri_olist_t * expecting;
-
-    /* remove comment from suggestions since this is boring info */
-    cleri_expecting_remove(query->pr->expecting, CLERI_GID_R_COMMENT);
-
-    /* we always need required since cleri uses required as its final
-     * suggestions tree.
-     */
-    expecting = query->pr->expecting->required;
+    cleri_t * cl_obj;
 
     /* start building the error message */
     len = snprintf(query->err_msg,
@@ -445,25 +440,26 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
     /* expand the error message with suggestions. we try to add nice names
      * for regular expressions etc.
      */
-    while (expecting != NULL && expecting->cl_obj != NULL)
+    while (query->pr->expect != NULL)
     {
-        if (expecting->cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
+        cl_obj = query->pr->expect->cl_obj;
+        if (cl_obj->tp == CLERI_TP_END_OF_STATEMENT)
         {
             expect = "end_of_statement";
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_KEYWORD)
+        else if (cl_obj->tp == CLERI_TP_KEYWORD)
         {
-            expect = expecting->cl_obj->via.keyword->keyword;
+            expect = cl_obj->via.keyword->keyword;
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_TOKENS)
+        else if (cl_obj->tp == CLERI_TP_TOKENS)
         {
-            expect = expecting->cl_obj->via.tokens->spaced;
+            expect = cl_obj->via.tokens->spaced;
         }
-        else if (expecting->cl_obj->tp == CLERI_TP_TOKEN)
+        else if (cl_obj->tp == CLERI_TP_TOKEN)
         {
-            expect = expecting->cl_obj->via.token->token;
+            expect = cl_obj->via.token->token;
         }
-        else switch (expecting->cl_obj->via.dummy->gid)
+        else switch (cl_obj->gid)
         {
         case CLERI_GID_R_SINGLEQ_STR:
             expect = "single_quote_str"; break;
@@ -485,9 +481,16 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             /* the best result we get is to handle all, but it will not break
              * in case we did not specify some elements.
              */
-            expecting = expecting->next;
+            query->pr->expect = query->pr->expect->next;
             continue;
         }
+
+        /* make sure len is not greater than the maximum size */
+        if (len > SIRIDB_MAX_SIZE_ERR_MSG)
+        {
+            len = SIRIDB_MAX_SIZE_ERR_MSG;
+        }
+
         /* we use count = 0 to print the first one, then for the others
          * a comma prefix and the last with -or-
          */
@@ -498,7 +501,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
                     "%s",
                     expect);
         }
-        else if (expecting->next == NULL || expecting->next->cl_obj == NULL)
+        else if (query->pr->expect->next == NULL)
         {
             len += snprintf(query->err_msg + len,
                     SIRIDB_MAX_SIZE_ERR_MSG - len,
@@ -513,7 +516,7 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
                     expect);
         }
 
-        expecting = expecting->next;
+        query->pr->expect = query->pr->expect->next;
     }
 
     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
@@ -532,14 +535,13 @@ static void QUERY_send_no_query(uv_async_t * handle)
     qp_add_raw(query->packer, "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
 
-    if (query->time_precision == SIRIDB_TIME_DEFAULT)
+    if (!query->factor)
     {
         qp_add_int64(query->packer, (int64_t) ts);
     }
     else
     {
-        double factor =
-                pow(1000.0, query->time_precision - siridb->time->precision);
+        double factor = (double) query->factor;
         qp_add_int64(query->packer, (int64_t) (ts * factor));
     }
 
@@ -682,7 +684,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
     cleri_children_t * current;
     uv_async_cb func;
 
-    gid = node->cl_obj->via.dummy->gid;
+    gid = node->cl_obj->gid;
 
     /*
      * When GID is 0 this means CLERI_NONE
@@ -701,8 +703,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         }
     }
 
-
-    if (gid == CLERI_GID_TIME_EXPR)
+    if (gid == CLERI_GID_TIME_EXPR || gid == CLERI_GID_CALC_STMT)
     {
         char buffer[EXPR_MAX_SIZE];
         size_t size = EXPR_MAX_SIZE;
@@ -727,7 +728,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         }
 
         /* check if timestamp is valid */
-        if (!siridb_int64_valid_ts(walker->siridb, node->result))
+        if (!siridb_int64_valid_ts(walker->siridb->time, node->result))
         {
             return EXPR_TIME_OUT_OF_RANGE;
         }
@@ -801,7 +802,7 @@ static int QUERY_time_expr(
                 *size,
                 "%" PRIu64,
                 walker->now);
-        if (n >= *size)
+        if (n >= (ssize_t) *size)
         {
             return EXPR_TOO_LONG;
         }
@@ -811,7 +812,7 @@ static int QUERY_time_expr(
 
     case CLERI_TP_REGEX:
         /* can be an integer or time string like 2d or something */
-        switch (node->cl_obj->via.regex->gid)
+        switch (node->cl_obj->gid)
         {
         case CLERI_GID_R_INTEGER:
             if (node->len >= *size)
@@ -829,7 +830,7 @@ static int QUERY_time_expr(
                     "%" PRIu64,
                         siridb_time_parse(node->str, node->len) *
                         walker->siridb->time->factor);
-            if (n >= *size)
+            if (n >= (ssize_t) *size)
             {
                 return EXPR_TOO_LONG;
             }
@@ -864,7 +865,7 @@ static int QUERY_time_expr(
                     "%" PRId64,
                     ts * walker->siridb->time->factor);
 
-            if (n >= *size)
+            if (n >= (ssize_t) *size)
             {
                 return EXPR_TOO_LONG;
             }
@@ -968,7 +969,7 @@ static int QUERY_rebuild(
 
     case CLERI_TP_CHOICE:
     case CLERI_TP_RULE:
-        switch (node->cl_obj->via.dummy->gid)
+        switch (node->cl_obj->gid)
         {
         case CLERI_GID_UUID:
             {
@@ -986,7 +987,7 @@ static int QUERY_rebuild(
                             *size,
                             "%s ",
                             uuid);
-                    if (n >= *size)
+                    if (n >= (ssize_t) *size)
                     {
                         return QUERY_TOO_LONG;
                     }
@@ -1004,7 +1005,7 @@ static int QUERY_rebuild(
                         *size,
                         "%" PRId64 " ",
                         node->result);
-                if (n >= *size)
+                if (n >= (ssize_t) *size)
                 {
                     return QUERY_TOO_LONG;
                 }

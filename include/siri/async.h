@@ -21,6 +21,7 @@ typedef struct siri_async_s
     uint8_t ref;
 } siri_async_t;
 
-void siri_async_incref(uv_async_t * handle);
 void siri_async_close(uv_handle_t * handle);
 void siri_async_decref(uv_async_t ** handle);
+
+#define siri_async_incref(HANDLE__) ((siri_async_t *) HANDLE__->data)->ref++

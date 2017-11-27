@@ -9,7 +9,9 @@
  *  - initial version, 30-06-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
@@ -45,7 +47,8 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (fifo->fifos == NULL)
     {
         free(fifo);
-        return NULL;  /* signal is raised */
+        ERR_ALLOC
+        return NULL;
     }
 
     fifo->in = NULL;
@@ -68,7 +71,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     }
 
     fifo->max_id = (fifo->fifos->len) ?
-            ((siridb_ffile_t *) fifo->fifos->last->data)->id : -1;
+            (ssize_t) ((siridb_ffile_t *) fifo->fifos->last->data)->id : -1;
 
     fifo->in = siridb_ffile_new(++fifo->max_id, fifo->path, NULL);
     if (fifo->in == NULL)
@@ -81,7 +84,8 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     if (llist_append(fifo->fifos, fifo->in))
     {
         siridb_fifo_free(fifo);
-        return NULL;  /* signal is raised */
+        ERR_ALLOC
+        return NULL;
     }
 
     /* we have at least one fifo in the list */
@@ -134,9 +138,9 @@ int siridb_fifo_append(siridb_fifo_t * fifo, sirinet_pkg_t * pkg)
             siridb_ffile_unlink(fifo->out);
             fifo->out = fifo->in;
         }
-        else
+        else if (llist_append(fifo->fifos, fifo->in))
         {
-            llist_append(fifo->fifos, fifo->in);
+            ERR_ALLOC;
         }
         break;
     case FFILE_SUCCESS:
@@ -295,9 +299,21 @@ void siridb_fifo_free(siridb_fifo_t * fifo)
 }
 
 /*
+ * returns the number of fifo files.
+ * (in case fifo is NULL, the return value will be zero)
+ */
+size_t siridb_fifo_size(siridb_fifo_t * fifo)
+{
+    return (fifo == NULL) ? 0 : fifo->fifos->len + 1;
+}
+
+
+/*
  * returns 1 and a signal can be set if a file close has failed
  */
-static int FIFO_walk_free(siridb_ffile_t * ffile, void * args)
+static int FIFO_walk_free(
+        siridb_ffile_t * ffile,
+        void * args __attribute__((unused)))
 {
     siridb_ffile_free(ffile);
     return 1;
@@ -349,9 +365,9 @@ static int FIFO_init(siridb_fifo_t * fifo)
                 {
                     uint64_t id = strtoull(fifo_list[n]->d_name, NULL, 10);
                     ffile = siridb_ffile_new(id, fifo->path, NULL);
-                    if (ffile != NULL)
+                    if (ffile != NULL && llist_append(fifo->fifos, ffile))
                     {
-                        llist_append(fifo->fifos, ffile);
+                        ERR_ALLOC;
                     }
                     free(fn);
                 }

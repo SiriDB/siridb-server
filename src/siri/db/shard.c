@@ -10,7 +10,9 @@
  *  - initial version, 04-04-2016
  *
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <ctree/ctree.h>
 #include <imap/imap.h>
@@ -19,6 +21,7 @@
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
+#include <siri/optimize.h>
 #include <siri/err.h>
 #include <siri/file/pointer.h>
 #include <siri/siri.h>
@@ -27,11 +30,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define GET_FN(shrd)                                                        \
-/* we are sure this fits since the max possible length is checked */        \
-shrd->fn = (char *) malloc(PATH_MAX * sizeof(char) ];                       \
-sprintf(fn, "%s%s%" PRIu64 "%s", siridb->dbpath,                            \
-            SIRIDB_SHARDS_PATH, shrd->id, ".sdb");
+/* max read buffer size used for reading from index file */
+#define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -103,7 +103,7 @@ sprintf(fn, "%s%s%" PRIu64 "%s", siridb->dbpath,                            \
 #define DEFAULT_MAX_CHUNK_SZ_NUM 800
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
-        {.repr="optimize-scheduled", .flag=SIRIDB_SHARD_MANUAL_OPTIMIZE},
+        {.repr="indexed", .flag=SIRIDB_SHARD_HAS_INDEX},
         {.repr="overlap", .flag=SIRIDB_SHARD_HAS_OVERLAP},
         {.repr="new-values", .flag=SIRIDB_SHARD_HAS_NEW_VALUES},
         {.repr="dropped-series", .flag=SIRIDB_SHARD_HAS_DROPPED_SERIES},
@@ -117,16 +117,31 @@ const char shard_type_map[2][7] = {
         "log"
 };
 
-static int SHARD_load_idx_num32(
+static int SHARD_apply_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
-        FILE * fp);
-static int SHARD_load_idx_num64(
+        char * pt,
+        size_t pos,
+        int is_num64);
+static int SHARD_get_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
-        FILE * fp);
-static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
+        int is_num64);
+static int SHARD_load_idx_num(
+        siridb_t * siridb,
+        siridb_shard_t * shard,
+        FILE * fp,
+        int is_num64);
+static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 static int SHARD_truncate(siridb_shard_t * shard);
+static int SHARD_write_header(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        FILE * fp);
+static int SHARD_remove(siridb_shard_t * shard);
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -134,7 +149,11 @@ static int SHARD_truncate(siridb_shard_t * shard);
  */
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
+    int is_num64;
+    FILE * fp;
+    off_t shard_sz;
     siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+
     if (shard == NULL)
     {
         ERR_ALLOC
@@ -156,7 +175,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         siridb_shard_decref(shard);
         return -1;  /* signal is raised */
     }
-    FILE * fp;
+
 
     log_info("Loading shard %" PRIu64, id);
 
@@ -203,16 +222,38 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     switch (shard->tp)
     {
     case SIRIDB_SHARD_TP_NUMBER:
-        if (time_precision == SIRIDB_TIME_SECONDS)
+        is_num64 = time_precision > SIRIDB_TIME_SECONDS;
+
+        if (SHARD_get_idx_num(siridb, shard, is_num64))
         {
-            if (SHARD_load_idx_num32(siridb, shard, fp))
-            {
-                SHARD_truncate(shard);
-            }
+            fclose(fp);
+            log_critical("Cannot read index for shard: '%s'", shard->fn);
+            siridb_shard_decref(shard);
+            return -1;
         }
-        else
+
+        if (fseeko(fp, 0, SEEK_END) ||
+            (shard_sz = ftello(fp)) < (off_t) shard->size)
         {
-            if (SHARD_load_idx_num64(siridb, shard, fp))
+            fclose(fp);
+            log_critical("Index and/or shard corrupt: '%s'", shard->fn);
+            siridb_shard_decref(shard);
+            return -1;
+        }
+
+        if (shard_sz > (off_t) shard->size)
+        {
+            shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
+
+            if (fseeko(fp, (off_t) shard->size, SEEK_SET))
+            {
+                fclose(fp);
+                log_critical("Seek error in: '%s'", shard->fn);
+                siridb_shard_decref(shard);
+                return -1;
+            }
+
+            if (SHARD_load_idx_num(siridb, shard, fp, is_num64))
             {
                 SHARD_truncate(shard);
             }
@@ -238,10 +279,10 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
 
-    if (imap_add(siridb->shards, id, shard) == -1)
+    if (imap_set(siridb->shards, id, shard) == -1)
     {
         siridb_shard_decref(shard);
-        return -1;  /* signal is raised */
+        return -1;
     }
 
     /* remove LOADING flag from shard status */
@@ -275,7 +316,6 @@ siridb_shard_t *  siridb_shard_create(
     }
     shard->id = id;
     shard->ref = 1;
-    shard->flags = SIRIDB_SHARD_OK;
     shard->tp = tp;
     shard->replacing = replacing;
     shard->size = HEADER_SIZE;
@@ -289,6 +329,9 @@ siridb_shard_t *  siridb_shard_create(
         siridb_shard_decref(shard);
         return NULL;
     }
+
+    shard->flags = (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
+            SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
@@ -329,10 +372,10 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    if (imap_add(siridb->shards, id, shard) == -1)
+    if (imap_set(siridb->shards, id, shard) == -1)
     {
-        ERR_ALLOC
         siridb_shard_decref(shard);
+        ERR_ALLOC
         return NULL;
     }
 
@@ -386,7 +429,7 @@ int siridb_shard_cexpr_cb(
  * Make sure 'str' is a pointer to a string which can hold at least
  * SIRIDB_SHARD_STR_MAX.
  */
-void siridb_shard_status(char * str, siridb_shard_t * shard)
+int siridb_shard_status(char * str, siridb_shard_t * shard)
 {
     char * pt = str;
 
@@ -397,7 +440,7 @@ void siridb_shard_status(char * str, siridb_shard_t * shard)
 
     uint8_t flags = shard->flags;
 
-    for (int i = 0; i < SHARD_STATUS_SIZE && flags; i++)
+    for (int i = 1; i < SHARD_STATUS_SIZE && flags; i++)
     {
         if ((flags & flags_map[i].flag) == flags_map[i].flag)
         {
@@ -409,8 +452,9 @@ void siridb_shard_status(char * str, siridb_shard_t * shard)
 
     if (pt == str)
     {
-        sprintf(pt, "ok");
+        pt += sprintf(pt, "ok");
     }
+    return pt - str;
 }
 
 /*
@@ -425,12 +469,14 @@ long int siridb_shard_write_points(
         siridb_shard_t * shard,
         siridb_points_t * points,
         uint_fast32_t start,
-        uint_fast32_t end)
+        uint_fast32_t end,
+        FILE * idx_fp)
 {
     FILE * fp;
     uint16_t len = end - start;
     uint_fast32_t i;
     long int pos = EOF;
+    int header_sz;
 
     if (shard->fp->fp == NULL)
     {
@@ -443,55 +489,42 @@ long int siridb_shard_write_points(
     }
     fp = shard->fp->fp;
 
-    if (fseeko(fp, 0, SEEK_END) ||
-        fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
+    if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
     {
-        ERR_FILE
-        log_critical("Cannot write index header to file '%s'", shard->fn);
-        return EOF;
+        header_sz = SHARD_write_header(
+                siridb,
+                series,
+                points,
+                start,
+                end,
+                fp);
+        pos = shard->size + header_sz;
     }
-
-    switch (siridb->time->ts_sz)
+    else
     {
-    case sizeof(uint32_t):
-        {
-            uint32_t start_ts = (uint32_t) points->data[start].ts;
-            uint32_t end_ts = (uint32_t) points->data[end - 1].ts;
-            if (fwrite(&start_ts, sizeof(uint32_t), 1, fp) != 1 ||
-                fwrite(&end_ts, sizeof(uint32_t), 1, fp) != 1)
-            {
-                ERR_FILE
-                log_critical("Cannot write index header to file '%s'",
-                        shard->fn);
-                return EOF;
-            }
-        }
-        /* TODO: this is not LOG compatible */
-        pos = shard->size + IDX_NUM32_SZ;
-        break;
-
-    case sizeof(uint64_t):
-        if (fwrite(&points->data[start].ts, sizeof(uint64_t), 1, fp) != 1 ||
-            fwrite(&points->data[end - 1].ts, sizeof(uint64_t), 1, fp) != 1)
+        header_sz = SHARD_write_header(
+                siridb,
+                series,
+                points,
+                start,
+                end,
+                idx_fp);
+        pos = shard->size;
+        /* in this case we need to set the file pointer still to the end */
+        if (fseeko(fp, 0, SEEK_END))
         {
             ERR_FILE
-            log_critical("Cannot write index header to file '%s'",
-                    shard->fn);
+            log_critical("Seek error in shard id %" PRIu64, shard->id);
             return EOF;
         }
-        /* TODO: this is not LOG compatible */
-        pos = shard->size + IDX_NUM64_SZ;
-        break;
-
-    default:
-        assert (0);
-        break;
     }
 
-    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
+    if (header_sz < 0)
     {
         ERR_FILE
-        log_critical("Cannot write index header to file '%s'", shard->fn);
+        log_critical(
+                "Cannot write index header for shard id %" PRIu64,
+                shard->id);
         return EOF;
     }
 
@@ -519,7 +552,7 @@ long int siridb_shard_write_points(
     shard->size = pos + (siridb->time->ts_sz + 8) * len;
 
 #ifdef DEBUG
-    assert (shard->size == ftello(fp));
+    assert (shard->size == (size_t) ftello(fp));
 #endif
 
     return pos;
@@ -712,11 +745,11 @@ int siridb_shard_get_points_num64(
  * COPY from siridb_shard_get_points_num32
  */
 int siridb_shard_get_points_log32(
-        siridb_points_t * points,
-        idx_t * idx,
-        uint64_t * start_ts,
-        uint64_t * end_ts,
-        uint8_t has_overlap)
+        siridb_points_t * points __attribute__((unused)),
+        idx_t * idx __attribute__((unused)),
+        uint64_t * start_ts __attribute__((unused)),
+        uint64_t * end_ts __attribute__((unused)),
+        uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
 }
@@ -725,11 +758,11 @@ int siridb_shard_get_points_log32(
  * COPY from siridb_shard_get_points_num32
  */
 int siridb_shard_get_points_log64(
-        siridb_points_t * points,
-        idx_t * idx,
-        uint64_t * start_ts,
-        uint64_t * end_ts,
-        uint8_t has_overlap)
+        siridb_points_t * points __attribute__((unused)),
+        idx_t * idx __attribute__((unused)),
+        uint64_t * start_ts __attribute__((unused)),
+        uint64_t * end_ts __attribute__((unused)),
+        uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
 }
@@ -749,7 +782,11 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    if ((siridb_shard_t *) imap_pop(siridb->shards, shard->id) == shard)
+    /* In case the shard is not removed, it must be the shard inside the imap
+     * because we check and replace the shard within the shards_mutex lock.
+     * If the shard is marked as removed we can simply skip the optimize.
+     */
+    if (~shard->flags & SIRIDB_SHARD_IS_REMOVED)
     {
         if ((new_shard = siridb_shard_create(
             siridb,
@@ -808,7 +845,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
     if (slist == NULL)
     {
-        return -1;  /* signal is raised */
+        ERR_ALLOC
+        return -1;
     }
 
     sleep(1);
@@ -822,8 +860,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         }
 
         series = slist->data[i];
-
-
 
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
@@ -865,14 +901,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         return siri_err;
     }
 
-    /* this is a good time to copy the file name */
-    char * tmp = strdup(new_shard->replacing->fn);
-
-    if (tmp == NULL)
-    {
-        ERR_ALLOC
-    }
-
     if (siri_err || siri.optimize->status == SIRI_OPTIMIZE_CANCELLED)
     {
         /*
@@ -880,7 +908,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
          * only the reference counter for the new_shard we keep this shard as
          * if it is still optimizing so remaining points can still be written.
          */
-        free(tmp);
         siridb_shard_decref(new_shard);
         return siri_err;
     }
@@ -905,17 +932,18 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
                     "Cancel optimizing shard '%s' because the shard is dropped",
                     new_shard->fn);
         }
-        free(tmp);
     }
     else
     {
         /* remove the old shard file, this is not critical */
         unlink(new_shard->replacing->fn);
 
-        /* rename the temporary shard file to the correct shard filename */
-        if (rename(new_shard->fn, new_shard->replacing->fn))
+        /* rename the temporary files to the correct file names */
+        if (rename(new_shard->fn, new_shard->replacing->fn) ||
+            siri_optimize_finish_idx(
+                new_shard->replacing->fn,
+                new_shard->replacing->flags & SIRIDB_SHARD_HAS_INDEX))
         {
-            free(tmp);
             log_critical(
                     "Could not rename file '%s' to '%s'",
                     new_shard->fn,
@@ -926,7 +954,8 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
         {
             /* free the original allocated memory and set the new filename */
             free(new_shard->fn);
-            new_shard->fn = tmp;
+            new_shard->fn = new_shard->replacing->fn;
+            new_shard->replacing->fn = NULL;
 
             /* decrement reference to old shard and set
              * new_shard->replacing to NULL
@@ -949,27 +978,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 }
 
 /*
- * Returns 0 if successful or EOF in case of an error.
- */
-int siridb_shard_write_flags(siridb_shard_t * shard)
-{
-    if (shard->fp->fp == NULL)
-    {
-        if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
-        {
-            log_critical(
-                    "Cannot open file '%s', skip writing status",
-                    shard->fn);
-            return EOF;
-        }
-    }
-    return (fseeko(shard->fp->fp, HEADER_FLAGS, SEEK_SET) ||
-            fputc(shard->flags, shard->fp->fp) == EOF ||
-            fflush(shard->fp->fp)) ? EOF : 0;
-}
-
-
-/*
  * This function can be used instead of the macro function when needed as
  * callback.
  *
@@ -980,7 +988,7 @@ int siridb_shard_write_flags(siridb_shard_t * shard)
  *
  * A signal can be raised in case closing the shard file fails.
  */
-inline void siridb__shard_decref(siridb_shard_t * shard)
+void siridb__shard_decref(siridb_shard_t * shard)
 {
     if (!--shard->ref)
     {
@@ -1006,7 +1014,7 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
     if (pop_shard != NULL && (~pop_shard->flags & SIRIDB_SHARD_IS_REMOVED))
     {
         pop_shard->flags |= SIRIDB_SHARD_IS_REMOVED;
-        siridb_shard_remove(pop_shard);
+        SHARD_remove(pop_shard);
 
         if (shard != pop_shard)
         {
@@ -1041,37 +1049,40 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
     {
         slist_t * slist = imap_2slist_ref(siridb->series_map);
 
-        if (slist != NULL)
+        if (slist == NULL)
         {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    siridb_series_remove_shard(siridb, series, shard);
-                    siridb_series_remove_shard(siridb, series, pop_shard);
-                }
-                siridb_series_decref(series);
-            }
-            slist_free(slist);
+            ERR_ALLOC
         }
+        else for (size_t i = 0; i < slist->len; i++)
+        {
+            series = (siridb_series_t *) slist->data[i];
+            if (shard->id % siridb->duration_num == series->mask)
+            {
+                siridb_series_remove_shard(siridb, series, shard);
+                siridb_series_remove_shard(siridb, series, pop_shard);
+            }
+            siridb_series_decref(series);
+        }
+
+        slist_free(slist);
     }
     else
     {
         slist_t * slist = imap_2slist(siridb->series_map);
 
-        if (slist != NULL)
+        if (slist == NULL)
         {
-            for (size_t i = 0; i < slist->len; i++)
-            {
-                series = (siridb_series_t *) slist->data[i];
-                if (shard->id % siridb->duration_num == series->mask)
-                {
-                    siridb_series_remove_shard(siridb, series, shard);
-                }
-            }
-            slist_free(slist);
+            ERR_ALLOC
         }
+        else for (size_t i = 0; i < slist->len; i++)
+        {
+            series = (siridb_series_t *) slist->data[i];
+            if (shard->id % siridb->duration_num == series->mask)
+            {
+                siridb_series_remove_shard(siridb, series, shard);
+            }
+        }
+        slist_free(slist);
     }
 
     if (pop_shard != NULL)
@@ -1080,37 +1091,6 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
     }
 
     uv_mutex_unlock(&siridb->series_mutex);
-}
-
-/*
- * Returns 0 when successful or a negative value in case of an error.
- */
-int siridb_shard_remove(siridb_shard_t * shard)
-{
-    int rc = 0;
-
-    if (shard->replacing != NULL)
-    {
-        rc = siridb_shard_remove(shard->replacing);
-    }
-
-    siri_fp_close(shard->fp);
-
-    rc += unlink(shard->fn);
-
-    if (rc == 0)
-    {
-        log_info("Shard file removed: %s", shard->fn);
-    }
-    else
-    {
-        log_critical(
-                "Cannot remove shard file: %s (error code: %d)",
-                shard->fn,
-                rc);
-    }
-
-    return rc;
 }
 
 /*
@@ -1138,6 +1118,57 @@ void siridb__shard_free(siridb_shard_t * shard)
 
     free(shard->fn);
     free(shard);
+}
+
+/*
+ * Returns 0 when successful or a negative value in case of an error.
+ */
+static int SHARD_remove(siridb_shard_t * shard)
+{
+    int rc = 0;
+
+    if (shard->replacing != NULL)
+    {
+        rc = SHARD_remove(shard->replacing);
+    }
+    else if (shard->flags & SIRIDB_SHARD_HAS_INDEX)
+    {
+        /* We never have to delete the temporary (__) index file since this is
+         * the responsibility for the optimize task. This index file can never
+         * be in use by SiriDB. In case deletion has failed, nothing will
+         * happen because the file will not be read at startup.
+         */
+        siridb_shard_idx_file(buffer, shard->fn);
+
+        /* unlink the index file */
+        if (unlink(buffer))
+        {
+            /* not a real issue, only a warning since this is not expected */
+            log_warning("Removing index file failed: %s", buffer);
+        }
+        else
+        {
+            log_info("Index file removed: %s", buffer);
+        }
+    }
+
+    siri_fp_close(shard->fp);
+
+    rc += unlink(shard->fn);
+
+    if (rc == 0)
+    {
+        log_info("Shard file removed: %s", shard->fn);
+    }
+    else if (shard->fn != NULL)
+    {
+        log_critical(
+                "Removing shard file failed: %s (error code: %d)",
+                shard->fn,
+                rc);
+    }
+
+    return rc;
 }
 
 /*
@@ -1179,88 +1210,192 @@ static int SHARD_truncate(siridb_shard_t * shard)
 }
 
 /*
+ * This function applies the index on the appropriate series. In case the
+ * series is not found, a log line will be displayed if this is the first
+ * one in the shard which is not found. The next series which cannot be found
+ * is simply ignored. In case the series id is not possible (invalid id),
+ * then an log error is displayed and the return value will be -1.
+ */
+static int SHARD_apply_idx_num(
+        siridb_t * siridb,
+        siridb_shard_t * shard,
+        char * pt,
+        size_t pos,
+        int is_num64)
+{
+    uint16_t len;
+    uint32_t series_id;
+    siridb_series_t * series;
+
+    series_id = *((uint32_t *) pt);
+    len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
+    series = imap_get(siridb->series_map, series_id);
+
+    if (series == NULL)
+    {
+        if (!series_id || series_id > siridb->max_series_id)
+        {
+            log_error(
+                    "Unexpected Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) at "
+                    "position %ld. This indicates that this shard is "
+                    "probably corrupt. The next optimize cycle will most "
+                    "likely fix this shard but you might loose some data.",
+                    series_id,
+                    shard->id,
+                    shard->fn,
+                    pos);
+            shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+            return -1;
+        }
+
+        /* this shard has remove series, make sure the flag is set */
+        if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
+        {
+            log_debug(
+                    "At least Series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) but "
+                    "does not exist anymore. We will remove the series on "
+                    "the next optimize cycle.",
+                    series_id,
+                    shard->id,
+                    shard->fn);
+            shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
+        }
+    }
+    else
+    {
+        if (siridb_series_add_idx(
+                series,
+                shard,
+                is_num64 ? // START_TS IN HEADER
+                        (uint64_t) *((uint64_t *) (pt + 4)) :
+                        (uint64_t) *((uint32_t *) (pt + 4)),
+                is_num64 ? // END_TS IN HEADER
+                        (uint64_t) *((uint64_t *) (pt + 12)) :
+                        (uint64_t) *((uint32_t *) (pt + 8)),
+                (uint32_t) pos,
+                len) == 0)
+        {
+            /* update the series length property */
+            series->length += len;
+        }
+        else
+        {
+            /* signal is raised */
+            log_critical("Cannot load index for Series ID %u", series->id);
+        }
+    }
+
+    return (int) len;
+}
+
+/*
+ * Read an index file for a shard in case the shard has flag
+ * SIRIDB_SHARD_HAS_INDEX set. Returns 0 in case the index was read successful
+ * and if the flag was not set. Returns a negative value in case of an error.
+ *
+ * Member shard->size will be updated according the index.
+ */
+static int SHARD_get_idx_num(
+        siridb_t * siridb,
+        siridb_shard_t * shard,
+        int is_num64)
+{
+    const int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
+    const int tv_sz = is_num64 ? 16 : 12;
+
+    size_t i, n;
+    char * data, * pt;
+    int len;
+    FILE * fp;
+
+    if (~shard->flags & SIRIDB_SHARD_HAS_INDEX)
+    {
+        return 0;
+    }
+
+    n = SIRIDB_SHARD_MAX_CHUNK_SZ / idx_sz;
+    data = (char *) malloc(n * idx_sz);
+
+    if (data == NULL)
+    {
+        log_critical("Memory allocation error");
+        free(data);
+        return -1;
+    }
+
+    /* get the index file name */
+    siridb_shard_idx_file(fn, shard->fn);
+
+    fp = fopen(fn, "r");
+    if (fp == NULL)
+    {
+        log_critical("Cannot open index file for reading: '%s'", fn);
+        free(data);
+        return -1;
+    }
+
+    while ((n = fread(data, idx_sz, n, fp)))
+    {
+        pt = data;
+        for (i = 0; i < n; i++, pt += idx_sz)
+        {
+            len = SHARD_apply_idx_num(
+                    siridb,
+                    shard,
+                    pt,
+                    shard->size,
+                    is_num64);
+
+            if (len < 0)
+            {
+                log_critical("Error while reading index file: '%s'", fn);
+                fclose(fp);
+                free(data);
+                return -1;
+            }
+
+            shard->size += len * tv_sz;
+        }
+    }
+
+    fclose(fp);
+    free(data);
+
+    return 0;
+}
+
+/*
  * Returns 0 if successful or -1 in case of an error.
  *
  * A SIGNAL might be raised in case of memory errors. We mark the shard as
  * corrupt in case of disk errors and try to recover on the next optimize
  * cycle.
  */
-static int SHARD_load_idx_num32(
+static int SHARD_load_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
-        FILE * fp)
+        FILE * fp,
+        int is_num64)
 {
-    char idx[IDX_NUM32_SZ];
-    siridb_series_t * series;
-    uint16_t len;
-    uint32_t series_id;
-    char * pt;
-    int rc;
-    long int pos;
-    size_t size;
+    const unsigned int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
+    const unsigned int tv_sz = is_num64 ? 16 : 12;
 
-    while ((size = fread(&idx, 1, IDX_NUM32_SZ, fp)) == IDX_NUM32_SZ)
+    char idx[idx_sz];
+    int len, rc;
+    size_t size, pos;
+
+    while ((size = fread(&idx, 1, idx_sz, fp)) == idx_sz)
     {
-        pt = idx;
-        series_id = *((uint32_t *) pt);
-        len = *((uint16_t *) (idx + 12));  // LEN POS IN INDEX
-        pos = shard->size + IDX_NUM32_SZ;
+        pos = shard->size + idx_sz;
 
-        series = imap_get(siridb->series_map, series_id);
-
-        if (series == NULL)
+        if ((len = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64)) < 0)
         {
-            if (!series_id || series_id > siridb->max_series_id)
-            {
-                log_error(
-                        "Unexpected Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) at "
-                        "position %ld. This indicates that this shard is "
-                        "probably corrupt. The next optimize cycle will most "
-                        "likely fix this shard but you might loose some data.",
-                        series_id,
-                        shard->id,
-                        shard->fn,
-                        pos);
-                shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-                return -1;
-            }
-
-            /* this shard has remove series, make sure the flag is set */
-            if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
-            {
-                log_debug(
-                        "At least Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) but "
-                        "does not exist anymore. We will remove the series on "
-                        "the next optimize cycle.",
-                        series_id,
-                        shard->id,
-                        shard->fn);
-                shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
-            }
-        }
-        else
-        {
-            if (siridb_series_add_idx(
-                    series,
-                    shard,
-                    (uint64_t) *((uint32_t *) (idx + 4)), // START_TS IN HEADER
-                    (uint64_t) *((uint32_t *) (idx + 8)), // END_TS IN HEADER
-                    (uint32_t) pos,
-                    len) == 0)
-            {
-                /* update the series length property */
-                series->length += len;
-            }
-            else
-            {
-                /* signal is raised */
-                log_critical("Cannot load index for Series ID %u", series->id);
-            }
+            return -1;
         }
 
-        rc = fseeko(fp, len * 12, SEEK_CUR);  // 12 = NUM32 point size
+        rc = fseeko(fp, len * tv_sz, SEEK_CUR);  // 16 = NUM64 point size
         if (rc != 0)
         {
             log_error(
@@ -1274,118 +1409,7 @@ static int SHARD_load_idx_num32(
             return -1;
         }
 
-        shard->size = pos + len * 12;
-    }
-
-    if (size)
-    {
-        log_error(
-            "Shard %" PRIu64 " (%s) has %zu more bytes than expected. "
-            "Mark this shard as corrupt. The next optimize cycle will "
-            "most likely fix this shard but you might loose some data.",
-            shard->id,
-            shard->fn,
-            size);
-        shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-        return -1;
-    }
-
-    return siri_err;
-}
-
-/*
- * COPY from SHARD_load_idx_num32
- */
-static int SHARD_load_idx_num64(
-        siridb_t * siridb,
-        siridb_shard_t * shard,
-        FILE * fp)
-{
-    char idx[IDX_NUM64_SZ];
-    siridb_series_t * series;
-    uint16_t len;
-    uint32_t series_id;
-    char * pt;
-    int rc;
-    long int pos;
-    size_t size;
-
-    while ((size = fread(&idx, 1, IDX_NUM64_SZ, fp)) == IDX_NUM64_SZ)
-    {
-        pt = idx;
-        series_id = *((uint32_t *) pt);
-        len = *((uint16_t *) (idx + 20));  // LEN POS IN INDEX
-        pos = shard->size + IDX_NUM64_SZ;
-
-        series = imap_get(siridb->series_map, series_id);
-
-        if (series == NULL)
-        {
-            if (!series_id || series_id > siridb->max_series_id)
-            {
-                log_error(
-                        "Unexpected Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) at "
-                        "position %d. This indicates that this shard is "
-                        "probably corrupt. The next optimize cycle will most "
-                        "likely fix this shard but you might loose some data.",
-                        series_id,
-                        shard->id,
-                        shard->fn,
-                        pos);
-                shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-                return -1;
-            }
-
-            /* this shard has remove series, make sure the flag is set */
-            if (!(shard->flags & SIRIDB_SHARD_HAS_DROPPED_SERIES))
-            {
-                log_debug(
-                        "At least Series ID %" PRIu32
-                        " is found in shard %" PRIu64 " (%s) but "
-                        "does not exist anymore. We will remove the series on "
-                        "the next optimize cycle.",
-                        series_id,
-                        shard->id,
-                        shard->fn);
-                shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
-            }
-        }
-        else
-        {
-            if (siridb_series_add_idx(
-                    series,
-                    shard,
-                    (uint64_t) *((uint64_t *) (idx + 4)), // START_TS IN HEADER
-                    (uint64_t) *((uint64_t *) (idx + 12)), // END_TS IN HEADER
-                    (uint32_t) pos,
-                    len) == 0)
-            {
-                /* update the series length property */
-                series->length += len;
-            }
-            else
-            {
-                /* signal is raised */
-                log_critical("Cannot load index for Series ID %u", series->id);
-            }
-        }
-
-        rc = fseeko(fp, len * 16, SEEK_CUR);  // 16 = NUM32 point size
-        if (rc != 0)
-        {
-            log_error(
-                "Seek error in shard %" PRIu64 " (%s) at position %ld. "
-                "Mark this shard as corrupt. The next optimize cycle will "
-                "most likely fix this shard but you might loose some data.",
-                shard->id,
-                shard->fn,
-                pos);
-            shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-            return -1;
-        }
-
-        shard->size = pos + len * 16;
+        shard->size = pos + len * tv_sz;
     }
 
     if (size)
@@ -1409,7 +1433,7 @@ static int SHARD_load_idx_num64(
  *
  * Returns the length of 'fn' or a negative value in case of an error.
  */
-inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
+static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
@@ -1419,4 +1443,67 @@ inline static int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
              (shard->replacing == NULL) ? "" : "__",
              shard->id,
              ".sdb");
+}
+
+/*
+ * Write a header for a chunk of points. The header can be written to argument
+ * fp which should be a pointer to the index, or the shard file.
+ *
+ * In case of an error the function return EOF, otherwise the size which is
+ * written.
+ */
+static int SHARD_write_header(
+        siridb_t * siridb,
+        siridb_series_t * series,
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        FILE * fp)
+{
+    uint16_t len = end - start;
+    int size = EOF;
+
+    if (fseeko(fp, 0, SEEK_END) ||
+        fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
+    {
+        return EOF;
+    }
+
+    switch (siridb->time->ts_sz)
+    {
+    case sizeof(uint32_t):
+        {
+            uint32_t start_ts = (uint32_t) points->data[start].ts;
+            uint32_t end_ts = (uint32_t) points->data[end - 1].ts;
+            if (fwrite(&start_ts, sizeof(uint32_t), 1, fp) != 1 ||
+                fwrite(&end_ts, sizeof(uint32_t), 1, fp) != 1)
+            {
+                return EOF;
+            }
+        }
+        /* TODO: this is not LOG compatible */
+        size = IDX_NUM32_SZ;
+        break;
+
+    case sizeof(uint64_t):
+        if (fwrite(&points->data[start].ts, sizeof(uint64_t), 1, fp) != 1 ||
+            fwrite(&points->data[end - 1].ts, sizeof(uint64_t), 1, fp) != 1)
+        {
+            return EOF;
+        }
+        /* TODO: this is not LOG compatible */
+        size = IDX_NUM64_SZ;
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
+    {
+        return EOF;
+    }
+
+    return size;
 }

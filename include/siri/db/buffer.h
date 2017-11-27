@@ -15,6 +15,8 @@
 #include <siri/db/series.h>
 #include <siri/db/points.h>
 
+#define MAX_BUFFER_SZ 10485760
+
 typedef struct siridb_s siridb_t;
 typedef struct siridb_series_s siridb_series_t;
 typedef struct siridb_points_s siridb_points_t;

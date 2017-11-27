@@ -68,6 +68,8 @@ int sirinet_bserver_init(siri_t * siri)
 #endif
 
     int rc;
+    int ip_v6 = 0;  /* false */
+    char * ip;
 
     /* bind loop to the given loop */
     loop = siri->loop;
@@ -77,19 +79,38 @@ int sirinet_bserver_init(siri_t * siri)
     /* make sure data is set to NULL so we later on can check this value. */
     backend_server.data = NULL;
 
-    if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    if (siri->cfg->bind_backend_addr != NULL)
     {
-        uv_ip4_addr(
-                "0.0.0.0",
-                siri->cfg->listen_backend_port,
-                (struct sockaddr_in *) &server_addr);
+        struct in6_addr sa6;
+        if (inet_pton(AF_INET6, siri->cfg->bind_backend_addr, &sa6))
+        {
+            ip_v6 = 1;  /* true */
+        }
+        ip = siri->cfg->bind_backend_addr;
+    }
+    else if (siri->cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
+        ip = "0.0.0.0";
     }
     else
     {
+        ip = "::";
+        ip_v6 = 1;  /* true */
+    }
+
+    if (ip_v6)
+    {
         uv_ip6_addr(
-                "::",
+                ip,
                 siri->cfg->listen_backend_port,
                 (struct sockaddr_in6 *) &server_addr);
+    }
+    else
+    {
+        uv_ip4_addr(
+                ip,
+                siri->cfg->listen_backend_port,
+                (struct sockaddr_in *) &server_addr);
     }
 
     uv_tcp_bind(
@@ -444,7 +465,6 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     qp_obj_t qp_query;
-    qp_obj_t qp_time_precision;
 
     if (flags & SIRIDB_QUERY_FLAG_UPDATE_REPLICA)
     {
@@ -457,15 +477,14 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     }
 
     if (    qp_is_array(qp_next(&unpacker, NULL)) &&
-            qp_next(&unpacker, &qp_query) == QP_RAW &&
-            qp_next(&unpacker, &qp_time_precision) == QP_INT64)
+            qp_next(&unpacker, &qp_query) == QP_RAW)
     {
         siridb_query_run(
                 pkg->pid,
                 client,
                 qp_query.via.raw,
                 qp_query.len,
-                (siridb_timep_t) qp_time_precision.via.int64,
+                0.0,
                 0);
     }
     else

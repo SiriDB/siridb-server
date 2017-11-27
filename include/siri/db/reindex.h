@@ -16,6 +16,7 @@
 #include <siri/db/db.h>
 #include <siri/db/series.h>
 
+#define REINDEX_FN ".reindex"
 
 typedef struct siridb_s siridb_t;
 typedef struct siridb_series_s siridb_series_t;

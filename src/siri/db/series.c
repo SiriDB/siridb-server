@@ -22,6 +22,9 @@
  *          since they only run when no other references to the object exist.
  */
 #include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
@@ -30,8 +33,6 @@
 #include <siri/db/shards.h>
 #include <siri/err.h>
 #include <siri/siri.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <xpath/xpath.h>
 
@@ -79,6 +80,8 @@ const char series_type_map[3][8] = {
         "float",
         "string"
 };
+
+const uint8_t SERIES_SFC = SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
 
 /*
  * Call-back used to compare series properties.
@@ -261,8 +264,7 @@ int siridb_series_add_pcache(
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
- * This function adds the new series to siridb->series_map but not to
- * the compact tree: siridb->series.
+ * This function adds the new series to siridb->series_map and siridb->series.
  */
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
@@ -270,7 +272,6 @@ siridb_series_t * siridb_series_new(
         uint8_t tp)
 {
     siridb_series_t * series;
-    size_t len = strlen(series_name);
 
     siridb->max_series_id++;
     series = SERIES_new(
@@ -280,41 +281,56 @@ siridb_series_t * siridb_series_new(
             siridb->server->pool,
             series_name);
 
-    if (series != NULL)
+    if (series == NULL)
     {
-        /* add series to the store */
-        if (
-                qp_fadd_type(siridb->store, QP_ARRAY3) ||
-                qp_fadd_raw(siridb->store, series_name, len + 1) ||
-                qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-                qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
-                qp_flush(siridb->store))
-        {
-            ERR_FILE
-            log_critical("Cannot write series '%s' to store.", series_name);
-            siridb__series_free(series);
-            series = NULL;
-        }
-        /* create a buffer for series (except string series) */
-        else if (
-                tp != TP_STRING &&
-                siridb_buffer_new_series(siridb, series))
-        {
-            /* signal is raised */
-            log_critical("Could not create buffer for series '%s'.",
-                    series_name);
-            siridb__series_free(series);
-            series = NULL;
-        }
-        /* We only should add the series to series_map and assume the caller
-         * takes responsibility adding the series to SiriDB -> series
-         */
-        else
-        {
-            imap_add(siridb->series_map, series->id, series);
-            siridb_groups_add_series(siridb->groups, series);
-        }
+        return NULL;  /* signal is raised */
     }
+    /* add series to the store */
+    if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
+        qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
+        qp_fadd_int32(siridb->store, (int32_t) series->id) ||
+        qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+        qp_flush(siridb->store))
+    {
+        ERR_FILE
+        log_critical("Cannot write series '%s' to store.", series_name);
+        siridb__series_free(series);
+        return NULL;
+    }
+
+    /* create a buffer for series (except string series) */
+    if (tp != TP_STRING && siridb_buffer_new_series(siridb, series))
+    {
+        /* signal is raised */
+        log_critical("Could not create buffer for series '%s'.",
+                series_name);
+        siridb__series_free(series);
+        return NULL;
+    }
+
+    if (imap_add(siridb->series_map, series->id, series))
+    {
+        log_critical("Error adding series '%s' to the internal imap.",
+                series_name);
+        siridb__series_free(series);
+        ERR_ALLOC
+        return NULL;
+    }
+
+    if (ct_add(siridb->series, series->name, series))
+    {
+        log_critical("Error adding series '%s' to the internal smap.",
+                series_name);
+        imap_pop(siridb->series_map, series->id);
+        siridb__series_free(series);
+        ERR_ALLOC
+        return NULL;
+    }
+
+    /* we can ignore the result code since this is not critical and logging
+     * is done by the function.
+     */
+    siridb_groups_add_series(siridb->groups, series);
 
     return series;
 }
@@ -435,21 +451,10 @@ int siridb_series_add_idx(
 
     idx = series->idx + i;
 
-    /* Check here for new values since we now can compare the current
-     * idx->shard with shard. We only set NEW_VALUES when we already have
-     * data for this series in the shard and when not loading and not set
-     * already. (NEW_VALUES is used for optimize detection and there is
-     * nothing to optimize if this is the fist data for this series inside
-     * the shard.
-     */
-    if (    ((shard->flags &
-                (SIRIDB_SHARD_HAS_NEW_VALUES |
-                        SIRIDB_SHARD_IS_LOADING)) == 0) &&
-            ((i > 0 && series->idx[i - 1].shard == shard) ||
-            (i < series->idx_len - 1 && idx->shard == shard)))
+    /* Do not set the new values check when shard is loading. */
+    if (!(shard->flags & SERIES_SFC))
     {
         shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
-        siridb_shard_write_flags(shard);
     }
 
     idx->start_ts = start_ts;
@@ -929,7 +934,8 @@ int siridb_series_optimize_shard(
                 shard,
                 points,
                 pstart,
-                pend)) == EOF)
+                pend,
+                siri.optimize->idx_fp)) == EOF)
         {
             log_critical(
                     "Cannot write points to shard id '%" PRIu64 "'",
@@ -1301,7 +1307,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
                     pt < end;
                     pt += sizeof(uint32_t))
             {
-                if (imap_add(
+                if (imap_set(
                         dropped,
                         (uint32_t) *((uint32_t *) pt),
                         (int *) DROPPED_DUMMY) == -1)
@@ -1378,10 +1384,11 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
             if (series != NULL)
             {
                 /* add series to c-tree */
-                ct_add(siridb->series, series->name, series);
-
-                /* add series to imap32 */
-                imap_add(siridb->series_map, series->id, series);
+                if (ct_add(siridb->series, series->name, series) ||
+                    imap_add(siridb->series_map, series->id, series))
+                {
+                    return -1;
+                }
             }
         }
     }
@@ -1522,7 +1529,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
  */
 static void SERIES_update_start(siridb_series_t *__restrict series)
 {
-    series->start = series->idx_len ? series->idx->start_ts : -1;
+    series->start = series->idx_len ? series->idx->start_ts : UINT64_MAX;
 
     if (series->buffer->len)
     {
@@ -1563,6 +1570,7 @@ static void SERIES_update_end(siridb_series_t *__restrict series)
     {
         series->end = 0;
     }
+
     if (series->buffer->len)
     {
         siridb_point_t * point = series->buffer->data +
