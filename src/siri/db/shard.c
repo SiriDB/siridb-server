@@ -490,6 +490,9 @@ long int siridb_shard_write_points(
     }
     fp = shard->fp->fp;
 
+    /* TODO: if compressed shard, create dump here to receive csz
+     * Update SHARD_write_header and write csz */
+
     if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
     {
         header_sz = SHARD_write_header(

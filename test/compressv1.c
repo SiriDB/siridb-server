@@ -65,52 +65,88 @@ void points_add_point(
 
 
 
-unsigned char * compress_double(points_t * points, uint16_t * csz)
+unsigned char * compress(points_t * points)
 {
     uint64_t start = points->data[0].ts;
     uint64_t * diff;
+    int64_t * a;
+    int64_t * b;
     uint64_t tdiff = 0;
-    uint8_t shift;
-    uint64_t mask = points->data[0].val.u;
     uint64_t vdiff = 0;
-    uint8_t vstore = 0;
+    uint8_t flip;
+    uint8_t tshift;
+    uint8_t vshift;
 
-    printf("mask = %lu\n", mask);
+    size_t store_raw_diff = 0;
+    const uint64_t store_raw_mask = UINT64_C(0xff80000000000000);
 
     for (size_t i = points->len; --i;)
     {
         diff = &points->data[i].ts;
+        a = &points->data[i-1].val.i;
+        b = &points->data[i].val.i;
+
         *diff -= points->data[i-1].ts;
         if (*diff > tdiff)
         {
             tdiff = *diff;
         }
-        vdiff |= (mask ^ points->data[i].val.u);
-    }
 
-    printf("tdiff = %lu\n", tdiff);
-    printf("vdiff = %lu\n", vdiff);
-
-    for (shift = 1, mask = 0xf; shift; shift <<= 1, mask <<= 8)
-    {
-        if (vdiff & mask)
+        if (store_raw_diff)
         {
-            vstore |= shift;
+            continue;
+        }
+
+        diff = &points->data[i].val.u;
+
+        if (*a > *b)
+        {
+            *diff = *a - *b;
+            flip = 1;
+        }
+        else
+        {
+            *diff = *b - *a;
+            flip = 0;
+        }
+
+        if (*diff & store_raw_mask)
+        {
+            store_raw_diff = i;
+        }
+        else
+        {
+            *diff <<= 1;
+            *diff |= flip;
+        }
+
+        if (*diff > vdiff)
+        {
+            vdiff = *diff;
         }
     }
-    printf("vstore = %u\n", vstore);
-    printf("shift = %u\n", shift);
 
+    printf("tdiff = %llu\n", tdiff);
+    printf("vdiff = %llu\n", vdiff);
 
-    for (shift = 56; (tdiff << shift) >> shift != tdiff; shift -= 8);
+    for (tshift = 56; (tdiff << tshift) >> tshift != tdiff; tshift -= 8);
+    if (vdiff)
+    {
+        for (vshift = 56; (vdiff << vshift) >> vshift != vdiff; vshift -= 8);
+    }
+    else
+    {
+        vshift = 64;
+    }
 
-
-    printf("shift = %u\n", shift);
+    printf("store_raw_diff = %zu\n", store_raw_diff);
+    printf("tshift = %u\n", tshift);
+    printf("vshift = %u\n", vshift);
 
     return NULL;
 }
 
-void uncompress_double(unsigned char * c)
+void uncompress(unsigned char * c)
 {
 
 
@@ -126,12 +162,13 @@ int main()
         int r = rand() % 60;
         uint64_t ts = 1511797596 + i*300 + r;
         cast_t cf;
-        cf.d = 1.0;
+        cf.i = 40;
 
         points_add_point(points, &ts, &cf);
     }
 
     uint8_t a, b, c;
+    double f = 1.0;
 
     a = 1;
     b = 126;
@@ -171,9 +208,8 @@ int main()
     printf("c = %u\n", c);
     printf("b = %u\n", b);
 
-    uint16_t csz;
-    compress_double(points, &csz);
 
+    compress(points);
 
     points_destroy(points);
 
