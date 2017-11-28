@@ -26,6 +26,7 @@
 #define SIRIDB_SHARD_IS_REMOVED 16
 #define SIRIDB_SHARD_IS_LOADING 32
 #define SIRIDB_SHARD_IS_CORRUPT 64
+#define SIRIDB_SHARD_IS_COMPRESSED 128
 
 // HAS_OVERLAP + HAS_NEW_VALUES + HAS_DROPPED_SERIES + IS_CORRUPT
 #define SIRIDB_SHARD_NEED_OPTIMIZE 78
@@ -129,6 +130,14 @@ int siridb_shard_get_points_log64(
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
+
+int siridb_shard_get_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap);
+
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);

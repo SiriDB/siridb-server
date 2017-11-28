@@ -733,12 +733,25 @@ siridb_points_t * siridb_series_get_points(
 
     for (i = 0; i < len; i++)
     {
-        get_points_cb(
-                points,
-                series->idx + indexes[i],
-                start_ts,
-                end_ts,
-                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        idx = series->idx + indexes[i];
+        if (idx->shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+        {
+            siridb_shard_get_compressed(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
+        else
+        {
+            get_points_cb(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
         /* errors can be ignored here */
     }
 

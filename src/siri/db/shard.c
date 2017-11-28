@@ -330,7 +330,8 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    shard->flags = (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
+    shard->flags = SIRIDB_SHARD_IS_COMPRESSED |
+            (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
             SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
@@ -528,17 +529,24 @@ long int siridb_shard_write_points(
         return EOF;
     }
 
-    /* TODO: this works for both double and integer.
-     * Add size values for strings and write string using 'old' way
-     */
-    for (i = start; i < end; i++)
+    if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {
-        if (fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp) != 1 ||
-            fwrite(&points->data[i].val, 8, 1, fp) != 1)
+
+    }
+    else
+    {
+        /* TODO: this works for both double and integer.
+         * Add size values for strings and write string using 'old' way
+         */
+        for (i = start; i < end; i++)
         {
-            ERR_FILE
-            log_critical("Cannot write points to file '%s'", shard->fn);
-            return EOF;
+            if (fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp) != 1 ||
+                fwrite(&points->data[i].val, 8, 1, fp) != 1)
+            {
+                ERR_FILE
+                log_critical("Cannot write points to file '%s'", shard->fn);
+                return EOF;
+            }
         }
     }
 
@@ -765,6 +773,97 @@ int siridb_shard_get_points_log64(
         uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
+}
+
+/*
+ * COPY from siridb_shard_get_points_num32
+ */
+int siridb_shard_get_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    size_t len = points->len + idx->len;
+    /*
+     * Index length is limited to max_chunk_points so we are able to store
+     * one chunk in stack memory.
+     */
+    uint64_t temp[idx->len * 2];  // CHANGED
+    uint64_t * pt;                // CHANGED
+
+    if (idx->shard->fp->fp == NULL)
+    {
+        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
+        {
+            log_critical(
+                    "Cannot open file '%s', skip reading points",
+                    idx->shard->fn);
+            return -1;
+        }
+    }
+
+    if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+        fread(
+            temp,
+            16,  // NUM64 point size   CHANGED
+            idx->len,
+            idx->shard->fp->fp) != idx->len)
+    {
+        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
+        {
+            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
+        }
+        else
+        {
+            log_critical(
+                    "Cannot read from shard id %" PRIu64
+                    ". The next optimize cycle "
+                    "will fix this shard but you might loose some data.",
+                    idx->shard->id);
+            idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+        }
+        return -1;
+    }
+
+    /* set pointer to start */
+    pt = temp;
+
+    /* crop from start if needed */
+    if (start_ts != NULL)
+    {
+        for (; *pt < *start_ts; pt += 2, len--);
+    }
+
+    /* crop from end if needed */
+    if (end_ts != NULL)
+    {
+        for (   uint64_t * p = temp + 2 * (idx->len - 1);  // CHANGED
+                *p >= *end_ts;
+                p -= 2, len--);    // CHANGED
+    }
+
+    if (    has_overlap &&
+            points->len &&
+            (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP))
+    {
+        for (; points->len < len; pt += 2)   // CHANGED
+        {
+            // CHANGED
+            siridb_points_add_point(points, pt, ((qp_via_t *) (pt + 1)));
+        }
+    }
+    else
+    {
+        for (; points->len < len; points->len++, pt += 2)  // CHANGED
+        {
+            points->data[points->len].ts = *pt;  //CHANGED
+            points->data[points->len].val = *((qp_via_t *) (pt + 1));
+        }
+    }
+
+    return 0;
 }
 
 /*
