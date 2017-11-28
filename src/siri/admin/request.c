@@ -9,13 +9,16 @@
  *  - initial version, 16-03-2017
  *
  */
+
+#define PCRE2_CODE_UNIT_WIDTH 8
+
 #include <siri/admin/account.h>
 #include <siri/admin/client.h>
 #include <stddef.h>
 #include <siri/admin/request.h>
 #include <siri/siri.h>
 #include <logger/logger.h>
-#include <pcre.h>
+#include <pcre2.h>
 #include <lock/lock.h>
 #include <xmath/xmath.h>
 #include <unistd.h>

@@ -11,12 +11,14 @@
  */
 #pragma once
 
-#include <pcre.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <pcre2.h>
 #include <stddef.h>
 
 int siridb_re_compile(
-        pcre ** regex,
-        pcre_extra ** regex_extra,
+        pcre2_code ** regex,
+        pcre2_match_data ** match_data,
         const char * source,
         size_t len,
         char * err_msg);
