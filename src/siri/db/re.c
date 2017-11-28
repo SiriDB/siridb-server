@@ -24,15 +24,15 @@
  * (SIRIDB_MAX_SIZE_ERR_MSG is honored for the error message)
  */
 int siridb_re_compile(
-        pcre ** regex,
-        pcre_extra ** regex_extra,
+        pcre2_code ** regex,
+        pcre2_match_data ** match_data,
         const char * source,
         size_t len,
         char * err_msg)
 {
     int options = 0;
-    const char * pcre_error_str;
-    int pcre_error_offset;
+    int pcre_error_num;
+    PCRE2_SIZE pcre_error_offset;
     char pattern[len + 1];
     memcpy(pattern, source, len);
     pattern[0] = '^';
@@ -40,7 +40,7 @@ int siridb_re_compile(
     switch (pattern[--len])
     {
     case 'i':
-        options = PCRE_CASELESS;
+        options |= PCRE2_CASELESS;
         len--;
         /* no break */
     case '/':
@@ -53,25 +53,28 @@ int siridb_re_compile(
         break;
     }
 
-    *regex = pcre_compile(
-                pattern,
+    *regex = pcre2_compile(
+                (PCRE2_SPTR8) pattern,
+                PCRE2_ZERO_TERMINATED,
                 options,
-                &pcre_error_str,
+                &pcre_error_num,
                 &pcre_error_offset,
                 NULL);
 
     if (*regex == NULL)
     {
+        PCRE2_UCHAR buffer[256];
+        pcre2_get_error_message(pcre_error_num, buffer, sizeof(buffer));
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot compile regular expression '%s': %s",
                 pattern,
-                pcre_error_str);
+                buffer);
 
         return -1;
     }
 
-    *regex_extra = pcre_study(*regex, 0, &pcre_error_str);
+    *match_data = pcre2_match_data_create_from_pattern(*regex, NULL);
 
     /*
      * pcre_study() returns NULL for both errors and when it can not
@@ -79,16 +82,15 @@ int siridb_re_compile(
      * errors (it is NULL if everything works, and points to an error
      * string otherwise.
      */
-    if(pcre_error_str != NULL)
+    if(*match_data == NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
-                "Cannot compile regular expression '%s': %s",
-                pattern,
-                pcre_error_str);
+                "Cannot create match data for regular expression '%s'",
+                pattern);
 
         /* free and set regex back to NULL */
-        free(*regex);
+        pcre2_code_free(*regex);
         *regex = NULL;
 
         return -1;

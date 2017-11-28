@@ -48,7 +48,7 @@ siridb_group_t * siridb_group_new(
         group->source = strndup(source, source_len);
         group->series = slist_new(SLIST_DEFAULT_SIZE);
         group->regex = NULL;
-        group->regex_extra = NULL;
+        group->match_data = NULL;
 
         if (    group->source == NULL ||
                 group->series == NULL)
@@ -60,7 +60,7 @@ siridb_group_t * siridb_group_new(
         }
         else if (siridb_re_compile(
                 &group->regex,
-                &group->regex_extra,
+                &group->match_data,
                 source,
                 source_len,
                 err_msg))
@@ -195,17 +195,16 @@ void siridb_group_cleanup(siridb_group_t * group)
 int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
 {
     /* skip if group has flags set. (DROPPED or INIT) */
-    int rc = (group->flags) ? -2 : pcre_exec(
+    int rc = (group->flags) ? -1 : pcre2_match(
             group->regex,
-            group->regex_extra,
-            series->name,
+            (PCRE2_SPTR8) series->name,
             series->name_len,
             0,                     // start looking at this point
             0,                     // OPTIONS
-            NULL,
-            0);                    // length of sub_str_vec
+            group->match_data,
+            NULL);                    // length of sub_str_vec
 
-    if (!rc)
+    if (rc >= 0)
     {
         if (slist_append_safe(&group->series, series))
         {
@@ -218,6 +217,7 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
         else
         {
             siridb_series_incref(series);
+            rc = 0;
         }
     }
 
@@ -238,8 +238,8 @@ int siridb_group_update_expression(
         char * err_msg)
 {
     char * new_source = strndup(source, source_len);
-    pcre * new_regex;
-    pcre_extra * new_regex_extra;
+    pcre2_code * new_regex;
+    pcre2_match_data * new_regex_match_data;
     siridb_series_t * series;
 
     if (new_source == NULL)
@@ -251,7 +251,7 @@ int siridb_group_update_expression(
 
     if (siridb_re_compile(
             &new_regex,
-            &new_regex_extra,
+            &new_regex_match_data,
             source,
             source_len,
             err_msg))
@@ -264,12 +264,12 @@ int siridb_group_update_expression(
 
     /* replace group expression */
     free(group->source);
-    free(group->regex);
-    free(group->regex_extra);
+    pcre2_code_free(group->regex);
+    pcre2_match_data_free(group->match_data);
 
     group->source = new_source;
     group->regex = new_regex;
-    group->regex_extra = new_regex_extra;
+    group->match_data = new_regex_match_data;
 
     for (size_t i = 0; i < group->series->len; i++)
     {
@@ -372,7 +372,7 @@ void siridb__group_free(siridb_group_t * group)
         slist_free(group->series);
     }
 
-    free(group->regex);
-    free(group->regex_extra);
+    pcre2_code_free(group->regex);
+    pcre2_match_data_free(group->match_data);
     free(group);
 }

@@ -3,3 +3,4 @@
     
   * Added -rf to makefiles. (fixes make clean) (#86, @paulgevers)
   
+  * Replaces pcre with pcre2. (issue #90)

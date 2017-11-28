@@ -37,7 +37,7 @@ The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You
 #### Linux
 Install the following requirements: (Ubuntu)
 ```
-sudo apt install libpcre3-dev
+sudo apt install libpcre2-dev
 sudo apt install libuv1-dev 
 sudo apt install uuid-dev 
 ```
@@ -51,7 +51,7 @@ make
 #### OSX
 Install the following requirements:
 ```
-brew install pcre
+brew install pcre2
 brew install libuv
 brew install ossp-uuid
 ```

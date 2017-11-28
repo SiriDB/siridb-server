@@ -11,9 +11,11 @@
  */
 #pragma once
 
+#define PCRE2_CODE_UNIT_WIDTH 8
+
 #include <slist/slist.h>
 #include <siri/db/series.h>
-#include <pcre.h>
+#include <pcre2.h>
 
 #define GROUP_FLAG_INIT 1
 #define GROUP_FLAG_DROPPED 2
@@ -28,8 +30,8 @@ typedef struct siridb_group_s
     char * name;
     char * source;  /* pattern/flags representation */
     slist_t * series;
-    pcre * regex;
-    pcre_extra * regex_extra;
+    pcre2_code * regex;
+    pcre2_match_data * match_data;
 } siridb_group_t;
 
 siridb_group_t * siridb_group_new(
