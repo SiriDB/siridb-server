@@ -46,15 +46,14 @@
 "# path = <buffer_path>\n"
 
 #define CHECK_DBNAME_AND_CREATE_PATH                                        \
-    pcre_exec_ret = pcre_exec(                                              \
+    pcre_exec_ret = pcre2_match(                                            \
             siri.dbname_regex,                                              \
-            siri.dbname_regex_extra,                                        \
-            qp_dbname.via.raw,                                              \
+            (PCRE2_SPTR8) qp_dbname.via.raw,                                \
             qp_dbname.len,                                                  \
             0,                                                              \
             0,                                                              \
-            sub_str_vec,                                                    \
-            2);                                                             \
+            siri.dbname_match_data,                                         \
+            NULL);                                                          \
                                                                             \
     if (pcre_exec_ret < 0)                                                  \
     {                                                                       \
@@ -189,37 +188,34 @@ int siri_admin_request_init(void)
             strlen(DB_DAT_FN),
             strlen(REINDEX_FN));
 
-    const char * pcre_error_str;
-    int pcre_error_offset;
+    int pcre_error_num;
+    PCRE2_SIZE pcre_error_offset;
 
-    pcre * regex;
-    pcre_extra * regex_extra;
+    pcre2_code * regex;
+    pcre2_match_data * match_data;
 
-    regex = pcre_compile(
-                "^[a-zA-Z][a-zA-Z0-9-_]{0,18}[a-zA-Z0-9]$",
+    regex = pcre2_compile(
+                (PCRE2_SPTR8) "^[a-zA-Z][a-zA-Z0-9-_]{0,18}[a-zA-Z0-9]$",
+                PCRE2_ZERO_TERMINATED,
                 0,
-                &pcre_error_str,
+                &pcre_error_num,
                 &pcre_error_offset,
                 NULL);
     if (regex == NULL)
     {
         return -1;
     }
-    regex_extra = pcre_study(regex, 0, &pcre_error_str);
+    match_data = pcre2_match_data_create_from_pattern(regex, NULL);
 
-    /* pcre_study() returns NULL for both errors and when it can not
-     * optimize the regex.  The last argument is how one checks for
-     * errors (it is NULL if everything works, and points to an error
-     * string otherwise. */
-    if(pcre_error_str != NULL)
+    if(match_data == NULL)
     {
-        free(regex_extra);
-        free(regex);
+        pcre2_match_data_free(match_data);
+        pcre2_code_free(regex);
         return -1;
     }
 
     siri.dbname_regex = regex;
-    siri.dbname_regex_extra = regex_extra;
+    siri.dbname_match_data = match_data;
 
     return 0;
 }
@@ -229,8 +225,8 @@ int siri_admin_request_init(void)
  */
 void siri_admin_request_destroy(void)
 {
-    free(siri.dbname_regex);
-    free(siri.dbname_regex_extra);
+    pcre2_match_data_free(siri.dbname_match_data);
+    pcre2_code_free(siri.dbname_regex);
 }
 
 /*
@@ -447,7 +443,6 @@ static cproto_server_t ADMIN_on_new_database(
         qp_duration_log;
     size_t dbpath_len;
     int pcre_exec_ret;
-    int sub_str_vec[2];
     int rc;
     struct stat st = {0};
     int8_t time_precision;
@@ -651,7 +646,6 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_password;
     size_t dbpath_len;
     int pcre_exec_ret;
-    int sub_str_vec[2];
     int rc;
     struct stat st = {0};
     uint16_t port;
