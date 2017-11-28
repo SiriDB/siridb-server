@@ -12,6 +12,7 @@
 #pragma once
 
 #include <uv.h>
+#include <pcre.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/db.h>
 #include <siri/file/handler.h>
