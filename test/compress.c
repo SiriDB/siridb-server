@@ -232,7 +232,7 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
     int tcount = 0;
     int vcount = 0;
     int shift, bcount;
-    int vshift[raw_values_threshold];
+    // int vshift[raw_values_threshold];
     unsigned char * bits, *pt;
     int * pshift;
 
@@ -253,7 +253,7 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
         if (vdiff & mask)
         {
             vstore |= 1 << i;
-            vshift[vcount++] = i * 8;
+            vcount++;
         }
         if (tdiff & mask)
         {
@@ -286,9 +286,12 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
         }
         if (vcount <= raw_values_threshold)
         {
-            for (pshift = vshift, shift = vcount; shift--; ++pshift, ++pt)
+            for (shift = 0; vstore; vstore >>= 1, shift += 8)
             {
-                *pt = val >> *pshift;
+                if (vstore & 1)
+                {
+                    *pt = val >> shift;
+                }
             }
         }
         else
