@@ -80,9 +80,8 @@ const int raw_values_threshold = 7;
 
 unsigned char * zip_int(points_t * points, uint16_t * csz, size_t * size)
 {
-
     const uint64_t store_raw_mask = UINT64_C(0xff80000000000000);
-    uint64_t * diff;
+    uint64_t * diff, * prev;
     int64_t * a, * b;
     size_t store_raw_diff = 0;
     uint64_t tdiff = 0;
@@ -90,17 +89,21 @@ unsigned char * zip_int(points_t * points, uint16_t * csz, size_t * size)
     unsigned char * bits, *pt;
     uint64_t mask, ts, val;
     size_t i;
+    point_t * point;
     int vcount = 0;
     int tcount = 0;
     int shift, bcount;
 
-    for (i = points->len; --i;)
+    i = points->len - 1;
+    point = points->data + i;
+    for (a = &point->val.i; i--;)
     {
-        diff = &points->data[i].ts;
-        *diff -= points->data[i-1].ts;
+        diff = &point->ts;
+        point--;
+        *diff -= point->ts;
 
-        a = &points->data[i-1].val.i;
-        b = &points->data[i].val.i;
+        b = a;
+        a = &point->val.i;
 
         tdiff |= *diff;
 
@@ -109,14 +112,14 @@ unsigned char * zip_int(points_t * points, uint16_t * csz, size_t * size)
             continue;
         }
 
-        diff = &points->data[i].val.u;
+        diff = (uint64_t *) b;
 
         if (*a > *b)
         {
             *diff = *a - *b;
             if (*diff & store_raw_mask)
             {
-                store_raw_diff = i;
+                store_raw_diff = points->len - i - 1;
                 *b = *a - *diff;
                 vdiff |= store_raw_mask;
                 continue;
@@ -129,7 +132,7 @@ unsigned char * zip_int(points_t * points, uint16_t * csz, size_t * size)
             *diff = *b - *a;
             if (*diff & store_raw_mask)
             {
-                store_raw_diff = i;
+                store_raw_diff = points->len - i - 1;
                 *b = *diff + *a;
                 vdiff |= store_raw_mask;
                 continue;
@@ -165,49 +168,52 @@ unsigned char * zip_int(points_t * points, uint16_t * csz, size_t * size)
     bits = (unsigned char *) malloc(*size);
     pt = bits;
 
-    memcpy(pt, &points->data->ts, sizeof(uint64_t));
+    memcpy(pt, &point->ts, sizeof(uint64_t));
     pt += sizeof(uint64_t);
-    memcpy(pt, &points->data->val.u, sizeof(uint64_t));
+    memcpy(pt, &point->val.u, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
     tcount *= 8;
     vcount *= 8;
 
-    for (i = 1; i < points->len; i++)
+    for (i = points->len; --i;)
     {
-        ts = points->data[i].ts;
-        val = points->data[i].val.u;
+        point++;
+        ts = point->ts;
+        val = point->val.u;
 
         for (shift = tcount; (shift -= 8) >= 0; ++pt)
         {
             *pt = ts >> shift;
         }
 
-        if (!store_raw_diff)
+        if (store_raw_diff)
         {
-            for (shift = vcount; (shift -= 8) >= 0; ++pt)
+            if (i < store_raw_diff)
             {
-                *pt = val >> shift;
+                if (val & 1)
+                {
+                    val >>= 1;
+                    point->val.i = (point-1)->val.i - val;
+                }
+                else
+                {
+                    val >>= 1;
+                    point->val.i = val + (point-1)->val.i;
+                }
+                val = point->val.u;
             }
+
+            memcpy(pt, &val, sizeof(uint64_t));
+            pt += sizeof(uint64_t);
             continue;
         }
 
-        if (i > store_raw_diff)
+        for (shift = vcount; (shift -= 8) >= 0; ++pt)
         {
-            if (val & 1)
-            {
-                val >>= 1;
-                points->data[i].val.i = points->data[i-1].val.i - val;
-            }
-            else
-            {
-                val >>= 1;
-                points->data[i].val.i = val + points->data[i-1].val.i;
-            }
+            *pt = val >> shift;
         }
 
-        memcpy(pt, &val, sizeof(uint64_t));
-        pt += sizeof(uint64_t);
     }
 
     return bits;
@@ -222,28 +228,32 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
     uint8_t vstore = 0;
     uint64_t ts, val;
     size_t i, j;
+    point_t * point;
     int tcount = 0;
     int vcount = 0;
     int shift, bcount;
     int vshift[raw_values_threshold];
     unsigned char * bits, *pt;
+    int * pshift;
 
-    for (i = points->len; --i;)
+    i = points->len - 1;
+    point = points->data + i;
+
+    while (i--)
     {
-        diff = &points->data[i].ts;
-        *diff -= points->data[i-1].ts;
+        vdiff |= mask ^ point->val.u;
+        diff = &point->ts;
+        point--;
+        *diff -= point->ts;
         tdiff |= *diff;
-        vdiff |= (mask ^ points->data[i].val.u);
     }
-
 
     for (i = 0, mask = 0xff; i < 8; mask <<= 8, i++)
     {
         if (vdiff & mask)
         {
             vstore |= 1 << i;
-            vshift[vcount] = i * 8;
-            vcount += 1;
+            vshift[vcount++] = i * 8;
         }
         if (tdiff & mask)
         {
@@ -260,26 +270,25 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
     bits = (unsigned char *) malloc(*size);
     pt = bits;
 
-    memcpy(pt, &points->data->ts, sizeof(uint64_t));
+    memcpy(pt, &point->ts, sizeof(uint64_t));
     pt += sizeof(uint64_t);
-    memcpy(pt, &points->data->val.u, sizeof(uint64_t));
+    memcpy(pt, &point->val.u, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    tcount *= 8;
-
-    for (i = 1; i < points->len; i++)
+    for (i = points->len, tcount *= 8; --i;)
     {
-        ts = points->data[i].ts;
-        val = points->data[i].val.u;
+        point++;
+        ts = point->ts;
+        val = point->val.u;
         for (shift = tcount; (shift -= 8) >= 0; ++pt)
         {
             *pt = ts >> shift;
         }
-        if (vcount < raw_values_threshold)
+        if (vcount <= raw_values_threshold)
         {
-            for (shift = 0; shift < vcount; ++shift, ++pt)
+            for (pshift = vshift, shift = vcount; shift--; ++pshift, ++pt)
             {
-                *pt = val >> vshift[shift];
+                *pt = val >> *pshift;
             }
         }
         else
@@ -296,6 +305,7 @@ unsigned char * zip_double(points_t * points, uint16_t * csz, size_t * size)
 points_t * unzip_int(unsigned char * bits, uint16_t len, uint16_t csz)
 {
     points_t * points;
+    point_t * point;
     uint8_t vcount, tcount;
     uint64_t ts, tmp;
     int64_t val;
@@ -305,51 +315,43 @@ points_t * unzip_int(unsigned char * bits, uint16_t len, uint16_t csz)
     vcount = csz >> 8;
     tcount = csz;
 
-
-    printf("tcount = %u\n", tcount);
-    printf("vcount = %u\n", vcount);
-
     points = points_new(len, TP_INT);
+    point = points->data;
 
-    memcpy(&ts, pt, sizeof(uint64_t));
+    memcpy(&point->ts, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
-    memcpy(&tmp, pt, sizeof(uint64_t));
+    memcpy(&point->val.u, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    points->data->ts = ts;
-    points->data->val.u = tmp;
-    val = points->data->val.i;
+    ts = point->ts;
+    val = point->val.i;
 
-
-    for (i = 1; i < len; i++)
+    for (i = len; --i;)
     {
+        point++;
         for (tmp = 0, j = 0; j < tcount; ++j, ++pt)
         {
+            tmp <<= 8;
             tmp |= *pt;
-            tmp << 8;
         }
         ts += tmp;
-        printf("ts: %lu\n", ts);
-        points->data[i].ts = ts;
+        point->ts = ts;
 
-        if (vcount < 0xff)
+        if (vcount != 0xff)
         {
             for (tmp = 0, j = 0; j < vcount; ++j, ++pt)
             {
+                tmp <<= 8;
                 tmp |= *pt;
-                tmp << 8;
             }
             val += (tmp & 1) ? -(tmp >> 1) : (tmp >> 1);
-            points->data[i].val.i = val;
+            point->val.i = val;
         }
         else
         {
-            printf("bla...");
-            memcpy(&points->data[i].val.u, pt, sizeof(uint64_t));
+            memcpy(&point->val.u, pt, sizeof(uint64_t));
             pt += sizeof(uint64_t);
         }
-
-        printf("int: %ld\n", points->data[i].val.i);
     }
 
     return points;
@@ -359,10 +361,12 @@ points_t * unzip_double(unsigned char * bits, uint16_t len, uint16_t csz)
 {
     points_t * points;
     int vshift[raw_values_threshold];
+    int * pshift;
     uint8_t vstore, tcount;
     size_t i, c, j;
     unsigned char * pt = bits;
     uint64_t ts, tmp, mask, val;
+    point_t * point;
 
     vstore = csz >> 8;
     tcount = csz;
@@ -379,57 +383,90 @@ points_t * unzip_double(unsigned char * bits, uint16_t len, uint16_t csz)
     }
 
     points = points_new(len, TP_DOUBLE);
+    point = points->data;
 
-    memcpy(&ts, pt, sizeof(uint64_t));
+    memcpy(&point->ts, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
-    memcpy(&val, pt, sizeof(uint64_t));
+    memcpy(&point->val.u, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    points->data->ts = ts;
-    points->data->val.u = val;
+    ts = point->ts;
+    val = point->val.u & ~mask;
 
-    val &= ^mask;
-
-    printf("tcount: %u\n", tcount);
-    printf("val: %u\n", val);
-    printf("vstore: %u\n", vstore);
-
-    for (i = 1; i < len; i++)
+    for (i = len; --i;)
     {
-        for (tmp = 0, j = 0; j < tcount; ++j, ++pt)
+        point++;
+        for (tmp = 0, j = tcount; j--; ++pt)
         {
-            printf("pt val: %u\n", *pt);
             tmp <<= 8;
             tmp |= *pt;
         }
-        printf("tmp: %lu\n", tmp);
         ts += tmp;
-        printf("ts: %lu\n", ts);
-        points->data[i].ts = ts;
-        if (c < raw_values_threshold)
+        point->ts = ts;
+
+        if (c <= raw_values_threshold)
         {
-            for (tmp = 0, j = 0; j < c; ++j, ++pt)
+            for (tmp = 0, pshift = vshift, j = c; j--; ++pshift, ++pt)
             {
-                tmp |= ((uint64_t) *pt) << vshift[j];
+                tmp |= ((uint64_t) *pt) << *pshift;
             }
             tmp |= val;
-            points->data[i].val.u = tmp;
+            point->val.u = tmp;
         }
         else
         {
-            memcpy(&points->data[i].val.u, pt, sizeof(uint64_t));
+            memcpy(&point->val.u, pt, sizeof(uint64_t));
             pt += sizeof(uint64_t);
         }
-        printf("double: %f\n", points->data[i].val.d);
     }
 
     return points;
 }
 
-
-int main()
+void test_int()
 {
-    // srand(time(NULL));
+    size_t sz = 10;
+    points_t * points = points_new(sz, TP_INT);
+    for (int i = 0; i < sz; i++)
+    {
+        int r = rand() % 60;
+        uint64_t ts = 1511797596 + i*300 + r;
+        cast_t cf;
+        cf.i = 1 - i + (r - 30) * r;
+        // if (r > 30)
+        // {
+        //     cf.i = -922337203685477507;
+        // }
+        points_add_point(points, &ts, &cf);
+    }
+
+    uint16_t csz;
+    size_t size;
+    unsigned char * bits;
+    points_t * upoints;
+
+    bits = zip_int(points_copy(points), &csz, &size);
+    upoints = unzip_int(bits, points->len, csz);
+
+    printf("size: %lu\n", size);
+    free(bits);
+
+    for (size_t i = 0; i < points->len; i++)
+    {
+        // printf("%lu - %lu\n", points->data[i].ts, upoints->data[i].ts);
+        // printf("%lu - %lu\n", points->data[i].val.u, upoints->data[i].val.u);
+        assert(points->data[i].ts == upoints->data[i].ts);
+        assert(points->data[i].val.u == upoints->data[i].val.u);
+    }
+
+    points_destroy(points);
+    points_destroy(upoints);
+
+    printf("Finished int test\n");
+}
+
+void test_double()
+{
     size_t sz = 10;
     points_t * points = points_new(sz, TP_DOUBLE);
     for (int i = 0; i < sz; i++)
@@ -437,10 +474,10 @@ int main()
         int r = rand() % 60;
         uint64_t ts = 1511797596 + i*300 + r;
         cast_t cf;
-        cf.d = 1.0;
+        cf.d = 1.0 - (0.01 * i);
         // if (r > 30)
         // {
-        //     cf.d = 9223372036854775807;
+        //     cf.d = -922337203685477507;
         // }
 
         points_add_point(points, &ts, &cf);
@@ -451,32 +488,31 @@ int main()
     unsigned char * bits;
     points_t * upoints;
 
-    if (points->tp == TP_DOUBLE)
-    {
-        bits = zip_double(points_copy(points), &csz, &size);
-        upoints = unzip_double(bits, points->len, csz);
-    }
-    else
-    {
-        bits = zip_int(points_copy(points), &csz, &size);
-        upoints = unzip_int(bits, points->len, csz);
-    }
+    bits = zip_double(points_copy(points), &csz, &size);
+    upoints = unzip_double(bits, points->len, csz);
 
     printf("size: %lu\n", size);
     free(bits);
 
     for (size_t i = 0; i < points->len; i++)
     {
-        printf("%lu - %lu\n", points->data[i].ts, upoints->data[i].ts);
-        printf("%lu - %lu\n", points->data[i].val.u, upoints->data[i].val.u);
+        // printf("%lu - %lu\n", points->data[i].ts, upoints->data[i].ts);
+        // printf("%lu - %lu\n", points->data[i].val.u, upoints->data[i].val.u);
         assert(points->data[i].ts == upoints->data[i].ts);
         assert(points->data[i].val.u == upoints->data[i].val.u);
     }
-
 
     points_destroy(points);
     points_destroy(upoints);
 
 
-    printf("Finished\n");
+    printf("Finished double test\n");
+}
+
+int main()
+{
+    srand(time(NULL));
+    size_t sz = 10;
+    test_int();
+    test_double();
 }
