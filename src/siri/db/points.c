@@ -20,6 +20,7 @@
 
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
+#define RAW_VALUES_THRESHOLD 7
 
 static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points);
 static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
@@ -313,6 +314,234 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
         }
     }
     return points;
+}
+
+/*
+ * Return NULL in case an error has occurred. This function destroys the
+ * original points.
+ */
+unsigned char * siridb_points_zip_int(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size)
+{
+    const uint64_t store_raw_mask = UINT64_C(0x8000000000000000);
+    uint64_t tdiff = 0;
+    uint64_t vdiff = 0;
+    unsigned char * bits, *pt;
+    uint64_t mask, val;
+    size_t i = end - 2;
+    siridb_point_t * point = points->data + i;
+    uint64_t ts = (point + 1)->ts - point->ts;
+    uint8_t vcount = 0;
+    uint8_t tcount = 0;
+    uint8_t shift = 0;
+    int64_t a, b;
+
+    a = (point - 1)->val.int64;
+    b = point->val.int64;
+
+    vdiff |= (uint64_t) (a > b) ? a - b : b - a;
+
+    while (i-- > start)
+    {
+        point--;
+        tdiff |= ts ^ ((point + 1)->ts - point->ts);
+        a = b;
+        b = point->val.int64;
+        vdiff |= (uint64_t) (a > b) ? a - b : b - a;
+    }
+
+    vdiff <<= !(vdiff & store_raw_mask);
+
+    for (i = 1, mask = 0xff; i <= 8; mask <<= 8, i++)
+    {
+        if (vdiff & mask)
+        {
+            vcount = i;
+        }
+        if (tdiff & mask)
+        {
+            tcount = i;
+        }
+        else if (ts & mask)
+        {
+            shift = i;
+        }
+    }
+
+    switch (vcount)
+    {
+        case 1: *cinfo = 0x80; break;
+        case 2: *cinfo = 0xc0; break;
+        case 3: *cinfo = 0xe0; break;
+        case 4: *cinfo = 0xf0; break;
+        case 5: *cinfo = 0xf8; break;
+        case 6: *cinfo = 0xfc; break;
+        case 7: *cinfo = 0xfe; break;
+        case 8: *cinfo = 0xff; break;
+    }
+
+    shift = (tcount > shift) ? 0 : shift;
+    *cinfo <<= 8;
+    *cinfo |= tcount | (shift << 4);
+    *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
+    bits = (unsigned char *) malloc(*size);
+    if (bits == NULL)
+    {
+        return NULL;
+    }
+    pt = bits;
+
+    memcpy(pt, &point->ts, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+    memcpy(pt, &point->val.uint64, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+
+    for (; shift-- > tcount; ++pt)
+    {
+        *pt = ts >> (shift * 8);
+    }
+
+    for (i = end, b = point->val.int64; --i > start;)
+    {
+        point++;
+        ts = point->ts - (point - 1)->ts;
+
+        for (shift = tcount; shift--; ++pt)
+        {
+            *pt = ts >> (shift * 8);
+        }
+
+        if (vcount == 8)
+        {
+            memcpy(pt, &point->val.uint64, sizeof(uint64_t));
+            pt += sizeof(uint64_t);
+            continue;
+        }
+
+        a = b;
+        b = point->val.int64;
+
+        if (a > b)
+        {
+            val = a - b;
+            val <<= 1;
+            val |= 1;
+        }
+        else
+        {
+            val = b - a;
+            val <<= 1;
+        };
+
+        for (shift = vcount; shift--; ++pt)
+        {
+            *pt = (val >> (shift * 8)) & 0xff;
+        }
+    }
+
+    return bits;
+}
+
+/*
+ * Return NULL in case an error has occurred. This function destroys the
+ * original points.
+ */
+unsigned char * siridb_points_zip_double(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size)
+{
+    uint64_t tdiff = 0;
+    uint64_t val;
+    uint64_t mask = points->data->val.uint64;
+    size_t i = end - 2;
+    siridb_point_t * point = points->data + i;
+    uint64_t ts = (point + 1)->ts - point->ts;
+    uint64_t vdiff = mask ^ point->val.uint64;
+    uint8_t tcount = 0;
+    uint8_t vcount = 0;
+    uint8_t vstore = 0;
+    uint8_t shift = 0;
+    int vshift[RAW_VALUES_THRESHOLD];
+    unsigned char * bits, *pt;
+    int * pshift;
+
+    while (i-- > start)
+    {
+        vdiff |= mask ^ point->val.uint64;
+        point--;
+        tdiff |= ts ^ ((point + 1)->ts - point->ts);
+    }
+
+    for (i = 0, mask = 0xff; i < 8; mask <<= 8, i++)
+    {
+        if (vdiff & mask)
+        {
+            vstore |= 1 << i;
+            vshift[vcount++] = i * 8;
+        }
+        if (tdiff & mask)
+        {
+            tcount = i + 1;
+        }
+        else if (ts & mask)
+        {
+            shift = i + 1;
+        }
+    }
+    shift = (tcount > shift) ? 0 : shift;
+    *cinfo = vstore;
+    *cinfo <<= 8;
+    *cinfo |= tcount | (shift << 4);
+    *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
+    bits = (unsigned char *) malloc(*size);
+    if (bits == NULL)
+    {
+        return NULL;
+    }
+    pt = bits;
+
+    memcpy(pt, &point->ts, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+    memcpy(pt, &point->val.uint64, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+
+    for (; shift-- > tcount; ++pt)
+    {
+        *pt = ts >> (shift * 8);
+    }
+
+    for (i = end; --i > start;)
+    {
+        point++;
+        ts = point->ts - (point - 1)->ts;
+        for (shift = tcount; shift--; ++pt)
+        {
+            *pt = ts >> (shift * 8);
+        }
+
+        val = point->val.uint64;
+
+        if (vcount > RAW_VALUES_THRESHOLD)
+        {
+            memcpy(pt, &val, sizeof(uint64_t));
+            pt += sizeof(uint64_t);
+            continue;
+        }
+
+        for (pshift = vshift, shift = vcount; shift--; ++pshift, ++pt)
+        {
+            *pt = val >> *pshift;
+        }
+    }
+
+    return bits;
 }
 
 /*

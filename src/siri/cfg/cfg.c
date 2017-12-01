@@ -27,6 +27,7 @@ static siri_cfg_t siri_cfg = {
         .max_open_files=DEFAULT_OPEN_FILES_LIMIT,
         .optimize_interval=3600,
         .ip_support=IP_SUPPORT_ALL,
+        .shard_compression=0,
         .server_address="localhost",
         .default_db_path="/var/lib/siridb/"
 };
@@ -49,6 +50,7 @@ static void SIRI_CFG_read_addr(
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser);
 
 void siri_cfg_init(siri_t * siri)
 {
@@ -105,6 +107,7 @@ void siri_cfg_init(siri_t * siri)
     SIRI_CFG_read_default_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
     SIRI_CFG_read_ip_support(cfgparser);
+    SIRI_CFG_read_shard_compression(cfgparser);
 
     SIRI_CFG_read_addr(
             cfgparser,
@@ -234,6 +237,40 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                     sirinet_socket_ip_support_str(siri_cfg.ip_support));
         }
     }
+}
+
+static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    rc = cfgparser_get_option(
+                &option,
+                cfgparser,
+                "siridb",
+                "enable_shard_compression");
+    if (rc != CFGPARSER_SUCCESS)
+    {
+        log_debug(
+                "Missing '%s' in '%s': %s. "
+                "Disable shard compression",
+                "enable_shard_compression",
+                siri.args->config,
+                cfgparser_errmsg(rc));
+    }
+    else if (option->tp != CFGPARSER_TP_INTEGER || option->val->integer > 1)
+    {
+        log_warning(
+                "Error reading '%s' in '%s': %s. "
+                "Disable shard compression",
+                "enable_shard_compression",
+                siri.args->config,
+                "error: expecting 0 or 1");
+    }
+    else if (option->val->integer == 1)
+    {
+        siri_cfg.shard_compression = 1;
+    }
+
 }
 
 static void SIRI_CFG_read_addr(

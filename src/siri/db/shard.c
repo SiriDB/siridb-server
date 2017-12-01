@@ -140,6 +140,7 @@ static int SHARD_write_header(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
+        uint16_t * cinfo,
         FILE * fp);
 static int SHARD_remove(siridb_shard_t * shard);
 
@@ -330,7 +331,8 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    shard->flags = SIRIDB_SHARD_IS_COMPRESSED |
+    shard->flags = \
+            siri.cfg->shard_compression ? SIRIDB_SHARD_IS_COMPRESSED : 0 |
             (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
             SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
 
@@ -475,6 +477,10 @@ long int siridb_shard_write_points(
 {
     FILE * fp;
     uint16_t len = end - start;
+    uint16_t cinfo;
+    size_t csize;
+    unsigned char * cdata = NULL;
+
     uint_fast32_t i;
     long int pos = EOF;
     int header_sz;
@@ -490,6 +496,16 @@ long int siridb_shard_write_points(
     }
     fp = shard->fp->fp;
 
+    if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    {
+        cdata = siridb_points_zip(points, start, end, &cinfo, &csize);
+        if (cdata == NULL)
+        {
+            log_error("Memory allocation error while compressing points");
+            cinfo = ~0;
+        }
+    }
+
     /* TODO: if compressed shard, create dump here to receive csz
      * Update SHARD_write_header and write csz */
 
@@ -501,6 +517,7 @@ long int siridb_shard_write_points(
                 points,
                 start,
                 end,
+                (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ? &cinfo : NULL,
                 fp);
         pos = shard->size + header_sz;
     }
@@ -512,6 +529,7 @@ long int siridb_shard_write_points(
                 points,
                 start,
                 end,
+                (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ? &cinfo : NULL,
                 idx_fp);
         pos = shard->size;
         /* in this case we need to set the file pointer still to the end */
@@ -519,6 +537,7 @@ long int siridb_shard_write_points(
         {
             ERR_FILE
             log_critical("Seek error in shard id %" PRIu64, shard->id);
+            free(cdata);
             return EOF;
         }
     }
@@ -529,12 +548,21 @@ long int siridb_shard_write_points(
         log_critical(
                 "Cannot write index header for shard id %" PRIu64,
                 shard->id);
+        free(cdata);
         return EOF;
     }
 
-    if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    if (cdata != NULL)
     {
-
+        long int rc = fwrite(cdata, 1, csize, fp);
+        free(cdata);
+        if (rc != csize)
+        {
+            ERR_FILE
+            log_critical("Cannot write points to file '%s'", shard->fn);
+            return EOF;
+        }
+        pos += csize;
     }
     else
     {
@@ -551,6 +579,7 @@ long int siridb_shard_write_points(
                 return EOF;
             }
         }
+        pos += (siridb->time->ts_sz + 8) * len;
     }
 
     if (fflush(fp))
@@ -560,7 +589,7 @@ long int siridb_shard_write_points(
         return EOF;
     }
 
-    shard->size = pos + (siridb->time->ts_sz + 8) * len;
+    shard->size = pos;
 
 #ifdef DEBUG
     assert (shard->size == (size_t) ftello(fp));
@@ -1560,9 +1589,11 @@ static int SHARD_write_header(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
+        uint16_t * cinfo,
         FILE * fp)
 {
-    uint16_t len = end - start;
+
+
     int size = EOF;
 
     if (fseeko(fp, 0, SEEK_END) ||
@@ -1602,9 +1633,23 @@ static int SHARD_write_header(
         break;
     }
 
-    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
+    if (cinfo == NULL)
     {
-        return EOF;
+        uint16_t len = end - start;
+        if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
+        {
+            return EOF;
+        }
+    }
+    else
+    {
+        uint32_t len = end - start;
+        len <<= 16;
+        len |= *cinfo;
+        if (fwrite(&len, sizeof(uint32_t), 1, fp) != 1)
+        {
+            return EOF;
+        }
     }
 
     return size;

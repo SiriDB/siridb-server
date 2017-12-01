@@ -50,7 +50,7 @@ typedef struct idx_s
     siridb_shard_t * shard;
     uint32_t pos;
     uint16_t len;
-    uint16_t csz;  /* reserved for log values or used for compression */
+    uint16_t cinfo;  /* reserved for log values or used for compression */
     uint64_t start_ts;
     uint64_t end_ts;
 } idx_t;
