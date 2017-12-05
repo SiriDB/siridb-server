@@ -384,7 +384,7 @@ unsigned char * siridb_points_zip_int(
         case 8: *cinfo = 0xff; break;
     }
 
-    shift = (tcount > shift) ? 0 : shift;
+    shift = (tcount > shift) ? tcount : shift;
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
     *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
@@ -495,7 +495,7 @@ unsigned char * siridb_points_zip_double(
             shift = i + 1;
         }
     }
-    shift = (tcount > shift) ? 0 : shift;
+    shift = (tcount > shift) ? tcount : shift;
     *cinfo = vstore;
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
@@ -542,6 +542,219 @@ unsigned char * siridb_points_zip_double(
     }
 
     return bits;
+}
+
+void siridb_points_unzip_int(
+        siridb_points_t * points,
+        unsigned char * bits,
+        uint16_t len,
+        uint16_t cinfo,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    uint8_t vstore, tcount, tshift, j;
+    uint64_t ts, tmp, mask;
+    int64_t val;
+    size_t i;
+    unsigned char * pt = bits;
+    siridb_point_t * point = points->data + points->len;
+
+    vstore = cinfo >> 8;
+    tcount = cinfo & 0xf;
+    tshift = cinfo & 0xf0;
+    tshift >>= 4;
+
+    memcpy(&point->ts, pt, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+    memcpy(&point->val.uint64, pt, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+
+    for (mask = 0; tshift-- > tcount; ++pt)
+    {
+        mask |= *pt << (tshift * 8);
+    }
+
+    ts = point->ts;
+    val = point->val.int64;
+
+    for (i = len; --i;)
+    {
+        if (end_ts != NULL && ts >= *end_ts)
+        {
+            --len;
+            break;
+        }
+
+        if (start_ts != NULL && ts < *start_ts)
+        {
+            --len;
+        }
+        else
+        {
+            ++point;
+        }
+
+        for (tmp = 0, j = tcount; j--; ++pt)
+        {
+            tmp <<= 8;
+            tmp |= *pt;
+        }
+        ts += tmp | mask;
+
+        point->ts = ts;
+
+        if (vstore != 0xff)
+        {
+            for (tmp = 0, j = vstore; j; j <<= 1, ++pt)
+            {
+                tmp <<= 8;
+                tmp |= *pt;
+            }
+            val += (tmp & 1) ? -(tmp >> 1) : (tmp >> 1);
+            point->val.int64 = val;
+        }
+        else
+        {
+            memcpy(&point->val.uint64, pt, sizeof(uint64_t));
+            pt += sizeof(uint64_t);
+        }
+    }
+
+    if (has_overlap && points->len)
+    {
+        qp_via_t v;
+        point = points->data + points->len;
+        for (i = len - i; i--; ++point)
+        {
+            ts = point->ts;
+            v = point->val;
+            siridb_points_add_point(points, &ts, &v);
+        }
+    }
+    else
+    {
+        points->len += len - i;
+    }
+}
+
+void siridb_points_unzip_double(
+        siridb_points_t * points,
+        unsigned char * bits,
+        uint16_t len,
+        uint16_t cinfo,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    int vshift[RAW_VALUES_THRESHOLD];
+    int * pshift;
+    uint8_t vstore, tcount, tshift;
+    size_t i, c, j;
+    unsigned char * pt = bits;
+    uint64_t ts, tmp, mask, val;
+    siridb_point_t * point = points->data + points->len;
+
+    vstore = cinfo >> 8;
+    tcount = cinfo & 0xf;
+    tshift = cinfo & 0xf0;
+    tshift >>= 4;
+
+    for (   i = 0, c = 0, mask = 0, tmp = 0xff;
+            vstore;
+            vstore >>= 1, ++i, tmp <<= 8)
+    {
+        if (vstore & 1)
+        {
+            vshift[c++] = i * 8;
+            mask |= tmp;
+        }
+    }
+
+    memcpy(&point->ts, pt, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+    memcpy(&point->val.uint64, pt, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+
+    ts = point->ts;
+    val = point->val.uint64 & ~mask;
+
+    for (mask = 0; tshift-- > tcount; ++pt)
+    {
+        mask |= *pt << (tshift * 8);
+    }
+
+    for (i = len; --i;)
+    {
+        if (end_ts != NULL && ts >= *end_ts)
+        {
+            --len;
+            break;
+        }
+
+        if (start_ts != NULL && ts < *start_ts)
+        {
+            --len;
+        }
+        else
+        {
+            ++point;
+        }
+
+        for (tmp = 0, j = tcount; j--; ++pt)
+        {
+            tmp <<= 8;
+            tmp |= *pt;
+        }
+        ts += mask | tmp;
+        point->ts = ts;
+
+        if (c > RAW_VALUES_THRESHOLD)
+        {
+            memcpy(&point->val.uint64, pt, sizeof(uint64_t));
+            pt += sizeof(uint64_t);
+            continue;
+        }
+
+        for (tmp = 0, pshift = vshift, j = c; j--; ++pshift, ++pt)
+        {
+            tmp |= ((uint64_t) *pt) << *pshift;
+        }
+        tmp |= val;
+        point->val.uint64 = tmp;
+    }
+
+    if (has_overlap && points->len)
+    {
+        qp_via_t v;
+        point = points->data + points->len;
+        for (i = len - i; i--; ++point)
+        {
+            ts = point->ts;
+            v = point->val;
+            siridb_points_add_point(points, &ts, &v);
+        }
+    }
+    else
+    {
+        points->len += len - i;
+    }
+}
+
+size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len)
+{
+    uint8_t vcount = 0;
+    uint8_t vstore = cinfo >> 8;
+    uint8_t tcount = cinfo & 0xf;
+    uint8_t tshift = cinfo & 0xf0;
+    tshift >>= 4;
+
+    for (; vstore; vstore &= vstore-1)
+    {
+        vcount++;
+    }
+
+    return 16 + tshift - tcount + (tcount + vcount) * (len - 1);
 }
 
 /*

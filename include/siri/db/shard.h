@@ -94,7 +94,8 @@ long int siridb_shard_write_points(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
-        FILE * idx_fp);
+        FILE * idx_fp,
+        uint16_t * cinfo);
 
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
@@ -131,7 +132,7 @@ int siridb_shard_get_points_log64(
         uint64_t * end_ts,
         uint8_t has_overlap);
 
-int siridb_shard_get_compressed(
+int siridb_shard_get_points_num_compressed(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,

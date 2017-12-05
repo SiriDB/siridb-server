@@ -88,7 +88,8 @@ int siridb_series_add_idx(
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
-        uint16_t len);
+        uint16_t len,
+        uint16_t cinfo);
 
 int siridb_series_add_point(
         siridb_t *__restrict siridb,

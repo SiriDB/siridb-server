@@ -133,6 +133,7 @@ int siridb_shards_add_points(
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
+    uint16_t cinfo = 0;
     size_t size;
     long int pos;
 
@@ -183,7 +184,8 @@ int siridb_shards_add_points(
                         points,
                         pstart,
                         pend,
-                        NULL)) < 0)
+                        NULL,
+                        &cinfo)) < 0)
                 {
                     log_critical(
                             "Could not write points to shard id %" PRIu64,
@@ -197,7 +199,8 @@ int siridb_shards_add_points(
                             points->data[pstart].ts,
                             points->data[pend - 1].ts,
                             pos,
-                            pend - pstart);
+                            pend - pstart,
+                            cinfo);
                     if (shard->replacing != NULL)
                     {
                         siridb_shard_write_points(
@@ -207,7 +210,8 @@ int siridb_shards_add_points(
                                points,
                                pstart,
                                pend,
-                               NULL);
+                               NULL,
+                               &cinfo);
                     }
                 }
             }

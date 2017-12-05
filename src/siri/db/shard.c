@@ -62,15 +62,17 @@
  * 4    (uint32_t)  START_TS
  * 8    (uint32_t)  END_TS
  * 12   (uint16_t)  LEN
+ * 14   (uint16_t)  (OPTIONAL COMPRESSION INFO)
  */
-#define IDX_NUM32_SZ 14
+#define IDX_NUM32_SZ 14  /* or 16 when compressed */
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint64_t)  START_TS
  * 12   (uint64_t)  END_TS
  * 20   (uint16_t)  LEN
+ * 22   (uint16_t)  (OPTIONAL COMPRESSION INFO)
  */
-#define IDX_NUM64_SZ 22
+#define IDX_NUM64_SZ 22  /* or 24 when compressed */
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint32_t)  START_TS
@@ -117,7 +119,7 @@ const char shard_type_map[2][7] = {
         "log"
 };
 
-static int SHARD_apply_idx_num(
+static ssize_t SHARD_apply_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
         char * pt,
@@ -331,8 +333,10 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    shard->flags = \
-            siri.cfg->shard_compression ? SIRIDB_SHARD_IS_COMPRESSED : 0 |
+    shard->flags =
+            siri.cfg->shard_compression ? SIRIDB_SHARD_IS_COMPRESSED : 0;
+
+    shard->flags |=
             (replacing == NULL || siri_optimize_create_idx(shard->fn)) ?
             SIRIDB_SHARD_OK : SIRIDB_SHARD_HAS_INDEX;
 
@@ -473,12 +477,12 @@ long int siridb_shard_write_points(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
-        FILE * idx_fp)
+        FILE * idx_fp,
+        uint16_t * cinfo)
 {
     FILE * fp;
     uint16_t len = end - start;
-    uint16_t cinfo;
-    size_t csize;
+    size_t dsize;
     unsigned char * cdata = NULL;
 
     uint_fast32_t i;
@@ -498,16 +502,18 @@ long int siridb_shard_write_points(
 
     if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {
-        cdata = siridb_points_zip(points, start, end, &cinfo, &csize);
+        cdata = siridb_points_zip(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
             log_error("Memory allocation error while compressing points");
-            cinfo = ~0;
+            *cinfo = ~0;
         }
     }
-
-    /* TODO: if compressed shard, create dump here to receive csz
-     * Update SHARD_write_header and write csz */
+    else
+    {
+        /* no compression, ignore c-info */
+        cinfo = NULL;
+    }
 
     if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
     {
@@ -517,7 +523,7 @@ long int siridb_shard_write_points(
                 points,
                 start,
                 end,
-                (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ? &cinfo : NULL,
+                cinfo,
                 fp);
         pos = shard->size + header_sz;
     }
@@ -529,7 +535,7 @@ long int siridb_shard_write_points(
                 points,
                 start,
                 end,
-                (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ? &cinfo : NULL,
+                cinfo,
                 idx_fp);
         pos = shard->size;
         /* in this case we need to set the file pointer still to the end */
@@ -554,15 +560,15 @@ long int siridb_shard_write_points(
 
     if (cdata != NULL)
     {
-        long int rc = fwrite(cdata, 1, csize, fp);
+        long int rc = fwrite(cdata, dsize, 1, fp);
         free(cdata);
-        if (rc != csize)
+        if (rc != 1)
         {
             ERR_FILE
             log_critical("Cannot write points to file '%s'", shard->fn);
             return EOF;
         }
-        pos += csize;
+        dsize += pos;
     }
     else
     {
@@ -579,7 +585,7 @@ long int siridb_shard_write_points(
                 return EOF;
             }
         }
-        pos += (siridb->time->ts_sz + 8) * len;
+        dsize = pos + (siridb->time->ts_sz + 8) * len;
     }
 
     if (fflush(fp))
@@ -589,7 +595,7 @@ long int siridb_shard_write_points(
         return EOF;
     }
 
-    shard->size = pos;
+    shard->size = dsize;
 
 #ifdef DEBUG
     assert (shard->size == (size_t) ftello(fp));
@@ -782,6 +788,87 @@ int siridb_shard_get_points_num64(
 }
 
 /*
+ * Returns 0 if successful or -1 in case of an error. SiriDB might recover
+ * from this error so we do not consider this critical.
+ */
+int siridb_shard_get_points_num_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    unsigned char * bits;
+    size_t size = siridb_points_get_size_zipped(idx->cinfo, idx->len);
+
+    if (idx->shard->fp->fp == NULL)
+    {
+        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
+        {
+            log_critical(
+                    "Cannot open file '%s', skip reading points",
+                    idx->shard->fn);
+            return -1;
+        }
+    }
+
+    bits = (unsigned char *) malloc(size);
+    if (bits == NULL)
+    {
+        log_critical("Memory allocation error");
+        return -1;
+    }
+
+    if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+        fread(bits, size, 1, idx->shard->fp->fp) != 1)
+    {
+        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
+        {
+            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
+        }
+        else
+        {
+            log_critical(
+                    "Cannot read from shard id %" PRIu64
+                    ". The next optimize cycle "
+                    "will fix this shard but you might loose some data.",
+                    idx->shard->id);
+            idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+        }
+        free(bits);
+        return -1;
+    }
+
+    switch (points->tp)
+    {
+    case TP_INT:
+        siridb_points_unzip_int(
+            points,
+            bits,
+            idx->len,
+            idx->cinfo,
+            start_ts,
+            end_ts,
+            has_overlap & idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP);
+    break;
+    case TP_DOUBLE:
+        siridb_points_unzip_double(
+            points,
+            bits,
+            idx->len,
+            idx->cinfo,
+            start_ts,
+            end_ts,
+            has_overlap & idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP);
+    break;
+    case TP_STRING: assert(0);
+    }
+
+    free(bits);
+    return 0;
+}
+
+/*
  * COPY from siridb_shard_get_points_num32
  */
 int siridb_shard_get_points_log32(
@@ -805,97 +892,6 @@ int siridb_shard_get_points_log64(
         uint8_t has_overlap __attribute__((unused)))
 {
     return -1;  /* dummy function */
-}
-
-/*
- * COPY from siridb_shard_get_points_num32
- */
-int siridb_shard_get_compressed(
-        siridb_points_t * points,
-        idx_t * idx,
-        uint64_t * start_ts,
-        uint64_t * end_ts,
-        uint8_t has_overlap)
-{
-    size_t len = points->len + idx->len;
-    /*
-     * Index length is limited to max_chunk_points so we are able to store
-     * one chunk in stack memory.
-     */
-    uint64_t temp[idx->len * 2];  // CHANGED
-    uint64_t * pt;                // CHANGED
-
-    if (idx->shard->fp->fp == NULL)
-    {
-        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
-        {
-            log_critical(
-                    "Cannot open file '%s', skip reading points",
-                    idx->shard->fn);
-            return -1;
-        }
-    }
-
-    if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
-        fread(
-            temp,
-            16,  // NUM64 point size   CHANGED
-            idx->len,
-            idx->shard->fp->fp) != idx->len)
-    {
-        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
-        {
-            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
-        }
-        else
-        {
-            log_critical(
-                    "Cannot read from shard id %" PRIu64
-                    ". The next optimize cycle "
-                    "will fix this shard but you might loose some data.",
-                    idx->shard->id);
-            idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-        }
-        return -1;
-    }
-
-    /* set pointer to start */
-    pt = temp;
-
-    /* crop from start if needed */
-    if (start_ts != NULL)
-    {
-        for (; *pt < *start_ts; pt += 2, len--);
-    }
-
-    /* crop from end if needed */
-    if (end_ts != NULL)
-    {
-        for (   uint64_t * p = temp + 2 * (idx->len - 1);  // CHANGED
-                *p >= *end_ts;
-                p -= 2, len--);    // CHANGED
-    }
-
-    if (    has_overlap &&
-            points->len &&
-            (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP))
-    {
-        for (; points->len < len; pt += 2)   // CHANGED
-        {
-            // CHANGED
-            siridb_points_add_point(points, pt, ((qp_via_t *) (pt + 1)));
-        }
-    }
-    else
-    {
-        for (; points->len < len; points->len++, pt += 2)  // CHANGED
-        {
-            points->data[points->len].ts = *pt;  //CHANGED
-            points->data[points->len].val = *((qp_via_t *) (pt + 1));
-        }
-    }
-
-    return 0;
 }
 
 /*
@@ -1347,20 +1343,32 @@ static int SHARD_truncate(siridb_shard_t * shard)
  * is simply ignored. In case the series id is not possible (invalid id),
  * then an log error is displayed and the return value will be -1.
  */
-static int SHARD_apply_idx_num(
+static ssize_t SHARD_apply_idx_num(
         siridb_t * siridb,
         siridb_shard_t * shard,
         char * pt,
         size_t pos,
         int is_num64)
 {
+    ssize_t size;
     uint16_t len;
     uint32_t series_id;
     siridb_series_t * series;
+    uint16_t cinfo = 0;
 
     series_id = *((uint32_t *) pt);
     len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
     series = imap_get(siridb->series_map, series_id);
+
+    if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    {
+        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ)));
+        size = (ssize_t) siridb_points_get_size_zipped(cinfo, len);
+    }
+    else
+    {
+        size = len * (is_num64 ? 16 : 12);
+    }
 
     if (series == NULL)
     {
@@ -1406,7 +1414,8 @@ static int SHARD_apply_idx_num(
                         (uint64_t) *((uint64_t *) (pt + 12)) :
                         (uint64_t) *((uint32_t *) (pt + 8)),
                 (uint32_t) pos,
-                len) == 0)
+                len,
+                cinfo) == 0)
         {
             /* update the series length property */
             series->length += len;
@@ -1418,7 +1427,7 @@ static int SHARD_apply_idx_num(
         }
     }
 
-    return (int) len;
+    return size;
 }
 
 /*
@@ -1433,12 +1442,12 @@ static int SHARD_get_idx_num(
         siridb_shard_t * shard,
         int is_num64)
 {
-    const int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
-    const int tv_sz = is_num64 ? 16 : 12;
-
+    const unsigned int idx_sz = (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ?
+            (is_num64 ? 24 : 16) :
+            (is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ);
     size_t i, n;
     char * data, * pt;
-    int len;
+    ssize_t size;
     FILE * fp;
 
     if (~shard->flags & SIRIDB_SHARD_HAS_INDEX)
@@ -1472,14 +1481,14 @@ static int SHARD_get_idx_num(
         pt = data;
         for (i = 0; i < n; i++, pt += idx_sz)
         {
-            len = SHARD_apply_idx_num(
+            size = SHARD_apply_idx_num(
                     siridb,
                     shard,
                     pt,
                     shard->size,
                     is_num64);
 
-            if (len < 0)
+            if (size < 0)
             {
                 log_critical("Error while reading index file: '%s'", fn);
                 fclose(fp);
@@ -1487,7 +1496,7 @@ static int SHARD_get_idx_num(
                 return -1;
             }
 
-            shard->size += len * tv_sz;
+            shard->size += size;
         }
     }
 
@@ -1510,23 +1519,25 @@ static int SHARD_load_idx_num(
         FILE * fp,
         int is_num64)
 {
-    const unsigned int idx_sz = is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
-    const unsigned int tv_sz = is_num64 ? 16 : 12;
+    const unsigned int idx_sz = (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ?
+            is_num64 ? 24 : 16 :
+            is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
 
     char idx[idx_sz];
-    int len, rc;
+    ssize_t sz;
+    int rc;
     size_t size, pos;
 
     while ((size = fread(&idx, 1, idx_sz, fp)) == idx_sz)
     {
         pos = shard->size + idx_sz;
 
-        if ((len = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64)) < 0)
+        if ((sz = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64)) < 0)
         {
             return -1;
         }
 
-        rc = fseeko(fp, len * tv_sz, SEEK_CUR);  // 16 = NUM64 point size
+        rc = fseeko(fp, sz, SEEK_CUR);  // 16 = NUM64 point size
         if (rc != 0)
         {
             log_error(
@@ -1540,7 +1551,7 @@ static int SHARD_load_idx_num(
             return -1;
         }
 
-        shard->size = pos + len * tv_sz;
+        shard->size = pos + sz;
     }
 
     if (size)
@@ -1592,8 +1603,7 @@ static int SHARD_write_header(
         uint16_t * cinfo,
         FILE * fp)
 {
-
-
+    uint16_t len = end - start;
     int size = EOF;
 
     if (fseeko(fp, 0, SEEK_END) ||
@@ -1633,20 +1643,16 @@ static int SHARD_write_header(
         break;
     }
 
-    if (cinfo == NULL)
+
+    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
     {
-        uint16_t len = end - start;
-        if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
-        {
-            return EOF;
-        }
+        return EOF;
     }
-    else
+
+    if (cinfo != NULL)
     {
-        uint32_t len = end - start;
-        len <<= 16;
-        len |= *cinfo;
-        if (fwrite(&len, sizeof(uint32_t), 1, fp) != 1)
+        size += sizeof(uint16_t);
+        if (fwrite(cinfo, sizeof(uint16_t), 1, fp) != 1)
         {
             return EOF;
         }

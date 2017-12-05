@@ -5,12 +5,13 @@ from .siridb import SiriDB
 from .server import Server
 from .client import Client
 
+
 def default_test_setup(nservers=1, **kwargs):
     def wrapper(func):
         async def wrapped(self):
             self.db = SiriDB(**kwargs)
 
-            self.servers = [Server(n) for n in range(nservers)]
+            self.servers = [Server(n, **kwargs) for n in range(nservers)]
             for n, server in enumerate(self.servers):
                 setattr(self, 'server{}'.format(n), server)
                 setattr(self, 'client{}'.format(n), Client(self.db, server))
@@ -34,6 +35,7 @@ def default_test_setup(nservers=1, **kwargs):
         return wrapped
     return wrapper
 
+
 class TestBase(unittest.TestCase):
 
     title = 'No title set'
@@ -47,14 +49,17 @@ class TestBase(unittest.TestCase):
             result = result['servers']
             try:
                 assert len(result) == len(self.db.servers), \
-                    'Server(s) are missing: {} (expexting: {})'.format(result, self.db.servers)
+                    'Server(s) are missing: {} (expexting: {})'.format(
+                        result, self.db.servers)
             except AssertionError as e:
                 if not timeout:
                     raise e
             else:
                 try:
-                    assert all([status == 'running' for name, status in result]), \
-                        'Not all servers have status running: {}'.format(result)
+                    assert all([
+                        status == 'running' for name, status in result]), \
+                        'Not all servers have status running: {}'.format(
+                            result)
                 except AssertionError as e:
                     if not timeout:
                         raise e
@@ -69,7 +74,8 @@ class TestBase(unittest.TestCase):
     async def assertSeries(self, client, series):
         d = {s.name: len(s.points) for s in series}
 
-        result = await client.query('list series name, length limit {}'.format(len(series)))
+        result = await client.query('list series name, length limit {}'.format(
+            len(series)))
         result = {name: length for name, length in result['series']}
         for s in series:
             if s.points:
@@ -77,8 +83,8 @@ class TestBase(unittest.TestCase):
                 assert length is not None, \
                     'series {!r} is missing in the result'.format(s.name)
                 assert length == len(s.points) or \
-                        s.commit_points() or \
-                        length == len(s.points), \
+                    s.commit_points() or \
+                    length == len(s.points), \
                     'expected {} point(s) but found {} point(s) ' \
                     'for series {!r}' \
                     .format(len(s.points), length, s.name)
@@ -91,7 +97,11 @@ class TestBase(unittest.TestCase):
                     assert isinstance(point, list) and len(point) == 2, \
                         'Expecting a point to be a list of 2 items'
                     super().assertEqual(a[series][i][0], point[0])
-                    super().assertAlmostEqual(a[series][i][1], point[1], *args, **kwargs)
+                    super().assertAlmostEqual(
+                        a[series][i][1],
+                        point[1],
+                        *args,
+                        **kwargs)
         else:
             super().assertAlmostEqual(a, b, *args, **kwargs)
 
