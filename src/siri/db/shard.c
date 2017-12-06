@@ -90,7 +90,7 @@
  */
 #define IDX_LOG64_SZ 24
 
-#define SHARD_STATUS_SIZE 7
+#define SHARD_STATUS_SIZE 8
 
 /*
  * Once a shard is created the chunk_size is saved (and after a restart loaded)
@@ -112,6 +112,7 @@ static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
         {.repr="dropped", .flag=SIRIDB_SHARD_IS_REMOVED},
         {.repr="loading", .flag=SIRIDB_SHARD_IS_LOADING},
         {.repr="corrupt", .flag=SIRIDB_SHARD_IS_CORRUPT},
+        {.repr="compressed", .flag=SIRIDB_SHARD_IS_COMPRESSED},
 };
 
 const char shard_type_map[2][7] = {
@@ -849,7 +850,7 @@ int siridb_shard_get_points_num_compressed(
             idx->cinfo,
             start_ts,
             end_ts,
-            has_overlap & idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP);
+            has_overlap && (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP));
     break;
     case TP_DOUBLE:
         siridb_points_unzip_double(
@@ -859,7 +860,7 @@ int siridb_shard_get_points_num_compressed(
             idx->cinfo,
             start_ts,
             end_ts,
-            has_overlap & idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP);
+            has_overlap && (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP));
     break;
     case TP_STRING: assert(0);
     }

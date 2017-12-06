@@ -50,7 +50,7 @@ class TestInsert(TestBase):
             await client.insert_some_series(series, timeout=timeout, points=self.GEN_POINTS)
             await asyncio.sleep(1.0)
 
-    @default_test_setup(2, time_precision=TIME_PRECISION, compression=False)
+    @default_test_setup(2, time_precision=TIME_PRECISION, compression=True)
     async def run(self):
         await self.client0.connect()
 
@@ -72,7 +72,6 @@ class TestInsert(TestBase):
                 'series float': self.series_float,
                 'series int': self.series_int
             }), {'success_msg': 'Successfully inserted 20000 point(s).'})
-
 
         self.series_float.sort()
         self.series_int.sort()
@@ -158,6 +157,7 @@ class TestInsert(TestBase):
 
 
 if __name__ == '__main__':
+    random.seed(1)
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
     Server.MEM_CHECK = True

@@ -80,7 +80,8 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-const uint8_t SERIES_SFC = SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
+const uint8_t SERIES_SFC =
+        SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
 
 /*
  * Call-back used to compare series properties.
