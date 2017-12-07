@@ -616,13 +616,8 @@ int siridb_shard_get_points_num32(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
+    uint32_t * temp,* pt;
     size_t len = points->len + idx->len;
-    /*
-     * Index length is limited to max_chunk_points so we are able to store
-     * one chunk in stack memory.
-     */
-    uint32_t temp[idx->len * 3];
-    uint32_t * pt;
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -633,6 +628,13 @@ int siridb_shard_get_points_num32(
                     idx->shard->fn);
             return -1;
         }
+    }
+
+    temp = (uint32_t *) malloc(sizeof(uint32_t) * idx->len * 3);
+    if (temp == NULL)
+    {
+        log_critical("Memory allocation error");
+        return -1;
     }
 
     if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
@@ -655,6 +657,7 @@ int siridb_shard_get_points_num32(
                     idx->shard->id);
             idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
         }
+        free(temp);
         return -1;
     }
 
@@ -694,6 +697,7 @@ int siridb_shard_get_points_num32(
         }
     }
 
+    free(temp);
     return 0;
 }
 
@@ -707,13 +711,8 @@ int siridb_shard_get_points_num64(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
+    uint64_t * temp, * pt;
     size_t len = points->len + idx->len;
-    /*
-     * Index length is limited to max_chunk_points so we are able to store
-     * one chunk in stack memory.
-     */
-    uint64_t temp[idx->len * 2];  // CHANGED
-    uint64_t * pt;                // CHANGED
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -726,10 +725,17 @@ int siridb_shard_get_points_num64(
         }
     }
 
+    temp = (uint64_t *) malloc(sizeof(uint64_t) * idx->len * 2);
+    if (temp == NULL)
+    {
+        log_critical("Memory allocation error");
+        return -1;
+    }
+
     if (fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
         fread(
             temp,
-            16,  // NUM64 point size   CHANGED
+            16,  // NUM64 point size
             idx->len,
             idx->shard->fp->fp) != idx->len)
     {
@@ -746,6 +752,7 @@ int siridb_shard_get_points_num64(
                     idx->shard->id);
             idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
         }
+        free(temp);
         return -1;
     }
 
@@ -761,30 +768,30 @@ int siridb_shard_get_points_num64(
     /* crop from end if needed */
     if (end_ts != NULL)
     {
-        for (   uint64_t * p = temp + 2 * (idx->len - 1);  // CHANGED
+        for (   uint64_t * p = temp + 2 * (idx->len - 1);
                 *p >= *end_ts;
-                p -= 2, len--);    // CHANGED
+                p -= 2, len--);
     }
 
     if (    has_overlap &&
             points->len &&
             (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP))
     {
-        for (; points->len < len; pt += 2)   // CHANGED
+        for (; points->len < len; pt += 2)
         {
-            // CHANGED
             siridb_points_add_point(points, pt, ((qp_via_t *) (pt + 1)));
         }
     }
     else
     {
-        for (; points->len < len; points->len++, pt += 2)  // CHANGED
+        for (; points->len < len; points->len++, pt += 2)
         {
-            points->data[points->len].ts = *pt;  //CHANGED
+            points->data[points->len].ts = *pt;
             points->data[points->len].val = *((qp_via_t *) (pt + 1));
         }
     }
 
+    free(temp);
     return 0;
 }
 

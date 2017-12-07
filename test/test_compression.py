@@ -25,7 +25,7 @@ class TestCompression(TestBase):
     title = 'Test compression'
 
     GEN_POINTS = functools.partial(
-        gen_points, n=1, time_precision=TIME_PRECISION)
+        gen_points, n=100, time_precision=TIME_PRECISION)
 
     async def _test_series(self, client):
 
@@ -51,12 +51,6 @@ class TestCompression(TestBase):
                         self.series_int[0][0],
                         self.series_int[-1][0]],
                 ]})
-
-    async def insert(self, client, series, n, timeout=1):
-        for _ in range(n):
-            await client.insert_some_series(
-                series, timeout=timeout, points=self.GEN_POINTS)
-            await asyncio.sleep(1.0)
 
     @default_test_setup(
         1,
@@ -84,25 +78,16 @@ class TestCompression(TestBase):
 
         await self._test_series(self.client0)
 
-        # # Create some random series and start 25 insert task parallel
-        # series = gen_series(n=10000)
-        # tasks = [
-        #     asyncio.ensure_future(
-        #         self.client0.insert_some_series(
-        #             series,
-        #             timeout=0,
-        #             points=self.GEN_POINTS))
-        #     for i in range(25)]
-        # await asyncio.gather(*tasks)
+        # Create some random series and start 25 insert task parallel
+        series = gen_series(n=100)
+        await self.client0.insert_some_series(
+                series,
+                n=0.1,
+                timeout=0,
+                points=self.GEN_POINTS)
 
-        # await asyncio.sleep(2)
-
-        # await asyncio.gather(*tasks)
-
-        # await asyncio.sleep(2)
-
-        # # Check the result
-        # await self.assertSeries(self.client0, series)
+        # Check the result
+        await self.assertSeries(self.client0, series)
 
         self.client0.close()
 

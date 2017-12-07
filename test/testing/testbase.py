@@ -1,6 +1,7 @@
 import unittest
 import time
 import asyncio
+import random
 from .siridb import SiriDB
 from .server import Server
 from .client import Client
@@ -72,7 +73,7 @@ class TestBase(unittest.TestCase):
             await asyncio.sleep(1.0)
 
     async def assertSeries(self, client, series):
-        d = {s.name: len(s.points) for s in series}
+        d = {s.name: s.points for s in series if s.points}
 
         result = await client.query('list series name, length limit {}'.format(
             len(series)))
@@ -88,6 +89,23 @@ class TestBase(unittest.TestCase):
                     'expected {} point(s) but found {} point(s) ' \
                     'for series {!r}' \
                     .format(len(s.points), length, s.name)
+
+        n = min(len(series), 5)
+        l = list(d.keys())
+        random.shuffle(l)
+        for i in range(n):
+            result = await client.query('select * from "{}"'.format(l[i]))
+            points = result[l[i]]
+            expected = sorted(d[l[i]])
+            prev = 0
+            assert len(points) == len(expected), \
+                'incorrect number of points: {}, expected: {}'.format(
+                    len(points), len(expected))
+            for i, p in enumerate(points):
+                ts, val = p
+                assert ts >= prev, \
+                    'order of time-stamps not correct {} < {}'.format(ts, prev)
+                self.assertEqual(p, expected[i])
 
     def assertAlmostEqual(self, a, b, *args, **kwargs):
         if isinstance(b, dict):

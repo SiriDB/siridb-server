@@ -10,6 +10,7 @@ from test_select import TestSelect
 from test_series import TestSeries
 from test_server import TestServer
 from test_user import TestUser
+from test_compression import TestCompression
 
 Server.BUILDTYPE = 'Release'
 
@@ -23,4 +24,4 @@ if __name__ == '__main__':
     run_test(TestSeries())
     run_test(TestServer())
     run_test(TestUser())
-
+    run_test(TestCompression())
