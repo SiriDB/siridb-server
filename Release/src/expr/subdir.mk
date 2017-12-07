@@ -2,22 +2,22 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
-../src/expr/expr.c 
+../src/expr/expr.c
 
 OBJS += \
-./src/expr/expr.o 
+./src/expr/expr.o
 
 C_DEPS += \
-./src/expr/expr.d 
+./src/expr/expr.d
 
 
 # Each subdirectory must supply rules for building sources it contributes
 src/expr/%.o: ../src/expr/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
-	gcc -I../include -O3 -Wall -Wextra $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	gcc -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
