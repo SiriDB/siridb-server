@@ -1,7 +1,7 @@
 FROM alpine:latest
 RUN apk update && \
     apk upgrade && \
-    apk add gcc make libuv-dev musl-dev pcre-dev util-linux-dev linux-headers git && \
+    apk add gcc make libuv-dev musl-dev pcre2-dev util-linux-dev linux-headers git && \
     git clone https://github.com/transceptor-technology/libcleri.git /tmp/libcleri && \
     cd /tmp/libcleri/Release && \
     make all && \
@@ -13,7 +13,7 @@ RUN apk update && \
 
 FROM alpine:latest
 RUN apk update && \
-    apk add pcre libuv libuuid && \
+    apk add pcre2 libuv libuuid && \
     mkdir -p /etc/siridb && \
     mkdir -p /var/lib/siridb
 COPY --from=0 /tmp/siridb-server/siridb.conf /etc/siridb/siridb.conf

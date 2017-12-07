@@ -15,6 +15,7 @@ _MAP_TS = {
     'ns': 10**9
 }
 
+
 def cleanup():
     logging.info('Remove test dir')
     try:
@@ -37,10 +38,19 @@ def random_value(tp=float, mi=-100, ma=100):
     elif tp == int:
         return i
 
+
 def random_series_name(size=12, chars=string.ascii_letters + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-def gen_points(n=100, time_precision='s', tp=float, mi=-100, ma=100, ts_gap=1):
+
+def gen_points(
+        n=100,
+        time_precision='s',
+        tp=float,
+        mi=-100,
+        ma=100,
+        ts_gap=1,
+        shuffle=True):
     if isinstance(ts_gap, str):
         if ts_gap.endswith('s'):
             ts_gap = int(ts_gap[:-1]) * _MAP_TS[time_precision]
@@ -55,11 +65,15 @@ def gen_points(n=100, time_precision='s', tp=float, mi=-100, ma=100, ts_gap=1):
 
     end = int(time.time() * _MAP_TS[time_precision])
     start = end - (n * ts_gap)
-    return [[ts, random_value(tp, mi, ma)] for ts in range(start, end, ts_gap)]
+    timestamps = list(range(start, end, ts_gap))
+    if shuffle:
+        random.shuffle(timestamps)
+    return [[ts, random_value(tp, mi, ma)] for ts in timestamps]
+
 
 def gen_data(points=functools.partial(gen_points), n=100):
     return {random_series_name(): points() for _ in range(n)}
 
+
 def gen_series(n=10000):
     return [Series(random_series_name()) for _ in range(n)]
-

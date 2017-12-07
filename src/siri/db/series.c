@@ -43,14 +43,13 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-#define SERIES_GET_POINTS_CB(get_points_cb, series)       \
-    siridb_shard_get_points_cb get_points_cb =          \
-        (series->flags & SIRIDB_SERIES_IS_32BIT_TS) ?    \
-            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
-                    siridb_shard_get_points_log32 :        \
-                    siridb_shard_get_points_num32 :        \
-            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
-                    siridb_shard_get_points_log64 :        \
+#define SERIES_GET_POINTS_CB(get_points_cb__, series__)                 \
+    get_points_cb__ = (series__->flags & SIRIDB_SERIES_IS_32BIT_TS) ?   \
+            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
+                    siridb_shard_get_points_log32 :                     \
+                    siridb_shard_get_points_num32 :                     \
+            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
+                    siridb_shard_get_points_log64 :                     \
                     siridb_shard_get_points_num64;
 
 static int SERIES_save(siridb_t * siridb);
@@ -81,7 +80,8 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-const uint8_t SERIES_SFC = SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
+const uint8_t SERIES_SFC =
+        SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
 
 /*
  * Call-back used to compare series properties.
@@ -426,7 +426,8 @@ int siridb_series_add_idx(
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
-        uint16_t len)
+        uint16_t len,
+        uint16_t cinfo)
 {
     idx_t * idx;
     uint32_t i = series->idx_len;
@@ -462,6 +463,7 @@ int siridb_series_add_idx(
     idx->len = len;
     idx->shard = shard;
     idx->pos = pos;
+    idx->cinfo = cinfo;
 
     /* We do not have to save an overlap since it will be detected again when
      * reading the shard at startup.
@@ -706,6 +708,7 @@ siridb_points_t * siridb_series_get_points(
     size_t len, size;
     uint32_t i;
     uint32_t indexes[series->idx_len];
+    siridb_shard_get_points_cb get_points_cb;
     len = i = size = 0;
 
     for (   idx = series->idx;
@@ -733,12 +736,25 @@ siridb_points_t * siridb_series_get_points(
 
     for (i = 0; i < len; i++)
     {
-        get_points_cb(
-                points,
-                series->idx + indexes[i],
-                start_ts,
-                end_ts,
-                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        idx = series->idx + indexes[i];
+        if (idx->shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+        {
+            siridb_shard_get_points_num_compressed(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
+        else
+        {
+            get_points_cb(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
         /* errors can be ignored here */
     }
 
@@ -846,7 +862,9 @@ int siridb_series_optimize_shard(
     uint64_t max_ts;
     size_t size;
     siridb_points_t *__restrict points;
+    siridb_shard_get_points_cb get_points_cb;
     int rc;
+    uint16_t cinfo = 0;
 
     max_ts = (shard->id + siridb->duration_num) - series->mask;
 
@@ -892,7 +910,14 @@ int siridb_series_optimize_shard(
     uint16_t chunk_sz;
     uint_fast32_t num_chunks, pstart, pend, diff;
 
-    SERIES_GET_POINTS_CB(get_points_cb, series)
+    if (shard->replacing->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    {
+        get_points_cb = siridb_shard_get_points_num_compressed;
+    }
+    else
+    {
+        SERIES_GET_POINTS_CB(get_points_cb, series)
+    }
 
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
@@ -927,7 +952,6 @@ int siridb_series_optimize_shard(
         {
             pend = size;
         }
-
         if ((pos = siridb_shard_write_points(
                 siridb,
                 series,
@@ -935,7 +959,8 @@ int siridb_series_optimize_shard(
                 points,
                 pstart,
                 pend,
-                siri.optimize->idx_fp)) == EOF)
+                siri.optimize->idx_fp,
+                &cinfo)) == EOF)
         {
             log_critical(
                     "Cannot write points to shard id '%" PRIu64 "'",
@@ -965,6 +990,7 @@ int siridb_series_optimize_shard(
             idx->end_ts = points->data[pend - 1].ts;
             idx->len = pend - pstart;
             idx->pos = pos;
+            idx->cinfo = cinfo;
             siridb_shard_incref(shard);
         }
     }

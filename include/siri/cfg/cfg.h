@@ -18,6 +18,7 @@ typedef struct siri_cfg_s
     uint16_t max_open_files;
     uint32_t optimize_interval;
     uint8_t ip_support;
+    uint8_t shard_compression;
     char server_address[SIRI_CFG_MAX_LEN_ADDRESS];
     char default_db_path[PATH_MAX];
 } siri_cfg_t;

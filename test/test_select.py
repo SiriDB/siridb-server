@@ -68,7 +68,7 @@ DATA = {
 class TestSelect(TestBase):
     title = 'Test select and aggregate functions'
 
-    @default_test_setup(1)
+    @default_test_setup(1, compression=False)
     async def run(self):
         await self.client0.connect()
 
@@ -126,11 +126,9 @@ class TestSelect(TestBase):
             await self.client0.query('select sum(1h) from "aggr"'),
             {'aggr': [[1447250400, 2663], [1447254000, 5409], [1447257600, 1602]]})
 
-
         self.assertEqual(
             await self.client0.query('select count(1h) from "aggr"'),
             {'aggr': [[1447250400, 5], [1447254000, 12], [1447257600, 3]]})
-
 
         self.assertEqual(
             await self.client0.query('select mean(1h) from "aggr"'),

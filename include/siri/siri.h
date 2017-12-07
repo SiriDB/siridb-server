@@ -11,7 +11,10 @@
  */
 #pragma once
 
+#define PCRE2_CODE_UNIT_WIDTH 8
+
 #include <uv.h>
+#include <pcre2.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/db.h>
 #include <siri/file/handler.h>
@@ -63,8 +66,8 @@ typedef struct siri_s
     llist_t * accounts;
 
     /* initialized by sidi_admin_request_init */
-    pcre * dbname_regex;
-    pcre_extra * dbname_regex_extra;
+    pcre2_code * dbname_regex;
+    pcre2_match_data * dbname_match_data;
 
     /* socket and promises used for expanding (client) */
     uv_tcp_t * socket;

@@ -44,17 +44,17 @@ typedef enum
     QUERY_ALTER_USER
 } query_alter_tp;
 
-#define QUERY_DEF           \
-uint8_t tp;                 \
-imap_t * series_map;        \
-imap_t * series_tmp;        \
-imap_t * pmap;              \
-slist_t * slist;            \
-size_t slist_index;         \
-imap_update_cb update_cb;   \
-cexpr_t * where_expr;       \
-pcre * regex;               \
-pcre_extra * regex_extra;
+#define QUERY_DEF               \
+uint8_t tp;                     \
+imap_t * series_map;            \
+imap_t * series_tmp;            \
+imap_t * pmap;                  \
+slist_t * slist;                \
+size_t slist_index;             \
+imap_update_cb update_cb;       \
+cexpr_t * where_expr;           \
+pcre2_code * regex;             \
+pcre2_match_data * match_data;
 
 
 /* wrappers */

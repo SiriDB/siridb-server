@@ -1322,7 +1322,7 @@ static void enter_series_re(uv_async_t * handle)
     /* extract and compile regular expression */
     if (siridb_re_compile(
             &q_wrapper->regex,
-            &q_wrapper->regex_extra,
+            &q_wrapper->match_data,
             node->str,
             node->len,
             query->err_msg))
@@ -4631,17 +4631,15 @@ static void async_series_re(uv_async_t * handle)
         series = (siridb_series_t *)
                 q_wrapper->slist->data[q_wrapper->slist_index];
 
-        pcre_exec_ret = pcre_exec(
+        pcre_exec_ret = pcre2_match(
                 q_wrapper->regex,
-                q_wrapper->regex_extra,
-                series->name,
+                (PCRE2_SPTR8) series->name,
                 series->name_len,
                 0,                     // start looking at this point
                 0,                     // OPTIONS
-                NULL,
+                q_wrapper->match_data,
                 0);                    // length of sub_str_vec
-
-        if (    pcre_exec_ret ||
+        if (    pcre_exec_ret < 0 ||
                 imap_add(q_wrapper->series_tmp, series->id, series))
         {
             siridb_series_decref(series);
@@ -4657,11 +4655,11 @@ static void async_series_re(uv_async_t * handle)
         /* free the s-list object and reset index */
         slist_free(q_wrapper->slist);
 
-        free(q_wrapper->regex);
-        free(q_wrapper->regex_extra);
+        pcre2_code_free(q_wrapper->regex);
+        pcre2_match_data_free(q_wrapper->match_data);
 
         q_wrapper->regex = NULL;
-        q_wrapper->regex_extra = NULL;
+        q_wrapper->match_data = NULL;
 
         q_wrapper->slist = NULL;
         q_wrapper->slist_index = 0;

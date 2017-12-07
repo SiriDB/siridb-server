@@ -29,7 +29,7 @@ q->pmap = NULL;                     \
 q->update_cb = NULL;                \
 q->where_expr = NULL;               \
 q->regex = NULL;                    \
-q->regex_extra = NULL;
+q->match_data = NULL;
 
 
 #define QUERIES_FREE(q, handle)                                 \
@@ -63,8 +63,8 @@ if (q->pmap != NULL)                                            \
 {                                                               \
     imap_free(q->pmap, NULL);                                   \
 }                                                               \
-free(q->regex);                                                 \
-free(q->regex_extra);                                           \
+pcre2_code_free(q->regex);                                      \
+pcre2_match_data_free(q->match_data);                           \
 free(q);                                                        \
 siridb_query_free(handle);
 

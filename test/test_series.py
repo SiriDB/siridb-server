@@ -39,12 +39,11 @@ class TestSeries(TestBase):
 
         self.assertEqual(
             await self.client0.query('select * from "{}"'.format(PI)),
-            {PI: points})
+            {PI: sorted(points)})
 
         self.assertEqual(
             await self.client0.query('select * from "{}"'.format(Klingon)),
-            {Klingon: points})
-
+            {Klingon: sorted(points)})
 
         self.client0.close()
 
