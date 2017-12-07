@@ -97,15 +97,21 @@ class TestBase(unittest.TestCase):
             result = await client.query('select * from "{}"'.format(l[i]))
             points = result[l[i]]
             expected = sorted(d[l[i]])
-            prev = 0
+            prev = None
             assert len(points) == len(expected), \
                 'incorrect number of points: {}, expected: {}'.format(
                     len(points), len(expected))
             for i, p in enumerate(points):
                 ts, val = p
-                assert ts >= prev, \
-                    'order of time-stamps not correct {} < {}'.format(ts, prev)
-                self.assertEqual(p, expected[i])
+                if prev:
+                    assert p[0] >= prev[0], \
+                        'order of time-stamps not correct {} < {}'.format(
+                            ts, prev)
+                    if p[0] == prev[0]:
+                        continue
+                    self.assertEqual(prev, expected[i-1])
+                prev = p
+            self.assertEqual(prev, expected[i])
 
     def assertAlmostEqual(self, a, b, *args, **kwargs):
         if isinstance(b, dict):

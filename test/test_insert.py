@@ -137,14 +137,14 @@ class TestInsert(TestBase):
         tasks = [
             asyncio.ensure_future(self.client0.query(
                     'drop series /.*/ set ignore_threshold true'))
-            for i in range (5)]
+            for i in range(5)]
 
         await asyncio.gather(*tasks)
 
         tasks = [
             asyncio.ensure_future(self.client0.query(
                     'drop shards set ignore_threshold true'))
-            for i in range (5)]
+            for i in range(5)]
 
         await asyncio.gather(*tasks)
 

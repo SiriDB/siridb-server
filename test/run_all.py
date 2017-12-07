@@ -16,6 +16,7 @@ Server.BUILDTYPE = 'Release'
 
 if __name__ == '__main__':
     # run_test(TestCluster())
+    run_test(TestCompression())
     run_test(TestGroup())
     run_test(TestList())
     run_test(TestInsert())
@@ -24,4 +25,3 @@ if __name__ == '__main__':
     run_test(TestSeries())
     run_test(TestServer())
     run_test(TestUser())
-    run_test(TestCompression())
