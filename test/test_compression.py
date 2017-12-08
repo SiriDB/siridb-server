@@ -78,13 +78,27 @@ class TestCompression(TestBase):
 
         await self._test_series(self.client0)
 
+        await self.client0.query('drop series /.*/ set ignore_threshold true')
+
         # Create some random series and start 25 insert task parallel
-        series = gen_series(n=100)
-        await self.client0.insert_some_series(
-                series,
-                n=0.1,
-                timeout=0,
-                points=self.GEN_POINTS)
+        series = gen_series(n=40)
+
+        for i in range(40):
+            await self.client0.insert_some_series(
+                    series,
+                    n=0.8,
+                    timeout=0,
+                    points=self.GEN_POINTS)
+
+        # Check the result
+        await self.assertSeries(self.client0, series)
+
+        for i in range(40):
+            await self.client0.insert_some_series(
+                    series,
+                    n=0.8,
+                    timeout=0,
+                    points=self.GEN_POINTS)
 
         # Check the result
         await self.assertSeries(self.client0, series)

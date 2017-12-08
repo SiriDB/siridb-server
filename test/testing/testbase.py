@@ -90,7 +90,7 @@ class TestBase(unittest.TestCase):
                     'for series {!r}' \
                     .format(len(s.points), length, s.name)
 
-        n = min(len(series), 5)
+        n = min(len(series), 10)
         l = list(d.keys())
         random.shuffle(l)
         for i in range(n):

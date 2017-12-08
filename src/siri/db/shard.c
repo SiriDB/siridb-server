@@ -33,6 +33,9 @@
 /* max read buffer size used for reading from index file */
 #define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
+/* growing with this block size */
+#define SIRIDB_SHARD_GROW_SZ 131072
+
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
 
@@ -136,7 +139,7 @@ static int SHARD_load_idx_num(
         FILE * fp,
         int is_num64);
 static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
-static int SHARD_truncate(siridb_shard_t * shard);
+static int SHARD_grow(siridb_shard_t * shard);
 static int SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -171,7 +174,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     }
     shard->id = id;
     shard->ref = 1;
-    shard->size = HEADER_SIZE;
+    shard->len = HEADER_SIZE;
     shard->replacing = NULL;
     if (SHARD_init_fn(siridb, shard) < 0)
     {
@@ -189,6 +192,18 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         siridb_shard_decref(shard);
         return -1;
     }
+
+    if (fseeko(fp, 0, SEEK_END) ||
+        (shard_sz = ftello(fp)) < (off_t) shard->len ||
+        fseeko(fp, 0, SEEK_SET))
+    {
+        fclose(fp);
+        log_critical("Index and/or shard corrupt: '%s'", shard->fn);
+        siridb_shard_decref(shard);
+        return -1;
+    }
+
+    shard->size = (size_t) shard_sz;
 
     char header[HEADER_SIZE];
 
@@ -236,20 +251,9 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
             return -1;
         }
 
-        if (fseeko(fp, 0, SEEK_END) ||
-            (shard_sz = ftello(fp)) < (off_t) shard->size)
+        if (shard->size > shard->len)
         {
-            fclose(fp);
-            log_critical("Index and/or shard corrupt: '%s'", shard->fn);
-            siridb_shard_decref(shard);
-            return -1;
-        }
-
-        if (shard_sz > (off_t) shard->size)
-        {
-            shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
-
-            if (fseeko(fp, (off_t) shard->size, SEEK_SET))
+            if (fseeko(fp, (off_t) shard->len, SEEK_SET))
             {
                 fclose(fp);
                 log_critical("Seek error in: '%s'", shard->fn);
@@ -257,10 +261,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
                 return -1;
             }
 
-            if (SHARD_load_idx_num(siridb, shard, fp, is_num64))
-            {
-                SHARD_truncate(shard);
-            }
+            SHARD_load_idx_num(siridb, shard, fp, is_num64);
         }
         break;
 
@@ -322,7 +323,7 @@ siridb_shard_t *  siridb_shard_create(
     shard->ref = 1;
     shard->tp = tp;
     shard->replacing = replacing;
-    shard->size = HEADER_SIZE;
+    shard->len = shard->size = HEADER_SIZE;
     shard->max_chunk_sz = (replacing == NULL) ?
             DEFAULT_MAX_CHUNK_SZ_NUM : replacing->max_chunk_sz;
 
@@ -506,14 +507,26 @@ long int siridb_shard_write_points(
         cdata = siridb_points_zip(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
-            log_error("Memory allocation error while compressing points");
-            *cinfo = ~0;
+            log_critical("Memory allocation error while compressing points");
+            return -1;
         }
     }
     else
     {
         /* no compression, ignore c-info */
         cinfo = NULL;
+        dsize = (siridb->time->ts_sz + 8) * len;
+    }
+
+    if (shard->len + dsize + 64 > shard->size)
+    {
+        SHARD_grow(shard);
+    }
+
+    if (fseeko(fp, shard->len, SEEK_SET))
+    {
+        log_critical("Seek error in: '%s'", shard->fn);
+        return -1;
     }
 
     if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
@@ -526,10 +539,11 @@ long int siridb_shard_write_points(
                 end,
                 cinfo,
                 fp);
-        pos = shard->size + header_sz;
+        pos = shard->len + header_sz;
     }
     else
     {
+        /* the idx_fp is already at the end of the index file */
         header_sz = SHARD_write_header(
                 siridb,
                 series,
@@ -538,15 +552,7 @@ long int siridb_shard_write_points(
                 end,
                 cinfo,
                 idx_fp);
-        pos = shard->size;
-        /* in this case we need to set the file pointer still to the end */
-        if (fseeko(fp, 0, SEEK_END))
-        {
-            ERR_FILE
-            log_critical("Seek error in shard id %" PRIu64, shard->id);
-            free(cdata);
-            return EOF;
-        }
+        pos = shard->len;
     }
 
     if (header_sz < 0)
@@ -569,13 +575,9 @@ long int siridb_shard_write_points(
             log_critical("Cannot write points to file '%s'", shard->fn);
             return EOF;
         }
-        dsize += pos;
     }
     else
     {
-        /* TODO: this works for both double and integer.
-         * Add size values for strings and write string using 'old' way
-         */
         for (i = start; i < end; i++)
         {
             if (fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp) != 1 ||
@@ -586,7 +588,6 @@ long int siridb_shard_write_points(
                 return EOF;
             }
         }
-        dsize = pos + (siridb->time->ts_sz + 8) * len;
     }
 
     if (fflush(fp))
@@ -596,11 +597,7 @@ long int siridb_shard_write_points(
         return EOF;
     }
 
-    shard->size = dsize;
-
-#ifdef DEBUG
-    assert (shard->size == (size_t) ftello(fp));
-#endif
+    shard->len = pos + dsize;
 
     return pos;
 }
@@ -1307,44 +1304,6 @@ static int SHARD_remove(siridb_shard_t * shard)
 }
 
 /*
- * Truncates a shard file to its current size.
- *
- * Returns 0 when successful or -1 in case of an error.
- */
-static int SHARD_truncate(siridb_shard_t * shard)
-{
-    if (shard->fp->fp == NULL)
-    {
-        if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
-        {
-            log_critical(
-                    "Cannot open file '%s', skip reading points",
-                    shard->fn);
-            return -1;
-        }
-    }
-
-    int buffer_fd = fileno(shard->fp->fp);
-
-    if (buffer_fd == -1)
-    {
-        log_critical("Cannot get file descriptor for '%s'", shard->fn);
-        return -1;
-    }
-
-    if (ftruncate(buffer_fd, shard->size))
-    {
-        log_critical("Cannot truncate shard file: '%s'", shard->fn);
-        return -1;
-    }
-
-    log_warning("Truncated shard file '%s' to %zu bytes",
-            shard->fn, shard->size);
-
-    return fsync(buffer_fd);
-}
-
-/*
  * This function applies the index on the appropriate series. In case the
  * series is not found, a log line will be displayed if this is the first
  * one in the shard which is not found. The next series which cannot be found
@@ -1365,6 +1324,10 @@ static ssize_t SHARD_apply_idx_num(
     uint16_t cinfo = 0;
 
     series_id = *((uint32_t *) pt);
+    if (series_id == 0)
+    {
+        return 0;
+    }
     len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
     series = imap_get(siridb->series_map, series_id);
 
@@ -1443,7 +1406,7 @@ static ssize_t SHARD_apply_idx_num(
  * SIRIDB_SHARD_HAS_INDEX set. Returns 0 in case the index was read successful
  * and if the flag was not set. Returns a negative value in case of an error.
  *
- * Member shard->size will be updated according the index.
+ * Member shard->len will be updated according the index.
  */
 static int SHARD_get_idx_num(
         siridb_t * siridb,
@@ -1493,7 +1456,7 @@ static int SHARD_get_idx_num(
                     siridb,
                     shard,
                     pt,
-                    shard->size,
+                    shard->len,
                     is_num64);
 
             if (size < 0)
@@ -1504,7 +1467,7 @@ static int SHARD_get_idx_num(
                 return -1;
             }
 
-            shard->size += size;
+            shard->len += size;
         }
     }
 
@@ -1538,9 +1501,14 @@ static int SHARD_load_idx_num(
 
     while ((size = fread(&idx, 1, idx_sz, fp)) == idx_sz)
     {
-        pos = shard->size + idx_sz;
+        pos = shard->len + idx_sz;
 
-        if ((sz = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64)) < 0)
+        sz = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64);
+        if (sz == 0)
+        {
+            break;
+        }
+        else if (sz < 0)
         {
             return -1;
         }
@@ -1559,20 +1527,8 @@ static int SHARD_load_idx_num(
             return -1;
         }
 
-        shard->size = pos + sz;
-    }
-
-    if (size)
-    {
-        log_error(
-            "Shard %" PRIu64 " (%s) has %zu more bytes than expected. "
-            "Mark this shard as corrupt. The next optimize cycle will "
-            "most likely fix this shard but you might loose some data.",
-            shard->id,
-            shard->fn,
-            size);
-        shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-        return -1;
+        shard->flags |= SIRIDB_SHARD_HAS_NEW_VALUES;
+        shard->len = pos + sz;
     }
 
     return siri_err;
@@ -1614,8 +1570,7 @@ static int SHARD_write_header(
     uint16_t len = end - start;
     int size = EOF;
 
-    if (fseeko(fp, 0, SEEK_END) ||
-        fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
+    if (fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
     {
         return EOF;
     }
@@ -1667,4 +1622,29 @@ static int SHARD_write_header(
     }
 
     return size;
+}
+
+
+static int SHARD_grow(siridb_shard_t * shard)
+{
+    assert (shard->fp);
+
+    int buffer_fd = fileno(shard->fp->fp);
+
+    shard->size = ((size_t) (shard->size / SIRIDB_SHARD_GROW_SZ) + 2)
+            * SIRIDB_SHARD_GROW_SZ;
+
+    if (buffer_fd == -1)
+    {
+        log_error("Cannot get file descriptor for '%s'", shard->fn);
+        return -1;
+    }
+
+    if (ftruncate(buffer_fd, (off_t) shard->size) || fsync(buffer_fd))
+    {
+        log_error("Cannot truncate shard file: '%s'", shard->fn);
+        return -1;
+    }
+
+    return 0;
 }

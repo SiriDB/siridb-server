@@ -314,7 +314,7 @@ static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series)
 
     buffer_pos = series->bf_offset + siridb->buffer_size * SIRIDB_BUFFER_CACHE;
 
-    /* fill buffer with zeros */
+    /* fill buffer with zeros if possible */
     if (ftruncate(buffer_fd, buffer_pos))
     {
         ERR_FILE
