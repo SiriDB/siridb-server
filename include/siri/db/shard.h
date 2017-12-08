@@ -60,6 +60,7 @@ typedef struct siridb_shard_s
     uint8_t flags;
     uint16_t max_chunk_sz;
     uint64_t id;
+    size_t len;
     size_t size;
     siri_fp_t * fp;
     char * fn;
