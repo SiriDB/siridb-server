@@ -130,47 +130,46 @@ int siridb_series_add_point(
 {
 #ifdef DEBUG
     assert (!siri_err);
+    assert (series->buffer != NULL);
 #endif
     int rc = 0;
 
     series->length++;
 
-    if (series->buffer != NULL)
-    {
-        /* add point in memory
-         * (memory can hold 1 more point than we can hold on disk)
-         */
-        siridb_points_add_point(series->buffer, ts, val);
+    /* add point in memory
+     * (memory can hold 1 more point than we can hold on disk)
+     */
+    siridb_points_add_point(series->buffer, ts, val);
 
-        if (series->buffer->len == siridb->buffer_len)
+    if (series->buffer->len == siridb->buffer_len)
+    {
+        if (siridb_shards_add_points(
+                siridb,
+                series,
+                series->buffer))
         {
-            if (siridb_shards_add_points(
-                    siridb,
-                    series,
-                    series->buffer))
-            {
-                rc = -1;  /* signal is raised */
-            }
-            else
-            {
-                series->buffer->len = 0;
-                if (siridb_buffer_write_len(siridb, series))
-                {
-                    ERR_FILE
-                    rc = -1;
-                }
-            }
+            rc = -1;  /* signal is raised */
         }
         else
         {
-            if (siridb_buffer_write_point(siridb, series, ts, val))
+            series->buffer->len = 0;
+            if (siridb_buffer_write_len(siridb, series))
             {
                 ERR_FILE
-                log_critical("Cannot write new point to buffer");
                 rc = -1;
             }
         }
     }
+    else
+    {
+        if (siridb_buffer_write_point(siridb, series, ts, val))
+        {
+            ERR_FILE
+            log_critical("Cannot write new point to buffer");
+            rc = -1;
+        }
+    }
+
     return rc;
 }
 
@@ -194,15 +193,13 @@ int siridb_series_add_pcache(
     {
         series->length += pcache->len;
 
-        if (siridb_shards_add_points(
+        return siridb_shards_add_points(
                 siridb,
                 series,
-                (siridb_points_t *) pcache))
-        {
-            return -1;  /* signal is raised */
-        }
+                (siridb_points_t *) pcache);
     }
-    else if (pcache->len + series->buffer->len > siridb->buffer_len)
+
+    if (pcache->len + series->buffer->len > siridb->buffer_len)
     {
         series->length += pcache->len;
 
@@ -226,14 +223,12 @@ int siridb_series_add_pcache(
         {
             return -1;  /* signal is raised */
         }
-        else
+
+        series->buffer->len = 0;
+        if (siridb_buffer_write_len(siridb, series))
         {
-            series->buffer->len = 0;
-            if (siridb_buffer_write_len(siridb, series))
-            {
-                ERR_FILE
-                return -1;
-            }
+            ERR_FILE
+            return -1;
         }
     }
     else
@@ -254,6 +249,7 @@ int siridb_series_add_pcache(
             }
         }
     }
+
     return 0;
 }
 

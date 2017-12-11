@@ -537,16 +537,20 @@ static int8_t INSERT_local_work(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
-        if (siridb_series_add_point(
-                siridb,
-                series,
-                ts,
-                &qp_series_val.via))
-        {
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
-        }
 
-        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
+                series->buffer != NULL)
+        {
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    ts,
+                    &qp_series_val.via))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
+        }
+        else
         {
             if (*pcache == NULL)
             {
@@ -562,7 +566,9 @@ static int8_t INSERT_local_work(
                 (*pcache)->len = 0;
             }
 
-            do
+            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+
+            if (tp == QP_ARRAY2) do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
@@ -712,16 +718,19 @@ static int INSERT_local_work_test(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
-        if (siridb_series_add_point(
-                siridb,
-                series,
-                ts,
-                &qp_series_val.via))
+        if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
+                series->buffer != NULL)
         {
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    ts,
+                    &qp_series_val.via))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
         }
-
-        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        else
         {
             if (*pcache == NULL)
             {
@@ -737,7 +746,9 @@ static int INSERT_local_work_test(
                 (*pcache)->len = 0;
             }
 
-            do
+            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+
+            if (tp == QP_ARRAY2) do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
