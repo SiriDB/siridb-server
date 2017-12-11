@@ -47,7 +47,7 @@ void siridb_replicate_continue(siridb_replicate_t * replicate);
 int siridb_replicate_pkg(siridb_t * siridb, sirinet_pkg_t * pkg);
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
-        char * data,
+        unsigned char * data,
         size_t len,
         int flags);
 

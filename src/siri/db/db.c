@@ -415,7 +415,7 @@ static int SIRIDB_from_unpacker(
     }
 
     /* alloc mem for database name */
-    (*siridb)->dbname = strndup(qp_obj.via.raw, qp_obj.len);
+    (*siridb)->dbname = strndup((const char *) qp_obj.via.raw, qp_obj.len);
     if ((*siridb)->dbname == NULL)
     {
         READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
@@ -487,7 +487,7 @@ static int SIRIDB_from_unpacker(
     }
 
     /* bind timezone to SiriDB */
-    char * tzname = strndup(qp_obj.via.raw, qp_obj.len);
+    char * tzname = strndup((const char *) qp_obj.via.raw, qp_obj.len);
 
     if (tzname == NULL)
     {
@@ -620,7 +620,7 @@ int siridb_save(siridb_t * siridb)
 
     return (qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
             qp_fadd_int8(fpacker, SIRIDB_SCHEMA) ||
-            qp_fadd_raw(fpacker, (const char *) siridb->uuid, 16) ||
+            qp_fadd_raw(fpacker, (const unsigned char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
             qp_fadd_int8(fpacker, siridb->time->precision) ||
             qp_fadd_int64(fpacker, siridb->buffer_size) ||

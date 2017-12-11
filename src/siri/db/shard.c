@@ -511,6 +511,10 @@ long int siridb_shard_write_points(
             return -1;
         }
     }
+    else if (series->tp == TP_STRING)
+    {
+        /* string.. */
+    }
     else
     {
         /* no compression, ignore c-info */

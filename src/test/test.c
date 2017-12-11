@@ -87,20 +87,20 @@ static int test_qpack(void)
     int64_t i;
 
     qp_add_type(packer, QP_MAP_OPEN);
-    qp_add_raw(packer, "data", 4);
+    qp_add_raw(packer, (const unsigned char *) "data", 4);
     qp_add_type(packer, QP_ARRAY_OPEN);
 
     qp_add_type(packer, QP_MAP2);
-    qp_add_raw(packer, "name", 4);
-    qp_add_raw(packer, "time_precision", 14);
-    qp_add_raw(packer, "value", 5);
-    qp_add_raw(packer, "s", 1);
+    qp_add_raw(packer, (const unsigned char *) "name", 4);
+    qp_add_raw(packer, (const unsigned char *) "time_precision", 14);
+    qp_add_raw(packer, (const unsigned char *) "value", 5);
+    qp_add_raw(packer, (const unsigned char *) "s", 1);
 
     qp_add_type(packer, QP_MAP2);
-    qp_add_raw(packer, "name", 4);
-    qp_add_raw(packer, "version", 7);
-    qp_add_raw(packer, "value", 5);
-    qp_add_raw(packer, "2.0.0", 5);
+    qp_add_raw(packer, (const unsigned char *) "name", 4);
+    qp_add_raw(packer, (const unsigned char *) "version", 7);
+    qp_add_raw(packer, (const unsigned char *) "value", 5);
+    qp_add_raw(packer, (const unsigned char *) "2.0.0", 5);
 
     qp_packer_free(packer);
 

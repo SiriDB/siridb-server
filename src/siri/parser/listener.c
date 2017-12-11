@@ -45,7 +45,8 @@
 
 #define MAX_ITERATE_COUNT 1000      // thousand
 
-#define QP_ADD_SUCCESS qp_add_raw(query->packer, "success_msg", 11);
+#define QP_ADD_SUCCESS qp_add_raw( \
+    query->packer, (const unsigned char *) "success_msg", 11);
 #define DEFAULT_ALLOC_COLUMNS 6
 #define IS_MASTER (query->flags & SIRIDB_QUERY_FLAG_MASTER)
 
@@ -901,7 +902,7 @@ static void enter_list_stmt(uv_async_t * handle)
 
     qp_add_type(query->packer, QP_MAP_OPEN);
 
-    qp_add_raw(query->packer, "columns", 7);
+    qp_add_raw(query->packer, (const unsigned char *) "columns", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     query->data = query_list_new();
@@ -1408,7 +1409,7 @@ static void enter_timeit_stmt(uv_async_t * handle)
         MEM_ERR_RET
     }
 
-    qp_add_raw(query->timeit, "__timeit__", 10);
+    qp_add_raw(query->timeit, (const unsigned char *) "__timeit__", 10);
     qp_add_type(query->timeit, QP_ARRAY_OPEN);
 
     SIRIPARSER_NEXT_NODE
@@ -1447,7 +1448,10 @@ static void enter_xxx_columns(uv_async_t * handle)
 
     while (1)
     {
-        qp_add_raw(query->packer, columns->node->str, columns->node->len);
+        qp_add_raw(
+                query->packer,
+                (const unsigned char *) columns->node->str,
+                columns->node->len);
 
         if (slist_append_safe(
                 &qlist->props,
@@ -1591,7 +1595,7 @@ static void exit_calc_stmt(uv_async_t * handle)
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
-    qp_add_raw(query->packer, "calc", 4);
+    qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
 
     if (!query->factor)
     {
@@ -1652,7 +1656,7 @@ static void exit_count_pools(uv_async_t * handle)
             .pool=siridb->server->pool
     };
 
-    qp_add_raw(query->packer, "pools", 5);
+    qp_add_raw(query->packer, (const unsigned char *) "pools", 5);
 
     if (q_count->where_expr == NULL)
     {
@@ -1692,7 +1696,7 @@ static void exit_count_series(uv_async_t * handle)
 
     MASTER_CHECK_ONLINE(siridb)
 
-    qp_add_raw(query->packer, "series", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "series", 6);
 
     if (q_count->where_expr == NULL)
     {
@@ -1756,7 +1760,7 @@ static void exit_count_series_length(uv_async_t * handle)
 
     MASTER_CHECK_ACCESSIBLE(siridb)
 
-    qp_add_raw(query->packer, "series_length", 13);
+    qp_add_raw(query->packer, (const unsigned char *) "series_length", 13);
 
     if (q_count->where_expr == NULL)
     {
@@ -1840,7 +1844,7 @@ static void exit_count_servers(uv_async_t * handle)
     cexpr_t * where_expr = q_count->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_server_cexpr_cb;
 
-    qp_add_raw(query->packer, "servers", 7);
+    qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
 
     int is_local = IS_MASTER;
 
@@ -1895,7 +1899,10 @@ static void exit_count_servers_received(uv_async_t * handle)
     cexpr_t * where_expr = q_count->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_server_cexpr_cb;
 
-    qp_add_raw(query->packer, "servers_received_points", 23);
+    qp_add_raw(
+            query->packer,
+            (const unsigned char *) "servers_received_points",
+            23);
 
     siridb_server_walker_t wserver = {siridb->server, siridb};
     if (where_expr == NULL || cexpr_run(where_expr, cb, &wserver))
@@ -1926,7 +1933,10 @@ static void exit_count_servers_selected(uv_async_t * handle)
     cexpr_t * where_expr = q_count->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_server_cexpr_cb;
 
-    qp_add_raw(query->packer, "servers_selected_points", 23);
+    qp_add_raw(
+            query->packer,
+            (const unsigned char *) "servers_selected_points",
+            23);
 
     siridb_server_walker_t wserver = {siridb->server, siridb};
     if (where_expr == NULL || cexpr_run(where_expr, cb, &wserver))
@@ -1955,7 +1965,7 @@ static void exit_count_shards(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
-    qp_add_raw(query->packer, "shards", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "shards", 6);
 
     if (q_count->where_expr == NULL)
     {
@@ -2025,7 +2035,7 @@ static void exit_count_shards_size(uv_async_t * handle)
     query_count_t * q_count = (query_count_t *) query->data;
     uint64_t duration;
 
-    qp_add_raw(query->packer, "shards_size", 11);
+    qp_add_raw(query->packer, (const unsigned char *) "shards_size", 11);
 
     siridb_shard_view_t vshard = {
             .server=siridb->server
@@ -2089,7 +2099,7 @@ static void exit_count_users(uv_async_t * handle)
     cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
     int n = 0;
 
-    qp_add_raw(query->packer, "users", 5);
+    qp_add_raw(query->packer, (const unsigned char *) "users", 5);
 
     while (node != NULL)
     {
@@ -2669,7 +2679,7 @@ static void exit_help_xxx(uv_async_t * handle)
         }
 
         qp_add_type(query->packer, QP_MAP_OPEN);
-        qp_add_raw(query->packer, "help", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "help", 4);
         qp_add_string(query->packer, help);
 
         free(query->data);
@@ -2760,14 +2770,14 @@ static void exit_list_pools(uv_async_t * handle)
         slist_append(q_list->props, &GID_K_POOL);
         slist_append(q_list->props, &GID_K_SERVERS);
         slist_append(q_list->props, &GID_K_SERIES);
-        qp_add_raw(query->packer, "pool", 4);
-        qp_add_raw(query->packer, "servers", 7);
-        qp_add_raw(query->packer, "series", 6);
+        qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
+        qp_add_raw(query->packer, (const unsigned char *) "series", 6);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "pools", 5);
+    qp_add_raw(query->packer, (const unsigned char *) "pools", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     if (    q_list->limit &&
@@ -2831,12 +2841,12 @@ static void exit_list_series(uv_async_t * handle)
         }
 
         slist_append(q_list->props, &GID_K_NAME);
-        qp_add_raw(query->packer, "name", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "name", 4);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "series", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "series", 6);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     uv_mutex_lock(&siridb->series_mutex);
@@ -2911,16 +2921,16 @@ static void exit_list_servers(uv_async_t * handle)
         slist_append(q_list->props, &GID_K_VERSION);
         slist_append(q_list->props, &GID_K_ONLINE);
         slist_append(q_list->props, &GID_K_STATUS);
-        qp_add_raw(query->packer, "name", 4);
-        qp_add_raw(query->packer, "pool", 4);
-        qp_add_raw(query->packer, "version", 7);
-        qp_add_raw(query->packer, "online", 6);
-        qp_add_raw(query->packer, "status", 6);
+        qp_add_raw(query->packer, (const unsigned char *) "name", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "version", 7);
+        qp_add_raw(query->packer, (const unsigned char *) "online", 6);
+        qp_add_raw(query->packer, (const unsigned char *) "status", 6);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "servers", 7);
+    qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     if (is_local)
@@ -2989,16 +2999,16 @@ static void exit_list_shards(uv_async_t * handle)
         slist_append(q_list->props, &GID_K_SERVER);
         slist_append(q_list->props, &GID_K_START);
         slist_append(q_list->props, &GID_K_END);
-        qp_add_raw(query->packer, "sid", 3);
-        qp_add_raw(query->packer, "pool", 4);
-        qp_add_raw(query->packer, "server", 6);
-        qp_add_raw(query->packer, "start", 5);
-        qp_add_raw(query->packer, "end", 3);
+        qp_add_raw(query->packer, (const unsigned char *) "sid", 3);
+        qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "server", 6);
+        qp_add_raw(query->packer, (const unsigned char *) "start", 5);
+        qp_add_raw(query->packer, (const unsigned char *) "end", 3);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "shards", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "shards", 6);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     for (size_t i = 0; i < shards_list->len; i++)
@@ -3049,7 +3059,10 @@ static void exit_list_shards(uv_async_t * handle)
                     {
                         char buffer[SIRIDB_SHARD_STATUS_STR_MAX];
                         int n = siridb_shard_status(buffer, vshard.shard);
-                        qp_add_raw(query->packer, buffer, n);
+                        qp_add_raw(
+                                query->packer,
+                                (const unsigned char *) buffer,
+                                n);
                     }
                     break;
                 }
@@ -3096,13 +3109,13 @@ static void exit_list_users(uv_async_t * handle)
 
     if (props == NULL)
     {
-        qp_add_raw(query->packer, "name", 4);
-        qp_add_raw(query->packer, "access", 6);
+        qp_add_raw(query->packer, (const unsigned char *) "name", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "access", 6);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "users", 5);
+    qp_add_raw(query->packer, (const unsigned char *) "users", 5);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     while (node != NULL && q_list->limit)
@@ -3368,16 +3381,16 @@ static void exit_select_stmt(uv_async_t * handle)
     }
     else
     {
-        if (    qp_add_raw(query->packer, "select", 6) ||
-                qp_add_type(query->packer, QP_MAP_OPEN) ||
-                ct_items(
-                        q_select->result,
-                        (q_select->merge_as == NULL) ?
-                                (ct_item_cb) &items_select_other
-                                :
-                                (ct_item_cb) &items_select_other_merge,
-                        handle) ||
-                qp_add_type(query->packer, QP_MAP_CLOSE))
+        if (qp_add_raw(query->packer, (const unsigned char *) "select", 6) ||
+            qp_add_type(query->packer, QP_MAP_OPEN) ||
+            ct_items(
+                    q_select->result,
+                    (q_select->merge_as == NULL) ?
+                            (ct_item_cb) &items_select_other
+                            :
+                            (ct_item_cb) &items_select_other_merge,
+                    handle) ||
+            qp_add_type(query->packer, QP_MAP_CLOSE))
         {
             MEM_ERR_RET
         }
@@ -3729,7 +3742,7 @@ static void exit_set_log_level(uv_async_t * handle)
         }
         else
         {
-            qp_add_raw(query->packer, "servers", 7);
+            qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
             qp_add_int64(query->packer, q_alter->n);
             SIRIPARSER_ASYNC_NEXT_NODE
         }
@@ -4003,7 +4016,7 @@ static void exit_show_stmt(uv_async_t * handle)
     }
 
     qp_add_type(query->packer, QP_MAP_OPEN);
-    qp_add_raw(query->packer, "data", 4);
+    qp_add_raw(query->packer, (const unsigned char *) "data", 4);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     siridb_user_t * user = ((sirinet_socket_t *) query->client->data)->origin;
@@ -4062,9 +4075,9 @@ static void exit_timeit_stmt(uv_async_t * handle)
     clock_gettime(CLOCK_REALTIME, &end);
 
     qp_add_type(query->timeit, QP_MAP2);
-    qp_add_raw(query->timeit, "server", 6);
+    qp_add_raw(query->timeit, (const unsigned char *) "server", 6);
     qp_add_string(query->timeit, name);
-    qp_add_raw(query->timeit, "time", 4);
+    qp_add_raw(query->timeit, (const unsigned char *) "time", 4);
     qp_add_double(query->timeit,
             (double) (end.tv_sec - query->start.tv_sec) +
             (double) (end.tv_nsec - query->start.tv_nsec) / 1000000000.0f);
@@ -4403,7 +4416,10 @@ static void async_list_series(uv_async_t * handle)
                 switch(*((uint32_t *) props->data[i]))
                 {
                 case CLERI_GID_K_NAME:
-                    qp_add_raw(query->packer, series->name, series->name_len);
+                    qp_add_raw(
+                            query->packer,
+                            (const unsigned char *) series->name,
+                            series->name_len);
                     break;
                 case CLERI_GID_K_LENGTH:
                     qp_add_int32(query->packer, series->length);
@@ -5033,7 +5049,7 @@ static void on_groups_response(slist_t * promises, uv_async_t * handle)
                 {
                     group = (siridb_group_t *) ct_get(
                             siridb->groups->groups,
-                            qp_name.via.raw);
+                            (const char *) qp_name.via.raw);
                     if (group != NULL)
                     {
                         group->n += qp_series.via.int64;
@@ -5438,7 +5454,7 @@ static int items_select_master(
         siridb_points_ts_correction(points, (double) query->factor);
     }
 
-    if (    qp_add_raw(query->packer, name, len) ||
+    if (    qp_add_raw(query->packer, (const unsigned char *) name, len) ||
             siridb_points_pack(points, query->packer))
     {
         sprintf(query->err_msg, "Memory allocation error.");
@@ -5458,7 +5474,7 @@ static int items_select_master_merge(
     query_select_t * q_select = (query_select_t *) query->data;
     siridb_points_t * points;
 
-    if (qp_add_raw(query->packer, name, len))
+    if (qp_add_raw(query->packer, (const unsigned char *) name, len))
     {
         sprintf(query->err_msg, "Memory allocation error.");
         return -1;
@@ -5543,7 +5559,8 @@ static int items_select_other(
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-    return -(qp_add_raw_term(query->packer, name, len) ||
+    return -(qp_add_raw_term(
+                query->packer, (const unsigned char *) name, len) ||
             siridb_points_raw_pack(points, query->packer));
 }
 
@@ -5558,7 +5575,8 @@ static int items_select_other_merge(
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    int rc = qp_add_raw_term(query->packer, name, len) ||
+    int rc = qp_add_raw_term(
+                query->packer, (const unsigned char *) name, len) ||
             qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     for (size_t i = 0; !rc && i < plist->len; i++)
@@ -5598,7 +5616,7 @@ static void on_select_unpack_points(
 
             memcpy(points->data, qp_points->via.raw, qp_points->len);
 
-            if (ct_add(q_select->result, qp_name->via.raw, points))
+            if (ct_add(q_select->result, (char *) qp_name->via.raw, points))
             {
                 siridb_points_free(points);
             }
@@ -5632,7 +5650,7 @@ static void on_select_unpack_merged_points(
     {
         slist_t ** plist = (slist_t **) ct_getaddr(
                 q_select->result,
-                qp_name->via.raw);
+                (const char *) qp_name->via.raw);
 
         while ( q_select->n <= select_points_limit &&
                 qp_is_array(qp_next(unpacker, NULL)) &&
@@ -5720,12 +5738,12 @@ static void finish_list_groups(uv_async_t * handle)
             MEM_ERR_RET
         }
         slist_append(q_list->props, &GID_K_NAME);
-        qp_add_raw(query->packer, "name", 4);
+        qp_add_raw(query->packer, (const unsigned char *) "name", 4);
     }
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    qp_add_raw(query->packer, "groups", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "groups", 6);
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     ct_valuesn(
@@ -5755,7 +5773,7 @@ static void finish_count_groups(uv_async_t * handle)
                         (ct_val_cb) values_count_groups,
                         handle);
 
-    qp_add_raw(query->packer, "groups", 6);
+    qp_add_raw(query->packer, (const unsigned char *) "groups", 6);
 
     qp_add_int64(query->packer, n);
 

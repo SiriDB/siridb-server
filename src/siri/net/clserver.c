@@ -446,7 +446,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg)
         siridb_query_run(
                 pkg->pid,
                 client,
-                qp_query.via.raw,
+                (const char *) qp_query.via.raw,
                 qp_query.len,
                 factor,
                 SIRIDB_QUERY_FLAG_MASTER);
@@ -616,7 +616,8 @@ static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
     qp_obj_t qp_dbpath;
     if (qp_next(&unpacker, &qp_dbpath) == QP_RAW)
     {
-        char * dbpath = strndup(qp_dbpath.via.raw, qp_dbpath.len);
+        char * dbpath = strndup(
+                (const char *) qp_dbpath.via.raw, qp_dbpath.len);
 
         if (dbpath == NULL)
         {
@@ -703,7 +704,7 @@ static void on_reqfile(
                     pkg->pid,
                     size,
                     CPROTO_RES_FILE,
-                    content);
+                    (const unsigned char *) content);
         free(content);
     }
 
@@ -787,7 +788,10 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
         else
         {
             log_info("Register a new server");
-            new_server = siridb_server_register(siridb, pkg->data, pkg->len);
+            new_server = siridb_server_register(
+                    siridb,
+                    (unsigned char *) pkg->data,
+                    pkg->len);
 
             pkg->tp = BPROTO_REGISTER_SERVER;
 

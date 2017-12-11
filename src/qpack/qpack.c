@@ -32,7 +32,8 @@ if (packer->len + LEN > packer->buffer_size)                            \
     packer->buffer_size =                                               \
             ((packer->len + LEN) / packer->alloc_size + 1)              \
             * packer->alloc_size;                                       \
-    char * tmp = (char *) realloc(packer->buffer, packer->buffer_size); \
+    unsigned char * tmp = (unsigned char *) realloc(                    \
+            packer->buffer, packer->buffer_size);                       \
     if (tmp == NULL)                                                    \
     {                                                                   \
         ERR_ALLOC                                                       \
@@ -129,7 +130,7 @@ static qp_types_t QP_print_unpacker(
 /*
  * Initialize unpacker object.
  */
-void qp_unpacker_init(qp_unpacker_t * unpacker, char * pt, size_t len)
+void qp_unpacker_init(qp_unpacker_t * unpacker, unsigned char * pt, size_t len)
 {
     unpacker->source = NULL;
     unpacker->pt = pt;
@@ -185,7 +186,7 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
         }
         else
         {
-            unpacker->source = (char *) malloc(size);
+            unpacker->source = (unsigned char *) malloc(size);
             if (unpacker->source == NULL)
             {
                 ERR_ALLOC
@@ -230,7 +231,7 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
         packer->buffer_size = packer->alloc_size;
         packer->len = 0;
 
-        packer->buffer = (char *) malloc(packer->buffer_size);
+        packer->buffer = (unsigned char *) malloc(packer->buffer_size);
         if (packer->buffer == NULL)
         {
             free(packer);
@@ -274,7 +275,7 @@ int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source)
 int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
 {
     /* mark the start of the object */
-    const char * start = unpacker->pt;
+    const unsigned char * start = unpacker->pt;
 
     /* jump to the end of the current object */
     qp_skip_next(unpacker);
@@ -292,7 +293,7 @@ int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker)
 /*
  * Print qpack content.
  */
-void qp_print(char * pt, size_t len)
+void qp_print(unsigned char * pt, size_t len)
 {
     qp_obj_t qp_obj;
     qp_unpacker_t unpacker;
@@ -375,7 +376,7 @@ int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
     va_start(args, fmt);
     vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args);
     va_end(args);
-    return qp_add_raw(packer, buffer, strlen(buffer));
+    return qp_add_string(packer, buffer);
 }
 
 /*
@@ -399,7 +400,7 @@ int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...)
         return -1;
     }
 
-    rc = qp_add_raw(packer, buffer, strlen(buffer));
+    rc = qp_add_string(packer, buffer);
     free(buffer);
     return rc;
 }
@@ -409,7 +410,7 @@ int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...)
  *
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
-int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
+int qp_add_raw(qp_packer_t * packer, const unsigned char * raw, size_t len)
 {
     QP_PREPARE_RAW
     memcpy(packer->buffer + packer->len, raw, len);
@@ -420,11 +421,11 @@ int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len)
 /* shortcuts for qp_add_raw() */
 int qp_add_string(qp_packer_t * packer, const char * str)
 {
-    return qp_add_raw(packer, str, strlen(str));
+    return qp_add_raw(packer, (unsigned char *) str, strlen(str));
 }
 int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
-    return qp_add_raw(packer, str, strlen(str) + 1);
+    return qp_add_raw(packer,  (unsigned char *) str, strlen(str) + 1);
 }
 
 /*
@@ -433,7 +434,7 @@ int qp_add_string_term(qp_packer_t * packer, const char * str)
  *
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  */
-int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len_raw)
+int qp_add_raw_term(qp_packer_t * packer, const unsigned char * raw, size_t len_raw)
 {
     /* add one because 0 (terminator) should be included with the length */
     size_t len = len_raw + 1;
@@ -610,7 +611,7 @@ int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 /*
  * Returns 0 if successful and EOF in case an error occurred.
  */
-int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
+int qp_fadd_raw(qp_fpacker_t * fpacker, const unsigned char * raw, size_t len)
 {
     if (len < 100)
     {
@@ -659,7 +660,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len)
  */
 int qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
 {
-    return qp_fadd_raw(fpacker, str, strlen(str));
+    return qp_fadd_raw(fpacker, (unsigned char *) str, strlen(str));
 }
 
 #define QP_FADD_INT8(fpacker, integer)                                      \

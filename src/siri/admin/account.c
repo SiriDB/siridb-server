@@ -58,9 +58,9 @@ int siri_admin_account_init(siri_t * siri)
     if (!xpath_file_exist(fn))
     {
         /* missing file, lets create the first account */
-        qp_account.via.raw = DEFAULT_ACCOUNT;
+        qp_account.via.raw = (unsigned char *) DEFAULT_ACCOUNT;
         qp_account.len = 4;
-        qp_password.via.raw = DEFAULT_PASSWORD;
+        qp_password.via.raw = (unsigned char *) DEFAULT_PASSWORD;
         qp_password.len = 4;
 
         return (siri_admin_account_new(
@@ -156,8 +156,10 @@ int siri_admin_account_new(
         return -1;
     }
 
-    account->account = strndup(qp_account->via.raw, qp_account->len);
-    account->password = strndup(qp_password->via.raw, qp_password->len);
+    account->account = strndup(
+            (const char *) qp_account->via.raw, qp_account->len);
+    account->password = strndup(
+            (const char *) qp_password->via.raw, qp_password->len);
 
     if (!is_encrypted && account->password != NULL)
     {
@@ -213,7 +215,8 @@ int siri_admin_account_check(
         return -1;
     }
 
-    password= strndup(qp_password->via.raw, qp_password->len);
+    password= strndup(
+            (const char *) qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
     {
@@ -268,7 +271,8 @@ int siri_admin_account_change_password(
         return -1;
     }
 
-    password= strndup(qp_password->via.raw, qp_password->len);
+    password= strndup(
+            (const char *) qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
     {
@@ -422,6 +426,6 @@ static int ACCOUNT_cmp(
     size_t len = strlen(account->account);
     return (len == qp_account->len && strncmp(
             account->account,
-            qp_account->via.raw,
+            (const char *) qp_account->via.raw,
             len) == 0);
 }

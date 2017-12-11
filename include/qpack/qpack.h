@@ -73,12 +73,18 @@ typedef enum
     QP_MAP_CLOSE,       // close map
 } qp_types_t;
 
+//typedef struct qp_raw_s
+//{
+//    size_t len;
+//    unsigned char raw;
+//} qp_raw_t;
+
 typedef union qp_via_u
 {
     int64_t int64;
-    double real;
-    char * raw;
     uint64_t uint64;
+    double real;
+    unsigned char * raw;
 } qp_via_t;
 
 typedef struct qp_obj_s
@@ -90,9 +96,9 @@ typedef struct qp_obj_s
 
 typedef struct qp_unpacker_s
 {
-    char * source; // can be NULL or a copy or the source
-    char * pt;
-    char * end;
+    unsigned char * source; // can be NULL or a copy or the source
+    unsigned char * pt;
+    unsigned char * end;
 } qp_unpacker_t;
 
 typedef struct qp_packer_s
@@ -100,7 +106,7 @@ typedef struct qp_packer_s
     size_t len;
     size_t buffer_size;
     size_t alloc_size;
-    char * buffer;
+    unsigned char * buffer;
 } qp_packer_t;
 
 typedef FILE qp_fpacker_t;
@@ -115,7 +121,7 @@ int qp_packer_extend(qp_packer_t * packer, qp_packer_t * source);
 int qp_packer_extend_fu(qp_packer_t * packer, qp_unpacker_t * unpacker);
 
 /* unpacker: create and destroy functions */
-void qp_unpacker_init(qp_unpacker_t * unpacker, char * pt, size_t len);
+void qp_unpacker_init(qp_unpacker_t * unpacker, unsigned char * pt, size_t len);
 void qp_unpacker_ff_free(qp_unpacker_t * unpacker);
 qp_unpacker_t * qp_unpacker_ff(const char * fn);
 
@@ -125,7 +131,7 @@ qp_types_t qp_current(qp_unpacker_t * unpacker);
 qp_types_t qp_skip_next(qp_unpacker_t * unpacker);
 
 /* print function */
-void qp_print(char * pt, size_t len);
+void qp_print(unsigned char * pt, size_t len);
 
 /* Shortcut to print a packer object */
 #define qp_packer_print(packer) \
@@ -168,11 +174,11 @@ static inline int qp_is_raw_term(qp_obj_t * qp_obj)
 }
 
 /* Add to packer functions */
-int qp_add_raw(qp_packer_t * packer, const char * raw, size_t len);
+int qp_add_raw(qp_packer_t * packer, const unsigned char * raw, size_t len);
 int qp_add_string(qp_packer_t * packer, const char * str);
 int qp_add_string_term(qp_packer_t * packer, const char * str);
 
-int qp_add_raw_term(qp_packer_t * packer, const char * raw, size_t len);
+int qp_add_raw_term(qp_packer_t * packer, const unsigned char * raw, size_t len);
 int qp_add_double(qp_packer_t * packer, double real);
 int qp_add_int8(qp_packer_t * packer, int8_t integer);
 int qp_add_int16(qp_packer_t * packer, int16_t integer);
@@ -187,7 +193,7 @@ int qp_add_fmt_safe(qp_packer_t * packer, const char * fmt, ...);
 
 /* Add to file-packer functions */
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp);
-int qp_fadd_raw(qp_fpacker_t * fpacker, const char * raw, size_t len);
+int qp_fadd_raw(qp_fpacker_t * fpacker, const unsigned char * raw, size_t len);
 int qp_fadd_string(qp_fpacker_t * fpacker, const char * str);
 int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer);
 int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer);
@@ -197,7 +203,7 @@ int qp_fadd_double(qp_fpacker_t * fpacker, double real);
 
 /* creates a valid qpack buffer of length 3 holding an int16 type. */
 #define QP_PACK_INT16(BUF__, N__) \
-char BUF__[3];\
+unsigned char BUF__[3];\
 BUF__[0] = QP_INT16; \
 memcpy(&BUF__[1], &N__, 2);
 

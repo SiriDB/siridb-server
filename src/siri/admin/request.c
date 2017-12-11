@@ -299,12 +299,18 @@ static cproto_server_t ADMIN_on_new_account(
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
     {
-        if (    strncmp(qp_key.via.raw, "account", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "account",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_account) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "password", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "password",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_password) == QP_RAW)
         {
             continue;
@@ -348,12 +354,18 @@ static cproto_server_t ADMIN_on_change_password(
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
     {
-        if (    strncmp(qp_key.via.raw, "account", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "account",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_account) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "password", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "password",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_password) == QP_RAW)
         {
             continue;
@@ -396,7 +408,10 @@ static cproto_server_t ADMIN_on_drop_account(
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
     {
-        if (    strncmp(qp_key.via.raw, "account", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "account",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_target) == QP_RAW)
         {
             continue;
@@ -410,7 +425,10 @@ static cproto_server_t ADMIN_on_drop_account(
     }
 
     if (qp_target.len == qp_account->len &&
-        strncmp(qp_target.via.raw, qp_account->via.raw, qp_target.len) == 0)
+        strncmp(
+            (const char *) qp_target.via.raw,
+            (const char *) qp_account->via.raw,
+            qp_target.len) == 0)
     {
         sprintf(err_msg, "cannot drop your own account");
         return CPROTO_ERR_ADMIN;
@@ -471,27 +489,42 @@ static cproto_server_t ADMIN_on_new_database(
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
     {
-        if (    strncmp(qp_key.via.raw, "dbname", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "dbname",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_dbname) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "time_precision", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "time_precision",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_time_precision) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "buffer_size", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "buffer_size",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_buffer_size) == QP_INT64)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "duration_num", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "duration_num",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_duration_num) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "duration_log", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "duration_log",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_duration_log) == QP_RAW)
         {
             continue;
@@ -581,7 +614,7 @@ static cproto_server_t ADMIN_on_new_database(
 
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
         qp_fadd_int8(fp, SIRIDB_SCHEMA) ||
-        qp_fadd_raw(fp, (const char *) uuid, 16) ||
+        qp_fadd_raw(fp, (const unsigned char *) uuid, 16) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
         qp_fadd_int8(fp, time_precision) ||
         qp_fadd_int64(fp, buffer_size) ||
@@ -673,32 +706,44 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
     {
-        if (    strncmp(qp_key.via.raw, "dbname", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "dbname",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_dbname) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "pool", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw, "pool", qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_pool) == QP_INT64)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "host", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw, "host", qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_host) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "port", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw, "port", qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_port) == QP_INT64)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "username", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "username",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_username) == QP_RAW)
         {
             continue;
         }
-        if (    strncmp(qp_key.via.raw, "password", qp_key.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "password",
+                    qp_key.len) == 0 &&
                 qp_next(qp_unpacker, &qp_password) == QP_RAW)
         {
             continue;
@@ -904,14 +949,14 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
         return -1;
     }
 
-    val = strtol(qp_duration->via.raw, &endptr, 10);
+    val = strtol((const char *) qp_duration->via.raw, &endptr, 10);
 
-    if (val < 1 || val > 99 || endptr == qp_duration->via.raw)
+    if (val < 1 || val > 99 || endptr == (const char *) qp_duration->via.raw)
     {
         return -1;
     }
 
-    if (endptr != qp_duration->via.raw + (qp_duration->len - 1))
+    if (endptr != (const char *) qp_duration->via.raw + (qp_duration->len - 1))
     {
         return -1;
     }
@@ -935,7 +980,10 @@ static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname)
 {
     return (
         strlen(siridb->dbname) == dbname->len &&
-        strncmp(siridb->dbname, dbname->via.raw, dbname->len) == 0);
+        strncmp(
+            siridb->dbname,
+            (const char *) dbname->via.raw,
+            dbname->len) == 0);
 }
 
 static int ADMIN_list_accounts(

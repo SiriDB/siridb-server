@@ -114,8 +114,9 @@ int siridb_users_load(siridb_t * siridb)
         }
         else
         {
-            user->name = strndup(qp_name.via.raw, qp_name.len);
-            user->password = strndup(qp_password.via.raw, qp_password.len);
+            user->name = strndup((char *) qp_name.via.raw, qp_name.len);
+            user->password = strndup(
+                    (char *) qp_password.via.raw, qp_password.len);
 
             if (user->name == NULL || user->password == NULL)
             {

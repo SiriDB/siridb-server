@@ -34,7 +34,7 @@ sirinet_pkg_t * sirinet_pkg_new(
         uint16_t pid,
         uint32_t len,
         uint8_t tp,
-        const char * data)
+        const unsigned char * data)
 {
     sirinet_pkg_t * pkg =
             (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
@@ -117,10 +117,10 @@ sirinet_pkg_t * sirinet_pkg_err(
         uint16_t pid,
         uint32_t len,
         uint8_t tp,
-        const char * data)
+        const char * msg)
 {
 #ifdef DEBUG
-    assert (data != NULL);
+    assert (msg != NULL);
 #endif
 
     sirinet_pkg_t * pkg;
@@ -132,8 +132,8 @@ sirinet_pkg_t * sirinet_pkg_err(
     else
     {
         qp_add_type(packer, QP_MAP_OPEN);
-        qp_add_raw(packer, "error_msg", 9);
-        qp_add_raw(packer, data, len);
+        qp_add_raw(packer, (const unsigned char *) "error_msg", 9);
+        qp_add_raw(packer, (const unsigned char *) msg, len);
         pkg = sirinet_packer2pkg(packer, pid, tp);
     }
     return pkg;

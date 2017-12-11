@@ -29,9 +29,9 @@
 if (map)                                \
 {                                       \
     qp_add_type(packer, QP_MAP2);       \
-    qp_add_raw(packer, "name", 4);      \
-    qp_add_raw(packer, NAME, LEN);      \
-    qp_add_raw(packer, "value", 5);     \
+    qp_add_raw(packer, (const unsigned char *) "name", 4);      \
+    qp_add_raw(packer, (const unsigned char *) NAME, LEN);      \
+    qp_add_raw(packer, (const unsigned char *) "value", 5);     \
 }
 
 static void prop_active_handles(

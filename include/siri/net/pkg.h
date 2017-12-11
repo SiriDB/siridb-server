@@ -21,14 +21,14 @@ typedef struct sirinet_pkg_s
     uint16_t pid;
     uint8_t tp;
     uint8_t checkbit;
-    char data[];
+    unsigned char data[];
 } sirinet_pkg_t;
 
 sirinet_pkg_t * sirinet_pkg_new(
         uint16_t pid,
         uint32_t len,
         uint8_t tp,
-        const char * data);
+        const unsigned char * data);
 qp_packer_t * sirinet_packer_new(size_t alloc_size);
 sirinet_pkg_t * sirinet_packer2pkg(
         qp_packer_t * packer,
@@ -38,7 +38,7 @@ sirinet_pkg_t * sirinet_pkg_err(
         uint16_t pid,
         uint32_t len,
         uint8_t tp,
-        const char * data);
+        const char * msg);
 
 int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg);
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg);

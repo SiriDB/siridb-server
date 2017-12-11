@@ -114,8 +114,8 @@ int siridb_servers_load(siridb_t * siridb)
             qp_next(unpacker, &qp_pool) == QP_INT64)
     {
         server = siridb_server_new(
-                qp_uuid.via.raw,
-                qp_address.via.raw,
+                (const char *) qp_uuid.via.raw,
+                (const char *) qp_address.via.raw,
                 qp_address.len,
                 (uint16_t) qp_port.via.int64,
                 (uint16_t) qp_pool.via.int64);
@@ -782,7 +782,7 @@ static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
 {
     int rc = 0;
     rc += qp_fadd_type(fpacker, QP_ARRAY4);
-    rc += qp_fadd_raw(fpacker, (char *) &server->uuid[0], 16);
+    rc += qp_fadd_raw(fpacker, (unsigned char *) &server->uuid[0], 16);
     rc += qp_fadd_string(fpacker, server->address);
     rc += qp_fadd_int32(fpacker, (int32_t) server->port);
     rc += qp_fadd_int32(fpacker, (int32_t) server->pool);

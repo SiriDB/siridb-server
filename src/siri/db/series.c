@@ -279,7 +279,10 @@ siridb_series_t * siridb_series_new(
     }
     /* add series to the store */
     if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
-        qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
+        qp_fadd_raw(
+                siridb->store,
+                (const unsigned char *) series_name,
+                series->name_len + 1) ||
         qp_fadd_int32(siridb->store, (int32_t) series->id) ||
         qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
         qp_flush(siridb->store))
@@ -1228,7 +1231,10 @@ static siridb_series_t * SERIES_new(
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
 {
     return (qp_fadd_type(fpacker, QP_ARRAY3) ||
-            qp_fadd_raw(fpacker, series->name, series->name_len + 1) ||
+            qp_fadd_raw(
+                    fpacker,
+                    (unsigned char *) series->name,
+                    series->name_len + 1) ||
             qp_fadd_int32(fpacker, (int32_t) series->id) ||
             qp_fadd_int8(fpacker, (int8_t) series->tp));
 }
@@ -1398,7 +1404,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
                     series_id,
                     (uint8_t) qp_series_tp.via.int64,
                     siridb->server->pool,
-                    qp_series_name.via.raw);
+                    (const char *) qp_series_name.via.raw);
             if (series != NULL)
             {
                 /* add series to c-tree */
