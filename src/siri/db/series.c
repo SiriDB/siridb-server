@@ -130,7 +130,7 @@ int siridb_series_add_point(
 {
 #ifdef DEBUG
     assert (!siri_err);
-    assert (series->buffer == NULL);
+    assert (series->buffer != NULL);
 #endif
     int rc = 0;
 
@@ -141,7 +141,7 @@ int siridb_series_add_point(
      */
     siridb_points_add_point(series->buffer, ts, val);
 
-    if (series->buffer->len >= siridb->buffer_len)
+    if (series->buffer->len == siridb->buffer_len)
     {
         if (siridb_shards_add_points(
                 siridb,
@@ -198,7 +198,8 @@ int siridb_series_add_pcache(
                 series,
                 (siridb_points_t *) pcache);
     }
-    else if (pcache->len + series->buffer->len > siridb->buffer_len)
+
+    if (pcache->len + series->buffer->len > siridb->buffer_len)
     {
         series->length += pcache->len;
 
@@ -222,14 +223,12 @@ int siridb_series_add_pcache(
         {
             return -1;  /* signal is raised */
         }
-        else
+
+        series->buffer->len = 0;
+        if (siridb_buffer_write_len(siridb, series))
         {
-            series->buffer->len = 0;
-            if (siridb_buffer_write_len(siridb, series))
-            {
-                ERR_FILE
-                return -1;
-            }
+            ERR_FILE
+            return -1;
         }
     }
     else
@@ -250,6 +249,7 @@ int siridb_series_add_pcache(
             }
         }
     }
+
     return 0;
 }
 

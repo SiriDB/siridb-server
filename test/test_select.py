@@ -61,6 +61,9 @@ DATA = {
     ],
     'log': [
         [1471254705, 'Just a log string!']
+    ],
+    'one': [
+        [1471254710, 1]
     ]
 }
 
@@ -215,6 +218,14 @@ class TestSelect(TestBase):
             await self.client0.query('select pvariance(1471254715) from "pvariance"'),
             {'pvariance': [[1471254715, 1.25]]})
 
+        self.assertEqual(
+            await self.client0.query('select * from "one"'),
+            {'one': [[1471254710, 1]]})
+
+        self.assertEqual(
+            await self.client0.query('select difference() from "one"'),
+            {'one': []})
+
         with self.assertRaisesRegexp(
                 QueryError,
                 'Group by time must be an integer value larger than zero\.'):
@@ -263,7 +274,8 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query(
                 'select min(2h) prefix "min-", max(1h) prefix "max-" '
-                'from /.*/ where type == integer and name != "filter"'
+                'from /.*/ where type == integer and name != "filter" '
+                'and name != "one"'
                 'merge as "int_min_max" using median_low(1) => difference()'),
             {   'max-int_min_max': [
                     [1447254000, 3], [1447257600, -1], [1471255200, -532]],

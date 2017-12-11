@@ -540,7 +540,6 @@ static int8_t INSERT_local_work(
         if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
                 series->buffer != NULL)
         {
-            /* only one point, just insert the point */
             if (siridb_series_add_point(
                     siridb,
                     series,
