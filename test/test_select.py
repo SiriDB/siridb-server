@@ -59,7 +59,6 @@ DATA = {
         [1471254715, -7],
         [1471254720, 7]
     ],
-
     'one': [
         [1471254710, 1]
     ]
@@ -76,14 +75,6 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.insert(DATA),
             {'success_msg': 'Successfully inserted 56 point(s).'})
-
-        # 'log': [
-        #     [1471254705, 'Just a log string!']
-        # ],
-        # self.assertEqual(
-        #     await self.client0.query(
-        #         'select * from "log"'),
-        #     {'log': [[1471254705, 'Just a log string.']]})
 
         self.assertEqual(
             await self.client0.query(
