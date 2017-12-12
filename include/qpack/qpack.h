@@ -73,12 +73,6 @@ typedef enum
     QP_MAP_CLOSE,       // close map
 } qp_types_t;
 
-//typedef struct qp_raw_s
-//{
-//    size_t len;
-//    unsigned char raw;
-//} qp_raw_t;
-
 typedef union qp_via_u
 {
     int64_t int64;
