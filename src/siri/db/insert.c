@@ -1345,8 +1345,7 @@ static int INSERT_read_points(
         switch (qp_next(unpacker, qp_obj))
         {
         case QP_RAW:
-            qp_add_raw_term(packer, qp_obj->via.raw, qp_obj->len);
-
+            return ERR_UNSUPPORTED_VALUE;
             break;
 
         case QP_INT64:
