@@ -31,9 +31,10 @@ typedef struct siridb_point_s
 typedef struct siridb_points_s
 {
     size_t len;
+    size_t sz;
     points_tp tp;
-    char * content;     /* string content */
     siridb_point_t * data;
+    char content[];
 } siridb_points_t;
 
 siridb_points_t * siridb_points_new(size_t size, points_tp tp);

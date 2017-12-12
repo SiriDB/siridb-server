@@ -2,6 +2,7 @@ import unittest
 import time
 import asyncio
 import random
+import collections
 from .siridb import SiriDB
 from .server import Server
 from .client import Client
@@ -97,21 +98,14 @@ class TestBase(unittest.TestCase):
             result = await client.query('select * from "{}"'.format(l[i]))
             points = result[l[i]]
             expected = sorted(d[l[i]])
-            prev = None
             assert len(points) == len(expected), \
                 'incorrect number of points: {}, expected: {}'.format(
                     len(points), len(expected))
+            c = collections.Counter([p[0] for p in points])
             for i, p in enumerate(points):
                 ts, val = p
-                if prev:
-                    assert p[0] >= prev[0], \
-                        'order of time-stamps not correct {} < {}'.format(
-                            ts, prev)
-                    if p[0] == prev[0]:
-                        continue
-                    self.assertEqual(prev, expected[i-1])
-                prev = p
-            self.assertEqual(prev, expected[i])
+                if c[ts] == 1:
+                    self.assertEqual(p, expected[i])
 
     def assertAlmostEqual(self, a, b, *args, **kwargs):
         if isinstance(b, dict):
