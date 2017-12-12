@@ -88,6 +88,9 @@ class TestInsert(TestBase):
             await self.client0.insert([{}])
 
         with self.assertRaises(InsertError):
+            await self.client0.insert({'log': [[1, "1"]]})
+
+        with self.assertRaises(InsertError):
             await self.client0.insert({'no points': []})
 
         with self.assertRaises(InsertError):
