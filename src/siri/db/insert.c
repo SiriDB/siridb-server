@@ -1346,7 +1346,6 @@ static int INSERT_read_points(
         {
         case QP_RAW:
             qp_add_raw_term(packer, qp_obj->via.raw, qp_obj->len);
-
             break;
 
         case QP_INT64:
