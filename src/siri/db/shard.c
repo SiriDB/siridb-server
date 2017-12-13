@@ -34,7 +34,7 @@
 #define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
 /* growing with this block size */
-#define SIRIDB_SHARD_GROW_SZ 131072
+#define SHARD_GROW_SZ 131072
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 20
@@ -522,7 +522,7 @@ long int siridb_shard_write_points(
         dsize = (siridb->time->ts_sz + 8) * len;
     }
 
-    if (shard->len + dsize + 64 > shard->size)
+    if (shard->len > SHARD_GROW_SZ && (shard->len + dsize + 64 > shard->size))
     {
         SHARD_grow(shard);
     }
@@ -1635,8 +1635,7 @@ static int SHARD_grow(siridb_shard_t * shard)
 
     int buffer_fd = fileno(shard->fp->fp);
 
-    shard->size = ((size_t) (shard->size / SIRIDB_SHARD_GROW_SZ) + 2)
-            * SIRIDB_SHARD_GROW_SZ;
+    shard->size = ((size_t) (shard->size / SHARD_GROW_SZ) + 2) * SHARD_GROW_SZ;
 
     if (buffer_fd == -1)
     {
