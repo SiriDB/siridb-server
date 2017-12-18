@@ -462,11 +462,13 @@ static cproto_server_t ADMIN_on_new_database(
     size_t dbpath_len;
     int pcre_exec_ret;
     int rc;
-    struct stat st = {0};
+    struct stat st;
     int8_t time_precision;
     int64_t buffer_size, duration_num, duration_log;
     siridb_t * siridb;
     uuid_t uuid;
+
+    memset(&st, 0, sizeof(struct stat));
 
     if (siri.siridb_list->len == MAX_NUMBER_DB)
     {
@@ -680,9 +682,11 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
     size_t dbpath_len;
     int pcre_exec_ret;
     int rc;
-    struct stat st = {0};
+    struct stat st;
     uint16_t port;
     uuid_t uuid;
+
+    memset(&st, 0, sizeof(struct stat));
 
     if (siri.siridb_list->len == MAX_NUMBER_DB)
     {

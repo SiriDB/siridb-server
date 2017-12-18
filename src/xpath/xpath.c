@@ -38,7 +38,8 @@ int xpath_file_exist(const char * fn)
  */
 int xpath_is_dir(const char * path)
 {
-    struct stat st = {0};
+    struct stat st;
+    memset(&st, 0, sizeof(struct stat));
     stat(path, &st);
     return S_ISDIR(st.st_mode);
 }

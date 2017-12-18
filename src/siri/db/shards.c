@@ -42,10 +42,12 @@ static bool is_temp_fn(const char * fn);
  */
 int siridb_shards_load(siridb_t * siridb)
 {
-    struct stat st = {0};
+    struct stat st;
     struct dirent ** shard_list;
     char buffer[PATH_MAX];
     int n, total, rc = 0;
+
+    memset(&st, 0, sizeof(struct stat));
 
     log_info("Loading shards");
 

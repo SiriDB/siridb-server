@@ -37,8 +37,10 @@ const char * siri_help_get(
          * path must be initialized for xpath_get_exec_path to handle this variable
          * correctly.
          */
-        char path[PATH_MAX] = {0};
+        char path[PATH_MAX];
         char fn[PATH_MAX];
+
+        memset(&path, 0, sizeof(path));
 
         if (xpath_get_exec_path(path))
         {
