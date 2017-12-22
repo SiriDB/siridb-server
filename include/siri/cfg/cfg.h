@@ -22,7 +22,7 @@ typedef struct siri_cfg_s
     uint8_t ip_support;
     uint8_t shard_compression;
     char server_address[SIRI_CFG_MAX_LEN_ADDRESS];
-    char default_db_path[PATH_MAX];
+    char default_db_path[SIRI_PATH_MAX];
 } siri_cfg_t;
 
 void siri_cfg_init(siri_t * siri);

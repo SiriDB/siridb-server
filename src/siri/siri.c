@@ -248,7 +248,7 @@ static int SIRI_load_databases(void)
 {
     DIR * db_container_path;
     struct dirent * dbpath;
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
 
     if (!xpath_is_dir(siri.cfg->default_db_path))
     {
@@ -280,7 +280,7 @@ static int SIRI_load_databases(void)
         }
 
         snprintf(buffer,
-                PATH_MAX,
+                SIRI_PATH_MAX,
                 "%s%s/",
                 siri.cfg->default_db_path,
                 dbpath->d_name);
