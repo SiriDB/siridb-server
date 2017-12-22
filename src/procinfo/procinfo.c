@@ -30,6 +30,8 @@
 #include <mach/mach_init.h>
 #include <mach/task_info.h>
 #include <libproc.h>
+#else
+#include <xpath/xpath.h>
 #endif
 
 

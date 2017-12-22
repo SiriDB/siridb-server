@@ -12,6 +12,11 @@
 #pragma once
 
 #include <stdio.h>
+#include <limits.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 int xpath_file_exist(const char * fn);
 int xpath_is_dir(const char * path);

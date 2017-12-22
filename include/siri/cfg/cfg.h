@@ -3,6 +3,8 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <siri/siri.h>
+#include <xpath/xpath.h>
+
 
 typedef struct siri_s siri_t;
 
