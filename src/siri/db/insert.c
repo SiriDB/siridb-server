@@ -415,11 +415,11 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
 
             if (tp == CPROTO_ERR_INSERT)
             {
-                qp_add_raw(packer, "error_msg", 9);
+                qp_add_raw(packer, (const unsigned char *) "error_msg", 9);
             }
             else
             {
-                qp_add_raw(packer, "success_msg", 11);
+                qp_add_raw(packer, (const unsigned char *) "success_msg", 11);
                 n = snprintf(msg,
                         MAX_INSERT_MSG,
                         "Successfully inserted %zd point(s).",
@@ -428,7 +428,10 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                 siridb->received_points += insert->npoints;
             }
 
-            qp_add_raw(packer, msg, (n < MAX_INSERT_MSG) ? n : MAX_INSERT_MSG);
+            qp_add_raw(
+                    packer,
+                    (const unsigned char *) msg,
+                    (n < MAX_INSERT_MSG) ? n : MAX_INSERT_MSG);
 
             sirinet_pkg_t * response_pkg = sirinet_packer2pkg(
                     packer,
@@ -509,7 +512,7 @@ static int8_t INSERT_local_work(
     {
         series = (siridb_series_t *) ct_get(
             siridb->series,
-            qp_series_name->via.raw);
+            (const char *) qp_series_name->via.raw);
 
         qp_next(unpacker, NULL); // array open
         qp_next(unpacker, NULL); // first point array2
@@ -520,7 +523,7 @@ static int8_t INSERT_local_work(
         {
             series = siridb_series_new(
                     siridb,
-                    qp_series_name->via.raw,
+                    (const char *) qp_series_name->via.raw,
                     SIRIDB_QP_MAP2_TP(qp_series_val.tp));
 
             if (series == NULL)
@@ -537,16 +540,19 @@ static int8_t INSERT_local_work(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
-        if (siridb_series_add_point(
-                siridb,
-                series,
-                ts,
-                &qp_series_val.via))
+        if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
+                series->buffer != NULL)
         {
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    ts,
+                    &qp_series_val.via))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
         }
-
-        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        else
         {
             if (*pcache == NULL)
             {
@@ -562,7 +568,10 @@ static int8_t INSERT_local_work(
                 (*pcache)->len = 0;
             }
 
-            do
+            /* this point will always fit */
+            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+
+            if (tp == QP_ARRAY2) do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
@@ -616,7 +625,7 @@ static int INSERT_local_work_test(
     uint16_t pool;
     uint64_t * ts;
     const char * series_name;
-    char * pt;
+    unsigned char * pt;
     qp_obj_t qp_series_ts;
     qp_obj_t qp_series_val;
     int n = INSERT_AT_ONCE;
@@ -630,7 +639,7 @@ static int INSERT_local_work_test(
             qp_is_raw_term(qp_series_name) &&
             (n -= WEIGHT_SERIES) > 0)
     {
-        series_name = qp_series_name->via.raw;
+        series_name = (char *) qp_series_name->via.raw;
         series = (siridb_series_t *) ct_get(siridb->series, series_name);
         if (series == NULL)
         {
@@ -686,7 +695,7 @@ static int INSERT_local_work_test(
                 /* testing is not needed since we check for siri_err later */
                 qp_add_raw(
                         (*forward)->packer[pool],
-                        series_name,
+                        (const unsigned char *) series_name,
                         qp_series_name->len);
                 qp_packer_extend_fu((*forward)->packer[pool], unpacker);
                 qp_next(unpacker, qp_series_name);
@@ -712,16 +721,19 @@ static int INSERT_local_work_test(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
-        if (siridb_series_add_point(
-                siridb,
-                series,
-                ts,
-                &qp_series_val.via))
+        if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
+                series->buffer != NULL)
         {
-            return INSERT_LOCAL_ERROR;  /* signal is raised */
+            if (siridb_series_add_point(
+                    siridb,
+                    series,
+                    ts,
+                    &qp_series_val.via))
+            {
+                return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
         }
-
-        if ((tp = qp_next(unpacker, qp_series_name)) == QP_ARRAY2)
+        else
         {
             if (*pcache == NULL)
             {
@@ -737,7 +749,9 @@ static int INSERT_local_work_test(
                 (*pcache)->len = 0;
             }
 
-            do
+            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+
+            if (tp == QP_ARRAY2) do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
@@ -1097,14 +1111,14 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
         /* when not re-indexing, select the correct pool */
         pool = siridb_lookup_sn_raw(
                 siridb->pools->lookup,
-                qp_series_name->via.raw,
+                (const char *) qp_series_name->via.raw,
                 qp_series_name->len);
     }
     else
     {
         if (ct_getn(
                 siridb->series,
-                qp_series_name->via.raw,
+                (const char *) qp_series_name->via.raw,
                 qp_series_name->len) != NULL)
         {
             /*
@@ -1127,14 +1141,14 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
 #endif
             pool = siridb_lookup_sn_raw(
                     siridb->pools->prev_lookup,
-                    qp_series_name->via.raw,
+                    (const char *) qp_series_name->via.raw,
                     qp_series_name->len);
 
             if (pool == siridb->server->pool)
             {
                 pool = siridb_lookup_sn_raw(
                         siridb->pools->lookup,
-                        qp_series_name->via.raw,
+                        (const char *) qp_series_name->via.raw,
                         qp_series_name->len);
             }
         }
@@ -1216,7 +1230,7 @@ static ssize_t INSERT_assign_by_array(
             return ERR_EXPECTING_NAME_AND_POINTS;
         }
 
-        if (strncmp(qp_obj.via.raw, "points", qp_obj.len) == 0)
+        if (strncmp((const char *) qp_obj.via.raw, "points", qp_obj.len) == 0)
         {
             if ((tp = INSERT_read_points(
                     siridb,
@@ -1229,7 +1243,7 @@ static ssize_t INSERT_assign_by_array(
             }
         }
 
-        if (strncmp(qp_obj.via.raw, "name", qp_obj.len) == 0)
+        if (strncmp((const char *) qp_obj.via.raw, "name", qp_obj.len) == 0)
         {
             if (    qp_next(unpacker, &qp_obj) != QP_RAW ||
                     !qp_obj.len ||
@@ -1258,7 +1272,8 @@ static ssize_t INSERT_assign_by_array(
         else
         {
             if (qp_next(unpacker, &qp_obj) != QP_RAW ||
-                    strncmp(qp_obj.via.raw, "points", qp_obj.len))
+                    strncmp(
+                        (const char *) qp_obj.via.raw, "points", qp_obj.len))
             {
                 return ERR_EXPECTING_NAME_AND_POINTS;
             }
@@ -1331,9 +1346,7 @@ static int INSERT_read_points(
         {
         case QP_RAW:
             return ERR_UNSUPPORTED_VALUE;
-//            TODO: Add support for strings
-//            qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
-//            break;
+            break;
 
         case QP_INT64:
             qp_add_int64(packer, qp_obj->via.int64);

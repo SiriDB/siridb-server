@@ -26,6 +26,7 @@
 #define SIRIDB_SHARD_IS_REMOVED 16
 #define SIRIDB_SHARD_IS_LOADING 32
 #define SIRIDB_SHARD_IS_CORRUPT 64
+#define SIRIDB_SHARD_IS_COMPRESSED 128
 
 // HAS_OVERLAP + HAS_NEW_VALUES + HAS_DROPPED_SERIES + IS_CORRUPT
 #define SIRIDB_SHARD_NEED_OPTIMIZE 78
@@ -59,6 +60,7 @@ typedef struct siridb_shard_s
     uint8_t flags;
     uint16_t max_chunk_sz;
     uint64_t id;
+    size_t len;
     size_t size;
     siri_fp_t * fp;
     char * fn;
@@ -93,7 +95,8 @@ long int siridb_shard_write_points(
         siridb_points_t * points,
         uint_fast32_t start,
         uint_fast32_t end,
-        FILE * idx_fp);
+        FILE * idx_fp,
+        uint16_t * cinfo);
 
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
@@ -129,6 +132,14 @@ int siridb_shard_get_points_log64(
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
+
+int siridb_shard_get_points_num_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap);
+
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);

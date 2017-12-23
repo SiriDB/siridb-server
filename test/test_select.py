@@ -58,6 +58,9 @@ DATA = {
         [1471254710, -3],
         [1471254715, -7],
         [1471254720, 7]
+    ],
+    'one': [
+        [1471254710, 1]
     ]
 }
 
@@ -65,13 +68,13 @@ DATA = {
 class TestSelect(TestBase):
     title = 'Test select and aggregate functions'
 
-    @default_test_setup(1)
+    @default_test_setup(1, compression=False)
     async def run(self):
         await self.client0.connect()
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 55 point(s).'})
+            {'success_msg': 'Successfully inserted 56 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -118,11 +121,9 @@ class TestSelect(TestBase):
             await self.client0.query('select sum(1h) from "aggr"'),
             {'aggr': [[1447250400, 2663], [1447254000, 5409], [1447257600, 1602]]})
 
-
         self.assertEqual(
             await self.client0.query('select count(1h) from "aggr"'),
             {'aggr': [[1447250400, 5], [1447254000, 12], [1447257600, 3]]})
-
 
         self.assertEqual(
             await self.client0.query('select mean(1h) from "aggr"'),
@@ -209,6 +210,14 @@ class TestSelect(TestBase):
             await self.client0.query('select pvariance(1471254715) from "pvariance"'),
             {'pvariance': [[1471254715, 1.25]]})
 
+        self.assertEqual(
+            await self.client0.query('select * from "one"'),
+            {'one': [[1471254710, 1]]})
+
+        self.assertEqual(
+            await self.client0.query('select difference() from "one"'),
+            {'one': []})
+
         with self.assertRaisesRegexp(
                 QueryError,
                 'Group by time must be an integer value larger than zero\.'):
@@ -257,7 +266,8 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query(
                 'select min(2h) prefix "min-", max(1h) prefix "max-" '
-                'from /.*/ where type == integer and name != "filter"'
+                'from /.*/ where type == integer and name != "filter" '
+                'and name != "one"'
                 'merge as "int_min_max" using median_low(1) => difference()'),
             {   'max-int_min_max': [
                     [1447254000, 3], [1447257600, -1], [1471255200, -532]],
@@ -286,7 +296,7 @@ class TestSelect(TestBase):
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'

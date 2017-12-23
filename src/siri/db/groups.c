@@ -520,8 +520,8 @@ static int GROUPS_load(siridb_groups_t * groups)
         {
             rc = siridb_groups_add_group(
                     groups,
-                    qp_name.via.raw,
-                    qp_source.via.raw,
+                    (const char *) qp_name.via.raw,
+                    (const char *) qp_source.via.raw,
                     qp_source.len,
                     err_msg);
         }
@@ -539,7 +539,10 @@ static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker)
     int rc = 0;
 
     rc += qp_fadd_type(fpacker, QP_ARRAY2);
-    rc += qp_fadd_raw(fpacker, group->name, strlen(group->name) + 1);
+    rc += qp_fadd_raw(
+            fpacker,
+            (const unsigned char *) group->name,
+            strlen(group->name) + 1);
     rc += qp_fadd_string(fpacker, group->source);
 
     return rc;

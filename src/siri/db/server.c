@@ -262,7 +262,7 @@ int siridb_server_send_pkg(
  */
 siridb_server_t * siridb_server_register(
         siridb_t * siridb,
-        char * data,
+        unsigned char * data,
         size_t len)
 {
     siridb_server_t * server = NULL;
@@ -281,8 +281,8 @@ siridb_server_t * siridb_server_register(
         qp_next(&unpacker, &qp_pool) == QP_INT64)
     {
         server = siridb_server_new(
-                qp_uuid.via.raw,
-                qp_address.via.raw,
+                (const char *) qp_uuid.via.raw,
+                (const char *) qp_address.via.raw,
                 qp_address.len,
                 qp_port.via.int64,
                 qp_pool.via.int64);
@@ -701,7 +701,8 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
         else
         {
             if (qp_add_type(packer, QP_ARRAY_OPEN) ||
-                qp_add_raw(packer, (const char *) ssocket->siridb->server->uuid, 16) ||
+                qp_add_raw(packer, (const unsigned char *)
+                        ssocket->siridb->server->uuid, 16) ||
                 qp_add_string_term(packer, ssocket->siridb->dbname) ||
                 qp_add_int16(packer, ssocket->siridb->server->flags) ||
                 qp_add_string_term(packer, SIRIDB_VERSION) ||

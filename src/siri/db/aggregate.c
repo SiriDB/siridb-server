@@ -529,13 +529,14 @@ static int AGGREGATE_init_filter(
 
     case CLERI_GID_STRING:
         aggr->filter_tp = TP_STRING;
-        aggr->filter_via.raw = (char *) malloc(node->len - 1);
+        aggr->filter_via.raw = (unsigned char *) malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
             sprintf(err_msg, "Memory allocation error.");
             return -1;
         }
-        strx_extract_string(aggr->filter_via.raw, node->str, node->len);
+        strx_extract_string(
+                (char *) aggr->filter_via.raw, node->str, node->len);
         return 0;
 
     default:
@@ -759,8 +760,8 @@ static siridb_points_t * AGGREGATE_filter(
             {
                 if (cexpr_str_cmp(
                         aggr->filter_opr,
-                        spt->val.raw,
-                        value.raw))
+                        (const char *) spt->val.raw,
+                        (const char *) value.raw))
                 {
                     dpt->ts = spt->ts;
                     dpt->val = spt->val;

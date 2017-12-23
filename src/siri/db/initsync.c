@@ -396,7 +396,10 @@ static void INITSYNC_work(uv_timer_t * timer)
                 qp_add_type(packer, QP_MAP1);
 
                 /* add name including string terminator */
-                qp_add_raw(packer, series->name, series->name_len + 1);
+                qp_add_raw(
+                        packer,
+                        (const unsigned char *) series->name,
+                        series->name_len + 1);
 
                 if (siridb_points_pack(points, packer) == 0)
                 {

@@ -32,8 +32,11 @@ class Server:
     def __init__(self,
                  n,
                  optimize_interval=30,
-                 heartbeat_interval=30):
+                 heartbeat_interval=30,
+                 compression=True,
+                 **unused):
         self.n = n
+        self.compression = compression
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
         self._server_address = self.SERVER_ADDRESS
@@ -70,6 +73,7 @@ class Server:
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
         config.set('siridb', 'default_db_path', self.dbpath)
         config.set('siridb', 'max_open_files', MAX_OPEN_FILES)
+        config.set('siridb', 'enable_shard_compression', int(self.compression))
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
@@ -81,7 +85,9 @@ class Server:
 
     def _get_pid_set(self):
         try:
-            ret = set(map(int, subprocess.check_output(['pgrep', MEM_PROC if self.MEM_CHECK else 'siridb-server']).split()))
+            ret = set(map(int, subprocess.check_output([
+                'pgrep',
+                MEM_PROC if self.MEM_CHECK else 'siridb-server']).split()))
         except subprocess.CalledProcessError:
             ret = set()
         return ret
@@ -91,7 +97,8 @@ class Server:
 
         if self.USE_XFCE4:
             rc = subprocess.Popen(
-                'xfce4-terminal -e "{}{} --config {} --log-colorized" --title {} --geometry={}{}'
+                'xfce4-terminal -e "{}{} --config {} --log-colorized"'
+                ' --title {} --geometry={}{}'
                 .format(VALGRIND if self.MEM_CHECK else '',
                         SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
                         self.cfgfile,

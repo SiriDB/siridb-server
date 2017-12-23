@@ -325,7 +325,8 @@ static int FIFO_walk_free(
  */
 static int FIFO_init(siridb_fifo_t * fifo)
 {
-    struct stat st = {0};
+    struct stat st;
+    memset(&st, 0, sizeof(struct stat));
 
     siridb_ffile_t * ffile;
 

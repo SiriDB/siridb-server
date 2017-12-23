@@ -510,7 +510,7 @@ static void REINDEX_work(uv_timer_t * timer)
                 /* add series name including terminator char */
                 qp_add_raw(
                         packer,
-                        reindex->series->name,
+                        (const unsigned char *) reindex->series->name,
                         reindex->series->name_len + 1);
 
                 if (siridb_points_pack(points, packer) == 0)
@@ -556,7 +556,10 @@ static void REINDEX_commit_series(siridb_t * siridb)
         if (packer != NULL)
         {
             /* no need for testing, fits for sure */
-            qp_add_raw(packer, siridb->reindex->series->name, len);
+            qp_add_raw(
+                    packer,
+                    (const unsigned char *) siridb->reindex->series->name,
+                    len);
             sirinet_pkg_t * pkg = sirinet_packer2pkg(
                     packer,
                     0,

@@ -173,7 +173,7 @@ int siridb_server_cexpr_cb(
         cexpr_condition_t * cond);
 siridb_server_t * siridb_server_register(
         siridb_t * siridb,
-        char * data,
+        unsigned char * data,
         size_t len);
 void siridb__server_free(siridb_server_t * server);
 

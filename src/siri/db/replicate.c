@@ -270,7 +270,7 @@ static void REPLICATE_work(uv_timer_t * handle)
  */
 sirinet_pkg_t * siridb_replicate_pkg_filter(
         siridb_t * siridb,
-        char * data,
+        unsigned char * data,
         size_t len,
         int flags)
 {
@@ -295,7 +295,7 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
     {
         series = (siridb_series_t *) ct_get(
                 siridb->series,
-                qp_series_name.via.raw);
+                (const char *) qp_series_name.via.raw);
         if (series == NULL || (~series->flags & SIRIDB_SERIES_INIT_REPL))
         {
             /* raw is terminated so len is included a terminator char */

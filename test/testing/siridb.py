@@ -8,6 +8,7 @@ from .constants import TOOL
 
 VERBOSE = ' --verbose'
 
+
 class SiriDB:
 
     LOG_LEVEL = 'CRITICAL'
@@ -18,7 +19,8 @@ class SiriDB:
                  buffer_path='',
                  duration_log='1d',
                  duration_num='1w',
-                 buffer_size=1024):
+                 buffer_size=1024,
+                 **unused):
         self.dbname = dbname
         self.time_precision = time_precision
         self.buffer_path = buffer_path
@@ -46,9 +48,8 @@ class SiriDB:
                     manage=MANAGE,
                     log_level=self.LOG_LEVEL.lower(),
                     cfgfile=server.cfgfile,
-                    bufpath=
-                        '' if not self.buffer_path
-                        else '--buffer-path {}'.format(self.buffer_path),
+                    bufpath='' if not self.buffer_path
+                            else '--buffer-path {}'.format(self.buffer_path),
                     **vars(self)))
         elif TOOL == 'ADMIN':
             rc = os.system(
@@ -110,9 +111,8 @@ class SiriDB:
                     user=username,
                     password=password,
                     pool=pool,
-                    bufpath=
-                        '' if not self.buffer_path
-                        else '--buffer-path {}'.format(self.buffer_path),
+                    bufpath='' if not self.buffer_path
+                            else '--buffer-path {}'.format(self.buffer_path),
                     **vars(self),
                     remote_address=remote_server.server_address,
                     remote_port=remote_server.listen_client_port))
@@ -177,9 +177,8 @@ class SiriDB:
                     cfgfile=server.cfgfile,
                     user=username,
                     password=password,
-                    bufpath=
-                        '' if not self.buffer_path
-                        else '--buffer-path {}'.format(self.buffer_path),
+                    bufpath='' if not self.buffer_path
+                            else '--buffer-path {}'.format(self.buffer_path),
                     **vars(self),
                     remote_address=remote_server.server_address,
                     remote_port=remote_server.listen_client_port))

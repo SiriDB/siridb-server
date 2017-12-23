@@ -43,14 +43,13 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-#define SERIES_GET_POINTS_CB(get_points_cb, series)       \
-    siridb_shard_get_points_cb get_points_cb =          \
-        (series->flags & SIRIDB_SERIES_IS_32BIT_TS) ?    \
-            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
-                    siridb_shard_get_points_log32 :        \
-                    siridb_shard_get_points_num32 :        \
-            (series->flags & SIRIDB_SERIES_IS_LOG) ?    \
-                    siridb_shard_get_points_log64 :        \
+#define SERIES_GET_POINTS_CB(get_points_cb__, series__)                 \
+    get_points_cb__ = (series__->flags & SIRIDB_SERIES_IS_32BIT_TS) ?   \
+            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
+                    siridb_shard_get_points_log32 :                     \
+                    siridb_shard_get_points_num32 :                     \
+            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
+                    siridb_shard_get_points_log64 :                     \
                     siridb_shard_get_points_num64;
 
 static int SERIES_save(siridb_t * siridb);
@@ -81,7 +80,8 @@ const char series_type_map[3][8] = {
         "string"
 };
 
-const uint8_t SERIES_SFC = SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
+const uint8_t SERIES_SFC =
+        SIRIDB_SHARD_HAS_NEW_VALUES | SIRIDB_SHARD_IS_LOADING;
 
 /*
  * Call-back used to compare series properties.
@@ -130,47 +130,46 @@ int siridb_series_add_point(
 {
 #ifdef DEBUG
     assert (!siri_err);
+    assert (series->buffer != NULL);
 #endif
     int rc = 0;
 
     series->length++;
 
-    if (series->buffer != NULL)
-    {
-        /* add point in memory
-         * (memory can hold 1 more point than we can hold on disk)
-         */
-        siridb_points_add_point(series->buffer, ts, val);
+    /* add point in memory
+     * (memory can hold 1 more point than we can hold on disk)
+     */
+    siridb_points_add_point(series->buffer, ts, val);
 
-        if (series->buffer->len == siridb->buffer_len)
+    if (series->buffer->len == siridb->buffer_len)
+    {
+        if (siridb_shards_add_points(
+                siridb,
+                series,
+                series->buffer))
         {
-            if (siridb_shards_add_points(
-                    siridb,
-                    series,
-                    series->buffer))
-            {
-                rc = -1;  /* signal is raised */
-            }
-            else
-            {
-                series->buffer->len = 0;
-                if (siridb_buffer_write_len(siridb, series))
-                {
-                    ERR_FILE
-                    rc = -1;
-                }
-            }
+            rc = -1;  /* signal is raised */
         }
         else
         {
-            if (siridb_buffer_write_point(siridb, series, ts, val))
+            series->buffer->len = 0;
+            if (siridb_buffer_write_len(siridb, series))
             {
                 ERR_FILE
-                log_critical("Cannot write new point to buffer");
                 rc = -1;
             }
         }
     }
+    else
+    {
+        if (siridb_buffer_write_point(siridb, series, ts, val))
+        {
+            ERR_FILE
+            log_critical("Cannot write new point to buffer");
+            rc = -1;
+        }
+    }
+
     return rc;
 }
 
@@ -190,19 +189,17 @@ int siridb_series_add_pcache(
         siridb_series_t *__restrict series,
         siridb_pcache_t *__restrict pcache)
 {
-    if (pcache->len > siridb->buffer_len)
+    if (pcache->len > siridb->buffer_len || series->buffer == NULL)
     {
         series->length += pcache->len;
 
-        if (siridb_shards_add_points(
+        return siridb_shards_add_points(
                 siridb,
                 series,
-                (siridb_points_t *) pcache))
-        {
-            return -1;  /* signal is raised */
-        }
+                (siridb_points_t *) pcache);
     }
-    else if (pcache->len + series->buffer->len > siridb->buffer_len)
+
+    if (pcache->len + series->buffer->len > siridb->buffer_len)
     {
         series->length += pcache->len;
 
@@ -226,14 +223,12 @@ int siridb_series_add_pcache(
         {
             return -1;  /* signal is raised */
         }
-        else
+
+        series->buffer->len = 0;
+        if (siridb_buffer_write_len(siridb, series))
         {
-            series->buffer->len = 0;
-            if (siridb_buffer_write_len(siridb, series))
-            {
-                ERR_FILE
-                return -1;
-            }
+            ERR_FILE
+            return -1;
         }
     }
     else
@@ -254,6 +249,7 @@ int siridb_series_add_pcache(
             }
         }
     }
+
     return 0;
 }
 
@@ -267,10 +263,6 @@ siridb_series_t * siridb_series_new(
         const char * series_name,
         uint8_t tp)
 {
-#ifdef DEBUG
-    /* TODO: support string */
-    assert (tp != TP_STRING);
-#endif
     siridb_series_t * series;
 
     siridb->max_series_id++;
@@ -287,7 +279,10 @@ siridb_series_t * siridb_series_new(
     }
     /* add series to the store */
     if (qp_fadd_type(siridb->store, QP_ARRAY3) ||
-        qp_fadd_raw(siridb->store, series_name, series->name_len + 1) ||
+        qp_fadd_raw(
+                siridb->store,
+                (const unsigned char *) series_name,
+                series->name_len + 1) ||
         qp_fadd_int32(siridb->store, (int32_t) series->id) ||
         qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
         qp_flush(siridb->store))
@@ -426,7 +421,8 @@ int siridb_series_add_idx(
         uint64_t start_ts,
         uint64_t end_ts,
         uint32_t pos,
-        uint16_t len)
+        uint16_t len,
+        uint16_t cinfo)
 {
     idx_t * idx;
     uint32_t i = series->idx_len;
@@ -462,6 +458,7 @@ int siridb_series_add_idx(
     idx->len = len;
     idx->shard = shard;
     idx->pos = pos;
+    idx->cinfo = cinfo;
 
     /* We do not have to save an overlap since it will be detected again when
      * reading the shard at startup.
@@ -706,6 +703,7 @@ siridb_points_t * siridb_series_get_points(
     size_t len, size;
     uint32_t i;
     uint32_t indexes[series->idx_len];
+    siridb_shard_get_points_cb get_points_cb;
     len = i = size = 0;
 
     for (   idx = series->idx;
@@ -721,7 +719,7 @@ siridb_points_t * siridb_series_get_points(
         }
     }
 
-    size += series->buffer->len;
+    size += (series->buffer == NULL) ? 0 : series->buffer->len;
     points = siridb_points_new(size, series->tp);
 
     if (points == NULL)
@@ -733,39 +731,55 @@ siridb_points_t * siridb_series_get_points(
 
     for (i = 0; i < len; i++)
     {
-        get_points_cb(
-                points,
-                series->idx + indexes[i],
-                start_ts,
-                end_ts,
-                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        idx = series->idx + indexes[i];
+        if (idx->shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+        {
+            siridb_shard_get_points_num_compressed(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
+        else
+        {
+            get_points_cb(
+                    points,
+                    idx,
+                    start_ts,
+                    end_ts,
+                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        }
         /* errors can be ignored here */
     }
 
-    /* create pointer to buffer and get current length */
-    point = series->buffer->data;
-    len = series->buffer->len;
-
-    /* crop start buffer if needed */
-    if (start_ts != NULL)
+    if (series->buffer != NULL)
     {
-        for (; len && point->ts < *start_ts; point++, len--);
-    }
+        /* create pointer to buffer and get current length */
+        point = series->buffer->data;
+        len = series->buffer->len;
 
-    /* crop end buffer if needed */
-    if (end_ts != NULL && len)
-    {
-        siridb_point_t *__restrict p;
+        /* crop start buffer if needed */
+        if (start_ts != NULL)
+        {
+            for (; len && point->ts < *start_ts; point++, len--);
+        }
 
-        for (   p = point + len - 1;
-                len && p->ts >= *end_ts;
-                p--, len--);
-    }
+        /* crop end buffer if needed */
+        if (end_ts != NULL && len)
+        {
+            siridb_point_t *__restrict p;
 
-    /* add buffer points */
-    for (; len; point++, len--)
-    {
-        siridb_points_add_point(points, &point->ts, &point->val);
+            for (   p = point + len - 1;
+                    len && p->ts >= *end_ts;
+                    p--, len--);
+        }
+
+        /* add buffer points */
+        for (; len; point++, len--)
+        {
+            siridb_points_add_point(points, &point->ts, &point->val);
+        }
     }
 
     if (points->len < size)
@@ -843,7 +857,9 @@ int siridb_series_optimize_shard(
     uint64_t max_ts;
     size_t size;
     siridb_points_t *__restrict points;
+    siridb_shard_get_points_cb get_points_cb;
     int rc;
+    uint16_t cinfo = 0;
 
     max_ts = (shard->id + siridb->duration_num) - series->mask;
 
@@ -889,7 +905,14 @@ int siridb_series_optimize_shard(
     uint16_t chunk_sz;
     uint_fast32_t num_chunks, pstart, pend, diff;
 
-    SERIES_GET_POINTS_CB(get_points_cb, series)
+    if (shard->replacing->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    {
+        get_points_cb = siridb_shard_get_points_num_compressed;
+    }
+    else
+    {
+        SERIES_GET_POINTS_CB(get_points_cb, series)
+    }
 
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
@@ -924,7 +947,6 @@ int siridb_series_optimize_shard(
         {
             pend = size;
         }
-
         if ((pos = siridb_shard_write_points(
                 siridb,
                 series,
@@ -932,7 +954,8 @@ int siridb_series_optimize_shard(
                 points,
                 pstart,
                 pend,
-                siri.optimize->idx_fp)) == EOF)
+                siri.optimize->idx_fp,
+                &cinfo)) == EOF)
         {
             log_critical(
                     "Cannot write points to shard id '%" PRIu64 "'",
@@ -962,6 +985,7 @@ int siridb_series_optimize_shard(
             idx->end_ts = points->data[pend - 1].ts;
             idx->len = pend - pstart;
             idx->pos = pos;
+            idx->cinfo = cinfo;
             siridb_shard_incref(shard);
         }
     }
@@ -1207,7 +1231,10 @@ static siridb_series_t * SERIES_new(
 static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
 {
     return (qp_fadd_type(fpacker, QP_ARRAY3) ||
-            qp_fadd_raw(fpacker, series->name, series->name_len + 1) ||
+            qp_fadd_raw(
+                    fpacker,
+                    (unsigned char *) series->name,
+                    series->name_len + 1) ||
             qp_fadd_int32(fpacker, (int32_t) series->id) ||
             qp_fadd_int8(fpacker, (int8_t) series->tp));
 }
@@ -1377,7 +1404,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
                     series_id,
                     (uint8_t) qp_series_tp.via.int64,
                     siridb->server->pool,
-                    qp_series_name.via.raw);
+                    (const char *) qp_series_name.via.raw);
             if (series != NULL)
             {
                 /* add series to c-tree */

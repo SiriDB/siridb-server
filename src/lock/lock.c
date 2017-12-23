@@ -45,10 +45,13 @@ lock_t lock_lock(const char * path, int flags)
     char * lock_fn;
     char * proc_name = NULL;
     char * pproc_name = NULL;
-    char strpid[10] = {0};
+    char strpid[10];
     int is_locked;
     FILE * fp;
     lock_t lock_rc;
+
+    /* initialize strpid to zero */
+    memset(&strpid, 0, sizeof(strpid));
 
     if (asprintf(&lock_fn, "%s%s", path, ".lock") < 0)
     {

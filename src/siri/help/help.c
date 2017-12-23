@@ -37,8 +37,10 @@ const char * siri_help_get(
          * path must be initialized for xpath_get_exec_path to handle this variable
          * correctly.
          */
-        char path[PATH_MAX] = {0};
-        char fn[PATH_MAX];
+        char path[SIRI_PATH_MAX];
+        char fn[SIRI_PATH_MAX];
+
+        memset(&path, 0, sizeof(path));
 
         if (xpath_get_exec_path(path))
         {
@@ -48,11 +50,16 @@ const char * siri_help_get(
         {
             if (help_name[0] == '?')
             {
-                snprintf(fn, PATH_MAX, "%shelp/help%s.md", path, help_name + 1);
+                snprintf(
+                        fn,
+                        SIRI_PATH_MAX,
+                        "%shelp/help%s.md",
+                        path,
+                        help_name + 1);
             }
             else
             {
-                snprintf(fn, PATH_MAX, "%shelp/%s.md", path, help_name);
+                snprintf(fn, SIRI_PATH_MAX, "%shelp/%s.md", path, help_name);
             }
 
             log_debug("Reading help file: '%s'", fn);

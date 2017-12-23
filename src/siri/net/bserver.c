@@ -335,16 +335,17 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
             siridb_server_update_address(
                     siridb,
                     server,
-                    qp_address.via.raw,
+                    (const char *) qp_address.via.raw,
                     (uint16_t) qp_port.via.int64);
 
             /* update other server properties */
             free(server->dbpath);
-            server->dbpath = strdup(qp_dbpath.via.raw);
+            server->dbpath = strdup((const char *) qp_dbpath.via.raw);
             free(server->buffer_path);
-            server->buffer_path = strdup(qp_buffer_path.via.raw);
+            server->buffer_path =
+                    strdup((const char *) qp_buffer_path.via.raw);
             free(server->libuv);
-            server->libuv = strdup(qp_libuv.via.raw);
+            server->libuv = strdup((const char *) qp_libuv.via.raw);
             server->buffer_size = (size_t) qp_buffer_size.via.int64;
             server->startup_time = (uint32_t) qp_startup_time.via.int64;
             server->ip_support = (uint8_t) qp_ip_support.via.int64;
@@ -482,7 +483,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
         siridb_query_run(
                 pkg->pid,
                 client,
-                qp_query.via.raw,
+                (const char *) qp_query.via.raw,
                 qp_query.len,
                 0.0,
                 0);
@@ -629,7 +630,9 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
         if (qp_is_raw_term(&qp_series_name))
         {
             siridb_series_t * series;
-            series = ct_get(siridb->series, qp_series_name.via.raw);
+            series = ct_get(
+                    siridb->series,
+                    (const char *) qp_series_name.via.raw);
             if (series != NULL)
             {
                 uv_mutex_lock(&siridb->series_mutex);

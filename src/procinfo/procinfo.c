@@ -30,6 +30,8 @@
 #include <mach/mach_init.h>
 #include <mach/task_info.h>
 #include <libproc.h>
+#else
+#include <xpath/xpath.h>
 #endif
 
 
@@ -159,8 +161,8 @@ long int procinfo_open_files(const char * path)
     DIR * dirp;
     struct dirent * entry;
     size_t len = strlen(path);
-    char buffer[PATH_MAX];
-    char buf[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
+    char buf[SIRI_PATH_MAX];
 
     if ((dirp = opendir("/proc/self/fd")) == NULL)
     {
@@ -171,7 +173,7 @@ long int procinfo_open_files(const char * path)
     {
         if (entry->d_type == DT_REG || entry->d_type == DT_LNK)
         {
-            snprintf(buffer, PATH_MAX, "/proc/self/fd/%s", entry->d_name);
+            snprintf(buffer, SIRI_PATH_MAX, "/proc/self/fd/%s", entry->d_name);
 
             if (realpath(buffer, buf) == NULL)
             {

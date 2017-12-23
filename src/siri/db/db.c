@@ -64,9 +64,9 @@ static int SIRIDB_from_unpacker(
  */
 int siridb_is_db_path(const char * dbpath)
 {
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.conf",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -74,7 +74,7 @@ int siridb_is_db_path(const char * dbpath)
         return 0;  /* false */
     }
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -94,7 +94,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
     size_t len = strlen(dbpath);
     lock_t lock_rc;
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     cfgparser_t * cfgparser;
     cfgparser_option_t * option = NULL;
     qp_unpacker_t * unpacker;
@@ -139,7 +139,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 
     /* read database.conf */
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.conf",
             dbpath);
 
@@ -158,7 +158,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     }
 
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             dbpath);
 
@@ -415,7 +415,7 @@ static int SIRIDB_from_unpacker(
     }
 
     /* alloc mem for database name */
-    (*siridb)->dbname = strndup(qp_obj.via.raw, qp_obj.len);
+    (*siridb)->dbname = strndup((const char *) qp_obj.via.raw, qp_obj.len);
     if ((*siridb)->dbname == NULL)
     {
         READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
@@ -487,7 +487,7 @@ static int SIRIDB_from_unpacker(
     }
 
     /* bind timezone to SiriDB */
-    char * tzname = strndup(qp_obj.via.raw, qp_obj.len);
+    char * tzname = strndup((const char *) qp_obj.via.raw, qp_obj.len);
 
     if (tzname == NULL)
     {
@@ -605,9 +605,9 @@ int siridb_open_files(siridb_t * siridb)
  */
 int siridb_save(siridb_t * siridb)
 {
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             siridb->dbpath);
 
@@ -620,7 +620,7 @@ int siridb_save(siridb_t * siridb)
 
     return (qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
             qp_fadd_int8(fpacker, SIRIDB_SCHEMA) ||
-            qp_fadd_raw(fpacker, (const char *) siridb->uuid, 16) ||
+            qp_fadd_raw(fpacker, (const unsigned char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
             qp_fadd_int8(fpacker, siridb->time->precision) ||
             qp_fadd_int64(fpacker, siridb->buffer_size) ||

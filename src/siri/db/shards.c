@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <siri/db/db.h>
+#include <xpath/xpath.h>
 
 #define SIRIDB_MAX_SHARD_FN_LEN 23
 
@@ -42,16 +43,18 @@ static bool is_temp_fn(const char * fn);
  */
 int siridb_shards_load(siridb_t * siridb)
 {
-    struct stat st = {0};
+    struct stat st;
     struct dirent ** shard_list;
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     int n, total, rc = 0;
+
+    memset(&st, 0, sizeof(struct stat));
 
     log_info("Loading shards");
 
     SIRIDB_GET_FN(path, siridb->dbpath, SIRIDB_SHARDS_PATH);
 
-    if (strlen(path) >= PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
+    if (strlen(path) >= SIRI_PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
     {
         log_error("Shard path too long: '%s'", path);
         return -1;
@@ -82,7 +85,7 @@ int siridb_shards_load(siridb_t * siridb)
     {
         if (is_temp_fn(shard_list[n]->d_name))
         {
-            snprintf(buffer, PATH_MAX, "%s%s",
+            snprintf(buffer, SIRI_PATH_MAX, "%s%s",
                    path, shard_list[n]->d_name);
 
             log_warning("Removing temporary file: '%s'", buffer);
@@ -133,6 +136,7 @@ int siridb_shards_add_points(
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
+    uint16_t cinfo = 0;
     size_t size;
     long int pos;
 
@@ -183,7 +187,8 @@ int siridb_shards_add_points(
                         points,
                         pstart,
                         pend,
-                        NULL)) < 0)
+                        NULL,
+                        &cinfo)) < 0)
                 {
                     log_critical(
                             "Could not write points to shard id %" PRIu64,
@@ -197,7 +202,8 @@ int siridb_shards_add_points(
                             points->data[pstart].ts,
                             points->data[pend - 1].ts,
                             pos,
-                            pend - pstart);
+                            pend - pstart,
+                            cinfo);
                     if (shard->replacing != NULL)
                     {
                         siridb_shard_write_points(
@@ -207,7 +213,8 @@ int siridb_shards_add_points(
                                points,
                                pstart,
                                pend,
-                               NULL);
+                               NULL,
+                               &cinfo);
                     }
                 }
             }

@@ -38,7 +38,8 @@ int xpath_file_exist(const char * fn)
  */
 int xpath_is_dir(const char * path)
 {
-    struct stat st = {0};
+    struct stat st;
+    memset(&st, 0, sizeof(struct stat));
     stat(path, &st);
     return S_ISDIR(st.st_mode);
 }
@@ -82,7 +83,8 @@ ssize_t xpath_get_content(char ** buffer, const char * fn)
 }
 
 /*
- * Get the current executable path. (path should at least have size PATH_MAX)
+ * Get the current executable path.
+ * (path should at least have size SIRI_PATH_MAX)
  *
  * Returns 0 if successful or -1 in case of an error.
  * (this functions writes logging in case of errors)
@@ -91,7 +93,7 @@ int xpath_get_exec_path(char * path)
 {
     char* path_end;
 
-    if (readlink("/proc/self/exe", path, PATH_MAX) == -1)
+    if (readlink("/proc/self/exe", path, SIRI_PATH_MAX) == -1)
     {
         log_critical("Cannot read executable path");
         return -1;

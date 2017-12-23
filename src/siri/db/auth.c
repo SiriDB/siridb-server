@@ -85,19 +85,23 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_INVALID_UUID;
     }
 
-    if (siri_version_cmp(qp_version->via.raw, SIRIDB_MINIMAL_VERSION) < 0)
+    if (siri_version_cmp(
+            (const char *) qp_version->via.raw, SIRIDB_MINIMAL_VERSION) < 0)
     {
         return BPROTO_AUTH_ERR_VERSION_TOO_OLD;
     }
 
-    if (siri_version_cmp(qp_min_version->via.raw, SIRIDB_VERSION) > 0)
+    if (siri_version_cmp(
+            (const char *) qp_min_version->via.raw, SIRIDB_VERSION) > 0)
     {
         return BPROTO_AUTH_ERR_VERSION_TOO_NEW;
     }
 
     memcpy(uuid, qp_uuid->via.raw, 16);
 
-    if ((siridb = siridb_get(siri.siridb_list, qp_dbname->via.raw)) == NULL)
+    if ((siridb = siridb_get(
+            siri.siridb_list,
+            (const char *) qp_dbname->via.raw)) == NULL)
     {
         return BPROTO_AUTH_ERR_UNKNOWN_DBNAME;
     }
@@ -116,7 +120,7 @@ bproto_server_t siridb_auth_server_request(
     ((sirinet_socket_t *) client->data)->origin = server;
 
     free(server->version);
-    server->version = strdup(qp_version->via.raw);
+    server->version = strdup((const char *) qp_version->via.raw);
 
     /* we must increment the server reference counter */
     siridb_server_incref(server);

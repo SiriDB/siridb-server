@@ -532,7 +532,7 @@ static void QUERY_send_no_query(uv_async_t * handle)
 #ifndef DEBUG
     /* production version returns timestamp now */
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    qp_add_raw(query->packer, "calc", 4);
+    qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
 
     if (!query->factor)
@@ -549,7 +549,7 @@ static void QUERY_send_no_query(uv_async_t * handle)
     /* development release returns motd */
     const char * msg;
     msg = motd_get_random_msg();
-    qp_add_raw(query->packer, "motd", 4);
+    qp_add_raw(query->packer, (const unsigned char *) "motd", 4);
     qp_add_string(query->packer, msg);
 
 
@@ -667,7 +667,10 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
         }
         else
         {
-            qp_add_raw(packer, buffer, packer->alloc_size - size);
+            qp_add_raw(
+                    packer,
+                    (const unsigned char *) buffer,
+                    packer->alloc_size - size);
         }
     }
     else

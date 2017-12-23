@@ -131,10 +131,14 @@ int siri_admin_client_request(
     }
     adm_client->pid = pid;
     adm_client->port = port;
-    adm_client->host = strndup(host->via.raw, host->len);
-    adm_client->username = strndup(username->via.raw, username->len);
-    adm_client->password = strndup(password->via.raw, password->len);
-    adm_client->dbname = strndup(dbname->via.raw, dbname->len);
+    adm_client->host = strndup(
+            (const char *) host->via.raw, host->len);
+    adm_client->username = strndup(
+            (const char *) username->via.raw, username->len);
+    adm_client->password = strndup(
+            (const char *) password->via.raw, password->len);
+    adm_client->dbname = strndup(
+            (const char *) dbname->via.raw, dbname->len);
     adm_client->dbpath = strdup(dbpath);
     adm_client->client = client;
     adm_client->request = CLIENT_REQUEST_INIT;
@@ -691,7 +695,7 @@ static void CLIENT_on_file_database(
     adm_client->request = CLIENT_REQUEST_REGISTER_SERVER;
 
     if (qp_add_type(packer, QP_ARRAY4) ||
-        qp_add_raw(packer, (char *) &adm_client->uuid, 16) ||
+        qp_add_raw(packer, (const unsigned char *) &adm_client->uuid, 16) ||
         qp_add_string(packer, siri.cfg->server_address) ||
         qp_add_int32(packer, (int32_t) siri.cfg->listen_backend_port) ||
         qp_add_int32(packer, (int32_t) adm_client->pool))
@@ -764,7 +768,7 @@ static void CLIENT_on_file_servers(
     }
 
     rc += qp_fadd_type(fp, QP_ARRAY4);
-    rc += qp_fadd_raw(fp, (char *) &adm_client->uuid, 16);
+    rc += qp_fadd_raw(fp, (const unsigned char *) &adm_client->uuid, 16);
     rc += qp_fadd_string(fp, siri.cfg->server_address);
     rc += qp_fadd_int32(fp, (int32_t) siri.cfg->listen_backend_port);
     rc += qp_fadd_int32(fp, (int32_t) adm_client->pool);
@@ -899,12 +903,17 @@ static void CLIENT_on_request_pools(
 
     while (qp_val.tp == QP_RAW)
     {
-        if (    strncmp(qp_val.via.raw, "columns", qp_val.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_val.via.raw,
+                    "columns",
+                    qp_val.len) == 0 &&
                 qp_is_array(qp_next(&unpacker, NULL)) &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "pool", qp_val.len) == 0 &&
+                strncmp(
+                    (const char *) qp_val.via.raw, "pool", qp_val.len) == 0 &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "servers", qp_val.len) == 0)
+                strncmp(
+                    (const char *) qp_val.via.raw, "servers", qp_val.len) == 0)
         {
             if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
             {
@@ -913,7 +922,8 @@ static void CLIENT_on_request_pools(
             columns_found = 1;
             continue;
         }
-        if (    strncmp(qp_val.via.raw, "pools", qp_val.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_val.via.raw, "pools", qp_val.len) == 0 &&
                 qp_is_array(qp_next(&unpacker, NULL)))
         {
             qp_next(&unpacker, &qp_val);
@@ -1043,14 +1053,22 @@ static void CLIENT_on_request_status(
 
     while (qp_val.tp == QP_RAW)
     {
-        if (    strncmp(qp_val.via.raw, "columns", qp_val.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_val.via.raw,
+                    "columns",
+                    qp_val.len) == 0 &&
                 qp_is_array(qp_next(&unpacker, NULL)) &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "name", qp_val.len) == 0 &&
+                strncmp(
+                    (const char *) qp_val.via.raw, "name", qp_val.len) == 0 &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "status", qp_val.len) == 0 &&
+                strncmp(
+                    (const char *) qp_val.via.raw,
+                    "status",
+                    qp_val.len) == 0 &&
                 qp_next(&unpacker, &qp_val) == QP_RAW &&
-                strncmp(qp_val.via.raw, "version", qp_val.len) == 0)
+                strncmp(
+                    (const char *) qp_val.via.raw, "version", qp_val.len) == 0)
         {
             if (qp_next(&unpacker, &qp_val) == QP_ARRAY_CLOSE)
             {
@@ -1059,7 +1077,10 @@ static void CLIENT_on_request_status(
             columns_found = 1;
             continue;
         }
-        if (    strncmp(qp_val.via.raw, "servers", qp_val.len) == 0 &&
+        if (    strncmp(
+                    (const char *) qp_val.via.raw,
+                    "servers",
+                    qp_val.len) == 0 &&
                 qp_is_array(qp_next(&unpacker, NULL)))
         {
             qp_next(&unpacker, &qp_val);
@@ -1090,7 +1111,7 @@ static void CLIENT_on_request_status(
                     }
 
                     if (strncmp(
-                            qp_status.via.raw,
+                            (const char *) qp_status.via.raw,
                             "running",
                             qp_status.len) != 0)
                     {
