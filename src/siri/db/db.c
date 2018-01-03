@@ -64,9 +64,9 @@ static int SIRIDB_from_unpacker(
  */
 int siridb_is_db_path(const char * dbpath)
 {
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.conf",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -74,7 +74,7 @@ int siridb_is_db_path(const char * dbpath)
         return 0;  /* false */
     }
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -94,7 +94,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 {
     size_t len = strlen(dbpath);
     lock_t lock_rc;
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     cfgparser_t * cfgparser;
     cfgparser_option_t * option = NULL;
     qp_unpacker_t * unpacker;
@@ -139,7 +139,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 
     /* read database.conf */
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.conf",
             dbpath);
 
@@ -158,7 +158,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     }
 
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             dbpath);
 
@@ -605,9 +605,9 @@ int siridb_open_files(siridb_t * siridb)
  */
 int siridb_save(siridb_t * siridb)
 {
-    char buffer[PATH_MAX];
+    char buffer[SIRI_PATH_MAX];
     snprintf(buffer,
-            PATH_MAX,
+            SIRI_PATH_MAX,
             "%sdatabase.dat",
             siridb->dbpath);
 

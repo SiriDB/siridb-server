@@ -2,15 +2,15 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
-../src/imap64/imap64.c 
+../src/imap64/imap64.c
 
 OBJS += \
-./src/imap64/imap64.o 
+./src/imap64/imap64.o
 
 C_DEPS += \
-./src/imap64/imap64.d 
+./src/imap64/imap64.d
 
 
 # Each subdirectory must supply rules for building sources it contributes

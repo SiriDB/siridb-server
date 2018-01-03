@@ -105,6 +105,15 @@ class TestCompression(TestBase):
 
         self.client0.close()
 
+        result = await self.server0.stop()
+        self.assertTrue(result)
+
+        await self.server0.start(sleep=10)
+        await self.client0.connect()
+
+        # Check the result after rebooting the server
+        await self.assertSeries(self.client0, series)
+
         return False
 
 

@@ -958,7 +958,7 @@ int run_tests(void)
     rc += test_version();
     rc += test_strx_to_double();
 
-    printf("\nSuccesfully performed %d tests in %.3f milliseconds!\n\n",
+    printf("\nSuccessfully performed %d tests in %.3f milliseconds!\n\n",
             rc, timeit_stop(&start));
 
     return 0;

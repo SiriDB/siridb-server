@@ -1,0 +1,14 @@
+  * Added bind_server_address and bind_client_address as configuration
+    options. The default configuration binds to localhost only. (issue #89)
+    
+  * Added -rf to makefiles. (fixes make clean) (#86, @paulgevers)
+  
+  * Replaces pcre with pcre2. (issue #90)
+  
+  * Make sure PATH_MAX is defined.
+  
+  * Added optional shard compression.
+  
+  * Use unsigned instead of signed char for QPack buffer.
+  
+  * Initialize structs to null by using memset.
