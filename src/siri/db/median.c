@@ -54,7 +54,7 @@ int siridb_median_find_n(
         siridb_points_t * points,
         uint64_t n)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (points->len >= 2);
 #endif
     int rc = 0;
@@ -183,7 +183,7 @@ int siridb_median_real(
         siridb_points_t * points,
         double percentage)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (points->len >= 2);
 #endif
     int rc = 0;

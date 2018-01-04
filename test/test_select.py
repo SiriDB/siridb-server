@@ -61,6 +61,9 @@ DATA = {
     ],
     'one': [
         [1471254710, 1]
+    ],
+    'log': [
+        [1471254710, 'test line']
     ]
 }
 
@@ -74,7 +77,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 56 point(s).'})
+            {'success_msg': 'Successfully inserted 57 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -213,6 +216,10 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query('select * from "one"'),
             {'one': [[1471254710, 1]]})
+
+        self.assertEqual(
+            await self.client0.query('select * from "log"'),
+            {'log': [[1471254710, 'test line']]})
 
         self.assertEqual(
             await self.client0.query('select difference() from "one"'),

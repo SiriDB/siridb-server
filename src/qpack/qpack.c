@@ -142,7 +142,7 @@ void qp_unpacker_init(qp_unpacker_t * unpacker, unsigned char * pt, size_t len)
  */
 void qp_unpacker_ff_free(qp_unpacker_t * unpacker)
 {
-#ifdef DEBUG
+#if DEBUG
     assert(unpacker != NULL);
 #endif
     free(unpacker->source);
@@ -246,7 +246,7 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
  */
 void qp_packer_free(qp_packer_t * packer)
 {
-#ifdef DEBUG
+#if DEBUG
     assert(packer != NULL);
 #endif
     free(packer->buffer);
@@ -587,7 +587,7 @@ int qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
  */
 int qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
-#ifdef DEBUG
+#if DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
 
@@ -601,7 +601,7 @@ int qp_add_type(qp_packer_t * packer, qp_types_t tp)
  */
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 {
-#ifdef DEBUG
+#if DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
 #endif
 

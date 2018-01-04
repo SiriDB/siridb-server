@@ -832,7 +832,7 @@ static cproto_server_t ADMIN_on_get_version(
     {
         if (!qp_add_type(packer, QP_ARRAY_OPEN) &&
             !qp_add_string(packer, SIRIDB_VERSION) &&
-#ifdef DEBUG
+#if DEBUG
             !qp_add_string(packer, "DEBUG") &&
 #else
             !qp_add_string(packer, "RELEASE") &&

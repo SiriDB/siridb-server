@@ -105,7 +105,7 @@ static void CLSERVER_on_register_server_response(
 
 int sirinet_clserver_init(siri_t * siri)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (loop == NULL && siri->loop != NULL);
 #endif
 

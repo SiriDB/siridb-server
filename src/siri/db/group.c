@@ -355,7 +355,7 @@ int siridb_group_is_remote_prop(uint32_t prop)
  */
 void siridb__group_free(siridb_group_t * group)
 {
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free group: '%s'", group->name);
 #endif
     free(group->name);

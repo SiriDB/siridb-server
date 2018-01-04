@@ -161,7 +161,7 @@ siridb_ffile_result_t siridb_ffile_append(
         siridb_ffile_t * ffile,
         sirinet_pkg_t * pkg)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (ffile->fp != NULL);
 #endif
 
@@ -211,7 +211,7 @@ int siridb_ffile_check_fn(const char * fn)
  */
 sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (ffile->next_size);
     assert (ffile->fp != NULL);
 #endif
@@ -260,7 +260,7 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
  */
 int siridb_ffile_pop_commit(siridb_ffile_t * ffile)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (ffile->next_size && ffile->fp != NULL);
 #endif
 

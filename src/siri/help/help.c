@@ -120,7 +120,7 @@ const char * siri_help_get(
  */
 void siri_help_free(void)
 {
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free help");
 #endif
 

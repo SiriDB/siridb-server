@@ -620,7 +620,7 @@ static int CT_add(
  */
 static void CT_merge_node(ct_node_t * node)
 {
-#ifdef DEBUG
+#if DEBUG
     assert(node->size == 1 && node->data == NULL);
 #endif
 

@@ -128,7 +128,7 @@ int siridb_series_add_point(
         uint64_t * ts,
         qp_via_t * val)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (!siri_err);
     assert (series->buffer != NULL);
 #endif
@@ -337,7 +337,7 @@ siridb_series_t * siridb_series_new(
  */
 void siridb__series_free(siridb_series_t *__restrict series)
 {
-#ifdef DEBUG
+#if DEBUG
     if (siri.status == SIRI_STATUS_RUNNING || 0)
     {
         log_debug("Free series: '%s'", series->name);
@@ -376,7 +376,7 @@ void siridb__series_free(siridb_series_t *__restrict series)
  */
 int siridb_series_load(siridb_t * siridb)
 {
-#ifdef DEBUG
+#if DEBUG
     /* we must have a server because we need to know the pool id */
     assert (siridb->server != NULL);
 #endif
@@ -506,7 +506,7 @@ void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
  */
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (series->flags & SIRIDB_SERIES_IS_DROPPED);
 #endif
 
@@ -593,7 +593,7 @@ void siridb_series_remove_shard(
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (shard->id % siridb->duration_num == series->mask);
 #endif
 
@@ -796,7 +796,7 @@ siridb_points_t * siridb_series_get_points(
             points->data = point;
         }
     }
-#ifdef DEBUG
+#if DEBUG
     else
     {
         /* size must be equal if not smaller */
@@ -847,7 +847,7 @@ int siridb_series_optimize_shard(
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (shard->id % siridb->duration_num == series->mask);
 #endif
 
@@ -878,7 +878,7 @@ int siridb_series_optimize_shard(
             size += idx->len;
             end++;
 
-#ifdef DEBUG
+#if DEBUG
             /*
              * we have at least 2 references to the shard so we never
              * reach 0 here.  (this ref + optimize ref)
@@ -976,7 +976,7 @@ int siridb_series_optimize_shard(
             }
             while (idx->shard == shard);
 
-#ifdef DEBUG
+#if DEBUG
             assert (idx->shard == shard->replacing);
 #endif
 
@@ -1041,7 +1041,7 @@ int siridb_series_optimize_shard(
             series->idx = idx;
         }
     }
-#ifdef DEBUG
+#if DEBUG
     else
     {
         /* start must be equal to end if not smaller */
@@ -1130,7 +1130,7 @@ static void SERIES_idx_sort(
  */
 static void SERIES_update_overlap(siridb_series_t *__restrict series)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 #endif
     for (uint_fast32_t i = 1; i < series->idx_len; i++)
@@ -1201,7 +1201,7 @@ static siridb_series_t * SERIES_new(
                 series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
             }
 
-#ifdef DEBUG
+#if DEBUG
             /* make sure these two are exactly the same */
             assert (siridb_series_server_id(series) ==
                     siridb_series_server_id_by_name(series->name));

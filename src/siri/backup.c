@@ -63,7 +63,7 @@ void siri_backup_destroy(siri_t * siri)
  */
 int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (~siridb->server->flags & SERVER_FLAG_BACKUP_MODE);
     assert (~siridb->server->flags & SERVER_FLAG_REINDEXING);
 #endif
@@ -105,7 +105,7 @@ int siri_backup_enable(siri_t * siri, siridb_t * siridb)
 
 int siri_backup_disable(siri_t * siri, siridb_t * siridb)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->server->flags & SERVER_FLAG_BACKUP_MODE);
 #endif
 

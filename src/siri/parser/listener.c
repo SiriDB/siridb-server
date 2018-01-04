@@ -43,7 +43,7 @@
 #include <sys/time.h>
 
 
-#define MAX_ITERATE_COUNT 1000      // thousand
+#define MAX_ITERATE_COUNT 10000      // ten-thousand
 
 #define QP_ADD_SUCCESS qp_add_raw( \
     query->packer, (const unsigned char *) "success_msg", 11);
@@ -572,7 +572,7 @@ static void enter_alter_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_ALTER)
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -635,7 +635,7 @@ static void enter_count_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_COUNT)
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -700,7 +700,7 @@ static void enter_drop_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -889,7 +889,7 @@ static void enter_list_stmt(uv_async_t * handle)
 
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_LIST)
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -1002,7 +1002,7 @@ static void enter_select_stmt(uv_async_t * handle)
     SIRIPARSER_MASTER_CHECK_ACCESS(SIRIDB_ACCESS_SELECT)
     MASTER_CHECK_ACCESSIBLE(siridb)
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL && query->data == NULL);
 #endif
 
@@ -1583,7 +1583,7 @@ static void exit_calc_stmt(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     cleri_node_t * calc_node = query->nodes->node;
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -2150,7 +2150,7 @@ static void exit_create_group(uv_async_t * handle)
     }
     else
     {
-#ifdef DEBUG
+#if DEBUG
         assert (query->packer == NULL);
 #endif
         query->packer = sirinet_packer_new(1024);
@@ -2187,7 +2187,7 @@ static void exit_create_user(uv_async_t * handle)
     cleri_node_t * user_node =
             query->nodes->node->children->next->node;
 
-#ifdef DEBUG
+#if DEBUG
     /* both name and packer should be NULL at this point */
     assert(user->name == NULL);
     assert(query->packer == NULL);
@@ -2215,7 +2215,7 @@ static void exit_create_user(uv_async_t * handle)
         /* success, increment the user reference counter */
         siridb_user_incref(user);
 
-#ifdef DEBUG
+#if DEBUG
         assert (query->packer == NULL);
 #endif
         query->packer = sirinet_packer_new(1024);
@@ -2618,7 +2618,7 @@ static void exit_grant_user(uv_async_t * handle)
         return;
     }
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -2656,7 +2656,7 @@ static void exit_help_xxx(uv_async_t * handle)
 
     if (query->data != NULL)
     {
-#ifdef DEBUG
+#if DEBUG
         assert (query->packer == NULL);
 #endif
 
@@ -3166,7 +3166,7 @@ static void exit_revoke_user(uv_async_t * handle)
         return;
     }
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -3450,7 +3450,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->data != NULL);
     assert (IS_MASTER);
 #endif
@@ -3676,7 +3676,7 @@ static void exit_set_log_level(uv_async_t * handle)
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     query_alter_t * q_alter = (query_alter_t *) query->data;
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->data != NULL);
 #endif
 
@@ -4004,7 +4004,7 @@ static void exit_show_stmt(uv_async_t * handle)
             query->nodes->node->children->next->node->children;
     siridb_props_cb prop_cb;
 
-#ifdef DEBUG
+#if DEBUG
     assert (query->packer == NULL);
 #endif
 
@@ -4045,7 +4045,7 @@ static void exit_show_stmt(uv_async_t * handle)
             /* get the callback */
             prop_cb = siridb_props[children->node->children->node->
                                    cl_obj->gid - KW_OFFSET];
-#ifdef DEBUG
+#if DEBUG
             assert (prop_cb != NULL);  /* all props are implemented */
 #endif
             prop_cb(((sirinet_socket_t *) query->client->data)->siridb,
@@ -5642,7 +5642,7 @@ static void on_select_unpack_merged_points(
     siridb_points_t * points;
 
     while ( qp_is_raw(qp_next(unpacker, qp_name)) &&
-#ifdef DEBUG
+#if DEBUG
             qp_is_raw_term(qp_name) &&
 #endif
             qp_is_array(qp_next(unpacker, NULL)))
@@ -5663,7 +5663,7 @@ static void on_select_unpack_merged_points(
 
             if (points != NULL)
             {
-    #ifdef DEBUG
+    #if DEBUG
                 assert (qp_len->via.int64 * sizeof(siridb_point_t) ==
                         qp_points->len);
     #endif

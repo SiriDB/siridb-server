@@ -671,7 +671,7 @@ static int64_t get_ts(
     struct tm tm;
     time_t ts;
 
-#ifdef DEBUG
+#if DEBUG
     /* must be a valid timezone */
     assert (tz >= 0 && tz < TZ_LEN);
 

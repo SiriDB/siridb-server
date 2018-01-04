@@ -274,7 +274,7 @@ void sirinet__socket_free(uv_stream_t * client)
 {
     sirinet_socket_t * ssocket = client->data;
 
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free socket type: %d", ssocket->tp);
 #endif
 

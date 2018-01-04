@@ -505,7 +505,7 @@ static void SIRI_walk_close_handlers(
         /* we do not expect any timer object since they should all be closed
          * (or at least closing) at this point.
          */
-#ifdef DEBUG
+#if DEBUG
         LOGC(   "Found a non closing Timer, all timers should "
                 "be stopped at this point.");
 #endif
@@ -514,7 +514,7 @@ static void SIRI_walk_close_handlers(
         break;
 
     case UV_ASYNC:
-#ifdef DEBUG
+#if DEBUG
         LOGC(   "An async task is only expected to be found in case "
                 "not all tasks were closed within the timeout limit, "
                 "or when a critical signal error is raised.");
@@ -524,7 +524,7 @@ static void SIRI_walk_close_handlers(
 
     default:
 
-#ifdef DEBUG
+#if DEBUG
         LOGC("Oh oh, we might need to implement type %d", handle->type);
         assert(0);
 #endif

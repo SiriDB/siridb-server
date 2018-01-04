@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#ifdef DEBUG
+#if DEBUG
 #include <test/test.h>
 #endif
 
@@ -49,7 +49,7 @@ int main(int argc, char * argv[])
     /* setup logger, this must be done before logging the first line */
     siri_setup_logger();
 
-#ifdef DEBUG
+#if DEBUG
     int rc;
     /* run tests when we are in debug mode */
     rc = run_tests();

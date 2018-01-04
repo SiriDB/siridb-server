@@ -44,7 +44,7 @@ static void REPLICATE_on_repl_finished_response(
  */
 int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (siri.loop != NULL);
 #endif
 
@@ -83,7 +83,7 @@ int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync)
  */
 void siridb_replicate_close(siridb_replicate_t * replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (replicate != NULL &&
             replicate->timer != NULL &&
             replicate->status != REPLICATE_CLOSED);
@@ -103,7 +103,7 @@ void siridb_replicate_close(siridb_replicate_t * replicate)
  */
 void siridb_replicate_free(siridb_replicate_t ** replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free replicate");
     assert ((*replicate)->status == REPLICATE_CLOSED);
 #endif
@@ -136,7 +136,7 @@ int siridb_replicate_pkg(siridb_t * siridb, sirinet_pkg_t * pkg)
  */
 void siridb_replicate_start(siridb_replicate_t * replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (siridb_replicate_is_idle(replicate));
 #endif
     replicate->status = REPLICATE_RUNNING;
@@ -161,7 +161,7 @@ void siridb_replicate_start(siridb_replicate_t * replicate)
  */
 void siridb_replicate_pause(siridb_replicate_t * replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (replicate->status != REPLICATE_CLOSED);
 #endif
     replicate->status = (replicate->status == REPLICATE_IDLE) ?
@@ -175,7 +175,7 @@ void siridb_replicate_pause(siridb_replicate_t * replicate)
  */
 void siridb_replicate_continue(siridb_replicate_t * replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     /* make sure the fifo buffer is open */
     assert (siridb_fifo_is_open(((siridb_t *) replicate->timer->data)->fifo));
     assert (replicate->status != REPLICATE_CLOSED);
@@ -212,7 +212,7 @@ static void REPLICATE_work(uv_timer_t * handle)
     siridb_t * siridb = (siridb_t *) handle->data;
     sirinet_pkg_t * pkg;
 
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->fifo != NULL);
     assert (siridb->replicate != NULL);
     assert (siridb->replica != NULL);
@@ -333,7 +333,7 @@ static void REPLICATE_on_repl_response(
 {
     siridb_t * siridb = (siridb_t *) promise->data;
 
-#ifdef DEBUG
+#if DEBUG
     /* open promises must be closed before siridb->replicate is destroyed */
     assert (siridb->replicate != NULL);
     assert (siridb->fifo != NULL);

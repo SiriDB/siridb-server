@@ -234,7 +234,7 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         if (siridb->server->pool == server->pool)
         {
             /* this is a replica for 'this' pool */
-#ifdef DEBUG
+#if DEBUG
             assert (siridb->replicate == NULL);
             assert (siridb->fifo == NULL);
             assert (siridb->replica == NULL);
@@ -648,7 +648,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
          * that specific server.
          */
         case CLERI_GID_K_ACTIVE_HANDLES:
-#ifdef DEBUG
+#if DEBUG
             assert (siridb->server == server);
 #endif
             qp_add_int32(

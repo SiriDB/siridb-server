@@ -473,7 +473,7 @@ static void prop_time_precision(
 {
     SIRIDB_PROP_MAP("time_precision", 14)
 
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->time->precision >= SIRIDB_TIME_SECONDS &&
             siridb->time->precision <= SIRIDB_TIME_NANOSECONDS);
 #endif

@@ -146,7 +146,7 @@ void siridb_insert_free(siridb_insert_t * insert)
     /* free insert */
     free(insert);
 
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free insert!, hooray!");
 #endif
 }
@@ -875,7 +875,7 @@ static void INSERT_local_promise_cb(
         sirinet_pkg_t * pkg,
         int status)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (pkg == NULL);
 #endif
     pkg = sirinet_pkg_new(
@@ -895,7 +895,7 @@ static void INSERT_local_promise_backend_cb(
         sirinet_pkg_t * pkg,
         int status)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (pkg == NULL);
 #endif
     uv_stream_t * client = (uv_stream_t *) promise->data;
@@ -1136,7 +1136,7 @@ static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name)
              * the previous correct pool. (we can do this now
              * because we known we don't have the series)
              */
-#ifdef DEBUG
+#if DEBUG
             assert (siridb->pools->prev_lookup != NULL);
 #endif
             pool = siridb_lookup_sn_raw(

@@ -239,17 +239,13 @@ void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype)
  */
 static void INITSYNC_next_series_id(siridb_t * siridb)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->replicate != NULL);
     assert (siridb->replicate->status == REPLICATE_RUNNING ||
             siridb->replicate->status == REPLICATE_STOPPING);
 #endif
 
     siridb_initsync_t * initsync = siridb->replicate->initsync;
-
-#ifdef DEUBUG
-    assert (initsync->size == fseeko(initsync->fp, 0, SEEK_END);
-#endif
 
     /* free the current package (can be NULL already) */
     free(initsync->pkg);
@@ -300,7 +296,7 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
  */
 static void INITSYNC_pause(siridb_replicate_t * replicate)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (replicate->status == REPLICATE_STOPPING);
 #endif
     if (fclose(replicate->initsync->fp))
@@ -320,7 +316,7 @@ static void INITSYNC_pause(siridb_replicate_t * replicate)
 static void INITSYNC_send(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->replicate->initsync->pkg != NULL);
 #endif
 
@@ -358,7 +354,7 @@ static void INITSYNC_send(uv_timer_t * timer)
 static void INITSYNC_work(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->replicate->status == REPLICATE_RUNNING ||
             siridb->replicate->status == REPLICATE_STOPPING);
     assert (siridb->replicate->initsync != NULL);
@@ -522,7 +518,7 @@ static inline int INITSYNC_fn(siridb_t * siridb, siridb_initsync_t * initsync)
  */
 static int INITSYNC_unlink(siridb_initsync_t * initsync)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (initsync->fp != NULL);
 #endif
     fclose(initsync->fp);

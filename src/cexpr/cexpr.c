@@ -95,7 +95,7 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     {
         /* successful */
         cexpr = CEXPR_close_curly(&list);
-#ifdef DEBUG
+#if DEBUG
         assert (list.len == 0 && condition == NULL);
 #endif
     }
@@ -179,7 +179,7 @@ int cexpr_str_cmp(
 {
     /* both a and b MUST be terminated strings */
 
-#ifdef DEBUG
+#if DEBUG
     assert (a != NULL && b != NULL);
 #endif
 
@@ -217,7 +217,7 @@ int cexpr_bool_cmp(
         const int64_t a,
         const int64_t b)
 {
-#ifdef DEBUG
+#if DEBUG
     assert ((a == 0 || a == 1) && (b == 0 || b == 1));
 #endif
     switch (operator)
@@ -242,7 +242,7 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
     switch (cexpr->operator)
     {
     case CEXPR_AND:
-#ifdef DEBUG
+#if DEBUG
         /* tp_a cannot be VIA_NULL, but tp_b can */
         assert (cexpr->tp_a != VIA_NULL);
 #endif
@@ -253,7 +253,7 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
                     cexpr_run(cexpr->via_b.cexpr, cb, obj) :
                     cb(obj, cexpr->via_b.cond)));
     case CEXPR_OR:
-#ifdef DEBUG
+#if DEBUG
         /* both tp_a and tp_b can NEVER be VIA_NULL */
         assert (cexpr->tp_a != VIA_NULL && cexpr->tp_b != VIA_NULL);
 #endif
@@ -326,7 +326,7 @@ cexpr_operator_t cexpr_operator_fn(cleri_node_t * node)
     }
     else
     {
-#ifdef DEBUG
+#if DEBUG
         assert (node->len == 2);
 #endif
         switch (*node->str)
@@ -667,7 +667,7 @@ static void CEXPR_push_condition(cexpr_t * cexpr, cexpr_condition_t * cond)
     }
     else
     {
-#ifdef DEBUG
+#if DEBUG
         assert(cexpr->tp_b == VIA_NULL);
 #endif
         cexpr->tp_b = VIA_COND;
@@ -703,7 +703,7 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
     }
     else
     {
-#ifdef DEBUG
+#if DEBUG
         assert(cexpr->tp_b == VIA_NULL);
 #endif
         cexpr->tp_b = VIA_CEXPR;
@@ -715,7 +715,7 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
 
 static cexpr_t * CEXPR_close_curly(cexpr_list_t * list)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (list->len > 0);
 #endif
     list->len--;

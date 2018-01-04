@@ -641,7 +641,7 @@ int siridb_save(siridb_t * siridb)
  */
 void siridb__free(siridb_t * siridb)
 {
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free database: '%s'", siridb->dbname);
 #endif
 

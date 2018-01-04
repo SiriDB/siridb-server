@@ -98,7 +98,7 @@ void siri_optimize_pause(void)
  */
 void siri_optimize_continue(void)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (optimize.pause);
 #endif
     if (!--optimize.pause && optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
@@ -118,7 +118,7 @@ int siri_optimize_wait(void)
     /* its possible that another database is paused, but we wait anyway */
     if (optimize.pause)
     {
-#ifdef DEBUG
+#if DEBUG
         assert (optimize.status == SIRI_OPTIMIZE_RUNNING);
 #endif
         optimize.status = SIRI_OPTIMIZE_PAUSED;
@@ -185,7 +185,7 @@ int siri_optimize_wait(void)
  */
 int siri_optimize_create_idx(const char * fn)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (optimize.idx_fn == NULL && strlen(fn) > 3);
 #endif
     /* copy file name */
@@ -306,7 +306,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     {
         siridb = (siridb_t *) slsiridb->data[i];
 
-#ifdef DEBUG
+#if DEBUG
         log_debug("Start optimizing database '%s'", siridb->dbname);
 #endif
 
@@ -381,7 +381,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         {
             break;
         }
-#ifdef DEBUG
+#if DEBUG
         log_debug("Finished optimizing database '%s'", siridb->dbname);
 #endif
     }

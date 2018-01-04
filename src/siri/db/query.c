@@ -32,7 +32,7 @@
 #include <sys/time.h>
 #include <siri/err.h>
 
-#ifdef DEBUG
+#if DEBUG
 #include <motd/motd.h>
 #endif
 
@@ -179,7 +179,7 @@ void siridb_query_free(uv_handle_t * handle)
     /* free handle */
     free(handle);
 
-    #ifdef DEBUG
+    #if DEBUG
     log_debug("Free query!, hooray!");
     #endif
 }
@@ -191,7 +191,7 @@ void siridb_send_query_result(uv_async_t * handle)
      * clean everything without sending things in case of a client failure
      */
     siridb_query_t * query = (siridb_query_t *) handle->data;
-#ifdef DEBUG
+#if DEBUG
     if (query->packer == NULL)
     {
         sprintf(query->err_msg, "CRITICAL: We have nothing to send!");
@@ -318,7 +318,7 @@ void siridb_query_forward(
             break;
 
         case SIRIDB_QUERY_FWD_SOME_POOLS:
-#ifdef DEBUG
+#if DEBUG
 
             assert (((query_select_t *) ((siridb_query_t *)
                     handle->data)->data)->tp == QUERIES_SELECT);
@@ -404,7 +404,7 @@ void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (query->timeit != NULL);
 #endif
 

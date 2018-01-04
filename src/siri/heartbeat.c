@@ -18,7 +18,7 @@
 #include <siri/heartbeat.h>
 #include <uv.h>
 
-#ifdef DEBUG
+#if DEBUG
 #include <siri/db/series.h>
 #endif
 
@@ -63,7 +63,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     llist_node_t * siridb_node;
     llist_node_t * server_node;
 
-#ifdef DEBUG
+#if DEBUG
     log_debug("Start heart-beat task");
 #endif
 

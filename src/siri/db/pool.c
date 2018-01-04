@@ -121,7 +121,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
     }
     else
     {
-#ifdef DEBUG
+#if DEBUG
         /* we can only have 1 or 2 servers per pool */
         assert (pool->len == 2);
 #endif
@@ -133,7 +133,7 @@ void siridb_pool_add_server(siridb_pool_t * pool, siridb_server_t * server)
         }
         else
         {
-#ifdef DEBUG
+#if DEBUG
             assert (siridb_server_cmp(pool->server[0], server) > 0);
 #endif
             pool->server[1] = pool->server[0];

@@ -134,7 +134,7 @@ int siridb_server_send_pkg(
         void * data,
         int flags)
 {
-#ifdef DEBUG
+#if DEBUG
     assert (server->socket != NULL);
     assert (server->promises != NULL);
     assert (cb != NULL);
@@ -308,14 +308,14 @@ siridb_server_t * siridb_server_register(
 void siridb_server_send_flags(siridb_server_t * server)
 {
 
-#ifdef DEBUG
+#if DEBUG
     assert (server->socket != NULL);
     assert (siridb_server_is_online(server));
 #endif
 
     sirinet_socket_t * ssocket = server->socket->data;
 
-#ifdef DEBUG
+#if DEBUG
     assert (ssocket->siridb != NULL);
 #endif
 
@@ -401,7 +401,7 @@ int siridb_server_update_address(
  */
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 {
-#ifdef DEBUG
+#if DEBUG
     /* server->socket must be NULL at this point */
     assert (server->socket == NULL);
 #endif
@@ -878,7 +878,7 @@ siridb_server_t * siridb_server_from_node(
 int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
 {
     int rc = 0;
-#ifdef DEBUG
+#if DEBUG
     assert (siridb->server != server);
 #endif
     siridb_pool_t * pool = siridb->pools->pool + server->pool;
@@ -886,7 +886,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
     switch (server->id)
     {
     case 0:
-#ifdef DEBUG
+#if DEBUG
         assert (pool->len == 2);
 #endif
         pool->server[0] = pool->server[1];
@@ -930,7 +930,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
         siridb_server_decref(server);
         rc = siridb_servers_save(siridb);
     }
-#ifdef DEBUG
+#if DEBUG
     else
     {
         assert (0);
@@ -947,7 +947,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
  */
 void siridb__server_free(siridb_server_t * server)
 {
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free server: '%s'", server->name);
 #endif
     /* we MUST first free the promises because each promise has a reference to
@@ -1209,7 +1209,7 @@ static int SERVER_update_name(siridb_server_t * server)
     char * tmp;
     int fmt_as_ipv6 = 0;  /* false */
 
-#ifdef DEBUG
+#if DEBUG
     assert (server->port > 0);
 #endif
 
@@ -1225,7 +1225,7 @@ static int SERVER_update_name(siridb_server_t * server)
     /* append 'address' length */
     len += strlen(server->address);
 
-#ifdef DEBUG
+#if DEBUG
     assert (len > 0);
 #endif
 

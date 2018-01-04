@@ -114,7 +114,7 @@ void imap_free(imap_t * imap, imap_free_cb cb)
  */
 int imap_set(imap_t * imap, uint64_t id, void * data)
 {
-#ifdef DEBUG
+#if DEBUG
     /* insert NULL is not allowed */
     assert (data != NULL);
 #endif
@@ -159,7 +159,7 @@ int imap_set(imap_t * imap, uint64_t id, void * data)
  */
 int imap_add(imap_t * imap, uint64_t id, void * data)
 {
-#ifdef DEBUG
+#if DEBUG
     /* insert NULL is not allowed */
     assert (data != NULL);
 #endif
@@ -453,7 +453,7 @@ void imap_union_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#ifdef DEBUG
+#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
 #endif
@@ -588,7 +588,7 @@ void imap_difference_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#ifdef DEBUG
+#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
 #endif
@@ -657,7 +657,7 @@ void imap_symmetric_difference_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#ifdef DEBUG
+#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
 #endif
@@ -963,7 +963,7 @@ static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node)
         {
             if (dest_nd->data != NULL)
             {
-#ifdef DEBUG
+#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
 #endif
@@ -1068,7 +1068,7 @@ static void IMAP_difference_ref(
         {
             if (dest_nd->data != NULL)
             {
-#ifdef DEBUG
+#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
 #endif
@@ -1123,7 +1123,7 @@ static void IMAP_symmetric_difference_ref(
         {
             if (dest_nd->data != NULL)
             {
-#ifdef DEBUG
+#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
 #endif

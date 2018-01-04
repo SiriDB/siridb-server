@@ -89,7 +89,7 @@ void siridb_forward_free(siridb_forward_t * forward)
     /* free forward */
     free(forward);
 
-#ifdef DEBUG
+#if DEBUG
     log_debug("Free forward!, hooray!");
 #endif
 }
