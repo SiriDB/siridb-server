@@ -16,6 +16,7 @@
 #include <siri/err.h>
 #include <stddef.h>
 #include <siri/db/series.h>
+#include <siri/db/server.h>
 #include <assert.h>
 #include <unistd.h>
 #include <siri/net/protocol.h>
