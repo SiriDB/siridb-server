@@ -57,7 +57,6 @@ siridb_points_t * siridb_points_new(size_t size, points_tp tp)
     {
         points->len = 0;
         points->tp = tp;
-        points->content = NULL;
         points->data =
                 (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
         if (points->data == NULL)
@@ -87,12 +86,19 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
         size_t sz = sizeof(siridb_point_t) * points->len;
         cpoints->len = points->len;
         cpoints->tp = points->tp;
-        cpoints->content = NULL;
         cpoints->data = (siridb_point_t *) malloc(sz);
         if (cpoints->data == NULL)
         {
             free(cpoints);
             cpoints = NULL;
+        }
+        else if (points->tp == TP_STRING)
+        {
+            for (size_t i = 0; i < points->len; ++i)
+            {
+                (cpoints->data + i)->val.str =
+                        strdup((points->data + i)->val.str);
+            }
         }
         else
         {
@@ -107,7 +113,13 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
  */
 void siridb_points_free(siridb_points_t * points)
 {
-    free(points->content);
+    if (points->tp == TP_STRING)
+    {
+        for (size_t i = 0; i < points->len; ++i)
+        {
+            free((points->data + i)->val.str);
+        }
+    }
     free(points->data);
     free(points);
 }
@@ -168,8 +180,12 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
             }
             break;
         case TP_STRING:
-            /* TODO: handle string type */
-            assert (0);
+            for (size_t i = 0; i < points->len; i++, point++)
+            {
+                qp_add_type(packer, QP_ARRAY2);
+                qp_add_int64(packer, (int64_t) point->ts);
+                qp_add_string(packer, point->val.str);
+            }
             break;
         }
     }

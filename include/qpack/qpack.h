@@ -79,6 +79,7 @@ typedef union qp_via_u
     uint64_t uint64;
     double real;
     unsigned char * raw;
+    char * str;
 } qp_via_t;
 
 typedef struct qp_obj_s

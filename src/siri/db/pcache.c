@@ -35,8 +35,6 @@ siridb_pcache_t * siridb_pcache_new(points_tp tp)
         pcache->size = PCACHE_DEFAULT_SIZE;
         pcache->len = 0;
         pcache->tp = tp;
-        pcache->content = NULL;
-        pcache->str_sz = 0;
         pcache->data = (siridb_point_t *) malloc(
                 sizeof(siridb_point_t) * PCACHE_DEFAULT_SIZE);
 

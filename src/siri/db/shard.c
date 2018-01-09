@@ -513,7 +513,8 @@ long int siridb_shard_write_points(
     }
     else if (series->tp == TP_STRING)
     {
-        /* string.. */
+        /* TODO: string.. */
+        dsize = 0;
     }
     else
     {

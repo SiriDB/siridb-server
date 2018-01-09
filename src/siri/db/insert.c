@@ -497,6 +497,8 @@ static int8_t INSERT_local_work(
     siridb_series_t * series;
     qp_obj_t qp_series_ts;
     qp_obj_t qp_series_val;
+    qp_via_t forstr;
+    qp_via_t * val;
     uint64_t * ts;
     int n = INSERT_AT_ONCE;
 
@@ -568,13 +570,42 @@ static int8_t INSERT_local_work(
                 (*pcache)->len = 0;
             }
 
+            if (series->tp == TP_STRING)
+            {
+                val = &forstr;
+                val->str = qp_is_raw_term(&qp_series_val) ?
+                        strdup(qp_series_val.via.str) : NULL;
+
+                if (val->str == NULL)
+                {
+                    log_error("Expecting a null terminated value or a memory "
+                            "allocation error has occurred");
+                }
+            }
+            else
+            {
+                val = &qp_series_val.via;
+            }
+
             /* this point will always fit */
-            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+            siridb_pcache_add_point(*pcache, ts, val);
 
             if (tp == QP_ARRAY2) do
             {
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
+
+                if (series->tp == TP_STRING)
+                {
+                    val->str = qp_is_raw_term(&qp_series_val) ?
+                            strdup(qp_series_val.via.str) : NULL;
+
+                    if (val->str == NULL)
+                    {
+                        log_error("Expecting a null terminated value or a memory "
+                                "allocation error has occurred");
+                    }
+                }
 
                 ts = (uint64_t *) &qp_series_ts.via.int64;
                 SERIES_UPDATE_TS(series)
@@ -582,7 +613,7 @@ static int8_t INSERT_local_work(
                 if (siridb_pcache_add_point(
                         *pcache,
                         ts,
-                        &qp_series_val.via))
+                        val))
                 {
                     return INSERT_LOCAL_ERROR;  /* signal is raised */
                 }
@@ -599,7 +630,6 @@ static int8_t INSERT_local_work(
                 return INSERT_LOCAL_ERROR;  /* signal is raised */
             }
         }
-
 
         if (tp == QP_ARRAY_CLOSE)
         {

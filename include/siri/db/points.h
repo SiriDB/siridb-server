@@ -32,7 +32,6 @@ typedef struct siridb_points_s
 {
     size_t len;
     points_tp tp;
-    char * content;
     siridb_point_t * data;
 } siridb_points_t;
 
