@@ -1,0 +1,2 @@
+  * Changed error message when trying to merge series into an empty destination
+    name and updated test.

@@ -3274,7 +3274,8 @@ static void exit_select_aggregate(uv_async_t * handle)
                         plist))
                 {
                     sprintf(query->err_msg,
-                            "Critical error while adding points to map.");
+                            "Error while merging points. Make sure the "
+                            "destination series name is valid.");
                     slist_free(plist);
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                     return;

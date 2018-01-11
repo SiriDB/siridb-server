@@ -270,13 +270,20 @@ class TestSelect(TestBase):
                     'Query too long.'):
             await self.client0.query('select * from "{}"'.format('a' * 65535))
 
+        with self.assertRaisesRegexp(
+                    QueryError,
+                    'Error while merging points. Make sure the destination '
+                    'series name is valid.'):
+            await self.client0.query(
+                'select * from "aggr", "huge" merge as ""')
+
         self.assertEqual(
             await self.client0.query(
                 'select min(2h) prefix "min-", max(1h) prefix "max-" '
                 'from /.*/ where type == integer and name != "filter" '
                 'and name != "one"'
                 'merge as "int_min_max" using median_low(1) => difference()'),
-            {   'max-int_min_max': [
+                {'max-int_min_max': [
                     [1447254000, 3], [1447257600, -1], [1471255200, -532]],
                 'min-int_min_max': [
                     [1447257600, -477], [1471255200, -54]]})
