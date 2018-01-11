@@ -578,8 +578,9 @@ static int8_t INSERT_local_work(
 
                 if (val->str == NULL)
                 {
-                    log_error("Expecting a null terminated value or a memory "
-                            "allocation error has occurred");
+                    log_error(
+                            "Expecting a null terminated value or a "
+                            "memory allocation error has occurred");
                 }
             }
             else
@@ -602,8 +603,9 @@ static int8_t INSERT_local_work(
 
                     if (val->str == NULL)
                     {
-                        log_error("Expecting a null terminated value or a memory "
-                                "allocation error has occurred");
+                        log_error(
+                                "Expecting a null terminated value or a "
+                                "memory allocation error has occurred");
                     }
                 }
 

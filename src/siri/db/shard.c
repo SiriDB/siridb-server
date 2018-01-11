@@ -106,6 +106,7 @@
  * Max 65535 since uint16_t is used to store this value
  */
 #define DEFAULT_MAX_CHUNK_SZ_NUM 800
+#define DEFAULT_MAX_CHUNK_SZ_LOG 128
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
         {.repr="indexed", .flag=SIRIDB_SHARD_HAS_INDEX},
@@ -325,7 +326,9 @@ siridb_shard_t *  siridb_shard_create(
     shard->replacing = replacing;
     shard->len = shard->size = HEADER_SIZE;
     shard->max_chunk_sz = (replacing == NULL) ?
-            DEFAULT_MAX_CHUNK_SZ_NUM : replacing->max_chunk_sz;
+            (tp == SIRIDB_SHARD_TP_NUMBER ?
+                    DEFAULT_MAX_CHUNK_SZ_NUM : DEFAULT_MAX_CHUNK_SZ_LOG) :
+                    replacing->max_chunk_sz;
 
     FILE * fp;
     if (SHARD_init_fn(siridb, shard) < 0)
@@ -513,7 +516,53 @@ long int siridb_shard_write_points(
     }
     else if (series->tp == TP_STRING)
     {
-        /* TODO: string.. */
+        uint_fast32_t n = end - start;
+        size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+        if (sizes == NULL)
+        {
+            /* TODO: error */
+        }
+
+        dsize = 0;
+        size_t * psz = sizes;
+        unsigned char * pdata;
+
+        for (uint_fast32_t i = start; i < end; ++i, ++psz)
+        {
+            *psz = strlen(points->data[i].val.str) + 1;
+            dsize += *psz;
+        }
+        if (dsize >= 0x8000)
+        {
+            if (dsize > 0x2000000)
+            {
+                /* TODO: error, too large */
+            }
+            dsize = ((dsize + 0x400 - 1) / 0x400);
+            *cinfo = dsize & 0x8000;
+            dsize *= 0x400;
+        }
+        else
+        {
+            *cinfo = dsize;
+        }
+
+        cdata = (unsigned char *) malloc(dsize);
+        if (cdata == NULL)
+        {
+            /* TODO: error */
+        }
+
+        pdata = cdata;
+        psz = sizes;
+
+        for (uint_fast32_t i = start; i < end; ++i, ++psz)
+        {
+            memcpy(pdata, points->data[i].val.str, *psz);
+            pdata += *psz;
+        }
+
+        *cinfo = (dsize >= 0x8000) ? (dsize / 1024) & 0x8000 : dsize;
         dsize = 0;
     }
     else
