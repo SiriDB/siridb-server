@@ -1018,7 +1018,7 @@ int siridb_shard_get_points_log64(
         uint8_t has_overlap __attribute__((unused)))
 {
     uint64_t * tdata, * tpt;
-    unsigned char * cdata, * cpt;
+    char * cdata, * cpt;
     size_t len = points->len + idx->len;
     size_t dsize = idx->cinfo & 0x80000 ? idx->cinfo * 0x400 : idx->cinfo;
 
@@ -1034,7 +1034,7 @@ int siridb_shard_get_points_log64(
     }
 
     uint64_t * tdata = (uint64_t *) malloc(sizeof(uint64_t) * idx->len);
-    cdata = (unsigned char *) malloc(dsize);
+    cdata = (char *) malloc(dsize);
     if (cdata == NULL || tdata == NULL)
     {
         free(tdata);
