@@ -230,6 +230,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     switch (shard->tp)
     {
     case SIRIDB_SHARD_TP_NUMBER:
+    case SIRIDB_SHARD_TP_LOG:
         is_num64 = time_precision > SIRIDB_TIME_SECONDS;
 
         if (SHARD_get_idx_num(siridb, shard, is_num64))
@@ -252,11 +253,6 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
 
             SHARD_load_idx_num(siridb, shard, fp, is_num64);
         }
-        break;
-
-    case SIRIDB_SHARD_TP_LOG:
-        /* TODO: implement string type */
-        assert (0);
         break;
 
     default:
@@ -535,6 +531,8 @@ long int siridb_shard_write_points(
             *cinfo = dsize;
         }
 
+        dsize += n * sizeof(uint64_t);
+
         cdata = (unsigned char *) malloc(dsize);
         if (cdata == NULL)
         {
@@ -544,11 +542,18 @@ long int siridb_shard_write_points(
         pdata = cdata;
         psz = sizes;
 
+        for (uint_fast32_t i = start; i < end; ++i)
+        {
+            memcpy(pdata, points->data[i].ts, sizeof(uint64_t));
+            pdata += sizeof(uint64_t);
+        }
+
         for (uint_fast32_t i = start; i < end; ++i, ++psz)
         {
             memcpy(pdata, points->data[i].val.str, *psz);
             pdata += *psz;
         }
+
         free(sizes);
     }
     else
@@ -1033,7 +1038,7 @@ int siridb_shard_get_points_log64(
         }
     }
 
-    uint64_t * tdata = (uint64_t *) malloc(sizeof(uint64_t) * idx->len);
+    tdata = (uint64_t *) malloc(sizeof(uint64_t) * idx->len);
     cdata = (char *) malloc(dsize);
     if (cdata == NULL || tdata == NULL)
     {
@@ -1090,7 +1095,7 @@ int siridb_shard_get_points_log64(
     /* crop from end if needed */
     if (end_ts != NULL)
     {
-        for (uint64_t * p =  *(idx->len - 1); *p >= *end_ts; --p, len--);
+        for (uint64_t * p = tdata + (idx->len - 1); *p >= *end_ts; --p, len--);
     }
 
     if (    has_overlap &&
@@ -1821,7 +1826,6 @@ static int SHARD_write_header(
                 return EOF;
             }
         }
-        /* TODO: this is not LOG compatible */
         size = IDX32_SZ;
         break;
 
@@ -1831,7 +1835,6 @@ static int SHARD_write_header(
         {
             return EOF;
         }
-        /* TODO: this is not LOG compatible */
         size = IDX64_SZ;
         break;
 
