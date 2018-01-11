@@ -67,7 +67,8 @@
  * 12   (uint16_t)  LEN
  * 14   (uint16_t)  (OPTIONAL COMPRESSION INFO)
  */
-#define IDX_NUM32_SZ 14  /* or 16 when compressed */
+#define IDX32_SZ 14  /* or 16 when log/compressed */
+#define IDX32E_SZ 16
 
 /* 0    (uint32_t)  SERIES_ID
  * 4    (uint64_t)  START_TS
@@ -75,23 +76,8 @@
  * 20   (uint16_t)  LEN
  * 22   (uint16_t)  (OPTIONAL COMPRESSION INFO)
  */
-#define IDX_NUM64_SZ 22  /* or 24 when compressed */
-
-/* 0    (uint32_t)  SERIES_ID
- * 4    (uint32_t)  START_TS
- * 8    (uint32_t)  END_TS
- * 12   (uint16_t)  LEN
- * 14   (uint16_t)  LOG_SZ
- */
-#define IDX_LOG32_SZ 16
-
-/* 0    (uint32_t)  SERIES_ID
- * 4    (uint64_t)  START_TS
- * 12   (uint64_t)  END_TS
- * 20   (uint16_t)  LEN
- * 22   (uint16_t)  LOG_SZ
- */
-#define IDX_LOG64_SZ 24
+#define IDX64_SZ 22  /* or 24 when log/compressed */
+#define IDX64E_SZ 24
 
 #define SHARD_STATUS_SIZE 8
 
@@ -561,9 +547,6 @@ long int siridb_shard_write_points(
             memcpy(pdata, points->data[i].val.str, *psz);
             pdata += *psz;
         }
-
-        *cinfo = (dsize >= 0x8000) ? (dsize / 1024) & 0x8000 : dsize;
-        dsize = 0;
     }
     else
     {
@@ -1385,9 +1368,16 @@ static ssize_t SHARD_apply_idx_num(
     len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
     series = imap_get(siridb->series_map, series_id);
 
-    if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    if (shard->tp == SIRIDB_SHARD_TP_LOG)
     {
-        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ)));
+        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
+        size = (cinfo & 0x8000) ? cinfo * 0x400 : cinfo;
+
+        /* TODO: compressed log data */
+    }
+    else if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
+    {
+        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
         size = (ssize_t) siridb_points_get_size_zipped(cinfo, len);
     }
     else
@@ -1467,9 +1457,11 @@ static int SHARD_get_idx_num(
         siridb_shard_t * shard,
         int is_num64)
 {
-    const unsigned int idx_sz = (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ?
-            (is_num64 ? 24 : 16) :
-            (is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ);
+    const unsigned int idx_sz = (
+            (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ||
+            (shard->tp == SIRIDB_SHARD_TP_LOG)) ?
+                (is_num64 ? IDX64E_SZ : IDX32E_SZ) :
+                (is_num64 ? IDX64_SZ : IDX32_SZ);
     size_t i, n;
     char * data, * pt;
     ssize_t size;
@@ -1544,9 +1536,11 @@ static int SHARD_load_idx_num(
         FILE * fp,
         int is_num64)
 {
-    const unsigned int idx_sz = (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ?
-            is_num64 ? 24 : 16 :
-            is_num64 ? IDX_NUM64_SZ : IDX_NUM32_SZ;
+    const unsigned int idx_sz = (
+            (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ||
+            (shard->tp == SIRIDB_SHARD_TP_LOG)) ?
+                is_num64 ? IDX64E_SZ : IDX32E_SZ :
+                is_num64 ? IDX64_SZ : IDX32_SZ;
 
     char idx[idx_sz];
     ssize_t sz;
@@ -1642,7 +1636,7 @@ static int SHARD_write_header(
             }
         }
         /* TODO: this is not LOG compatible */
-        size = IDX_NUM32_SZ;
+        size = IDX32_SZ;
         break;
 
     case sizeof(uint64_t):
@@ -1652,7 +1646,7 @@ static int SHARD_write_header(
             return EOF;
         }
         /* TODO: this is not LOG compatible */
-        size = IDX_NUM64_SZ;
+        size = IDX64_SZ;
         break;
 
     default:
