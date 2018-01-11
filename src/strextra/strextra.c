@@ -342,3 +342,19 @@ uint64_t strx_to_uint64(const char * src, size_t len)
 
     return i;
 }
+
+/*
+ * Returns a string duplicate like strdup() and set the strlen() to n;
+ */
+char * strx_dup(const char * src, size_t * n)
+{
+    char * pt = src;
+    for (; *pt; ++pt);
+    *n = pt - src;
+    pt = (char *) malloc(*n);
+    if (pt)
+    {
+        memcpy(pt, src, *n + 1);
+    }
+    return pt;
+}
