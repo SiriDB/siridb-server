@@ -631,6 +631,12 @@ static int8_t INSERT_local_work(
             {
                 return INSERT_LOCAL_ERROR;  /* signal is raised */
             }
+
+            if ((*pcache)->tp == TP_STRING)
+            {
+                siridb_points_free((siridb_points_t *) *pcache);
+                *pcache = NULL;
+            }
         }
 
         if (tp == QP_ARRAY_CLOSE)

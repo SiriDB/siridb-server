@@ -30,6 +30,8 @@ class SiriDB:
         self.servers = []
 
     async def create_on(self, server, sleep=None):
+        await asyncio.sleep(1)
+
         logging.info('Create database {} on {}'.format(
             self.dbname,
             server.name))

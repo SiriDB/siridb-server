@@ -758,13 +758,10 @@ static siridb_points_t * AGGREGATE_filter(
                     i < source->len;
                     i++, spt++)
             {
-                if (cexpr_str_cmp(
-                        aggr->filter_opr,
-                        (const char *) spt->val.raw,
-                        (const char *) value.raw))
+                if (cexpr_str_cmp(aggr->filter_opr, spt->val.str, value.str))
                 {
                     dpt->ts = spt->ts;
-                    dpt->val = spt->val;
+                    dpt->val.str = strdup(spt->val.str);
                     dpt++;
                 }
             }

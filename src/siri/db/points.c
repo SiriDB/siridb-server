@@ -92,17 +92,17 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
             free(cpoints);
             cpoints = NULL;
         }
-        else if (points->tp == TP_STRING)
+        else
+        {
+            memcpy(cpoints->data, points->data, sz);
+        }
+        if (points->tp == TP_STRING)
         {
             for (size_t i = 0; i < points->len; ++i)
             {
                 (cpoints->data + i)->val.str =
                         strdup((points->data + i)->val.str);
             }
-        }
-        else
-        {
-            memcpy(cpoints->data, points->data, sz);
         }
     }
     return cpoints;

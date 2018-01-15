@@ -593,12 +593,10 @@ void siridb_series_remove_shard(
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard)
 {
-#if DEBUG
-    assert (shard->id % siridb->duration_num == series->mask);
-#endif
-
     idx_t *__restrict idx;
     uint_fast32_t i, offset;
+    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
+                siridb->duration_num : siridb->duration_log;
 
     i = offset = 0;
 
@@ -645,7 +643,7 @@ void siridb_series_remove_shard(
                 series->idx = idx;
             }
             uint64_t start = shard->id - series->mask;
-            uint64_t end = start + siridb->duration_num;
+            uint64_t end = start + duration;
             if (series->start >= start && series->start < end)
             {
                 SERIES_update_start(series);
@@ -847,10 +845,6 @@ int siridb_series_optimize_shard(
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard)
 {
-#if DEBUG
-    assert (shard->id % siridb->duration_num == series->mask);
-#endif
-
     idx_t *__restrict idx;
 
     uint_fast32_t i, start, end, new_idx;
@@ -860,8 +854,10 @@ int siridb_series_optimize_shard(
     siridb_shard_get_points_cb get_points_cb;
     int rc;
     uint16_t cinfo = 0;
+    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
+                siridb->duration_num : siridb->duration_log;
 
-    max_ts = (shard->id + siridb->duration_num) - series->mask;
+    max_ts = (shard->id + duration) - series->mask;
 
     rc = new_idx = end = i = size = start = 0;
 

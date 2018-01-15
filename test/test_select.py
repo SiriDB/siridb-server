@@ -63,7 +63,10 @@ DATA = {
         [1471254710, 1]
     ],
     'log': [
-        [1471254710, 'test line']
+        [1471254710, 'log line one'],
+        [1471254712, 'log line two'],
+        [1471254714, 'another line (three)'],
+        [1471254716, 'and yet one more'],
     ]
 }
 
@@ -77,7 +80,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 57 point(s).'})
+            {'success_msg': 'Successfully inserted 60 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -219,11 +222,27 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query('select * from "log"'),
-            {'log': [[1471254710, 'test line']]})
+            {'log': DATA['log']})
+
+        self.assertEqual(
+            await self.client0.query('select filter(~"log") => filter(!~"one") from "log"'),
+            {'log': [DATA['log'][1]]})
+
+        self.assertEqual(
+            await self.client0.query('select filter(~"one") prefix "1-", filter(~"two") prefix "2-" from "log"'),
+            {
+                '1-log': [[1471254710, 'log line one'], [1471254716, 'and yet one more']],
+                '2-log': [[1471254712, 'log line two']]
+            })
 
         self.assertEqual(
             await self.client0.query('select difference() from "one"'),
             {'one': []})
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Cannot use mean\(\) on string type\.'):
+            await self.client0.query('select mean(1w) from "log"')
 
         with self.assertRaisesRegexp(
                 QueryError,
