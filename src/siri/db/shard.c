@@ -522,9 +522,9 @@ long int siridb_shard_write_points(
             {
                 /* TODO: error, too large */
             }
-            dsize = ((dsize + 0x400 - 1) / 0x400);
+            dsize = (!!(dsize & 0x3ff)) + (dsize >> 10);
             *cinfo = dsize & 0x8000;
-            dsize *= 0x400;
+            dsize <<= 10;
         }
         else
         {
@@ -944,7 +944,8 @@ int siridb_shard_get_points_log32(
     uint32_t * tdata, * tpt;
     char * cdata, * cpt;
     size_t len = points->len + idx->len;
-    size_t dsize = idx->cinfo & 0x80000 ? idx->cinfo * 0x400 : idx->cinfo;
+    size_t dsize = idx->cinfo & 0x80000 ?
+            (idx->cinfo ^ 0x8000) << 10 : idx->cinfo;
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -1060,7 +1061,8 @@ int siridb_shard_get_points_log64(
     uint64_t * tdata, * tpt;
     char * cdata, * cpt;
     size_t len = points->len + idx->len;
-    size_t dsize = idx->cinfo & 0x80000 ? idx->cinfo * 0x400 : idx->cinfo;
+    size_t dsize = idx->cinfo & 0x80000 ?
+            (idx->cinfo ^ 0x8000) << 10 : idx->cinfo;
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -1597,7 +1599,7 @@ static ssize_t SHARD_apply_idx_num(
     if (shard->tp == SIRIDB_SHARD_TP_LOG)
     {
         cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
-        size = (cinfo & 0x8000) ? cinfo * 0x400 : cinfo;
+        size = (cinfo & 0x8000) ? (cinfo ^ 0x8000) << 10 : cinfo;
 
         /* TODO: compressed log data */
     }
