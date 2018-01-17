@@ -405,18 +405,7 @@ unsigned char * siridb_points_zip_int(
         }
     }
 
-    switch (vcount)
-    {
-        case 1: *cinfo = 0x80; break;
-        case 2: *cinfo = 0xc0; break;
-        case 3: *cinfo = 0xe0; break;
-        case 4: *cinfo = 0xf0; break;
-        case 5: *cinfo = 0xf8; break;
-        case 6: *cinfo = 0xfc; break;
-        case 7: *cinfo = 0xfe; break;
-        case 8: *cinfo = 0xff; break;
-    }
-
+    *cinfo = 0xff00 >> vcount;
     shift = (tcount > shift) ? tcount : shift;
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
@@ -523,7 +512,9 @@ unsigned char * siridb_points_raw_string(
     {
         if (*size > 0x2000000)
         {
-            /* TODO: error, too large */
+            free(sizes);
+            log_critical("Size too large: %zu", *size);
+            return NULL;
         }
         *size = (!!((*size) & 0x3ff)) + ((*size) >> 10);
         *cinfo = (*size) & 0x8000;
@@ -563,6 +554,8 @@ unsigned char * siridb_points_raw_string(
             pdata += sizeof(uint64_t);
         }
         break;
+    default:
+        assert(0);
     }
 
     for (uint_fast32_t i = start; i < end; ++i, ++psz)
