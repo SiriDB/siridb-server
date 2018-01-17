@@ -663,10 +663,10 @@ void siridb_series_remove_shard(
  */
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
 {
-    if (series->buffer == NULL)
+    if (series->tp != TP_STRING && series->buffer == NULL)
     {
         log_error(
-            "Drop '%s' (%" PRIu32 ") since nu buffer is found for this series",
+            "Drop '%s' (%" PRIu32 ") since no buffer is found for this series",
             series->name,
             series->id);
         siridb_series_drop(siridb, series);
@@ -1551,7 +1551,7 @@ static void SERIES_update_start(siridb_series_t *__restrict series)
 {
     series->start = series->idx_len ? series->idx->start_ts : UINT64_MAX;
 
-    if (series->buffer->len)
+    if (series->buffer && series->buffer->len)
     {
         siridb_point_t * point = series->buffer->data;
         if (point->ts < series->start)
@@ -1591,7 +1591,7 @@ static void SERIES_update_end(siridb_series_t *__restrict series)
         series->end = 0;
     }
 
-    if (series->buffer->len)
+    if (series->buffer && series->buffer->len)
     {
         siridb_point_t * point = series->buffer->data +
                 series->buffer->len - 1;

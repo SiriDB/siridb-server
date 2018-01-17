@@ -1593,6 +1593,7 @@ static ssize_t SHARD_apply_idx_num(
     {
         return 0;
     }
+
     len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
     series = imap_get(siridb->series_map, series_id);
 
@@ -1600,7 +1601,7 @@ static ssize_t SHARD_apply_idx_num(
     {
         cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
         size = (cinfo & 0x8000) ? (cinfo ^ 0x8000) << 10 : cinfo;
-
+        size += len * (is_num64 ? sizeof(uint64_t) : sizeof(uint32_t));
         /* TODO: compressed log data */
     }
     else if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
@@ -1615,7 +1616,7 @@ static ssize_t SHARD_apply_idx_num(
 
     if (series == NULL)
     {
-        if (!series_id || series_id > siridb->max_series_id)
+        if (series_id > siridb->max_series_id)
         {
             log_error(
                     "Unexpected Series ID %" PRIu32
