@@ -348,15 +348,11 @@ uint64_t strx_to_uint64(const char * src, size_t len)
  */
 char * strx_dup(const char * src, size_t * n)
 {
-    char * nstr;
-    const char * pt = src;
-    for (; *pt; ++pt);
-    *n = pt - src + 1;
-    nstr = (char *) malloc(*n);
+    *n = strlen(src);
+    char * nstr = (char *) malloc(*n + 1);
     if (nstr)
     {
-        memcpy(nstr, src, *n);
+        memcpy(nstr, src, *n + 1);
     }
-    --*n;
     return nstr;
 }
