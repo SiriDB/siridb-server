@@ -1,0 +1,79 @@
+import asyncio
+import functools
+import random
+import time
+import re
+import calendar
+import datetime
+import collections
+from testing import Client
+from testing import default_test_setup
+from testing import gen_data
+from testing import gen_points
+from testing import gen_series
+from testing import InsertError
+from testing import PoolError
+from testing import QueryError
+from testing import run_test
+from testing import Series
+from testing import Server
+from testing import ServerError
+from testing import SiriDB
+from testing import TestBase
+from testing import UserAuthError
+
+# Compression OFF:
+# du --bytes testdir/dbpath0/dbtest/shards/
+# 154420  testdir/dbpath0/dbtest/shards/
+
+SYSLOG = '/home/joente/syslog.log'
+FMT = '%b %d %H:%M:%S'
+MTCH = re.compile('(\w\w\w\s\d\d\s\d\d:\d\d:\d\d)\s(\w+)\s(\w+)\[\d+\]:\s(.*)')
+
+
+class TestSyslog(TestBase):
+    title = 'Test with syslog data'
+
+
+    async def insert_syslog(self, batch_size=100):
+
+        with open(SYSLOG, 'r') as f:
+            lines = f.readlines()
+
+        points = collections.defaultdict(list)
+        n = 0
+
+        for line in lines:
+            r = MTCH.match(line.strip())
+            if not r:
+                continue
+
+            rtime, host, process, logline = r.groups()
+            dt = datetime.datetime.strptime(rtime, FMT)
+            dt = dt.replace(year=datetime.datetime.now().year)
+            ts = calendar.timegm(dt.timetuple())
+            points['{}|{}'.format(host, process)].append([ts, logline])
+            n += 1
+            if n % batch_size == 0:
+                await self.client0.insert(points)
+                points.clear()
+
+        if points:
+            await self.client0.insert(points)
+
+    @default_test_setup(1, compression=False)
+    async def run(self):
+        await self.client0.connect()
+
+        await self.insert_syslog()
+
+        self.client0.close()
+
+        return False
+
+if __name__ == '__main__':
+    SiriDB.LOG_LEVEL = 'CRITICAL'
+    Server.HOLD_TERM = True
+    Server.MEM_CHECK = True
+    Server.BUILDTYPE = 'Debug'
+    run_test(TestSyslog())

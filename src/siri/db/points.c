@@ -479,6 +479,102 @@ unsigned char * siridb_points_zip_int(
     return bits;
 }
 
+unsigned char * siridb_points_zip_string(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size)
+{
+    if (end - start < ZIP_THRESHOLD)
+    {
+        return siridb_points_raw_string(points, start, end, cinfo, size);
+    }
+    return NULL;
+}
+
+unsigned char * siridb_points_raw_string(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size)
+{
+    size_t ts_sz = *size;
+    *size = 0;
+
+    uint_fast32_t n = end - start;
+    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    if (sizes == NULL)
+    {
+        return NULL;
+    }
+
+    size_t * psz = sizes;
+    unsigned char * pdata;
+
+    for (uint_fast32_t i = start; i < end; ++i, ++psz)
+    {
+        *psz = strlen(points->data[i].val.str) + 1;
+        *size += *psz;
+    }
+
+    if (*size >= 0x8000)
+    {
+        if (*size > 0x2000000)
+        {
+            /* TODO: error, too large */
+        }
+        *size = (!!((*size) & 0x3ff)) + ((*size) >> 10);
+        *cinfo = (*size) & 0x8000;
+        *size <<= 10;
+    }
+    else
+    {
+        *cinfo = *size;
+    }
+
+    *size += n * ts_sz;
+
+    unsigned char * cdata = (unsigned char *) malloc(*size);
+    if (cdata == NULL)
+    {
+        free(sizes);
+        return NULL;
+    }
+
+    pdata = cdata;
+    psz = sizes;
+
+    switch (ts_sz)
+    {
+    case sizeof(uint32_t):
+        for (uint_fast32_t i = start; i < end; ++i)
+        {
+            uint32_t ts = points->data[i].ts;
+            memcpy(pdata, &ts, sizeof(uint32_t));
+            pdata += sizeof(uint32_t);
+        }
+        break;
+    case sizeof(uint64_t):
+        for (uint_fast32_t i = start; i < end; ++i)
+        {
+            memcpy(pdata, &points->data[i].ts, sizeof(uint64_t));
+            pdata += sizeof(uint64_t);
+        }
+        break;
+    }
+
+    for (uint_fast32_t i = start; i < end; ++i, ++psz)
+    {
+        memcpy(pdata, points->data[i].val.str, *psz);
+        pdata += *psz;
+    }
+
+    free(sizes);
+
+    return cdata;
+}
 /*
  * Return NULL in case an error has occurred. This function destroys the
  * original points.

@@ -58,6 +58,18 @@ unsigned char * siridb_points_zip_int(
         uint_fast32_t end,
         uint16_t * cinfo,
         size_t * size);
+unsigned char * siridb_points_zip_string(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size);
+unsigned char * siridb_points_raw_string(
+        siridb_points_t * points,
+        uint_fast32_t start,
+        uint_fast32_t end,
+        uint16_t * cinfo,
+        size_t * size);
 void siridb_points_unzip_int(
         siridb_points_t * points,
         unsigned char * bits,
@@ -78,5 +90,8 @@ size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len);
 
 
 #define siridb_points_zip(p__, s__, e__, c__, z__) \
-((p__)->tp == TP_INT) ? siridb_points_zip_int(p__, s__, e__, c__, z__) :\
-siridb_points_zip_double(p__, s__, e__, c__, z__)
+((p__)->tp == TP_INT) ? \
+siridb_points_zip_int(p__, s__, e__, c__, z__) : \
+((p__)->tp == TP_DOUBLE) ? \
+siridb_points_zip_double(p__, s__, e__, c__, z__) : \
+siridb_points_zip_string(p__, s__, e__, c__, z__)

@@ -491,6 +491,7 @@ long int siridb_shard_write_points(
 
     if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {
+        dsize = siridb->time->ts_sz;
         cdata = siridb_points_zip(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
@@ -500,74 +501,13 @@ long int siridb_shard_write_points(
     }
     else if (series->tp == TP_STRING)
     {
-        uint_fast32_t n = end - start;
-        size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
-        if (sizes == NULL)
-        {
-            /* TODO: error */
-        }
-
-        dsize = 0;
-        size_t * psz = sizes;
-        unsigned char * pdata;
-
-        for (uint_fast32_t i = start; i < end; ++i, ++psz)
-        {
-            *psz = strlen(points->data[i].val.str) + 1;
-            dsize += *psz;
-        }
-        if (dsize >= 0x8000)
-        {
-            if (dsize > 0x2000000)
-            {
-                /* TODO: error, too large */
-            }
-            dsize = (!!(dsize & 0x3ff)) + (dsize >> 10);
-            *cinfo = dsize & 0x8000;
-            dsize <<= 10;
-        }
-        else
-        {
-            *cinfo = dsize;
-        }
-
-        dsize += n * siridb->time->ts_sz;
-
-        cdata = (unsigned char *) malloc(dsize);
+        dsize = siridb->time->ts_sz;
+        cdata = siridb_points_raw_string(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
-            /* TODO: error */
+            log_critical("Memory allocation error while compressing points");
+            return -1;
         }
-
-        pdata = cdata;
-        psz = sizes;
-
-        switch (siridb->time->ts_sz)
-        {
-        case sizeof(uint32_t):
-            for (uint_fast32_t i = start; i < end; ++i)
-            {
-                uint32_t ts = points->data[i].ts;
-                memcpy(pdata, &ts, sizeof(uint32_t));
-                pdata += sizeof(uint32_t);
-            }
-            break;
-        case sizeof(uint64_t):
-            for (uint_fast32_t i = start; i < end; ++i)
-            {
-                memcpy(pdata, &points->data[i].ts, sizeof(uint64_t));
-                pdata += sizeof(uint64_t);
-            }
-            break;
-        }
-
-        for (uint_fast32_t i = start; i < end; ++i, ++psz)
-        {
-            memcpy(pdata, points->data[i].val.str, *psz);
-            pdata += *psz;
-        }
-
-        free(sizes);
     }
     else
     {
