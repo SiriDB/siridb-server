@@ -140,10 +140,33 @@ int siridb_shard_get_points_num_compressed(
         uint64_t * end_ts,
         uint8_t has_overlap);
 
+int siridb_shard_get_points_log_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap);
 
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);
+
+static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
+        uint8_t shard_flags,
+        siridb_series_t * series)
+{
+    return shard_flags & SIRIDB_SHARD_IS_COMPRESSED ?
+            (series->tp == TP_STRING ?
+                    siridb_shard_get_points_log_compressed :
+                    siridb_shard_get_points_num_compressed) :
+            (series->tp == TP_STRING ?
+                    (series->flags & SIRIDB_SERIES_IS_32BIT_TS ?
+                            siridb_shard_get_points_log32 :
+                            siridb_shard_get_points_log64) :
+                    (series->flags & SIRIDB_SERIES_IS_32BIT_TS ?
+                            siridb_shard_get_points_num32 :
+                            siridb_shard_get_points_num64));
+}
 
 /*
  * Increment the shard reference counter.

@@ -87,6 +87,10 @@ void siridb_points_unzip_double(
         uint64_t * end_ts,
         uint8_t has_overlap);
 size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len);
+static inline size_t siridb_points_get_size_log(size_t cinfo)
+{
+    return cinfo & 0x8000 ? (cinfo ^ 0x8000) << 10 : cinfo;
+}
 
 
 #define siridb_points_zip(p__, s__, e__, c__, z__) \

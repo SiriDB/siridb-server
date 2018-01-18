@@ -32,7 +32,6 @@ typedef points_tp series_tp;
 #define SIRIDB_SERIES_INIT_REPL 4
 #define SIRIDB_SERIES_IS_SERVER_ONE 8     /* if not set its server_id 0 */
 #define SIRIDB_SERIES_IS_32BIT_TS 16    /* if not set its a 64 bit ts */
-#define SIRIDB_SERIES_IS_LOG 32         /* if not set its numeric (int/real) */
 
 /* the max length including terminator char */
 #define SIRIDB_SERIES_NAME_LEN_MAX 65535

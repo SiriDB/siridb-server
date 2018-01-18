@@ -43,15 +43,6 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
-#define SERIES_GET_POINTS_CB(get_points_cb__, series__)                 \
-    get_points_cb__ = (series__->flags & SIRIDB_SERIES_IS_32BIT_TS) ?   \
-            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
-                    siridb_shard_get_points_log32 :                     \
-                    siridb_shard_get_points_num32 :                     \
-            (series__->flags & SIRIDB_SERIES_IS_LOG) ?                  \
-                    siridb_shard_get_points_log64 :                     \
-                    siridb_shard_get_points_num64;
-
 static int SERIES_save(siridb_t * siridb);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
 static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
@@ -701,7 +692,6 @@ siridb_points_t * siridb_series_get_points(
     size_t len, size;
     uint32_t i;
     uint32_t indexes[series->idx_len];
-    siridb_shard_get_points_cb get_points_cb;
     len = i = size = 0;
 
     for (   idx = series->idx;
@@ -725,29 +715,15 @@ siridb_points_t * siridb_series_get_points(
         return NULL;  /* signal is raised */
     }
 
-    SERIES_GET_POINTS_CB(get_points_cb, series)
-
     for (i = 0; i < len; i++)
     {
         idx = series->idx + indexes[i];
-        if (idx->shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
-        {
-            siridb_shard_get_points_num_compressed(
-                    points,
-                    idx,
-                    start_ts,
-                    end_ts,
-                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
-        }
-        else
-        {
-            get_points_cb(
-                    points,
-                    idx,
-                    start_ts,
-                    end_ts,
-                    series->flags & SIRIDB_SERIES_HAS_OVERLAP);
-        }
+        siridb_shard_get_points_callback(idx->shard->flags, series)(
+                points,
+                idx,
+                start_ts,
+                end_ts,
+                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
         /* errors can be ignored here */
     }
 
@@ -851,7 +827,6 @@ int siridb_series_optimize_shard(
     uint64_t max_ts;
     size_t size;
     siridb_points_t *__restrict points;
-    siridb_shard_get_points_cb get_points_cb;
     int rc;
     uint16_t cinfo = 0;
     uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
@@ -900,15 +875,8 @@ int siridb_series_optimize_shard(
     long int pos;
     uint16_t chunk_sz;
     uint_fast32_t num_chunks, pstart, pend, diff;
-
-    if (shard->replacing->flags & SIRIDB_SHARD_IS_COMPRESSED)
-    {
-        get_points_cb = siridb_shard_get_points_num_compressed;
-    }
-    else
-    {
-        SERIES_GET_POINTS_CB(get_points_cb, series)
-    }
+    siridb_shard_get_points_cb get_points_cb = \
+            siridb_shard_get_points_callback(shard->replacing->flags, series);
 
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
@@ -1207,13 +1175,7 @@ static siridb_series_t * SERIES_new(
             {
                 series->flags |= SIRIDB_SERIES_IS_32BIT_TS;
             }
-
-            if (tp == TP_STRING)
-            {
-                series->flags |= SIRIDB_SERIES_IS_LOG;
-            }
         }
-
     }
     return series;
 }

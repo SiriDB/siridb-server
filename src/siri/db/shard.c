@@ -112,21 +112,21 @@ const char shard_type_map[2][7] = {
         "log"
 };
 
-static ssize_t SHARD_apply_idx_num(
+static ssize_t SHARD_apply_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
         char * pt,
         size_t pos,
-        int is_num64);
-static int SHARD_get_idx_num(
+        int is_ts64);
+static int SHARD_get_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
-        int is_num64);
-static int SHARD_load_idx_num(
+        int is_ts64);
+static int SHARD_load_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp,
-        int is_num64);
+        int is_ts64);
 static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 static int SHARD_grow(siridb_shard_t * shard);
 static int SHARD_write_header(
@@ -145,7 +145,7 @@ static int SHARD_remove(siridb_shard_t * shard);
  */
 int siridb_shard_load(siridb_t * siridb, uint64_t id)
 {
-    int is_num64;
+    int is_ts64;
     FILE * fp;
     off_t shard_sz;
     siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
@@ -231,9 +231,9 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     {
     case SIRIDB_SHARD_TP_NUMBER:
     case SIRIDB_SHARD_TP_LOG:
-        is_num64 = time_precision > SIRIDB_TIME_SECONDS;
+        is_ts64 = time_precision > SIRIDB_TIME_SECONDS;
 
-        if (SHARD_get_idx_num(siridb, shard, is_num64))
+        if (SHARD_get_idx(siridb, shard, is_ts64))
         {
             fclose(fp);
             log_critical("Cannot read index for shard: '%s'", shard->fn);
@@ -251,7 +251,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
                 return -1;
             }
 
-            SHARD_load_idx_num(siridb, shard, fp, is_num64);
+            SHARD_load_idx(siridb, shard, fp, is_ts64);
         }
         break;
 
@@ -871,21 +871,30 @@ int siridb_shard_get_points_num_compressed(
     return 0;
 }
 
+int siridb_shard_get_points_log_compressed(
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    return 0;
+}
+
 /*
  * COPY from siridb_shard_get_points_log64
  */
 int siridb_shard_get_points_log32(
-        siridb_points_t * points __attribute__((unused)),
-        idx_t * idx __attribute__((unused)),
-        uint64_t * start_ts __attribute__((unused)),
-        uint64_t * end_ts __attribute__((unused)),
-        uint8_t has_overlap __attribute__((unused)))
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
 {
     uint32_t * tdata, * tpt;
     char * cdata, * cpt;
     size_t len = points->len + idx->len;
-    size_t dsize = idx->cinfo & 0x80000 ?
-            (idx->cinfo ^ 0x8000) << 10 : idx->cinfo;
+    size_t dsize = siridb_points_get_size_log(idx->cinfo);
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -992,17 +1001,16 @@ int siridb_shard_get_points_log32(
  * COPY from siridb_shard_get_points_log32
  */
 int siridb_shard_get_points_log64(
-        siridb_points_t * points __attribute__((unused)),
-        idx_t * idx __attribute__((unused)),
-        uint64_t * start_ts __attribute__((unused)),
-        uint64_t * end_ts __attribute__((unused)),
-        uint8_t has_overlap __attribute__((unused)))
+        siridb_points_t * points,
+        idx_t * idx,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
 {
     uint64_t * tdata, * tpt;
     char * cdata, * cpt;
     size_t len = points->len + idx->len;
-    size_t dsize = idx->cinfo & 0x80000 ?
-            (idx->cinfo ^ 0x8000) << 10 : idx->cinfo;
+    size_t dsize = siridb_points_get_size_log(idx->cinfo);
 
     if (idx->shard->fp->fp == NULL)
     {
@@ -1515,12 +1523,12 @@ static int SHARD_remove(siridb_shard_t * shard)
  * is simply ignored. In case the series id is not possible (invalid id),
  * then an log error is displayed and the return value will be -1.
  */
-static ssize_t SHARD_apply_idx_num(
+static ssize_t SHARD_apply_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
         char * pt,
         size_t pos,
-        int is_num64)
+        int is_ts64)
 {
     ssize_t size;
     uint16_t len;
@@ -1534,24 +1542,24 @@ static ssize_t SHARD_apply_idx_num(
         return 0;
     }
 
-    len = *((uint16_t *) (pt + (is_num64 ? 20 : 12)));  // LEN POS IN INDEX
+    len = *((uint16_t *) (pt + (is_ts64 ? 20 : 12)));  // LEN POS IN INDEX
     series = imap_get(siridb->series_map, series_id);
 
     if (shard->tp == SIRIDB_SHARD_TP_LOG)
     {
-        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
-        size = (cinfo & 0x8000) ? (cinfo ^ 0x8000) << 10 : cinfo;
-        size += len * (is_num64 ? sizeof(uint64_t) : sizeof(uint32_t));
+        cinfo = *((uint16_t *)(pt + (is_ts64 ? IDX64_SZ : IDX32_SZ)));
+        size = (ssize_t) siridb_points_get_size_log(cinfo);
+        size += len * (is_ts64 ? sizeof(uint64_t) : sizeof(uint32_t));
         /* TODO: compressed log data */
     }
     else if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {
-        cinfo = *((uint16_t *)(pt + (is_num64 ? IDX64_SZ : IDX32_SZ)));
+        cinfo = *((uint16_t *)(pt + (is_ts64 ? IDX64_SZ : IDX32_SZ)));
         size = (ssize_t) siridb_points_get_size_zipped(cinfo, len);
     }
     else
     {
-        size = len * (is_num64 ? 16 : 12);
+        size = len * (is_ts64 ? 16 : 12);
     }
 
     if (series == NULL)
@@ -1591,10 +1599,10 @@ static ssize_t SHARD_apply_idx_num(
         if (siridb_series_add_idx(
                 series,
                 shard,
-                is_num64 ? // START_TS IN HEADER
+                is_ts64 ? // START_TS IN HEADER
                         (uint64_t) *((uint64_t *) (pt + 4)) :
                         (uint64_t) *((uint32_t *) (pt + 4)),
-                is_num64 ? // END_TS IN HEADER
+                is_ts64 ? // END_TS IN HEADER
                         (uint64_t) *((uint64_t *) (pt + 12)) :
                         (uint64_t) *((uint32_t *) (pt + 8)),
                 (uint32_t) pos,
@@ -1621,16 +1629,16 @@ static ssize_t SHARD_apply_idx_num(
  *
  * Member shard->len will be updated according the index.
  */
-static int SHARD_get_idx_num(
+static int SHARD_get_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
-        int is_num64)
+        int is_ts64)
 {
     const unsigned int idx_sz = (
             (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ||
             (shard->tp == SIRIDB_SHARD_TP_LOG)) ?
-                (is_num64 ? IDX64E_SZ : IDX32E_SZ) :
-                (is_num64 ? IDX64_SZ : IDX32_SZ);
+                (is_ts64 ? IDX64E_SZ : IDX32E_SZ) :
+                (is_ts64 ? IDX64_SZ : IDX32_SZ);
     size_t i, n;
     char * data, * pt;
     ssize_t size;
@@ -1667,12 +1675,12 @@ static int SHARD_get_idx_num(
         pt = data;
         for (i = 0; i < n; i++, pt += idx_sz)
         {
-            size = SHARD_apply_idx_num(
+            size = SHARD_apply_idx(
                     siridb,
                     shard,
                     pt,
                     shard->len,
-                    is_num64);
+                    is_ts64);
 
             if (size < 0)
             {
@@ -1699,17 +1707,17 @@ static int SHARD_get_idx_num(
  * corrupt in case of disk errors and try to recover on the next optimize
  * cycle.
  */
-static int SHARD_load_idx_num(
+static int SHARD_load_idx(
         siridb_t * siridb,
         siridb_shard_t * shard,
         FILE * fp,
-        int is_num64)
+        int is_ts64)
 {
     const unsigned int idx_sz = (
             (shard->flags & SIRIDB_SHARD_IS_COMPRESSED) ||
             (shard->tp == SIRIDB_SHARD_TP_LOG)) ?
-                is_num64 ? IDX64E_SZ : IDX32E_SZ :
-                is_num64 ? IDX64_SZ : IDX32_SZ;
+                is_ts64 ? IDX64E_SZ : IDX32E_SZ :
+                is_ts64 ? IDX64_SZ : IDX32_SZ;
 
     char idx[idx_sz];
     ssize_t sz;
@@ -1720,7 +1728,7 @@ static int SHARD_load_idx_num(
     {
         pos = shard->len + idx_sz;
 
-        sz = SHARD_apply_idx_num(siridb, shard, idx, pos, is_num64);
+        sz = SHARD_apply_idx(siridb, shard, idx, pos, is_ts64);
         if (sz == 0)
         {
             break;
