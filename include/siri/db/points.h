@@ -15,6 +15,8 @@
 #include <qpack/qpack.h>
 #include <slist/slist.h>
 
+#define POINTS_ZIP_THRESHOLD 5
+
 typedef enum
 {
     TP_INT,

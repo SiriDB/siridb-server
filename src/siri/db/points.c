@@ -21,7 +21,7 @@
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
 #define RAW_VALUES_THRESHOLD 7
-#define ZIP_THRESHOLD 5
+
 
 static unsigned char * POINTS_zip_raw(
         siridb_points_t * points,
@@ -357,7 +357,7 @@ unsigned char * siridb_points_zip_int(
         uint16_t * cinfo,
         size_t * size)
 {
-    if (end - start < ZIP_THRESHOLD)
+    if (end - start < POINTS_ZIP_THRESHOLD)
     {
         return POINTS_zip_raw(points, start, end, cinfo, size);
     }
@@ -475,10 +475,45 @@ unsigned char * siridb_points_zip_string(
         uint16_t * cinfo,
         size_t * size)
 {
-    if (end - start < ZIP_THRESHOLD)
+    if (end - start < POINTS_ZIP_THRESHOLD)
     {
+        *size = sizeof(uint64_t);
         return siridb_points_raw_string(points, start, end, cinfo, size);
     }
+
+    uint64_t tdiff = 0;
+    unsigned char * bits, *pt;
+    uint64_t mask;
+    size_t sz = 0, i = end - 2;
+    siridb_point_t * point = points->data + i;
+    uint64_t ts = (point + 1)->ts - point->ts;
+    uint8_t tinfo = 0;
+    uint8_t shift = 0;
+
+    sz += strlen((point + 1)->val.str);
+    sz += strlen((point)->val.str);
+    while (i-- > start)
+    {
+        point--;
+        sz += strlen(point->val.str);
+        tdiff |= ts ^ ((point + 1)->ts - point->ts);
+    }
+
+    for (i = 1, mask = 0xff; i <= 8; mask <<= 8, i++)
+    {
+        if (tdiff & mask)
+        {
+            tinfo = i;
+        }
+        else if (ts & mask)
+        {
+            shift = i;
+        }
+    }
+
+    shift = tinfo > shift ? tinfo : shift;
+    sz += 16 + shift + tinfo*(end - start - 2);
+
     return NULL;
 }
 
@@ -579,7 +614,7 @@ unsigned char * siridb_points_zip_double(
         uint16_t * cinfo,
         size_t * size)
 {
-    if (end - start < ZIP_THRESHOLD)
+    if (end - start < POINTS_ZIP_THRESHOLD)
     {
         return POINTS_zip_raw(points, start, end, cinfo, size);
     }
@@ -679,7 +714,7 @@ void siridb_points_unzip_int(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
-    if (len < ZIP_THRESHOLD)
+    if (len < POINTS_ZIP_THRESHOLD)
     {
         return POINTS_unzip_raw(
                 points, bits, len, start_ts, end_ts, has_overlap);
@@ -772,7 +807,7 @@ void siridb_points_unzip_double(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
-    if (len < ZIP_THRESHOLD)
+    if (len < POINTS_ZIP_THRESHOLD)
     {
         return POINTS_unzip_raw(
                 points, bits, len, start_ts, end_ts, has_overlap);
@@ -868,7 +903,7 @@ void siridb_points_unzip_double(
 
 size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len)
 {
-    if (len < ZIP_THRESHOLD)
+    if (len < POINTS_ZIP_THRESHOLD)
     {
         return len * 16;
     }

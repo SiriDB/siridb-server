@@ -491,7 +491,6 @@ long int siridb_shard_write_points(
 
     if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {
-        dsize = siridb->time->ts_sz;
         cdata = siridb_points_zip(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
@@ -878,6 +877,26 @@ int siridb_shard_get_points_log_compressed(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
+    if (idx->len < POINTS_ZIP_THRESHOLD)
+    {
+        return siridb_shard_get_points_log64(
+                points, idx, start_ts, end_ts, has_overlap);
+    }
+
+    unsigned char * bits;
+    size_t size = siridb_points_get_size_log(idx->cinfo);
+
+    if (idx->shard->fp->fp == NULL)
+    {
+        if (siri_fopen(siri.fh, idx->shard->fp, idx->shard->fn, "r+"))
+        {
+            log_critical(
+                    "Cannot open file '%s', skip reading points",
+                    idx->shard->fn);
+            return -1;
+        }
+    }
+
     return 0;
 }
 
