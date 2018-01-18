@@ -18,7 +18,8 @@ RUN apk update && \
     mkdir -p /var/lib/siridb
 COPY --from=0 /tmp/siridb-server/siridb.conf /etc/siridb/siridb.conf
 COPY --from=0 /tmp/siridb-server/Release/siridb-server /usr/local/bin/
-COPY --from=0 /usr/lib/libcleri.so /usr/lib/libcleri.so
+COPY --from=0 /usr/lib/libcleri* /usr/lib/
+
 # Configuration
 VOLUME ["/etc/siridb"] # config
 # Data
