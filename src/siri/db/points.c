@@ -468,6 +468,25 @@ unsigned char * siridb_points_zip_int(
     return bits;
 }
 
+static size_t POINTS_strlen_check_ascii(const char * str, uint8_t * ascii_only)
+{
+    size_t sz;
+    if (*ascii_only)
+    {
+        const char * pt = str;
+        for (; *pt; ++pt)
+        {
+            *ascii_only &= (*pt) ^ 0x80;
+        }
+        sz = pt - str + 1;
+    }
+    else
+    {
+        sz = strlen(str) + 1;
+    }
+    return sz;
+}
+
 unsigned char * siridb_points_zip_string(
         siridb_points_t * points,
         uint_fast32_t start,
@@ -475,12 +494,18 @@ unsigned char * siridb_points_zip_string(
         uint16_t * cinfo,
         size_t * size)
 {
-    if (end - start < POINTS_ZIP_THRESHOLD)
+    uint_fast32_t n = end - start;
+    if (n < POINTS_ZIP_THRESHOLD)
     {
         *size = sizeof(uint64_t);
         return siridb_points_raw_string(points, start, end, cinfo, size);
     }
-
+    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    if (sizes == NULL)
+    {
+        return NULL;
+    }
+    uint8_t ascii_only = 0x80;
     uint64_t tdiff = 0;
     unsigned char * bits, *pt;
     uint64_t mask;
@@ -490,12 +515,12 @@ unsigned char * siridb_points_zip_string(
     uint8_t tinfo = 0;
     uint8_t shift = 0;
 
-    sz += strlen((point + 1)->val.str);
-    sz += strlen((point)->val.str);
+    sz += POINTS_strlen_check_ascii((point + 1)->val.str, &ascii_only);
+    sz += POINTS_strlen_check_ascii((point)->val.str, &ascii_only);
     while (i-- > start)
     {
         point--;
-        sz += strlen(point->val.str);
+        sz += POINTS_strlen_check_ascii(point->val.str, &ascii_only);
         tdiff |= ts ^ ((point + 1)->ts - point->ts);
     }
 
@@ -514,6 +539,7 @@ unsigned char * siridb_points_zip_string(
     shift = tinfo > shift ? tinfo : shift;
     sz += 16 + shift + tinfo*(end - start - 2);
 
+    free(sizes);
     return NULL;
 }
 
