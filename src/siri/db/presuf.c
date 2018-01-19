@@ -127,8 +127,6 @@ int siridb_presuf_is_unique(siridb_presuf_t * presuf)
     return 1;  /* true, unique */
 }
 
-
-
 const char * siridb_presuf_name(
         siridb_presuf_t * presuf,
         const char * name,

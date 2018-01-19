@@ -13,7 +13,6 @@
 #include <logger/logger.h>
 #include <siri/args/args.h>
 #include <siri/db/presuf.h>
-#include <siri/db/points.h>
 #include <siri/err.h>
 #include <siri/help/help.h>
 #include <siri/siri.h>

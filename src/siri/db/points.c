@@ -42,7 +42,7 @@ static void POINTS_simple_sort(siridb_points_t * points);
 static inline int POINTS_compare(const void * a, const void * b);
 static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points);
 
-static uint8_t * dictionary[DICT_SZ];
+static uint8_t * dictionary[DICT_SZ + 1];
 
 void siridb_points_init(void)
 {
@@ -505,7 +505,7 @@ static void POINTS_output_literal(
         uint8_t ** out,
         uint8_t is_ascii)
 {
-//    LOGC("OUTLI: '%.*s'", (int) len, pt);
+    LOGC("OUTLI: '%.*s'", (int) len, pt);
     if (!is_ascii)
     {
         size_t n = len;
@@ -569,8 +569,9 @@ static void POINTS_zip_str(
     uint8_t * match;
     uint8_t * literal = *pt;
     memcpy(*pt, s, n);
-    uint8_t * end = (*pt) + n - sizeof(uint32_t);
-    while (*pt < end)
+    uint8_t * end = (*pt) + n;
+    uint8_t * tend = end - sizeof(uint32_t);
+    while (*pt < tend)
     {
         uint32_t * inp = (uint32_t *) *pt;
         uint16_t idx = POINTS_hash(*inp);
@@ -583,18 +584,18 @@ static void POINTS_zip_str(
                 POINTS_output_literal((*pt) - literal, literal, out, is_ascii);
             }
 
-            size_t i = 4;
-            while (*(match + i) == *((*pt) + i))
+            uint8_t * p = (*pt) + 4;
+            match += 4;
+            while (p < end && *match == *p)
             {
-                ++i;
+                ++match;
+                ++p;
             }
 
-//            LOGC("MATCH: '%.*s'", (int) i, *pt);
+            LOGC("MATCH: '%.*s'", (int) (p - (*pt)), (char*)*pt);
 
-            POINTS_output_match((*pt) - match, i, out, is_ascii);
-
-            *pt += i;
-            literal = *pt;
+            POINTS_output_match(p - match, p - (*pt), out, is_ascii);
+            literal = *pt = p;
         }
         else
         {
@@ -602,7 +603,6 @@ static void POINTS_zip_str(
         }
     }
 
-    end += sizeof(uint32_t);
     if (literal < end)
     {
         POINTS_output_literal(end - literal, literal, out, is_ascii);
@@ -709,13 +709,13 @@ unsigned char * siridb_points_zip_string(
     pt += sizeof(uint32_t);
     memcpy(pt, &point->ts, sizeof(uint64_t));
     pt += sizeof(uint64_t);
+
     POINTS_zip_str(&sout, &spt, src, point->val.raw, sizes[m++], is_ascii);
 
     for (; shift-- > tinfo; ++pt)
     {
         *pt = ts >> (shift * 8);
     }
-
     for (i = end; --i > start;)
     {
         point++;
@@ -729,7 +729,6 @@ unsigned char * siridb_points_zip_string(
         POINTS_zip_str(&sout, &spt, src, point->val.raw, sizes[m++], is_ascii);
     }
     *size = sout - out;
-
     if (POINTS_set_cinfo_size(cinfo, size))
     {
         goto failed;

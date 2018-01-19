@@ -20,14 +20,22 @@ from testing import UserAuthError
 
 
 DATA = {
-    'log': [
-        [1471254710, 'log line one'],
-        [1471254712, 'log line two'],
-        [1471254714, 'log line three'],
-        [1471254715, 'log line four'],
-        [1471254716, 'log line five'],
-        [1471254718, 'another line (six)'],
-        [1471254720, 'and yet one more, this is log line seven'],
+    # 'log': [
+    #     [1471254710, 'log line one'],
+    #     [1471254712, 'log line two'],
+    #     [1471254714, 'log line three'],
+    #     [1471254715, 'log line four'],
+    #     [1471254716, 'log line five'],
+    #     [1471254718, 'another line (six)'],
+    #     [1471254720, 'and yet one more, this is log line seven']
+    # ],
+    'utf16': [
+        [1471254710, ''],
+        [1471254712, ''],
+        [1471254714, '  '],
+        [1471254715, ' '],
+        [1471254716, ' '],
+        [1471254718, 'ԉ']
     ]
 }
 
@@ -39,10 +47,21 @@ class TestLog(TestBase):
     async def run(self):
         await self.client0.connect()
 
+        n = 0
+        for p in DATA.values():
+            n += len(p)
+
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 7 point(s).'})
+            {'success_msg': 'Successfully inserted {} point(s).'.format(n)})
 
+        # self.assertEqual(
+        #     await self.client0.query('select * from "log"'),
+        #     {'log': DATA['log']})
+
+        self.assertEqual(
+            await self.client0.query('select * from "utf16"'),
+            {'utf16': DATA['utf16']})
 
         self.client0.close()
 
