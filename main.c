@@ -13,6 +13,7 @@
 #include <logger/logger.h>
 #include <siri/args/args.h>
 #include <siri/db/presuf.h>
+#include <siri/db/points.h>
 #include <siri/err.h>
 #include <siri/help/help.h>
 #include <siri/siri.h>
@@ -48,6 +49,9 @@ int main(int argc, char * argv[])
 
     /* setup logger, this must be done before logging the first line */
     siri_setup_logger();
+
+    /* initialize points dictionary */
+    siridb_points_init();
 
 #if DEBUG
     int rc;

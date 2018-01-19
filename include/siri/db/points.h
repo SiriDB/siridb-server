@@ -37,6 +37,7 @@ typedef struct siridb_points_s
     siridb_point_t * data;
 } siridb_points_t;
 
+void siridb_points_init(void);
 siridb_points_t * siridb_points_new(size_t size, points_tp tp);
 void siridb_points_free(siridb_points_t * points);
 void siridb_points_add_point(
@@ -85,6 +86,13 @@ void siridb_points_unzip_double(
         unsigned char * bits,
         uint16_t len,
         uint16_t cinfo,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap);
+int siridb_points_unzip_string(
+        siridb_points_t * points,
+        uint8_t * bits,
+        uint16_t len,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);

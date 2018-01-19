@@ -21,7 +21,7 @@
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
 #define RAW_VALUES_THRESHOLD 7
-
+#define DICT_SZ 0x3fff
 
 static unsigned char * POINTS_zip_raw(
         siridb_points_t * points,
@@ -41,6 +41,13 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
 static void POINTS_simple_sort(siridb_points_t * points);
 static inline int POINTS_compare(const void * a, const void * b);
 static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points);
+
+static uint8_t * dictionary[DICT_SZ];
+
+void siridb_points_init(void)
+{
+    memset(dictionary, 0, sizeof(dictionary));
+}
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -468,15 +475,15 @@ unsigned char * siridb_points_zip_int(
     return bits;
 }
 
-static size_t POINTS_strlen_check_ascii(const char * str, uint8_t * ascii_only)
+static size_t POINTS_strlen_check_ascii(const char * str, uint8_t * is_ascii)
 {
     size_t sz;
-    if (*ascii_only)
+    if (*is_ascii)
     {
         const char * pt = str;
         for (; *pt; ++pt)
         {
-            *ascii_only &= (*pt) ^ 0x80;
+            *is_ascii &= (*pt) ^ 0x80;
         }
         sz = pt - str + 1;
     }
@@ -485,6 +492,142 @@ static size_t POINTS_strlen_check_ascii(const char * str, uint8_t * ascii_only)
         sz = strlen(str) + 1;
     }
     return sz;
+}
+
+inline static uint16_t POINTS_hash(uint32_t h)
+{
+    return ((h >> 17) ^ (h & 0xffff)) & DICT_SZ;
+}
+
+static void POINTS_output_literal(
+        size_t len,
+        uint8_t * pt,
+        uint8_t ** out,
+        uint8_t is_ascii)
+{
+//    LOGC("OUTLI: '%.*s'", (int) len, pt);
+    if (!is_ascii)
+    {
+        size_t n = len;
+        **out = 0x80 | ((n > 0x3f) << 6) | (n & 0x3f);
+        (*out)++;
+        n >>= 6;
+
+        while (n)
+        {
+            **out = ((n > 0x7f) << 7) | (n & 0x7f);
+            (*out)++;
+            n >>= 7;
+        }
+    }
+
+    while (len--)
+    {
+        **out = *pt;
+        (*out)++;
+        pt++;
+    }
+}
+
+static void POINTS_output_match(
+        size_t offset,
+        size_t len,
+        uint8_t ** out,
+        uint8_t is_ascii)
+{
+    **out = is_ascii | ((offset > 0x3f) << 6) | (offset & 0x3f);
+    (*out)++;
+    offset >>= 6;
+
+    while (offset)
+    {
+        **out = ((offset > 0x7f) << 7) | (offset & 0x7f);
+        (*out)++;
+        offset >>= 7;
+    }
+
+    **out = is_ascii | ((len > 0x3f) << 6) | (len & 0x3f);
+    (*out)++;
+    len >>= 6;
+
+    while (len)
+    {
+        **out = ((len > 0x7f) << 7) | (len & 0x7f);
+        (*out)++;
+        len >>= 7;
+    }
+}
+
+static void POINTS_zip_str(
+        uint8_t ** out,
+        uint8_t ** pt,
+        uint8_t * src,
+        uint8_t * s,
+        size_t n,
+        uint8_t is_ascii)
+{
+    uint8_t * match;
+    uint8_t * literal = *pt;
+    memcpy(*pt, s, n);
+    uint8_t * end = (*pt) + n - sizeof(uint32_t);
+    while (*pt < end)
+    {
+        uint32_t * inp = (uint32_t *) *pt;
+        uint16_t idx = POINTS_hash(*inp);
+        match = dictionary[POINTS_hash(idx)];
+        dictionary[idx] = *pt;
+        if (match >= src && match < *pt && *((uint32_t *) match) == *inp)
+        {
+            if (literal < *pt)
+            {
+                POINTS_output_literal((*pt) - literal, literal, out, is_ascii);
+            }
+
+            size_t i = 4;
+            while (*(match + i) == *((*pt) + i))
+            {
+                ++i;
+            }
+
+//            LOGC("MATCH: '%.*s'", (int) i, *pt);
+
+            POINTS_output_match((*pt) - match, i, out, is_ascii);
+
+            *pt += i;
+            literal = *pt;
+        }
+        else
+        {
+            ++(*pt);
+        }
+    }
+
+    end += sizeof(uint32_t);
+    if (literal < end)
+    {
+        POINTS_output_literal(end - literal, literal, out, is_ascii);
+    }
+    *pt = end;
+}
+
+static int POINTS_set_cinfo_size(uint16_t * cinfo, size_t * size)
+{
+    if (*size >= 0x8000)
+    {
+        if (*size > 0x2000000)
+        {
+            log_critical("Size too large: %zu", *size);
+            return -1;
+        }
+        *size = (!!((*size) & 0x3ff)) + ((*size) >> 10);
+        *cinfo = (*size) & 0x8000;
+        *size <<= 10;
+    }
+    else
+    {
+        *cinfo = *size;
+    }
+    return 0;
 }
 
 unsigned char * siridb_points_zip_string(
@@ -505,22 +648,31 @@ unsigned char * siridb_points_zip_string(
     {
         return NULL;
     }
-    uint8_t ascii_only = 0x80;
+    uint8_t is_ascii = 0x80;
     uint64_t tdiff = 0;
-    unsigned char * bits, *pt;
+    uint8_t * src, * out, * pt, * spt, * sout;
     uint64_t mask;
-    size_t sz = 0, i = end - 2;
+    size_t sz, m = n, i = end - 2;
+    uint32_t sz_src = 0;
     siridb_point_t * point = points->data + i;
     uint64_t ts = (point + 1)->ts - point->ts;
     uint8_t tinfo = 0;
     uint8_t shift = 0;
+    uint8_t ibit;
 
-    sz += POINTS_strlen_check_ascii((point + 1)->val.str, &ascii_only);
-    sz += POINTS_strlen_check_ascii((point)->val.str, &ascii_only);
+    sz = POINTS_strlen_check_ascii((point + 1)->val.str, &is_ascii);
+    sizes[--m] = sz;
+    sz_src += sz;
+    sz = POINTS_strlen_check_ascii((point)->val.str, &is_ascii);
+    sizes[--m] = sz;
+    sz_src += sz;
+
     while (i-- > start)
     {
         point--;
-        sz += POINTS_strlen_check_ascii(point->val.str, &ascii_only);
+        sz = POINTS_strlen_check_ascii(point->val.str, &is_ascii);
+        sizes[--m] = sz;
+        sz_src += sz;
         tdiff |= ts ^ ((point + 1)->ts - point->ts);
     }
 
@@ -537,9 +689,67 @@ unsigned char * siridb_points_zip_string(
     }
 
     shift = tinfo > shift ? tinfo : shift;
-    sz += 16 + shift + tinfo*(end - start - 2);
+    ibit = tinfo | (shift << 4);
+    /* calculate time-stamps size */
+    sz = 13 + shift + tinfo*(n - 2);
 
+    src = (uint8_t *) malloc(sz_src);
+    out = (uint8_t *) malloc(sz + sz_src + (is_ascii ? 0 : (n * 8)));
+    if (src == NULL || out == NULL)
+    {
+        goto failed;
+    }
+    pt = out;
+    sout = out + sz;
+    spt = src;
+
+    memcpy(pt, &ibit, sizeof(uint8_t));
+    pt++;
+    memcpy(pt, &sz_src, sizeof(uint32_t));
+    pt += sizeof(uint32_t);
+    memcpy(pt, &point->ts, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+    POINTS_zip_str(&sout, &spt, src, point->val.raw, sizes[m++], is_ascii);
+
+    for (; shift-- > tinfo; ++pt)
+    {
+        *pt = ts >> (shift * 8);
+    }
+
+    for (i = end; --i > start;)
+    {
+        point++;
+        ts = point->ts - (point - 1)->ts;
+
+        for (shift = tinfo; shift--; ++pt)
+        {
+            *pt = ts >> (shift * 8);
+        }
+
+        POINTS_zip_str(&sout, &spt, src, point->val.raw, sizes[m++], is_ascii);
+    }
+    *size = sout - out;
+
+    if (POINTS_set_cinfo_size(cinfo, size))
+    {
+        goto failed;
+    }
+
+    sout = (uint8_t *) realloc(out, *size);
+    if (sout == NULL)
+    {
+        goto failed;
+
+    }
+    out = sout;
     free(sizes);
+    free(src);
+    return out;
+
+failed:
+    free(sizes);
+    free(src);
+    free(out);
     return NULL;
 }
 
@@ -569,23 +779,13 @@ unsigned char * siridb_points_raw_string(
         *size += *psz;
     }
 
-    if (*size >= 0x8000)
+    if (POINTS_set_cinfo_size(cinfo, size))
     {
-        if (*size > 0x2000000)
-        {
-            free(sizes);
-            log_critical("Size too large: %zu", *size);
-            return NULL;
-        }
-        *size = (!!((*size) & 0x3ff)) + ((*size) >> 10);
-        *cinfo = (*size) & 0x8000;
-        *size <<= 10;
-    }
-    else
-    {
-        *cinfo = *size;
+        free(sizes);
+        return NULL;
     }
 
+    /* when uncompressed, time-stamp size is not included */
     *size += n * ts_sz;
 
     unsigned char * cdata = (unsigned char *) malloc(*size);
@@ -925,6 +1125,206 @@ void siridb_points_unzip_double(
     {
         points->len += len - i;
     }
+}
+
+static size_t POINTS_dec_len(uint8_t **pt)
+{
+    size_t sz = 0;
+    uint8_t shift = 6;
+    uint8_t * b = *pt;
+
+    (*pt)++;
+    sz += *b & 0x3f;
+
+    if ((*b & 0x40) == 0)
+    {
+        return sz;
+    }
+
+    do
+    {
+        b = *pt;
+        (*pt)++;
+        sz |= (*b & 0x7f) << shift;
+        shift += 7;
+    } while ((*b & 0x80) != 0);
+
+    return sz;
+}
+
+static int POINTS_unpack_string(
+        siridb_point_t * point,
+        size_t n,
+        size_t offset,
+        uint8_t * src,
+        uint8_t * buf)
+{
+    assert (n);
+    uint8_t * pt = src;
+    uint8_t * sbuf = buf;
+    uint8_t is_ascii = (0x80 & (*pt)) ^ 0x80;
+    size_t i = 0;
+    while (1)
+    {
+        if (is_ascii ^ (is_ascii & (*pt)))
+        {
+            /* literal */
+            size_t len = (is_ascii) ? 0 : POINTS_dec_len(&pt);
+
+            do
+            {
+                *buf = *pt;
+                ++pt;
+                if (!*buf)
+                {
+                    if (i >= offset)
+                    {
+                        point->val.str = strdup((char *)sbuf);
+                        if (point->val.str == NULL)
+                        {
+                            return -1;
+                        }
+                        ++point;
+                        if (!--n)
+                        {
+                            return 0;
+                        }
+                    }
+                    ++i;
+                    ++buf;
+                    sbuf = buf;
+                    break;
+                }
+                ++buf;
+            }
+            while ((is_ascii && ((~(*pt)) & 0x80)) || ((!is_ascii) && --len));
+        }
+        else
+        {
+            /* match */
+            size_t off = POINTS_dec_len(&pt);
+            size_t len = POINTS_dec_len(&pt);
+            while (len--)
+            {
+              *buf = *(buf - off);
+              if (!*buf)
+              {
+                  if (i >= offset)
+                  {
+                      point->val.str = strdup((char *)sbuf);
+                      if (point->val.str == NULL)
+                      {
+                          return -1;
+                      }
+                      ++point;
+                      if (!--n)
+                      {
+                          return 0;
+                      }
+                  }
+                  ++i;
+                  ++buf;
+                  sbuf = buf;
+              }
+              else
+              {
+                  ++buf;
+              }
+            }
+        }
+    }
+}
+
+int siridb_points_unzip_string(
+        siridb_points_t * points,
+        uint8_t * bits,
+        uint16_t len,
+        uint64_t * start_ts,
+        uint64_t * end_ts,
+        uint8_t has_overlap)
+{
+    uint64_t ts, tmp, mask;
+    siridb_point_t * point = points->data + points->len;
+    uint32_t src_sz;
+    uint8_t * buf, * pt = bits;
+    uint8_t j, tcount, tshift = *pt;
+    size_t i, offset;
+
+    tcount =  *pt & 0xf;
+    tshift = *pt & 0xf0;
+    tshift >>= 4;
+    pt++;
+    offset = 13 + tshift + (tcount * (len - 2));
+
+    memcpy(&src_sz, pt, sizeof(uint32_t));
+    pt += sizeof(uint32_t);
+    memcpy(&point->ts, pt, sizeof(uint64_t));
+    pt += sizeof(uint64_t);
+
+    buf = (uint8_t *) malloc(src_sz);
+    if (buf == NULL)
+    {
+        return -1;
+    }
+
+    for (mask = 0; tshift-- > tcount; ++pt)
+    {
+        mask |= ((uint64_t) *pt) << (tshift * 8);
+    }
+
+    ts = point->ts;
+    uint16_t n = len;
+
+    for (i = n; (end_ts == NULL || ts < *end_ts) && --i; )
+    {
+        if (start_ts != NULL && ts < *start_ts)
+        {
+            --n;
+        }
+        else
+        {
+            ++point;
+        }
+
+        for (tmp = 0, j = tcount; j--; ++pt)
+        {
+            tmp <<= 8;
+            tmp |= *pt;
+        }
+        ts += tmp | mask;
+
+        point->ts = ts;
+    }
+
+    n -= i;
+
+
+
+    if (POINTS_unpack_string(
+            points->data + points->len, n, i, bits + offset, buf))
+    {
+        free(buf);
+        return -1;
+    }
+
+    if (has_overlap && points->len)
+    {
+        qp_via_t v;
+        point = points->data + points->len;
+        for (i = n; i--; ++point)
+        {
+            ts = point->ts;
+            v = point->val;
+            siridb_points_add_point(points, &ts, &v);
+        }
+    }
+    else
+    {
+        points->len += n;
+    }
+
+    free(buf);
+    return 0;
 }
 
 size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len)

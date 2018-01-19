@@ -24,11 +24,19 @@ from testing import UserAuthError
 
 # Compression OFF:
 # du --bytes testdir/dbpath0/dbtest/shards/
-# 154420  testdir/dbpath0/dbtest/shards/
+# 423114  testdir/dbpath0/dbtest/shards/
+# 416266  (optimized)
+
+# Compression ON:
+# du --bytes testdir/dbpath0/dbtest/shards/
+# 222314  testdir/dbpath0/dbtest/shards/
+# 153380  (optimized)
 
 SYSLOG = '/home/joente/syslog.log'
 FMT = '%b %d %H:%M:%S'
-MTCH = re.compile('(\w\w\w\s\d\d\s\d\d:\d\d:\d\d)\s(\w+)\s(\w+)\[\d+\]:\s(.*)')
+MTCH = re.compile(
+    '(\w\w\w\s[\d\s]\d\s\d\d:\d\d:'
+    '\d\d)\s(\w+)\s([\w\-\.\/@]+)(\[\d+\])?:\s(.*)')
 
 
 class TestSyslog(TestBase):
@@ -48,7 +56,7 @@ class TestSyslog(TestBase):
             if not r:
                 continue
 
-            rtime, host, process, logline = r.groups()
+            rtime, host, process, pid, logline = r.groups()
             dt = datetime.datetime.strptime(rtime, FMT)
             dt = dt.replace(year=datetime.datetime.now().year)
             ts = calendar.timegm(dt.timetuple())
@@ -61,7 +69,7 @@ class TestSyslog(TestBase):
         if points:
             await self.client0.insert(points)
 
-    @default_test_setup(1, compression=False)
+    @default_test_setup(1, compression=True, duration_log='1w')
     async def run(self):
         await self.client0.connect()
 

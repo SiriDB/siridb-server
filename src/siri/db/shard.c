@@ -877,13 +877,15 @@ int siridb_shard_get_points_log_compressed(
         uint64_t * end_ts,
         uint8_t has_overlap)
 {
+    int rc;
+
     if (idx->len < POINTS_ZIP_THRESHOLD)
     {
         return siridb_shard_get_points_log64(
                 points, idx, start_ts, end_ts, has_overlap);
     }
 
-    unsigned char * bits;
+    uint8_t * bits;
     size_t size = siridb_points_get_size_log(idx->cinfo);
 
     if (idx->shard->fp->fp == NULL)
@@ -897,7 +899,48 @@ int siridb_shard_get_points_log_compressed(
         }
     }
 
-    return 0;
+    bits = (uint8_t *) malloc(size);
+    if (bits == NULL)
+    {
+        free(bits);
+        log_critical("Memory allocation error");
+        return -1;
+    }
+
+    if (    fseeko(idx->shard->fp->fp, idx->pos, SEEK_SET) ||
+            fread(  bits,
+                    sizeof(uint8_t),
+                    size,
+                    idx->shard->fp->fp) != size)
+    {
+        if (idx->shard->flags & SIRIDB_SHARD_IS_CORRUPT)
+        {
+            log_error("Cannot read from shard id %" PRIu64, idx->shard->id);
+        }
+        else
+        {
+            log_critical(
+                    "Cannot read from shard id %" PRIu64
+                    ". The next optimize cycle "
+                    "will fix this shard but you might loose some data.",
+                    idx->shard->id);
+            idx->shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+        }
+        free(bits);
+        return -1;
+    }
+
+    rc = siridb_points_unzip_string(
+            points,
+            bits,
+            idx->len,
+            start_ts,
+            end_ts,
+            has_overlap && (idx->shard->flags & SIRIDB_SHARD_HAS_OVERLAP));
+
+    free(bits);
+
+    return rc;
 }
 
 /*
