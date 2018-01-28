@@ -505,7 +505,7 @@ static void POINTS_output_literal(
         uint8_t ** out,
         uint8_t is_ascii)
 {
-    LOGC("OUTLI: '%.*s'", (int) len, pt);
+//    LOGC("OUTLI: '%.*s'", (int) len, pt);
     if (!is_ascii)
     {
         size_t n = len;
@@ -592,7 +592,7 @@ static void POINTS_zip_str(
                 ++p;
             }
 
-            LOGC("MATCH: '%.*s'", (int) (p - (*pt)), (char*)*pt);
+//            LOGC("MATCH: '%.*s'", (int) (p - (*pt)), (char*)*pt);
 
             POINTS_output_match(p - match, p - (*pt), out, is_ascii);
             literal = *pt = p;
@@ -1165,7 +1165,7 @@ static int POINTS_unpack_string(
     size_t i = 0;
     while (1)
     {
-        if (is_ascii ^ (is_ascii & (*pt)))
+        if (is_ascii ^ ((*pt) & 0x80))
         {
             /* literal */
             size_t len = (is_ascii) ? 0 : POINTS_dec_len(&pt);

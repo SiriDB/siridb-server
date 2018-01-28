@@ -20,15 +20,15 @@ from testing import UserAuthError
 
 
 DATA = {
-    # 'log': [
-    #     [1471254710, 'log line one'],
-    #     [1471254712, 'log line two'],
-    #     [1471254714, 'log line three'],
-    #     [1471254715, 'log line four'],
-    #     [1471254716, 'log line five'],
-    #     [1471254718, 'another line (six)'],
-    #     [1471254720, 'and yet one more, this is log line seven']
-    # ],
+    'log': [
+        [1471254710, 'log line one'],
+        [1471254712, 'log line two'],
+        [1471254714, 'log line three'],
+        [1471254715, 'log line four'],
+        [1471254716, 'log line five'],
+        [1471254718, 'another line (six)'],
+        [1471254720, 'and yet one more, this is log line seven']
+    ],
     'utf16': [
         [1471254710, ''],
         [1471254712, ''],
@@ -55,9 +55,9 @@ class TestLog(TestBase):
             await self.client0.insert(DATA),
             {'success_msg': 'Successfully inserted {} point(s).'.format(n)})
 
-        # self.assertEqual(
-        #     await self.client0.query('select * from "log"'),
-        #     {'log': DATA['log']})
+        self.assertEqual(
+            await self.client0.query('select * from "log"'),
+            {'log': DATA['log']})
 
         self.assertEqual(
             await self.client0.query('select * from "utf16"'),
