@@ -573,14 +573,13 @@ static int8_t INSERT_local_work(
             if (series->tp == TP_STRING)
             {
                 val = &forstr;
-                val->str = qp_is_raw_term(&qp_series_val) ?
-                        strdup(qp_series_val.via.str) : NULL;
+                val->str = strdup(qp_is_raw_term(&qp_series_val) ?
+                        qp_series_val.via.str: "");
 
                 if (val->str == NULL)
                 {
-                    log_error(
-                            "Expecting a null terminated value or a "
-                            "memory allocation error has occurred");
+                    ERR_ALLOC
+                    return INSERT_LOCAL_ERROR;
                 }
             }
             else
@@ -598,14 +597,13 @@ static int8_t INSERT_local_work(
 
                 if (series->tp == TP_STRING)
                 {
-                    val->str = qp_is_raw_term(&qp_series_val) ?
-                            strdup(qp_series_val.via.str) : NULL;
+                    val->str = strdup(qp_is_raw_term(&qp_series_val) ?
+                            qp_series_val.via.str: "");
 
                     if (val->str == NULL)
                     {
-                        log_error(
-                                "Expecting a null terminated value or a "
-                                "memory allocation error has occurred");
+                        ERR_ALLOC
+                        return INSERT_LOCAL_ERROR;
                     }
                 }
 
@@ -666,6 +664,8 @@ static int INSERT_local_work_test(
     unsigned char * pt;
     qp_obj_t qp_series_ts;
     qp_obj_t qp_series_val;
+    qp_via_t forstr;
+    qp_via_t * val;
     int n = INSERT_AT_ONCE;
 
     /*
@@ -787,6 +787,23 @@ static int INSERT_local_work_test(
                 (*pcache)->len = 0;
             }
 
+            if (series->tp == TP_STRING)
+            {
+                val = &forstr;
+                val->str = strdup(qp_is_raw_term(&qp_series_val) ?
+                        qp_series_val.via.str: "");
+
+                if (val->str == NULL)
+                {
+                    ERR_ALLOC
+                    return INSERT_LOCAL_ERROR;
+                }
+            }
+            else
+            {
+                val = &qp_series_val.via;
+            }
+
             siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
 
             if (tp == QP_ARRAY2) do
@@ -794,13 +811,25 @@ static int INSERT_local_work_test(
                 qp_next(unpacker, &qp_series_ts); // ts
                 qp_next(unpacker, &qp_series_val); // val
 
+                if (series->tp == TP_STRING)
+                {
+                    val->str = strdup(qp_is_raw_term(&qp_series_val) ?
+                            qp_series_val.via.str: "");
+
+                    if (val->str == NULL)
+                    {
+                        ERR_ALLOC
+                        return INSERT_LOCAL_ERROR;
+                    }
+                }
+
                 ts = (uint64_t *) &qp_series_ts.via.int64;
                 SERIES_UPDATE_TS(series)
 
                 if (siridb_pcache_add_point(
                         *pcache,
                         ts,
-                        &qp_series_val.via))
+                        val))
                 {
                     return INSERT_LOCAL_ERROR;  /* signal is raised */
                 }

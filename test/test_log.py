@@ -41,7 +41,7 @@ DATA = {
 
 
 class TestLog(TestBase):
-    title = 'Test select and aggregate functions'
+    title = 'Test log'
 
     @default_test_setup(1, compression=True, optimize_interval=10)
     async def run(self):
@@ -65,7 +65,7 @@ class TestLog(TestBase):
 
         self.client0.close()
 
-        return False
+        # return False
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
