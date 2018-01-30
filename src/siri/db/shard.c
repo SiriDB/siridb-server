@@ -1611,8 +1611,13 @@ static ssize_t SHARD_apply_idx(
     {
         cinfo = *((uint16_t *)(pt + (is_ts64 ? IDX64_SZ : IDX32_SZ)));
         size = (ssize_t) siridb_points_get_size_log(cinfo);
-        size += len * (is_ts64 ? sizeof(uint64_t) : sizeof(uint32_t));
-        /* TODO: compressed log data */
+        size += len * (
+                shard->flags & SIRIDB_SHARD_IS_COMPRESSED ?
+                        (len < POINTS_ZIP_THRESHOLD ?
+                                sizeof(uint64_t) :
+                                0) : is_ts64 ?
+                                        sizeof(uint64_t) :
+                                        sizeof(uint32_t));
     }
     else if (shard->flags & SIRIDB_SHARD_IS_COMPRESSED)
     {

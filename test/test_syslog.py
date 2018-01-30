@@ -75,10 +75,6 @@ class TestSyslog(TestBase):
 
         await self.insert_syslog()
 
-        self.assertEqual(
-            await self.client0.query('select * from "xjoente|whoopsie"'),
-            {'aggr': DATA['aggr']})
-
         self.client0.close()
 
         return False
