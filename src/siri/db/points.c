@@ -1462,7 +1462,6 @@ static void POINTS_simple_sort(siridb_points_t * points)
         return;  /* nothing to do... */
     }
     size_t n = 0;
-    LOGC("hoi");
     size_t i;
     siridb_point_t * pa, * pb;
     siridb_point_t tmp;
