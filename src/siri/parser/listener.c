@@ -5614,7 +5614,6 @@ static void on_select_unpack_points(
         {
             if (points->tp == TP_STRING)
             {
-                LOGC("Here...");
                 siridb_points_unzip_string(
                         points,
                         qp_points->via.raw,
