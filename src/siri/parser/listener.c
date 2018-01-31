@@ -5614,11 +5614,21 @@ static void on_select_unpack_points(
         {
             if (points->tp == TP_STRING)
             {
-                siridb_points_unzip_string(
-                        points,
-                        qp_points->via.raw,
-                        qp_len->via.int64,
-                        NULL, NULL, 0);
+                if (qp_len->via.int64 < POINTS_ZIP_THRESHOLD)
+                {
+                    siridb_points_unzip_string_raw(
+                            points,
+                            qp_points->via.raw,
+                            qp_len->via.int64);
+                }
+                else
+                {
+                    siridb_points_unzip_string(
+                            points,
+                            qp_points->via.raw,
+                            qp_len->via.int64,
+                            NULL, NULL, 0);
+                }
             }
             else
             {
@@ -5673,14 +5683,29 @@ static void on_select_unpack_merged_points(
 
             if (points != NULL)
             {
-    #if DEBUG
-                assert (qp_len->via.int64 * sizeof(siridb_point_t) ==
-                        qp_points->len);
-    #endif
-                points->len = qp_len->via.int64;
-
-                memcpy(points->data, qp_points->via.raw, qp_points->len);
-
+                if (points->tp == TP_STRING)
+                {
+                    if (qp_len->via.int64 < POINTS_ZIP_THRESHOLD)
+                    {
+                        siridb_points_unzip_string_raw(
+                                points,
+                                qp_points->via.raw,
+                                qp_len->via.int64);
+                    }
+                    else
+                    {
+                        siridb_points_unzip_string(
+                                points,
+                                qp_points->via.raw,
+                                qp_len->via.int64,
+                                NULL, NULL, 0);
+                    }
+                }
+                else
+                {
+                    points->len = qp_len->via.int64;
+                    memcpy(points->data, qp_points->via.raw, qp_points->len);
+                }
 
                 if (slist_append_safe(plist, points))
                 {

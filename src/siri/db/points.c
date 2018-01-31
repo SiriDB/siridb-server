@@ -17,6 +17,7 @@
 #include <siri/err.h>
 #include <unistd.h>
 #include <string.h>
+#include <strextra/strextra.h>
 
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
@@ -1116,6 +1117,25 @@ static int POINTS_unpack_string(
     }
 }
 
+int siridb_points_unzip_string_raw(
+        siridb_points_t * points,
+        uint8_t * bits,
+        uint16_t len)
+{
+    uint64_t * tpt;
+    tpt = (uint64_t *) bits;
+    char * cpt = (char *) (bits + (len * sizeof(uint64_t)));
+
+    for (; points->len < len; ++points->len, ++tpt)
+    {
+        size_t slen;
+        points->data[points->len].ts = *tpt;
+        points->data[points->len].val.str = strx_dup(cpt, &slen);
+        cpt += slen + 1;
+    }
+    return 0;
+}
+
 int siridb_points_unzip_string(
         siridb_points_t * points,
         uint8_t * bits,
@@ -1178,8 +1198,6 @@ int siridb_points_unzip_string(
     }
 
     n -= i;
-
-
 
     if (POINTS_unpack_string(
             points->data + points->len, n, i, bits + offset, buf))
