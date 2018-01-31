@@ -573,8 +573,9 @@ static int8_t INSERT_local_work(
             if (series->tp == TP_STRING)
             {
                 val = &forstr;
-                val->str = strdup(qp_is_raw_term(&qp_series_val) ?
-                        qp_series_val.via.str: "");
+                val->str = qp_is_raw(qp_series_val.tp) ?
+                        strndup(qp_series_val.via.str, qp_series_val.len) :
+                        strdup("");
 
                 if (val->str == NULL)
                 {
@@ -597,8 +598,9 @@ static int8_t INSERT_local_work(
 
                 if (series->tp == TP_STRING)
                 {
-                    val->str = strdup(qp_is_raw_term(&qp_series_val) ?
-                            qp_series_val.via.str: "");
+                    val->str = qp_is_raw(qp_series_val.tp) ?
+                            strndup(qp_series_val.via.str, qp_series_val.len) :
+                            strdup("");
 
                     if (val->str == NULL)
                     {
@@ -790,8 +792,9 @@ static int INSERT_local_work_test(
             if (series->tp == TP_STRING)
             {
                 val = &forstr;
-                val->str = strdup(qp_is_raw_term(&qp_series_val) ?
-                        qp_series_val.via.str: "");
+                val->str = qp_is_raw(qp_series_val.tp) ?
+                        strndup(qp_series_val.via.str, qp_series_val.len) :
+                        strdup("");
 
                 if (val->str == NULL)
                 {
@@ -804,7 +807,7 @@ static int INSERT_local_work_test(
                 val = &qp_series_val.via;
             }
 
-            siridb_pcache_add_point(*pcache, ts, &qp_series_val.via);
+            siridb_pcache_add_point(*pcache, ts, val);
 
             if (tp == QP_ARRAY2) do
             {
@@ -813,8 +816,9 @@ static int INSERT_local_work_test(
 
                 if (series->tp == TP_STRING)
                 {
-                    val->str = strdup(qp_is_raw_term(&qp_series_val) ?
-                            qp_series_val.via.str: "");
+                    val->str = qp_is_raw(qp_series_val.tp) ?
+                            strndup(qp_series_val.via.str, qp_series_val.len) :
+                            strdup("");
 
                     if (val->str == NULL)
                     {
@@ -844,6 +848,12 @@ static int INSERT_local_work_test(
                     *pcache))
             {
                 return INSERT_LOCAL_ERROR;  /* signal is raised */
+            }
+
+            if ((*pcache)->tp == TP_STRING)
+            {
+                siridb_points_free((siridb_points_t *) *pcache);
+                *pcache = NULL;
             }
         }
 
@@ -1412,7 +1422,7 @@ static int INSERT_read_points(
         switch (qp_next(unpacker, qp_obj))
         {
         case QP_RAW:
-            qp_add_raw_term(packer, qp_obj->via.raw, qp_obj->len);
+            qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
             break;
 
         case QP_INT64:

@@ -762,6 +762,12 @@ static siridb_points_t * AGGREGATE_filter(
                 {
                     dpt->ts = spt->ts;
                     dpt->val.str = strdup(spt->val.str);
+                    if (dpt->val.str == NULL)
+                    {
+                        sprintf(err_msg, "Memory allocation error.");
+                        siridb_points_free(points);
+                        return NULL;
+                    }
                     dpt++;
                 }
             }

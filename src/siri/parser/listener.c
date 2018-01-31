@@ -5610,12 +5610,21 @@ static void on_select_unpack_points(
             qp_is_raw(qp_next(unpacker, qp_points)))
     {
         points = siridb_points_new(qp_len->via.int64, qp_tp->via.int64);
-
         if (points != NULL)
         {
-            points->len = qp_len->via.int64;
-
-            memcpy(points->data, qp_points->via.raw, qp_points->len);
+            if (points->tp == TP_STRING)
+            {
+                siridb_points_unzip_string(
+                        points,
+                        qp_points->via.raw,
+                        qp_len->via.int64,
+                        NULL, NULL, 0);
+            }
+            else
+            {
+                points->len = qp_len->via.int64;
+                memcpy(points->data, qp_points->via.raw, qp_points->len);
+            }
 
             if (ct_add(q_select->result, (char *) qp_name->via.raw, points))
             {

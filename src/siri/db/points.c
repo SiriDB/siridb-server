@@ -61,6 +61,7 @@ static void POINTS_zip_str(
         uint8_t is_ascii);
 static int POINTS_set_cinfo_size(uint16_t * cinfo, size_t * size);
 inline static uint16_t POINTS_hash(uint32_t h);
+static void POINTS_destroy(siridb_points_t * points);
 
 static uint8_t * dictionary[DICT_SZ + 1];
 
@@ -235,14 +236,32 @@ void siridb_points_ts_correction(siridb_points_t * points, double factor)
  */
 int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
 {
-    return -(qp_add_type(packer, QP_ARRAY_OPEN) ||
+    int rc;
+    size_t size;
+    unsigned char * data;
+    if (points->tp == TP_STRING)
+    {
+        uint16_t cinfo;
+        data = siridb_points_zip_string(points, 0, points->len, &cinfo, &size);
+    }
+    else
+    {
+        data = (unsigned char *) points->data;
+        size = points->len * sizeof(siridb_point_t);
+    }
+
+    rc = -(qp_add_type(packer, QP_ARRAY_OPEN) ||
             qp_add_int8(packer, points->tp) ||
             qp_add_int32(packer, points->len) ||
-            qp_add_raw(
-                packer,
-                (unsigned char *) points->data,
-                points->len * sizeof(siridb_point_t)) ||
+            qp_add_raw(packer, data, size) ||
             qp_add_type(packer, QP_ARRAY_CLOSE));
+
+    if (points->tp == TP_STRING)
+    {
+        free(data);
+    }
+
+    return rc;
 }
 
 /*
@@ -260,7 +279,6 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     size_t n = 0;
     size_t i;
     uint8_t int2double = 0;
-
     for (i = 0; i < plist->len; )
     {
         points = (siridb_points_t *) plist->data[i];
@@ -273,7 +291,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
                 return plist->data[i];
             }
             /* cleanup empty points */
-            siridb_points_free(plist->data[i]);
+            POINTS_destroy(plist->data[i]);
 
             /* shrink plist length and fill gap */
             plist->data[i] = plist->data[plist->len];
@@ -320,7 +338,6 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
     }
 
     points = siridb_points_new(n, (int2double) ? TP_DOUBLE : tpts->tp);
-
 
     if (points == NULL)
     {
@@ -1323,7 +1340,7 @@ static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points)
         }
         else
         {
-            siridb_points_free(*m);
+            POINTS_destroy(*m);
 
             if (--plist->len)
             {
@@ -1371,7 +1388,7 @@ static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
 
         if (!(*m)->len--)
         {
-            siridb_points_free(*m);
+            POINTS_destroy(*m);
 
             if (--plist->len)
             {
@@ -1411,7 +1428,7 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
 
             if (!(*m)->len--)
             {
-                siridb_points_free(*m);
+                POINTS_destroy(*m);
                 if (--plist->len)
                 {
                     *m = (siridb_points_t *) plist->data[plist->len];
@@ -1637,3 +1654,11 @@ inline static uint16_t POINTS_hash(uint32_t h)
     return ((h >> 17) ^ (h & 0xffff)) & DICT_SZ;
 }
 
+/*
+ * Destroy points. (parsing NULL is NOT allowed)
+ */
+static void POINTS_destroy(siridb_points_t * points)
+{
+    free(points->data);
+    free(points);
+}

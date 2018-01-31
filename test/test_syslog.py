@@ -69,11 +69,16 @@ class TestSyslog(TestBase):
         if points:
             await self.client0.insert(points)
 
-    @default_test_setup(1, compression=True, duration_log='1w')
+    @default_test_setup(2, compression=True, duration_log='1w')
     async def run(self):
         await self.client0.connect()
 
         await self.insert_syslog()
+
+        await self.db.add_pool(self.server1, sleep=3)
+        # await self.db.add_replica(self.server1, 0, sleep=30)
+
+        await self.client0.query('select * from /.*vbox.*/ merge as "t"')
 
         self.client0.close()
 
