@@ -1156,9 +1156,9 @@ static siridb_series_t * SERIES_new(
                 n += *name;
             }
 
-            series->mask =
-                    (uint16_t) (n / 11) % ((tp == TP_STRING) ?
-                    siridb->shard_mask_log : siridb->shard_mask_num);
+            series->mask = (tp == TP_STRING) ?
+                    (uint16_t) ((n / 11) % siridb->shard_mask_log) + 600 :
+                    (uint16_t) ((n / 11) % siridb->shard_mask_num);
 
             if ((uint8_t) ((n / 11) % 2))
             {
