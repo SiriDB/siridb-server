@@ -92,8 +92,6 @@ static int INSERT_read_points(
         qp_obj_t * qp_obj,
         ssize_t * count);
 
-
-
 /*
  * Return an error message for an insert err.
  */

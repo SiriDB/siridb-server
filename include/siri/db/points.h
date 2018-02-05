@@ -106,7 +106,6 @@ static inline size_t siridb_points_get_size_log(size_t cinfo)
     return cinfo & 0x8000 ? (cinfo ^ 0x8000) << 10 : cinfo;
 }
 
-
 #define siridb_points_zip(p__, s__, e__, c__, z__) \
 ((p__)->tp == TP_INT) ? \
 siridb_points_zip_int(p__, s__, e__, c__, z__) : \
