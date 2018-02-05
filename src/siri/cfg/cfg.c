@@ -450,8 +450,10 @@ static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
         rlim.rlim_cur = min_limit;
         if (setrlimit(RLIMIT_NOFILE, &rlim))
         {
-            log_critical("Could not set the soft-limit to %d", min_limit);
-            exit(EXIT_FAILURE);
+            siri_cfg.max_open_files = (uint16_t) (rlim.rlim_cur / 2);
+            log_warning("Could not set the soft-limit to %d, "
+                    "changing max open files to: %u",
+                    min_limit, siri_cfg.max_open_files);
         }
     }
 }

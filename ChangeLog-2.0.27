@@ -1,2 +1,4 @@
   * Changed error message when trying to merge series into an empty destination
     name and updated test.
+    
+  * Change max open files when soft-limit cannot be set.
