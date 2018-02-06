@@ -73,10 +73,11 @@ class TestSyslog(TestBase):
     async def run(self):
         await self.client0.connect()
 
-        await self.insert_syslog()
+        # await self.db.add_pool(self.server1, sleep=3)
 
-        await self.db.add_pool(self.server1, sleep=3)
-        # await self.db.add_replica(self.server1, 0, sleep=30)
+        await self.db.add_replica(self.server1, 0, sleep=30)
+
+        await self.insert_syslog()
 
         await self.client0.query('select * from /.*vbox.*/ merge as "t"')
 

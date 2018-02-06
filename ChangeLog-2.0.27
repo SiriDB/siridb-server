@@ -2,3 +2,5 @@
     name and updated test.
     
   * Change max open files when soft-limit cannot be set.
+  
+  * Added support for log (string) values.
