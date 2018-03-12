@@ -349,6 +349,8 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     }
     else
     {
+        memset(siri_cfg.default_db_path, 0, SIRI_PATH_MAX);
+
         if (strlen(option->val->string) >= SIRI_PATH_MAX -2 ||
             realpath(
                 option->val->string,
@@ -359,7 +361,7 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                     "check your configuration file: %s",
                     option->val->string,
                     siri.args->config);
-            memset(siri_cfg.default_db_path, 0, SIRI_PATH_MAX);
+
 
             /* keep space left for a trailing slash and a terminator char */
             strncpy(siri_cfg.default_db_path,

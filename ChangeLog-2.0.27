@@ -4,3 +4,5 @@
   * Change max open files when soft-limit cannot be set.
   
   * Added support for log (string) values.
+  
+  * Fixed bug with reading path variable.
