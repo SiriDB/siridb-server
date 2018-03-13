@@ -362,7 +362,6 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                     option->val->string,
                     siri.args->config);
 
-
             /* keep space left for a trailing slash and a terminator char */
             strncpy(siri_cfg.default_db_path,
                     option->val->string,
