@@ -112,12 +112,15 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
     case ERR_TIMESTAMP_OUT_OF_RANGE:
         return  "Received at least one time-stamp which is out-of-range.";
     case ERR_UNSUPPORTED_VALUE:
-        return  "Unsupported value received. (only integer and float "
+        return  "Unsupported value received. (only integer, float and string "
                 "values are supported).";
     case ERR_EXPECTING_AT_LEAST_ONE_POINT:
         return  "Expecting a series to have at least one point.";
     case ERR_EXPECTING_NAME_AND_POINTS:
         return  "Expecting a map with name and points.";
+    case ERR_INCOMPATIBLE_SERVER_VERSION:
+        return  "At least one server is incompatible for handling this "
+                "insert.";
     case ERR_MEM_ALLOC:
         return  "Critical memory allocation error";
     default:
@@ -1420,6 +1423,10 @@ static int INSERT_read_points(
         switch (qp_next(unpacker, qp_obj))
         {
         case QP_RAW:
+            if (siridb_servers_check_version(siridb, "2.0.27") > 0)
+            {
+                return ERR_INCOMPATIBLE_SERVER_VERSION;
+            }
             qp_add_raw(packer, qp_obj->via.raw, qp_obj->len);
             break;
 

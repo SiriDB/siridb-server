@@ -528,6 +528,7 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg)
         case ERR_UNSUPPORTED_VALUE:
         case ERR_EXPECTING_AT_LEAST_ONE_POINT:
         case ERR_EXPECTING_NAME_AND_POINTS:
+        case ERR_INCOMPATIBLE_SERVER_VERSION:
         case ERR_MEM_ALLOC:
             {
                 /* something went wrong, get correct err message */
