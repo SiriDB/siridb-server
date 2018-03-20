@@ -137,8 +137,7 @@ int siridb_shards_add_points(
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
     uint16_t cinfo = 0;
-    size_t size;
-    long int pos;
+    size_t size, pos;
 
     for (end = 0; end < points->len;)
     {
@@ -188,7 +187,7 @@ int siridb_shards_add_points(
                         pstart,
                         pend,
                         NULL,
-                        &cinfo)) < 0)
+                        &cinfo)) == 0)
                 {
                     log_critical(
                             "Could not write points to shard id %" PRIu64,

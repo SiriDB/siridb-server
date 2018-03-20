@@ -60,6 +60,12 @@ int siridb_buffer_write_point(
         uint64_t * ts,
         qp_via_t * val)
 {
+    const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t);
+    char buf[sz];
+
+    memcpy(buf, ts, sizeof(uint64_t));
+    memcpy(buf + sizeof(uint64_t), val, sizeof(qp_via_t));
+
     return (
         siridb_buffer_write_len(siridb, series) ||
 
@@ -68,11 +74,8 @@ int siridb_buffer_write_point(
                 16 * (series->buffer->len - 1),
                 SEEK_CUR) ||
 
-        /* write time-stamp */
-        fwrite(ts, sizeof(uint64_t), 1, siridb->buffer_fp) != 1 ||
-
-        /* write value */
-        fwrite(val, sizeof(qp_via_t), 1, siridb->buffer_fp) != 1) ? EOF : 0;
+        /* write time-stamp and value */
+        fwrite(buf, sz, 1, siridb->buffer_fp) != 1) ? EOF : 0;
 }
 
 /*
@@ -242,6 +245,9 @@ int siridb_buffer_load(siridb_t * siridb)
  */
 static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
 {
+    const size_t sz = sizeof(uint32_t) + sizeof(size_t);
+    char buf[sz];
+
     series->bf_offset = (long int) slist_pop(siridb->empty_buffers);
 
     /* jump to the correct buffer position */
@@ -251,19 +257,11 @@ static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series)
         return -1;
     }
 
-    /* write series ID to buffer */
-    if (fwrite(&series->id, sizeof(uint32_t), 1, siridb->buffer_fp) != 1)
-    {
-        ERR_FILE
-        return -1;
-    }
+    memcpy(buf, &series->id, sizeof(uint32_t));
+    memcpy(buf + sizeof(uint32_t), &series->buffer->len, sizeof(size_t));
 
-    /* write 0 length */
-    if (fwrite(
-            &series->buffer->len,
-            sizeof(size_t),
-            1,
-            siridb->buffer_fp) != 1)
+    /* write series ID and 0 length to buffer */
+    if (fwrite(buf, sz, 1, siridb->buffer_fp) != 1)
     {
         ERR_FILE
         return -1;

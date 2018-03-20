@@ -18,6 +18,7 @@
 #include <siri/db/points.h>
 #include <siri/db/replicate.h>
 #include <siri/db/series.h>
+#include <siri/db/servers.h>
 #include <siri/err.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
@@ -194,6 +195,7 @@ ssize_t siridb_insert_assign_pools(
     {
         rc = ERR_EXPECTING_MAP_OR_ARRAY;
     }
+
     return (siri_err) ? ERR_MEM_ALLOC : rc;
 }
 

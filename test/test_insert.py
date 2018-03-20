@@ -50,7 +50,7 @@ class TestInsert(TestBase):
             await client.insert_some_series(series, timeout=timeout, points=self.GEN_POINTS)
             await asyncio.sleep(1.0)
 
-    @default_test_setup(2, time_precision=TIME_PRECISION, compression=True)
+    @default_test_setup(2, time_precision=TIME_PRECISION, compression=False)
     async def run(self):
         await self.client0.connect()
 

@@ -88,7 +88,7 @@ int siridb_shard_status(char * str, siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
 
-long int siridb_shard_write_points(
+size_t siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard,

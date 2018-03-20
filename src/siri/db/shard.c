@@ -129,7 +129,7 @@ static int SHARD_load_idx(
         int is_ts64);
 static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
 static int SHARD_grow(siridb_shard_t * shard);
-static int SHARD_write_header(
+static size_t SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_points_t * points,
@@ -457,9 +457,9 @@ int siridb_shard_status(char * str, siridb_shard_t * shard)
  * Writes an index and points to a shard. The return value is the position
  * where the points start in the shard file.
  *
- * If an error has occurred, EOF will be returned and a SIGNAL will be raised.
+ * If an error has occurred, 0 will be returned and a SIGNAL will be raised.
  */
-long int siridb_shard_write_points(
+size_t siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_shard_t * shard,
@@ -475,8 +475,7 @@ long int siridb_shard_write_points(
     unsigned char * cdata = NULL;
 
     uint_fast32_t i;
-    long int pos = EOF;
-    int header_sz;
+    size_t pos, header_sz;
 
     if (shard->fp->fp == NULL)
     {
@@ -484,7 +483,7 @@ long int siridb_shard_write_points(
         {
             ERR_FILE
             log_critical("Cannot open file '%s'", shard->fn);
-            return EOF;
+            return 0;
         }
     }
     fp = shard->fp->fp;
@@ -494,8 +493,9 @@ long int siridb_shard_write_points(
         cdata = siridb_points_zip(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
+            ERR_ALLOC
             log_critical("Memory allocation error while compressing points");
-            return -1;
+            return 0;
         }
     }
     else if (series->tp == TP_STRING)
@@ -504,8 +504,9 @@ long int siridb_shard_write_points(
         cdata = siridb_points_raw_string(points, start, end, cinfo, &dsize);
         if (cdata == NULL)
         {
+            ERR_ALLOC
             log_critical("Memory allocation error while compressing points");
-            return -1;
+            return 0;
         }
     }
     else
@@ -523,7 +524,7 @@ long int siridb_shard_write_points(
     if (fseeko(fp, shard->len, SEEK_SET))
     {
         log_critical("Seek error in: '%s'", shard->fn);
-        return -1;
+        return 0;
     }
 
     if (idx_fp == NULL || (shard->flags & SIRIDB_SHARD_HAS_NEW_VALUES))
@@ -552,50 +553,47 @@ long int siridb_shard_write_points(
         pos = shard->len;
     }
 
-    if (header_sz < 0)
+    if (!header_sz)
     {
         ERR_FILE
         log_critical(
                 "Cannot write index header for shard id %" PRIu64,
                 shard->id);
         free(cdata);
-        return EOF;
+        return 0;
     }
 
-    if (cdata != NULL)
+    if (cdata == NULL)
     {
-        long int rc = fwrite(cdata, dsize, 1, fp);
-        free(cdata);
-        if (rc != 1)
+        size_t p = 0;
+        size_t ts_sz = siridb->time->ts_sz;
+        cdata = (unsigned char *) malloc(dsize);
+        if (cdata == NULL)
         {
-            ERR_FILE
-            log_critical("Cannot write points to file '%s'", shard->fn);
-            return EOF;
+            ERR_ALLOC
+            log_critical("Memory allocation error while compressing points");
+            return 0;
         }
-    }
-    else
-    {
+
         for (i = start; i < end; i++)
         {
-            if (fwrite(&points->data[i].ts, siridb->time->ts_sz, 1, fp) != 1 ||
-                fwrite(&points->data[i].val, 8, 1, fp) != 1)
-            {
-                ERR_FILE
-                log_critical("Cannot write points to file '%s'", shard->fn);
-                return EOF;
-            }
+            memcpy(cdata + p, &points->data[i].ts, ts_sz);
+            p += ts_sz;
+            memcpy(cdata + p, &points->data[i].val, 8);
+            p += 8;
         }
     }
 
-    if (fflush(fp))
+    long int rc = fwrite(cdata, dsize, 1, fp);
+    free(cdata);
+    if (rc != 1)
     {
         ERR_FILE
-        log_critical("Cannot write flush file '%s'", shard->fn);
-        return EOF;
+        log_critical("Cannot write points to file '%s'", shard->fn);
+        return 0;
     }
 
     shard->len = pos + dsize;
-
     return pos;
 }
 
@@ -1847,10 +1845,10 @@ static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
  * Write a header for a chunk of points. The header can be written to argument
  * fp which should be a pointer to the index, or the shard file.
  *
- * In case of an error the function return EOF, otherwise the size which is
+ * In case of an error the function returns 0, otherwise the size which is
  * written.
  */
-static int SHARD_write_header(
+static size_t SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_points_t * points,
@@ -1860,12 +1858,9 @@ static int SHARD_write_header(
         FILE * fp)
 {
     uint16_t len = end - start;
-    int size = EOF;
-
-    if (fwrite(&series->id, sizeof(uint32_t), 1, fp) != 1)
-    {
-        return EOF;
-    }
+    size_t size = sizeof(uint32_t);
+    char buf[24];
+    memcpy(buf, &series->id, sizeof(uint32_t));
 
     switch (siridb->time->ts_sz)
     {
@@ -1873,22 +1868,18 @@ static int SHARD_write_header(
         {
             uint32_t start_ts = (uint32_t) points->data[start].ts;
             uint32_t end_ts = (uint32_t) points->data[end - 1].ts;
-            if (fwrite(&start_ts, sizeof(uint32_t), 1, fp) != 1 ||
-                fwrite(&end_ts, sizeof(uint32_t), 1, fp) != 1)
-            {
-                return EOF;
-            }
+            memcpy(buf + size, &start_ts, sizeof(uint32_t));
+            size += sizeof(uint32_t);
+            memcpy(buf + size, &end_ts, sizeof(uint32_t));
+            size += sizeof(uint32_t);
         }
-        size = IDX32_SZ;
         break;
 
     case sizeof(uint64_t):
-        if (fwrite(&points->data[start].ts, sizeof(uint64_t), 1, fp) != 1 ||
-            fwrite(&points->data[end - 1].ts, sizeof(uint64_t), 1, fp) != 1)
-        {
-            return EOF;
-        }
-        size = IDX64_SZ;
+        memcpy(buf + size, &points->data[start].ts, sizeof(uint64_t));
+        size += sizeof(uint64_t);
+        memcpy(buf + size, &points->data[end - 1].ts, sizeof(uint64_t));
+        size += sizeof(uint64_t);
         break;
 
     default:
@@ -1896,19 +1887,18 @@ static int SHARD_write_header(
         break;
     }
 
-
-    if (fwrite(&len, sizeof(uint16_t), 1, fp) != 1)
-    {
-        return EOF;
-    }
+    memcpy(buf + size, &len, sizeof(uint16_t));
+    size += sizeof(uint16_t);
 
     if (cinfo != NULL)
     {
+        memcpy(buf + size, cinfo, sizeof(uint16_t));
         size += sizeof(uint16_t);
-        if (fwrite(cinfo, sizeof(uint16_t), 1, fp) != 1)
-        {
-            return EOF;
-        }
+    }
+
+    if (fwrite(buf, size, 1, fp) != 1)
+    {
+        return 0;
     }
 
     return size;
