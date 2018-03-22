@@ -207,7 +207,7 @@ class Series:
 
 async def get_ts_factor(siri):
     res = await siri.query('show time_precision')
-    return 10**['s', 'ms', 'us', 'ns'].index(res['data'][0]['value'])
+    return 10**(['s', 'ms', 'us', 'ns'].index(res['data'][0]['value'])*3)
 
 
 def queue_data(q, args, ts_factor):
