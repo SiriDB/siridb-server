@@ -1,0 +1,465 @@
+#!/usr/bin/python3
+import os
+import sys
+import argparse
+import asyncio
+import time
+import logging
+import string
+import random
+import threading
+import queue
+import datetime
+import math
+import collections
+import signal
+from siridb.connector import SiriDBClient
+
+
+# Version information
+__version_info__ = (0, 0, 1)
+__version__ = '.'.join(map(str, __version_info__))
+__maintainer__ = 'Jeroen van der Heijden'
+__email__ = 'jeroen@transceptor.technology'
+
+
+# Logging definitions
+_LOG_DATE_FMT = '%y%m%d %H:%M:%S'
+_MAP_LOGLEVELS = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL
+}
+
+# counters etc.
+total_processed = 0
+total_failed = 0
+start_time = time.time()
+
+# Stop is used when pressing CTRL+C
+stop = False
+
+
+def setup_logger(args):
+    # setup formatter without using colors
+    formatter = logging.Formatter(
+        fmt='[%(levelname)1.1s %(asctime)s %(module)s:%(lineno)d] ' +
+            '%(message)s',
+        datefmt=_LOG_DATE_FMT,
+        style='%')
+
+    logger = logging.getLogger()
+
+    logger.setLevel(_MAP_LOGLEVELS[args.log_level.upper()])
+
+    if args.log_file_prefix:
+        # create file handler
+        ch = logging.RotatingFileHandler(
+            args.log_file_prefix,
+            maxBytes=args.log_file_max_size,
+            backupCount=args.log_file_num_backups)
+
+    else:
+        # create console handler
+        ch = logging.StreamHandler()
+
+    # we can set the handler level to DEBUG since we control the root level
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+
+class Series:
+    # Class values are set with the .init() method.
+    _series = []
+    _timestamp = None  # always in seconds
+    _ts_factor = None
+    _interval_range = None
+    _r = None
+
+    def __init__(self, allowed_kinds=(int, float, str)):
+        self.kind = self._r.choice(allowed_kinds)
+        self.hash = '' if self.kind == str else 0
+
+        factor = 10**self._r.randint(int(self.kind == int), 6)
+        self.random_range = (
+            int(self._r.random() * -factor),
+            int(self._r.random() * factor))
+        self.sign = 1
+
+        self.likely_equal = self._r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
+        self.likely_change_sign = self._r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
+        self.last = self.hash
+        if self.kind == float:
+            # one in ten series will show float as int, example 1.0, 2.0 etc.
+            self.as_int = self._r.random() > 0.9
+
+        self.name = self._gen_name()
+        Series._series.append(self)
+
+    def get_value(self):
+        if self._r.random() < self.likely_change_sign:
+            self.sign = -self.sign
+
+        if self._r.random() > self.likely_equal:
+            if self.kind == int:
+                self.last += self.sign * self._r.randint(*self.random_range)
+                if self.last.bit_length() > 63:
+                    self.last = 0
+
+            elif self.kind == float:
+                self.last += \
+                    self.sign * \
+                    self._r.random() * \
+                    self._r.randint(*self.random_range)
+                if self.as_int:
+                    self.last = round(self.last, 0)
+
+        return self.last
+
+    @classmethod
+    def init(cls, args, ts_factor, r):
+        cls._r = r
+        cls._ts_factor = ts_factor
+
+        translate = {
+            'int': int,
+            'float': float,
+            'str': str}
+        kinds = [translate[k] for k in args.kinds]
+
+        for i in range(args.num_series):
+            Series(allowed_kinds=kinds)
+
+        cls._timestamp = int(time.mktime(datetime.datetime.strptime(
+            args.start_date,
+            '%Y-%m-%d').timetuple()))
+
+        n = math.ceil(args.ts_interval * 0.05)
+        cls._interval_range = (-n, n)
+
+    def _gen_name(self):
+        name = '/n:{}/range:{}-{}/eq:{}/cs:{}/opt:{}'.format(
+            len(self._series),
+            self.random_range[0],
+            self.random_range[1],
+            self.likely_equal,
+            self.likely_change_sign,
+            'as_int' if getattr(self, 'as_int', False) else '')
+
+        return name
+
+    @classmethod
+    def pick_series(cls, n):
+        series = cls._series[:]
+        cls._r.shuffle(series)
+        return series[:n]
+
+    @classmethod
+    def get_data(cls, args):
+        nseries, npoints = args.series_per_batch, args.points_per_batch
+
+        if nseries < 1:
+            nseries = cls._r.randint(1, min(10000, cls.num()))
+
+        if npoints < 1:
+            npoints = cls._r.randint(nseries, 10000)
+
+        series = cls.pick_series(nseries)
+        ts_per_point = args.ts_interval == 0 and args.ts_randomize
+
+        now = int(time.time())
+        if not ts_per_point:
+            if args.ts_interval == 0:
+                ts = cls._r.randint(cls._timestamp, now)
+            else:
+                cls._timestamp += args.ts_interval
+                if args.ts_randomize:
+                    cls._timestamp += cls._r.randint(*cls._interval_range)
+                ts = cls._timestamp
+            ts *= cls._ts_factor
+
+        data = collections.defaultdict(list)
+        for s in series:
+            if ts_per_point:
+                ts = cls._r.randint(cls._timestamp, now) * cls._ts_factor
+            val = s.get_value()
+            data[s.name].append([ts, val])
+
+        npoints -= nseries
+        while npoints:
+            s = cls._r.choice(series)
+            if ts_per_point:
+                ts = cls._r.randint(cls._timestamp, now) * cls._ts_factor
+
+            val = s.get_value()
+            data[s.name].append([ts, val])
+            npoints -= 1
+
+        return data
+
+    @classmethod
+    def num(cls):
+        return len(cls._series)
+
+
+async def get_ts_factor(siri):
+    res = await siri.query('show time_precision')
+    return 10**['s', 'ms', 'us', 'ns'].index(res['data'][0]['value'])
+
+
+def queue_data(q, args, ts_factor):
+    r = random.Random()
+    r.seed(time.time() if args.seed is None else args.seed)
+
+    Series.init(args, ts_factor, r)
+
+    n = args.num_batches
+    while n and stop is False:
+        data = Series.get_data(args)
+        q.put(data)
+        n -= 1
+
+    q.put(None)
+
+async def siridb_insert(siri, data, task_counter):
+    '''Insert data into SiriDB.'''
+    global total_processed
+    global total_failed
+    global start_time
+
+    n = sum((len(p) for p in data.values()))
+    start = time.time()
+    try:
+        await siri.insert(data)
+    except Exception as e:
+        logging.exception(e)
+        total_failed += n
+    else:
+        total_processed += n
+        logging.info(
+            'processed {} records, running {} task(s), {:d} records/sec'
+            .format(
+                total_processed,
+                len(task_counter) - 1,
+                int(total_processed // (time.time() - start_time))))
+    finally:
+        task_counter.pop()
+
+
+async def dump_data(siri, q, args):
+    task_counter = []
+    try:
+        await siri.connect()
+        ts_factor = await get_ts_factor(siri)
+        t = threading.Thread(target=queue_data, args=(q, args, ts_factor))
+        t.start()
+
+        while True:
+            data = q.get()
+            if data is None:
+                break
+
+            task_counter.append(1)
+            while len(task_counter) > args.max_parallel:
+                await asyncio.sleep(0.2)
+
+            asyncio.ensure_future(siridb_insert(siri, data, task_counter))
+            # sleep 0 so the async loop will run to pick-up tasks
+            await asyncio.sleep(0)
+
+    except Exception as e:
+        logging.exception(e)
+
+    finally:
+        while len(task_counter):
+            await asyncio.sleep(0.5)
+        siri.close()
+
+
+def signal_handler(signal, frame):
+    global stop
+    logging.warning(
+        'Asked to stop, existing data in the queue will be finished...')
+    stop = True
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '-u', '--user',
+        type=str,
+        default='iris',
+        help='database user')
+
+    parser.add_argument(
+        '-p', '--password',
+        type=str,
+        default='siri',
+        help='password')
+
+    parser.add_argument(
+        '-d', '--dbname',
+        type=str,
+        default='dbtest',
+        help='database name')
+
+    parser.add_argument(
+        '-s', '--servers',
+        type=str,
+        default='localhost:9000',
+        help='siridb server(s)')
+
+    parser.add_argument(
+        '-S',
+        '--seed',
+        type=str,
+        help='Optional seed. '
+             'If no seed is given, the current timestamp will be used.')
+
+    parser.add_argument(
+        '-v', '--version',
+        action='store_true',
+        help='print version information and exit')
+
+    parser.add_argument(
+        '--start-date',
+        type=str,
+        default='2017-01-01',
+        help='Timestamps will be generated starting from this date. '
+             '(using the format YYYY-MM-DD')
+
+    parser.add_argument(
+        '--ts-interval',
+        type=int,
+        default=60,
+        help='Timestamp interval in seconds. '
+             'When 0 a ramdom interval is used per batch unless '
+             '--ts-randomize is also set.')
+
+    parser.add_argument(
+        '--ts-randomize',
+        action='store_true',
+        help='A random value will be added to the timestamp intervals so '
+             'they will be not exact anymore. In case --ts-interval is '
+             'set to 0, each induvidual point in a batch gets a random '
+             'timestamp rather than one timestamp per batch.')
+
+    parser.add_argument(
+        '--num-series',
+        type=int,
+        default=10000,
+        help='number of series to generate')
+
+    parser.add_argument(
+        '--num-batches',
+        type=int,
+        default=10,
+        help='number of batches to inserts. (value < 0 will be continues')
+
+    parser.add_argument(
+        '--series-per-batch',
+        type=int,
+        default=5000,
+        help='number of series per batch. (0 for random)')
+
+    parser.add_argument(
+        '--points-per-batch',
+        type=int,
+        default=10000,
+        help='number of points per batch. '
+             '(must be equal or larger than series-per-batch or 0 for random)')
+
+    parser.add_argument(
+        '--kinds',
+        nargs='+',
+        default=('int', 'float'),
+        choices=('int', 'float'))  # , 'str'
+
+    parser.add_argument(
+        '--max-parallel',
+        type=int,
+        default=3,
+        help='maximum number of allowed parallel inserts')
+
+    parser.add_argument(
+        '-l', '--log-level',
+        default='info',
+        help='set the log level (default: info)',
+        choices=['debug', 'info', 'warning', 'error'])
+
+    parser.add_argument(
+        '--log-file-max-size',
+        default=50000000,
+        help='max size of log files before rollover ' +
+        '(--log-file-prefix must be set)',
+        type=int)
+
+    parser.add_argument(
+        '--log-file-num-backups',
+        default=6,
+        help='number of log files to keep (--log-file-prefix must be set)',
+        type=int)
+
+    parser.add_argument(
+        '--log-file-prefix',
+        help='path prefix for log files (when not provided we send the ' +
+        'output to the console)',
+        type=str)
+
+    args = parser.parse_args()
+
+    # respond to --version argument
+    if args.version:
+        sys.exit('''
+SiriDB Data Generator Script {version}
+Maintainer: {maintainer} <{email}>
+Home-page: https://github.com/transceptor-technology/siridb-email-check
+        '''.strip().format(version=__version__,
+                           maintainer=__maintainer__,
+                           email=__email__))
+
+    if args.num_series < args.series_per_batch:
+        exit('num-series must be equal or greater than series-per-batch')
+
+    if args.points_per_batch != 0 and \
+            args.points_per_batch < args.series_per_batch:
+        exit('points-per-batch must be equal or greater than series-per-batch')
+
+    if args.max_parallel < 1:
+        exit('max-parallel must be > 0')
+
+    try:
+        if datetime.datetime.strptime(
+                args.start_date, '%Y-%m-%d') >= datetime.datetime.today():
+            exit('start date must be a date before today.')
+    except:
+        exit('invalid date: {}'.format(args.start_date))
+
+    setup_logger(args)
+    q = queue.Queue(maxsize=args.max_parallel)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    siri = SiriDBClient(
+        username=args.user,
+        password=args.password,
+        dbname=args.dbname,
+        hostlist=[
+            [s.strip() for s in server.split(':')]
+            for server in args.servers.split(',')])
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(dump_data(siri, q, args))
+
+    total_time = time.time() - start_time
+    logging.info(
+        'total time: {:.3f} seconds, '
+        'processed: {}, '
+        'failed: {}'
+        .format(
+            total_time,
+            total_processed,
+            total_failed))
