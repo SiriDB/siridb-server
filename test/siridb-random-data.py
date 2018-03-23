@@ -82,13 +82,17 @@ class Series:
 
     def __init__(self, allowed_kinds=(int, float, str)):
         self.kind = self._r.choice(allowed_kinds)
-        self.lval = '' if self.kind == str else 0
+        self.lval = {
+            str: '',
+            int: 0,
+            float: 0.0
+        }[self.kind]
         self.lts = self._timestamp
 
         factor = 10**self._r.randint(int(self.kind == int), 6)
         self.random_range = (
-            int(self._r.random() * -factor),
-            int(self._r.random() * factor))
+            int(self._r.random() * -factor) - 1,
+            int(self._r.random() * factor) + 1)
         self.sign = 1
 
         self.likely_equal = self._r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
@@ -107,6 +111,7 @@ class Series:
 
         if self._r.random() > self.likely_equal:
             if self.kind == int:
+                print('Int!!!!!')
                 self.lval += self.sign * self._r.randint(*self.random_range)
                 if self.lval.bit_length() > 63:
                     self.lval = 0
