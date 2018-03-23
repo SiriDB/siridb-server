@@ -91,7 +91,7 @@ class Series:
 
         factor = 10**self._r.randint(int(self.kind == int), 6)
         self.random_range = (
-            int(self._r.random() * -factor) - 1,
+            int(self._r.random() * -factor),
             int(self._r.random() * factor) + 1)
         self.sign = 1
 
@@ -119,7 +119,7 @@ class Series:
                 self.lval += \
                     self.sign * \
                     self._r.random() * \
-                    self._r.randint(*self.random_range)
+                    self.random_range[1]
                 if self.as_int:
                     self.lval = round(self.lval, 0)
 
