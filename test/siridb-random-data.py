@@ -111,7 +111,6 @@ class Series:
 
         if self._r.random() > self.likely_equal:
             if self.kind == int:
-                print('Int!!!!!')
                 self.lval += self.sign * self._r.randint(*self.random_range)
                 if self.lval.bit_length() > 63:
                     self.lval = 0
