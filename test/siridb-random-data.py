@@ -13,11 +13,12 @@ import datetime
 import math
 import collections
 import signal
+import gc
 from siridb.connector import SiriDBClient
 
 
 # Version information
-__version_info__ = (0, 0, 1)
+__version_info__ = (0, 0, 2)
 __version__ = '.'.join(map(str, __version_info__))
 __maintainer__ = 'Jeroen van der Heijden'
 __email__ = 'jeroen@transceptor.technology'
@@ -81,7 +82,8 @@ class Series:
 
     def __init__(self, allowed_kinds=(int, float, str)):
         self.kind = self._r.choice(allowed_kinds)
-        self.hash = '' if self.kind == str else 0
+        self.lval = '' if self.kind == str else 0
+        self.lts = self._timestamp
 
         factor = 10**self._r.randint(int(self.kind == int), 6)
         self.random_range = (
@@ -91,7 +93,7 @@ class Series:
 
         self.likely_equal = self._r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
         self.likely_change_sign = self._r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
-        self.last = self.hash
+
         if self.kind == float:
             # one in ten series will show float as int, example 1.0, 2.0 etc.
             self.as_int = self._r.random() > 0.9
@@ -105,24 +107,30 @@ class Series:
 
         if self._r.random() > self.likely_equal:
             if self.kind == int:
-                self.last += self.sign * self._r.randint(*self.random_range)
-                if self.last.bit_length() > 63:
-                    self.last = 0
+                self.lval += self.sign * self._r.randint(*self.random_range)
+                if self.lval.bit_length() > 63:
+                    self.lval = 0
 
             elif self.kind == float:
-                self.last += \
+                self.lval += \
                     self.sign * \
                     self._r.random() * \
                     self._r.randint(*self.random_range)
                 if self.as_int:
-                    self.last = round(self.last, 0)
+                    self.lval = round(self.lval, 0)
 
-        return self.last
+        return self.lval
 
     @classmethod
     def init(cls, args, ts_factor, r):
         cls._r = r
         cls._ts_factor = ts_factor
+        cls._timestamp = int(time.mktime(datetime.datetime.strptime(
+            args.start_date,
+            '%Y-%m-%d').timetuple()))
+
+        n = math.ceil(args.ts_interval * 0.05)
+        cls._interval_range = (-n, n)
 
         translate = {
             'int': int,
@@ -133,15 +141,8 @@ class Series:
         for i in range(args.num_series):
             Series(allowed_kinds=kinds)
 
-        cls._timestamp = int(time.mktime(datetime.datetime.strptime(
-            args.start_date,
-            '%Y-%m-%d').timetuple()))
-
-        n = math.ceil(args.ts_interval * 0.05)
-        cls._interval_range = (-n, n)
-
     def _gen_name(self):
-        name = '/n:{}/range:{}-{}/eq:{}/cs:{}/opt:{}'.format(
+        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}'.format(
             len(self._series),
             self.random_range[0],
             self.random_range[1],
@@ -150,6 +151,14 @@ class Series:
             'as_int' if getattr(self, 'as_int', False) else '')
 
         return name
+
+    def get_ts(self, now, args):
+        if args.ts_interval <= 0:
+            return self._r.randint(self._timestamp, now) * self._ts_factor
+        self.lts += args.ts_interval
+        if args.ts_randomize:
+            self.lts += self._r.randint(*self._interval_range)
+        return self.lts * self._ts_factor
 
     @classmethod
     def pick_series(cls, n):
@@ -168,32 +177,18 @@ class Series:
             npoints = cls._r.randint(nseries, 10000)
 
         series = cls.pick_series(nseries)
-        ts_per_point = args.ts_interval == 0 and args.ts_randomize
-
         now = int(time.time())
-        if not ts_per_point:
-            if args.ts_interval == 0:
-                ts = cls._r.randint(cls._timestamp, now)
-            else:
-                cls._timestamp += args.ts_interval
-                if args.ts_randomize:
-                    cls._timestamp += cls._r.randint(*cls._interval_range)
-                ts = cls._timestamp
-            ts *= cls._ts_factor
-
         data = collections.defaultdict(list)
+
         for s in series:
-            if ts_per_point:
-                ts = cls._r.randint(cls._timestamp, now) * cls._ts_factor
             val = s.get_value()
+            ts = s.get_ts(now, args)
             data[s.name].append([ts, val])
 
         npoints -= nseries
         while npoints:
             s = cls._r.choice(series)
-            if ts_per_point:
-                ts = cls._r.randint(cls._timestamp, now) * cls._ts_factor
-
+            ts = s.get_ts(now, args)
             val = s.get_value()
             data[s.name].append([ts, val])
             npoints -= 1
@@ -224,6 +219,7 @@ def queue_data(q, args, ts_factor):
 
     q.put(None)
 
+
 async def siridb_insert(siri, data, task_counter):
     '''Insert data into SiriDB.'''
     global total_processed
@@ -234,6 +230,7 @@ async def siridb_insert(siri, data, task_counter):
     start = time.time()
     try:
         await siri.insert(data)
+        # await asyncio.sleep(0.1)
     except Exception as e:
         logging.exception(e)
         total_failed += n
@@ -247,6 +244,9 @@ async def siridb_insert(siri, data, task_counter):
                 int(total_processed // (time.time() - start_time))))
     finally:
         task_counter.pop()
+    # a = sys.getrefcount(data)
+    # logging.info('ref: {}'.format(a))
+    # gc.collect()
 
 
 async def dump_data(siri, q, args):
@@ -337,16 +337,14 @@ if __name__ == '__main__':
         type=int,
         default=60,
         help='Timestamp interval in seconds. '
-             'When 0 a ramdom interval is used per batch unless '
-             '--ts-randomize is also set.')
+             'When <= 0 a ramdom interval is used for each data point.')
 
     parser.add_argument(
         '--ts-randomize',
         action='store_true',
         help='A random value will be added to the timestamp intervals so '
              'they will be not exact anymore. In case --ts-interval is '
-             'set to 0, each induvidual point in a batch gets a random '
-             'timestamp rather than one timestamp per batch.')
+             '<= 0 this property will be ignored.')
 
     parser.add_argument(
         '--num-series',
