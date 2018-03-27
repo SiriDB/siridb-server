@@ -21,6 +21,7 @@
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
+#include <siri/db/points.h>
 #include <siri/optimize.h>
 #include <siri/err.h>
 #include <siri/file/pointer.h>
@@ -586,7 +587,8 @@ size_t siridb_shard_write_points(
 
     long int rc = fwrite(cdata, dsize, 1, fp);
     free(cdata);
-    if (rc != 1)
+
+    if (rc != 1 || fflush(fp))
     {
         ERR_FILE
         log_critical("Cannot write points to file '%s'", shard->fn);
