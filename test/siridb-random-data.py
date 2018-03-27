@@ -15,7 +15,7 @@ from siridb.connector import SiriDBClient
 
 
 # Version information
-__version_info__ = (0, 0, 4)
+__version_info__ = (0, 0, 5)
 __version__ = '.'.join(map(str, __version_info__))
 __maintainer__ = 'Jeroen van der Heijden'
 __email__ = 'jeroen@transceptor.technology'
@@ -86,12 +86,13 @@ class Series:
         }[self.kind]
         self.lts = self._timestamp
 
-        factor = 10**r.randint(int(self.kind == int), 6)
+        factor = 10**r.randint(int(self.kind == int), 9)
         self.random_range = (
             int(r.random() * -factor),
             int(r.random() * factor) + 1)
         self.sign = 1
 
+        self.ignore_last = r.random() > 0.95
         self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
         self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
@@ -112,7 +113,11 @@ class Series:
 
         if self._r.random() > self.likely_equal:
             if self.kind == int:
-                self.lval += self.sign * self._r.randint(*self.random_range)
+                val = self.sign * self._r.randint(*self.random_range)
+                if self.ignore_last:
+                    self.lval = val
+                else:
+                    self.lval += val
                 if self.lval.bit_length() > 63:
                     self.lval = 0
 
@@ -122,10 +127,11 @@ class Series:
                 elif self.likely_nan and self._r.random() < self.likely_nan:
                     return math.nan
                 else:
-                    self.lval += \
-                        self.sign * \
-                        self._r.random() * \
-                        self.random_range[1]
+                    val = self.sign * self._r.random() * self.random_range[1]
+                    if self.ignore_last:
+                        self.lval = val
+                    else:
+                        self.lval += val
                     if self.as_int:
                         self.lval = round(self.lval, 0)
 
@@ -163,14 +169,15 @@ class Series:
             Series(r=series_rand, allowed_kinds=kinds)
 
     def _gen_name(self):
-        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}'.format(
+        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}{}{}'.format(
             len(self._series),
             self.random_range[0],
             self.random_range[1],
             self.likely_equal,
             self.likely_change_sign,
-            'as_int' if self.as_int else
-            'gen_float' if self.gen_float else '',
+            '(ign_last)' if self.ignore_last else '',
+            '(as_int)' if self.as_int else '',
+            '(gen_float)' if self.gen_float else '',
             '(inf:{:.3f})'.format(self.likely_inf) if self.likely_inf else '',
             '(nan:{:.3f})'.format(self.likely_nan) if self.likely_nan else '')
 
