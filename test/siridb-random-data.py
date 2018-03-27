@@ -15,7 +15,7 @@ from siridb.connector import SiriDBClient
 
 
 # Version information
-__version_info__ = (0, 0, 3)
+__version_info__ = (0, 0, 4)
 __version__ = '.'.join(map(str, __version_info__))
 __maintainer__ = 'Jeroen van der Heijden'
 __email__ = 'jeroen@transceptor.technology'
@@ -95,11 +95,13 @@ class Series:
         self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
         self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
-        if self.kind == float:
-            # one in ten series will show float as int, example 1.0, 2.0 etc.
-            self.as_int = r.random() > 0.9
-            self.likely_inf = r.random() * 0.5 if r.random() > 0.9 else False
-            self.likely_nan = r.random() * 0.5 if r.random() > 0.9 else False
+        self.as_int = self.kind == float and r.random() > 0.9
+        self.likely_inf = r.random() * 0.2 \
+            if self.kind == float and r.random() > 0.95 else False
+        self.likely_nan = r.random() * 0.2 \
+            if self.kind == float and r.random() > 0.95 else False
+
+        self.gen_float = self.kind == int and r.random() > 0.97
 
         self.name = self._gen_name()
         Series._series.append(self)
@@ -116,9 +118,9 @@ class Series:
 
             elif self.kind == float:
                 if self.likely_inf and self._r.random() < self.likely_inf:
-                    self.lval = self.sign * math.inf
+                    return self.sign * math.inf
                 elif self.likely_nan and self._r.random() < self.likely_nan:
-                    self.lval = math.nan
+                    return math.nan
                 else:
                     self.lval += \
                         self.sign * \
@@ -126,6 +128,10 @@ class Series:
                         self.random_range[1]
                     if self.as_int:
                         self.lval = round(self.lval, 0)
+
+        if self.gen_float:
+            self.kind = float
+            self.gen_float = False
 
         return self.lval
 
@@ -163,11 +169,10 @@ class Series:
             self.random_range[1],
             self.likely_equal,
             self.likely_change_sign,
-            'as_int' if getattr(self, 'as_int', False) else '',
-            '(inf:{})'.format(self.likely_inf)
-            if getattr(self, 'likely_inf', False) else '',
-            '(nan:{})'.format(self.likely_nan)
-            if getattr(self, 'likely_nan', False) else '')
+            'as_int' if self.as_int else
+            'gen_float' if self.gen_float else '',
+            '(inf:{:.3f})'.format(self.likely_inf) if self.likely_inf else '',
+            '(nan:{:.3f})'.format(self.likely_nan) if self.likely_nan else '')
 
         return name
 
