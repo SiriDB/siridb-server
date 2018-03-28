@@ -34,6 +34,7 @@
 #include <siri/version.h>
 #include <siri/db/lookup.h>
 #include <strextra/strextra.h>
+#include <math.h>
 
 #define TEST_OK 1
 #define TEST_FAILED -1
@@ -795,6 +796,35 @@ static int test_aggr_variance(void)
     return test_end(TEST_OK);
 }
 
+static int test_aggr_stddev(void)
+{
+    test_start("Testing standard deviation");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.gid = CLERI_GID_F_STDDEV;
+    aggr.group_by = 6;
+    aggr.limit = 0;
+    aggr.offset = 0;
+
+    result = siridb_aggregate_run(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 4);
+    assert (result->tp == TP_DOUBLE);
+    assert (result->data->ts == 6 && result->data->val.real == sqrt(2.0));
+    assert ((result->data + 1)->ts == 12 &&
+            (result->data + 1)->val.real == 2.0);
+
+    siridb_points_free(result);
+    siridb_points_free(points);
+
+    return test_end(TEST_OK);
+}
+
 static int test_iso8601(void)
 {
     test_start("Testing iso8601");
@@ -952,6 +982,7 @@ int run_tests(void)
     rc += test_aggr_pvariance();
     rc += test_aggr_sum();
     rc += test_aggr_variance();
+    rc += test_aggr_stddev();
     rc += test_iso8601();
     rc += test_expr();
     rc += test_access();

@@ -140,6 +140,7 @@ class SiriGrammar(Grammar):
     k_start = Keyword('start')
     k_startup_time = Keyword('startup_time')
     k_status = Keyword('status')
+    k_stddev = Keyword('stddev')
     k_string = Keyword('string')
     k_suffix = Keyword('suffix')
     k_sum = Keyword('sum')
@@ -457,6 +458,10 @@ class SiriGrammar(Grammar):
     f_pvariance = Sequence(
         k_pvariance,
         '(', time_expr, ')')
+    f_stddev = Sequence(
+        k_stddev,
+        '(', time_expr, ')')
+
     f_filter = Sequence(
         k_filter,
         '(',
@@ -483,6 +488,7 @@ class SiriGrammar(Grammar):
             k_count,
             k_variance,
             k_pvariance,
+            k_stddev,
             most_greedy=False),
         ')')
 
@@ -499,6 +505,7 @@ class SiriGrammar(Grammar):
         f_count,
         f_variance,
         f_pvariance,
+        f_stddev,
         f_difference,
         f_derivative,
         f_filter,

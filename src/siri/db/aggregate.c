@@ -19,6 +19,7 @@
 #include <slist/slist.h>
 #include <stddef.h>
 #include <strextra/strextra.h>
+#include <math.h>
 
 #define AGGR_NEW                                    \
 if ((aggr = AGGREGATE_new(gid)) == NULL)            \
@@ -147,6 +148,11 @@ static int aggr_variance(
         siridb_aggr_t * aggr,
         char * err_msg);
 
+static int aggr_stddev(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
 /*
  * Initialize aggregates.
  */
@@ -170,6 +176,7 @@ void siridb_init_aggregates(void)
     AGGREGATES[CLERI_GID_F_PVARIANCE - F_OFFSET] = aggr_pvariance;
     AGGREGATES[CLERI_GID_F_SUM - F_OFFSET] = aggr_sum;
     AGGREGATES[CLERI_GID_F_VARIANCE - F_OFFSET] = aggr_variance;
+    AGGREGATES[CLERI_GID_F_STDDEV - F_OFFSET] = aggr_stddev;
 }
 
 /*
@@ -254,6 +261,10 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
                 case CLERI_GID_K_PVARIANCE:
                     aggr->gid = CLERI_GID_F_PVARIANCE;
+                    break;
+
+                case CLERI_GID_K_STDDEV:
+                    aggr->gid = CLERI_GID_F_STDDEV;
                     break;
 
                 default:
@@ -382,6 +393,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         case CLERI_GID_F_PVARIANCE:
         case CLERI_GID_F_SUM:
         case CLERI_GID_F_VARIANCE:
+        case CLERI_GID_F_STDDEV:
             AGGR_NEW
             aggr->group_by = children->node->children->node->children->
                     next->next->node->result;
@@ -866,6 +878,7 @@ static siridb_points_t * AGGREGATE_group_by(
     case CLERI_GID_F_MEDIAN:
     case CLERI_GID_F_PVARIANCE:
     case CLERI_GID_F_VARIANCE:
+    case CLERI_GID_F_STDDEV:
     case CLERI_GID_F_DERIVATIVE:
         points = siridb_points_new(max_sz, TP_DOUBLE);
         break;
@@ -1412,6 +1425,36 @@ static int aggr_variance(
     case TP_DOUBLE:
         point->val.real = (points->len > 1) ?
                 siridb_variance(points) / (points->len - 1) : 0.0;
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    return 0;
+}
+
+static int aggr_stddev(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr __attribute__((unused)),
+        char * err_msg)
+{
+#if DEBUG
+    assert (points->len);
+#endif
+
+    switch (points->tp)
+    {
+    case TP_STRING:
+        sprintf(err_msg, "Cannot use stddev() on string type.");
+        return -1;
+
+    case TP_INT:
+    case TP_DOUBLE:
+        point->val.real = (points->len > 1) ?
+                sqrt(siridb_variance(points) / (points->len - 1)) : 0.0;
         break;
 
     default:
