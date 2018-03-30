@@ -403,7 +403,7 @@ class SiriGrammar(Grammar):
     uuid = Choice(r_uuid_str, string, most_greedy=False)
     group_match = Repeat(r_grave_str, 1, 1)
     series_match = List(
-        Choice(series_name, group_match, series_re, most_greedy=False),
+        Choice(Token('*'), series_name, group_match, series_re, most_greedy=False),
         series_sep, 1)
     limit_expr = Sequence(k_limit, int_expr)
 

@@ -795,15 +795,12 @@ void siridb__series_decref(siridb_series_t * series)
 siridb_points_t * siridb_series_get_first(
         siridb_series_t * series, int * required_shard)
 {
-    siridb_point_t * point;
     siridb_points_t * buf = series->buffer;
     siridb_points_t * points;
 
-    *required_shard = 0;
-
     if (buf != NULL &&
         buf->len &&
-        (points->data = buf->data[0])->ts == series->start)
+        buf->data->ts == series->start)
     {
         points = siridb_points_new(1, series->tp);
         if (points == NULL)
@@ -812,10 +809,15 @@ siridb_points_t * siridb_series_get_first(
         }
 
         /* string type does not have a buffer so we don't have to worry */
+        points->data->ts = buf->data->ts;
+        points->data->val = buf->data->val;
         points->len = 1;
+        LOGC("First from memory");
         return points;
     }
-    *required_shard = 1;
+    LOGC("First from shard");
+
+    (*required_shard)++;
 
     /* if not in the buffer, then if must be in a shard */
     assert (series->idx_len);
@@ -823,12 +825,16 @@ siridb_points_t * siridb_series_get_first(
     idx_t * first = series->idx;
 
     points = siridb_points_new(first->len, series->tp);
+    if (points == NULL)
+    {
+        return NULL;
+    }
 
     siridb_shard_get_points_callback(first->shard->flags, series)(
             points,
             first,
             NULL,
-            series->start,
+            &series->start + 1,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
     assert (points->len);
@@ -848,15 +854,13 @@ siridb_points_t * siridb_series_get_first(
 siridb_points_t * siridb_series_get_last(
         siridb_series_t * series, int * required_shard)
 {
-    siridb_point_t * point;
     siridb_points_t * buf = series->buffer;
     siridb_points_t * points;
-
-    *required_shard = 0;
+    siridb_point_t * point;
 
     if (buf != NULL &&
         buf->len &&
-        (points->data = buf->data[buf->len - 1])->ts == series->end)
+        (point = buf->data + (buf->len - 1))->ts == series->end)
     {
         points = siridb_points_new(1, series->tp);
         if (points == NULL)
@@ -865,10 +869,16 @@ siridb_points_t * siridb_series_get_last(
         }
 
         /* string type does not have a buffer so we don't have to worry */
+        points->data->ts = buf->data->ts;
+        points->data->val = buf->data->val;
         points->len = 1;
+        LOGC("Last from memory");
         return points;
     }
-    *required_shard = 1;
+
+    LOGC("Last from shard");
+
+    (*required_shard)++;
 
     /* if not in the buffer, then if must be in a shard */
     assert (series->idx_len);
@@ -886,11 +896,15 @@ siridb_points_t * siridb_series_get_last(
     }
 
     points = siridb_points_new(last->len, series->tp);
+    if (points == NULL)
+    {
+        return NULL;
+    }
 
     siridb_shard_get_points_callback(last->shard->flags, series)(
             points,
             last,
-            last->end_ts,
+            &last->end_ts,
             NULL,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
@@ -917,6 +931,7 @@ siridb_points_t * siridb_series_get_count(siridb_series_t * series)
         points->data->val.int64 = series->length;
         points->len = 1;
     }
+    LOGC("Count from memory");
     return points;
 }
 

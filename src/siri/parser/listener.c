@@ -43,8 +43,8 @@
 #include <sys/time.h>
 
 
-#define MAX_ITERATE_COUNT 10000      // ten-thousand
-#define SKIP_GET_POINTS -1
+#define MAX_ITERATE_COUNT 10000       // ten-thousand
+#define MAX_BATCH_REQUIRE_SHARD 100   // after reading 100 shards, iterate
 
 #define QP_ADD_SUCCESS qp_add_raw( \
     query->packer, (const unsigned char *) "success_msg", 11);
@@ -1025,11 +1025,13 @@ static void enter_select_stmt(uv_async_t * handle)
 
     /* child is always the ',' and child->next the node */
     child = query->nodes->node->children->next->node->children;
+    skip_get_points = siridb_aggregate_can_skip(child);
+    LOGC("Skip?... %d", skip_get_points);
 
     child = child->next;
     while (child != NULL)
     {
-        if (skip_get_points && !siridb_aggregate_can_skip(child))
+        if (skip_get_points && !siridb_aggregate_can_skip(child->next))
         {
             skip_get_points = 0;
         }
@@ -1039,6 +1041,7 @@ static void enter_select_stmt(uv_async_t * handle)
 
     if (skip_get_points)
     {
+        LOGC("Set skip... %d", skip_get_points);
         q_select->flags |= QUERIES_SKIP_GET_POINTS;
     }
 
@@ -3225,6 +3228,8 @@ static void exit_series_match(uv_async_t * handle)
         q_select->points_map = imap_new();
     }
 
+    LOGC("exit series match %zu (%u)", q_select->nselects, q_select->flags);
+
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
@@ -4509,27 +4514,17 @@ static void async_no_points_aggregate(uv_async_t * handle)
     siridb_series_t * series;
     siridb_points_t * points;
     siridb_points_t * aggr_points;
-    int required_shard;
-
-    if (q_select->n > siridb->select_points_limit)
-    {
-        snprintf(query->err_msg,
-                SIRIDB_MAX_SIZE_ERR_MSG,
-                "Query has reached the maximum number of selected points "
-                "(%u). Please use another time window, an aggregation "
-                "function or select less series to reduce the number of "
-                "points.",
-                siridb->select_points_limit);
-
-        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-        return;
-    }
-
-    uv_mutex_lock(&siridb->series_mutex);
+    int required_shard = 0;
 
     for (;  q_select->slist_index < q_select->slist->len;
             ++q_select->slist_index)
     {
+        if (required_shard > MAX_BATCH_REQUIRE_SHARD)
+        {
+            async_more = 1;
+            break;
+        }
+
         series = (siridb_series_t *)
                 q_select->slist->data[q_select->slist_index];
         /*
@@ -4544,6 +4539,9 @@ static void async_no_points_aggregate(uv_async_t * handle)
 #endif
 
         siridb_aggr_t * aggr = q_select->alist->data[0];
+
+        uv_mutex_lock(&siridb->series_mutex);
+
         switch (aggr->gid)
         {
         case CLERI_GID_F_COUNT:
@@ -4558,8 +4556,13 @@ static void async_no_points_aggregate(uv_async_t * handle)
         default:
             assert (0);
         }
+
+        uv_mutex_unlock(&siridb->series_mutex);
+
         if (points != NULL)
         {
+            const char * name;
+
             for (size_t i = 1; points->len && i < q_select->alist->len; i++)
             {
                 aggr_points = siridb_aggregate_run(
@@ -4582,111 +4585,44 @@ static void async_no_points_aggregate(uv_async_t * handle)
             }
 
             q_select->n += points->len;
-        }
-    }
 
-    uv_mutex_unlock(&siridb->series_mutex);
-
-
-
-
-    /* We try to read the points from the cache in case a cache is created.
-     * If there are more select functions left we create a copy of the cache.
-     * When this is the last select function we pop from the cache since the
-     * points are no longer required.
-     */
-    points = (q_select->points_map == NULL) ?
-            NULL :
-            q_select->nselects ?
-                siridb_points_copy(imap_get(q_select->points_map, series->id)):
-                imap_pop(q_select->points_map, series->id);
-
-    if (points == NULL)
-    {
-        uv_mutex_lock(&siridb->series_mutex);
-
-        points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
-                NULL : siridb_series_get_points(
-                        series,
-                        q_select->start_ts,
-                        q_select->end_ts);
-        uv_mutex_unlock(&siridb->series_mutex);
-
-        /* when having a cache and points, add a copy of points to the cache */
-        if (q_select->points_map != NULL && points != NULL)
-        {
-            siridb_points_t * cpoints = siridb_points_copy(points);
-            if (cpoints != NULL &&
-                imap_add(q_select->points_map, series->id, cpoints))
+            if (q_select->merge_as == NULL)
             {
-                siridb_points_free(cpoints);
+                name = siridb_presuf_name(
+                        q_select->presuf,
+                        series->name,
+                        series->name_len);
+
+                if (name == NULL || ct_add(q_select->result, name, points))
+                {
+                    sprintf(query->err_msg, "Error adding points to map.");
+                    siridb_points_free(points);
+                    log_critical("Critical error adding points");
+                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                    return;
+                }
             }
-        }
-    }
-
-    if (points != NULL)
-    {
-        const char * name;
-
-        for (size_t i = 0; points->len && i < q_select->alist->len; i++)
-        {
-            aggr_points = siridb_aggregate_run(
-                    points,
-                    (siridb_aggr_t *) q_select->alist->data[i],
-                    query->err_msg);
-
-            if (aggr_points != points)
+            else
             {
-                siridb_points_free(points);
-            }
+                slist_t ** plist;
 
-            if (aggr_points == NULL)
-            {
-                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                return;
-            }
+                name = siridb_presuf_name(
+                        q_select->presuf,
+                        q_select->merge_as,
+                        strlen(q_select->merge_as));
 
-            points = aggr_points;
-        }
+                plist = (slist_t **) ct_getaddr(q_select->result, name);
 
-        q_select->n += points->len;
-
-        if (q_select->merge_as == NULL)
-        {
-            name = siridb_presuf_name(
-                    q_select->presuf,
-                    series->name,
-                    series->name_len);
-
-            if (name == NULL || ct_add(q_select->result, name, points))
-            {
-                sprintf(query->err_msg, "Error adding points to map.");
-                siridb_points_free(points);
-                log_critical("Critical error adding points");
-                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                return;
-            }
-        }
-        else
-        {
-            slist_t ** plist;
-
-            name = siridb_presuf_name(
-                    q_select->presuf,
-                    q_select->merge_as,
-                    strlen(q_select->merge_as));
-
-            plist = (slist_t **) ct_getaddr(q_select->result, name);
-
-            if (    name == NULL ||
-                    plist == NULL ||
-                    slist_append_safe(plist, points))
-            {
-                sprintf(query->err_msg, "Error adding points to map.");
-                siridb_points_free(points);
-                log_critical("Critical error adding points");
-                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                return;
+                if (    name == NULL ||
+                        plist == NULL ||
+                        slist_append_safe(plist, points))
+                {
+                    sprintf(query->err_msg, "Error adding points to map.");
+                    siridb_points_free(points);
+                    log_critical("Critical error adding points");
+                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                    return;
+                }
             }
         }
     }

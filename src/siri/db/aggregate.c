@@ -459,13 +459,14 @@ void siridb_aggregate_list_free(slist_t * alist)
  */
 int siridb_aggregate_can_skip(cleri_children_t * children)
 {
-    switch (children->node->children->node->cl_obj->gid)
+    LOGC("Gid: %d", children->node->children->node->children->node->children->node->cl_obj->gid);
+    switch (children->node->children->node->children->node->children->node->cl_obj->gid)
     {
     case CLERI_GID_F_COUNT:
     case CLERI_GID_F_FIRST:
     case CLERI_GID_F_LAST:
         return \
-            children->node->children->node->children->next->next->next == NULL;
+            children->node->children->node->children->node->children->node->children->next->next->next == NULL;
 
     default:
         return 0;
@@ -1562,7 +1563,7 @@ static int aggr_first(
 #if DEBUG
     assert (points->len);
 #endif
-    siridb_point_t * source = points->data[0];
+    siridb_point_t * source = points->data;
 
     switch (points->tp)
     {
@@ -1598,7 +1599,7 @@ static int aggr_last(
 #if DEBUG
     assert (points->len);
 #endif
-    siridb_point_t * source = points->data[points->len - 1];
+    siridb_point_t * source = points->data + (points->len - 1);
 
     switch (points->tp)
     {
