@@ -128,6 +128,11 @@ uint8_t siridb_series_server_id_by_name(const char * name);
 int siridb_series_open_store(siridb_t * siridb);
 void siridb__series_free(siridb_series_t *__restrict series);
 void siridb__series_decref(siridb_series_t * series);
+siridb_points_t * siridb_series_get_first(
+        siridb_series_t * series, int * required_shard);
+siridb_points_t * siridb_series_get_last(
+        siridb_series_t * series, int * required_shard);
+siridb_points_t * siridb_series_get_count(siridb_series_t * series);
 /*
  * Increment the series reference counter.
  */

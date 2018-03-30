@@ -711,7 +711,7 @@ static int test_aggr_min(void)
 
 static int test_aggr_pvariance(void)
 {
-    test_start("Testing pvariance");
+    test_start("Testing aggregation pvariance");
 
     siridb_aggr_t aggr;
     siridb_points_t * result;
@@ -769,7 +769,7 @@ static int test_aggr_sum(void)
 
 static int test_aggr_variance(void)
 {
-    test_start("Testing variance");
+    test_start("Testing aggregation variance");
 
     siridb_aggr_t aggr;
     siridb_points_t * result;
@@ -798,7 +798,7 @@ static int test_aggr_variance(void)
 
 static int test_aggr_stddev(void)
 {
-    test_start("Testing standard deviation");
+    test_start("Testing aggregation standard deviation");
 
     siridb_aggr_t aggr;
     siridb_points_t * result;
@@ -818,6 +818,64 @@ static int test_aggr_stddev(void)
     assert (result->data->ts == 6 && result->data->val.real == sqrt(2.0));
     assert ((result->data + 1)->ts == 12 &&
             (result->data + 1)->val.real == 2.0);
+
+    siridb_points_free(result);
+    siridb_points_free(points);
+
+    return test_end(TEST_OK);
+}
+
+static int test_aggr_first(void)
+{
+    test_start("Testing aggregation first");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.gid = CLERI_GID_F_FIRST;
+    aggr.group_by = 5;
+    aggr.limit = 0;
+    aggr.offset = 0;
+
+    result = siridb_aggregate_run(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 5);
+    assert (result->tp == TP_INT);
+    assert (result->data->ts == 5 && result->data->val.int64 == 1);
+    assert ((result->data + 2)->ts == 15 &&
+            (result->data + 2)->val.int64 == 4);
+
+    siridb_points_free(result);
+    siridb_points_free(points);
+
+    return test_end(TEST_OK);
+}
+
+static int test_aggr_last(void)
+{
+    test_start("Testing aggregation last");
+
+    siridb_aggr_t aggr;
+    siridb_points_t * result;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    siridb_points_t * points = prepare_points();
+
+    aggr.gid = CLERI_GID_F_LAST;
+    aggr.group_by = 5;
+    aggr.limit = 0;
+    aggr.offset = 0;
+
+    result = siridb_aggregate_run(points, &aggr, err_msg);
+
+    assert (result != NULL);
+    assert (result->len == 5);
+    assert (result->tp == TP_INT);
+    assert (result->data->ts == 5 && result->data->val.int64 == 1);
+    assert ((result->data + 2)->ts == 15 &&
+            (result->data + 2)->val.int64 == 5);
 
     siridb_points_free(result);
     siridb_points_free(points);
@@ -983,6 +1041,8 @@ int run_tests(void)
     rc += test_aggr_sum();
     rc += test_aggr_variance();
     rc += test_aggr_stddev();
+    rc += test_aggr_first();
+    rc += test_aggr_last();
     rc += test_iso8601();
     rc += test_expr();
     rc += test_access();

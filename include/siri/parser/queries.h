@@ -24,6 +24,7 @@
 #include <siri/db/user.h>
 
 #define QUERIES_IGNORE_DROP_THRESHOLD 1
+#define QUERIES_SKIP_GET_POINTS 2
 
 enum
 {
@@ -46,6 +47,7 @@ typedef enum
 
 #define QUERY_DEF               \
 uint8_t tp;                     \
+uint8_t flags;                  \
 imap_t * series_map;            \
 imap_t * series_tmp;            \
 imap_t * pmap;                  \
@@ -89,7 +91,6 @@ typedef struct query_drop_s
 {
     QUERY_DEF
     size_t n;  // keep a counter for number of drops.
-    uint8_t flags;  // flags like ignore threshold
     slist_t * shards_list;
 } query_drop_t;
 

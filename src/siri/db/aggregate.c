@@ -71,6 +71,10 @@ static siridb_points_t * AGGREGATE_filter(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
         char * err_msg);
+static siridb_points_t * AGGREGATE_to_one(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
+        char * err_msg);
 static siridb_points_t * AGGREGATE_group_by(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -153,6 +157,19 @@ static int aggr_stddev(
         siridb_points_t * points,
         siridb_aggr_t * aggr,
         char * err_msg);
+
+static int aggr_first(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
+
+static int aggr_last(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr,
+        char * err_msg);
+
 /*
  * Initialize aggregates.
  */
@@ -177,6 +194,8 @@ void siridb_init_aggregates(void)
     AGGREGATES[CLERI_GID_F_SUM - F_OFFSET] = aggr_sum;
     AGGREGATES[CLERI_GID_F_VARIANCE - F_OFFSET] = aggr_variance;
     AGGREGATES[CLERI_GID_F_STDDEV - F_OFFSET] = aggr_stddev;
+    AGGREGATES[CLERI_GID_F_FIRST - F_OFFSET] = aggr_first;
+    AGGREGATES[CLERI_GID_F_LAST - F_OFFSET] = aggr_last;
 }
 
 /*
@@ -265,6 +284,14 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
                 case CLERI_GID_K_STDDEV:
                     aggr->gid = CLERI_GID_F_STDDEV;
+                    break;
+
+                case CLERI_GID_K_FIRST:
+                    aggr->gid = CLERI_GID_F_FIRST;
+                    break;
+
+                case CLERI_GID_K_LAST:
+                    aggr->gid = CLERI_GID_F_LAST;
                     break;
 
                 default:
@@ -359,6 +386,19 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
             break;
 
         case CLERI_GID_F_DIFFERENCE:
+        case CLERI_GID_F_COUNT:
+        case CLERI_GID_F_MAX:
+        case CLERI_GID_F_MEAN:
+        case CLERI_GID_F_MEDIAN:
+        case CLERI_GID_F_MEDIAN_HIGH:
+        case CLERI_GID_F_MEDIAN_LOW:
+        case CLERI_GID_F_MIN:
+        case CLERI_GID_F_PVARIANCE:
+        case CLERI_GID_F_SUM:
+        case CLERI_GID_F_VARIANCE:
+        case CLERI_GID_F_STDDEV:
+        case CLERI_GID_F_FIRST:
+        case CLERI_GID_F_LAST:
             AGGR_NEW
             if (children->node->children->node->children->
                         next->next->next != NULL)
@@ -377,35 +417,6 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                     siridb_aggregate_list_free(slist);
                     return NULL;
                 }
-            }
-
-            SLIST_APPEND
-
-            break;
-
-        case CLERI_GID_F_COUNT:
-        case CLERI_GID_F_MAX:
-        case CLERI_GID_F_MEAN:
-        case CLERI_GID_F_MEDIAN:
-        case CLERI_GID_F_MEDIAN_HIGH:
-        case CLERI_GID_F_MEDIAN_LOW:
-        case CLERI_GID_F_MIN:
-        case CLERI_GID_F_PVARIANCE:
-        case CLERI_GID_F_SUM:
-        case CLERI_GID_F_VARIANCE:
-        case CLERI_GID_F_STDDEV:
-            AGGR_NEW
-            aggr->group_by = children->node->children->node->children->
-                    next->next->node->result;
-
-            if (!aggr->group_by)
-            {
-                sprintf(err_msg,
-                        "Group by time must be an integer value "
-                        "larger than zero.");
-                AGGREGATE_free(aggr);
-                siridb_aggregate_list_free(slist);
-                return NULL;
             }
 
             SLIST_APPEND
@@ -444,6 +455,24 @@ void siridb_aggregate_list_free(slist_t * alist)
 }
 
 /*
+ * Returns 1 (true) if at least one aggregation requires all points to be queried.
+ */
+int siridb_aggregate_can_skip(cleri_children_t * children)
+{
+    switch (children->node->children->node->cl_obj->gid)
+    {
+    case CLERI_GID_F_COUNT:
+    case CLERI_GID_F_FIRST:
+    case CLERI_GID_F_LAST:
+        return \
+            children->node->children->node->children->next->next->next == NULL;
+
+    default:
+        return 0;
+    }
+}
+
+/*
  * Return a new allocated points object or the same object as source.
  * In case of an error NULL is returned and an error message is set or a
  * signal is raised.
@@ -479,8 +508,7 @@ siridb_points_t * siridb_aggregate_run(
         return AGGREGATE_filter(source, aggr, err_msg);
 
     default:
-        assert (0);
-        break;
+        return AGGREGATE_to_one(source, aggr, err_msg);
     }
 
     return NULL;
@@ -846,6 +874,64 @@ static siridb_points_t * AGGREGATE_filter(
     return points;
 }
 
+static siridb_points_t * AGGREGATE_to_one(
+        siridb_points_t * source,
+        siridb_aggr_t * aggr,
+        char * err_msg)
+{
+    siridb_points_t * points;
+    /* get correct callback function */
+    AGGR_cb aggr_cb = AGGREGATES[aggr->gid - F_OFFSET];
+
+    /* create new points with max possible size after re-indexing */
+    switch(aggr->gid)
+    {
+    case CLERI_GID_F_MEAN:
+    case CLERI_GID_F_MEDIAN:
+    case CLERI_GID_F_PVARIANCE:
+    case CLERI_GID_F_VARIANCE:
+    case CLERI_GID_F_STDDEV:
+        points = siridb_points_new(1, TP_DOUBLE);
+        break;
+    case CLERI_GID_F_COUNT:
+        points = siridb_points_new(1, TP_INT);
+        break;
+    case CLERI_GID_F_MEDIAN_HIGH:
+    case CLERI_GID_F_MAX:
+    case CLERI_GID_F_MEDIAN_LOW:
+    case CLERI_GID_F_MIN:
+    case CLERI_GID_F_SUM:
+    case CLERI_GID_F_FIRST:
+    case CLERI_GID_F_LAST:
+        points = siridb_points_new(1, source->tp);
+        break;
+    default:
+        assert (0);
+        points = NULL;
+    }
+
+    if (points == NULL)
+    {
+        sprintf(err_msg, "Memory allocation error.");
+        return NULL;  /* signal is raised */
+    }
+
+    /* set time-stamp */
+    points->data->ts = source->data[
+        (aggr->gid == CLERI_GID_F_FIRST) ? 0 : (source->len - 1)].ts;
+
+    /* set value */
+    if (aggr_cb(points->data, source, aggr, err_msg))
+    {
+        /* error occurred, return NULL */
+        siridb_points_free(points);
+        return NULL;
+    }
+
+    points->len++;
+    return points;
+}
+
 static siridb_points_t * AGGREGATE_group_by(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -891,6 +977,8 @@ static siridb_points_t * AGGREGATE_group_by(
     case CLERI_GID_F_MIN:
     case CLERI_GID_F_SUM:
     case CLERI_GID_F_DIFFERENCE:
+    case CLERI_GID_F_FIRST:
+    case CLERI_GID_F_LAST:
         points = siridb_points_new(max_sz, group.tp);
         break;
     default:
@@ -1455,6 +1543,78 @@ static int aggr_stddev(
     case TP_DOUBLE:
         point->val.real = (points->len > 1) ?
                 sqrt(siridb_variance(points) / (points->len - 1)) : 0.0;
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    return 0;
+}
+
+static int aggr_first(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr __attribute__((unused)),
+        char * err_msg __attribute__((unused)))
+{
+#if DEBUG
+    assert (points->len);
+#endif
+    siridb_point_t * source = points->data[0];
+
+    switch (points->tp)
+    {
+    case TP_STRING:
+        point->ts = source->ts;
+        point->val.str = strdup(source->val.str);
+        if (point->val.str == NULL)
+        {
+            sprintf(err_msg, "Memory allocation error.");
+            return -1;
+        }
+        break;
+
+    case TP_INT:
+    case TP_DOUBLE:
+        point->val = source->val;
+        break;
+
+    default:
+        assert (0);
+        break;
+    }
+
+    return 0;
+}
+
+static int aggr_last(
+        siridb_point_t * point,
+        siridb_points_t * points,
+        siridb_aggr_t * aggr __attribute__((unused)),
+        char * err_msg __attribute__((unused)))
+{
+#if DEBUG
+    assert (points->len);
+#endif
+    siridb_point_t * source = points->data[points->len - 1];
+
+    switch (points->tp)
+    {
+    case TP_STRING:
+        point->ts = source->ts;
+        point->val.str = strdup(source->val.str);
+        if (point->val.str == NULL)
+        {
+            sprintf(err_msg, "Memory allocation error.");
+            return -1;
+        }
+        break;
+
+    case TP_INT:
+    case TP_DOUBLE:
+        point->val = source->val;
         break;
 
     default:

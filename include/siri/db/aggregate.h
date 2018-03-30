@@ -40,3 +40,4 @@ siridb_points_t * siridb_aggregate_run(
 void siridb_init_aggregates(void);
 slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg);
 void siridb_aggregate_list_free(slist_t * alist);
+int siridb_aggregate_can_skip(cleri_children_t * children);

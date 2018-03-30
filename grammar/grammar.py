@@ -75,6 +75,7 @@ class SiriGrammar(Grammar):
     k_false = Keyword('false')
     k_fifo_files = Keyword('fifo_files')
     k_filter = Keyword('filter')
+    k_first = Keyword('first')
     k_float = Keyword('float')
     k_for = Keyword('for')
     k_from = Keyword('from')
@@ -92,6 +93,7 @@ class SiriGrammar(Grammar):
         Keyword('intersection'),
         most_greedy=False)
     k_ip_support = Keyword('ip_support')
+    k_last = Keyword('last')
     k_length = Keyword('length')
     k_libuv = Keyword('libuv')
     k_limit = Keyword('limit')
@@ -430,37 +432,43 @@ class SiriGrammar(Grammar):
         ')')
     f_mean = Sequence(
         k_mean,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_median = Sequence(
         k_median,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_median_low = Sequence(
         k_median_low,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_median_high = Sequence(
         k_median_high,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_sum = Sequence(
         k_sum,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_min = Sequence(
         k_min,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_max = Sequence(
         k_max,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_count = Sequence(
         k_count,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_variance = Sequence(
         k_variance,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_pvariance = Sequence(
         k_pvariance,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
     f_stddev = Sequence(
         k_stddev,
-        '(', time_expr, ')')
+        '(', Optional(time_expr), ')')
+    f_first = Sequence(
+        k_first,
+        '(', Optional(time_expr), ')')
+    f_last = Sequence(
+        k_last,
+        '(', Optional(time_expr), ')')
 
     f_filter = Sequence(
         k_filter,
@@ -489,6 +497,8 @@ class SiriGrammar(Grammar):
             k_variance,
             k_pvariance,
             k_stddev,
+            k_first,
+            k_last,
             most_greedy=False),
         ')')
 
@@ -506,6 +516,8 @@ class SiriGrammar(Grammar):
         f_variance,
         f_pvariance,
         f_stddev,
+        f_first,
+        f_last,
         f_difference,
         f_derivative,
         f_filter,
@@ -515,6 +527,8 @@ class SiriGrammar(Grammar):
         aggregate_functions,
         Optional(prefix_expr),
         Optional(suffix_expr))
+
+    select_aggregates = List(select_aggregate, ',', 1)
 
     merge_as = Sequence(
         k_merge,
@@ -685,7 +699,7 @@ class SiriGrammar(Grammar):
 
     select_stmt = Sequence(
         k_select,
-        List(select_aggregate, ',', 1),
+        select_aggregates,
         k_from,
         series_match,
         Optional(where_series),

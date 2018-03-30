@@ -21,6 +21,7 @@
 #define DEFAULT_LIST_LIMIT 1000
 
 #define QUERIES_NEW(q)              \
+q->flags = 0;                       \
 q->series_map = NULL;               \
 q->series_tmp = NULL;               \
 q->slist = NULL;                    \

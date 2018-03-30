@@ -792,6 +792,134 @@ void siridb__series_decref(siridb_series_t * series)
     }
 }
 
+siridb_points_t * siridb_series_get_first(
+        siridb_series_t * series, int * required_shard)
+{
+    siridb_point_t * point;
+    siridb_points_t * buf = series->buffer;
+    siridb_points_t * points;
+
+    *required_shard = 0;
+
+    if (buf != NULL &&
+        buf->len &&
+        (points->data = buf->data[0])->ts == series->start)
+    {
+        points = siridb_points_new(1, series->tp);
+        if (points == NULL)
+        {
+            return NULL;
+        }
+
+        /* string type does not have a buffer so we don't have to worry */
+        points->len = 1;
+        return points;
+    }
+    *required_shard = 1;
+
+    /* if not in the buffer, then if must be in a shard */
+    assert (series->idx_len);
+
+    idx_t * first = series->idx;
+
+    points = siridb_points_new(first->len, series->tp);
+
+    siridb_shard_get_points_callback(first->shard->flags, series)(
+            points,
+            first,
+            NULL,
+            series->start,
+            series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+
+    assert (points->len);
+
+    while (points->len > 1)
+    {
+        --points->len;
+        if (points->tp == TP_STRING)
+        {
+            free((points->data + points->len)->val.str);
+        }
+    }
+
+    return points;
+}
+
+siridb_points_t * siridb_series_get_last(
+        siridb_series_t * series, int * required_shard)
+{
+    siridb_point_t * point;
+    siridb_points_t * buf = series->buffer;
+    siridb_points_t * points;
+
+    *required_shard = 0;
+
+    if (buf != NULL &&
+        buf->len &&
+        (points->data = buf->data[buf->len - 1])->ts == series->end)
+    {
+        points = siridb_points_new(1, series->tp);
+        if (points == NULL)
+        {
+            return NULL;
+        }
+
+        /* string type does not have a buffer so we don't have to worry */
+        points->len = 1;
+        return points;
+    }
+    *required_shard = 1;
+
+    /* if not in the buffer, then if must be in a shard */
+    assert (series->idx_len);
+
+    size_t i = series->idx_len - 1;
+    idx_t * idx = series->idx + i;
+    idx_t * last = idx;
+
+    for (; i && last->shard == (--idx)->shard; --i)
+    {
+        if (idx->end_ts > last->end_ts)
+        {
+            last = idx;
+        }
+    }
+
+    points = siridb_points_new(last->len, series->tp);
+
+    siridb_shard_get_points_callback(last->shard->flags, series)(
+            points,
+            last,
+            last->end_ts,
+            NULL,
+            series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+
+    assert (points->len);
+
+    while (points->len > 1)
+    {
+        --points->len;
+        if (points->tp == TP_STRING)
+        {
+            free((points->data + points->len)->val.str);
+        }
+    }
+
+    return points;
+}
+
+siridb_points_t * siridb_series_get_count(siridb_series_t * series)
+{
+    siridb_points_t * points = siridb_points_new(1, TP_INT);
+    if (points != NULL)
+    {
+        points->data->ts = series->end;
+        points->data->val.int64 = series->length;
+        points->len = 1;
+    }
+    return points;
+}
+
 /*
  * Calculate the server id.
  * Returns 0 or 1, representing a server in a pool)

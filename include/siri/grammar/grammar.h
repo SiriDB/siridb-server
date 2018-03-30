@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-03-28 09:32:13
+ * Created at: 2018-03-30 13:58:06
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -55,6 +55,8 @@ enum cleri_grammar_ids {
     CLERI_GID_F_DERIVATIVE,
     CLERI_GID_F_DIFFERENCE,
     CLERI_GID_F_FILTER,
+    CLERI_GID_F_FIRST,
+    CLERI_GID_F_LAST,
     CLERI_GID_F_LIMIT,
     CLERI_GID_F_MAX,
     CLERI_GID_F_MEAN,
@@ -144,6 +146,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_FALSE,
     CLERI_GID_K_FIFO_FILES,
     CLERI_GID_K_FILTER,
+    CLERI_GID_K_FIRST,
     CLERI_GID_K_FLOAT,
     CLERI_GID_K_FOR,
     CLERI_GID_K_FROM,
@@ -158,6 +161,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_INTEGER,
     CLERI_GID_K_INTERSECTION,
     CLERI_GID_K_IP_SUPPORT,
+    CLERI_GID_K_LAST,
     CLERI_GID_K_LENGTH,
     CLERI_GID_K_LIBUV,
     CLERI_GID_K_LIMIT,
@@ -256,6 +260,7 @@ enum cleri_grammar_ids {
     CLERI_GID_R_UINTEGER,
     CLERI_GID_R_UUID_STR,
     CLERI_GID_SELECT_AGGREGATE,
+    CLERI_GID_SELECT_AGGREGATES,
     CLERI_GID_SELECT_STMT,
     CLERI_GID_SERIES_COLUMNS,
     CLERI_GID_SERIES_MATCH,
