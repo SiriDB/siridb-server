@@ -48,6 +48,7 @@ class SiriGrammar(Grammar):
     k_active_handles = Keyword('active_handles')
     k_address = Keyword('address')
     k_after = Keyword('after')
+    k_all = Keyword('all')
     k_alter = Keyword('alter')
     k_and = Keyword('and')
     k_as = Keyword('as')
@@ -397,14 +398,21 @@ class SiriGrammar(Grammar):
         k_symmetric_difference,
         most_greedy=False)
 
+    series_all = Choice(Token('*'), k_all, most_greedy=False)
     series_name = Repeat(string, 1, 1)
     group_name = Repeat(r_grave_str, 1, 1)
     series_re = Repeat(r_regex, 1, 1)
     uuid = Choice(r_uuid_str, string, most_greedy=False)
     group_match = Repeat(r_grave_str, 1, 1)
     series_match = List(
-        Choice(Token('*'), series_name, group_match, series_re, most_greedy=False),
-        series_sep, 1)
+        Choice(
+            series_all,
+            series_name,
+            group_match,
+            series_re,
+            most_greedy=False),
+        series_sep,
+        1)
     limit_expr = Sequence(k_limit, int_expr)
 
     before_expr = Sequence(k_before, time_expr)
@@ -415,10 +423,9 @@ class SiriGrammar(Grammar):
     prefix_expr = Sequence(k_prefix, string)
     suffix_expr = Sequence(k_suffix, string)
 
-    f_points = Choice(
-        Token('*'),
-        k_points,
-        most_greedy=False)
+    f_all = Choice(Token('*'), k_all, most_greedy=False)
+
+    f_points = Repeat(k_points, 1, 1)  # DEPRECATED
 
     f_difference = Sequence(
         k_difference,
@@ -503,7 +510,7 @@ class SiriGrammar(Grammar):
         ')')
 
     aggregate_functions = List(Choice(
-        f_points,
+        f_all,
         f_limit,
         f_mean,
         f_sum,
@@ -521,6 +528,7 @@ class SiriGrammar(Grammar):
         f_difference,
         f_derivative,
         f_filter,
+        f_points,
         most_greedy=False), '=>', 1)
 
     select_aggregate = Sequence(

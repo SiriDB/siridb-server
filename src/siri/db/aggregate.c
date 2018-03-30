@@ -423,7 +423,12 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
             break;
 
+        case CLERI_GID_F_ALL:
+            break;
+
         case CLERI_GID_F_POINTS:
+            log_warning("Keyword 'points' is deprecated, "
+                        "use '*' or 'all' instead.");
             break;
 
         default:

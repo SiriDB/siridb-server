@@ -1318,6 +1318,69 @@ static void enter_series_match(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
+static void enter_series_all(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    cleri_node_t * node = query->nodes->node;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+
+    /* we must send this query to all pools */
+    if (q_wrapper->pmap != NULL)
+    {
+        imap_free(q_wrapper->pmap, NULL);
+        q_wrapper->pmap = NULL;
+    }
+
+    if (q_wrapper->update_cb != NULL)
+    {
+        (*q_wrapper->update_cb)(
+                q_wrapper->series_map,
+                q_wrapper->series_tmp,
+                (imap_free_cb) &siridb__series_decref);
+    }
+    q_wrapper->series_tmp = NULL;
+
+        uv_mutex_lock(&siridb->series_mutex);
+
+        q_wrapper->slist = imap_2slist_ref(
+                (   q_wrapper->update_cb == NULL ||
+                    q_wrapper->update_cb == &imap_union_ref ||
+                    q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
+                        siridb->series_map : q_wrapper->series_map);
+
+        uv_mutex_unlock(&siridb->series_mutex);
+
+        q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
+                q_wrapper->series_map : imap_new();
+
+        if (q_wrapper->slist == NULL || q_wrapper->series_tmp == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        uv_async_t * next =
+                (uv_async_t *) malloc(sizeof(uv_async_t));
+
+        if (next == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        next->data = handle->data;
+
+        uv_async_init(
+                siri.loop,
+                next,
+                (uv_async_cb) async_series_re);
+        uv_async_send(next);
+
+        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+    }
+
+    /* handle is handled or a signal is raised */
+}
+
 static void enter_series_re(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -3227,8 +3290,6 @@ static void exit_series_match(uv_async_t * handle)
          * (Not critical, everything works if points_map is NULL) */
         q_select->points_map = imap_new();
     }
-
-    LOGC("exit series match %zu (%u)", q_select->nselects, q_select->flags);
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

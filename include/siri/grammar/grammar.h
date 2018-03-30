@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-03-30 13:58:06
+ * Created at: 2018-03-30 21:57:58
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -51,6 +51,7 @@ enum cleri_grammar_ids {
     CLERI_GID_DROP_SHARDS,
     CLERI_GID_DROP_STMT,
     CLERI_GID_DROP_USER,
+    CLERI_GID_F_ALL,
     CLERI_GID_F_COUNT,
     CLERI_GID_F_DERIVATIVE,
     CLERI_GID_F_DIFFERENCE,
@@ -119,6 +120,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_ACTIVE_HANDLES,
     CLERI_GID_K_ADDRESS,
     CLERI_GID_K_AFTER,
+    CLERI_GID_K_ALL,
     CLERI_GID_K_ALTER,
     CLERI_GID_K_AND,
     CLERI_GID_K_AS,
@@ -262,6 +264,7 @@ enum cleri_grammar_ids {
     CLERI_GID_SELECT_AGGREGATE,
     CLERI_GID_SELECT_AGGREGATES,
     CLERI_GID_SELECT_STMT,
+    CLERI_GID_SERIES_ALL,
     CLERI_GID_SERIES_COLUMNS,
     CLERI_GID_SERIES_MATCH,
     CLERI_GID_SERIES_NAME,
