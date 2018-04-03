@@ -812,10 +812,8 @@ siridb_points_t * siridb_series_get_first(
         points->data->ts = buf->data->ts;
         points->data->val = buf->data->val;
         points->len = 1;
-        LOGC("First from memory");
         return points;
     }
-    LOGC("First from shard");
 
     (*required_shard)++;
 
@@ -872,11 +870,8 @@ siridb_points_t * siridb_series_get_last(
         points->data->ts = buf->data->ts;
         points->data->val = buf->data->val;
         points->len = 1;
-        LOGC("Last from memory");
         return points;
     }
-
-    LOGC("Last from shard");
 
     (*required_shard)++;
 
@@ -931,7 +926,6 @@ siridb_points_t * siridb_series_get_count(siridb_series_t * series)
         points->data->val.int64 = series->length;
         points->len = 1;
     }
-    LOGC("Count from memory");
     return points;
 }
 

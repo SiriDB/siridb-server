@@ -464,14 +464,15 @@ void siridb_aggregate_list_free(slist_t * alist)
  */
 int siridb_aggregate_can_skip(cleri_children_t * children)
 {
-    LOGC("Gid: %d", children->node->children->node->children->node->children->node->cl_obj->gid);
-    switch (children->node->children->node->children->node->children->node->cl_obj->gid)
+    cleri_node_t * nd = \
+            children->node->children->node->children->node->children->node;
+
+    switch (nd->cl_obj->gid)
     {
     case CLERI_GID_F_COUNT:
     case CLERI_GID_F_FIRST:
     case CLERI_GID_F_LAST:
-        return \
-            children->node->children->node->children->node->children->node->children->next->next->next == NULL;
+        return nd->children->next->next->next == NULL;
 
     default:
         return 0;

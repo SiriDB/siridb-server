@@ -202,6 +202,7 @@ static void enter_set_expression(uv_async_t * handle);
 static void enter_set_ignore_threshold(uv_async_t * handle);
 static void enter_set_name(uv_async_t * handle);
 static void enter_set_password(uv_async_t * handle);
+static void enter_series_all(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
 static void enter_series_re(uv_async_t * handle);
@@ -425,6 +426,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_SET_PASSWORD] = enter_set_password;
     siriparser_listen_enter[CLERI_GID_SERIES_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_SERVER_COLUMNS] = enter_xxx_columns;
+    siriparser_listen_enter[CLERI_GID_SERIES_ALL] = enter_series_all;
     siriparser_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siriparser_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
     siriparser_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
@@ -1026,7 +1028,6 @@ static void enter_select_stmt(uv_async_t * handle)
     /* child is always the ',' and child->next the node */
     child = query->nodes->node->children->next->node->children;
     skip_get_points = siridb_aggregate_can_skip(child);
-    LOGC("Skip?... %d", skip_get_points);
 
     child = child->next;
     while (child != NULL)
@@ -1041,7 +1042,6 @@ static void enter_select_stmt(uv_async_t * handle)
 
     if (skip_get_points)
     {
-        LOGC("Set skip... %d", skip_get_points);
         q_select->flags |= QUERIES_SKIP_GET_POINTS;
     }
 
@@ -1322,7 +1322,7 @@ static void enter_series_all(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cleri_node_t * node = query->nodes->node;
+    siridb_series_t * series;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
     /* we must send this query to all pools */
@@ -1332,6 +1332,39 @@ static void enter_series_all(uv_async_t * handle)
         q_wrapper->pmap = NULL;
     }
 
+    uv_mutex_lock(&siridb->series_mutex);
+
+    q_wrapper->slist = imap_2slist_ref(
+            (   q_wrapper->update_cb == NULL ||
+                q_wrapper->update_cb == &imap_union_ref ||
+                q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
+                    siridb->series_map : q_wrapper->series_map);
+
+    uv_mutex_unlock(&siridb->series_mutex);
+
+    q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
+            q_wrapper->series_map : imap_new();
+
+    if (q_wrapper->slist == NULL || q_wrapper->series_tmp == NULL)
+    {
+        MEM_ERR_RET
+    }
+
+    for (q_wrapper->slist_index = 0;
+         q_wrapper->slist_index < q_wrapper->slist->len;
+         ++q_wrapper->slist_index)
+    {
+        series = q_wrapper->slist->data[q_wrapper->slist_index];
+        if (imap_add(q_wrapper->series_tmp, series->id, series))
+        {
+            MEM_ERR_RET
+        }
+    }
+
+    slist_free(q_wrapper->slist);
+    q_wrapper->slist = NULL;
+    q_wrapper->slist_index = 0;
+
     if (q_wrapper->update_cb != NULL)
     {
         (*q_wrapper->update_cb)(
@@ -1339,46 +1372,9 @@ static void enter_series_all(uv_async_t * handle)
                 q_wrapper->series_tmp,
                 (imap_free_cb) &siridb__series_decref);
     }
+
     q_wrapper->series_tmp = NULL;
-
-        uv_mutex_lock(&siridb->series_mutex);
-
-        q_wrapper->slist = imap_2slist_ref(
-                (   q_wrapper->update_cb == NULL ||
-                    q_wrapper->update_cb == &imap_union_ref ||
-                    q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
-                        siridb->series_map : q_wrapper->series_map);
-
-        uv_mutex_unlock(&siridb->series_mutex);
-
-        q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
-                q_wrapper->series_map : imap_new();
-
-        if (q_wrapper->slist == NULL || q_wrapper->series_tmp == NULL)
-        {
-            MEM_ERR_RET
-        }
-
-        uv_async_t * next =
-                (uv_async_t *) malloc(sizeof(uv_async_t));
-
-        if (next == NULL)
-        {
-            MEM_ERR_RET
-        }
-
-        next->data = handle->data;
-
-        uv_async_init(
-                siri.loop,
-                next,
-                (uv_async_cb) async_series_re);
-        uv_async_send(next);
-
-        uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-    }
-
-    /* handle is handled or a signal is raised */
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_series_re(uv_async_t * handle)
