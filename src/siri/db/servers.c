@@ -507,6 +507,7 @@ int siridb_servers_online(siridb_t * siridb)
         {
             return 0;
         }
+        node = node->next;
     }
     return 1;
 }
