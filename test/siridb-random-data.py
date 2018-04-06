@@ -7,18 +7,15 @@ import time
 import logging
 import string
 import random
-import threading
-import queue
 import datetime
 import math
 import collections
 import signal
-import gc
 from siridb.connector import SiriDBClient
 
 
 # Version information
-__version_info__ = (0, 0, 2)
+__version_info__ = (0, 0, 5)
 __version__ = '.'.join(map(str, __version_info__))
 __maintainer__ = 'Jeroen van der Heijden'
 __email__ = 'jeroen@transceptor.technology'
@@ -80,8 +77,8 @@ class Series:
     _interval_range = None
     _r = None
 
-    def __init__(self, allowed_kinds=(int, float, str)):
-        self.kind = self._r.choice(allowed_kinds)
+    def __init__(self, r, allowed_kinds=(int, float, str)):
+        self.kind = r.choice(allowed_kinds)
         self.lval = {
             str: '',
             int: 0,
@@ -89,18 +86,23 @@ class Series:
         }[self.kind]
         self.lts = self._timestamp
 
-        factor = 10**self._r.randint(int(self.kind == int), 6)
+        factor = 10**r.randint(int(self.kind == int), 9)
         self.random_range = (
-            int(self._r.random() * -factor),
-            int(self._r.random() * factor) + 1)
+            int(r.random() * -factor),
+            int(r.random() * factor) + 1)
         self.sign = 1
 
-        self.likely_equal = self._r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
-        self.likely_change_sign = self._r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
+        self.ignore_last = r.random() > 0.95
+        self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
+        self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
-        if self.kind == float:
-            # one in ten series will show float as int, example 1.0, 2.0 etc.
-            self.as_int = self._r.random() > 0.9
+        self.as_int = self.kind == float and r.random() > 0.9
+        self.likely_inf = r.random() * 0.2 \
+            if self.kind == float and r.random() > 0.95 else False
+        self.likely_nan = r.random() * 0.2 \
+            if self.kind == float and r.random() > 0.95 else False
+
+        self.gen_float = self.kind == int and r.random() > 0.97
 
         self.name = self._gen_name()
         Series._series.append(self)
@@ -111,23 +113,44 @@ class Series:
 
         if self._r.random() > self.likely_equal:
             if self.kind == int:
-                self.lval += self.sign * self._r.randint(*self.random_range)
+                val = self.sign * self._r.randint(*self.random_range)
+                if self.ignore_last:
+                    self.lval = val
+                else:
+                    self.lval += val
                 if self.lval.bit_length() > 63:
                     self.lval = 0
 
             elif self.kind == float:
-                self.lval += \
-                    self.sign * \
-                    self._r.random() * \
-                    self.random_range[1]
-                if self.as_int:
-                    self.lval = round(self.lval, 0)
+                if self.likely_inf and self._r.random() < self.likely_inf:
+                    return self.sign * math.inf
+                elif self.likely_nan and self._r.random() < self.likely_nan:
+                    return math.nan
+                else:
+                    val = self.sign * self._r.random() * self.random_range[1]
+                    if self.ignore_last:
+                        self.lval = val
+                    else:
+                        self.lval += val
+                    if self.as_int:
+                        self.lval = round(self.lval, 0)
+
+        if self.gen_float:
+            self.kind = float
+            self.gen_float = False
 
         return self.lval
 
     @classmethod
-    def init(cls, args, ts_factor, r):
-        cls._r = r
+    def init(cls, args, ts_factor):
+        cls._r = random.Random()
+        cls._r.seed(
+            time.time() if args.seed_data is None else args.seed_data)
+
+        series_rand = random.Random()
+        series_rand.seed(
+            time.time() if args.seed_series is None else args.seed_series)
+
         cls._ts_factor = ts_factor
         cls._timestamp = int(time.mktime(datetime.datetime.strptime(
             args.start_date,
@@ -143,16 +166,20 @@ class Series:
         kinds = [translate[k] for k in args.kinds]
 
         for i in range(args.num_series):
-            Series(allowed_kinds=kinds)
+            Series(r=series_rand, allowed_kinds=kinds)
 
     def _gen_name(self):
-        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}'.format(
+        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}{}{}'.format(
             len(self._series),
             self.random_range[0],
             self.random_range[1],
             self.likely_equal,
             self.likely_change_sign,
-            'as_int' if getattr(self, 'as_int', False) else '')
+            '(ign_last)' if self.ignore_last else '',
+            '(as_int)' if self.as_int else '',
+            '(gen_float)' if self.gen_float else '',
+            '(inf:{:.3f})'.format(self.likely_inf) if self.likely_inf else '',
+            '(nan:{:.3f})'.format(self.likely_nan) if self.likely_nan else '')
 
         return name
 
@@ -209,19 +236,12 @@ async def get_ts_factor(siri):
     return 10**(['s', 'ms', 'us', 'ns'].index(res['data'][0]['value'])*3)
 
 
-def queue_data(q, args, ts_factor):
-    r = random.Random()
-    r.seed(time.time() if args.seed is None else args.seed)
-
-    Series.init(args, ts_factor, r)
-
+def queue_data(args):
     n = args.num_batches
     while n and stop is False:
         data = Series.get_data(args)
-        q.put(data)
+        yield data
         n -= 1
-
-    q.put(None)
 
 
 async def siridb_insert(siri, data, task_counter):
@@ -248,31 +268,28 @@ async def siridb_insert(siri, data, task_counter):
                 int(total_processed // (time.time() - start_time))))
     finally:
         task_counter.pop()
-    # a = sys.getrefcount(data)
-    # logging.info('ref: {}'.format(a))
-    # gc.collect()
 
 
-async def dump_data(siri, q, args):
+async def dump_data(siri, args):
     task_counter = []
+
     try:
         await siri.connect()
-        ts_factor = await get_ts_factor(siri)
-        t = threading.Thread(target=queue_data, args=(q, args, ts_factor))
-        t.start()
 
-        while True:
-            data = q.get()
-            if data is None:
-                break
+        ts_factor = await get_ts_factor(siri)
+        Series.init(args, ts_factor)
+
+        q = queue_data(args)
+        for data in q:
 
             task_counter.append(1)
             while len(task_counter) > args.max_parallel:
                 await asyncio.sleep(0.2)
 
             asyncio.ensure_future(siridb_insert(siri, data, task_counter))
+
             # sleep 0 so the async loop will run to pick-up tasks
-            await asyncio.sleep(0)
+            await asyncio.sleep(args.sleep)
 
     except Exception as e:
         logging.exception(e)
@@ -318,10 +335,15 @@ if __name__ == '__main__':
         help='siridb server(s)')
 
     parser.add_argument(
-        '-S',
-        '--seed',
+        '--seed-series',
         type=str,
-        help='Optional seed. '
+        help='Optional seed for generating series. '
+             'If no seed is given, the current timestamp will be used.')
+
+    parser.add_argument(
+        '--seed-data',
+        type=str,
+        help='Optional seed for generating data. '
              'If no seed is given, the current timestamp will be used.')
 
     parser.add_argument(
@@ -342,6 +364,12 @@ if __name__ == '__main__':
         default=60,
         help='Timestamp interval in seconds. '
              'When <= 0 a ramdom interval is used for each data point.')
+
+    parser.add_argument(
+        '--sleep',
+        type=float,
+        default=0.0,
+        help='Sleep between inserts in seconds. (default: 0.0 seconds)')
 
     parser.add_argument(
         '--ts-randomize',
@@ -442,7 +470,6 @@ Home-page: https://github.com/transceptor-technology/siridb-email-check
         exit('invalid date: {}'.format(args.start_date))
 
     setup_logger(args)
-    q = queue.Queue(maxsize=args.max_parallel)
     signal.signal(signal.SIGINT, signal_handler)
 
     siri = SiriDBClient(
@@ -454,7 +481,7 @@ Home-page: https://github.com/transceptor-technology/siridb-email-check
             for server in args.servers.split(',')])
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(dump_data(siri, q, args))
+    loop.run_until_complete(dump_data(siri, args))
 
     total_time = time.time() - start_time
     logging.info(
