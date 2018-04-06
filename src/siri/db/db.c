@@ -368,7 +368,7 @@ static int SIRIDB_from_unpacker(
     }
 
     /* check schema */
-    if (qp_schema.via.int64 == 1)
+    if (qp_schema.via.int64 == 1 || qp_schema.via.int64 == 2)
     {
         log_info(
                 "Found an old database schema (v%d), "

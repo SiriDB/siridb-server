@@ -40,7 +40,7 @@
 #define SHARD_GROW_SZ 131072
 
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
-#define SIRIDB_SHARD_SHEMA 20
+#define SIRIDB_SHARD_SHEMA 21
 
 /*
  * Header schema layout
@@ -204,6 +204,17 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
          */
         fclose(fp);
         log_critical("Missing header in shard file: '%s'", shard->fn);
+        siridb_shard_decref(shard);
+        return -1;
+    }
+
+    uint8_t schema = (uint8_t) header[HEADER_SCHEMA];
+    if (schema > SIRIDB_SHARD_SHEMA)
+    {
+        fclose(fp);
+        log_critical(
+                "Shard file '%s' has schema '%u' which is not supported with "
+                "this version of SiriDB.", shard->fn, schema);
         siridb_shard_decref(shard);
         return -1;
     }
