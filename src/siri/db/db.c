@@ -54,7 +54,7 @@ static int SIRIDB_from_unpacker(
         char * err_msg);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
-    strcpy(err_msg, "error: " ERROR_MSG);   \
+    strcpy(err_msg, ERROR_MSG);             \
     siridb__free(*siridb);                  \
     *siridb = NULL;                         \
     return -1;
@@ -363,7 +363,7 @@ static int SIRIDB_from_unpacker(
     if (!qp_is_array(qp_next(unpacker, NULL)) ||
         qp_next(unpacker, &qp_schema) != QP_INT64)
     {
-        sprintf(err_msg, "error: corrupted database file.");
+        sprintf(err_msg, "Corrupted database file.");
         return -1;
     }
 
@@ -378,7 +378,7 @@ static int SIRIDB_from_unpacker(
     }
     else if (qp_schema.via.int64 != SIRIDB_SCHEMA)
     {
-        sprintf(err_msg, "error: unsupported schema found: %" PRId64,
+        sprintf(err_msg, "Unsupported schema found: %" PRId64,
                 qp_schema.via.int64);
         return -1;
     }
@@ -387,21 +387,20 @@ static int SIRIDB_from_unpacker(
     *siridb = SIRIDB_new();
     if (*siridb == NULL)
     {
-        sprintf(err_msg, "error: cannot create SiriDB instance");
+        sprintf(err_msg, "Cannot create SiriDB instance.");
         return -1;
     }
 
     /* set dbpath */
     if (((*siridb)->dbpath = strdup(dbpath)) == NULL)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot set dbpath.")
+        READ_DB_EXIT_WITH_ERROR("Cannot set dbpath.")
     }
-
 
     /* read uuid */
     if (qp_next(unpacker, &qp_obj) != QP_RAW || qp_obj.len != 16)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read uuid.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read uuid.")
     }
 
     /* copy uuid */
@@ -411,14 +410,14 @@ static int SIRIDB_from_unpacker(
     if (qp_next(unpacker, &qp_obj) != QP_RAW ||
             qp_obj.len >= SIRIDB_MAX_DBNAME_LEN)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read database name.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read database name.")
     }
 
     /* alloc mem for database name */
     (*siridb)->dbname = strndup((const char *) qp_obj.via.raw, qp_obj.len);
     if ((*siridb)->dbname == NULL)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot allocate database name.")
+        READ_DB_EXIT_WITH_ERROR("Cannot allocate database name.")
     }
 
     /* read time precision */
@@ -426,7 +425,7 @@ static int SIRIDB_from_unpacker(
             qp_obj.via.int64 < SIRIDB_TIME_SECONDS ||
             qp_obj.via.int64 > SIRIDB_TIME_NANOSECONDS)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read time-precision.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read time-precision.")
     }
 
     /* bind time precision to SiriDB */
@@ -434,7 +433,7 @@ static int SIRIDB_from_unpacker(
             siridb_time_new((siridb_timep_t) qp_obj.via.int64);
     if ((*siridb)->time == NULL)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot create time instance.")
+        READ_DB_EXIT_WITH_ERROR("Cannot create time instance.")
     }
 
     /* read buffer size, same buffer_size requirements are used in request.c */
@@ -442,7 +441,7 @@ static int SIRIDB_from_unpacker(
             qp_obj.via.int64 % 512 ||
             qp_obj.via.int64 < 512)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read buffer size.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read buffer size.")
     }
 
     /* bind buffer size and len to SiriDB */
@@ -452,7 +451,7 @@ static int SIRIDB_from_unpacker(
     /* read number duration  */
     if (qp_next(unpacker, &qp_obj) != QP_INT64)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read number duration.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read number duration.")
     }
 
     /* bind number duration to SiriDB */
@@ -466,7 +465,7 @@ static int SIRIDB_from_unpacker(
     /* read log duration  */
     if (qp_next(unpacker, &qp_obj) != QP_INT64)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read log duration.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read log duration.")
     }
 
     /* bind log duration to SiriDB */
@@ -483,7 +482,7 @@ static int SIRIDB_from_unpacker(
     /* read timezone */
     if (qp_next(unpacker, &qp_obj) != QP_RAW)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read timezone.")
     }
 
     /* bind timezone to SiriDB */
@@ -491,14 +490,14 @@ static int SIRIDB_from_unpacker(
 
     if (tzname == NULL)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot allocate timezone name.")
+        READ_DB_EXIT_WITH_ERROR("Cannot allocate timezone name.")
     }
 
     if (((*siridb)->tz = iso8601_tz(tzname)) < 0)
     {
         log_critical("Unknown timezone found: '%s'.", tzname);
         free(tzname);
-        READ_DB_EXIT_WITH_ERROR("cannot read timezone.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read timezone.")
     }
     free(tzname);
 
@@ -506,7 +505,7 @@ static int SIRIDB_from_unpacker(
     if (qp_next(unpacker, &qp_obj) != QP_DOUBLE ||
             qp_obj.via.real < 0.0 || qp_obj.via.real > 1.0)
     {
-        READ_DB_EXIT_WITH_ERROR("cannot read drop threshold.")
+        READ_DB_EXIT_WITH_ERROR("Cannot read drop threshold.")
     }
     (*siridb)->drop_threshold = qp_obj.via.real;
 
@@ -520,14 +519,14 @@ static int SIRIDB_from_unpacker(
         /* read select points limit */
         if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 1)
         {
-            READ_DB_EXIT_WITH_ERROR("cannot read select points limit.")
+            READ_DB_EXIT_WITH_ERROR("Cannot read select points limit.")
         }
         (*siridb)->select_points_limit = qp_obj.via.int64;
 
         /* read list limit */
         if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 1)
         {
-            READ_DB_EXIT_WITH_ERROR("cannot read list limit.")
+            READ_DB_EXIT_WITH_ERROR("Cannot read list limit.")
         }
         (*siridb)->list_limit = qp_obj.via.int64;
     }
