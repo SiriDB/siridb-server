@@ -26,6 +26,7 @@
 #include <siri/siri.h>
 #include <stdio.h>
 #include <string.h>
+#include <siri/db/tasks.h>
 
 #define MAX_INSERT_MSG 236
 #define INSERT_TIMEOUT 300000  // 5 minutes
@@ -349,7 +350,7 @@ int insert_init_backend_local(
     qp_next(&ilocal->unpacker, NULL); // map
     qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
 
-    siridb->active_tasks++;
+    siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
@@ -477,7 +478,7 @@ static void INSERT_local_free_cb(uv_async_t * handle)
 
     ilocal->promise->cb(ilocal->promise, NULL, ilocal->status);
 
-    ilocal->siridb->active_tasks--;
+    siridb_tasks_dec(ilocal->siridb->tasks);
     ilocal->siridb->insert_tasks--;
     if (ilocal->pcache != NULL)
     {
@@ -1057,8 +1058,9 @@ static int INSERT_init_local(
     qp_next(&ilocal->unpacker, NULL); // map
     qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
 
-    siridb->active_tasks++;
+    siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
+
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
 

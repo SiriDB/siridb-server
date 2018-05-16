@@ -186,7 +186,7 @@ void siridb_initsync_run(uv_timer_t * timer)
             timer,
             (siridb->replicate->initsync->pkg == NULL) ?
                     INITSYNC_work : INITSYNC_send,
-            INITSYNC_SLEEP * siridb->active_tasks,
+            INITSYNC_SLEEP * siridb->tasks.active,
             0);
 }
 

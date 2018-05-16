@@ -77,7 +77,6 @@ typedef struct siridb_s
     uint8_t flags;
     uint8_t pad0;
     uint32_t max_series_id;
-    uint16_t active_tasks;
     uint16_t insert_tasks;
     uint16_t shard_mask_num;
     uint16_t shard_mask_log;
@@ -115,8 +114,11 @@ typedef struct siridb_s
     siridb_replicate_t * replicate;
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
+    siridb_tasks_t tasks;
 } siridb_t;
 
+int32_t siridb_get_uptime(siridb_t * siridb);
+int8_t siridb_get_idle_percentage(siridb_t * siridb);
 int siridb_is_db_path(const char * dbpath);
 siridb_t * siridb_new(const char * dbpath, int lock_flags);
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);

@@ -423,7 +423,7 @@ static void REINDEX_next(siridb_t * siridb)
         uv_timer_start(
                 siridb->reindex->timer,
                 REINDEX_work,
-                REINDEX_SLEEP * siridb->active_tasks,
+                REINDEX_SLEEP * siridb->tasks.active,
                 0);
         break;
 

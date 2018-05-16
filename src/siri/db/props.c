@@ -38,6 +38,10 @@ static void prop_active_handles(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_active_tasks(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_buffer_path(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -67,6 +71,14 @@ static void prop_duration_num(
         qp_packer_t * packer,
         int map);
 static void prop_fifo_files(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_idle_percentage(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_idle_time(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
@@ -168,6 +180,8 @@ void siridb_init_props(void)
 
     siridb_props[CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET] =
             prop_active_handles;
+    siridb_props[CLERI_GID_K_ACTIVE_TASKS - KW_OFFSET] =
+            prop_active_tasks;
     siridb_props[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] =
             prop_buffer_path;
     siridb_props[CLERI_GID_K_BUFFER_SIZE - KW_OFFSET] =
@@ -184,6 +198,10 @@ void siridb_init_props(void)
             prop_duration_num;
     siridb_props[CLERI_GID_K_FIFO_FILES - KW_OFFSET] =
             prop_fifo_files;
+    siridb_props[CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET] =
+            prop_idle_percentage;
+    siridb_props[CLERI_GID_K_IDLE_TIME - KW_OFFSET] =
+            prop_idle_time;
     siridb_props[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
             prop_ip_support;
     siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
@@ -237,6 +255,15 @@ static void prop_active_handles(
 {
     SIRIDB_PROP_MAP("active_handles", 14)
     qp_add_int32(packer, (int32_t) siri.loop->active_handles);
+}
+
+static void prop_active_tasks(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("active_tasks", 12)
+    qp_add_int32(packer, (int32_t) siridb->tasks.active);
 }
 
 static void prop_buffer_path(
@@ -309,6 +336,24 @@ static void prop_fifo_files(
 {
     SIRIDB_PROP_MAP("fifo_files", 10)
     qp_add_int32(packer, (int32_t) siridb_fifo_size(siridb->fifo));
+}
+
+static void prop_idle_percentage(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("idle_percentage", 15)
+    qp_add_int8(packer, siridb_get_idle_percentage(siridb));
+}
+
+static void prop_idle_time(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("idle_time", 9)
+    qp_add_int32(packer, (int32_t) siridb->tasks.idle_time);
 }
 
 static void prop_ip_support(
@@ -487,7 +532,7 @@ static void prop_uptime(
         int map)
 {
     SIRIDB_PROP_MAP("uptime", 6)
-    qp_add_int32(packer, (int32_t) (time(NULL) - siridb->start_ts));
+    qp_add_int32(packer, siridb_get_uptime(siridb));
 }
 
 static void prop_uuid(

@@ -11,19 +11,16 @@
  */
 #pragma once
 
-#include <sys/time.h>
+#include <time.h>
 
-typedef struct timeval timeit_t;
+double timeit_stop(struct timespec * start);
 
-void timeit_start(timeit_t * start);
-float timeit_stop(timeit_t * start);
-
-
+#define timeit_start(start) clock_gettime(CLOCK_MONOTONIC, start)
 
 /*
  * Usage:
  *
- *  timeit_t start;
+ *  struct timespec start;
  *  timeit_start(&start);
  *
  *  ... some code ....

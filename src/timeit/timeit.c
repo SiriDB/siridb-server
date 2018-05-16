@@ -10,29 +10,18 @@
  *
  */
 #include <timeit/timeit.h>
+#include <time.h>
 
 /*
- * Usage:
- *
- *  timeit_t start;
- *  timeit_start(&start);
- *
- *  ... some code ....
- *
- *  log_debug("Time in milliseconds: %f",timeit_stop(&start));
+ * Returns time past in seconds
  */
-void timeit_start(timeit_t * start)
+double timeit_stop(struct timespec * start)
 {
-    gettimeofday(start, 0);
-}
+    struct timespec end;
 
-float timeit_stop(timeit_t * start)
-{
-   timeit_t end;
+    clock_gettime(CLOCK_MONOTONIC, &end);
 
-   gettimeofday(&end, 0);
-
-   return (end.tv_sec - start->tv_sec) * 1000.0f +
-           (end.tv_usec - start->tv_usec) / 1000.0f;
+    return (end.tv_sec - start->tv_sec) +
+            (end.tv_nsec - start->tv_nsec) / 1000000000.0f;
 }
 

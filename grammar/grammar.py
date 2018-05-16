@@ -46,6 +46,7 @@ class SiriGrammar(Grammar):
     # Keywords
     k_access = Keyword('access')
     k_active_handles = Keyword('active_handles')
+    k_active_tasks = Keyword('active_tasks')
     k_address = Keyword('address')
     k_after = Keyword('after')
     k_all = Keyword('all')
@@ -85,6 +86,8 @@ class SiriGrammar(Grammar):
     k_group = Keyword('group')
     k_groups = Keyword('groups')
     k_help = Choice(Keyword('help'), Token('?'))
+    k_idle_percentage = Keyword('idle_percentage')
+    k_idle_time = Keyword('idle_time')
     k_info = Keyword('info')
     k_ignore_threshold = Keyword('ignore_threshold')
     k_insert = Keyword('insert')
@@ -258,7 +261,10 @@ class SiriGrammar(Grammar):
         k_status,
         # Remote properties
         k_active_handles,
+        k_active_tasks,
         k_fifo_files,
+        k_idle_percentage,
+        k_idle_time,
         k_log_level,
         k_max_open_files,
         k_mem_usage,
@@ -333,8 +339,11 @@ class SiriGrammar(Grammar):
     where_server = Sequence(k_where, Prio(
         Sequence(Choice(
             k_active_handles,
+            k_active_tasks,
             k_buffer_size,
             k_fifo_files,
+            k_idle_percentage,
+            k_idle_time,            
             k_port,
             k_pool,
             k_startup_time,
@@ -720,6 +729,7 @@ class SiriGrammar(Grammar):
 
     show_stmt = Sequence(k_show, List(Choice(
         k_active_handles,
+        k_active_tasks,
         k_buffer_path,
         k_buffer_size,
         k_dbname,
@@ -728,6 +738,8 @@ class SiriGrammar(Grammar):
         k_duration_log,
         k_duration_num,
         k_fifo_files,
+        k_idle_percentage,
+        k_idle_time,            
         k_ip_support,
         k_libuv,
         k_list_limit,

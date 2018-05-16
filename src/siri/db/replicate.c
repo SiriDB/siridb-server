@@ -383,7 +383,7 @@ static void REPLICATE_on_repl_response(
         uv_timer_start(
                 siridb->replicate->timer,
                 REPLICATE_work,
-                REPLICATE_SLEEP * siridb->active_tasks,
+                REPLICATE_SLEEP * siridb->tasks.active,
                 0);
     }
     sirinet_promise_decref(promise);

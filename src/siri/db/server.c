@@ -1157,13 +1157,19 @@ int siridb_server_cexpr_cb(
     case CLERI_GID_K_UPTIME:
         return cexpr_int_cmp(
                 cond->operator,
-                (int64_t) (time(NULL) - wserver->siridb->start_ts),
+                (int64_t) siridb_get_uptime(wserver->siridb),
                 cond->int64);
 
     case CLERI_GID_K_ACTIVE_HANDLES:
         return cexpr_int_cmp(
                 cond->operator,
                 (int64_t) siri.loop->active_handles,
+                cond->int64);
+
+    case CLERI_GID_K_ACTIVE_TASKS:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) wserver->siridb->tasks.active,
                 cond->int64);
 
     case CLERI_GID_K_REINDEX_PROGRESS:

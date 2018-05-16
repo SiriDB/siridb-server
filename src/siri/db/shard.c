@@ -1302,7 +1302,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
             /* make this sleep depending on the active_tasks
              * (50ms per active task) */
-            usleep( 50000 * siridb->active_tasks + 100 );
+            usleep( 50000 * siridb->tasks.active + 100 );
         }
 
         siridb_series_decref(series);

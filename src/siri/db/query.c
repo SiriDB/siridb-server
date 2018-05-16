@@ -70,6 +70,7 @@ void siridb_query_run(
         float factor,
         int flags)
 {
+    siridb_t * siridb;
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
@@ -132,7 +133,8 @@ void siridb_query_run(
     }
 
     /* increment active tasks */
-    ((sirinet_socket_t *) query->client->data)->siridb->active_tasks++;
+    siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    siridb_tasks_inc(siridb->tasks);
 
     /* send next call */
     uv_async_init(siri.loop, handle, (uv_async_cb) QUERY_parse);
@@ -143,9 +145,10 @@ void siridb_query_run(
 void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
 
     /* decrement active tasks */
-    ((sirinet_socket_t *) query->client->data)->siridb->active_tasks--;
+    siridb_tasks_dec(siridb->tasks);
 
     /* free query */
     free(query->q);

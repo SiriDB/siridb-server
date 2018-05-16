@@ -60,6 +60,25 @@ static int SIRIDB_from_unpacker(
     return -1;
 
 /*
+ * Returns the up-time in seconds.
+ */
+int32_t siridb_get_uptime(siridb_t * siridb)
+{
+    return (int32_t) (time(NULL) - siridb->start_ts);
+}
+
+/*
+ * Returns a value in the range 0 and 100 representing how much percent sine
+ * up-time is idle time.
+ */
+int8_t siridb_get_idle_percentage(siridb_t * siridb)
+{
+    double uptime = (double) siridb_get_uptime(siridb);
+    return (int8_t) round(siridb->tasks.idle_time / uptime * 100.0f);
+}
+
+
+/*
  * Check if at least database.conf and database.dat exist in the path.
  */
 int siridb_is_db_path(const char * dbpath)
@@ -336,6 +355,9 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
 
     /* start groups update thread */
     siridb_groups_start(siridb->groups);
+
+    /* start tasks */
+    siridb_tasks_init(&siridb->tasks);
 
     log_info("Finished loading database: '%s'", siridb->dbname);
 
@@ -813,7 +835,6 @@ static siridb_t * SIRIDB_new(void)
                         siridb->dbname = NULL;
                         siridb->dbpath = NULL;
                         siridb->ref = 1;
-                        siridb->active_tasks = 0;
                         siridb->insert_tasks = 0;
                         siridb->flags = 0;
                         siridb->buffer_path = NULL;

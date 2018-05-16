@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-03-30 21:57:58
+ * Created at: 2018-05-16 16:15:46
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -118,6 +118,7 @@ enum cleri_grammar_ids {
     CLERI_GID_INT_OPERATOR,
     CLERI_GID_K_ACCESS,
     CLERI_GID_K_ACTIVE_HANDLES,
+    CLERI_GID_K_ACTIVE_TASKS,
     CLERI_GID_K_ADDRESS,
     CLERI_GID_K_AFTER,
     CLERI_GID_K_ALL,
@@ -157,6 +158,8 @@ enum cleri_grammar_ids {
     CLERI_GID_K_GROUP,
     CLERI_GID_K_GROUPS,
     CLERI_GID_K_HELP,
+    CLERI_GID_K_IDLE_PERCENTAGE,
+    CLERI_GID_K_IDLE_TIME,
     CLERI_GID_K_IGNORE_THRESHOLD,
     CLERI_GID_K_INFO,
     CLERI_GID_K_INSERT,

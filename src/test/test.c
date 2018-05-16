@@ -1017,7 +1017,7 @@ int test_strx_to_double(void)
 
 int run_tests(void)
 {
-    timeit_t start;
+    struct timespec start;
     timeit_start(&start);
     int rc = 0;
     rc += test_qpack();
@@ -1050,7 +1050,7 @@ int run_tests(void)
     rc += test_strx_to_double();
 
     printf("\nSuccessfully performed %d tests in %.3f milliseconds!\n\n",
-            rc, timeit_stop(&start));
+            rc, timeit_stop(&start) * 1000);
 
     return 0;
 }
