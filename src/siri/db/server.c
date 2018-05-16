@@ -891,6 +891,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
 #endif
         pool->server[0] = pool->server[1];
         pool->server[0]->id = 0;
+        /* FALLTHRU */
         /* no break */
     case 1:
         pool->server[1] = NULL;

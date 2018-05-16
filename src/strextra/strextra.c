@@ -294,6 +294,7 @@ double strx_to_double(const char * src, size_t len)
         break;
     case '+':
         pt++;
+        /* FALLTHRU */
         /* no break */
     default:
         convert = 1.0;

@@ -42,6 +42,7 @@ int siridb_re_compile(
     case 'i':
         options |= PCRE2_CASELESS;
         len--;
+        /* FALLTHRU */
         /* no break */
     case '/':
         pattern[len] = '$';

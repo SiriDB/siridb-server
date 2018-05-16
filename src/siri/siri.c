@@ -17,6 +17,9 @@
  *      siri->siridb_list :    read (lock)          write (not allowed)
  *
  */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
@@ -248,7 +251,7 @@ static int SIRI_load_databases(void)
 {
     DIR * db_container_path;
     struct dirent * dbpath;
-    char buffer[SIRI_PATH_MAX];
+    char * buffer;
 
     if (!xpath_is_dir(siri.cfg->default_db_path))
     {
@@ -279,16 +282,21 @@ static int SIRI_load_databases(void)
             continue;
         }
 
-        snprintf(buffer,
-                SIRI_PATH_MAX,
+        if (asprintf(
+                &buffer,
                 "%s%s/",
                 siri.cfg->default_db_path,
-                dbpath->d_name);
+                dbpath->d_name) < 0)
+        {
+            /* allocation error occurred */
+            log_critical("Could not allocate space for database path");
+            continue;
+        }
 
         if (!siridb_is_db_path(buffer))
         {
             /* this is not a SiriDB database directory, files are missing */
-            continue;
+            goto next;
         }
 
         if (siri.siridb_list->len == MAX_NUMBER_DB)
@@ -298,13 +306,15 @@ static int SIRI_load_databases(void)
                     "are allowed on a single SiriDB process.",
                     dbpath->d_name,
                     MAX_NUMBER_DB);
-            continue;
+            goto next;
         }
 
         if (siridb_new(buffer, 0) == NULL)
         {
             log_error("Could not load '%s'.", dbpath->d_name);
         }
+next:
+        free(buffer);
     }
     closedir(db_container_path);
 

@@ -1016,6 +1016,7 @@ static int QUERY_rebuild(
             }
             return 0;
         }
+    /* FALLTHRU */
     /* no break */
     default:
         {
