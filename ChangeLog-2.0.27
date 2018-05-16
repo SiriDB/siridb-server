@@ -18,3 +18,5 @@
     
   * Allow all (*) for selecting series. Keyword 'all' replaces 'points' which
     is now a deprecated keyword.
+
+  * Solved compiler warnings. (issue #96)

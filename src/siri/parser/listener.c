@@ -3272,19 +3272,24 @@ static void exit_revoke_user(uv_async_t * handle)
 static void exit_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
-    if ((q_select->flags & QUERIES_SKIP_GET_POINTS) &&
-         (q_select->start_ts != NULL || q_select->end_ts != NULL))
+    if (q_wrapper->tp == QUERIES_SELECT)
     {
-        q_select->flags &= ~QUERIES_SKIP_GET_POINTS;
-    }
+        query_select_t * q_select = (query_select_t *) q_wrapper;
+        if ((q_select->flags & QUERIES_SKIP_GET_POINTS) &&
+                (q_select->start_ts != NULL || q_select->end_ts != NULL))
+        {
+            q_select->flags &= ~QUERIES_SKIP_GET_POINTS;
+        }
 
-    if ((~q_select->flags & QUERIES_SKIP_GET_POINTS) && q_select->nselects > 1)
-    {
-        /* We have more than one select request, let's use points caching.
-         * (Not critical, everything works if points_map is NULL) */
-        q_select->points_map = imap_new();
+        if ((~q_select->flags & QUERIES_SKIP_GET_POINTS) &&
+                q_select->nselects > 1)
+        {
+            /* We have more than one select request, let's use points caching.
+             * (Not critical, everything works if points_map is NULL) */
+            q_select->points_map = imap_new();
+        }
     }
 
     SIRIPARSER_ASYNC_NEXT_NODE
