@@ -2,6 +2,16 @@ Aggregate functions
 ===================
 SiriDB supports multiple build-in aggregation and filter functions. Using these functions can be useful to reduce network traffic. Note that multiple functions can be combined using the arrow `=>` sign. (see `help select` for more information on how to use and combine functions)
 
+Most aggregation function accept an optional `ts` argument. When not providing the `ts` argument, SiriDB will usually return the last timestamp in the result. One exception is the `first()` function which will return the first timestamp instead.
+
+For example:
+
+    # Select the last time-stamp and the average over all values.
+    select mean() from `my_series`
+    
+    # Select the first time-stamp and first value:
+    select first() from `my_series`
+ 
 List of supported aggregation and filter functions:
 
 limit
@@ -24,7 +34,7 @@ count
 -----
 Syntax:
 
-	count(ts)
+	count([ts])
 
 Returns an integer value.
 
@@ -39,7 +49,7 @@ sum
 ---
 Syntax:
 
-	sum(ts)
+	sum([ts])
 
 Returns an integer or float value depending on the series data type.
 
@@ -55,7 +65,7 @@ max
 ---
 Syntax:
 
-	max(ts)
+	max([ts])
 
 Returns an integer or float value depending on the series data type.
 
@@ -71,7 +81,7 @@ min
 ---
 Syntax:
 
-	min(ts)
+	min([ts])
 
 Returns an integer or float value depending on the series data type.
 
@@ -87,7 +97,7 @@ mean
 ----
 Syntax:
 
-	mean(ts)
+	mean([ts])
 
 Returns a float value.
 
@@ -103,7 +113,7 @@ median
 ------
 Syntax:
 
-	median(ts)
+	median([ts])
 
 Returns a float value.
 
@@ -113,7 +123,7 @@ median_high
 -----------
 Syntax:
 
-	median_high(ts)
+	median_high([ts])
 
 Returns an integer or float value depending on the series data type.
 
@@ -123,7 +133,7 @@ median\_low
 -----------
 Syntax:
 
-	median_low(ts)
+	median_low([ts])
 
 Returns an integer or float value depending on the series data type.
 
@@ -133,7 +143,7 @@ variance
 --------
 Syntax:
 
-	variance(ts)
+	variance([ts])
 
 Returns a float value.
 
@@ -143,7 +153,7 @@ pvariance
 ---------
 Syntax:
 
-	pvariance(ts)
+	pvariance([ts])
 
 Returns a float value.
 
@@ -205,3 +215,43 @@ Example:
 
     # Select all positive values from 'series-001'
     select filter(> 0) from 'series-001'
+
+
+first
+-----
+Syntax:
+
+    first([ts])
+    
+Returns the first value in each `ts` time window. (Or just the first value)
+
+Example:
+    
+    # Select the first value from 'series-001'
+    select first() from 'series-001'
+    
+    # Select the first value per day from 'series-001'
+    select first(1d) from 'series-001'
+    
+    # Select the first value in 2018 from 'series-001'
+    select first() from 'series-001' after '2018'
+    
+    
+last
+----
+Syntax:
+
+    last([ts])
+    
+Returns the last value in each `ts` time window. (Or just the last value)
+
+Example:
+    
+    # Select the last value from 'series-001'
+    select last() from 'series-001'
+    
+    # Select the last value per day from 'series-001'
+    select last(1d) from 'series-001'
+    
+    # Select the last value in 2017 from 'series-001'
+    select last() from 'series-001' before '2018'

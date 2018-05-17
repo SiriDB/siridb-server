@@ -13,11 +13,14 @@ columns
 Valid columns are:
 
 - active_handles: Returns the active handles which can be used as an indicator on how busy a server is.
+- active_tasks: Returns the active tasks for the current database.
 - address: Server address.
 - buffer_path: Path where this server keeps the buffer file.
 - buffer_size: Size the server uses for one series in the buffer.
 - dbpath: Path where the server stores the database.
 - fifo_files: Number of fifo files which are used to update the replica server. This value is 0 if the server has no replica. A value greater than 1 could be an indication that replication is not working.
+- idle_percentage: Returns percentage of idle time since the database was loaded.
+- idle_time: Returns the idle time in seconds since the database was loaded.
 - ip_support: IP Support setting on the server. (ALL/ IPV4ONLY/ IPV6ONLY)
 - libuv: Version of libuv library.
 - log_level: Current loglevel for the server.

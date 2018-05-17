@@ -8,6 +8,7 @@ Syntax
 See available options for more info on each show command:
 
 - `show active_handles`: Returns the active handles which can be used as an indicator for how busy a server is.
+- `show active_tasks`: Returns the active tasks for the current database.
 - `show buffer_path`: Returns the local buffer path on *this* server.
 - `show buffer_size`: Returns the buffer size in bytes on *this* server.
 - `show dbname`: Returns the database name.
@@ -16,6 +17,8 @@ See available options for more info on each show command:
 - `show duration_log`: Returns the sharding duration for log data on *this* database (not supported yet).
 - `show duration_num`: Returns the sharding duration for num data on *this* database.
 - `show fifo_files`: Returns the number of fifo files which are used to update the replica server. This value is 0 if the server has no replica. A value greater than 1 could be an indication that replication is not working.
+- `show idle_percentage`: Returns percentage of idle time since the database was loaded.
+- `show idle_time`: Returns the idle time in seconds since the database was loaded.
 - `show ip_support`: Returns the ip support setting on *this* server.
 - `show libuv`: Returns the version of libuv on *this* server.
 - `show list_limit`: Returns the maximum value which can be used as limit in a list query.

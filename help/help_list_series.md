@@ -26,7 +26,11 @@ Series can be matched using different methods. Groups can help to quickly get th
 
 syntax:
 
-	<series_name | regular_expression | group> [update_function <match_series>]
+	<*/all | series_name | regular_expression | group> [update_function <match_series>]
+
+*/all
+-----
+All series are selected.
 
 series name
 -----------
