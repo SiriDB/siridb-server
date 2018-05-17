@@ -327,6 +327,20 @@ class TestSelect(TestBase):
                 DATA['aggr'][-1][0],
                 sum([x[1] for x in DATA['aggr']]) / len(DATA['aggr'])]]})
 
+        self.assertAlmostEqual(
+            await self.client0.query('select stddev() from "aggr"'),
+            {'aggr': [[
+                DATA['aggr'][-1][0],
+                147.07108914792838]]})
+
+        self.assertAlmostEqual(
+            await self.client0.query('select stddev(1h) from "aggr"'),
+            {"aggr": [
+                [1447250400, 1.8165902124584952],
+                [1447254000, 185.46409846162092],
+                [1447257600, 2.6457513110645907]]})
+
+
         # test prefix, suffex
         result = await self.client0.query(
                 'select sum(1d) prefix "sum-" suffix "-sum", '
