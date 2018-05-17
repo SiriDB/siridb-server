@@ -61,6 +61,9 @@ class TestServer(TestBase):
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['info'], ['info']])
 
+        result = await self.client1.query('list servers active_tasks where active_tasks >= 0 and idle_time >= 0 and idle_percentage <= 100')
+        self.assertEqual(result.pop('servers'), [[1], [1]])
+
         result = await self.client0.query('alter servers where active_handles > 1 set log_level debug')
 
         result = await self.client1.query('list servers log_level')

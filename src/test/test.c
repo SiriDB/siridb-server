@@ -1050,7 +1050,7 @@ int run_tests(void)
     rc += test_strx_to_double();
 
     printf("\nSuccessfully performed %d tests in %.3f milliseconds!\n\n",
-            rc, timeit_stop(&start) * 1000);
+            rc, timeit_get(&start) * 1000);
 
     return 0;
 }

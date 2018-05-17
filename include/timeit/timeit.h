@@ -13,7 +13,7 @@
 
 #include <time.h>
 
-double timeit_stop(struct timespec * start);
+double timeit_get(struct timespec * start);
 
 #define timeit_start(start) clock_gettime(CLOCK_MONOTONIC, start)
 

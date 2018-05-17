@@ -13,9 +13,9 @@
 #include <time.h>
 
 /*
- * Returns time past in seconds
+ * Returns time past in seconds since given start time.
  */
-double timeit_stop(struct timespec * start)
+double timeit_get(struct timespec * start)
 {
     struct timespec end;
 

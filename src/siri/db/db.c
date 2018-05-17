@@ -34,6 +34,7 @@
 #include <uuid/uuid.h>
 #include <xpath/xpath.h>
 #include <slist/slist.h>
+#include <timeit/timeit.h>
 
 /*
  * database.dat
@@ -64,7 +65,7 @@ static int SIRIDB_from_unpacker(
  */
 int32_t siridb_get_uptime(siridb_t * siridb)
 {
-    return (int32_t) (time(NULL) - siridb->start_ts);
+    return (int32_t) timeit_get(&siridb->start_time);
 }
 
 /*
@@ -74,7 +75,9 @@ int32_t siridb_get_uptime(siridb_t * siridb)
 int8_t siridb_get_idle_percentage(siridb_t * siridb)
 {
     double uptime = (double) siridb_get_uptime(siridb);
-    return (int8_t) round(siridb->tasks.idle_time / uptime * 100.0f);
+    return (uptime)
+            ? (int8_t) round(siridb->tasks.idle_time / uptime * 100.0f)
+            : 0;
 }
 
 
@@ -340,7 +343,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         }
     }
 
-    siridb->start_ts = time(NULL);
+    timeit_start(&siridb->start_time);
 
     uv_mutex_lock(&siri.siridb_mutex);
 

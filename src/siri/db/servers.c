@@ -649,12 +649,24 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
          * that specific server.
          */
         case CLERI_GID_K_ACTIVE_HANDLES:
-#if DEBUG
-            assert (siridb->server == server);
-#endif
             qp_add_int32(
                     query->packer,
                     (int32_t) siri.loop->active_handles);
+            break;
+        case CLERI_GID_K_ACTIVE_TASKS:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) siridb->tasks.active);
+            break;
+        case CLERI_GID_K_IDLE_PERCENTAGE:
+            qp_add_int8(
+                    query->packer,
+                    siridb_get_idle_percentage(siridb));
+            break;
+        case CLERI_GID_K_IDLE_TIME:
+            qp_add_int32(
+                    query->packer,
+                    (int32_t) siridb->tasks.idle_time);
             break;
         case CLERI_GID_K_LOG_LEVEL:
             qp_add_string(query->packer, Logger.level_name);
@@ -692,7 +704,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_UPTIME:
             qp_add_int32(
                     query->packer,
-                    (int32_t) (time(NULL) - siridb->start_ts));
+                    siridb_get_uptime(siridb));
             break;
         }
     }

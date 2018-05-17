@@ -1172,6 +1172,18 @@ int siridb_server_cexpr_cb(
                 (int64_t) wserver->siridb->tasks.active,
                 cond->int64);
 
+    case CLERI_GID_K_IDLE_PERCENTAGE:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) siridb_get_idle_percentage(wserver->siridb),
+                cond->int64);
+
+    case CLERI_GID_K_IDLE_TIME:
+        return cexpr_int_cmp(
+                cond->operator,
+                (int64_t) wserver->siridb->tasks.idle_time,
+                cond->int64);
+
     case CLERI_GID_K_REINDEX_PROGRESS:
         return cexpr_str_cmp(
                 cond->operator,

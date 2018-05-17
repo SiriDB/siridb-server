@@ -22,11 +22,10 @@ typedef struct siridb_tasks_s
     double idle_time;
 } siridb_tasks_t;
 
-
-void siridb_tasks_init(siridb_tasks_t *tasks);
+void siridb_tasks_init(siridb_tasks_t * tasks);
 
 #define siridb_tasks_inc(tasks) \
-if (!tasks.active++) tasks.idle_time += timeit_stop(&tasks._timeit)
+if (!tasks.active++) tasks.idle_time += timeit_get(&tasks._timeit)
 
 #define siridb_tasks_dec(tasks) \
 if (!--tasks.active) timeit_start(&tasks._timeit)
