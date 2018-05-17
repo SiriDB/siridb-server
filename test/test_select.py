@@ -321,7 +321,6 @@ class TestSelect(TestBase):
             await self.client0.query('select count() from *'),
             {k: [[v[-1][0], len(v)]] for k, v in DATA.items()})
 
-        print(sum([x[1] for x in DATA['aggr']]) / len(DATA['aggr']))
         self.assertEqual(
             await self.client0.query('select mean() from "aggr"'),
             {'aggr': [[
