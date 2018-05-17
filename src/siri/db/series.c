@@ -867,8 +867,8 @@ siridb_points_t * siridb_series_get_last(
         }
 
         /* string type does not have a buffer so we don't have to worry */
-        points->data->ts = buf->data->ts;
-        points->data->val = buf->data->val;
+        points->data->ts = point->ts;
+        points->data->val = point->val;
         points->len = 1;
         return points;
     }
