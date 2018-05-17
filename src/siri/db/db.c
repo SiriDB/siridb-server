@@ -75,9 +75,13 @@ int32_t siridb_get_uptime(siridb_t * siridb)
 int8_t siridb_get_idle_percentage(siridb_t * siridb)
 {
     double uptime = (double) siridb_get_uptime(siridb);
-    return (uptime)
+    int8_t idle = (uptime)
             ? (int8_t) round(siridb->tasks.idle_time / uptime * 100.0f)
             : 0;
+    /* idle time can technically be larger since we start a database before we
+     * mark the server as started.
+     */
+    return (idle > 100) ? 100 : idle;
 }
 
 

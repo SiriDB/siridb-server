@@ -20,3 +20,10 @@
     is now a deprecated keyword.
 
   * Solved compiler warnings. (issue #96)
+  
+  * Added the following server statistics properties:
+    - active_tasks: returns the number of active tasks for the current database
+    - idle_time: returns the seconds the database was idle since uptime.
+    - idle_percentage: returns the percentage of idle time since uptime.  
+    (Note: idle mean no active tasks for the current database) 
+    
