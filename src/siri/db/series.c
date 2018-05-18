@@ -797,6 +797,7 @@ siridb_points_t * siridb_series_get_first(
 {
     siridb_points_t * buf = series->buffer;
     siridb_points_t * points;
+    uint64_t start;
 
     if (buf != NULL &&
         buf->len &&
@@ -828,11 +829,13 @@ siridb_points_t * siridb_series_get_first(
         return NULL;
     }
 
+    start = series->start + 1;
+
     siridb_shard_get_points_callback(first->shard->flags, series)(
             points,
             first,
             NULL,
-            &series->start + 1,
+            &start,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
     assert (points->len);
