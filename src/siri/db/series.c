@@ -884,8 +884,13 @@ siridb_points_t * siridb_series_get_last(
 
     (*required_shard)++;
 
+
+#if DEBUG
     /* if not in the buffer, then if must be in a shard */
     assert (series->idx_len);
+#endif
+
+    /* if not in the buffer, then if must be in a shard */
 
     size_t i = series->idx_len - 1;
     idx_t * idx = series->idx + i;
@@ -912,7 +917,11 @@ siridb_points_t * siridb_series_get_last(
             NULL,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
+#if DEBUG
+    /* we must have at least one point, more points are possible when
+     * having multiple points at the same time-stamp. */
     assert (points->len);
+#endif
 
     while (points->len > 1)
     {
