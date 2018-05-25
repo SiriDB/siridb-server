@@ -214,7 +214,7 @@ Syntax:
 
 	filter(<operator> <value>)
 
-Returns an integer or float value depending on the series data type.
+Returns an integer, float or string value depending on the series data type.
 
 Filter is used to filter the result by values.
 
@@ -225,6 +225,9 @@ Example:
 
     # Select all positive values from 'series-001'
     select filter(> 0) from 'series-001'
+    
+    # Select all values containing 'error' and not 'unavailable
+    select filter(~'error') => filter(!~'unavailable') from 'some-log-series'
 
 
 first
