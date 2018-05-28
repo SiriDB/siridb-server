@@ -37,10 +37,12 @@ class TestServer(TestBase):
         await self.client1.connect()
 
         for port in (9010, 9011):
-            result = await self.client0.query('alter server "localhost:{}" set log_level error'.format(port))
+            result = await self.client0.query(
+                'alter server "localhost:{}" set log_level error'.format(port))
             self.assertEqual(
                 result.pop('success_msg'),
-                "Successfully set log level to 'error' on 'localhost:{}'.".format(port))
+                "Successfully set log level "
+                "to 'error' on 'localhost:{}'.".format(port))
 
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['error'], ['error']])
@@ -48,7 +50,8 @@ class TestServer(TestBase):
         result = await self.client1.query('list servers uuid')
 
         for uuid in result.pop('servers'):
-            result = await self.client0.query('alter server {} set log_level debug'.format(uuid[0]))
+            result = await self.client0.query(
+                'alter server {} set log_level debug'.format(uuid[0]))
 
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
@@ -61,18 +64,23 @@ class TestServer(TestBase):
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['info'], ['info']])
 
-        result = await self.client1.query('list servers active_tasks where active_tasks == 1 and idle_time >= 0 and idle_percentage <= 100')
+        result = await self.client1.query(
+            'list servers active_tasks where active_tasks == 1 and '
+            'idle_time >= 0 and idle_percentage <= 100')
         self.assertEqual(result.pop('servers'), [[1], [1]])
 
-        result = await self.client0.query('alter servers where active_handles > 1 set log_level debug')
+        result = await self.client0.query(
+            'alter servers where active_handles > 1 set log_level debug')
 
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
 
         with self.assertRaisesRegexp(
                 QueryError,
-                "Query error at position 42. Expecting debug, info, warning, error or critical"):
-            await self.client0.query('alter server "localhost:{}" set log_level unknown')
+                'Query error at position 42. '
+                'Expecting debug, info, warning, error or critical'):
+            await self.client0.query(
+                'alter server "localhost:{}" set log_level unknown')
 
         self.client1.close()
         result = await self.server1.stop()
@@ -89,19 +97,23 @@ class TestServer(TestBase):
 
         await self.client1.connect()
         result = await self.client1.query('show server')
-        self.assertEqual(result.pop('data'), [{'name': 'server', 'value': 'localhost:9111'}])
+        self.assertEqual(
+            result.pop('data'),
+            [{'name': 'server', 'value': 'localhost:9111'}])
 
         await self.db.add_replica(self.server2, 1)
         await self.assertIsRunning(self.db, self.client0, timeout=10)
 
         with self.assertRaisesRegexp(
                 QueryError,
-                "Cannot remove server 'localhost:9010' because this is the only server for pool 0"):
+                "Cannot remove server 'localhost:9010' because this is the "
+                "only server for pool 0"):
             await self.client1.query('drop server "localhost:9010"')
 
         with self.assertRaisesRegexp(
                 QueryError,
-                "Cannot remove server 'localhost:9012' because the server is still online.*"):
+                "Cannot remove server 'localhost:9012' because the server "
+                "is still online.*"):
             await self.client1.query('drop server "localhost:9012"')
 
         result = await self.server1.stop()
@@ -113,10 +125,13 @@ class TestServer(TestBase):
         await self.server1.start(sleep=10)
 
         result = await self.client1.query('show status')
-        self.assertEqual(result.pop('data'), [{'name': 'status', 'value': 'running | synchronizing'}])
+        self.assertEqual(result.pop('data'), [
+            {'name': 'status', 'value': 'running | synchronizing'}])
 
         result = await self.client0.query('drop server "localhost:9012"')
-        self.assertEqual(result.pop('success_msg'), "Successfully dropped server 'localhost:9012'.")
+        self.assertEqual(
+            result.pop('success_msg'),
+            "Successfully dropped server 'localhost:9012'.")
         self.db.servers.remove(self.server2)
 
         time.sleep(1)

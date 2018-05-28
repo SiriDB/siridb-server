@@ -122,6 +122,3 @@ class TestBase(unittest.TestCase):
                         **kwargs)
         else:
             super().assertAlmostEqual(a, b, *args, **kwargs)
-
-
-

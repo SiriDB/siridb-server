@@ -73,4 +73,3 @@ class Client:
 
         for s in series[:n]:
             s.commit_points()
-

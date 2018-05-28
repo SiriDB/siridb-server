@@ -42,7 +42,6 @@ MTCH = re.compile(
 class TestSyslog(TestBase):
     title = 'Test with syslog data'
 
-
     async def insert_syslog(self, batch_size=100):
 
         with open(SYSLOG, 'r') as f:
