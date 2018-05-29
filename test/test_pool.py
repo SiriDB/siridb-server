@@ -27,7 +27,7 @@ class TestPool(TestBase):
             await client.insert_some_series(series, n=0.01, timeout=timeout)
             await asyncio.sleep(1.0)
 
-    @default_test_setup(4)
+    @default_test_setup(8)
     async def run(self):
 
         series = gen_series(n=10000)
@@ -37,7 +37,7 @@ class TestPool(TestBase):
         task0 = asyncio.ensure_future(self.insert(
             self.client0,
             series,
-            200))
+            300))
 
         await asyncio.sleep(5)
 
@@ -50,7 +50,7 @@ class TestPool(TestBase):
         task1 = asyncio.ensure_future(self.insert(
             self.client1,
             series,
-            150))
+            250))
 
         await asyncio.sleep(5)
 
@@ -70,9 +70,25 @@ class TestPool(TestBase):
         task2 = asyncio.ensure_future(self.insert(
             self.client2,
             series,
-            100))
+            200))
 
         await self.assertIsRunning(self.db, self.client0, timeout=600)
+
+        await self.db.add_pool(self.server4, sleep=3)
+        await self.client4.connect()
+        await self.assertIsRunning(self.db, self.client4, timeout=200)
+
+        await self.db.add_replica(self.server5, 2, sleep=3)
+        await self.client5.connect()
+        await self.assertIsRunning(self.db, self.client5, timeout=200)
+
+        await self.db.add_pool(self.server6, sleep=3)
+        await self.client6.connect()
+        await self.assertIsRunning(self.db, self.client6, timeout=200)
+
+        await self.db.add_pool(self.server7, sleep=3)
+        await self.client7.connect()
+        await self.assertIsRunning(self.db, self.client7, timeout=200)
 
         await asyncio.wait_for(task0, None)
         await asyncio.wait_for(task1, None)
@@ -84,11 +100,19 @@ class TestPool(TestBase):
         await self.assertSeries(self.client1, series)
         await self.assertSeries(self.client2, series)
         await self.assertSeries(self.client3, series)
+        await self.assertSeries(self.client4, series)
+        await self.assertSeries(self.client5, series)
+        await self.assertSeries(self.client6, series)
+        await self.assertSeries(self.client7, series)
 
         self.client0.close()
         self.client1.close()
         self.client2.close()
         self.client3.close()
+        self.client4.close()
+        self.client5.close()
+        self.client6.close()
+        self.client7.close()
 
         # return False
 
@@ -96,6 +120,6 @@ class TestPool(TestBase):
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
     Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    Server.MEM_CHECK = False
+    Server.BUILDTYPE = 'Release'
     run_test(TestPool())
