@@ -79,35 +79,47 @@ class Series:
 
     def __init__(self, r, allowed_kinds=(int, float, str)):
         self.kind = r.choice(allowed_kinds)
-        self.lval = {
-            str: '',
-            int: 0,
-            float: 0.0
-        }[self.kind]
         self.lts = self._timestamp
 
-        factor = 10**r.randint(int(self.kind == int), 9)
-        self.random_range = (
-            int(r.random() * -factor),
-            int(r.random() * factor) + 1)
-        self.sign = 1
+        if self.kind == str:
+            pass
+        else:
+            self.lval = {
+                int: 0,
+                float: 0.0
+            }[self.kind]
 
-        self.ignore_last = r.random() > 0.95
-        self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
-        self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
+            factor = 10**r.randint(int(self.kind == int), 9)
+            self.random_range = (
+                int(r.random() * -factor),
+                int(r.random() * factor) + 1)
+            self.sign = 1
 
-        self.as_int = self.kind == float and r.random() > 0.9
-        self.likely_inf = r.random() * 0.2 \
-            if self.kind == float and r.random() > 0.95 else False
-        self.likely_nan = r.random() * 0.2 \
-            if self.kind == float and r.random() > 0.95 else False
+            self.ignore_last = r.random() > 0.95
+            self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
+            self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
-        self.gen_float = self.kind == int and r.random() > 0.97
+            self.as_int = self.kind == float and r.random() > 0.9
+            self.likely_inf = r.random() * 0.2 \
+                if self.kind == float and r.random() > 0.95 else False
+            self.likely_nan = r.random() * 0.2 \
+                if self.kind == float and r.random() > 0.95 else False
+
+            self.gen_float = self.kind == int and r.random() > 0.97
 
         self.name = self._gen_name()
         Series._series.append(self)
 
+    def _get_str_value(self):
+        s = getattr(__name__, random.choice(dir(__name__))).__doc__
+        if not isinstance(s, str):
+            s = 'bla'
+        return s
+
     def get_value(self):
+        if self.kind == str:
+            return self._get_str_value()
+
         if self._r.random() < self.likely_change_sign:
             self.sign = -self.sign
 
@@ -169,7 +181,10 @@ class Series:
             Series(r=series_rand, allowed_kinds=kinds)
 
     def _gen_name(self):
-        name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}{}{}'.format(
+        if self.kind == str:
+            return '/n:{}/str'.format(len(self._series))
+
+        return '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}{}{}'.format(
             len(self._series),
             self.random_range[0],
             self.random_range[1],
@@ -180,8 +195,6 @@ class Series:
             '(gen_float)' if self.gen_float else '',
             '(inf:{:.3f})'.format(self.likely_inf) if self.likely_inf else '',
             '(nan:{:.3f})'.format(self.likely_nan) if self.likely_nan else '')
-
-        return name
 
     def get_ts(self, now, args):
         if args.ts_interval <= 0:
@@ -407,7 +420,7 @@ if __name__ == '__main__':
         '--kinds',
         nargs='+',
         default=('int', 'float'),
-        choices=('int', 'float'))  # , 'str'
+        choices=('int', 'float', 'str'))
 
     parser.add_argument(
         '--max-parallel',
