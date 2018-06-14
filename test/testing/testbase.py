@@ -93,12 +93,12 @@ class TestBase(unittest.TestCase):
                     .format(len(s.points), length, s.name)
 
         n = min(len(series), 10)
-        l = list(d.keys())
-        random.shuffle(l)
+        li = list(d.keys())
+        random.shuffle(li)
         for i in range(n):
-            result = await client.query('select * from "{}"'.format(l[i]))
-            points = result[l[i]]
-            expected = sorted(d[l[i]])
+            result = await client.query('select * from "{}"'.format(li[i]))
+            points = result[li[i]]
+            expected = sorted(d[li[i]])
             assert len(points) == len(expected), \
                 'incorrect number of points: {}, expected: {}'.format(
                     len(points), len(expected))
@@ -128,6 +128,3 @@ class TestBase(unittest.TestCase):
                             **kwargs)
         else:
             super().assertAlmostEqual(a, b, *args, **kwargs)
-
-
-
