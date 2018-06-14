@@ -30,11 +30,16 @@ DATA = {
         [1471254708, -3],
         [1471254710, -7]],
     'aggr': [
-        [1447249033, 531], [1447249337, 534], [1447249633, 535], [1447249937, 531],
-        [1447250249, 532], [1447250549, 537], [1447250868, 530], [1447251168, 520],
-        [1447251449, 54], [1447251749, 54], [1447252049, 513], [1447252349, 537],
-        [1447252649, 528], [1447252968, 531], [1447253244, 533], [1447253549, 538],
-        [1447253849, 534], [1447254149, 532], [1447254449, 533], [1447254748, 537]],
+        [1447249033, 531], [1447249337, 534],
+        [1447249633, 535], [1447249937, 531],
+        [1447250249, 532], [1447250549, 537],
+        [1447250868, 530], [1447251168, 520],
+        [1447251449, 54], [1447251749, 54],
+        [1447252049, 513], [1447252349, 537],
+        [1447252649, 528], [1447252968, 531],
+        [1447253244, 533], [1447253549, 538],
+        [1447253849, 534], [1447254149, 532],
+        [1447254449, 533], [1447254748, 537]],
     'huge': [
         [1471254705, 9223372036854775807],
         [1471254706, 9223372036854775806],
@@ -101,7 +106,8 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query(
-                'select difference() => difference() => difference() from "series integer"'),
+                'select difference() => difference() => difference() '
+                'from "series integer"'),
             {'series integer': []})
 
         now = int(time.time())
@@ -118,13 +124,15 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query(
-                'select * from /series.*/ merge as "median_low" using median_low({})'
+                'select * from /series.*/ '
+                'merge as "median_low" using median_low({})'
                 .format(now)),
             {'median_low': [[now, -3.5]]})
 
         self.assertEqual(
             await self.client0.query(
-                'select * from /series.*/ merge as "median_high" using median_high({})'
+                'select * from /series.*/ '
+                'merge as "median_high" using median_high({})'
                 .format(now)),
             {'median_high': [[now, -3.0]]})
 
@@ -132,7 +140,8 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query('select sum(1h) from "aggr"'),
-            {'aggr': [[1447250400, 2663], [1447254000, 5409], [1447257600, 1602]]})
+            {'aggr': [
+                [1447250400, 2663], [1447254000, 5409], [1447257600, 1602]]})
 
         self.assertEqual(
             await self.client0.query('select count(1h) from "aggr"'),
@@ -140,19 +149,27 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query('select mean(1h) from "aggr"'),
-            {'aggr': [[1447250400, 532.6], [1447254000, 450.75], [1447257600, 534.0]]})
+            {'aggr': [
+                [1447250400, 532.6],
+                [1447254000, 450.75],
+                [1447257600, 534.0]]})
 
         self.assertEqual(
             await self.client0.query('select median(1h) from "aggr"'),
-            {'aggr': [[1447250400, 532.0], [1447254000, 530.5], [1447257600, 533.0]]})
+            {'aggr': [
+                [1447250400, 532.0],
+                [1447254000, 530.5],
+                [1447257600, 533.0]]})
 
         self.assertEqual(
             await self.client0.query('select median_low(1h) from "aggr"'),
-            {'aggr': [[1447250400, 532], [1447254000, 530], [1447257600, 533]]})
+            {'aggr': [
+                [1447250400, 532], [1447254000, 530], [1447257600, 533]]})
 
         self.assertEqual(
             await self.client0.query('select median_high(1h) from "aggr"'),
-            {'aggr': [[1447250400, 532], [1447254000, 531], [1447257600, 533]]})
+            {'aggr': [
+                [1447250400, 532], [1447254000, 531], [1447257600, 533]]})
 
         self.assertEqual(
             await self.client0.query('select min(1h) from "aggr"'),
@@ -160,7 +177,8 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.query('select max(1h) from "aggr"'),
-            {'aggr': [[1447250400, 535], [1447254000, 538], [1447257600, 537]]})
+            {'aggr': [
+                [1447250400, 535], [1447254000, 538], [1447257600, 537]]})
 
         self.assertAlmostEqual(
             await self.client0.query('select variance(1h) from "aggr"'),
@@ -212,15 +230,18 @@ class TestSelect(TestBase):
                 [1447254750, 534.0]]})
 
         self.assertEqual(
-            await self.client0.query('select limit(2, max)  from "series float"'),
+            await self.client0.query(
+                'select limit(2, max)  from "series float"'),
             {'series float': [[1471254707, 1.5], [1471254713, -7.3]]})
 
         self.assertAlmostEqual(
-            await self.client0.query('select variance(1471254712) from "variance"'),
+            await self.client0.query(
+                'select variance(1471254712) from "variance"'),
             {'variance': [[1471254712, 1.3720238095238095]]})
 
         self.assertAlmostEqual(
-            await self.client0.query('select pvariance(1471254715) from "pvariance"'),
+            await self.client0.query(
+                'select pvariance(1471254715) from "pvariance"'),
             {'pvariance': [[1471254715, 1.25]]})
 
         self.assertEqual(
@@ -232,13 +253,68 @@ class TestSelect(TestBase):
             {'log': DATA['log']})
 
         self.assertEqual(
-            await self.client0.query('select filter(~"log") => filter(!~"one") from "log"'),
+            await self.client0.query(
+                'select filter(~"log") => filter(!~"one") from "log"'),
             {'log': [DATA['log'][1]]})
 
         self.assertEqual(
-            await self.client0.query('select filter(~"one") prefix "1-", filter(~"two") prefix "2-" from "log"'),
+            await self.client0.query(
+                'select filter(!=nan) from "special"'),
+            {'special': [p for p in DATA['special'] if not math.isnan(p[1])]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(==nan) from "special"'),
+            {'special': [p for p in DATA['special'] if math.isnan(p[1])]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(>=nan) from "special"'),
+            {'special': [p for p in DATA['special'] if math.isnan(p[1])]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(<=nan) from "special"'),
+            {'special': [p for p in DATA['special'] if math.isnan(p[1])]})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select filter(==inf) from "special"'),
+            {'special': [p for p in DATA['special'] if p[1] == math.inf]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(<inf) from "special"'),
+            {'special': [p for p in DATA['special'] if p[1] < math.inf]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(>inf) from "special"'),
+            {'special': []})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select filter(==-inf) from "special"'),
+            {'special': [p for p in DATA['special'] if p[1] == -math.inf]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(>-inf) from "special"'),
+            {'special': [p for p in DATA['special'] if p[1] > -math.inf]})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select filter(<-inf) from "special"'),
+            {'special': []})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select filter(~"one") prefix "1-", '
+                'filter(~"two") prefix "2-" from "log"'),
             {
-                '1-log': [[1471254710, 'log line one'], [1471254716, 'and yet one more']],
+                '1-log': [
+                    [1471254710, 'log line one'],
+                    [1471254716, 'and yet one more']],
                 '2-log': [[1471254712, 'log line two']]
             })
 
@@ -309,7 +385,8 @@ class TestSelect(TestBase):
                 'from /.*/ where type == integer and name != "filter" '
                 'and name != "one"'
                 'merge as "int_min_max" using median_low(1) => difference()'),
-                {'max-int_min_max': [
+            {
+                'max-int_min_max': [
                     [1447254000, 3], [1447257600, -1], [1471255200, -532]],
                 'min-int_min_max': [
                     [1447257600, -477], [1471255200, -54]]})
@@ -347,12 +424,11 @@ class TestSelect(TestBase):
                 [1447254000, 185.46409846162092],
                 [1447257600, 2.6457513110645907]]})
 
-
         # test prefix, suffex
         result = await self.client0.query(
                 'select sum(1d) prefix "sum-" suffix "-sum", '
                 'min(1d) prefix "minimum-", '
-                'max(1d) suffix "-maximum" from "aggr"');
+                'max(1d) suffix "-maximum" from "aggr"')
 
         self.assertIn('sum-aggr-sum', result)
         self.assertIn('minimum-aggr', result)
@@ -367,9 +443,11 @@ class TestSelect(TestBase):
         await self.client0.query(
             'alter database set select_points_limit 1000000')
 
+
         self.client0.close()
 
         return False
+
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'

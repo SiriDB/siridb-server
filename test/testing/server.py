@@ -117,7 +117,7 @@ class Server:
                        self.cfgfile),
                shell=True)
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
 
         my_pid = self._get_pid_set() - prev
         assert (len(my_pid) == 1)
