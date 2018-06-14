@@ -72,7 +72,7 @@ $ siridb-server -c /my/path/siridb.conf
 ```
 
 An example configuration file can be found here:
-[https://github.com/SiriDB/siridb-server/blob/master/siridb.conf](#https://github.com/SiriDB/siridb-server/blob/master/siridb.conf)
+[https://github.com/SiriDB/siridb-server/blob/master/siridb.conf](https://github.com/SiriDB/siridb-server/blob/master/siridb.conf)
 
 ## Create or expand a database
 [SiriDB Admin](https://github.com/SiriDB/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/SiriDB/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/SiriDB/siridb-admin/releases/latest).
