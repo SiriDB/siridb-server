@@ -163,7 +163,7 @@ int cexpr_double_cmp(
     case CEXPR_LE:
         return isnan(a) ? isnan(b) : a <= b;
     default:
-        log_critical("Got an unexpected operator (int type): %d", operator);
+        log_critical("Got an unexpected operator (double type): %d", operator);
         assert (0);
     }
     /* we should NEVER get here */
