@@ -88,6 +88,7 @@ class SiriGrammar(Grammar):
     k_help = Choice(Keyword('help'), Token('?'))
     k_idle_percentage = Keyword('idle_percentage')
     k_idle_time = Keyword('idle_time')
+    k_inf = Keyword('inf')
     k_info = Keyword('info')
     k_ignore_threshold = Keyword('ignore_threshold')
     k_insert = Keyword('insert')
@@ -115,7 +116,9 @@ class SiriGrammar(Grammar):
     k_merge = Keyword('merge')
     k_min = Keyword('min')
     k_modify = Keyword('modify')
+    k_nan = Keyword('nan')
     k_name = Keyword('name')
+    k_ninf = Sequence('-', k_inf)
     k_now = Keyword('now')
     k_number = Keyword('number')
     k_online = Keyword('online')
@@ -343,7 +346,7 @@ class SiriGrammar(Grammar):
             k_buffer_size,
             k_fifo_files,
             k_idle_percentage,
-            k_idle_time,            
+            k_idle_time,
             k_port,
             k_pool,
             k_startup_time,
@@ -494,6 +497,9 @@ class SiriGrammar(Grammar):
             string,
             r_integer,
             r_float,
+            k_nan,
+            k_inf,
+            k_ninf,
             most_greedy=True),
         ')')
     f_limit = Sequence(
@@ -739,7 +745,7 @@ class SiriGrammar(Grammar):
         k_duration_num,
         k_fifo_files,
         k_idle_percentage,
-        k_idle_time,            
+        k_idle_time,
         k_ip_support,
         k_libuv,
         k_list_limit,

@@ -12,6 +12,7 @@
 #include <cexpr/cexpr.h>
 #include <assert.h>
 #include <stddef.h>
+#include <math.h>
 #include <siri/grammar/grammar.h>
 #include <logger/logger.h>
 #include <siri/db/series.h>
@@ -150,17 +151,17 @@ int cexpr_double_cmp(
     switch (operator)
     {
     case CEXPR_EQ:
-        return a == b;
+        return isnan(a) ? isnan(b) : a == b;
     case CEXPR_NE:
-        return a != b;
+        return isnan(a) ? !isnan(b) : a != b;
     case CEXPR_GT:
         return a > b;
     case CEXPR_LT:
         return a < b;
     case CEXPR_GE:
-        return a >= b;
+        return isnan(a) ? isnan(b) : a >= b;
     case CEXPR_LE:
-        return a <= b;
+        return isnan(a) ? isnan(b) : a <= b;
     default:
         log_critical("Got an unexpected operator (int type): %d", operator);
         assert (0);

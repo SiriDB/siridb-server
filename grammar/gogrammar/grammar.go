@@ -4,7 +4,7 @@ package grammar
 // should be used with the goleri module.
 //
 // Source class: SiriGrammar
-// Created at: 2018-05-16 16:15:46
+// Created at: 2018-06-14 16:27:16
 
 import (
 	"regexp"
@@ -161,6 +161,7 @@ const (
 	GidKIdlePercentage = iota
 	GidKIdleTime = iota
 	GidKIgnoreThreshold = iota
+	GidKInf = iota
 	GidKInfo = iota
 	GidKInsert = iota
 	GidKInteger = iota
@@ -185,6 +186,8 @@ const (
 	GidKMin = iota
 	GidKModify = iota
 	GidKName = iota
+	GidKNan = iota
+	GidKNinf = iota
 	GidKNow = iota
 	GidKNumber = iota
 	GidKOnline = iota
@@ -365,6 +368,7 @@ func SiriGrammar() *goleri.Grammar {
 	)
 	kIdlePercentage := goleri.NewKeyword(GidKIdlePercentage, "idle_percentage", false)
 	kIdleTime := goleri.NewKeyword(GidKIdleTime, "idle_time", false)
+	kInf := goleri.NewKeyword(GidKInf, "inf", false)
 	kInfo := goleri.NewKeyword(GidKInfo, "info", false)
 	kIgnoreThreshold := goleri.NewKeyword(GidKIgnoreThreshold, "ignore_threshold", false)
 	kInsert := goleri.NewKeyword(GidKInsert, "insert", false)
@@ -394,7 +398,13 @@ func SiriGrammar() *goleri.Grammar {
 	kMerge := goleri.NewKeyword(GidKMerge, "merge", false)
 	kMin := goleri.NewKeyword(GidKMin, "min", false)
 	kModify := goleri.NewKeyword(GidKModify, "modify", false)
+	kNan := goleri.NewKeyword(GidKNan, "nan", false)
 	kName := goleri.NewKeyword(GidKName, "name", false)
+	kNinf := goleri.NewSequence(
+		GidKNinf,
+		goleri.NewToken(NoGid, "-"),
+		kInf,
+	)
 	kNow := goleri.NewKeyword(GidKNow, "now", false)
 	kNumber := goleri.NewKeyword(GidKNumber, "number", false)
 	kOnline := goleri.NewKeyword(GidKOnline, "online", false)
@@ -1131,6 +1141,9 @@ func SiriGrammar() *goleri.Grammar {
 			string,
 			rInteger,
 			rFloat,
+			kNan,
+			kInf,
+			kNinf,
 		),
 		goleri.NewToken(NoGid, ")"),
 	)

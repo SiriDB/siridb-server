@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-05-16 16:15:46
+ * Created at: 2018-06-14 16:27:16
  */
 
 #include "siri/grammar/grammar.h"
@@ -79,6 +79,7 @@ cleri_grammar_t * compile_grammar(void)
     );
     cleri_t * k_idle_percentage = cleri_keyword(CLERI_GID_K_IDLE_PERCENTAGE, "idle_percentage", CLERI_CASE_SENSITIVE);
     cleri_t * k_idle_time = cleri_keyword(CLERI_GID_K_IDLE_TIME, "idle_time", CLERI_CASE_SENSITIVE);
+    cleri_t * k_inf = cleri_keyword(CLERI_GID_K_INF, "inf", CLERI_CASE_SENSITIVE);
     cleri_t * k_info = cleri_keyword(CLERI_GID_K_INFO, "info", CLERI_CASE_SENSITIVE);
     cleri_t * k_ignore_threshold = cleri_keyword(CLERI_GID_K_IGNORE_THRESHOLD, "ignore_threshold", CLERI_CASE_SENSITIVE);
     cleri_t * k_insert = cleri_keyword(CLERI_GID_K_INSERT, "insert", CLERI_CASE_SENSITIVE);
@@ -109,7 +110,14 @@ cleri_grammar_t * compile_grammar(void)
     cleri_t * k_merge = cleri_keyword(CLERI_GID_K_MERGE, "merge", CLERI_CASE_SENSITIVE);
     cleri_t * k_min = cleri_keyword(CLERI_GID_K_MIN, "min", CLERI_CASE_SENSITIVE);
     cleri_t * k_modify = cleri_keyword(CLERI_GID_K_MODIFY, "modify", CLERI_CASE_SENSITIVE);
+    cleri_t * k_nan = cleri_keyword(CLERI_GID_K_NAN, "nan", CLERI_CASE_SENSITIVE);
     cleri_t * k_name = cleri_keyword(CLERI_GID_K_NAME, "name", CLERI_CASE_SENSITIVE);
+    cleri_t * k_ninf = cleri_sequence(
+        CLERI_GID_K_NINF,
+        2,
+        cleri_token(CLERI_NONE, "-"),
+        k_inf
+    );
     cleri_t * k_now = cleri_keyword(CLERI_GID_K_NOW, "now", CLERI_CASE_SENSITIVE);
     cleri_t * k_number = cleri_keyword(CLERI_GID_K_NUMBER, "number", CLERI_CASE_SENSITIVE);
     cleri_t * k_online = cleri_keyword(CLERI_GID_K_ONLINE, "online", CLERI_CASE_SENSITIVE);
@@ -946,10 +954,13 @@ cleri_grammar_t * compile_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_MOST_GREEDY,
-            3,
+            6,
             string,
             r_integer,
-            r_float
+            r_float,
+            k_nan,
+            k_inf,
+            k_ninf
         ),
         cleri_token(CLERI_NONE, ")")
     );

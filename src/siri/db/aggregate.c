@@ -564,6 +564,21 @@ static int AGGREGATE_init_filter(
 {
     switch (node->cl_obj->gid)
     {
+    case CLERI_GID_K_NAN:
+        aggr->filter_tp = TP_DOUBLE;
+        aggr->filter_via.real = NAN;
+        break;
+
+    case CLERI_GID_K_INF:
+        aggr->filter_tp = TP_DOUBLE;
+        aggr->filter_via.real = INFINITY;
+        break;
+
+    case CLERI_GID_K_NINF:
+        aggr->filter_tp = TP_DOUBLE;
+        aggr->filter_via.real = -INFINITY;
+        break;
+
     case CLERI_GID_R_INTEGER:
         aggr->filter_tp = TP_INT;
         aggr->filter_via.int64 = atoll(node->str);

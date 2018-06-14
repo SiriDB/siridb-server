@@ -2,6 +2,7 @@ import asyncio
 import functools
 import random
 import time
+import math
 from testing import Client
 from testing import default_test_setup
 from testing import gen_data
@@ -67,6 +68,12 @@ DATA = {
         [1471254712, 'log line two'],
         [1471254714, 'another line (three)'],
         [1471254716, 'and yet one more'],
+    ],
+    'special': [
+        [1471254705, 0.1],
+        [1471254706, math.nan],
+        [1471254707, math.inf],
+        [1471254708, -math.inf],
     ]
 }
 
@@ -80,7 +87,7 @@ class TestSelect(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 60 point(s).'})
+            {'success_msg': 'Successfully inserted 64 point(s).'})
 
         self.assertEqual(
             await self.client0.query(
@@ -357,7 +364,8 @@ class TestSelect(TestBase):
                 'Query has reached the maximum number of selected points.*'):
             await self.client0.query(
                 'select * from /.*/')
-        await self.client0.query('alter database set select_points_limit 1000000')
+        await self.client0.query(
+            'alter database set select_points_limit 1000000')
 
         self.client0.close()
 
