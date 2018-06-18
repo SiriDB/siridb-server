@@ -641,6 +641,12 @@ static siridb_points_t * AGGREGATE_derivative(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
+    if (source->tp == TP_STRING)
+    {
+        sprintf(err_msg, "Cannot use derivative() on string type.");
+        return NULL;
+    }
+
     size_t len = source->len - 1;
     siridb_points_t * points = siridb_points_new(len, TP_DOUBLE);
 
@@ -698,6 +704,12 @@ static siridb_points_t * AGGREGATE_difference(
         siridb_points_t * source,
         char * err_msg)
 {
+    if (source->tp == TP_STRING)
+    {
+        sprintf(err_msg, "Cannot use difference() on string type.");
+        return NULL;
+    }
+
     size_t len = source->len - 1;
     siridb_points_t * points = siridb_points_new(len, source->tp);
 
@@ -1096,7 +1108,7 @@ static int aggr_derivative(
 
     if (points->tp == TP_STRING)
     {
-        sprintf(err_msg, "Cannot use difference() on string type.");
+        sprintf(err_msg, "Cannot use derivative() on string type.");
         return -1;
     }
 

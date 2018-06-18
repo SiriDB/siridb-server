@@ -346,6 +346,21 @@ class TestSelect(TestBase):
 
         with self.assertRaisesRegexp(
                 QueryError,
+                'Cannot use difference\(\) on string type\.'):
+            await self.client0.query('select difference() from "log"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Cannot use derivative\(\) on string type\.'):
+            await self.client0.query('select derivative(6, 3) from "log"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Cannot use derivative\(\) on string type\.'):
+            await self.client0.query('select derivative() from "log"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
                 'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
 
@@ -442,7 +457,6 @@ class TestSelect(TestBase):
                 'select * from /.*/')
         await self.client0.query(
             'alter database set select_points_limit 1000000')
-
 
         self.client0.close()
 

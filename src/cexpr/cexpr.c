@@ -266,8 +266,8 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
                     cb(obj, cexpr->via_b.cond));
     default:
         log_critical("operator must be AND or OR, got: %d", cexpr->operator);
-        assert (0);
     }
+    assert (0);
     return -1; /* this should NEVER happen */
 }
 
