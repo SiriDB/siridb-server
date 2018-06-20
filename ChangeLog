@@ -1,3 +1,12 @@
+siridb-server (2.0.28) xenial; urgency=medium
+
+  * Added filter options nan, inf and -inf for float series. (issue #97)
+  
+  * Handle invalid use of difference() and derivative() on log series. 
+    (issue #98)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 20 Jun 2018 13:21:27 +0000
+
 siridb-server (2.0.27) xenial; urgency=medium
 
   * Changed error message when trying to merge series into an empty destination
