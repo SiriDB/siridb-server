@@ -497,6 +497,7 @@ class SiriGrammar(Grammar):
             string,
             r_integer,
             r_float,
+            r_regex,
             k_nan,
             k_inf,
             k_ninf,

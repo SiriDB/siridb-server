@@ -22,6 +22,7 @@
 #include <siri/db/group.h>
 #include <siri/db/series.h>
 #include <siri/db/user.h>
+#include <pcre2.h>
 
 #define QUERIES_IGNORE_DROP_THRESHOLD 1
 #define QUERIES_SKIP_GET_POINTS 2

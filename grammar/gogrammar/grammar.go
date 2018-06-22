@@ -4,7 +4,7 @@ package grammar
 // should be used with the goleri module.
 //
 // Source class: SiriGrammar
-// Created at: 2018-06-14 16:27:16
+// Created at: 2018-06-22 15:10:04
 
 import (
 	"regexp"
@@ -1141,6 +1141,7 @@ func SiriGrammar() *goleri.Grammar {
 			string,
 			rInteger,
 			rFloat,
+			rRegex,
 			kNan,
 			kInf,
 			kNinf,

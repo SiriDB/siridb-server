@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-06-14 16:27:16
+ * Created at: 2018-06-22 15:10:04
  */
 
 #include "siri/grammar/grammar.h"
@@ -954,10 +954,11 @@ cleri_grammar_t * compile_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_MOST_GREEDY,
-            6,
+            7,
             string,
             r_integer,
             r_float,
+            r_regex,
             k_nan,
             k_inf,
             k_ninf

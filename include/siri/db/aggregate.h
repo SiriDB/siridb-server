@@ -16,6 +16,7 @@
 #include <slist/slist.h>
 #include <cexpr/cexpr.h>
 #include <qpack/qpack.h>
+#include <pcre2.h>
 
 typedef struct siridb_point_s siridb_point_t;
 typedef struct siridb_points_s siridb_points_t;
@@ -29,6 +30,8 @@ typedef struct siridb_aggr_s
     uint64_t limit;
     uint64_t offset;
     double timespan;  // used for derivative
+    pcre2_code * regex;             \
+    pcre2_match_data * match_data;
     qp_via_t filter_via;
 } siridb_aggr_t;
 

@@ -3,6 +3,7 @@ import functools
 import random
 import time
 import math
+import re
 from testing import Client
 from testing import default_test_setup
 from testing import gen_data
@@ -215,6 +216,21 @@ class TestSelect(TestBase):
                 [1447254748, 537]]})
 
         self.assertEqual(
+            await self.client0.query(
+                'select filter(/l.*/) from * where type == string'),
+                {'log': [p for p in DATA['log'] if re.match('l.*', p[1])]})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select filter(==/l.*/) from * where type == string'),
+            {'log': [p for p in DATA['log'] if re.match('l.*', p[1])]})
+
+        self.assertEqual(
+            await self.client0.query(
+                'select filter(!=/l.*/) from * where type == string'),
+            {'log': [p for p in DATA['log'] if not re.match('l.*', p[1])]})
+
+        self.assertEqual(
             await self.client0.query('select limit(300, mean) from "aggr"'),
             {'aggr': DATA['aggr']})
 
@@ -321,6 +337,16 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query('select difference() from "one"'),
             {'one': []})
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Regular expressions can only be used with.*'):
+            await self.client0.query('select filter(~//) from "log"')
+
+        with self.assertRaisesRegexp(
+                QueryError,
+                'Cannot use a string filter on number type.'):
+            await self.client0.query('select filter(//) from "aggr"')
 
         with self.assertRaisesRegexp(
                 QueryError,

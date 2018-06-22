@@ -16,6 +16,7 @@
 #include <siri/db/median.h>
 #include <siri/db/variance.h>
 #include <siri/grammar/grammar.h>
+#include <siri/db/re.h>
 #include <slist/slist.h>
 #include <stddef.h>
 #include <strextra/strextra.h>
@@ -51,6 +52,7 @@ typedef int (* AGGR_cb)(
 static AGGR_cb AGGREGATES[F_OFFSET];
 
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid);
+static int AGGREGATE_regex_cmp(siridb_aggr_t * aggr, char * val);
 static void AGGREGATE_free(siridb_aggr_t * aggr);
 static int AGGREGATE_init_filter(
         siridb_aggr_t * aggr,
@@ -536,8 +538,10 @@ static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
     aggr->limit = 0;
     aggr->offset = 0;
     aggr->timespan = 1.0;
-    aggr->filter_tp = TP_INT;  /* when string we must
-                                * malloc/free * aggr->filter_via.raw */
+    aggr->regex = NULL;
+    aggr->match_data = NULL;
+    aggr->filter_via.raw = NULL;
+    aggr->filter_tp = TP_INT;  /* when string we must cleanup more */
     return aggr;
 }
 
@@ -549,6 +553,8 @@ static void AGGREGATE_free(siridb_aggr_t * aggr)
     if (aggr->filter_tp == TP_STRING)
     {
         free(aggr->filter_via.raw);
+        pcre2_code_free(aggr->regex);
+        pcre2_match_data_free(aggr->match_data);
     }
     free(aggr);
 }
@@ -599,6 +605,27 @@ static int AGGREGATE_init_filter(
         }
         strx_extract_string(
                 (char *) aggr->filter_via.raw, node->str, node->len);
+        return 0;
+
+    case CLERI_GID_R_REGEX:
+        if (aggr->filter_opr != CEXPR_EQ && aggr->filter_opr != CEXPR_NE)
+        {
+            sprintf(err_msg,
+                    "Regular expressions can only be used with 'equal' (==) "
+                    "or 'not equal' (!=) operator.");
+            return -1;
+        }
+        aggr->filter_tp = TP_STRING;
+        /* extract and compile regular expression */
+        if (siridb_re_compile(
+                &aggr->regex,
+                &aggr->match_data,
+                node->str,
+                node->len,
+                err_msg))
+        {
+            return -1;  /* error_msg is set */
+        }
         return 0;
 
     default:
@@ -778,6 +805,20 @@ static siridb_points_t * AGGREGATE_difference(
     return points;
 }
 
+static int AGGREGATE_regex_cmp(siridb_aggr_t * aggr, char * val)
+{
+    int ret;
+    ret = pcre2_match(
+            aggr->regex,
+            (PCRE2_SPTR8) val,
+            strlen(val),
+            0,                     // start looking at this point
+            0,                     // OPTIONS
+            aggr->match_data,
+            0);                    // length of sub_str_vec
+    return aggr->filter_opr == CEXPR_EQ ? ret >= 0 : ret < 0;
+}
+
 static siridb_points_t * AGGREGATE_filter(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -815,7 +856,6 @@ static siridb_points_t * AGGREGATE_filter(
 
     siridb_points_t * points = siridb_points_new(source->len, source->tp);
 
-
     if (points == NULL)
     {
         sprintf(err_msg, "Memory allocation error.");
@@ -832,7 +872,11 @@ static siridb_points_t * AGGREGATE_filter(
                     i < source->len;
                     i++, spt++)
             {
-                if (cexpr_str_cmp(aggr->filter_opr, spt->val.str, value.str))
+                if (value.str != NULL  // NULL is a regular expression
+                        ? cexpr_str_cmp(
+                                aggr->filter_opr,
+                                spt->val.str, value.str)
+                        : AGGREGATE_regex_cmp(aggr, spt->val.str))
                 {
                     dpt->ts = spt->ts;
                     dpt->val.str = strdup(spt->val.str);
