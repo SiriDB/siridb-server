@@ -597,7 +597,6 @@ size_t siridb_shard_write_points(
     }
 
     long int rc = fwrite(cdata, dsize, 1, fp);
-    free(cdata);
 
     if (rc != 1 || fflush(fp))
     {
@@ -605,6 +604,8 @@ size_t siridb_shard_write_points(
         log_critical("Cannot write points to file '%s'", shard->fn);
         return 0;
     }
+
+    free(cdata);
 
     shard->len = pos + dsize;
     return pos;
@@ -909,7 +910,6 @@ int siridb_shard_get_points_log_compressed(
             return -1;
         }
     }
-
     bits = (uint8_t *) malloc(size);
     if (bits == NULL)
     {

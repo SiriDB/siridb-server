@@ -611,19 +611,30 @@ unsigned char * siridb_points_zip_string(
 
         POINTS_zip_str(&sout, &spt, src, point->val.raw, sizes[m++], is_ascii);
     }
-    *size = sout - out;
+    sz = *size = sout - out;
+
     if (POINTS_set_cinfo_size(cinfo, size))
     {
         goto failed;
     }
 
-    sout = (uint8_t *) realloc(out, *size);
-    if (sout == NULL)
+    if (*size > sz)
     {
-        goto failed;
+        sout = (uint8_t *) realloc(out, *size);
+        if (sout == NULL)
+        {
+            goto failed;
 
+        }
+        pt = out = sout;
+        sout += *size;
+        pt += sz;
+        for (; pt < sout; ++pt)
+        {
+            *pt = '\0';
+        }
     }
-    out = sout;
+
     free(sizes);
     free(src);
     return out;
@@ -670,7 +681,8 @@ unsigned char * siridb_points_raw_string(
     /* when uncompressed, time-stamp size is not included */
     *size += n * ts_sz;
 
-    unsigned char * cdata = (unsigned char *) malloc(*size);
+    unsigned char * cdata = (unsigned char *) calloc(
+            *size, sizeof(unsigned char));
     if (cdata == NULL)
     {
         free(sizes);
@@ -1657,7 +1669,7 @@ static int POINTS_set_cinfo_size(uint16_t * cinfo, size_t * size)
             return -1;
         }
         *size = (!!((*size) & 0x3ff)) + ((*size) >> 10);
-        *cinfo = (*size) & 0x8000;
+        *cinfo = (*size) | 0x8000;
         *size <<= 10;
     }
     else
