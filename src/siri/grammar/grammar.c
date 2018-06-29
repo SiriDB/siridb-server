@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-06-29 17:09:17
+ * Created at: 2018-06-29 22:48:05
  */
 
 #include "siri/grammar/grammar.h"
@@ -1653,7 +1653,7 @@ cleri_grammar_t * compile_grammar(void)
     cleri_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
     cleri_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_SENSITIVE);
     cleri_ref_set(help_stmt, cleri_sequence(
-        CLERI_NONE,
+        CLERI_GID_HELP_STMT,
         2,
         k_help,
         cleri_optional(CLERI_NONE, cleri_choice(
