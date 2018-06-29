@@ -4,7 +4,7 @@ package grammar
 // should be used with the goleri module.
 //
 // Source class: SiriGrammar
-// Created at: 2018-06-22 15:10:04
+// Created at: 2018-06-29 17:12:20
 
 import (
 	"regexp"
@@ -75,7 +75,6 @@ const (
 	GidGroupColumns = iota
 	GidGroupMatch = iota
 	GidGroupName = iota
-	GidHelp = iota
 	GidHelpAccess = iota
 	GidHelpAlter = iota
 	GidHelpAlterDatabase = iota
@@ -112,6 +111,7 @@ const (
 	GidHelpRevoke = iota
 	GidHelpSelect = iota
 	GidHelpShow = iota
+	GidHelpStmt = iota
 	GidHelpTimeit = iota
 	GidHelpTimezones = iota
 	GidIntExpr = iota
@@ -1635,6 +1635,27 @@ func SiriGrammar() *goleri.Grammar {
 		), goleri.NewToken(NoGid, ","), 0, 0, false),
 	)
 	timeitStmt := goleri.NewRepeat(GidTimeitStmt, kTimeit, 1, 1)
+	helpStmt := goleri.NewRef()
+	START := goleri.NewSequence(
+		GidSTART,
+		goleri.NewOptional(NoGid, timeitStmt),
+		goleri.NewOptional(NoGid, goleri.NewChoice(
+			NoGid,
+			false,
+			selectStmt,
+			listStmt,
+			countStmt,
+			alterStmt,
+			createStmt,
+			dropStmt,
+			grantStmt,
+			revokeStmt,
+			showStmt,
+			calcStmt,
+			helpStmt,
+		)),
+		goleri.NewOptional(NoGid, rComment),
+	)
 	helpAccess := goleri.NewKeyword(GidHelpAccess, "access", false)
 	helpAlterDatabase := goleri.NewKeyword(GidHelpAlterDatabase, "database", false)
 	helpAlterGroup := goleri.NewKeyword(GidHelpAlterGroup, "group", false)
@@ -1732,8 +1753,8 @@ func SiriGrammar() *goleri.Grammar {
 	helpShow := goleri.NewKeyword(GidHelpShow, "show", false)
 	helpTimeit := goleri.NewKeyword(GidHelpTimeit, "timeit", false)
 	helpTimezones := goleri.NewKeyword(GidHelpTimezones, "timezones", false)
-	help := goleri.NewSequence(
-		GidHelp,
+	helpStmt.Set(goleri.NewSequence(
+		NoGid,
 		kHelp,
 		goleri.NewOptional(NoGid, goleri.NewChoice(
 			NoGid,
@@ -1753,26 +1774,6 @@ func SiriGrammar() *goleri.Grammar {
 			helpTimeit,
 			helpTimezones,
 		)),
-	)
-	START := goleri.NewSequence(
-		GidSTART,
-		goleri.NewOptional(NoGid, timeitStmt),
-		goleri.NewOptional(NoGid, goleri.NewChoice(
-			NoGid,
-			false,
-			selectStmt,
-			listStmt,
-			countStmt,
-			alterStmt,
-			createStmt,
-			dropStmt,
-			grantStmt,
-			revokeStmt,
-			showStmt,
-			calcStmt,
-			help,
-		)),
-		goleri.NewOptional(NoGid, rComment),
-	)
+	))
 	return goleri.NewGrammar(START, regexp.MustCompile(`^[a-z_]+`))
 }

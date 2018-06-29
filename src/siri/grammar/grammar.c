@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-06-22 15:10:04
+ * Created at: 2018-06-29 17:09:17
  */
 
 #include "siri/grammar/grammar.h"
@@ -1522,6 +1522,29 @@ cleri_grammar_t * compile_grammar(void)
         ), cleri_token(CLERI_NONE, ","), 0, 0, 0)
     );
     cleri_t * timeit_stmt = cleri_dup(CLERI_GID_TIMEIT_STMT, k_timeit);
+    cleri_t * help_stmt = cleri_ref();
+    cleri_t * START = cleri_sequence(
+        CLERI_GID_START,
+        3,
+        cleri_optional(CLERI_NONE, timeit_stmt),
+        cleri_optional(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            11,
+            select_stmt,
+            list_stmt,
+            count_stmt,
+            alter_stmt,
+            create_stmt,
+            drop_stmt,
+            grant_stmt,
+            revoke_stmt,
+            show_stmt,
+            calc_stmt,
+            help_stmt
+        )),
+        cleri_optional(CLERI_NONE, r_comment)
+    );
     cleri_t * help_access = cleri_keyword(CLERI_GID_HELP_ACCESS, "access", CLERI_CASE_SENSITIVE);
     cleri_t * help_alter_database = cleri_keyword(CLERI_GID_HELP_ALTER_DATABASE, "database", CLERI_CASE_SENSITIVE);
     cleri_t * help_alter_group = cleri_keyword(CLERI_GID_HELP_ALTER_GROUP, "group", CLERI_CASE_SENSITIVE);
@@ -1629,8 +1652,8 @@ cleri_grammar_t * compile_grammar(void)
     cleri_t * help_show = cleri_keyword(CLERI_GID_HELP_SHOW, "show", CLERI_CASE_SENSITIVE);
     cleri_t * help_timeit = cleri_keyword(CLERI_GID_HELP_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
     cleri_t * help_timezones = cleri_keyword(CLERI_GID_HELP_TIMEZONES, "timezones", CLERI_CASE_SENSITIVE);
-    cleri_t * help = cleri_sequence(
-        CLERI_GID_HELP,
+    cleri_ref_set(help_stmt, cleri_sequence(
+        CLERI_NONE,
         2,
         k_help,
         cleri_optional(CLERI_NONE, cleri_choice(
@@ -1652,29 +1675,7 @@ cleri_grammar_t * compile_grammar(void)
             help_timeit,
             help_timezones
         ))
-    );
-    cleri_t * START = cleri_sequence(
-        CLERI_GID_START,
-        3,
-        cleri_optional(CLERI_NONE, timeit_stmt),
-        cleri_optional(CLERI_NONE, cleri_choice(
-            CLERI_NONE,
-            CLERI_FIRST_MATCH,
-            11,
-            select_stmt,
-            list_stmt,
-            count_stmt,
-            alter_stmt,
-            create_stmt,
-            drop_stmt,
-            grant_stmt,
-            revoke_stmt,
-            show_stmt,
-            calc_stmt,
-            help
-        )),
-        cleri_optional(CLERI_NONE, r_comment)
-    );
+    ));
 
     cleri_grammar_t * grammar = cleri_grammar(START, "^[a-z_]+");
 

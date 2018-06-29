@@ -413,7 +413,7 @@ void siriparser_init_listener(void)
     siriparser_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
     siriparser_listen_enter[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
     siriparser_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
-    siriparser_listen_enter[CLERI_GID_HELP] = enter_help;
+    siriparser_listen_enter[CLERI_GID_HELP_STMT] = enter_help;
     siriparser_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
     siriparser_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
     siriparser_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
@@ -846,6 +846,7 @@ static void enter_group_match(uv_async_t * handle)
 
 static void enter_help(uv_async_t * handle)
 {
+    LOGC("Enter!!");
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
     cleri_node_t * node = query->nodes->node;
@@ -2725,12 +2726,14 @@ static void exit_help_xxx(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
 
+    LOGC("HERE....");
+
     if (query->data != NULL)
     {
 #if DEBUG
         assert (query->packer == NULL);
 #endif
-
+        LOGC("HERE1....%u", query->nodes->node->cl_obj->gid);
         const char * help = siri_help_get(
                 query->nodes->node->cl_obj->gid,
                 (const char *) query->data,
@@ -2738,6 +2741,7 @@ static void exit_help_xxx(uv_async_t * handle)
 
         if (help == NULL)
         {
+            LOGC("HERE2....");
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
             return;
         }

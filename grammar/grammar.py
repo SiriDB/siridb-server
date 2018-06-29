@@ -7,6 +7,7 @@ from pyleri import Keyword
 from pyleri import List
 from pyleri import Optional
 from pyleri import Prio
+from pyleri import Ref
 from pyleri import Regex
 from pyleri import Repeat
 from pyleri import Sequence
@@ -773,6 +774,27 @@ class SiriGrammar(Grammar):
 
     timeit_stmt = Repeat(k_timeit, 1, 1)
 
+    help_stmt = Ref()
+
+    START = Sequence(
+        Optional(timeit_stmt),
+        Optional(Choice(
+            select_stmt,
+            list_stmt,
+            count_stmt,
+            alter_stmt,
+            create_stmt,
+            drop_stmt,
+            grant_stmt,
+            revoke_stmt,
+            show_stmt,
+            calc_stmt,
+            help_stmt,
+            most_greedy=False)),
+        Optional(r_comment))
+
+    help_stmt = Sequence(k_help)  # Dummy
+
 
 def _set_attribute(cls, name, value):
     setattr(cls, name, value)
@@ -791,11 +813,14 @@ def _walk(cls, path, structure):
         if structure:
             for child_path, child in structure.items():
                 _walk(cls, child_path, child)
-            value = Sequence(*[getattr(cls,
-                                       'k_' + path[-1],
-                                       Keyword(path[-1])), Optional(
-                Choice(*[
-                    getattr(cls, '_'.join(p)) for p in structure.keys()]))])
+
+            opt = Optional(Choice(*[
+                getattr(cls, '_'.join(p)) for p in structure.keys()]))
+
+            value = Sequence(*[getattr(
+                cls,
+                'k_' + path[-1],
+                Keyword(path[-1])), opt])
         else:
             value = Keyword(path[-1])
     except AttributeError:
@@ -804,7 +829,11 @@ def _walk(cls, path, structure):
         import sys
         sys.exit(1)
     else:
-        _set_attribute(cls, name, value)
+        if name != 'help':
+            _set_attribute(cls, name, value)
+        else:
+            # Replace the ref element
+            cls.help_stmt._element = value
 
 
 def _build_help(cls):
@@ -816,22 +845,5 @@ def _build_help(cls):
         _walk(cls, path, structure)
 
 _build_help(SiriGrammar)
-_set_attribute(SiriGrammar, 'START', Sequence(
-    Optional(SiriGrammar.timeit_stmt),
-    Optional(Choice(
-        SiriGrammar.select_stmt,
-        SiriGrammar.list_stmt,
-        SiriGrammar.count_stmt,
-        SiriGrammar.alter_stmt,
-        SiriGrammar.create_stmt,
-        SiriGrammar.drop_stmt,
-        SiriGrammar.grant_stmt,
-        SiriGrammar.revoke_stmt,
-        SiriGrammar.show_stmt,
-        SiriGrammar.calc_stmt,
-        SiriGrammar.help,
-        most_greedy=False)),
-    Optional(SiriGrammar.r_comment)))
-
 
 siri_grammar = SiriGrammar()

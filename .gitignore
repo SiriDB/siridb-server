@@ -59,6 +59,8 @@ build/
 grammar/cgrammar/
 grammar/jsgrammar/
 grammar/pygrammar/
+grammar/gogrammar/
+grammar/javagrammar/
 
 # Sublime Text
 *.sublime-project

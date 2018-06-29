@@ -1,1 +1,3 @@
   * Added filter log series by using a regular expressions. (issue #100) 
+
+  * Fixed bug with long log values. (issue #102)
