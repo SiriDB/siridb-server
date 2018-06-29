@@ -44,12 +44,12 @@ Time series are very frequently plotted via line charts. Time series are used in
 Time series analysis comprises methods for analyzing time series data in order to extract meaningful statistics and other characteristics of the data. Time series forecasting is the use of a model to predict future values based on previously observed values. While regression analysis is often employed in such a way as to test theories that the current values of one or more independent time series affect the current value of another time series, this type of analysis of time series is not called "time series analysis", which focuses on comparing values of a single time series or multiple dependent time series at different points in time.[1] Interrupted time series analysis is the analysis of interventions on a single time series.
 Time series data have a natural temporal ordering. This makes time series analysis distinct from cross-sectional studies, in which there is no natural ordering of the observations (e.g. explaining people's wages by reference to their respective education levels, where the individuals' data could be entered in any order). Time series analysis is also distinct from spatial data analysis where the observations typically relate to geographical locations (e.g. accounting for house prices by the location as well as the intrinsic characteristics of the houses). A stochastic model for a time series will generally reflect the fact that observations close together in time will be more closely related than observations further apart. In addition, time series models will often make use of the natural one-way ordering of time so that values for a given period will be expressed as deriving in some way from past values, rather than from future values (see time reversibility.)
 Time series analysis can be applied to real-valued, continuous data, discrete numeric data, or discrete symbolic data (i.e. sequences of characters, such as letters and words in the English language[2]).']
-'''],
+'''],  # nopep8
         [1471254712, '''
 Methods for time series analysis may be divided into two classes: frequency-domain methods and time-domain methods. The former include spectral analysis and wavelet analysis; the latter include auto-correlation and cross-correlation analysis. In the time domain, correlation and analysis can be made in a filter-like manner using scaled correlation, thereby mitigating the need to operate in the frequency domain.
 Additionally, time series analysis techniques may be divided into parametric and non-parametric methods. The parametric approaches assume that the underlying stationary stochastic process has a certain structure which can be described using a small number of parameters (for example, using an autoregressive or moving average model). In these approaches, the task is to estimate the parameters of the model that describes the stochastic process. By contrast, non-parametric approaches explicitly estimate the covariance or the spectrum of the process without assuming that the process has any particular structure.
 Methods of time series analysis may also be divided into linear and non-linear, and univariate and multivariate.
-'''],
+'''],  # nopep8
         [1471254714, '''
 Curve fitting
 Main article: Curve fitting
@@ -57,14 +57,14 @@ Curve fitting[5][6] is the process of constructing a curve, or mathematical func
 The construction of economic time series involves the estimation of some components for some dates by interpolation between values ("benchmarks") for earlier and later dates. Interpolation is estimation of an unknown quantity between two known quantities (historical data), or drawing conclusions about missing information from the available information ("reading between the lines").[22] Interpolation is useful where the data surrounding the missing data is available and its trend, seasonality, and longer-term cycles are known. This is often done by using a related series known for all relevant dates.[23] Alternatively polynomial interpolation or spline interpolation is used where piecewise polynomial functions are fit into time intervals such that they fit smoothly together. A different problem which is closely related to interpolation is the approximation of a complicated function by a simple function (also called regression).The main difference between regression and interpolation is that polynomial regression gives a single polynomial that models the entire data set. Spline interpolation, however, yield a piecewise continuous function composed of many polynomials to model the data set.
 Extrapolation is the process of estimating, beyond the original observation range, the value of a variable on the basis of its relationship with another variable. It is similar to interpolation, which produces estimates between known observations, but extrapolation is subject to greater uncertainty and a higher risk of producing meaningless results.
 
-'''],
+'''],  # nopep8
         [1471254715, '''
 Function approximation
 Main article: Function approximation
 In general, a function approximation problem asks us to select a function among a well-defined class that closely matches ("approximates") a target function in a task-specific way. One can distinguish two major classes of function approximation problems: First, for known target functions approximation theory is the branch of numerical analysis that investigates how certain known functions (for example, special functions) can be approximated by a specific class of functions (for example, polynomials or rational functions) that often have desirable properties (inexpensive computation, continuity, integral and limit values, etc.).
 Second, the target function, call it g, may be unknown; instead of an explicit formula, only a set of points (a time series) of the form (x, g(x)) is provided. Depending on the structure of the domain and codomain of g, several techniques for approximating g may be applicable. For example, if g is an operation on the real numbers, techniques of interpolation, extrapolation, regression analysis, and curve fitting can be used. If the codomain (range or target set) of g is a finite set, one is dealing with a classification problem instead. A related problem of online time series approximation[24] is to summarize the data in one-pass and construct an approximate representation that can support a variety of time series queries with bounds on worst-case error.
 To some extent the different problems (regression, classification, fitness approximation) have received a unified treatment in statistical learning theory, where they are viewed as supervised learning problems.
-'''],
+'''],  # nopep8
         [1471254716, '''
 Prediction and forecasting
 In statistics, prediction is a part of statistical inference. One particular approach to such inference is known as predictive inference, but the prediction can be undertaken within any of the several approaches to statistical inference. Indeed, one description of statistics is that it provides a means of transferring knowledge about a sample of a population to the whole population, and to other related populations, which is not necessarily the same as prediction over time. When information is transferred across time, often to specific points in time, the process is known as forecasting.
@@ -78,7 +78,7 @@ Assigning time series pattern to a specific category, for example identify a wor
 Signal estimation
 See also: Signal processing and Estimation theory
 This approach is based on harmonic analysis and filtering of signals in the frequency domain using the Fourier transform, and spectral density estimation, the development of which was significantly accelerated during World War II by mathematician Norbert Wiener, electrical engineers Rudolf E. Kálmán, Dennis Gabor and others for filtering signals from noise and predicting signal values at a certain point in time. See Kalman filter, Estimation theory, and Digital signal processing
-'''],
+'''],  # nopep8
         [1471254718, '''
 Segmentation
 Main article: Time-series segmentation
@@ -89,7 +89,7 @@ Non-linear dependence of the level of a series on previous data points is of int
 Among other types of non-linear time series models, there are models to represent the changes of variance over time (heteroskedasticity). These models represent autoregressive conditional heteroskedasticity (ARCH) and the collection comprises a wide variety of representation (GARCH, TARCH, EGARCH, FIGARCH, CGARCH, etc.). Here changes in variability are related to, or predicted by, recent past values of the observed series. This is in contrast to other possible representations of locally varying variability, where the variability might be modelled as being driven by a separate time-varying process, as in a doubly stochastic model.
 In recent work on model-free analyses, wavelet transform based methods (for example locally stationary wavelets and wavelet decomposed neural networks) have gained favor. Multiscale (often referred to as multiresolution) techniques decompose a given time series, attempting to illustrate time dependence at multiple scales. See also Markov switching multifractal (MSMF) techniques for modeling volatility evolution.
 A Hidden Markov model (HMM) is a statistical Markov model in which the system being modeled is assumed to be a Markov process with unobserved (hidden) states. An HMM can be considered as the simplest dynamic Bayesian network. HMM models are widely used in speech recognition, for translating a time series of spoken words into text.
-'''],
+'''],  # nopep8
         [1471254720, '''
 Time
 The flow of sand in an hourglass can be used to measure the passage of time. It also concretely represents the present as being between the past and the future.
@@ -194,7 +194,7 @@ The slope of the world line (deviation from being vertical) gives the relative v
 In the Newtonian description these changes are such that time is absolute:[77] the movements of the observer do not influence whether an event occurs in the 'now' (i.e., whether an event passes the horizontal line through the observer).
 However, in the relativistic description the observability of events is absolute: the movements of the observer do not influence whether an event passes the "light cone" of the observer. Notice that with the change from a Newtonian to a relativistic description, the concept of absolute time is no longer applicable: events move up-and-down in the figure depending on the acceleration of the observer.
 Time appears to have a direction – the past lies behind, fixed and immutable, while the future lies ahead and is not necessarily fixed. Yet for the most part the laws of physics do not specify an arrow of time, and allow any process to proceed both forward and in reverse. This is generally a consequence of time being modelled by a parameter in the system being analysed, where there is no "proper time": the direction of the arrow of time is sometimes arbitrary. Examples of this include the cosmological arrow of time, which points away from the Big Bang, CPT symmetry, and the radiative arrow of time, caused by light only travelling forwards in time (see light cone). In particle physics, the violation of CP symmetry implies that there should be a small counterbalancing time asymmetry to preserve CPT symmetry as stated above. The standard description of measurement in quantum mechanics is also time asymmetric (see Measurement in quantum mechanics). The second law of thermodynamics states that entropy must increase over time (see Entropy). This can be in either direction – Brian Greene theorizes that, according to the equations, the change in entropy occurs symmetrically whether going forward or backward in time. So entropy tends to increase in either direction, and our current low-entropy universe is a statistical aberration, in the similar manner as tossing a coin often enough that eventually heads will result ten times in a row. However, this theory is not supported empirically in local experiment.[78]
-''']
+''']  # nopep8
     ]}
 
 
@@ -246,6 +246,7 @@ class TestLog(TestBase):
         self.assertEqual(
             await self.client0.query('select * from "long_log"'),
             {'long_log': DATA['long_log']})
+
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
