@@ -13,18 +13,18 @@ from grammar import siri_grammar
 if __name__ == '__main__':
     c_file, h_file = siri_grammar.export_c(target='siri/grammar/grammar')
 
-    EXPOTR_PATH = 'cgrammar'
+    EXPORT_PATH = 'cgrammar'
 
     try:
-        os.makedirs(EXPOTR_PATH)
+        os.makedirs(EXPORT_PATH)
     except FileExistsError:
         pass
 
-    with open(os.path.join(EXPOTR_PATH, 'grammar.c'),
+    with open(os.path.join(EXPORT_PATH, 'grammar.c'),
               'w',
               encoding='utf-8') as f:
         f.write(c_file)
-    with open(os.path.join(EXPOTR_PATH, 'grammar.h'),
+    with open(os.path.join(EXPORT_PATH, 'grammar.h'),
               'w',
               encoding='utf-8') as f:
         f.write(h_file)
@@ -33,14 +33,14 @@ if __name__ == '__main__':
 
     js_file = siri_grammar.export_js()
 
-    EXPOTR_PATH = 'jsgrammar'
+    EXPORT_PATH = 'jsgrammar'
 
     try:
-        os.makedirs(EXPOTR_PATH)
+        os.makedirs(EXPORT_PATH)
     except FileExistsError:
         pass
 
-    with open(os.path.join(EXPOTR_PATH, 'grammar.js'),
+    with open(os.path.join(EXPORT_PATH, 'grammar.js'),
               'w',
               encoding='utf-8') as f:
         f.write(js_file)
@@ -49,14 +49,14 @@ if __name__ == '__main__':
 
     py_file = siri_grammar.export_py()
 
-    EXPOTR_PATH = 'pygrammar'
+    EXPORT_PATH = 'pygrammar'
 
     try:
-        os.makedirs(EXPOTR_PATH)
+        os.makedirs(EXPORT_PATH)
     except FileExistsError:
         pass
 
-    with open(os.path.join(EXPOTR_PATH, 'grammar.py'),
+    with open(os.path.join(EXPORT_PATH, 'grammar.py'),
               'w',
               encoding='utf-8') as f:
         f.write(py_file)
@@ -65,16 +65,32 @@ if __name__ == '__main__':
 
     go_file = siri_grammar.export_go()
 
-    EXPOTR_PATH = 'gogrammar'
+    EXPORT_PATH = 'gogrammar'
 
     try:
-        os.makedirs(EXPOTR_PATH)
+        os.makedirs(EXPORT_PATH)
     except FileExistsError:
         pass
 
-    with open(os.path.join(EXPOTR_PATH, 'grammar.go'),
+    with open(os.path.join(EXPORT_PATH, 'grammar.go'),
               'w',
               encoding='utf-8') as f:
         f.write(go_file)
 
     print('\nFinished creating new go-grammar file...\n')
+
+    java_file = siri_grammar.export_java()
+
+    EXPORT_PATH = 'javagrammar'
+
+    try:
+        os.makedirs(EXPORT_PATH)
+    except FileExistsError:
+        pass
+
+    with open(os.path.join(EXPORT_PATH, 'SiriGrammar.java'),
+              'w',
+              encoding='utf-8') as f:
+        f.write(java_file)
+
+    print('\nFinished creating new java-grammar file...\n')
