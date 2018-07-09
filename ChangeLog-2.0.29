@@ -1,3 +1,5 @@
   * Added filter log series by using a regular expressions. (issue #100) 
 
   * Fixed bug with long log values. (issue #102)
+  
+  * Update grammar. (using a for forward reference for help)
