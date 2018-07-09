@@ -8,10 +8,10 @@ For example:
 
     # Select the last time-stamp and the average over all values.
     select mean() from `my_series`
-    
+
     # Select the first time-stamp and first value:
     select first() from `my_series`
- 
+
 List of supported aggregation and filter functions:
 
 limit
@@ -19,14 +19,14 @@ limit
 Syntax:
 
     limit(max_points, aggr_function)
-    
+
 Returns at most `max_points` and uses a given aggregation function to reduce
 the number of points if needed.
 
 Example:
 
-    # Returns at most 100 points for 'my-series'. The original values are 
-    # returned in case hundred or less points are found. In case more points 
+    # Returns at most 100 points for 'my-series'. The original values are
+    # returned in case hundred or less points are found. In case more points
     # are found a mean aggregation function is used.
     select limit(100, mean) from "my-series"
 
@@ -58,7 +58,7 @@ Sum can be used when you want to know the sum of the values over a period of tim
 Example:
 
     # Get the sum of the values collected over the last 24 hours per hour.
-    select sum(1h) from "series-001" between now - 1d and now 	
+    select sum(1h) from "series-001" between now - 1d and now
 
 
 max
@@ -74,7 +74,7 @@ Max can be used to identify the highest value in the selected time window.
 Example:
 
     # Get the maximum value in 'series-001' over the last week.
-    select max(now) from "series-001" between now - 1w and now   
+    select max(now) from "series-001" between now - 1w and now
 
 
 min
@@ -90,7 +90,7 @@ Min is the opposite of max, you identify the lowest value in the selected time w
 Example:
 
     # Get the minimum value per day from 'series-001' between two dates.
-    select min(1d) from "series-001" between '2016-11-14' and '2016-11-21'   
+    select min(1d) from "series-001" between '2016-11-14' and '2016-11-21'
 
 
 mean
@@ -105,8 +105,8 @@ Mean is used to calculate the average values per selected time window.
 
 Example:
 
-    # Get average value of 'series-001' up until now.  
-    select mean(now) from "series-001" before now   
+    # Get average value of 'series-001' up until now.
+    select mean(now) from "series-001" before now
 
 
 median
@@ -225,9 +225,15 @@ Example:
 
     # Select all positive values from 'series-001'
     select filter(> 0) from 'series-001'
-    
+
     # Select all values containing 'error' and not 'unavailable
     select filter(~'error') => filter(!~'unavailable') from 'some-log-series'
+
+    # Select all values starting with 'error' using a regular expression
+    select filter(/error.*/) from 'some-log-series'
+
+    # Filter out Not-a-number (nan) and Infinite values
+    select filter(!=nan) => filter(!=inf) => filter(!=-inf) from 'some-float-series'
 
 
 first
@@ -235,36 +241,36 @@ first
 Syntax:
 
     first([ts])
-    
+
 Returns the first value in each `ts` time window. (Or just the first value)
 
 Example:
-    
+
     # Select the first value from 'series-001'
     select first() from 'series-001'
-    
+
     # Select the first value per day from 'series-001'
     select first(1d) from 'series-001'
-    
+
     # Select the first value in 2018 from 'series-001'
     select first() from 'series-001' after '2018'
-    
-    
+
+
 last
 ----
 Syntax:
 
     last([ts])
-    
+
 Returns the last value in each `ts` time window. (Or just the last value)
 
 Example:
-    
+
     # Select the last value from 'series-001'
     select last() from 'series-001'
-    
+
     # Select the last value per day from 'series-001'
     select last(1d) from 'series-001'
-    
+
     # Select the last value in 2017 from 'series-001'
     select last() from 'series-001' before '2018'
