@@ -5,9 +5,10 @@ Author: Jeroen van der Heijden (Transceptor Technology)
 Date: 2016-10-10
 '''
 import os
-import sys
-sys.path.insert(0, '../../pyleri/')
+# import sys
+# sys.path.insert(0, '../../pyleri/')
 from grammar import siri_grammar
+from pyleri import Grammar
 
 
 if __name__ == '__main__':
@@ -31,8 +32,6 @@ if __name__ == '__main__':
 
     print('\nFinished creating new c-grammar files...\n')
 
-    js_file = siri_grammar.export_js()
-
     EXPORT_PATH = 'jsgrammar'
 
     try:
@@ -40,12 +39,21 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
 
+    js_file = siri_grammar.export_js(js_template=Grammar.JS_WINDOW_TEMPLATE)
+
     with open(os.path.join(EXPORT_PATH, 'grammar.js'),
               'w',
               encoding='utf-8') as f:
         f.write(js_file)
 
-    print('\nFinished creating new js-grammar file...\n')
+    js_es6_file = siri_grammar.export_js()
+
+    with open(os.path.join(EXPORT_PATH, 'SiriGrammar.js'),
+              'w',
+              encoding='utf-8') as f:
+        f.write(js_es6_file)
+
+    print('\nFinished creating new js-grammar files...\n')
 
     py_file = siri_grammar.export_py()
 
