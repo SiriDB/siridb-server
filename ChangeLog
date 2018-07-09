@@ -1,3 +1,13 @@
+siridb-server (2.0.29) xenial; urgency=medium
+
+  * Added filter log series by using a regular expressions. (issue #100) 
+
+  * Fixed bug with long log values. (issue #102)
+  
+  * Update grammar. (using a for forward reference for help)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 09 Jul 2018 14:13:07 +0000
+
 siridb-server (2.0.28) xenial; urgency=medium
 
   * Added filter options nan, inf and -inf for float series. (issue #97)
