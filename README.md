@@ -99,4 +99,4 @@ When not using one of the above, you can still communicate to SiriDB using [Siri
 [SiriDB Grafana Datasource](https://github.com/SiriDB/grafana-siridb-http-datasource#readme) is a plugin for Grafana. See the following blog article on how to configure and use this plugin: https://github.com/SiriDB/grafana-siridb-http-example.
 
 ## Query language
-Documentation about the query language can be found at http://siridb.net/docs.
+Documentation about the query language can be found at https://siridb.net/documentation.
