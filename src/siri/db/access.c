@@ -41,7 +41,8 @@ static const siridb_access_repr_t access_map[ACCESS_SIZE] = {
  */
 uint32_t siridb_access_from_strn(const char * str, size_t n)
 {
-    for (int i = 0; i < ACCESS_SIZE; i++)
+    int i;
+    for (i = 0; i < ACCESS_SIZE; i++)
     {
         if (strncmp(access_map[i].repr, str, n) == 0)
         {
@@ -78,8 +79,9 @@ uint32_t siridb_access_from_children(cleri_children_t * children)
 void siridb_access_to_str(char * str, uint32_t access_bit)
 {
     char * pt = str;
+    int i;
 
-    for (int i = 0; i < ACCESS_SIZE && access_bit; i++)
+    for (i = 0; i < ACCESS_SIZE && access_bit; i++)
     {
         if ((access_bit & access_map[i].access_bit) == access_map[i].access_bit)
         {

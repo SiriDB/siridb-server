@@ -88,7 +88,7 @@ query_select_t * query_select_new(void)
     q_select->presuf = NULL;
     q_select->merge_as = NULL;
     q_select->n = 0;
-    q_select->nselects = 1;  // we have at least one select function
+    q_select->nselects = 1;  /* we have at least one select function  */
     q_select->points_map = NULL;
     q_select->alist = NULL;
     q_select->mlist = NULL;
@@ -298,7 +298,8 @@ void query_help_free(uv_handle_t * handle)
 
 static void QUERIES_free_merge_result(slist_t * plist)
 {
-    for (size_t i = 0; i < plist->len; i ++)
+    size_t i;
+    for (i = 0; i < plist->len; i ++)
     {
         siridb_points_free(plist->data[i]);
     }

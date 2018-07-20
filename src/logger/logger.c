@@ -24,14 +24,14 @@ logger_t Logger = {
 
 #define LOGGER_CHR_MAP "DIWECU"
 
-#define KNRM  "\x1B[0m"     // normal
-#define KRED  "\x1B[31m"    // error
-#define KGRN  "\x1B[32m"    // info
-#define KYEL  "\x1B[33m"    // warning
-#define KBLU  "\x1B[34m"    // -- not used --
-#define KMAG  "\x1B[35m"    // critical
-#define KCYN  "\x1B[36m"    // debug
-#define KWHT  "\x1B[37m"    // -- not used --
+#define KNRM  "\x1B[0m"     /* normal           */
+#define KRED  "\x1B[31m"    /* error            */
+#define KGRN  "\x1B[32m"    /* info             */
+#define KYEL  "\x1B[33m"    /* warning          */
+#define KBLU  "\x1B[34m"    /* -- not used --   */
+#define KMAG  "\x1B[35m"    /* critical         */
+#define KCYN  "\x1B[36m"    /* debug            */
+#define KWHT  "\x1B[37m"    /* -- not used --   */
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS] =
     {"debug", "info", "warning", "error", "critical"};

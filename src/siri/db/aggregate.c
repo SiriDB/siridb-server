@@ -177,7 +177,8 @@ static int aggr_last(
  */
 void siridb_init_aggregates(void)
 {
-    for (uint_fast16_t i = 0; i < F_OFFSET; i++)
+    uint_fast16_t i;
+    for (i = 0; i < F_OFFSET; i++)
     {
         AGGREGATES[i] = NULL;
     }
@@ -454,7 +455,8 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
  */
 void siridb_aggregate_list_free(slist_t * alist)
 {
-    for (size_t i = 0; i < alist->len; i++)
+    size_t i;
+    for (i = 0; i < alist->len; i++)
     {
         AGGREGATE_free(alist->data[i]);
     }
@@ -812,10 +814,10 @@ static int AGGREGATE_regex_cmp(siridb_aggr_t * aggr, char * val)
             aggr->regex,
             (PCRE2_SPTR8) val,
             strlen(val),
-            0,                     // start looking at this point
-            0,                     // OPTIONS
+            0,                     /* start looking at this point   */
+            0,                     /* OPTIONS                       */
             aggr->match_data,
-            0);                    // length of sub_str_vec
+            0);                    /* length of sub_str_vec         */
     return aggr->filter_opr == CEXPR_EQ ? ret >= 0 : ret < 0;
 }
 
@@ -872,7 +874,7 @@ static siridb_points_t * AGGREGATE_filter(
                     i < source->len;
                     i++, spt++)
             {
-                if (value.str != NULL  // NULL is a regular expression
+                if (value.str != NULL  /* NULL is a regular expression  */
                         ? cexpr_str_cmp(
                                 aggr->filter_opr,
                                 spt->val.str, value.str)
@@ -1263,7 +1265,8 @@ static int aggr_max(
     if (points->tp == TP_INT)
     {
         int64_t max = points->data->val.int64;
-        for (size_t i = 1; i < points->len; i++)
+        size_t i;
+        for (i = 1; i < points->len; i++)
         {
             if ((points->data + i)->val.int64 > max)
             {
@@ -1275,7 +1278,8 @@ static int aggr_max(
     else
     {
         double max = points->data->val.real;
-        for (size_t i = 1; i < points->len; i++)
+        size_t i;
+        for (i = 1; i < points->len; i++)
         {
             if ((points->data + i)->val.real > max)
             {
@@ -1299,6 +1303,7 @@ static int aggr_mean(
 #endif
 
     double sum = 0.0;
+    size_t i;
 
     switch (points->tp)
     {
@@ -1307,14 +1312,14 @@ static int aggr_mean(
         return -1;
 
     case TP_INT:
-        for (size_t i = 0; i < points->len; i++)
+        for (i = 0; i < points->len; i++)
         {
             sum += (points->data + i)->val.int64;
         }
         break;
 
     case TP_DOUBLE:
-        for (size_t i = 0; i < points->len; i++)
+        for (i = 0; i < points->len; i++)
         {
             sum += (points->data + i)->val.real;
         }
@@ -1463,7 +1468,8 @@ static int aggr_min(
     if (points->tp == TP_INT)
     {
         int64_t min = points->data->val.int64;
-        for (size_t i = 1; i < points->len; i++)
+        size_t i;
+        for (i = 1; i < points->len; i++)
         {
             if ((points->data + i)->val.int64 < min)
             {
@@ -1475,7 +1481,8 @@ static int aggr_min(
     else
     {
         double min = points->data->val.real;
-        for (size_t i = 1; i < points->len; i++)
+        size_t i;
+        for (i = 1; i < points->len; i++)
         {
             if ((points->data + i)->val.real < min)
             {
@@ -1537,7 +1544,8 @@ static int aggr_sum(
         {
             int64_t sum = 0;
             int64_t tmp;
-            for (size_t i = 0; i < points->len; i++)
+            size_t i;
+            for (i = 0; i < points->len; i++)
             {
                 tmp = (points->data + i)->val.int64;
                 if ((tmp > 0 && sum > LLONG_MAX - tmp) ||
@@ -1555,7 +1563,8 @@ static int aggr_sum(
     case TP_DOUBLE:
         {
             double sum = 0.0;
-            for (size_t i = 0; i < points->len; i++)
+            size_t i;
+            for (i = 0; i < points->len; i++)
             {
                 sum += (points->data + i)->val.real;
             }

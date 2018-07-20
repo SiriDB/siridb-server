@@ -17,8 +17,6 @@
 #include <stdlib.h>
 #include <strextra/strextra.h>
 #include <string.h>
-
-// #define NDEBUG
 #include <assert.h>
 
 #define HELP_WIDTH 80           /* try to fit help within this screen width */

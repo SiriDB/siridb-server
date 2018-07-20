@@ -26,8 +26,8 @@
 
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
-#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000        // 5 seconds
-#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250   // max concurrent promises
+#define SIRIDB_SERVER_FLAGS_TIMEOUT 5000        /* 5 seconds    */
+#define SIRIDB_SERVER_PROMISES_QUEUE_SIZE 250   /* max concurrent promises  */
 #define FMT_AS_IPV6(addr) (strchr(addr, ':') != NULL)
 
 static int SERVER_update_name(siridb_server_t * server);
@@ -792,7 +792,9 @@ char * siridb_server_str_status(siridb_server_t * server)
     /* we must initialize the buffer according to the longest possible value */
     char buffer[128] = {};
     int n = 0;
-    for (int i = 1; i < SERVER_FLAG_AUTHENTICATED; i *= 2)
+    int i;
+
+    for (i = 1; i < SERVER_FLAG_AUTHENTICATED; i *= 2)
     {
         if (server->flags & i)
         {
@@ -835,7 +837,7 @@ siridb_server_t * siridb_server_from_node(
 
     switch (server_node->cl_obj->tp)
     {
-    case CLERI_TP_CHOICE:  // server name
+    case CLERI_TP_CHOICE:  /* server name   */
         {
             char name[server_node->len - 1];
             strx_extract_string(name, server_node->str, server_node->len);
@@ -843,7 +845,7 @@ siridb_server_t * siridb_server_from_node(
         }
         break;
 
-    case CLERI_TP_REGEX:  // uuid
+    case CLERI_TP_REGEX:  /* uuid   */
         {
             uuid_t uuid;
             char * str_uuid = strndup(server_node->str, server_node->len);

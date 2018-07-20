@@ -19,15 +19,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ALLOWED_PKG_SIZE 20971520      // 20 MB
+#define MAX_ALLOWED_PKG_SIZE 20971520      /* 20 MB  */
 
 #define QUIT_SOCKET                     \
-    free(ssocket->buf);                    \
+    free(ssocket->buf);                 \
     ssocket->buf = NULL;                \
-    ssocket->len = 0;                    \
-    ssocket->size = 0;                    \
+    ssocket->len = 0;                   \
+    ssocket->size = 0;                  \
     ssocket->on_data = NULL;            \
-    sirinet_socket_decref(client);        \
+    sirinet_socket_decref(client);      \
     return;
 
 /* dns_req_family_map maps to IP_SUPPORT values defined in socket.h */
@@ -280,21 +280,21 @@ void sirinet__socket_free(uv_stream_t * client)
 
     switch (ssocket->tp)
     {
-    case SOCKET_CLIENT:  // listens to client connections
+    case SOCKET_CLIENT:  /* listens to client connections  */
         if (ssocket->origin != NULL)
         {
             siridb_user_t * user = (siridb_user_t *) ssocket->origin;
             siridb_user_decref(user);
         }
         break;
-    case SOCKET_BACKEND:  // listens to server connections
+    case SOCKET_BACKEND:  /* listens to server connections  */
         if (ssocket->origin != NULL)
         {
             siridb_server_t * server = (siridb_server_t *) ssocket->origin;
             siridb_server_decref(server);
         }
         break;
-    case SOCKET_SERVER:  // a server connection
+    case SOCKET_SERVER:  /* a server connection  */
         {
             siridb_server_t * server = (siridb_server_t *) ssocket->origin;
             server->socket = NULL;
@@ -302,7 +302,7 @@ void sirinet__socket_free(uv_stream_t * client)
             siridb_server_decref(server);
         }
         break;
-    case SOCKET_MANAGE:  // a server manage connection
+    case SOCKET_MANAGE:  /* a server manage connection  */
         siri_admin_client_free((siri_admin_client_t *) ssocket->origin);
         siri.socket = NULL;
         break;

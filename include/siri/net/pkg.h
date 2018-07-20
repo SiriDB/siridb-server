@@ -17,7 +17,7 @@
 
 typedef struct sirinet_pkg_s
 {
-    uint32_t len;   // length of data, sizeof(sirinet_pkg_t) is not included
+    uint32_t len;   /* length of data, sizeof(sirinet_pkg_t) is not included */
     uint16_t pid;
     uint8_t tp;
     uint8_t checkbit;

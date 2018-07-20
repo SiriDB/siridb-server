@@ -334,12 +334,14 @@ slist_t * siridb_servers_other2slist(siridb_t * siridb)
 {
     siridb_server_t * server;
     slist_t * servers = slist_new(siridb->servers->len - 1);
+    llist_node_t * node;
+
     if (servers == NULL)
     {
         return NULL;
     }
 
-    for (   llist_node_t * node = siridb->servers->first;
+    for (   node = siridb->servers->first;
             node != NULL;
             node = node->next)
     {
@@ -378,8 +380,9 @@ void siridb_servers_send_pkg(
     else
     {
         siridb_server_t * server;
+        size_t i;
 
-        for (size_t i = 0; i < servers->len; i++)
+        for (i = 0; i < servers->len; i++)
         {
             server = (siridb_server_t *) servers->data[i];
 
@@ -552,7 +555,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             (cexpr_cb_t) siridb_server_cexpr_cb,
             &wserver))
     {
-        return 0;  // false
+        return 0;  /* false */
     }
 
     qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -711,7 +714,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 
     qp_add_type(query->packer, QP_ARRAY_CLOSE);
 
-    return 1;  // true
+    return 1;  /* true  */
 }
 
 /*
@@ -725,7 +728,9 @@ int siridb_servers_check_version(siridb_t * siridb, char * version)
 {
     siridb_server_t * server;
     int n = 0;
-    for (   llist_node_t * node = siridb->servers->first;
+    llist_node_t * node;
+
+    for (   node = siridb->servers->first;
             node != NULL;
             node = node->next)
     {

@@ -33,7 +33,7 @@ typedef enum
     ERR_EXPECTING_AT_LEAST_ONE_POINT,
     ERR_EXPECTING_NAME_AND_POINTS,
     ERR_INCOMPATIBLE_SERVER_VERSION,
-    ERR_MEM_ALLOC,          // This is a critical error.
+    ERR_MEM_ALLOC,          /* This is a critical error.        */
 } siridb_insert_err_t;
 
 enum

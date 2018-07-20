@@ -15,7 +15,7 @@
 cleri_grammar_t * compile_grammar(void);
 
 enum cleri_grammar_ids {
-    CLERI_NONE,   // used for objects with no name
+    CLERI_NONE,   /* used for objects with no name  */
     CLERI_GID_ACCESS_EXPR,
     CLERI_GID_ACCESS_KEYWORDS,
     CLERI_GID_AFTER_EXPR,
@@ -306,7 +306,7 @@ enum cleri_grammar_ids {
     CLERI_GID_WHERE_SHARD,
     CLERI_GID_WHERE_USER,
     CLERI_GID__BOOLEAN,
-    CLERI_END // can be used to get the enum length
+    CLERI_END  /* can be used to get the enum length  */
 };
 
 #endif /* CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_ */

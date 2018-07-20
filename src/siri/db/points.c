@@ -127,7 +127,8 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
         }
         if (points->tp == TP_STRING)
         {
-            for (size_t i = 0; i < points->len; ++i)
+            size_t i;
+            for (i = 0; i < points->len; ++i)
             {
                 (cpoints->data + i)->val.str =
                         strdup((points->data + i)->val.str);
@@ -144,7 +145,8 @@ void siridb_points_free(siridb_points_t * points)
 {
     if (points->tp == TP_STRING)
     {
-        for (size_t i = 0; i < points->len; ++i)
+        size_t i;
+        for (i = 0; i < points->len; ++i)
         {
             free((points->data + i)->val.str);
         }
@@ -189,11 +191,12 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
     qp_add_type(packer, QP_ARRAY_OPEN);
     if (points->len)
     {
+        size_t i;
         siridb_point_t * point = points->data;
         switch (points->tp)
         {
         case TP_INT:
-            for (size_t i = 0; i < points->len; i++, point++)
+            for (i = 0; i < points->len; i++, point++)
             {
                 qp_add_type(packer, QP_ARRAY2);
                 qp_add_int64(packer, (int64_t) point->ts);
@@ -201,7 +204,7 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
             }
             break;
         case TP_DOUBLE:
-            for (size_t i = 0; i < points->len; i++, point++)
+            for (i = 0; i < points->len; i++, point++)
             {
                 qp_add_type(packer, QP_ARRAY2);
                 qp_add_int64(packer, (int64_t) point->ts);
@@ -209,7 +212,7 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
             }
             break;
         case TP_STRING:
-            for (size_t i = 0; i < points->len; i++, point++)
+            for (i = 0; i < points->len; i++, point++)
             {
                 qp_add_type(packer, QP_ARRAY2);
                 qp_add_int64(packer, (int64_t) point->ts);
@@ -226,7 +229,8 @@ int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer)
 void siridb_points_ts_correction(siridb_points_t * points, double factor)
 {
     siridb_point_t * point = points->data;
-    for (size_t i = 0; i < points->len; i++, point++)
+    size_t i;
+    for (i = 0; i < points->len; i++, point++)
     {
         point->ts *= factor;
     }
@@ -658,15 +662,17 @@ unsigned char * siridb_points_raw_string(
 
     uint_fast32_t n = end - start;
     size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    size_t * psz = sizes;
+    unsigned char * pdata;
+    unsigned char * cdata;
+    uint_fast32_t i;
+
     if (sizes == NULL)
     {
         return NULL;
     }
 
-    size_t * psz = sizes;
-    unsigned char * pdata;
-
-    for (uint_fast32_t i = start; i < end; ++i, ++psz)
+    for (i = start; i < end; ++i, ++psz)
     {
         *psz = strlen(points->data[i].val.str) + 1;
         *size += *psz;
@@ -681,8 +687,7 @@ unsigned char * siridb_points_raw_string(
     /* when uncompressed, time-stamp size is not included */
     *size += n * ts_sz;
 
-    unsigned char * cdata = (unsigned char *) calloc(
-            *size, sizeof(unsigned char));
+    cdata = (unsigned char *) calloc(*size, sizeof(unsigned char));
     if (cdata == NULL)
     {
         free(sizes);
@@ -695,7 +700,7 @@ unsigned char * siridb_points_raw_string(
     switch (ts_sz)
     {
     case sizeof(uint32_t):
-        for (uint_fast32_t i = start; i < end; ++i)
+        for (i = start; i < end; ++i)
         {
             uint32_t ts = points->data[i].ts;
             memcpy(pdata, &ts, sizeof(uint32_t));
@@ -703,7 +708,7 @@ unsigned char * siridb_points_raw_string(
         }
         break;
     case sizeof(uint64_t):
-        for (uint_fast32_t i = start; i < end; ++i)
+        for (i = start; i < end; ++i)
         {
             memcpy(pdata, &points->data[i].ts, sizeof(uint64_t));
             pdata += sizeof(uint64_t);
@@ -713,7 +718,7 @@ unsigned char * siridb_points_raw_string(
         assert(0);
     }
 
-    for (uint_fast32_t i = start; i < end; ++i, ++psz)
+    for (i = start; i < end; ++i, ++psz)
     {
         memcpy(pdata, points->data[i].val.str, *psz);
         pdata += *psz;
@@ -1266,21 +1271,28 @@ static unsigned char * POINTS_zip_raw(
         size_t * size)
 {
     uint_fast32_t n = end - start;
+    uint_fast32_t i;
+    unsigned char * bits;
+    unsigned char * pt;
+
     *size = n * 16;
     *cinfo = 0xffff;
-    unsigned char * bits = (unsigned char *) malloc(*size);
+
+    bits = (unsigned char *) malloc(*size);
     if (bits == NULL)
     {
         return NULL;
     }
-    unsigned char * pt = bits;
-    for (uint_fast32_t i = start; i < end; ++i)
+
+    pt = bits;
+    for (i = start; i < end; ++i)
     {
         memcpy(pt, &points->data[i].ts, sizeof(uint64_t));
         pt += sizeof(uint64_t);
         memcpy(pt, &points->data[i].val, sizeof(uint64_t));
         pt += sizeof(uint64_t);
     }
+
     return bits;
 }
 

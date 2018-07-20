@@ -123,19 +123,19 @@ void strx_trim(char ** str, char chr)
      */
     char * end;
 
-    // trim leading chars
+    /* trim leading chars  */
     while ((chr && **str == chr) || (!chr && isspace(**str)))
     {
         (*str)++;
     }
 
-    // check all chars?
+    /* check all chars?  */
     if(**str == 0)
     {
         return;
     }
 
-    // trim trailing chars
+    /* trim trailing chars  */
     end = *str + strlen(*str) - 1;
     while (end > *str &&
             ((chr && *end == chr) || (!chr && isspace(*end))))
@@ -143,7 +143,7 @@ void strx_trim(char ** str, char chr)
         end--;
     }
 
-    // write new null terminator
+    /* write new null terminator  */
     *(end + 1) = 0;
 }
 
@@ -165,19 +165,19 @@ bool strx_is_empty(const char * str)
 
 bool strx_is_int(const char * str)
 {
-   // Handle negative numbers.
+   /* Handle negative numbers.  */
    if (*str == '-')
    {
        ++str;
    }
 
-   // Handle empty string or just "-".
+   /* Handle empty string or just "-".  */
    if (!*str)
    {
        return false;
    }
 
-   // Check for non-digit chars in the rest of the string.
+   /* Check for non-digit chars in the rest of the string.  */
    while (*str)
    {
        if (!isdigit(*str))
@@ -195,7 +195,7 @@ bool strx_is_int(const char * str)
 
 bool strx_is_float(const char * str)
 {
-   // Handle negative numbers.
+   /* Handle negative numbers.   */
    if (*str == '-' || *str == '+')
    {
        ++str;
@@ -203,13 +203,13 @@ bool strx_is_float(const char * str)
 
    size_t dots = 0;
 
-   // Handle empty string or just "-".
+   /* Handle empty string or just "-".  */
    if (!*str)
    {
        return false;
    }
 
-   // Check for non-digit chars in the rest of the string.
+   /* Check for non-digit chars in the rest of the string.  */
    while (*str)
    {
        if (*str == '.')

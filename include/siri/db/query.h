@@ -21,10 +21,10 @@
  */
 typedef enum
 {
-    SIRIDB_QUERY_FWD_SERVERS,       // Forward to all 'online' servers
-    SIRIDB_QUERY_FWD_POOLS,         // Forward to all pools(*)
-    SIRIDB_QUERY_FWD_SOME_POOLS,    // Forward to some pools(*)
-    SIRIDB_QUERY_FWD_UPDATE         // Forward to all pools, update replicas(*)
+    SIRIDB_QUERY_FWD_SERVERS,       /* Forward to all 'online' servers      */
+    SIRIDB_QUERY_FWD_POOLS,         /* Forward to all pools(*)              */
+    SIRIDB_QUERY_FWD_SOME_POOLS,    /* Forward to some pools(*)             */
+    SIRIDB_QUERY_FWD_UPDATE         /* Forward to all pools, upd repl(*)    */
 } siridb_query_fwd_t;
 
 

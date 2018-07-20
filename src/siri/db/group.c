@@ -168,8 +168,9 @@ void siridb_group_cleanup(siridb_group_t * group)
 {
     size_t dropped = 0;
     siridb_series_t * series;
+    size_t i;
 
-    for (size_t i = 0; i < group->series->len; i++)
+    for (i = 0; i < group->series->len; i++)
     {
         series = (siridb_series_t *) group->series->data[i];
 
@@ -199,10 +200,10 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
             group->regex,
             (PCRE2_SPTR8) series->name,
             series->name_len,
-            0,                     // start looking at this point
-            0,                     // OPTIONS
+            0,                     /* start looking at this point   */
+            0,                     /* OPTIONS                       */
             group->match_data,
-            NULL);                    // length of sub_str_vec
+            NULL);                 /* length of sub_str_vec         */
 
     if (rc >= 0)
     {
@@ -241,6 +242,7 @@ int siridb_group_update_expression(
     pcre2_code * new_regex;
     pcre2_match_data * new_regex_match_data;
     siridb_series_t * series;
+    size_t i;
 
     if (new_source == NULL)
     {
@@ -271,7 +273,7 @@ int siridb_group_update_expression(
     group->regex = new_regex;
     group->match_data = new_regex_match_data;
 
-    for (size_t i = 0; i < group->series->len; i++)
+    for (i = 0; i < group->series->len; i++)
     {
         series = (siridb_series_t *) group->series->data[i];
         siridb_series_decref(series);
@@ -355,6 +357,8 @@ int siridb_group_is_remote_prop(uint32_t prop)
  */
 void siridb__group_free(siridb_group_t * group)
 {
+    size_t i;
+
 #if DEBUG
     log_debug("Free group: '%s'", group->name);
 #endif
@@ -364,7 +368,7 @@ void siridb__group_free(siridb_group_t * group)
     if (group->series != NULL)
     {
         siridb_series_t * series;
-        for (size_t i = 0; i < group->series->len; i++)
+        for (i = 0; i < group->series->len; i++)
         {
             series = (siridb_series_t *) group->series->data[i];
             siridb_series_decref(series);

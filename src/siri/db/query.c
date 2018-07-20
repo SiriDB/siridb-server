@@ -39,7 +39,7 @@
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
-#define SIRIDB_FWD_SERVERS_TIMEOUT 5000  // 5 seconds
+#define SIRIDB_FWD_SERVERS_TIMEOUT 5000  /* 5 seconds  */
 
 static void QUERY_send_invalid_error(uv_async_t * handle);
 static void QUERY_parse(uv_async_t * handle);
@@ -224,7 +224,7 @@ void siridb_query_send_error(
     sirinet_pkg_t * package = sirinet_pkg_err(
                 query->pid,
                 strlen(query->err_msg),
-                err,  // usually this is CPROTO_ERR_QUERY, CPROTO_ERR_POOL etc.
+                err,  /* usually this is CPROTO_ERR_QUERY, CPROTO_ERR_POOL...*/
                 query->err_msg);
 
     log_warning("(%s) %s", sirinet_cproto_server_str(err), query->err_msg);
@@ -390,7 +390,7 @@ int siridb_query_err_from_pkg(siridb_query_t * query, sirinet_pkg_t * pkg)
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
     if (qp_is_map(qp_next(&unpacker, NULL)) &&
-        qp_is_raw(qp_next(&unpacker, NULL)) && // error_msg
+        qp_is_raw(qp_next(&unpacker, NULL)) && /* error_msg  */
         qp_is_raw(qp_next(&unpacker, &qp_err)) &&
         qp_err.len < SIRIDB_MAX_SIZE_ERR_MSG)
     {

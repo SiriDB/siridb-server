@@ -21,7 +21,7 @@ typedef struct siridb_fifo_s
     llist_t * fifos;
     siridb_ffile_t * in;
     siridb_ffile_t * out;
-    ssize_t max_id;  // max_id can be -1
+    ssize_t max_id;     /*  max_id can be -1        */
 } siridb_fifo_t;
 
 

@@ -247,7 +247,8 @@ static bool is_shard_fn(const char * fn, const char * ext)
  */
 static bool is_temp_fn(const char * fn)
 {
-    for (int i = 0; i < 2; i++, fn++)
+    int i;
+    for (i = 0; i < 2; i++, fn++)
     {
         if (*fn != '_')
         {

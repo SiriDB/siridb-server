@@ -67,7 +67,7 @@ static void SIRI_walk_try_close(uv_handle_t * handle, int * num);
 #define WAIT_BETWEEN_CLOSE_ATTEMPTS 3000
 
 static uv_timer_t closing_timer;
-static int closing_attempts = 40;  // times 3 seconds is 2 minutes
+static int closing_attempts = 40;  /* times 3 seconds is 2 minutes  */
 
 #define N_SIGNALS 6
 static int signals[N_SIGNALS] = {
@@ -130,6 +130,7 @@ int siri_start(void)
     struct timespec start;
     struct timespec end;
     uv_signal_t sig[N_SIGNALS];
+    int i;
 
     /* get start time so we can calculate the startup_time */
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -174,11 +175,11 @@ int siri_start(void)
         SIRI_destroy();
         free(siri.loop);
         siri.loop = NULL;
-        return rc; // something went wrong
+        return rc;  /* something went wrong  */
     }
 
     /* bind signals to the event loop */
-    for (int i = 0; i < N_SIGNALS; i++)
+    for (i = 0; i < N_SIGNALS; i++)
     {
         uv_signal_init(siri.loop, &sig[i]);
         uv_signal_start(&sig[i], SIRI_signal_handler, signals[i]);
@@ -219,7 +220,7 @@ void siri_free(void)
     {
         int rc;
         rc = uv_loop_close(siri.loop);
-        if (rc) // could be UV_EBUSY (-16) in case handlers are not closed yet
+        if (rc) /* could be UV_EBUSY (-16) in case handlers are not closed */
         {
             log_error("Error occurred while closing the event loop: %d", rc);
         }

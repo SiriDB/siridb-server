@@ -127,6 +127,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     siridb_t * siridb;
     char err_msg[512];
     int rc;
+    size_t i;
 
     if (!len || dbpath[len - 1] != '/')
     {
@@ -327,7 +328,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
-    for (size_t i = 0; i < slist->len; i++)
+    for (i = 0; i < slist->len; i++)
     {
         siridb_series_update_props(siridb, (siridb_series_t * )slist->data[i]);
     }

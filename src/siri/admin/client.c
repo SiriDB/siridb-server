@@ -21,7 +21,7 @@
 #include <siri/db/server.h>
 #include <siri/version.h>
 
-// 15 seconds
+/* 15 seconds  */
 #define CLIENT_REQUEST_TIMEOUT 15000
 #define CLIENT_FLAGS_TIMEOUT 1
 #define CLIENT_FLAGS_NO_ROLLBACK 2
@@ -632,7 +632,8 @@ static void CLIENT_on_file_database(
     qp_obj_t qp_uuid;
     siridb_t * siridb;
     int rc;
-    char fn[strlen(adm_client->dbpath) + 13]; // 13 = strlen("database.dat")+1
+    /* 13 = strlen("database.dat")+1  */
+    char fn[strlen(adm_client->dbpath) + 13];
     sprintf(fn, "%sdatabase.dat", adm_client->dbpath);
 
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
@@ -720,7 +721,8 @@ static void CLIENT_on_file_servers(
     qp_unpacker_t unpacker;
     qp_types_t tp;
     int rc, n, close_num;
-    char fn[strlen(adm_client->dbpath) + 12]; // 12 = strlen("servers.dat") + 1
+    /* 12 = strlen("servers.dat") + 1  */
+    char fn[strlen(adm_client->dbpath) + 12];
     sprintf(fn, "%sservers.dat", adm_client->dbpath);
 
     fp = fopen(fn, "w");
@@ -802,7 +804,8 @@ static void CLIENT_on_file_groups(
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
-    char fn[strlen(adm_client->dbpath) + 11]; // 11 = strlen("groups.dat") + 1
+    /* 11 = strlen("groups.dat") + 1  */
+    char fn[strlen(adm_client->dbpath) + 11];
     sprintf(fn, "%sgroups.dat", adm_client->dbpath);
 
     fp = fopen(fn, "w");
@@ -843,7 +846,8 @@ static void CLIENT_on_file_users(
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
-    char fn[strlen(adm_client->dbpath) + 10]; // 10 = strlen("users.dat") + 1
+    /* 10 = strlen("users.dat") + 1  */
+    char fn[strlen(adm_client->dbpath) + 10];
     sprintf(fn, "%susers.dat", adm_client->dbpath);
 
     fp = fopen(fn, "w");

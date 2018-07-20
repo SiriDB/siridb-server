@@ -198,7 +198,7 @@ int siridb_user_check_access(
 {
     if ((user->access_bit & access_bit) == access_bit)
     {
-        return 1;  // true
+        return 1;  /* true  */
     }
 
     char buffer[SIRIDB_ACCESS_STR_MAX];
@@ -210,7 +210,7 @@ int siridb_user_check_access(
             user->name,
             buffer);
 
-    return 0;   // false
+    return 0;   /* false  */
 }
 
 int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)

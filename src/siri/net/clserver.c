@@ -100,7 +100,7 @@ static void CLSERVER_on_register_server_response(
 #define POOL_ERR_MSG \
     "At least one pool has no server available to process the request"
 
-#define POOL_ERR_LEN 64  // exact length of POOL_ERR_MSG
+#define POOL_ERR_LEN 64  /* exact length of POOL_ERR_MSG  */
 
 
 int sirinet_clserver_init(siri_t * siri)
@@ -938,8 +938,9 @@ static void CLSERVER_on_register_server_response(
         sirinet_promise_t * promise;
         size_t err_count = 0;
         char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+        size_t i;
 
-        for (size_t i = 0; i < promises->len; i++)
+        for (i = 0; i < promises->len; i++)
         {
             promise = promises->data[i];
             if (promise == NULL)

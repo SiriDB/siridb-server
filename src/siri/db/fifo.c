@@ -346,6 +346,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
         struct dirent ** fifo_list;
         char * fn;
         int total = scandir(fifo->path, &fifo_list, NULL, alphasort);
+        int n;
 
         if (total < 0)
         {
@@ -354,7 +355,7 @@ static int FIFO_init(siridb_fifo_t * fifo)
             ERR_C
         }
 
-        for (int n = 0; n < total; n++)
+        for (n = 0; n < total; n++)
         {
             if (siridb_ffile_check_fn(fifo_list[n]->d_name))
             {

@@ -39,10 +39,10 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define REINDEX_SLEEP 100           // 100 milliseconds * active tasks
-#define REINDEX_RETRY 5000          // 5 seconds
-#define REINDEX_INITWAIT 20000      // 20 seconds
-#define REINDEX_TIMEOUT 300000      // 5 minutes
+#define REINDEX_SLEEP 100           /* 100 milliseconds * active tasks  */
+#define REINDEX_RETRY 5000          /* 5 seconds                        */
+#define REINDEX_INITWAIT 20000      /* 20 seconds                       */
+#define REINDEX_TIMEOUT 300000      /* 5 minutes                        */
 
 #define NEXT_SERIES_ERR -1
 #define NEXT_SERIES_SET 0

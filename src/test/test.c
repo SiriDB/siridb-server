@@ -192,15 +192,15 @@ static int test_ctree(void)
     test_start("Testing ctree");
     ct_t * ct = ct_new();
 
-    // first add should be successful
+    /* first add should be successful  */
     assert (ct_add(ct, "Iris", "is gewoon Iris") == CT_OK);
     assert (ct_add(ct, "Iris1", "is gewoon Iris1") == CT_OK);
     assert (ct_add(ct, "Iris2", "is gewoon Iris2") == CT_OK);
 
-    // key exists
+    /* key exists  */
     assert (ct_add(ct, "Iris", "Iris?") == CT_EXISTS);
 
-    // len should be 3 by now
+    /* len should be 3 by now  */
     assert (ct->len == 3);
     assert (strcmp(ct_getn(ct, "Iris1!", 5), "is gewoon Iris1") == 0);
     assert (strcmp(ct_get(ct, "Iris"), "is gewoon Iris") == 0);
@@ -465,14 +465,17 @@ static int test_imap_symmetric_difference(void)
 
 static int test_gen_pool_lookup(void)
 {
-    test_start("Testing test_gen_pool_lookup");
-
-    siridb_lookup_t * lookup = siridb_lookup_new(4);
+    int i;
+    siridb_lookup_t * lookup;
     uint16_t match[30] = {
             0, 1, 0, 2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0,
             2, 3, 1, 0, 3, 3, 2, 2, 1, 0, 1, 0, 2, 3, 1};
 
-    for (int i = 0; i < 30; i++)
+    test_start("Testing test_gen_pool_lookup");
+
+    lookup = siridb_lookup_new(4);
+
+    for (i = 0; i < 30; i++)
         assert(match[i] == (*lookup)[i]);
 
     free(lookup);
@@ -488,14 +491,15 @@ static int test_points(void)
     qp_via_t val;
     uint64_t timestamps[5] = {4, 6, 3, 5, 7};
     int64_t values[5] = {1, 3, 0, 2, 4};
+    size_t i;
 
-    for (int i = 0; i < 5; i++)
+    for (i = 0; i < 5; i++)
     {
         val.int64 = values[i];
         siridb_points_add_point(points, &timestamps[i], &val);
     }
 
-    for (size_t i = 0; i < points->len; i++)
+    for (i = 0; i < points->len; i++)
     {
         point = points->data + i;
         assert (i == (size_t) point->val.int64);

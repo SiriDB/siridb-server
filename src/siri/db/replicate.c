@@ -24,8 +24,8 @@
 #include <siri/siri.h>
 #include <stddef.h>
 
-#define REPLICATE_SLEEP 10          // 10 milliseconds * active tasks
-#define REPLICATE_TIMEOUT 300000    // 5 minutes
+#define REPLICATE_SLEEP 10          /* 10 milliseconds * active tasks   */
+#define REPLICATE_TIMEOUT 300000    /* 5 minutes                        */
 
 static void REPLICATE_work(uv_timer_t * handle);
 static void REPLICATE_on_repl_response(
@@ -287,10 +287,10 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
 
     qp_obj_t qp_series_name;
 
-    qp_next(&unpacker, NULL); // map
+    qp_next(&unpacker, NULL); /* map  */
     qp_add_type(netpacker, QP_MAP_OPEN);
 
-    qp_next(&unpacker, &qp_series_name); // first series or end
+    qp_next(&unpacker, &qp_series_name); /* first series or end     */
     while (qp_is_raw_term(&qp_series_name))
     {
         series = (siridb_series_t *) ct_get(

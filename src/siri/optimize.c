@@ -274,6 +274,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     siridb_t * siridb;
     siridb_shard_t * shard;
     uint8_t c = siri.cfg->shard_compression;
+    size_t i;
 
     log_info("Start optimize task");
 
@@ -287,7 +288,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     slsiridb = llist2slist(siri.siridb_list);
     if (slsiridb != NULL)
     {
-        for (size_t i = 0; i < slsiridb->len; i++)
+        for (i = 0; i < slsiridb->len; i++)
         {
             siridb = (siridb_t *) slsiridb->data[i];
             siridb_incref(siridb);
@@ -302,8 +303,9 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         return;
     }
 
-    for (size_t i = 0; i < slsiridb->len; i++)
+    for (i = 0; i < slsiridb->len; i++)
     {
+        size_t j;
         siridb = (siridb_t *) slsiridb->data[i];
 
 #if DEBUG
@@ -325,9 +327,9 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         sleep(1);
 
-        for (size_t i = 0; i < slshards->len; i++)
+        for (j = 0; j < slshards->len; j++)
         {
-            shard = (siridb_shard_t *) slshards->data[i];
+            shard = (siridb_shard_t *) slshards->data[j];
 
             if (!siri_err &&
                 optimize.status != SIRI_OPTIMIZE_CANCELLED &&
@@ -393,7 +395,9 @@ static void OPTIMIZE_cleanup(slist_t * slsiridb)
     if (slsiridb != NULL)
     {
         siridb_t * siridb;
-        for (size_t i = 0; i < slsiridb->len; i++)
+        size_t i;
+
+        for (i = 0; i < slsiridb->len; i++)
         {
             siridb = (siridb_t *) slsiridb->data[i];
             siridb_decref(siridb);

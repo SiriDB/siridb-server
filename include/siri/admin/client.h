@@ -24,7 +24,7 @@ typedef struct siri_admin_client_s
     uint16_t pid;
     uint16_t port;
     uuid_t uuid;
-    int pool;  // -1 for a new pool
+    int pool;  /*       -1 for a new pool       */
     char * host;
     char * username;
     char * password;

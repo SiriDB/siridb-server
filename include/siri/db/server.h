@@ -33,13 +33,18 @@
                                            and will NEVER be set on 'this'
                                            server */
 
-#define SERVER__IS_ONLINE 65  // RUNNING + AUTHENTICATED
-#define SERVER__IS_SYNCHRONIZING 67  // RUNNING + SYNCHRONIZING + AUTHENTICATED
-#define SERVER__IS_REINDEXING 69  // RUNNING + REINDEXING + AUTHENTICATED
+/* RUNNING + AUTHENTICATED                      */
+#define SERVER__IS_ONLINE 65
 
-#define SERVER__SELF_ONLINE 1  // RUNNING
-#define SERVER__SELF_SYNCHRONIZING 3  // RUNNING + SYNCHRONIZING
-#define SERVER__SELF_REINDEXING 5  // RUNNING + REINDEXING
+/* RUNNING + SYNCHRONIZING + AUTHENTICATED      */
+#define SERVER__IS_SYNCHRONIZING 67
+
+/* RUNNING + REINDEXING + AUTHENTICATED         */
+#define SERVER__IS_REINDEXING 69
+
+#define SERVER__SELF_ONLINE 1           /* RUNNING                      */
+#define SERVER__SELF_SYNCHRONIZING 3    /* RUNNING + SYNCHRONIZING      */
+#define SERVER__SELF_REINDEXING 5       /* RUNNING + REINDEXING         */
 
 
 /*

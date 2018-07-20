@@ -16,7 +16,7 @@
 #include <siri/net/pkg.h>
 
 #define ADDR_BUF_SZ 54
-#define RESET_BUF_SIZE 1048576  // 1 MB
+#define RESET_BUF_SIZE 1048576  /*  1 MB        */
 
 /* Warning: do not change the order! (maps to dns_req_family_map) */
 enum

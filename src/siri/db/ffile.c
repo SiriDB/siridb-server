@@ -22,8 +22,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define FFILE_DEFAULT_SIZE 104857600  // 100 MB
-#define FFILE_NUMBERS 9  // how much numbers are used to generate the file.
+#define FFILE_DEFAULT_SIZE 104857600  /* 100 MB  */
+#define FFILE_NUMBERS 9  /* how much numbers are used to generate the file.  */
 
 /*
  * Open the fifo file. (set both the file pointer and file descriptor

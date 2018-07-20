@@ -31,14 +31,15 @@
  */
 int siridb_pool_online(siridb_pool_t * pool)
 {
-    for (uint16_t i = 0; i < pool->len; i++)
+    uint16_t i;
+    for (i = 0; i < pool->len; i++)
     {
         if (siridb_server_is_online(pool->server[i]))
         {
-            return 1;  // true
+            return 1;  /* true  */
         }
     }
-    return 0;  // false
+    return 0;  /* false  */
 }
 
 /*
@@ -51,14 +52,15 @@ int siridb_pool_online(siridb_pool_t * pool)
  */
 int siridb_pool_available(siridb_pool_t * pool)
 {
-    for (uint16_t i = 0; i < pool->len; i++)
+    uint16_t i;
+    for (i = 0; i < pool->len; i++)
     {
         if (siridb_server_is_available(pool->server[i]))
         {
-            return 1;  // true
+            return 1;  /* true  */
         }
     }
-    return 0;  // false
+    return 0;  /* false  */
 }
 
 /*
@@ -71,14 +73,15 @@ int siridb_pool_available(siridb_pool_t * pool)
  */
 int siridb_pool_accessible(siridb_pool_t * pool)
 {
-    for (uint16_t i = 0; i < pool->len; i++)
+    uint16_t i;
+    for (i = 0; i < pool->len; i++)
     {
         if (siridb_server_is_accessible(pool->server[i]))
         {
-            return 1;  // true
+            return 1;  /* true  */
         }
     }
-    return 0;  // false
+    return 0;  /* false  */
 }
 
 
@@ -176,8 +179,9 @@ int siridb_pool_send_pkg(
         int flags)
 {
     siridb_server_t * server = NULL;
+    uint16_t i;
 
-    for (uint16_t i = 0; i < pool->len; i++)
+    for (i = 0; i < pool->len; i++)
     {
         if ((flags & FLAG_ONLY_CHECK_ONLINE) ?
                 siridb_server_is_online(pool->server[i]) :

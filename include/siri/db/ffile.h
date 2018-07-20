@@ -24,7 +24,7 @@ typedef struct siridb_ffile_s
     uint64_t id;
     char * fn;
     uint32_t free_space;
-    uint32_t next_size;  // must be uint32_t (4 bytes)
+    uint32_t next_size;  /* must be uint32_t (4 bytes)  */
     FILE * fp;
     int fd;
     long int size;

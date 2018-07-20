@@ -143,15 +143,16 @@ siridb_pool_t * siridb_pools_append(
  */
 int siridb_pools_online(siridb_t * siridb)
 {
-    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    uint16_t pid ;
+    for (pid = 0; pid < siridb->pools->len; pid++)
     {
         if (    pid != siridb->server->pool &&
                 !siridb_pool_online(siridb->pools->pool + pid))
         {
-            return 0;  // false
+            return 0;  /* false  */
         }
     }
-    return 1;  //true
+    return 1;  /* true  */
 }
 
 /*
@@ -162,15 +163,16 @@ int siridb_pools_online(siridb_t * siridb)
  */
 int siridb_pools_available(siridb_t * siridb)
 {
-    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    uint16_t pid;
+    for (pid = 0; pid < siridb->pools->len; pid++)
     {
         if (    pid != siridb->server->pool &&
                 !siridb_pool_available(siridb->pools->pool + pid))
         {
-            return 0;  // false
+            return 0;  /* false  */
         }
     }
-    return 1;  //true
+    return 1;  /* true  */
 }
 
 
@@ -182,15 +184,16 @@ int siridb_pools_available(siridb_t * siridb)
  */
 int siridb_pools_accessible(siridb_t * siridb)
 {
-    for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+    uint16_t pid;
+    for (pid = 0; pid < siridb->pools->len; pid++)
     {
         if (    pid != siridb->server->pool &&
                 !siridb_pool_accessible(siridb->pools->pool + pid))
         {
-            return 0;  // false
+            return 0;  /* false  */
         }
     }
-    return 1;  //true
+    return 1;  /* true  */
 }
 
 /*
@@ -224,8 +227,9 @@ void siridb_pools_send_pkg(
     else
     {
         siridb_pool_t * pool;
+        uint16_t pid;
 
-        for (uint16_t pid = 0; pid < siridb->pools->len; pid++)
+        for (pid = 0; pid < siridb->pools->len; pid++)
         {
             if (pid == siridb->server->pool)
             {
@@ -287,8 +291,9 @@ void siridb_pools_send_pkg_2some(
     else
     {
         siridb_pool_t * pool;
+        size_t i;
 
-        for (size_t i = 0; i < slist->len; i++)
+        for (i = 0; i < slist->len; i++)
         {
             pool = slist->data[i];
 

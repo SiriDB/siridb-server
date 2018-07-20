@@ -56,7 +56,9 @@ sirinet_promises_t * sirinet_promises_new(
 void sirinet_promises_llist_free(slist_t * promises)
 {
     sirinet_promise_t * promise;
-    for (size_t i = 0; i < promises->len; i++)
+    size_t i;
+
+    for (i = 0; i < promises->len; i++)
     {
         promise = (sirinet_promise_t *) promises->data[i];
         if (promise != NULL)

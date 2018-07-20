@@ -67,10 +67,11 @@ void imap_free(imap_t * imap, imap_free_cb cb)
     if (imap->len)
     {
         imap_node_t * nd;
+        uint_fast8_t i;
 
         if (cb == NULL)
         {
-            for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+            for (i = 0; i < IMAP_NODE_SZ; i++)
             {
                 nd = imap->nodes + i;
 
@@ -82,7 +83,7 @@ void imap_free(imap_t * imap, imap_free_cb cb)
         }
         else
         {
-            for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+            for (i = 0; i < IMAP_NODE_SZ; i++)
             {
                 nd = imap->nodes + i;
 
@@ -257,8 +258,9 @@ int imap_walk(imap_t * imap, imap_cb cb, void * data)
     if (imap->len)
     {
         imap_node_t * nd;
+        uint_fast8_t i;
 
-        for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+        for (i = 0; i < IMAP_NODE_SZ; i++)
         {
             nd = imap->nodes + i;
 
@@ -288,8 +290,9 @@ void imap_walkn(imap_t * imap, size_t * n, imap_cb cb, void * data)
     if (imap->len)
     {
         imap_node_t * nd;
+        uint_fast8_t i;
 
-        for (uint_fast8_t i = 0; *n && i < IMAP_NODE_SZ; i++)
+        for (i = 0; *n && i < IMAP_NODE_SZ; i++)
         {
             nd = imap->nodes + i;
 
@@ -320,8 +323,9 @@ slist_t * imap_slist(imap_t * imap)
         if (imap->slist != NULL && imap->len)
         {
             imap_node_t * nd;
+            uint_fast8_t i;
 
-            for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+            for (i = 0; i < IMAP_NODE_SZ; i++)
             {
                 nd = imap->nodes + i;
 
@@ -390,8 +394,9 @@ slist_t * imap_2slist_ref(imap_t * imap)
         if (imap->slist != NULL && imap->len)
         {
             imap_node_t * nd;
+            uint_fast8_t i;
 
-            for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+            for (i = 0; i < IMAP_NODE_SZ; i++)
             {
                 nd = imap->nodes + i;
 
@@ -410,7 +415,8 @@ slist_t * imap_2slist_ref(imap_t * imap)
     }
     else
     {
-        for (size_t i = 0; i < imap->slist->len; i++)
+        size_t i;
+        for (i = 0; i < imap->slist->len; i++)
         {
             slist_object_incref(imap->slist->data[i]);
         }
@@ -443,8 +449,9 @@ void imap_union_ref(
     {
         imap_node_t * dest_nd;
         imap_node_t * imap_nd;
+        uint_fast8_t i;
 
-        for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+        for (i = 0; i < IMAP_NODE_SZ; i++)
         {
             dest_nd = dest->nodes + i;
             imap_nd = imap->nodes + i;
@@ -512,8 +519,9 @@ void imap_intersection_ref(
 
     imap_node_t * dest_nd;
     imap_node_t * imap_nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         dest_nd = dest->nodes + i;
         imap_nd = imap->nodes + i;
@@ -578,8 +586,9 @@ void imap_difference_ref(
     {
         imap_node_t * dest_nd;
         imap_node_t * imap_nd;
+        uint_fast8_t i;
 
-        for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+        for (i = 0; i < IMAP_NODE_SZ; i++)
         {
             dest_nd = dest->nodes + i;
             imap_nd = imap->nodes + i;
@@ -647,8 +656,9 @@ void imap_symmetric_difference_ref(
     {
         imap_node_t * dest_nd;
         imap_node_t * imap_nd;
+        uint_fast8_t i;
 
-        for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+        for (i = 0; i < IMAP_NODE_SZ; i++)
         {
             dest_nd = dest->nodes + i;
             imap_nd = imap->nodes + i;
@@ -706,8 +716,9 @@ void imap_symmetric_difference_ref(
 static void IMAP_node_free(imap_node_t * node)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         if ((nd = node->nodes + i)->nodes != NULL)
         {
@@ -721,8 +732,9 @@ static void IMAP_node_free(imap_node_t * node)
 static void IMAP_node_free_cb(imap_node_t * node, imap_free_cb cb)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         nd = node->nodes + i;
 
@@ -871,8 +883,9 @@ static void * IMAP_pop(imap_node_t * node, uint64_t id)
 static void IMAP_walk(imap_node_t * node, imap_cb cb, void * data, int * rc)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         nd = node->nodes + i;
 
@@ -891,8 +904,9 @@ static void IMAP_walk(imap_node_t * node, imap_cb cb, void * data, int * rc)
 static void IMAP_walkn(imap_node_t * node, imap_cb cb, void * data, size_t * n)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; *n && i < IMAP_NODE_SZ; i++)
+    for (i = 0; *n && i < IMAP_NODE_SZ; i++)
     {
         nd = node->nodes + i;
 
@@ -911,8 +925,9 @@ static void IMAP_walkn(imap_node_t * node, imap_cb cb, void * data, size_t * n)
 static void IMAP_2slist(imap_node_t * node, slist_t * slist)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         nd = node->nodes + i;
 
@@ -931,8 +946,9 @@ static void IMAP_2slist(imap_node_t * node, slist_t * slist)
 static void IMAP_2slist_ref(imap_node_t * node, slist_t * slist)
 {
     imap_node_t * nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         nd = node->nodes + i;
 
@@ -953,8 +969,9 @@ static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node)
 {
     imap_node_t * dest_nd;
     imap_node_t * node_nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         dest_nd = dest->nodes + i;
         node_nd = node->nodes + i;
@@ -1003,8 +1020,9 @@ static void IMAP_intersection_ref(
 {
     imap_node_t * dest_nd;
     imap_node_t * node_nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         dest_nd = dest->nodes + i;
         node_nd = node->nodes + i;
@@ -1058,8 +1076,9 @@ static void IMAP_difference_ref(
 {
     imap_node_t * dest_nd;
     imap_node_t * node_nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         dest_nd = dest->nodes + i;
         node_nd = node->nodes + i;
@@ -1113,8 +1132,9 @@ static void IMAP_symmetric_difference_ref(
 {
     imap_node_t * dest_nd;
     imap_node_t * node_nd;
+    uint_fast8_t i;
 
-    for (uint_fast8_t i = 0; i < IMAP_NODE_SZ; i++)
+    for (i = 0; i < IMAP_NODE_SZ; i++)
     {
         dest_nd = dest->nodes + i;
         node_nd = node->nodes + i;

@@ -79,26 +79,26 @@ typedef struct query_alter_s
     QUERY_DEF
     query_alter_tp alter_tp;
     union query_alter_u via;
-    size_t n;   // can be used as counter
+    size_t n;   /* can be used as counter   */
 } query_alter_t;
 
 typedef struct query_count_s
 {
     QUERY_DEF
-    size_t n;   // can be used as counter
+    size_t n;   /* can be used as counter       */
 } query_count_t;
 
 typedef struct query_drop_s
 {
     QUERY_DEF
-    size_t n;  // keep a counter for number of drops.
+    size_t n;  /* keep a counter for number of drops.   */
     slist_t * shards_list;
 } query_drop_t;
 
 typedef struct query_list_s
 {
     QUERY_DEF
-    slist_t * props;  // will be freed
+    slist_t * props;  /* will be freed      */
     size_t limit;
 } query_list_t;
 
@@ -107,14 +107,14 @@ typedef struct query_select_s
     QUERY_DEF
     size_t n;
     size_t nselects;
-    uint64_t * start_ts;  // will NOT be freed
-    uint64_t * end_ts;  // will NOT be freed
+    uint64_t * start_ts;    /* will NOT be freed        */
+    uint64_t * end_ts;      /* will NOT be freed        */
     siridb_presuf_t * presuf;
     char * merge_as;
     ct_t * result;
-    imap_t * points_map;    // points_map for caching
-    slist_t * alist;        // aggregation list (can be used multiple times)
-    slist_t * mlist;        // merge aggregation list
+    imap_t * points_map;    /* points_map for caching                       */
+    slist_t * alist;        /* aggregation list (can be used multiple times)*/
+    slist_t * mlist;        /* merge aggregation list                       */
 } query_select_t;
 
 query_alter_t * query_alter_new(void);

@@ -29,7 +29,7 @@ typedef struct siridb_aggr_s
     uint64_t group_by;
     uint64_t limit;
     uint64_t offset;
-    double timespan;  // used for derivative
+    double timespan;  /* used for derivative        */
     pcre2_code * regex;             \
     pcre2_match_data * match_data;
     qp_via_t filter_via;

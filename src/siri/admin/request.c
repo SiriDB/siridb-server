@@ -802,7 +802,8 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
     if (siri_admin_client_request(
             pid,
             port,
-            (req == ADMIN_NEW_POOL) ? -1 : qp_pool.via.int64, // -1 = new pool
+            /* -1 = new pool  */
+            (req == ADMIN_NEW_POOL) ? -1 : qp_pool.via.int64,
             &uuid,
             &qp_host,
             &qp_username,

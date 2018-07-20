@@ -25,9 +25,9 @@
 #include <siri/optimize.h>
 #include <qpack/qpack.h>
 
-#define INITSYNC_SLEEP 100          // 100 milliseconds * active tasks
-#define INITSYNC_TIMEOUT 120000     // 2 minutes
-#define INITSYNC_RETRY 30000        // 30 seconds
+#define INITSYNC_SLEEP 100          /* 100 milliseconds * active tasks  */
+#define INITSYNC_TIMEOUT 120000     /* 2 minutes                        */
+#define INITSYNC_RETRY 30000        /* 30 seconds                       */
 #define INITSYC_FN ".initsync"
 
 void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype);

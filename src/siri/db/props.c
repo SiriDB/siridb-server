@@ -175,8 +175,12 @@ extern char * who_am_i;
 
 void siridb_init_props(void)
 {
-    for (uint_fast16_t i = 0; i < KW_COUNT; i++)
+    uint_fast16_t i;
+
+    for (i = 0; i < KW_COUNT; i++)
+    {
         siridb_props[i] = NULL;
+    }
 
     siridb_props[CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET] =
             prop_active_handles;

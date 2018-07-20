@@ -29,8 +29,8 @@
 #include <siri/db/tasks.h>
 
 #define MAX_INSERT_MSG 236
-#define INSERT_TIMEOUT 300000  // 5 minutes
-#define INSERT_AT_ONCE 3000    // one point counts as 1, a series as 100
+#define INSERT_TIMEOUT 300000  /* 5 minutes                                 */
+#define INSERT_AT_ONCE 3000    /* one point counts as 1, a series as 100    */
 #define WEIGHT_SERIES 50
 #define WEIGHT_NEW_SERIES 100
 
@@ -137,8 +137,10 @@ const char * siridb_insert_err_msg(siridb_insert_err_t err)
  */
 void siridb_insert_free(siridb_insert_t * insert)
 {
+    size_t n;
+
     /* free packer */
-    for (size_t n = 0; n < insert->packer_size; n++)
+    for (n = 0; n < insert->packer_size; n++)
     {
         if (insert->packer[n] != NULL)
         {
@@ -218,6 +220,9 @@ siridb_insert_t * siridb_insert_new(
     }
     else
     {
+        size_t n;
+        uint32_t psize;
+
         insert->free_cb = INSERT_free;
         insert->ref = 1;  /* used as reference on (siri_async_t) handle */
 
@@ -241,9 +246,9 @@ siridb_insert_t * siridb_insert_new(
          * Allocate packers for sending data to pools. we allocate smaller
          * sizes in case we have a lot of pools.
          */
-        uint32_t psize = QP_SUGGESTED_SIZE / ((siridb->pools->len / 4) + 1);
+        psize = QP_SUGGESTED_SIZE / ((siridb->pools->len / 4) + 1);
 
-        for (size_t n = 0; n < siridb->pools->len; n++)
+        for (n = 0; n < siridb->pools->len; n++)
         {
             if ((insert->packer[n] = sirinet_packer_new(psize)) == NULL)
             {
@@ -347,8 +352,8 @@ int insert_init_backend_local(
 
     handle->data = ilocal;
 
-    qp_next(&ilocal->unpacker, NULL); // map
-    qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
+    qp_next(&ilocal->unpacker, NULL); /* map  */
+    qp_next(&ilocal->unpacker, &ilocal->qp_series_name); /* first series/end */
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
@@ -384,8 +389,10 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         if (packer != NULL)
         {
             cproto_server_t tp = CPROTO_RES_INSERT;
+            size_t i;
+            sirinet_pkg_t * response_pkg;
 
-            for (size_t i = 0; i < promises->len; i++)
+            for (i = 0; i < promises->len; i++)
             {
                 promise = promises->data[i];
                 if (siri_err || promise == NULL)
@@ -437,7 +444,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                     (const unsigned char *) msg,
                     (n < MAX_INSERT_MSG) ? n : MAX_INSERT_MSG);
 
-            sirinet_pkg_t * response_pkg = sirinet_packer2pkg(
+            response_pkg = sirinet_packer2pkg(
                     packer,
                     insert->pid,
                     tp);
@@ -520,10 +527,10 @@ static int8_t INSERT_local_work(
             siridb->series,
             (const char *) qp_series_name->via.raw);
 
-        qp_next(unpacker, NULL); // array open
-        qp_next(unpacker, NULL); // first point array2
-        qp_next(unpacker, &qp_series_ts); // first ts
-        qp_next(unpacker, &qp_series_val); // first val
+        qp_next(unpacker, NULL); /* array open          */
+        qp_next(unpacker, NULL); /* first point array2  */
+        qp_next(unpacker, &qp_series_ts); /* first ts   */
+        qp_next(unpacker, &qp_series_val); /* first val */
 
         if (series == NULL)
         {
@@ -597,8 +604,8 @@ static int8_t INSERT_local_work(
 
             if (tp == QP_ARRAY2) do
             {
-                qp_next(unpacker, &qp_series_ts); // ts
-                qp_next(unpacker, &qp_series_val); // val
+                qp_next(unpacker, &qp_series_ts); /* ts     */
+                qp_next(unpacker, &qp_series_val); /* val   */
 
                 if (series->tp == TP_STRING)
                 {
@@ -699,10 +706,10 @@ static int INSERT_local_work_test(
 
                 /* save pointer position and read series type */
                 pt = unpacker->pt;
-                qp_next(unpacker, NULL); // array open
-                qp_next(unpacker, NULL); // first point array2
-                qp_next(unpacker, NULL); // first ts
-                qp_next(unpacker, &qp_series_val); // first val
+                qp_next(unpacker, NULL); /* array open          */
+                qp_next(unpacker, NULL); /* first point array2  */
+                qp_next(unpacker, NULL); /* first ts            */
+                qp_next(unpacker, &qp_series_val); /* first val */
 
                 /* restore pointer position */
                 unpacker->pt = pt;
@@ -751,16 +758,16 @@ static int INSERT_local_work_test(
                  * Skip this series since it will forwarded to the correct
                  * pool by the replica server.
                  */
-                qp_skip_next(unpacker);  // array
+                qp_skip_next(unpacker);  /* array  */
                 qp_next(unpacker, qp_series_name);
                 continue;  /* expected to be 0 */
             }
         }
 
-        qp_next(unpacker, NULL); // array open
-        qp_next(unpacker, NULL); // first point array2
-        qp_next(unpacker, &qp_series_ts); // first ts
-        qp_next(unpacker, &qp_series_val); // first val
+        qp_next(unpacker, NULL); /* array open              */
+        qp_next(unpacker, NULL); /* first point array2      */
+        qp_next(unpacker, &qp_series_ts); /* first ts       */
+        qp_next(unpacker, &qp_series_val); /* first val     */
 
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
@@ -815,8 +822,8 @@ static int INSERT_local_work_test(
 
             if (tp == QP_ARRAY2) do
             {
-                qp_next(unpacker, &qp_series_ts); // ts
-                qp_next(unpacker, &qp_series_val); // val
+                qp_next(unpacker, &qp_series_ts);   /*    ts    */
+                qp_next(unpacker, &qp_series_val);  /*    val   */
 
                 if (series->tp == TP_STRING)
                 {
@@ -1055,8 +1062,8 @@ static int INSERT_init_local(
 
     handle->data = ilocal;
 
-    qp_next(&ilocal->unpacker, NULL); // map
-    qp_next(&ilocal->unpacker, &ilocal->qp_series_name); // first series or end
+    qp_next(&ilocal->unpacker, NULL); /* map    */
+    qp_next(&ilocal->unpacker, &ilocal->qp_series_name); /* first series/end */
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
@@ -1086,15 +1093,15 @@ static void INSERT_points_to_pools(uv_async_t * handle)
             (sirinet_promises_cb) INSERT_on_response,
             handle,
             NULL);
+    int pool_count = 0;
+    uint16_t n;
 
     if (promises == NULL)
     {
         return;  /* signal is raised */
     }
 
-    int pool_count = 0;
-
-    for (uint16_t n = 0; n < insert->packer_size; n++)
+    for (n = 0; n < insert->packer_size; n++)
     {
         if (insert->packer[n]->len == sizeof(sirinet_pkg_t) + 1)
         {

@@ -31,13 +31,13 @@
 #include <siri/db/tasks.h>
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
-#define SIRIDB_MAX_DBNAME_LEN 256  // 255 + NULL
+#define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
 #define SIRIDB_SCHEMA 3
 #define SIRIDB_FLAG_REINDEXING 1
 
-#define DEF_DROP_THRESHOLD 1.0              // 100%
-#define DEF_SELECT_POINTS_LIMIT 1000000     // one million
-#define DEF_LIST_LIMIT 10000                // ten thousand
+#define DEF_DROP_THRESHOLD 1.0              /* 100%         */
+#define DEF_SELECT_POINTS_LIMIT 1000000     /* one million  */
+#define DEF_LIST_LIMIT 10000                /* ten thousand */
 
 #define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
     char FN[strlen(__path) + strlen(FILENAME) + 1];                 \
@@ -87,9 +87,9 @@ typedef struct siridb_s
     iso8601_tz_t tz;
     size_t buffer_size;
     size_t buffer_len;
-    struct timespec start_time;         // to calculate up-time.
-    uint64_t duration_num;              // number duration in s, ms, us or ns
-    uint64_t duration_log;              // log duration in s, ms, us or ns
+    struct timespec start_time;     /* to calculate up-time.                */
+    uint64_t duration_num;          /* number duration in s, ms, us or ns   */
+    uint64_t duration_log;          /* log duration in s, ms, us or ns      */
     char * dbname;
     char * dbpath;
     char * buffer_path;

@@ -17,17 +17,17 @@
 #include <siri/db/server.h>
 #include <siri/net/pkg.h>
 
-#define PROMISE_DEFAULT_TIMEOUT 30000  // 30 seconds
+#define PROMISE_DEFAULT_TIMEOUT 30000  /* 30 seconds  */
 
 typedef struct siridb_server_s siridb_server_t;
 typedef struct sirinet_promise_s sirinet_promise_t;
 
 typedef enum
 {
-    PROMISE_TIMEOUT_ERROR=-4,   // in case of a time out
-    PROMISE_WRITE_ERROR,        // socket write error
-    PROMISE_CANCELLED_ERROR,    // timer is cancelled
-    PROMISE_PKG_TYPE_ERROR,     // unexpected package type received
+    PROMISE_TIMEOUT_ERROR=-4,   /* in case of a time out            */
+    PROMISE_WRITE_ERROR,        /* socket write error               */
+    PROMISE_CANCELLED_ERROR,    /* timer is cancelled               */
+    PROMISE_PKG_TYPE_ERROR,     /* unexpected package type received */
     PROMISE_SUCCESS=0
 } sirinet_promise_status_t;
 

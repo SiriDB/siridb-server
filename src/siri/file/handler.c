@@ -42,13 +42,15 @@ siri_fh_t * siri_fh_new(uint16_t size)
  */
 void siri_fh_free(siri_fh_t * fh)
 {
+    siri_fp_t ** fp;
+    uint16_t i;
+
     if (fh == NULL)
     {
         return;
     }
 
-    siri_fp_t ** fp;
-    for (uint16_t i = 0; i < fh->size; i++)
+    for (i = 0; i < fh->size; i++)
     {
         fp = fh->fpointers + i;
 

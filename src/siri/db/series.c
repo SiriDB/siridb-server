@@ -225,8 +225,9 @@ int siridb_series_add_pcache(
     else
     {
         siridb_point_t *__restrict point;
+        size_t i;
 
-        for (size_t i = 0; i < pcache->len; i++)
+        for (i = 0; i < pcache->len; i++)
         {
             point = pcache->data + i;
 
@@ -328,6 +329,9 @@ siridb_series_t * siridb_series_new(
  */
 void siridb__series_free(siridb_series_t *__restrict series)
 {
+    siridb_shard_t * shard;
+    uint_fast32_t i;
+
 #if DEBUG
     if (siri.status == SIRI_STATUS_RUNNING || 0)
     {
@@ -335,10 +339,8 @@ void siridb__series_free(siridb_series_t *__restrict series)
     }
 #endif
 
-    siridb_shard_t * shard;
-
     /* mark shards with dropped series flag */
-    for (uint_fast32_t i = 0; i < series->idx_len; i++)
+    for (i = 0; i < series->idx_len; i++)
     {
         shard = series->idx[i].shard;
         shard->flags |= SIRIDB_SHARD_HAS_DROPPED_SERIES;
@@ -367,13 +369,15 @@ void siridb__series_free(siridb_series_t *__restrict series)
  */
 int siridb_series_load(siridb_t * siridb)
 {
+    imap_t * dropped;
+
 #if DEBUG
     /* we must have a server because we need to know the pool id */
     assert (siridb->server != NULL);
 #endif
     log_info("Loading series");
 
-    imap_t * dropped = imap_new();
+    dropped = imap_new();
 
     if (dropped == NULL)
     {
@@ -1249,10 +1253,12 @@ static void SERIES_idx_sort(
  */
 static void SERIES_update_overlap(siridb_series_t *__restrict series)
 {
+    uint_fast32_t i;
+
 #if DEBUG
     assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 #endif
-    for (uint_fast32_t i = 1; i < series->idx_len; i++)
+    for (i = 1; i < series->idx_len; i++)
     {
         if (series->idx[i - 1].end_ts > series->idx[i].start_ts)
         {
@@ -1485,7 +1491,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 
     if (!xpath_file_exist(fn))
     {
-        // missing series file, create an empty file and return
+        /* missing series file, create an empty file and return  */
         return SERIES_save(siridb);
     }
 
@@ -1687,7 +1693,9 @@ static void SERIES_update_end(siridb_series_t *__restrict series)
     {
         uint64_t start = 0;
         idx_t * idx;
-        for (uint_fast32_t i = series->idx_len; i--;)
+        uint_fast32_t i;
+
+        for (i = series->idx_len; i--;)
         {
             idx = series->idx + i;
 

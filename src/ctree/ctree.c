@@ -76,7 +76,8 @@ void ct_free(ct_t * ct, ct_free_cb cb)
 {
     if (ct->nodes != NULL)
     {
-        for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
+        uint_fast16_t i, end;
+        for (i = 0, end = ct->n * BLOCKSZ; i < end; i++)
         {
             if ((*ct->nodes)[i] != NULL)
             {
@@ -281,11 +282,13 @@ int ct_items(ct_t * ct, ct_item_cb cb, void * args)
     ct_node_t * nd;
     int rc = 0;
     char * buffer = (char *) malloc(buffer_sz);
+    uint_fast16_t i, end;
+
     if (buffer == NULL)
     {
         return -1;
     }
-    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; !rc && i < end; i++)
+    for (i = 0, end = ct->n * BLOCKSZ; !rc && i < end; i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
@@ -307,8 +310,9 @@ int ct_values(ct_t * ct, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
     int rc = 0;
+    uint_fast16_t i, end;
 
-    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; i < end; i++)
+    for (i = 0, end = ct->n * BLOCKSZ; i < end; i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
@@ -327,8 +331,9 @@ int ct_values(ct_t * ct, ct_val_cb cb, void * args)
 void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args)
 {
     ct_node_t * nd;
+    uint_fast16_t i, end;
 
-    for (uint_fast16_t i = 0, end = ct->n * BLOCKSZ; *n && i < end; i++)
+    for (i = 0, end = ct->n * BLOCKSZ; *n && i < end; i++)
     {
         if ((nd = (*ct->nodes)[i]) == NULL)
         {
@@ -378,8 +383,9 @@ static int CT_items(
     {
         ct_node_t * nd;
         int rc;
+        uint_fast16_t i, end;
 
-        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
+        for (i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
@@ -417,8 +423,9 @@ static int CT_values(
     if (node->nodes != NULL)
     {
         ct_node_t * nd;
+        uint_fast16_t i, end;
 
-        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
+        for (i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
@@ -448,8 +455,9 @@ static void CT_valuesn(
     if (node->nodes != NULL)
     {
         ct_node_t * nd;
+        uint_fast16_t i, end;
 
-        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; *n && i < end; i++)
+        for (i = 0, end = node->n * BLOCKSZ; *n && i < end; i++)
         {
             if ((nd = (*node->nodes)[i]) == NULL)
             {
@@ -470,13 +478,15 @@ static int CT_add(
         const char * key,
         void * data)
 {
-    for (size_t n = 0; n < node->len; n++, key++)
+    size_t n;
+    for (n = 0; n < node->len; n++, key++)
     {
         char * pt = node->key + n;
         if (*key != *pt)
         {
             size_t new_sz;
             uint8_t k = (uint8_t) *pt;
+            ct_node_t * nd;
 
             /* create new nodes */
             ct_nodes_t * new_nodes =
@@ -487,7 +497,7 @@ static int CT_add(
             }
 
             /* create new nodes with rest of node pt */
-            ct_node_t * nd = (*new_nodes)[k % BLOCKSZ] =
+            nd = (*new_nodes)[k % BLOCKSZ] =
                     CT_node_new(pt + 1, node->len - n - 1, node->data);
             if (nd == NULL)
             {
@@ -843,7 +853,7 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
         ct_nodes_t * tmp;
         uint8_t diff = pos - node->offset - node->n + 1;
         uint8_t oldn = node->n;
-        node->n += diff;  // assert node->n > 0
+        node->n += diff;  /* assert node->n > 0 */
         tmp = (ct_nodes_t *) realloc(
                 node->nodes,
                 node->n * sizeof(ct_nodes_t));
@@ -870,7 +880,8 @@ static void CT_free(ct_node_t * node, ct_free_cb cb)
 {
     if (node->nodes != NULL)
     {
-        for (uint_fast16_t i = 0, end = node->n * BLOCKSZ; i < end; i++)
+        uint_fast16_t i, end;
+        for (i = 0, end = node->n * BLOCKSZ; i < end; i++)
         {
             if ((*node->nodes)[i] != NULL)
             {

@@ -120,11 +120,13 @@ const char * siri_help_get(
  */
 void siri_help_free(void)
 {
+    uint_fast16_t i;
+
 #if DEBUG
     log_debug("Free help");
 #endif
 
-    for (uint_fast16_t i = 0; i < HELP_COUNT; i ++)
+    for (i = 0; i < HELP_COUNT; i ++)
     {
         free(siri_help_content[i]);
     }

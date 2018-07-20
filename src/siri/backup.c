@@ -211,6 +211,7 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
 
     if (SIRI_OPTIMZE_IS_PAUSED)
     {
+        size_t i;
         siridb_shard_t * shard;
 
         /*
@@ -225,7 +226,7 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
                     "Cannot create shard list so not all shard files "
                     "will be closed in backup mode.");
         }
-        else for (size_t i = 0; i < shard_list->len; i++)
+        else for (i = 0; i < shard_list->len; i++)
         {
             shard = (siridb_shard_t *) shard_list->data[i];
 
