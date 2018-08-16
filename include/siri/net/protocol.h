@@ -13,17 +13,19 @@
 
 typedef enum
 {
-    CPROTO_REQ_QUERY,                   /* (query, time_precision)          */
-    CPROTO_REQ_INSERT,                  /* series with points map/array     */
-    CPROTO_REQ_AUTH,                    /* (user, password, dbname)         */
-    CPROTO_REQ_PING,                    /* empty                            */
-    CPROTO_REQ_INFO,                    /* empty                            */
-    CPROTO_REQ_LOADDB,                  /* database path                    */
-    CPROTO_REQ_REGISTER_SERVER,         /* (uuid, host, port, pool)         */
+    CPROTO_REQ_QUERY=0,                 /* (query, time_precision)          */
+    CPROTO_REQ_INSERT=1,                /* series with points map/array     */
+    CPROTO_REQ_AUTH=2,                  /* (user, password, dbname)         */
+    CPROTO_REQ_PING=3,                  /* empty                            */
+
+    /* Start internal usage */
+    CPROTO_REQ_REGISTER_SERVER=6,       /* (uuid, host, port, pool)         */
     CPROTO_REQ_FILE_SERVERS,            /* empty                            */
     CPROTO_REQ_FILE_USERS,              /* empty                            */
     CPROTO_REQ_FILE_GROUPS,             /* empty                            */
     CPROTO_REQ_FILE_DATABASE,           /* empty                            */
+    /* End linternal usage */
+
     /* Administrative API request */
     CPROTO_REQ_ADMIN=32,                /* (user, password, request, {...}) */
 } cproto_client_t;
@@ -31,30 +33,28 @@ typedef enum
 typedef enum
 {
     /* success */
-    CPROTO_RES_QUERY,                   /* {query response data}            */
-    CPROTO_RES_INSERT,                  /* {"success_msg": ...}             */
-    CPROTO_RES_AUTH_SUCCESS,            /* empty                            */
-    CPROTO_RES_ACK,                     /* empty                            */
-    CPROTO_RES_INFO,                    /* [version, [dnname1, ...]]        */
-    CPROTO_RES_FILE,                    /* file content                     */
+    CPROTO_RES_QUERY=0,                 /* {query response data}            */
+    CPROTO_RES_INSERT=1,                /* {"success_msg": ...}             */
+    CPROTO_RES_AUTH_SUCCESS=2,          /* empty                            */
+    CPROTO_RES_ACK=3,                   /* empty                            */
+    CPROTO_RES_FILE=5,                  /* file content                     */
 
     /* Administrative API success */
     CPROTO_ACK_ADMIN=32,                /* empty                            */
-    CPROTO_ACK_ADMIN_DATA,              /* [...]                            */
+    CPROTO_ACK_ADMIN_DATA=33,           /* [...]                            */
 
     /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                  /* {"error_msg": ...}               */
-    CPROTO_ERR_QUERY,                   /* {"error_msg": ...}               */
-    CPROTO_ERR_INSERT,                  /* {"error_msg": ...}               */
-    CPROTO_ERR_SERVER,                  /* {"error_msg": ...}               */
-    CPROTO_ERR_POOL,                    /* {"error_msg": ...}               */
-    CPROTO_ERR_USER_ACCESS,             /* {"error_msg": ...}               */
-    CPROTO_ERR,                         /* empty (use for unexpected errors)*/
-    CPROTO_ERR_NOT_AUTHENTICATED,       /* empty                            */
-    CPROTO_ERR_AUTH_CREDENTIALS,        /* empty                            */
-    CPROTO_ERR_AUTH_UNKNOWN_DB,         /* empty                            */
-    CPROTO_ERR_LOADING_DB,              /* empty                            */
-    CPROTO_ERR_FILE,                    /* empty                            */
+    CPROTO_ERR_QUERY=65,                /* {"error_msg": ...}               */
+    CPROTO_ERR_INSERT=66,               /* {"error_msg": ...}               */
+    CPROTO_ERR_SERVER=67,               /* {"error_msg": ...}               */
+    CPROTO_ERR_POOL=68,                 /* {"error_msg": ...}               */
+    CPROTO_ERR_USER_ACCESS=69,          /* {"error_msg": ...}               */
+    CPROTO_ERR=70,                      /* empty (use for unexpected errors)*/
+    CPROTO_ERR_NOT_AUTHENTICATED=71,    /* empty                            */
+    CPROTO_ERR_AUTH_CREDENTIALS=72,     /* empty                            */
+    CPROTO_ERR_AUTH_UNKNOWN_DB=73,      /* empty                            */
+    CPROTO_ERR_FILE=75,                 /* empty                            */
 
     /* Administrative API errors */
     CPROTO_ERR_ADMIN=96,                /* {"error_msg": ...}               */

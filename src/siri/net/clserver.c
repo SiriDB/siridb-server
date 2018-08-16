@@ -77,8 +77,6 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_ping(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg);
 static void on_reqfile(
         uv_stream_t * client,
         sirinet_pkg_t * pkg,
@@ -92,7 +90,6 @@ static void CLSERVER_send_server_error(
 static void CLSERVER_send_pool_error(
         uv_stream_t * stream,
         sirinet_pkg_t * pkg);
-static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer);
 static void CLSERVER_on_register_server_response(
         slist_t * promises,
         siridb_server_async_t * server_reg);
@@ -255,12 +252,6 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
             break;
         case CPROTO_REQ_PING:
             on_ping(client, pkg);
-            break;
-        case CPROTO_REQ_INFO:
-            on_info(client, pkg);
-            break;
-        case CPROTO_REQ_LOADDB:
-            on_loaddb(client, pkg);
             break;
         case CPROTO_REQ_REGISTER_SERVER:
             on_register_server(client, pkg);
@@ -577,82 +568,6 @@ static void on_ping(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_info(uv_stream_t * client, sirinet_pkg_t * pkg)
-{
-    qp_packer_t * packer = sirinet_packer_new(128);
-    if (packer != NULL)
-    {
-        qp_add_type(packer, QP_ARRAY_OPEN);
-        qp_add_string(packer, SIRIDB_VERSION);
-        qp_add_type(packer, QP_ARRAY_OPEN);
-
-        if (!llist_walk(
-                siri.siridb_list,
-                (llist_cb) CLSERVER_on_info_cb,
-                packer))
-        {
-            sirinet_pkg_t * package = sirinet_packer2pkg(
-                    packer,
-                    pkg->pid,
-                    CPROTO_RES_INFO);
-
-            /* ignore result code, signal can be raised */
-            sirinet_pkg_send(client, package);
-        }
-        else
-        {
-            qp_packer_free(packer);
-        }
-    }
-}
-
-/*
- * This function can raise a SIGNAL.
- */
-static void on_loaddb(uv_stream_t * client, sirinet_pkg_t * pkg)
-{
-    qp_unpacker_t unpacker;
-    qp_unpacker_init(&unpacker, pkg->data, pkg->len);
-
-    qp_obj_t qp_dbpath;
-    if (qp_next(&unpacker, &qp_dbpath) == QP_RAW)
-    {
-        char * dbpath = strndup(
-                (const char *) qp_dbpath.via.raw, qp_dbpath.len);
-
-        if (dbpath == NULL)
-        {
-            ERR_ALLOC
-        }
-        else
-        {
-            siridb_t * siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
-            if (siridb != NULL)
-            {
-                siridb->server->flags |= SERVER_FLAG_RUNNING;
-
-                /* Force one heart-beat */
-                siri_heartbeat_force();
-            }
-            sirinet_pkg_t * package = sirinet_pkg_new(
-                    pkg->pid,
-                    0,
-                    (siridb == NULL) ?
-                            CPROTO_ERR_LOADING_DB : CPROTO_RES_ACK,
-                    NULL);
-            if (package != NULL)
-            {
-                sirinet_pkg_send(client, package);
-            }
-            free(dbpath);
-        }
-    }
-    else
-    {
-        log_error("Incorrect package received: 'on_loaddb'");
-    }
-}
-
 /*
  * This function can raise a SIGNAL.
  */
@@ -914,15 +829,6 @@ static void on_req_admin(uv_stream_t * client, sirinet_pkg_t * pkg)
         /* ignore result code, signal can be raised */
         sirinet_pkg_send(client, package);
     }
-}
-
-/*
- * Typedef: llist_cb
- * Returns 0 if successful or -1 and a SIGNAL is raised if not.
- */
-static int CLSERVER_on_info_cb(siridb_t * siridb, qp_packer_t * packer)
-{
-    return qp_add_string(packer, siridb->dbname);
 }
 
 /*

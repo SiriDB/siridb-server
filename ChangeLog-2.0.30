@@ -1,1 +1,4 @@
-  * SiriDB Server can now compile with gnu89/gnu90 (see issue #101)
+  * SiriDB Server can now compile with gnu89/gnu90. (see issue #101)
+  
+  * Removed deprecated info- and loaddb requests.
+  
