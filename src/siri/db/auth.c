@@ -58,8 +58,18 @@ cproto_server_t siridb_auth_user_request(
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
 
-    ((sirinet_socket_t *) client->data)->siridb = siridb;
-    ((sirinet_socket_t *) client->data)->origin = user;
+    switch (client->type)
+    {
+    case UV_TCP:
+        ((sirinet_socket_t *) client->data)->siridb = siridb;
+        ((sirinet_socket_t *) client->data)->origin = user;
+        break;
+    case UV_NAMED_PIPE:
+        ((sirinet_pipe_t *) client->data)->siridb = siridb;
+        ((sirinet_pipe_t *) client->data)->origin = user;
+        break;
+    }
+
     siridb_user_incref(user);
 
     return CPROTO_RES_AUTH_SUCCESS;
@@ -116,8 +126,17 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
     }
 
-    ((sirinet_socket_t *) client->data)->siridb = siridb;
-    ((sirinet_socket_t *) client->data)->origin = server;
+    switch (client->type)
+    {
+    case UV_TCP:
+        ((sirinet_socket_t *) client->data)->siridb = siridb;
+        ((sirinet_socket_t *) client->data)->origin = server;
+        break;
+    case UV_NAMED_PIPE:
+        ((sirinet_pipe_t *) client->data)->siridb = siridb;
+        ((sirinet_pipe_t *) client->data)->origin = server;
+        break;
+    }
 
     free(server->version);
     server->version = strdup((const char *) qp_version->via.raw);
@@ -127,4 +146,3 @@ bproto_server_t siridb_auth_server_request(
 
     return BPROTO_AUTH_SUCCESS;
 }
-

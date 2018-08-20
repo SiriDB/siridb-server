@@ -764,4 +764,3 @@ static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
         sirinet_pkg_send(client, package);
     }
 }
-

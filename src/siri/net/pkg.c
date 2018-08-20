@@ -13,7 +13,7 @@
 #include <logger/logger.h>
 #include <siri/err.h>
 #include <siri/net/pkg.h>
-#include <siri/net/socket.h>
+#include <siri/net/clserver.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -167,7 +167,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 
     /* increment client reference counter */
-    sirinet_socket_incref(client);
+    sirinet_client_incref(client);
 
     data->client = client;
     data->pkg = pkg;
@@ -213,7 +213,7 @@ static void PKG_write_cb(uv_write_t * req, int status)
 
     pkg_send_t * data = (pkg_send_t *) req->data;
 
-    sirinet_socket_decref(data->client);
+    sirinet_client_decref(data->client);
 
     free(data->pkg);
     free(data);

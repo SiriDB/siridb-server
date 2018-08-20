@@ -22,7 +22,7 @@
 #include <siri/err.h>
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
-#include <siri/net/socket.h>
+#include <siri/net/clserver.h>
 #include <siri/siri.h>
 #include <stdio.h>
 #include <string.h>
@@ -280,7 +280,7 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
     insert->npoints= npoints;
 
     /* increment the client reference counter */
-    sirinet_socket_incref(insert->client);
+    sirinet_client_incref(insert->client);
 
     uv_async_init(siri.loop, handle, INSERT_points_to_pools);
     handle->data = (void *) insert;
@@ -341,7 +341,7 @@ int insert_init_backend_local(
     }
     qp_unpacker_init(&ilocal->unpacker, promise->pkg->data, promise->pkg->len);
 
-    sirinet_socket_incref(client);
+    sirinet_client_incref(client);
     promise->data = client;
 
     promise->cb = (sirinet_promise_cb) INSERT_local_promise_backend_cb;
@@ -376,8 +376,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         sirinet_pkg_t * pkg;
         sirinet_promise_t * promise;
         siridb_insert_t * insert = (siridb_insert_t *) handle->data;
-        siridb_t * siridb =
-                ((sirinet_socket_t *) insert->client->data)->siridb;
+        CLIENT_SIRIDB(insert->client, siridb)
 
         int n = 0;
         char msg[MAX_INSERT_MSG];
@@ -998,7 +997,7 @@ static void INSERT_local_promise_backend_cb(
     {
         sirinet_pkg_send(client, pkg);
     }
-    sirinet_socket_decref(client);
+    sirinet_client_decref(client);
     sirinet_promise_decref(promise);
 }
 
@@ -1085,7 +1084,8 @@ static int INSERT_init_local(
 static void INSERT_points_to_pools(uv_async_t * handle)
 {
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) insert->client->data)->siridb;
+    CLIENT_SIRIDB(insert->client, siridb)
+
     uint16_t pool = siridb->server->pool;
     sirinet_pkg_t * pkg, * repl_pkg;
     sirinet_promises_t * promises = sirinet_promises_new(
@@ -1472,7 +1472,7 @@ static void INSERT_free(uv_handle_t * handle)
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
 
     /* decrement the client reference counter */
-    sirinet_socket_decref(insert->client);
+    sirinet_client_decref(insert->client);
 
     /* free insert */
     siridb_insert_free(insert);
@@ -1481,5 +1481,3 @@ static void INSERT_free(uv_handle_t * handle)
     free((uv_async_t *) handle);
 
 }
-
-

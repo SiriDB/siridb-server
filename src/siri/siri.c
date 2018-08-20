@@ -40,6 +40,7 @@
 #include <siri/help/help.h>
 #include <siri/net/bserver.h>
 #include <siri/net/clserver.h>
+#include <siri/net/pipe.h>
 #include <siri/net/socket.h>
 #include <siri/parser/listener.h>
 #include <siri/siri.h>
@@ -491,8 +492,6 @@ static void SIRI_walk_close_handlers(
 
     switch (handle->type)
     {
-    case UV_WORK:
-        break;
     case UV_SIGNAL:
         /* this is where we cleanup the signal handlers */
         uv_close(handle, NULL);
@@ -509,6 +508,20 @@ static void SIRI_walk_close_handlers(
         else
         {
             sirinet_socket_decref(handle);
+        }
+        break;
+
+    case UV_NAMED_PIPE:
+        /* This can be a pipe server with data set to NULL or a SiriDB pipe
+         * which should be destroyed.
+         */
+        if (handle->data == NULL)
+        {
+            uv_close(handle, NULL);
+        }
+        else
+        {
+            sirinet_pipe_decref(handle);
         }
         break;
 

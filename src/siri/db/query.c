@@ -23,7 +23,7 @@
 #include <siri/db/walker.h>
 #include <siri/net/clserver.h>
 #include <siri/net/pkg.h>
-#include <siri/net/socket.h>
+#include <siri/net/clserver.h>
 #include <siri/parser/listener.h>
 #include <siri/parser/queries.h>
 #include <siri/siri.h>
@@ -70,7 +70,6 @@ void siridb_query_run(
         float factor,
         int flags)
 {
-    siridb_t * siridb;
     uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
@@ -104,7 +103,7 @@ void siridb_query_run(
     query->pid = pid;
 
     /* increment client reference counter */
-    sirinet_socket_incref(client);
+    sirinet_client_incref(client);
 
     query->client = client;
     query->flags = flags;
@@ -132,8 +131,9 @@ void siridb_query_run(
         log_debug("Parsing query (%d): %s", query->flags, query->q);
     }
 
+    CLIENT_SIRIDB(query->client, siridb)
+
     /* increment active tasks */
-    siridb = ((sirinet_socket_t *) query->client->data)->siridb;
     siridb_tasks_inc(siridb->tasks);
 
     /* send next call */
@@ -145,7 +145,7 @@ void siridb_query_run(
 void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    CLIENT_SIRIDB(query->client, siridb)
 
     /* decrement active tasks */
     siridb_tasks_dec(siridb->tasks);
@@ -174,7 +174,7 @@ void siridb_query_free(uv_handle_t * handle)
     }
 
     /* decrement client reference counter */
-    sirinet_socket_decref(query->client);
+    sirinet_client_decref(query->client);
 
     /* free query */
     free(query);
@@ -252,7 +252,7 @@ void siridb_query_forward(
         int flags)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    CLIENT_SIRIDB(query->client, siridb)
 
     /*
      * the size is important here, we will use the alloc_size to guess the
@@ -534,7 +534,8 @@ static void QUERY_send_no_query(uv_async_t * handle)
 
 #ifndef DEBUG
     /* production version returns timestamp now */
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    CLIENT_SIRIDB(query->client, siridb)
+
     qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
 
@@ -564,7 +565,8 @@ static void QUERY_parse(uv_async_t * handle)
 {
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
+    CLIENT_SIRIDB(query->client, siridb)
+
     siridb_walker_t * walker = siridb_walker_new(
             siridb,
             siridb_time_now(siridb, query->start),
@@ -654,8 +656,10 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
         char buffer[packer->alloc_size];
         size_t size = packer->alloc_size;
 
+        CLIENT_SIRIDB(query->client, siridb)
+
         rc = QUERY_rebuild(
-                ((sirinet_socket_t *) query->client->data)->siridb,
+                siridb,
                 query->pr->tree->children->node,
                 buffer,
                 &size,
