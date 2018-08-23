@@ -9,7 +9,8 @@
  *  - initial version, 10-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_QUERY_H_
+#define SIRIDB_QUERY_H_
 
 #define SIRIDB_QUERY_FLAG_MASTER 1
 #define SIRIDB_QUERY_FLAG_REBUILD 2
@@ -27,21 +28,6 @@ typedef enum
     SIRIDB_QUERY_FWD_UPDATE         /* Forward to all pools, upd repl(*)    */
 } siridb_query_fwd_t;
 
-
-#include <uv.h>
-#include <inttypes.h>
-#include <sys/time.h>
-#include <cleri/cleri.h>
-#include <qpack/qpack.h>
-#include <siri/db/time.h>
-#include <siri/db/nodes.h>
-#include <siri/db/series.h>
-#include <siri/db/db.h>
-#include <siri/net/protocol.h>
-
-typedef struct cleri_parse_s cleri_parse_t;
-typedef struct siridb_node_list_s siridb_node_list_t;
-
 typedef enum siridb_err_tp
 {
     SIRIDB_SUCCESS,
@@ -54,27 +40,22 @@ typedef enum siridb_err_tp
 
 } siridb_err_t;
 
-typedef struct siridb_query_s
-{
-    uv_close_cb free_cb;    /* must be on top */
-    uint8_t ref;
-    uint8_t flags;
-    uint16_t pid;
-    float factor;
-    void * data;
-    uv_stream_t * client;
-    char * q;
-    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
-    qp_packer_t * packer;
-    qp_packer_t * timeit;
-    cleri_parse_t * pr;
-    siridb_nodes_t * nodes;
-    struct timespec start;
-} siridb_query_t;
+typedef struct siridb_query_s siridb_query_t;
+
+#include <uv.h>
+#include <inttypes.h>
+#include <sys/time.h>
+#include <cleri/cleri.h>
+#include <qpack/qpack.h>
+#include <siri/db/time.h>
+#include <siri/db/nodes.h>
+#include <siri/db/series.h>
+#include <siri/db/db.h>
+#include <siri/net/protocol.h>
 
 void siridb_query_run(
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         const char * q,
         size_t q_len,
         float factor,
@@ -93,3 +74,23 @@ void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker);
 int siridb_query_err_from_pkg(siridb_query_t * query, sirinet_pkg_t * pkg);
+
+struct siridb_query_s
+{
+    uv_close_cb free_cb;    /* must be on top */
+    uint8_t ref;
+    uint8_t flags;
+    uint16_t pid;
+    float factor;
+    void * data;
+    sirinet_stream_t * client;
+    char * q;
+    char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
+    qp_packer_t * packer;
+    qp_packer_t * timeit;
+    cleri_parse_t * pr;
+    siridb_nodes_t * nodes;
+    struct timespec start;
+};
+
+#endif  /* SIRIDB_QUERY_H_ */

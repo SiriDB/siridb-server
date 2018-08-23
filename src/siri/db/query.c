@@ -21,11 +21,11 @@
 #include <siri/db/servers.h>
 #include <siri/db/time.h>
 #include <siri/db/walker.h>
+#include <siri/db/listener.h>
+#include <siri/db/queries.h>
 #include <siri/net/clserver.h>
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
-#include <siri/parser/listener.h>
-#include <siri/parser/queries.h>
 #include <siri/siri.h>
 #include <strextra/strextra.h>
 #include <string.h>
@@ -64,7 +64,7 @@ static void QUERY_send_no_query(uv_async_t * handle);
  */
 void siridb_query_run(
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         const char * q,
         size_t q_len,
         float factor,
@@ -103,7 +103,7 @@ void siridb_query_run(
     query->pid = pid;
 
     /* increment client reference counter */
-    sirinet_client_incref(client);
+    sirinet_stream_incref(client);
 
     query->client = client;
     query->flags = flags;
@@ -131,10 +131,8 @@ void siridb_query_run(
         log_debug("Parsing query (%d): %s", query->flags, query->q);
     }
 
-    CLIENT_SIRIDB(query->client, siridb)
-
     /* increment active tasks */
-    siridb_tasks_inc(siridb->tasks);
+    siridb_tasks_inc(client->siridb->tasks);
 
     /* send next call */
     uv_async_init(siri.loop, handle, (uv_async_cb) QUERY_parse);
@@ -145,7 +143,7 @@ void siridb_query_run(
 void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    CLIENT_SIRIDB(query->client, siridb)
+    siridb_t * siridb = query->client->siridb;
 
     /* decrement active tasks */
     siridb_tasks_dec(siridb->tasks);
@@ -174,7 +172,7 @@ void siridb_query_free(uv_handle_t * handle)
     }
 
     /* decrement client reference counter */
-    sirinet_client_decref(query->client);
+    sirinet_stream_decref(query->client);
 
     /* free query */
     free(query);
@@ -206,7 +204,7 @@ void siridb_send_query_result(uv_async_t * handle)
             query->pid,
             CPROTO_RES_QUERY);
 
-    sirinet_pkg_send((uv_stream_t *) query->client, pkg);
+    sirinet_pkg_send(query->client, pkg);
 
     query->packer = NULL;
 
@@ -232,7 +230,7 @@ void siridb_query_send_error(
     if (package != NULL)
     {
         /* ignore result code, signal can be raised */
-        sirinet_pkg_send((uv_stream_t *) query->client, package);
+        sirinet_pkg_send(query->client, package);
     }
     uv_close((uv_handle_t *) handle, siri_async_close);
 }
@@ -252,7 +250,7 @@ void siridb_query_forward(
         int flags)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    CLIENT_SIRIDB(query->client, siridb)
+    siridb_t * siridb = query->client->siridb;
 
     /*
      * the size is important here, we will use the alloc_size to guess the
@@ -534,7 +532,7 @@ static void QUERY_send_no_query(uv_async_t * handle)
 
 #ifndef DEBUG
     /* production version returns timestamp now */
-    CLIENT_SIRIDB(query->client, siridb)
+    siridb_t * siridb = query->client->siridb;
 
     qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
@@ -565,7 +563,7 @@ static void QUERY_parse(uv_async_t * handle)
 {
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    CLIENT_SIRIDB(query->client, siridb)
+    siridb_t * siridb = query->client->siridb;
 
     siridb_walker_t * walker = siridb_walker_new(
             siridb,
@@ -655,8 +653,7 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
         /* reserve 200 extra chars */
         char buffer[packer->alloc_size];
         size_t size = packer->alloc_size;
-
-        CLIENT_SIRIDB(query->client, siridb)
+        siridb_t * siridb = query->client->siridb;
 
         rc = QUERY_rebuild(
                 siridb,
@@ -701,12 +698,12 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
      */
     if (gid != CLERI_NONE)
     {
-        if (    (func = siriparser_listen_enter[gid]) != NULL &&
+        if (    (func = siridb_listen_enter[gid]) != NULL &&
                 siridb_walker_append(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;
         }
-        if (    (func = siriparser_listen_exit[gid]) != NULL &&
+        if (    (func = siridb_listen_exit[gid]) != NULL &&
                 siridb_walker_insert(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;

@@ -16,14 +16,14 @@
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
 #include <siri/net/protocol.h>
-#include <siri/net/socket.h>
+#include <siri/net/stream.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stdlib.h>
 #include <string.h>
 
 cproto_server_t siridb_auth_user_request(
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         qp_obj_t * qp_username,
         qp_obj_t * qp_password,
         qp_obj_t * qp_dbname)
@@ -58,17 +58,8 @@ cproto_server_t siridb_auth_user_request(
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
 
-    switch (client->type)
-    {
-    case UV_TCP:
-        ((sirinet_socket_t *) client->data)->siridb = siridb;
-        ((sirinet_socket_t *) client->data)->origin = user;
-        break;
-    case UV_NAMED_PIPE:
-        ((sirinet_pipe_t *) client->data)->siridb = siridb;
-        ((sirinet_pipe_t *) client->data)->origin = user;
-        break;
-    }
+    client->siridb = siridb;
+    client->origin = user;
 
     siridb_user_incref(user);
 
@@ -80,7 +71,7 @@ cproto_server_t siridb_auth_user_request(
  * null terminated.
  */
 bproto_server_t siridb_auth_server_request(
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         qp_obj_t * qp_uuid,
         qp_obj_t * qp_dbname,
         qp_obj_t * qp_version,
@@ -126,17 +117,8 @@ bproto_server_t siridb_auth_server_request(
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
     }
 
-    switch (client->type)
-    {
-    case UV_TCP:
-        ((sirinet_socket_t *) client->data)->siridb = siridb;
-        ((sirinet_socket_t *) client->data)->origin = server;
-        break;
-    case UV_NAMED_PIPE:
-        ((sirinet_pipe_t *) client->data)->siridb = siridb;
-        ((sirinet_pipe_t *) client->data)->origin = server;
-        break;
-    }
+    client->siridb = siridb;
+    client->origin = server;
 
     free(server->version);
     server->version = strdup((const char *) qp_version->via.raw);

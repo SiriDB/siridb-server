@@ -14,7 +14,7 @@
 #include <siri/db/aggregate.h>
 #include <siri/db/query.h>
 #include <siri/db/shard.h>
-#include <siri/parser/queries.h>
+#include <siri/db/queries.h>
 #include <stddef.h>
 #include <stdlib.h>
 

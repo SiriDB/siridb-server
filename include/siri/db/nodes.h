@@ -9,21 +9,23 @@
  *  - initial version, 10-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_NODES_H_
+#define SIRIDB_NODES_H_
+
+typedef struct siridb_nodes_s siridb_nodes_t;
 
 #include <cleri/cleri.h>
 #include <siri/db/db.h>
 #include <uv.h>
 
-typedef struct siridb_s siridb_t;
-typedef struct cleri_node_s cleri_node_t;
+void siridb_nodes_free(siridb_nodes_t * nodes);
+void siridb_nodes_next(siridb_nodes_t ** nodes);
 
-typedef struct siridb_nodes_s
+struct siridb_nodes_s
 {
     cleri_node_t * node;
     uv_async_cb cb;
     struct siridb_nodes_s * next;
-} siridb_nodes_t;
+};
 
-void siridb_nodes_free(siridb_nodes_t * nodes);
-void siridb_nodes_next(siridb_nodes_t ** nodes);
+#endif  /* SIRIDB_NODES_H_ */

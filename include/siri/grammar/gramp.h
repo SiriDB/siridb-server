@@ -14,7 +14,8 @@
  *  - initial version, 15-04-2016
  *
  */
-#pragma once
+#ifndef SIRI_GRAMP_H_
+#define SIRI_GRAMP_H_
 
 #include <siri/grammar/grammar.h>
 
@@ -28,3 +29,5 @@
 /* help statements */
 #define HELP_OFFSET CLERI_GID_HELP_ACCESS
 #define HELP_COUNT CLERI_GID_HELP_TIMEZONES + 1 - HELP_OFFSET
+
+#endif  /* SIRI_GRAMP_H_ */

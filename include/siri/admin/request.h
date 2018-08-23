@@ -9,9 +9,8 @@
  *  - initial version, 16-03-2017
  *
  */
-#pragma once
-#include <qpack/qpack.h>
-#include <siri/net/protocol.h>
+#ifndef SIRI_ADMIN_REQUEST_H_
+#define SIRI_ADMIN_REQUEST_H_
 
 typedef enum
 {
@@ -26,6 +25,9 @@ typedef enum
     ADMIN_GET_DATABASES
 } admin_request_t;
 
+#include <qpack/qpack.h>
+#include <siri/net/protocol.h>
+
 int siri_admin_request_init(void);
 void siri_admin_request_destroy(void);
 cproto_server_t siri_admin_request(
@@ -34,6 +36,9 @@ cproto_server_t siri_admin_request(
         qp_obj_t * qp_account,
         qp_packer_t ** packaddr,
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         char * err_msg);
 void siri_admin_request_rollback(const char * dbpath);
+
+
+#endif  /* SIRI_ADMIN_REQUEST_H_ */

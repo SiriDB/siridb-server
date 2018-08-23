@@ -18,6 +18,7 @@
 #include <siri/db/time.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/fifo.h>
+#include <siri/net/tcp.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stdio.h>
@@ -366,7 +367,7 @@ static void prop_ip_support(
         int map)
 {
     SIRIDB_PROP_MAP("ip_support", 10)
-    qp_add_string(packer, sirinet_socket_ip_support_str(siri.cfg->ip_support));
+    qp_add_string(packer, sirinet_tcp_ip_support_str(siri.cfg->ip_support));
 }
 
 static void prop_libuv(

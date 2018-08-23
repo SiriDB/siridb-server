@@ -10,7 +10,8 @@ C_SRCS += \
 ../src/siri/net/promise.c \
 ../src/siri/net/promises.c \
 ../src/siri/net/protocol.c \
-../src/siri/net/socket.c \
+../src/siri/net/stream.c \
+../src/siri/net/tcp.c \
 ../src/siri/net/pipe.c
 
 OBJS += \
@@ -20,7 +21,8 @@ OBJS += \
 ./src/siri/net/promise.o \
 ./src/siri/net/promises.o \
 ./src/siri/net/protocol.o \
-./src/siri/net/socket.o \
+./src/siri/net/stream.o \
+./src/siri/net/tcp.o \
 ./src/siri/net/pipe.o
 
 C_DEPS += \
@@ -30,7 +32,8 @@ C_DEPS += \
 ./src/siri/net/promise.d \
 ./src/siri/net/promises.d \
 ./src/siri/net/protocol.d \
-./src/siri/net/socket.d \
+./src/siri/net/stream.d \
+./src/siri/net/tcp.d \
 ./src/siri/net/pipe.d
 
 

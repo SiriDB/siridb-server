@@ -37,7 +37,6 @@ src/siri/file \
 src/siri/grammar \
 src/siri/help \
 src/siri/net \
-src/siri/parser \
 src/slist \
 src/strextra \
 src/test \

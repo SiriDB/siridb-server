@@ -9,7 +9,10 @@
  *  - initial version, 25-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_POOLS_H_
+#define SIRIDB_POOLS_H_
+
+typedef struct siridb_pools_s siridb_pools_t;
 
 #include <inttypes.h>
 #include <siri/db/db.h>
@@ -17,24 +20,9 @@
 #include <siri/db/server.h>
 #include <siri/net/pkg.h>
 #include <siri/net/promise.h>
+#include <siri/net/promises.h>
 #include <slist/slist.h>
 #include <siri/db/lookup.h>
-
-typedef struct siridb_pool_s siridb_pool_t;
-typedef struct siridb_s siridb_t;
-typedef struct siridb_server_s siridb_server_t;
-
-typedef void (* sirinet_promises_cb)(
-        slist_t * promises,
-        void * data);
-
-typedef struct siridb_pools_s
-{
-    uint16_t len;
-    siridb_pool_t * pool;
-    siridb_lookup_t * lookup;
-    siridb_lookup_t * prev_lookup;
-} siridb_pools_t;
 
 void siridb_pools_init(siridb_t * siridb);
 void siridb_pools_free(siridb_pools_t * pools);
@@ -59,3 +47,13 @@ void siridb_pools_send_pkg_2some(
         sirinet_promises_cb cb,
         void * data,
         int flags);
+
+struct siridb_pools_s
+{
+    uint16_t len;
+    siridb_pool_t * pool;
+    siridb_lookup_t * lookup;
+    siridb_lookup_t * prev_lookup;
+};
+
+#endif  /* SIRIDB_POOLS_H_ */

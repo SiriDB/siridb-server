@@ -34,7 +34,7 @@ void siridb_pools_init(siridb_t * siridb)
     assert (siridb->server != NULL);
 #endif
 
-    siridb->pools = (siridb_pools_t *) malloc(sizeof(siridb_pools_t));
+    siridb->pools = malloc(sizeof(siridb_pools_t));
     if (siridb->pools == NULL)
     {
         ERR_ALLOC
@@ -50,8 +50,7 @@ void siridb_pools_init(siridb_t * siridb)
     siridb->pools->len = max_pool + 1;
 
     /* allocate memory for all pools */
-    siridb->pools->pool = (siridb_pool_t *)
-            malloc(sizeof(siridb_pool_t) * siridb->pools->len);
+    siridb->pools->pool = malloc(sizeof(siridb_pool_t) * siridb->pools->len);
 
     if (siridb->pools->pool == NULL)
     {

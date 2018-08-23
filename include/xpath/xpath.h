@@ -9,7 +9,8 @@
  *  - initial version, 15-07-2016
  *
  */
-#pragma once
+#ifndef XPATH_H_
+#define XPATH_H_
 
 #include <stdio.h>
 #include <limits.h>
@@ -24,3 +25,5 @@ int xpath_file_exist(const char * fn);
 int xpath_is_dir(const char * path);
 ssize_t xpath_get_content(char ** buffer, const char * fn);
 int xpath_get_exec_path(char * path);
+
+#endif  /* XPATH_H_ */

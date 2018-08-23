@@ -208,7 +208,7 @@ ssize_t siridb_insert_assign_pools(
 siridb_insert_t * siridb_insert_new(
         siridb_t * siridb,
         uint16_t pid,
-        uv_stream_t * client)
+        sirinet_stream_t * client)
 {
     siridb_insert_t * insert = (siridb_insert_t *) malloc(
             sizeof(siridb_insert_t) +
@@ -280,7 +280,7 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
     insert->npoints= npoints;
 
     /* increment the client reference counter */
-    sirinet_client_incref(insert->client);
+    sirinet_stream_incref(insert->client);
 
     uv_async_init(siri.loop, handle, INSERT_points_to_pools);
     handle->data = (void *) insert;
@@ -291,7 +291,7 @@ int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
 
 int insert_init_backend_local(
         siridb_t * siridb,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
@@ -341,7 +341,7 @@ int insert_init_backend_local(
     }
     qp_unpacker_init(&ilocal->unpacker, promise->pkg->data, promise->pkg->len);
 
-    sirinet_client_incref(client);
+    sirinet_stream_incref(client);
     promise->data = client;
 
     promise->cb = (sirinet_promise_cb) INSERT_local_promise_backend_cb;
@@ -376,7 +376,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
         sirinet_pkg_t * pkg;
         sirinet_promise_t * promise;
         siridb_insert_t * insert = (siridb_insert_t *) handle->data;
-        CLIENT_SIRIDB(insert->client, siridb)
+        siridb_t * siridb = insert->client->siridb;
 
         int n = 0;
         char msg[MAX_INSERT_MSG];
@@ -448,7 +448,7 @@ static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
                     insert->pid,
                     tp);
 
-            sirinet_pkg_send((uv_stream_t *) insert->client, response_pkg);
+            sirinet_pkg_send(insert->client, response_pkg);
         }
     }
 
@@ -985,7 +985,7 @@ static void INSERT_local_promise_backend_cb(
 #if DEBUG
     assert (pkg == NULL);
 #endif
-    uv_stream_t * client = (uv_stream_t *) promise->data;
+    sirinet_stream_t * client = promise->data;
 
     pkg = sirinet_pkg_new(
             promise->pid,
@@ -997,7 +997,7 @@ static void INSERT_local_promise_backend_cb(
     {
         sirinet_pkg_send(client, pkg);
     }
-    sirinet_client_decref(client);
+    sirinet_stream_decref(client);
     sirinet_promise_decref(promise);
 }
 
@@ -1084,7 +1084,7 @@ static int INSERT_init_local(
 static void INSERT_points_to_pools(uv_async_t * handle)
 {
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
-    CLIENT_SIRIDB(insert->client, siridb)
+    siridb_t * siridb = insert->client->siridb;
 
     uint16_t pool = siridb->server->pool;
     sirinet_pkg_t * pkg, * repl_pkg;
@@ -1472,7 +1472,7 @@ static void INSERT_free(uv_handle_t * handle)
     siridb_insert_t * insert = (siridb_insert_t *) handle->data;
 
     /* decrement the client reference counter */
-    sirinet_client_decref(insert->client);
+    sirinet_stream_decref(insert->client);
 
     /* free insert */
     siridb_insert_free(insert);

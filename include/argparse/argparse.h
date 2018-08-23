@@ -9,8 +9,8 @@
  *  - initial version, 08-03-2016
  *
  */
-#pragma once
-#include <inttypes.h>
+#ifndef ARGPARSE_H_
+#define ARGPARSE_H_
 
 #define ARGPARSE_SUCCESS 0
 #define ARGPARSE_ERR_MISSING_VALUE -1
@@ -30,7 +30,20 @@ typedef enum {
     ARGPARSE_STORE_STR_CHOICE
 } argparse_action_t;
 
-typedef struct
+typedef struct argparse_args_s argparse_args_t;
+typedef struct argparse_parser_s argparse_parser_t;
+typedef struct argparse_argument_s argparse_argument_t;
+
+#include <inttypes.h>
+
+void argparse_init(argparse_parser_t * parser);
+void argparse_free(argparse_parser_t * parser);
+void argparse_add_argument(
+        argparse_parser_t * parser,
+        argparse_argument_t * argument);
+void argparse_parse(argparse_parser_t *parser, int argc, char *argv[]);
+
+struct argparse_argument_s
 {
     char * name;
     char shortcut;
@@ -41,24 +54,19 @@ typedef struct
     char * str_default;
     char * str_value;
     char * choices; /* choices must be separated by commas */
-} argparse_argument_t;
+};
 
-typedef struct argparse_args_s
+struct argparse_args_s
 {
     argparse_argument_t * argument;
-    struct argparse_args_s * next;
-} argparse_args_t;
+    argparse_args_t * next;
+};
 
-typedef struct argparse_parser_s
+struct argparse_parser_s
 {
     argparse_args_t * args;
     int32_t show_help;
     argparse_argument_t help;
-} argparse_parser_t;
+};
 
-void argparse_init(argparse_parser_t * parser);
-void argparse_free(argparse_parser_t * parser);
-void argparse_add_argument(
-        argparse_parser_t * parser,
-        argparse_argument_t * argument);
-void argparse_parse(argparse_parser_t *parser, int argc, char *argv[]);
+#endif  /* ARGPARSE_H_ */

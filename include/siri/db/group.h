@@ -9,30 +9,18 @@
  *  - initial version, 16-08-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_GROUP_H_
+#define SIRIDB_GROUP_H_
 
 #define PCRE2_CODE_UNIT_WIDTH 8
+#define GROUP_FLAG_INIT 1
+#define GROUP_FLAG_DROPPED 2
+
+typedef struct siridb_group_s siridb_group_t;
 
 #include <slist/slist.h>
 #include <siri/db/series.h>
 #include <pcre2.h>
-
-#define GROUP_FLAG_INIT 1
-#define GROUP_FLAG_DROPPED 2
-
-typedef struct siridb_series_s siridb_series_t;
-
-typedef struct siridb_group_s
-{
-    uint16_t ref;
-    uint16_t flags;
-    uint32_t n;     /* total series (needs an update from all pools) */
-    char * name;
-    char * source;  /* pattern/flags representation */
-    slist_t * series;
-    pcre2_code * regex;
-    pcre2_match_data * match_data;
-} siridb_group_t;
 
 siridb_group_t * siridb_group_new(
         const char * source,
@@ -60,3 +48,17 @@ void siridb__group_free(siridb_group_t * group);
 #define siridb_group_incref(group) group->ref++
 #define siridb_group_decref(group__) \
         if (!--group__->ref) siridb__group_free(group__)
+
+struct siridb_group_s
+{
+    uint16_t ref;
+    uint16_t flags;
+    uint32_t n;     /* total series (needs an update from all pools) */
+    char * name;
+    char * source;  /* pattern/flags representation */
+    slist_t * series;
+    pcre2_code * regex;
+    pcre2_match_data * match_data;
+};
+
+#endif  /* SIRIDB_GROUP_H_ */

@@ -28,6 +28,7 @@
 #include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
+#include <siri/db/misc.h>
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
@@ -568,7 +569,7 @@ int siridb_series_flush_dropped(siridb_t * siridb)
     }
     else if (fflush(siridb->dropped_fp))
     {
-        SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
+        siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
         log_critical("Could not flush dropped file: '%s'", fn);
         rc = -1;
     }
@@ -1188,7 +1189,7 @@ int siridb_series_optimize_shard(
 int siridb_series_open_store(siridb_t * siridb)
 {
     /* macro get series file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERIES_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERIES_FN)
 
     if ((siridb->store = qp_open(fn, "a")) == NULL)
     {
@@ -1369,7 +1370,7 @@ static int SERIES_save(siridb_t * siridb)
     log_debug("Cleanup series file");
 
     /* macro get series file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERIES_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERIES_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {
@@ -1417,7 +1418,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
 
     log_debug("Loading dropped series");
 
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
 
     if ((fp = fopen(fn, "r")) == NULL)
     {
@@ -1487,7 +1488,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     assert(siridb->max_series_id == 0);
 
     /* get series file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERIES_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERIES_FN)
 
     if (!xpath_file_exist(fn))
     {
@@ -1501,7 +1502,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     }
 
     /* unpacker will be freed in case schema check fails */
-    siridb_schema_check(SIRIDB_SERIES_SCHEMA)
+    siridb_misc_schema_check(SIRIDB_SERIES_SCHEMA)
 
     while (qp_next(unpacker, NULL) == QP_ARRAY3 &&
             qp_next(unpacker, &qp_series_name) == QP_RAW &&
@@ -1568,7 +1569,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
  */
 static int SERIES_open_new_dropped_file(siridb_t * siridb)
 {
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
 
     if ((siridb->dropped_fp = fopen(fn, "w")) == NULL)
     {
@@ -1585,7 +1586,7 @@ static int SERIES_open_new_dropped_file(siridb_t * siridb)
  */
 static int SERIES_open_dropped_file(siridb_t * siridb)
 {
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_DROPPED_FN)
 
     if ((siridb->dropped_fp = fopen(fn, "a")) == NULL)
     {
@@ -1616,7 +1617,7 @@ static int SERIES_update_max_id(siridb_t * siridb)
     FILE * fp;
     uint32_t max_series_id = 0;
 
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_MAX_SERIES_ID_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_MAX_SERIES_ID_FN)
 
     if ((fp = fopen(fn, "r")) != NULL)
     {

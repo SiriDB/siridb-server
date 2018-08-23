@@ -9,7 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
-#include <siri/net/socket.h>
+#include <siri/net/tcp.h>
 
 /* do not use more than x percent for the max limit for open sharding files */
 #define RLIMIT_PERC_FOR_SHARDING 0.5
@@ -49,10 +49,7 @@ static void SIRI_CFG_read_addr(
         cfgparser_t * cfgparser,
         const char * option_name,
         char ** dest);
-static void SIRI_CFG_read_pipe_name(
-        cfgparser_t * cfgparser,
-        const char * option_name,
-        char * dest);
+static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
@@ -130,10 +127,7 @@ void siri_cfg_init(siri_t * siri)
 
     if (siri_cfg.pipe_support)
     {
-        SIRI_CFG_read_pipe_name(
-                cfgparser,
-                "pipe_client_name",
-                &siri_cfg.pipe_client_name);
+        SIRI_CFG_read_pipe_client_name(cfgparser);
     }
 
     cfgparser_free(cfgparser);
@@ -216,7 +210,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                 "ip_support",
                 siri.args->config,
                 cfgparser_errmsg(rc),
-                sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                sirinet_tcp_ip_support_str(siri_cfg.ip_support));
     }
     else if (option->tp != CFGPARSER_TP_STRING)
     {
@@ -226,7 +220,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                 "ip_support",
                 siri.args->config,
                 "error: expecting a string value",
-                sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                sirinet_tcp_ip_support_str(siri_cfg.ip_support));
     }
     else
     {
@@ -251,7 +245,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
                     "ip_support",
                     siri.args->config,
                     option->val->string,
-                    sirinet_socket_ip_support_str(siri_cfg.ip_support));
+                    sirinet_tcp_ip_support_str(siri_cfg.ip_support));
         }
     }
 }
@@ -287,7 +281,6 @@ static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser)
     {
         siri_cfg.shard_compression = 1;
     }
-
 }
 
 static void SIRI_CFG_read_pipe_support(cfgparser_t * cfgparser)
@@ -321,7 +314,6 @@ static void SIRI_CFG_read_pipe_support(cfgparser_t * cfgparser)
     {
         siri_cfg.pipe_support = 1;
     }
-
 }
 
 static void SIRI_CFG_read_addr(
@@ -368,10 +360,7 @@ static void SIRI_CFG_read_addr(
     }
 }
 
-static void SIRI_CFG_read_pipe_name(
-        cfgparser_t * cfgparser,
-        const char * option_name,
-        char * dest)
+static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser)
 {
     cfgparser_option_t * option;
     cfgparser_return_t rc;
@@ -380,46 +369,41 @@ static void SIRI_CFG_read_pipe_name(
                 &option,
                 cfgparser,
                 "siridb",
-                option_name);
+                "pipe_client_name");
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
                 "Error reading '%s' in '%s': %s. "
                 "Using default value: '%s'",
-                option_name,
+                "pipe_client_name",
                 siri.args->config,
                 cfgparser_errmsg(rc),
-                dest);
+                siri_cfg.pipe_client_name);
     }
     else if (option->tp != CFGPARSER_TP_STRING)
     {
         log_warning(
                 "Error reading '%s' in '%s': %s. "
                 "Using default value: '%s'",
-                option_name,
+                "pipe_client_name",
                 siri.args->config,
                 "error: expecting a string value",
-                dest);
+                siri_cfg.pipe_client_name);
     }
     else
     {
-        *dest = 0;
-
-        /* keep space left for a terminator char */
-        strncpy(dest,
-                option->val->string,
-                SIRI_PATH_MAX - 1);
-
-        len = strlen(dest);
-
-        if (len == SIRI_PATH_MAX - 1)
+        len = strlen(option->val->string);
+        if (len >= SIRI_PATH_MAX-1)
         {
             log_warning(
-                    "Default '%s' path exceeds %d characters, please "
+                    "Pipe client name exceeds %d characters, please "
                     "check your configuration file: %s",
-                    option_name,
-                    SIRI_PATH_MAX - 2,
+                    SIRI_PATH_MAX-2,
                     siri.args->config);
+        }
+        else
+        {
+            strcpy(siri_cfg.pipe_client_name, option->val->string);
         }
     }
 }

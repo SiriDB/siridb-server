@@ -9,20 +9,15 @@
  *  - initial version, 30-06-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_FIFO_H_
+#define SIRIDB_FIFO_H_
+
+typedef struct siridb_fifo_s siridb_fifo_t;
+
 #include <stddef.h>
 #include <siri/db/db.h>
 #include <llist/llist.h>
 #include <siri/db/ffile.h>
-
-typedef struct siridb_fifo_s
-{
-    char * path;
-    llist_t * fifos;
-    siridb_ffile_t * in;
-    siridb_ffile_t * out;
-    ssize_t max_id;     /*  max_id can be -1        */
-} siridb_fifo_t;
 
 
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb);
@@ -46,3 +41,14 @@ int siridb_fifo_open(siridb_fifo_t * fifo);
  * Returns 1 if the fifo buffer is open or 0 if closed.
  */
 #define siridb_fifo_is_open(fifo) (fifo->in->fp != NULL)
+
+struct siridb_fifo_s
+{
+    char * path;
+    llist_t * fifos;
+    siridb_ffile_t * in;
+    siridb_ffile_t * out;
+    ssize_t max_id;     /*  max_id can be -1        */
+};
+
+#endif  /* SIRIDB_FIFO_H_ */

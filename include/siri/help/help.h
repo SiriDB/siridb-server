@@ -9,7 +9,8 @@
  *  - initial version, 23-09-2016
  *
  */
-#pragma once
+#ifndef SIRI_HELP_H_
+#define SIRI_HELP_H_
 
 #include <siri/grammar/gramp.h>
 
@@ -19,3 +20,5 @@ const char * siri_help_get(
         char * err_msg);
 
 void siri_help_free(void);
+
+#endif  /* SIRI_HELP_H_ */

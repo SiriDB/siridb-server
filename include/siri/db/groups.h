@@ -9,13 +9,8 @@
  *  - initial version, 16-08-2016
  *
  */
-#pragma once
-
-#include <ctree/ctree.h>
-#include <slist/slist.h>
-#include <uv.h>
-#include <siri/db/db.h>
-#include <siri/net/pkg.h>
+#ifndef SIRIDB_GROUPS_H_
+#define SIRIDB_GROUPS_H_
 
 typedef enum
 {
@@ -24,21 +19,15 @@ typedef enum
     GROUPS_CLOSED
 } siridb_groups_status_t;
 
+typedef struct siridb_groups_s siridb_groups_t;
 
 #define GROUPS_FLAG_DROPPED_SERIES 1
 
-typedef struct siridb_groups_s
-{
-    uint8_t status;
-    uint8_t flags;
-    uint8_t ref;
-    char * fn;
-    ct_t * groups;
-    slist_t * nseries;  /* list of series we need to assign to groups */
-    slist_t * ngroups;  /* list of groups which need initialization */
-    uv_mutex_t mutex;
-    uv_work_t work;
-} siridb_groups_t;
+#include <ctree/ctree.h>
+#include <slist/slist.h>
+#include <uv.h>
+#include <siri/db/db.h>
+#include <siri/net/pkg.h>
 
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
 void siridb_groups_start(siridb_groups_t * groups);
@@ -61,3 +50,17 @@ int siridb_groups_add_group(
 int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series);
+
+struct siridb_groups_s
+{
+    uint8_t status;
+    uint8_t flags;
+    uint8_t ref;
+    char * fn;
+    ct_t * groups;
+    slist_t * nseries;  /* list of series we need to assign to groups */
+    slist_t * ngroups;  /* list of groups which need initialization */
+    uv_mutex_t mutex;
+    uv_work_t work;
+};
+#endif  /* SIRIDB_GROUPS_H_ */

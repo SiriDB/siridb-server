@@ -9,7 +9,8 @@
  *  - initial version, 04-08-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_RE_H_
+#define SIRIDB_RE_H_
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 
@@ -22,3 +23,6 @@ int siridb_re_compile(
         const char * source,
         size_t len,
         char * err_msg);
+
+
+#endif  /* SIRIDB_RE_H_ */

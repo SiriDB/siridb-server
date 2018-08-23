@@ -9,14 +9,15 @@
  *  - initial version, 03-08-2016
  *
  */
-#pragma once
+#ifndef IMAP_H_
+#define IMAP_H_
+
+typedef struct imap_node_s imap_node_t;
+typedef struct imap_s imap_t;
 
 #include <inttypes.h>
 #include <stddef.h>
 #include <slist/slist.h>
-
-typedef struct imap_node_s imap_node_t;
-typedef struct imap_s imap_t;
 
 typedef int (*imap_cb)(void * data, void * args);
 typedef int (*imap_free_cb)(void * data);
@@ -25,20 +26,6 @@ typedef void (*imap_update_cb)(
         imap_t * dest,
         imap_t * imap,
         imap_free_cb decref_cb);
-
-struct imap_node_s
-{
-    size_t size;
-    void * data ;
-    imap_node_t * nodes;
-};
-
-struct imap_s
-{
-    size_t len;
-    slist_t * slist;
-    imap_node_t nodes[];
-};
 
 imap_t * imap_new(void);
 void imap_free(imap_t * imap, imap_free_cb cb);
@@ -68,3 +55,20 @@ void imap_symmetric_difference_ref(
         imap_t * dest,
         imap_t * imap,
         imap_free_cb decref_cb);
+
+
+struct imap_node_s
+{
+    size_t size;
+    void * data ;
+    imap_node_t * nodes;
+};
+
+struct imap_s
+{
+    size_t len;
+    slist_t * slist;
+    imap_node_t nodes[];
+};
+
+#endif  /* IMAP_H_ */

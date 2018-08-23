@@ -21,7 +21,7 @@
 typedef struct pkg_send_s
 {
     sirinet_pkg_t * pkg;
-    uv_stream_t * client;
+    sirinet_stream_t * client;
 } pkg_send_t;
 
 static void PKG_write_cb(uv_write_t * req, int status);
@@ -145,7 +145,7 @@ sirinet_pkg_t * sirinet_pkg_err(
  *
  * Note: pkg will be freed after calling this function.
  */
-int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
+int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
 
@@ -167,7 +167,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 
     /* increment client reference counter */
-    sirinet_client_incref(client);
+    sirinet_stream_incref(client);
 
     data->client = client;
     data->pkg = pkg;
@@ -180,7 +180,7 @@ int sirinet_pkg_send(uv_stream_t * client, sirinet_pkg_t * pkg)
             (char *) pkg,
             sizeof(sirinet_pkg_t) + pkg->len);
 
-    uv_write(req, client, &wrbuf, 1, PKG_write_cb);
+    uv_write(req, client->stream, &wrbuf, 1, PKG_write_cb);
 
     return 0;
 }
@@ -213,7 +213,7 @@ static void PKG_write_cb(uv_write_t * req, int status)
 
     pkg_send_t * data = (pkg_send_t *) req->data;
 
-    sirinet_client_decref(data->client);
+    sirinet_stream_decref(data->client);
 
     free(data->pkg);
     free(data);

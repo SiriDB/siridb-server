@@ -9,7 +9,8 @@
  *  - initial version, 16-03-2016
  *
  */
-#pragma once
+#ifndef TIMEIT_H_
+#define TIMEIT_H_
 
 #include <time.h>
 
@@ -27,3 +28,5 @@ double timeit_get(struct timespec * start);
  *
  *  log_debug("Time in milliseconds: %f",timeit_stop(&start));
  */
+
+#endif  /* TIMEIT_H_ */

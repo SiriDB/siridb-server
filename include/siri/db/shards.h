@@ -9,16 +9,17 @@
  *  - initial version, 04-04-2016
  *
  */
-#pragma once
-
-#include <siri/db/db.h>
+#ifndef SIRIDB_SHARDS_H_
+#define SIRIDB_SHARDS_H_
 
 #define SIRIDB_SHARDS_PATH "shards/"
 
-typedef struct siridb_s siridb_t;
+#include <siri/db/db.h>
 
 int siridb_shards_load(siridb_t * siridb);
 int siridb_shards_add_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_points_t * points);
+
+#endif  /* SIRIDB_SHARDS_H_ */
