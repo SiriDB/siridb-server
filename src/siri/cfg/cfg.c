@@ -393,13 +393,24 @@ static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser)
     else
     {
         len = strlen(option->val->string);
-        if (len >= SIRI_PATH_MAX-1)
+        if (len > SIRI_PATH_MAX-2)
         {
             log_warning(
                     "Pipe client name exceeds %d characters, please "
-                    "check your configuration file: %s",
+                    "check your configuration file: %s. "
+                    "Using default value: '%s'",
                     SIRI_PATH_MAX-2,
-                    siri.args->config);
+                    siri.args->config,
+                    siri_cfg.pipe_client_name);
+        }
+        else if (len == 0)
+        {
+            log_warning(
+                    "Pipe client should not be an empty string, please "
+                    "check your configuration file: %s. "
+                    "Using default value: '%s'",
+                    siri.args->config,
+                    siri_cfg.pipe_client_name);
         }
         else
         {
