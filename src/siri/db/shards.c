@@ -24,6 +24,7 @@
 #include <logger/logger.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
+#include <siri/db/misc.h>
 #include <siri/siri.h>
 #include <stdbool.h>
 #include <string.h>
@@ -52,7 +53,7 @@ int siridb_shards_load(siridb_t * siridb)
 
     log_info("Loading shards");
 
-    SIRIDB_GET_FN(path, siridb->dbpath, SIRIDB_SHARDS_PATH);
+    siridb_misc_get_fn(path, siridb->dbpath, SIRIDB_SHARDS_PATH);
 
     if (strlen(path) >= SIRI_PATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
     {

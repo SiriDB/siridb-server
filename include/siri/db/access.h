@@ -9,11 +9,10 @@
  *  - initial version, 13-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_ACCESS_H_
+#define SIRIDB_ACCESS_H_
 
-#include <cleri/cleri.h>
-
-
+/* definitions of all access rights */
 #define SIRIDB_ACCESS_SHOW      1
 #define SIRIDB_ACCESS_COUNT     2
 #define SIRIDB_ACCESS_LIST      4
@@ -28,6 +27,7 @@
 /* this is a save size since access string cannot contain double items */
 #define SIRIDB_ACCESS_STR_MAX 128
 
+/* profile definitions */
 #define SIRIDB_ACCESS_PROFILE_READ      \
     SIRIDB_ACCESS_SHOW |                \
     SIRIDB_ACCESS_COUNT |               \
@@ -49,13 +49,9 @@
     SIRIDB_ACCESS_GRANT |               \
     SIRIDB_ACCESS_REVOKE
 
+typedef struct siridb_access_repr_s siridb_access_repr_t;
 
-typedef struct siridb_access_repr_s
-{
-    const char * repr;
-    uint32_t access_bit;
-} siridb_access_repr_t;
-
+#include <cleri/cleri.h>
 
 uint32_t siridb_access_from_strn(const char * str, size_t n);
 
@@ -67,3 +63,10 @@ uint32_t siridb_access_from_children(cleri_children_t * children);
 
 void siridb_access_to_str(char * str, uint32_t access_bit);
 
+struct siridb_access_repr_s
+{
+    const char * repr;
+    uint32_t access_bit;
+};
+
+#endif  /* SIRIDB_ACCESS_H_ */

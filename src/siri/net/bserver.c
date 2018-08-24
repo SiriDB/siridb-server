@@ -22,21 +22,23 @@
 #include <siri/net/bserver.h>
 #include <siri/net/pkg.h>
 #include <siri/net/protocol.h>
-#include <siri/net/socket.h>
+#include <siri/net/stream.h>
+#include <siri/net/tcp.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
 #include <stdlib.h>
 
 #define DEFAULT_BACKLOG 128
 
-#define SERVER_CHECK_AUTHENTICATED(server)                                    \
-siridb_server_t * server = ((sirinet_socket_t * ) client->data)->origin;      \
-if (!(server->flags & SERVER_FLAG_AUTHENTICATED))                             \
-{                                                                             \
-    sirinet_pkg_t * package;                                                  \
-    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ERR_NOT_AUTHENTICATED, NULL); \
-    sirinet_pkg_send((uv_stream_t *) client, package);                        \
-    return;                                                                   \
+#define SERVER_CHECK_AUTHENTICATED(client__, server__)                      \
+siridb_server_t * server__ = (client__)->origin;                            \
+if (!(server__->flags & SERVER_FLAG_AUTHENTICATED))                         \
+{                                                                           \
+    sirinet_pkg_t * package;                                                \
+    package = sirinet_pkg_new(                                              \
+    pkg->pid, 0, BPROTO_ERR_NOT_AUTHENTICATED, NULL);                       \
+    sirinet_pkg_send(client, package);                                      \
+    return;                                                                 \
 }
 
 static void BSERVER_flags_update(
@@ -44,18 +46,28 @@ static void BSERVER_flags_update(
         siridb_server_t * server,
         int64_t flags);
 static void on_new_connection(uv_stream_t * server, int status);
-static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
-static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags);
-static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
-static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_auth_request(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_flags_update(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_log_level_update(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg);
+static void on_repl_finished(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_query(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg, int flags);
+static void on_insert(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg, int flags);
+static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_drop_series(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_groups(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_enable_backup_mode(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg);
+static void on_disable_backup_mode(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_storage server_addr;
@@ -120,7 +132,7 @@ int sirinet_bserver_init(siri_t * siri)
                     UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
-            (uv_stream_t*) &backend_server,
+            (uv_stream_t *) &backend_server,
             DEFAULT_BACKLOG,
             on_new_connection);
 
@@ -146,22 +158,23 @@ static void on_new_connection(uv_stream_t * server, int status)
 
     log_debug("Received a back-end server connection request.");
 
-    uv_tcp_t * client =
-            sirinet_socket_new(SOCKET_BACKEND, (on_data_cb_t) &on_data);
+    sirinet_stream_t * client = sirinet_stream_new(
+            STREAM_TCP_BACKEND, (on_data_cb_t) &on_data);
+
     if (client != NULL)
     {
-        uv_tcp_init(loop, client);
+        uv_tcp_init(loop, (uv_tcp_t *) client->stream);
 
-        if (uv_accept(server, (uv_stream_t *) client) == 0)
+        if (uv_accept(server, client->stream) == 0)
         {
             uv_read_start(
-                    (uv_stream_t *) client,
-                    sirinet_socket_alloc_buffer,
-                    sirinet_socket_on_data);
+                    client->stream,
+                    sirinet_stream_alloc_buffer,
+                    sirinet_stream_on_data);
         }
         else
         {
-            sirinet_socket_decref(client);
+            sirinet_stream_decref(client);
         }
     }
 }
@@ -174,7 +187,7 @@ static void BSERVER_flags_update(
     /* update server flags */
     siridb_server_update_flags(server->flags, flags);
 
-    if (server->socket == NULL)
+    if (server->client == NULL)
     {
         /* connect in case we do not have a connection yet */
         siridb_server_connect(siridb, server);
@@ -200,20 +213,21 @@ static void BSERVER_flags_update(
             server->flags);
 }
 
-static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     if (Logger.level == LOGGER_DEBUG)
     {
-        char addr_port[ADDR_BUF_SZ];
-        if (sirinet_addr_and_port(addr_port, client) == 0)
+        char * name = sirinet_stream_name(client);
+        if (name != NULL)
         {
             log_debug(
                     "Package received from server '%s' "
                     "(pid: %" PRIu16 ", len: %" PRIu32 ", tp: %s)",
-                    addr_port,
+                    name,
                     pkg->pid,
                     pkg->len,
                     sirinet_bproto_client_str(pkg->tp));
+            free(name);
         }
     }
 
@@ -274,7 +288,7 @@ static void on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
 
 }
 
-static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_auth_request(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     bproto_server_t rc;
     sirinet_pkg_t * package;
@@ -324,9 +338,8 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
                 &qp_min_version);
         if (rc == BPROTO_AUTH_SUCCESS)
         {
-            siridb_server_t * server =
-                    ((sirinet_socket_t * ) client->data)->origin;
-            siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+            siridb_server_t * server = client->origin;
+            siridb_t * siridb = client->siridb;
 
             /* check and update flags */
             BSERVER_flags_update(siridb, server, qp_flags.via.int64);
@@ -369,12 +382,12 @@ static void on_auth_request(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_flags_update(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     sirinet_pkg_t * package;
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     qp_unpacker_t unpacker;
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
     qp_obj_t qp_flags;
@@ -395,9 +408,9 @@ static void on_flags_update(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_log_level_update(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     sirinet_pkg_t * package;
     qp_unpacker_t unpacker;
@@ -426,11 +439,11 @@ static void on_log_level_update(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_repl_finished(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     sirinet_pkg_t * package;
 
     if (siridb->server->flags & SERVER_FLAG_SYNCHRONIZING)
@@ -458,9 +471,9 @@ static void on_repl_finished(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
+static void on_query(sirinet_stream_t * client, sirinet_pkg_t * pkg, int flags)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     qp_unpacker_t unpacker;
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
@@ -469,7 +482,7 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
 
     if (flags & SIRIDB_QUERY_FLAG_UPDATE_REPLICA)
     {
-        siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+        siridb_t * siridb = client->siridb;
         if (siridb->replica != NULL)
         {
             pkg->tp = BPROTO_QUERY_SERVER;
@@ -494,12 +507,15 @@ static void on_query(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     }
 }
 
-static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
+static void on_insert(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg,
+        int flags)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     sirinet_pkg_t * package;
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     if ((flags & INSERT_FLAG_POOL) && siridb->replica != NULL)
     {
 #if DEBUG
@@ -558,12 +574,12 @@ static void on_insert(uv_stream_t * client, sirinet_pkg_t * pkg, int flags)
     }
 }
 
-static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     sirinet_pkg_t * package;
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     siridb_server_t * new_server;
 
     if (    siridb->server->flags != SERVER_FLAG_RUNNING ||
@@ -601,12 +617,12 @@ static void on_register_server(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_drop_series(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
     sirinet_pkg_t * package = NULL;
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
 
     if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
             (siridb->server->flags & SERVER_FLAG_BACKUP_MODE))
@@ -671,11 +687,11 @@ static void on_drop_series(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_req_groups(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     sirinet_pkg_t * package = siridb_groups_pkg(siridb->groups, pkg->pid);
 
     if (package != NULL)
@@ -684,11 +700,13 @@ static void on_req_groups(uv_stream_t * client, sirinet_pkg_t * pkg)
     }
 }
 
-static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_enable_backup_mode(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     sirinet_pkg_t * package;
 
     if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
@@ -725,11 +743,11 @@ static void on_enable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
 
 }
 
-static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void on_disable_backup_mode(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    SERVER_CHECK_AUTHENTICATED(server)
+    SERVER_CHECK_AUTHENTICATED(client, server)
 
-    siridb_t * siridb = ((sirinet_socket_t * ) client->data)->siridb;
+    siridb_t * siridb = client->siridb;
     sirinet_pkg_t * package = NULL;
 
     if (    (~siridb->server->flags & SERVER_FLAG_RUNNING) ||
@@ -764,4 +782,3 @@ static void on_disable_backup_mode(uv_stream_t * client, sirinet_pkg_t * pkg)
         sirinet_pkg_send(client, package);
     }
 }
-

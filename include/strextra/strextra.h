@@ -9,7 +9,8 @@
  *  - initial version, 19-03-2016
  *
  */
-#pragma once
+#ifndef STREXTRA_H_
+#define STREXTRA_H_
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -32,3 +33,5 @@ char * strx_dup(const char * src, size_t * n);
 
 /* important: 'dest' needs to be freed */
 size_t strx_extract_string(char * dest, const char * source, size_t len);
+
+#endif  /* STREXTRA_H_ */

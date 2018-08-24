@@ -9,11 +9,13 @@
  *  - initial version, 08-03-2016
  *
  */
-#pragma once
+#ifndef LOGGER_H_
+#define LOGGER_H_
 
 #ifdef __APPLE__
 #define _LOGGER_IO_FILE __sFILE
 #else
+#include <stdio.h>
 #define _LOGGER_IO_FILE _IO_FILE
 #endif
 
@@ -27,13 +29,7 @@
 
 #define LOGGER_FLAG_COLORED 1
 
-typedef struct logger_s
-{
-    struct _LOGGER_IO_FILE * ostream;
-    int level;
-    const char * level_name;
-    int flags;
-} logger_t;
+typedef struct logger_s logger_t;
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS];
 
@@ -73,3 +69,12 @@ extern logger_t Logger;
     fprintf(Logger.ostream, "%s:%d ", __FILE__, __LINE__); \
     log_critical(fmt, ##__VA_ARGS__)
 
+struct logger_s
+{
+    struct _LOGGER_IO_FILE * ostream;
+    int level;
+    const char * level_name;
+    int flags;
+};
+
+#endif  /* LOGGER_H_ */

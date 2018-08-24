@@ -9,17 +9,13 @@
  *  - initial version, 16-03-2017
  *
  */
-#pragma once
+#ifndef SIRI_ADMIN_ACCOUNT_H_
+#define SIRI_ADMIN_ACCOUNT_H_
+
+typedef struct siri_admin_account_s siri_admin_account_t;
+
 #include <qpack/qpack.h>
 #include <siri/siri.h>
-
-typedef struct siri_s siri_t;
-
-typedef struct siri_admin_account_s
-{
-    char * account;
-    char * password; /* keeps an encrypted password */
-} siri_admin_account_t;
 
 int siri_admin_account_init(siri_t * siri);
 void siri_admin_account_destroy(siri_t * siri);
@@ -44,3 +40,11 @@ int siri_admin_account_drop(
         qp_obj_t * qp_account,
         char * err_msg);
 int siri_admin_account_save(siri_t * siri, char * err_msg);
+
+struct siri_admin_account_s
+{
+    char * account;
+    char * password; /* keeps an encrypted password */
+};
+
+#endif  /* SIRI_ADMIN_ACCOUNT_H_ */

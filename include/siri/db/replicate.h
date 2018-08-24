@@ -10,16 +10,8 @@
  *  - initial version, 11-07-2016
  *
  */
-#pragma once
-
-#include <uv.h>
-#include <siri/db/db.h>
-#include <siri/db/initsync.h>
-#include <siri/net/pkg.h>
-
-typedef struct siridb_initsync_s siridb_initsync_t;
-typedef struct siridb_s siridb_t;
-typedef struct sirinet_pkg_s sirinet_pkg_t;
+#ifndef SIRIDB_REPLICATE_H_
+#define SIRIDB_REPLICATE_H_
 
 typedef enum
 {
@@ -30,12 +22,12 @@ typedef enum
     REPLICATE_CLOSED
 } siridb_replicate_status_t;
 
-typedef struct siridb_replicate_s
-{
-    siridb_replicate_status_t status;
-    uv_timer_t * timer;
-    siridb_initsync_t * initsync;
-} siridb_replicate_t;
+typedef struct siridb_replicate_s siridb_replicate_t;
+
+#include <uv.h>
+#include <siri/db/db.h>
+#include <siri/db/initsync.h>
+#include <siri/net/pkg.h>
 
 int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync);
 void siridb_replicate_free(siridb_replicate_t ** replicate);
@@ -52,3 +44,12 @@ sirinet_pkg_t * siridb_replicate_pkg_filter(
         int flags);
 
 #define siridb_replicate_is_idle(replicate) (replicate->status == REPLICATE_IDLE)
+
+struct siridb_replicate_s
+{
+    siridb_replicate_status_t status;
+    uv_timer_t * timer;
+    siridb_initsync_t * initsync;
+};
+
+#endif  /* SIRIDB_REPLICATE_H_ */

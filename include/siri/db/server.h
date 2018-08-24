@@ -9,16 +9,8 @@
  *  - initial version, 17-03-2016
  *
  */
-#pragma once
-
-#include <uuid/uuid.h>
-#include <stdint.h>
-#include <siri/db/db.h>
-#include <imap/imap.h>
-#include <cexpr/cexpr.h>
-#include <uv.h>
-#include <siri/net/promise.h>
-#include <siri/net/pkg.h>
+#ifndef SIRIDB_SERVER_H_
+#define SIRIDB_SERVER_H_
 
 #define FLAG_KEEP_PKG 1
 #define FLAG_ONLY_CHECK_ONLINE 2
@@ -89,51 +81,19 @@
 #define siridb_server_self_accessible(server) \
 (server->flags == SERVER__SELF_ONLINE || server->flags == SERVER__SELF_REINDEXING)
 
+typedef struct siridb_server_s siridb_server_t;
+typedef struct siridb_server_walker_s siridb_server_walker_t;
+typedef struct siridb_server_async_s siridb_server_async_t;
 
-
-typedef struct siridb_s siridb_t;
-typedef struct sirinet_promise_s sirinet_promise_t;
-typedef void (* sirinet_promise_cb)(
-        sirinet_promise_t * promise,
-        sirinet_pkg_t * pkg,
-        int status);
-
-typedef struct siridb_server_s
-{
-    uint16_t ref;  /* keep ref on top */
-    uint16_t port;
-    uint16_t pool;
-    uint8_t flags; /* do not use flags above 16384 */
-    uint8_t id; /* set when added to a pool to either 0 or 1 */
-    char * name; /* this is a format for address:port but we use it a lot */
-    char * address;
-    imap_t * promises;
-    uv_tcp_t * socket;
-    uint16_t pid;
-    /* fixed server properties */
-    uint8_t ip_support;
-    uint8_t pad0;
-    uint32_t startup_time;
-    char * libuv;
-    char * version;
-    char * dbpath;
-    char * buffer_path;
-    size_t buffer_size;
-    uuid_t uuid;
-} siridb_server_t;
-
-typedef struct siridb_server_walker_s
-{
-    siridb_server_t * server;
-    siridb_t * siridb;
-} siridb_server_walker_t;
-
-typedef struct siridb_server_async_s
-{
-    uint16_t pid;
-    uv_stream_t * client;
-} siridb_server_async_t;
-
+#include <uuid/uuid.h>
+#include <stdint.h>
+#include <siri/db/db.h>
+#include <imap/imap.h>
+#include <cexpr/cexpr.h>
+#include <uv.h>
+#include <siri/net/promise.h>
+#include <siri/net/pkg.h>
+#include <siri/net/stream.h>
 
 siridb_server_t * siridb_server_new(
         const char * uuid,
@@ -142,15 +102,7 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool);
 
-/*
- * Returns < 0 if the uuid from server A is less than uuid from server B.
- * Returns > 0 if the uuid from server A is greater than uuid from server B.
- * Returns 0 when uuid server A and B are equal.
- */
-static inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
-{
-    return uuid_compare(sa->uuid, sb->uuid);
-}
+
 
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_send_pkg(
@@ -197,3 +149,51 @@ void siridb__server_free(siridb_server_t * server);
  */
 #define siridb_server_decref(server__) \
     if (!--server__->ref) siridb__server_free(server__)
+
+struct siridb_server_s
+{
+    uint16_t ref;  /* keep ref on top */
+    uint16_t port;
+    uint16_t pool;
+    uint8_t flags; /* do not use flags above 16384 */
+    uint8_t id; /* set when added to a pool to either 0 or 1 */
+    char * name; /* this is a format for address:port but we use it a lot */
+    char * address;
+    imap_t * promises;
+    sirinet_stream_t * client;
+    uint16_t pid;
+    /* fixed server properties */
+    uint8_t ip_support;
+    uint8_t pad0;
+    uint32_t startup_time;
+    char * libuv;
+    char * version;
+    char * dbpath;
+    char * buffer_path;
+    size_t buffer_size;
+    uuid_t uuid;
+};
+
+struct siridb_server_walker_s
+{
+    siridb_server_t * server;
+    siridb_t * siridb;
+};
+
+struct siridb_server_async_s
+{
+    uint16_t pid;
+    sirinet_stream_t * client;
+};
+
+/*
+ * Returns < 0 if the uuid from server A is less than uuid from server B.
+ * Returns > 0 if the uuid from server A is greater than uuid from server B.
+ * Returns 0 when uuid server A and B are equal.
+ */
+static inline int siridb_server_cmp(siridb_server_t * sa, siridb_server_t * sb)
+{
+    return uuid_compare(sa->uuid, sb->uuid);
+}
+
+#endif  /* SIRIDB_SERVER_H_ */

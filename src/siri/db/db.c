@@ -20,6 +20,7 @@
 #include <math.h>
 #include <procinfo/procinfo.h>
 #include <siri/db/db.h>
+#include <siri/db/misc.h>
 #include <siri/db/series.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
@@ -604,7 +605,7 @@ void siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
 ssize_t siridb_get_file(char ** buffer, siridb_t * siridb)
 {
     /* get servers file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, "database.dat")
+    siridb_misc_get_fn(fn, siridb->dbpath, "database.dat")
 
     return xpath_get_content(buffer, fn);
 }

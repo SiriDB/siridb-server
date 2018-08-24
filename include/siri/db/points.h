@@ -9,11 +9,8 @@
  *  - initial version, 04-04-2016
  *
  */
-#pragma once
-#include <stdlib.h>
-#include <inttypes.h>
-#include <qpack/qpack.h>
-#include <slist/slist.h>
+#ifndef SIRIDB_POINTS_H_
+#define SIRIDB_POINTS_H_
 
 #define POINTS_ZIP_THRESHOLD 5
 
@@ -24,18 +21,13 @@ typedef enum
     TP_STRING
 } points_tp;
 
-typedef struct siridb_point_s
-{
-    uint64_t ts;
-    qp_via_t val;
-} siridb_point_t;
+typedef struct siridb_point_s siridb_point_t;
+typedef struct siridb_points_s siridb_points_t;
 
-typedef struct siridb_points_s
-{
-    size_t len;
-    points_tp tp;
-    siridb_point_t * data;
-} siridb_points_t;
+#include <stdlib.h>
+#include <inttypes.h>
+#include <qpack/qpack.h>
+#include <slist/slist.h>
 
 void siridb_points_init(void);
 siridb_points_t * siridb_points_new(size_t size, points_tp tp);
@@ -101,10 +93,6 @@ int siridb_points_unzip_string_raw(
         uint8_t * bits,
         uint16_t len);
 size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len);
-static inline size_t siridb_points_get_size_log(size_t cinfo)
-{
-    return cinfo & 0x8000 ? (cinfo ^ 0x8000) << 10 : cinfo;
-}
 
 #define siridb_points_zip(p__, s__, e__, c__, z__) \
 ((p__)->tp == TP_INT) ? \
@@ -112,3 +100,24 @@ siridb_points_zip_int(p__, s__, e__, c__, z__) : \
 ((p__)->tp == TP_DOUBLE) ? \
 siridb_points_zip_double(p__, s__, e__, c__, z__) : \
 siridb_points_zip_string(p__, s__, e__, c__, z__)
+
+struct siridb_point_s
+{
+    uint64_t ts;
+    qp_via_t val;
+};
+
+struct siridb_points_s
+{
+    size_t len;
+    points_tp tp;
+    siridb_point_t * data;
+};
+
+static inline size_t siridb_points_get_size_log(size_t cinfo)
+{
+    return cinfo & 0x8000 ? (cinfo ^ 0x8000) << 10 : cinfo;
+}
+
+
+#endif  /* SIRIDB_POINTS_H_ */

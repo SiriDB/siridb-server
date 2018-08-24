@@ -34,9 +34,14 @@ class Server:
                  optimize_interval=30,
                  heartbeat_interval=30,
                  compression=True,
+                 pipe_name=None,
                  **unused):
         self.n = n
         self.compression = compression
+        self.enable_pipe_support = int(bool(pipe_name))
+        self.pipe_name = \
+            'siridb_client.sock' if not self.enable_pipe_support else \
+            pipe_name
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
         self._server_address = self.SERVER_ADDRESS
@@ -74,6 +79,8 @@ class Server:
         config.set('siridb', 'default_db_path', self.dbpath)
         config.set('siridb', 'max_open_files', MAX_OPEN_FILES)
         config.set('siridb', 'enable_shard_compression', int(self.compression))
+        config.set('siridb', 'enable_pipe_support', self.enable_pipe_support)
+        config.set('siridb', 'pipe_client_name',  self.pipe_name)
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)

@@ -13,12 +13,13 @@
  *  - initial version, 17-06-2016
  *
  */
-#pragma once
+#ifndef SIRI_HEARTBEAT_H_
+#define SIRI_HEARTBEAT_H_
 
 #include <siri/siri.h>
-
-typedef struct siri_s siri_t;
 
 void siri_heartbeat_init(siri_t * siri);
 void siri_heartbeat_stop(siri_t * siri);
 void siri_heartbeat_force(void);
+
+#endif  /* SIRI_HEARTBEAT_H_ */

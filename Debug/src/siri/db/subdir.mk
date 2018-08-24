@@ -17,6 +17,7 @@ C_SRCS += \
 ../src/siri/db/groups.c \
 ../src/siri/db/initsync.c \
 ../src/siri/db/insert.c \
+../src/siri/db/listener.c \
 ../src/siri/db/lookup.c \
 ../src/siri/db/median.c \
 ../src/siri/db/misc.c \
@@ -27,6 +28,7 @@ C_SRCS += \
 ../src/siri/db/pools.c \
 ../src/siri/db/presuf.c \
 ../src/siri/db/props.c \
+../src/siri/db/queries.c \
 ../src/siri/db/query.c \
 ../src/siri/db/re.c \
 ../src/siri/db/reindex.c \
@@ -56,6 +58,7 @@ OBJS += \
 ./src/siri/db/groups.o \
 ./src/siri/db/initsync.o \
 ./src/siri/db/insert.o \
+./src/siri/db/listener.o \
 ./src/siri/db/lookup.o \
 ./src/siri/db/median.o \
 ./src/siri/db/misc.o \
@@ -66,6 +69,7 @@ OBJS += \
 ./src/siri/db/pools.o \
 ./src/siri/db/presuf.o \
 ./src/siri/db/props.o \
+./src/siri/db/queries.o \
 ./src/siri/db/query.o \
 ./src/siri/db/re.o \
 ./src/siri/db/reindex.o \
@@ -95,6 +99,7 @@ C_DEPS += \
 ./src/siri/db/groups.d \
 ./src/siri/db/initsync.d \
 ./src/siri/db/insert.d \
+./src/siri/db/listener.d \
 ./src/siri/db/lookup.d \
 ./src/siri/db/median.d \
 ./src/siri/db/misc.d \
@@ -105,6 +110,7 @@ C_DEPS += \
 ./src/siri/db/pools.d \
 ./src/siri/db/presuf.d \
 ./src/siri/db/props.d \
+./src/siri/db/queries.d \
 ./src/siri/db/query.d \
 ./src/siri/db/re.d \
 ./src/siri/db/reindex.d \

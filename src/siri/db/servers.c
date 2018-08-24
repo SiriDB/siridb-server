@@ -18,9 +18,11 @@
 #include <siri/db/query.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/misc.h>
 #include <siri/err.h>
 #include <siri/net/promises.h>
-#include <siri/parser/queries.h>
+#include <siri/net/tcp.h>
+#include <siri/db/queries.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <xpath/xpath.h>
@@ -59,7 +61,7 @@ int siridb_servers_load(siridb_t * siridb)
     }
 
     /* get servers file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     if (!xpath_file_exist(fn))
     {
@@ -101,7 +103,7 @@ int siridb_servers_load(siridb_t * siridb)
     }
 
     /* unpacker will be freed in case macro fails */
-    siridb_schema_check(SIRIDB_SERVERS_SCHEMA)
+    siridb_misc_schema_check(SIRIDB_SERVERS_SCHEMA)
 
 
     int rc = 0;
@@ -200,7 +202,7 @@ void siridb_servers_free(llist_t * servers)
 ssize_t siridb_servers_get_file(char ** buffer, siridb_t * siridb)
 {
     /* get servers file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     return xpath_get_content(buffer, fn);
 }
@@ -539,10 +541,11 @@ int siridb_servers_available(siridb_t * siridb)
 
 int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    slist_t * props = ((query_list_t *) query->data)->props;
-    siridb_t * siridb = ((sirinet_socket_t *) query->client->data)->siridb;
-    cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+    siridb_query_t * query = handle->data;
+    query_list_t * qlist = query->data;
+    slist_t * props = qlist->props;
+    siridb_t * siridb = query->client->siridb;
+    cexpr_t * where_expr = qlist->where_expr;
     size_t i;
 
     siridb_server_walker_t wserver = {
@@ -592,7 +595,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_IP_SUPPORT:
             qp_add_string(
                     query->packer,
-                    sirinet_socket_ip_support_str((siridb->server == server) ?
+                    sirinet_tcp_ip_support_str((siridb->server == server) ?
                             siri.cfg->ip_support : server->ip_support));
             break;
         case CLERI_GID_K_LIBUV:
@@ -609,7 +612,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_ONLINE:
             qp_add_type(
                     query->packer,
-                    (siridb->server == server || server->socket != NULL) ?
+                    (siridb->server == server || server->client != NULL) ?
                             QP_TRUE : QP_FALSE);
             break;
         case CLERI_GID_K_POOL:
@@ -752,7 +755,7 @@ int siridb_servers_save(siridb_t * siridb)
     qp_fpacker_t * fpacker;
 
     /* get servers file name */
-    SIRIDB_GET_FN(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
+    siridb_misc_get_fn(fn, siridb->dbpath, SIRIDB_SERVERS_FN)
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {

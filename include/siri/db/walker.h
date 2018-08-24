@@ -9,25 +9,14 @@
  *  - initial version, 13-06-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_WALKER_H_
+#define SIRIDB_WALKER_H_
+
+typedef struct siridb_walker_s siridb_walker_t;
 
 #include <cleri/cleri.h>
 #include <siri/db/nodes.h>
 #include <uv.h>
-
-typedef struct siridb_s siridb_t;
-typedef struct siridb_nodes_s siridb_nodes_t;
-typedef struct cleri_node_s cleri_node_t;
-
-typedef struct siridb_walker_s
-{
-    siridb_t * siridb;
-    uint64_t now;
-    uint8_t * flags;
-    siridb_nodes_t * start;
-    siridb_nodes_t * enter_nodes;
-    siridb_nodes_t * exit_nodes;
-} siridb_walker_t;
 
 siridb_walker_t * siridb_walker_new(
         siridb_t * siridb,
@@ -44,8 +33,19 @@ int siridb_walker_append(
         siridb_walker_t * walker,
         cleri_node_t * node,
         uv_async_cb cb);
-
 int siridb_walker_insert(
         siridb_walker_t * walker,
         cleri_node_t * node,
         uv_async_cb cb);
+
+struct siridb_walker_s
+{
+    siridb_t * siridb;
+    uint64_t now;
+    uint8_t * flags;
+    siridb_nodes_t * start;
+    siridb_nodes_t * enter_nodes;
+    siridb_nodes_t * exit_nodes;
+};
+
+#endif  /* SIRIDB_WALKER_H_ */

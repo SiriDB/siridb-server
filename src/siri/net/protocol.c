@@ -48,8 +48,10 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_RES_AUTH_SUCCESS: return "CPROTO_RES_AUTH_SUCCESS";
     case CPROTO_RES_ACK: return "CPROTO_RES_ACK";
     case CPROTO_RES_FILE: return "CPROTO_RES_FILE";
+
     case CPROTO_ACK_ADMIN: return "CPROTO_ACK_ADMIN";
     case CPROTO_ACK_ADMIN_DATA: return "CPROTO_ACK_ADMIN_DATA";
+
     case CPROTO_ERR_MSG: return "CPROTO_ERR_MSG";
     case CPROTO_ERR_QUERY: return "CPROTO_ERR_QUERY";
     case CPROTO_ERR_INSERT: return "CPROTO_ERR_INSERT";
@@ -61,7 +63,6 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_ERR_AUTH_CREDENTIALS: return "CPROTO_ERR_AUTH_CREDENTIALS";
     case CPROTO_ERR_AUTH_UNKNOWN_DB: return "CPROTO_ERR_AUTH_UNKNOWN_DB";
     case CPROTO_ERR_FILE: return "CPROTO_ERR_FILE";
-
     case CPROTO_ERR_ADMIN: return "CPROTO_ERR_ADMIN";
     case CPROTO_ERR_ADMIN_INVALID_REQUEST: return "CPROTO_ERR_ADMIN_INVALID_REQUEST";
     default:

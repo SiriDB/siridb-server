@@ -9,6 +9,9 @@
  *  - initial version, 13-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_TEST_H_
+#define SIRIDB_TEST_H_
 
 int run_tests(void);
+
+#endif  /* SIRIDB_TEST_H_ */

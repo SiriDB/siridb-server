@@ -9,13 +9,10 @@
  *  - initial version, 04-04-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_SHARD_H_
+#define SIRIDB_SHARD_H_
 
-#include <siri/db/db.h>
-#include <siri/db/points.h>
-#include <siri/db/series.h>
-#include <siri/file/handler.h>
-#include <stdio.h>
+
 
 /* flags */
 #define SIRIDB_SHARD_OK 0
@@ -35,45 +32,19 @@
 #define SIRIDB_SHARD_TP_NUMBER 0
 #define SIRIDB_SHARD_TP_LOG 1
 
-extern const char shard_type_map[2][7];
-
 #define SIRIDB_SHARD_STATUS_STR_MAX 128
 
-typedef struct siridb_shard_flags_repr_s
-{
-    const char * repr;
-    uint8_t flag;
-} siridb_shard_flags_repr_t;
+extern const char shard_type_map[2][7];
 
-typedef struct siridb_s siridb_t;
-typedef struct siridb_points_s siridb_points_t;
-typedef struct siridb_series_s siridb_series_t;
-typedef struct idx_s idx_t;
-
+typedef struct siridb_shard_flags_repr_s siridb_shard_flags_repr_t;
 typedef struct siridb_shard_s siridb_shard_t;
+typedef struct siridb_shard_view_s siridb_shard_view_t;
 
-
-typedef struct siridb_shard_s
-{
-    uint32_t ref;   /* keep ref on top */
-    uint8_t tp; /* TP_NUMBER, TP_LOG */
-    uint8_t flags;
-    uint16_t max_chunk_sz;
-    uint64_t id;
-    size_t len;
-    size_t size;
-    siri_fp_t * fp;
-    char * fn;
-    siridb_shard_t * replacing;
-} siridb_shard_t;
-
-typedef struct siridb_shard_view_s
-{
-    siridb_shard_t * shard;
-    siridb_server_t * server;
-    uint64_t start;
-    uint64_t end;
-} siridb_shard_view_t;
+#include <stdio.h>
+#include <siri/db/db.h>
+#include <siri/db/points.h>
+#include <siri/db/series.h>
+#include <siri/file/handler.h>
 
 siridb_shard_t * siridb_shard_create(
         siridb_t * siridb,
@@ -87,7 +58,6 @@ int siridb_shard_cexpr_cb(
 int siridb_shard_status(char * str, siridb_shard_t * shard);
 int siridb_shard_load(siridb_t * siridb, uint64_t id);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
-
 size_t siridb_shard_write_points(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -97,59 +67,79 @@ size_t siridb_shard_write_points(
         uint_fast32_t end,
         FILE * idx_fp,
         uint16_t * cinfo);
-
 typedef int (*siridb_shard_get_points_cb)(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_num32(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_num64(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_log32(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_log64(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_num_compressed(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_get_points_log_compressed(
         siridb_points_t * points,
         idx_t * idx,
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);
+
+struct siridb_shard_flags_repr_s
+{
+    const char * repr;
+    uint8_t flag;
+};
+
+struct siridb_shard_s
+{
+    uint32_t ref;   /* keep ref on top */
+    uint8_t tp; /* TP_NUMBER, TP_LOG */
+    uint8_t flags;
+    uint16_t max_chunk_sz;
+    uint64_t id;
+    size_t len;
+    size_t size;
+    siri_fp_t * fp;
+    char * fn;
+    siridb_shard_t * replacing;
+};
+
+struct siridb_shard_view_s
+{
+    siridb_shard_t * shard;
+    siridb_server_t * server;
+    uint64_t start;
+    uint64_t end;
+};
 
 static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
         uint8_t shard_flags,
@@ -190,3 +180,5 @@ static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
         char Name__[Len__ + 1];                     \
         memcpy(Name__, Fn__, Len__ - 3);            \
         memcpy(Name__ + Len__ - 3, "idx", 4)
+
+#endif  /* SIRIDB_SHARD_H_ */

@@ -9,26 +9,10 @@
  *  - initial version, 10-03-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_H_
+#define SIRIDB_H_
 
-#include <siri/err.h>
-#include <siri/db/time.h>
-#include <siri/db/user.h>
-#include <qpack/qpack.h>
-#include <siri/db/server.h>
-#include <siri/db/pools.h>
-#include <ctree/ctree.h>
-#include <imap/imap.h>
-#include <imap/imap.h>
-#include <iso8601/iso8601.h>
-#include <llist/llist.h>
-#include <string.h>
-#include <uv.h>
-#include <siri/db/fifo.h>
-#include <siri/db/replicate.h>
-#include <siri/db/reindex.h>
-#include <siri/db/groups.h>
-#include <siri/db/tasks.h>
+typedef struct siridb_s siridb_t;
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
@@ -39,40 +23,42 @@
 #define DEF_SELECT_POINTS_LIMIT 1000000     /* one million  */
 #define DEF_LIST_LIMIT 10000                /* ten thousand */
 
-#define SIRIDB_GET_FN(FN, __path, FILENAME)                         \
-    char FN[strlen(__path) + strlen(FILENAME) + 1];                 \
-    sprintf(FN, "%s%s", __path, FILENAME);
+#include <string.h>
+#include <uv.h>
+#include <qpack/qpack.h>
+#include <ctree/ctree.h>
+#include <imap/imap.h>
+#include <imap/imap.h>
+#include <iso8601/iso8601.h>
+#include <llist/llist.h>
+#include <siri/err.h>
+#include <siri/db/time.h>
+#include <siri/db/user.h>
+#include <siri/db/server.h>
+#include <siri/db/pools.h>
+#include <siri/db/fifo.h>
+#include <siri/db/replicate.h>
+#include <siri/db/reindex.h>
+#include <siri/db/groups.h>
+#include <siri/db/tasks.h>
+#include <siri/db/time.h>
 
-/* Schema File Check
- * Needs fn and unpacker, free unpacker in case of an error.
- * Returns current function with -1 in case of an error and
- * raises a SIGNAL in case of a memory error.
- */
-#define siridb_schema_check(SCHEMA)                             \
-    /* read and check schema */                                 \
-    qp_obj_t qp_schema;                                         \
-    if (!qp_is_array(qp_next(unpacker, NULL)) ||                \
-            qp_next(unpacker, &qp_schema) != QP_INT64 ||        \
-            qp_schema.via.int64 != SCHEMA)                      \
-    {                                                           \
-        log_critical("Invalid schema detected in '%s'", fn);    \
-        qp_unpacker_ff_free(unpacker);                          \
-        return -1;                                              \
-    }
+int32_t siridb_get_uptime(siridb_t * siridb);
+int8_t siridb_get_idle_percentage(siridb_t * siridb);
+int siridb_is_db_path(const char * dbpath);
+siridb_t * siridb_new(const char * dbpath, int lock_flags);
+siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
+void siridb_decref_cb(siridb_t * siridb, void * args);
+ssize_t siridb_get_file(char ** buffer, siridb_t * siridb);
+int siridb_open_files(siridb_t * siridb);
+int siridb_save(siridb_t * siridb);
+void siridb__free(siridb_t * siridb);
 
-typedef struct siridb_time_s siridb_time_t;
-typedef struct siridb_server_s siridb_server_t;
-typedef struct siridb_users_s siridb_users_t;
-typedef struct siridb_pools_s siridb_pools_t;
-typedef struct ct_node_s ct_node_t;
-typedef struct imap_s imap_t;
-typedef struct imap_s imap_t;
-typedef struct siridb_fifo_s siridb_fifo_t;
-typedef struct siridb_replicate_s siridb_replicate_t;
-typedef struct siridb_reindex_s siridb_reindex_t;
-typedef struct siridb_groups_s siridb_groups_t;
+#define siridb_incref(siridb) siridb->ref++
+#define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
+#define siridb_is_reindexing(siridb) (siridb->flags & SIRIDB_FLAG_REINDEXING)
 
-typedef struct siridb_s
+struct siridb_s
 {
     uint16_t ref;
     uint8_t flags;
@@ -116,20 +102,6 @@ typedef struct siridb_s
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
     siridb_tasks_t tasks;
-} siridb_t;
+};
 
-int32_t siridb_get_uptime(siridb_t * siridb);
-int8_t siridb_get_idle_percentage(siridb_t * siridb);
-int siridb_is_db_path(const char * dbpath);
-siridb_t * siridb_new(const char * dbpath, int lock_flags);
-siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
-void siridb_decref_cb(siridb_t * siridb, void * args);
-ssize_t siridb_get_file(char ** buffer, siridb_t * siridb);
-int siridb_open_files(siridb_t * siridb);
-int siridb_save(siridb_t * siridb);
-void siridb__free(siridb_t * siridb);
-
-#define siridb_incref(siridb) siridb->ref++
-#define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
-
-#define siridb_is_reindexing(siridb) (siridb->flags & SIRIDB_FLAG_REINDEXING)
+#endif  /* SIRIDB_H_ */

@@ -9,7 +9,8 @@
  *  - initial version, 11-03-2016
  *
  */
-#pragma once
+#ifndef QPACK_H_
+#define QPACK_H_
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -73,38 +74,44 @@ typedef enum
     QP_MAP_CLOSE,       /* close map                            */
 } qp_types_t;
 
-typedef union qp_via_u
+typedef union qp_via_u qp_via_t;
+typedef struct qp_obj_s qp_obj_t;
+typedef struct qp_unpacker_s qp_unpacker_t;
+typedef struct qp_packer_s qp_packer_t;
+typedef FILE qp_fpacker_t;
+
+union qp_via_u
 {
     int64_t int64;
     uint64_t uint64;
     double real;
     unsigned char * raw;
     char * str;
-} qp_via_t;
+};
 
-typedef struct qp_obj_s
+struct qp_obj_s
 {
     uint8_t tp;
     size_t len;
     qp_via_t via;
-} qp_obj_t;
+};
 
-typedef struct qp_unpacker_s
+struct qp_unpacker_s
 {
     unsigned char * source; /* can be NULL or a copy or the source  */
     unsigned char * pt;
     unsigned char * end;
-} qp_unpacker_t;
+};
 
-typedef struct qp_packer_s
+struct qp_packer_s
 {
     size_t len;
     size_t buffer_size;
     size_t alloc_size;
     unsigned char * buffer;
-} qp_packer_t;
+};
 
-typedef FILE qp_fpacker_t;
+
 #define qp_open fopen     /* returns NULL in case of an error           */
 #define qp_close fclose   /* 0 if successful, EOF in case of an error   */
 #define qp_flush fflush   /* 0 if successful, EOF in case of an error   */
@@ -202,4 +209,4 @@ unsigned char BUF__[3];\
 BUF__[0] = QP_INT16; \
 memcpy(&BUF__[1], &N__, 2);
 
-
+#endif  /* QPACK_H_ */

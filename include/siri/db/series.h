@@ -9,22 +9,8 @@
  *  - initial version, 29-03-2016
  *
  */
-#pragma once
-
-#include <inttypes.h>
-#include <siri/db/db.h>
-#include <siri/db/points.h>
-#include <siri/db/pcache.h>
-#include <siri/db/buffer.h>
-#include <qpack/qpack.h>
-#include <cexpr/cexpr.h>
-
-typedef struct siridb_s siridb_t;
-typedef struct siridb_buffer_s siridb_buffer_t;
-typedef struct siridb_points_s siridb_points_t;
-typedef struct siridb_shard_s siridb_shard_t;
-
-typedef points_tp series_tp;
+#ifndef SIRIDB_SERIES_H_
+#define SIRIDB_SERIES_H_
 
 /* Series Flags */
 #define SIRIDB_SERIES_HAS_OVERLAP 1
@@ -44,17 +30,22 @@ typedef points_tp series_tp;
 
 extern const char series_type_map[3][8];
 
-typedef struct idx_s
-{
-    siridb_shard_t * shard;
-    uint32_t pos;
-    uint16_t len;
-    uint16_t cinfo;  /* reserved for log values or used for compression */
-    uint64_t start_ts;
-    uint64_t end_ts;
-} idx_t;
+typedef struct idx_s idx_t;
+typedef struct siridb_series_s siridb_series_t;
 
-typedef struct siridb_series_s
+#include <inttypes.h>
+
+#include <siri/db/points.h>
+typedef points_tp series_tp;
+
+#include <siri/db/db.h>
+#include <siri/db/pcache.h>
+#include <siri/db/buffer.h>
+#include <qpack/qpack.h>
+#include <cexpr/cexpr.h>
+
+/* order here matters since shard.h is using a full series definition */
+struct siridb_series_s
 {
     uint32_t ref;  /* keep ref on top */
     uint32_t id;
@@ -72,15 +63,14 @@ typedef struct siridb_series_s
     char * name;
     idx_t * idx;
     siridb_t * siridb;
-} siridb_series_t;
+};
+#include <siri/db/shard.h>
 
 int siridb_series_load(siridb_t * siridb);
-
 siridb_series_t * siridb_series_new(
         siridb_t * siridb,
         const char * series_name,
         uint8_t tp);
-
 int siridb_series_add_idx(
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard,
@@ -89,34 +79,27 @@ int siridb_series_add_idx(
         uint32_t pos,
         uint16_t len,
         uint16_t cinfo);
-
 int siridb_series_add_point(
         siridb_t *__restrict siridb,
         siridb_series_t *__restrict series,
         uint64_t * ts,
         qp_via_t * val);
-
 int siridb_series_add_pcache(
         siridb_t *__restrict siridb,
         siridb_series_t *__restrict series,
         siridb_pcache_t *__restrict pcache);
-
 siridb_points_t * siridb_series_get_points(
         siridb_series_t *__restrict series,
         uint64_t *__restrict start_ts,
         uint64_t *__restrict end_ts);
-
 void siridb_series_remove_shard(
         siridb_t *__restrict siridb,
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard);
-
 int siridb_series_optimize_shard(
         siridb_t *__restrict siridb,
         siridb_series_t *__restrict series,
         siridb_shard_t *__restrict shard);
-
-
 void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series);
 int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond);
 int siridb_series_replicate_file(siridb_t * siridb);
@@ -148,3 +131,17 @@ siridb_points_t * siridb_series_get_count(siridb_series_t * series);
 
 #define siridb_series_server_id(series) \
 ((series->flags & SIRIDB_SERIES_IS_SERVER_ONE) == SIRIDB_SERIES_IS_SERVER_ONE)
+
+struct idx_s
+{
+    siridb_shard_t * shard;
+    uint32_t pos;
+    uint16_t len;
+    uint16_t cinfo;  /* reserved for log values or used for compression */
+    uint64_t start_ts;
+    uint64_t end_ts;
+};
+
+
+
+#endif  /* SIRIDB_SERIES_H_ */

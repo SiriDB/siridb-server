@@ -9,5 +9,9 @@
  *  - initial version, 13-03-2016
  *
  */
+#ifndef MOTD_H_
+#define MOTD_H_
 
 const char * motd_get_random_msg(void);
+
+#endif  /* MOTD_H_ */

@@ -9,19 +9,27 @@
  *  - initial version, 27-07-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_REINDEX_H_
+#define SIRIDB_REINDEX_H_
+
+#define REINDEX_FN ".reindex"
+
+typedef struct siridb_reindex_s siridb_reindex_t;
 
 #include <inttypes.h>
 #include <uv.h>
 #include <siri/db/db.h>
 #include <siri/db/series.h>
 
-#define REINDEX_FN ".reindex"
+siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new);
+void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype);
+void siridb_reindex_free(siridb_reindex_t ** reindex);
+void siridb_reindex_status_update(siridb_t * siridb);
+void siridb_reindex_close(siridb_reindex_t * reindex);
+void siridb_reindex_start(uv_timer_t * timer);
+const char * siridb_reindex_progress(siridb_t * siridb);
 
-typedef struct siridb_s siridb_t;
-typedef struct siridb_series_s siridb_series_t;
-
-typedef struct siridb_reindex_s
+struct siridb_reindex_s
 {
     FILE * fp;
     char * fn;
@@ -32,12 +40,6 @@ typedef struct siridb_reindex_s
     siridb_series_t * series;
     siridb_server_t * server;
     uv_timer_t * timer;
-} siridb_reindex_t;
+};
 
-siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new);
-void siridb_reindex_fopen(siridb_reindex_t * reindex, const char * opentype);
-void siridb_reindex_free(siridb_reindex_t ** reindex);
-void siridb_reindex_status_update(siridb_t * siridb);
-void siridb_reindex_close(siridb_reindex_t * reindex);
-void siridb_reindex_start(uv_timer_t * timer);
-const char * siridb_reindex_progress(siridb_t * siridb);
+#endif  /* SIRIDB_REINDEX_H_ */

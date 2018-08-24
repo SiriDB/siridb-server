@@ -10,25 +10,18 @@
  *  - initial version, 13-07-2016
  *
  */
-#pragma once
-#include <siri/net/promise.h>
+#ifndef SIRINET_PROMISES_H_
+#define SIRINET_PROMISES_H_
+
+typedef struct sirinet_promises_s sirinet_promises_t;
+
 #include <slist/slist.h>
-#include <siri/net/pkg.h>
-
-
-typedef struct sirinet_promise_s sirinet_promise_t;
-
 typedef void (* sirinet_promises_cb)(
         slist_t * promises,
         void * data);
 
-typedef struct sirinet_promises_s
-{
-    sirinet_promises_cb cb;
-    slist_t * promises;
-    void * data;
-    sirinet_pkg_t * pkg;
-} sirinet_promises_t;
+#include <siri/net/promise.h>
+#include <siri/net/pkg.h>
 
 sirinet_promises_t * sirinet_promises_new(
         size_t size,
@@ -49,3 +42,13 @@ if (promises->promises->len == promises->promises->size)    \
     slist_free(promises->promises);                         \
     free(promises);                                         \
 }
+
+struct sirinet_promises_s
+{
+    sirinet_promises_cb cb;
+    slist_t * promises;
+    void * data;
+    sirinet_pkg_t * pkg;
+};
+
+#endif  /* SIRINET_PROMISES_H_ */

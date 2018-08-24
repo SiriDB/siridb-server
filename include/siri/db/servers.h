@@ -9,13 +9,12 @@
  *  - initial version, 10-06-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_SERVERS_H_
+#define SIRIDB_SERVERS_H_
 
 #include <siri/db/db.h>
 #include <uuid/uuid.h> /* install: apt-get install uuid-dev */
 #include <siri/net/promise.h>
-
-typedef struct siridb_s siridb_t;
 
 int siridb_servers_load(siridb_t * siridb);
 void siridb_servers_free(llist_t * servers);
@@ -40,3 +39,5 @@ int siridb_servers_check_version(siridb_t * siridb, char * version);
 int siridb_servers_save(siridb_t * siridb);
 int siridb_servers_register(siridb_t * siridb, siridb_server_t * server);
 slist_t * siridb_servers_other2slist(siridb_t * siridb);
+
+#endif  /* SIRIDB_SERVERS_H_ */

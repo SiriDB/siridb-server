@@ -152,7 +152,7 @@ static cproto_server_t ADMIN_on_new_database(
 static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         int req,
         char * err_msg);
 static cproto_server_t ADMIN_on_get_version(
@@ -240,7 +240,7 @@ cproto_server_t siri_admin_request(
         qp_obj_t * qp_account,
         qp_packer_t ** packaddr,
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         char * err_msg)
 {
     switch ((admin_request_t) tp)
@@ -666,7 +666,7 @@ static cproto_server_t ADMIN_on_new_database(
 static cproto_server_t ADMIN_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         int req,
         char * err_msg)
 {

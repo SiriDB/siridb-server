@@ -9,24 +9,25 @@
  *  - initial version, 17-03-2016
  *
  */
-#pragma once
+#ifndef SIRINET_PROTOCOL_H_
+#define SIRINET_PROTOCOL_H_
 
 typedef enum
 {
+    /* Public requests */
     CPROTO_REQ_QUERY=0,                 /* (query, time_precision)          */
     CPROTO_REQ_INSERT=1,                /* series with points map/array     */
     CPROTO_REQ_AUTH=2,                  /* (user, password, dbname)         */
     CPROTO_REQ_PING=3,                  /* empty                            */
 
-    /* Start internal usage */
+    /* Internal usage only */
     CPROTO_REQ_REGISTER_SERVER=6,       /* (uuid, host, port, pool)         */
-    CPROTO_REQ_FILE_SERVERS,            /* empty                            */
-    CPROTO_REQ_FILE_USERS,              /* empty                            */
-    CPROTO_REQ_FILE_GROUPS,             /* empty                            */
-    CPROTO_REQ_FILE_DATABASE,           /* empty                            */
-    /* End linternal usage */
+    CPROTO_REQ_FILE_SERVERS=7,          /* empty                            */
+    CPROTO_REQ_FILE_USERS=8,            /* empty                            */
+    CPROTO_REQ_FILE_GROUPS=9,           /* empty                            */
+    CPROTO_REQ_FILE_DATABASE=10,        /* empty                            */
 
-    /* Administrative API request */
+    /* Public Administrative API request */
     CPROTO_REQ_ADMIN=32,                /* (user, password, request, {...}) */
 } cproto_client_t;
 
@@ -58,7 +59,7 @@ typedef enum
 
     /* Administrative API errors */
     CPROTO_ERR_ADMIN=96,                /* {"error_msg": ...}               */
-    CPROTO_ERR_ADMIN_INVALID_REQUEST,   /* empty                            */
+    CPROTO_ERR_ADMIN_INVALID_REQUEST=97,/* empty                            */
     CPROTO_DEFERRED=127                 /* deferred...                      */
 } cproto_server_t;
 
@@ -141,3 +142,5 @@ const char * sirinet_cproto_client_str(cproto_client_t n);
 const char * sirinet_cproto_server_str(cproto_server_t n);
 const char * sirinet_bproto_client_str(bproto_client_t n);
 const char * sirinet_bproto_server_str(bproto_server_t n);
+
+#endif  /* SIRINET_PROTOCOL_H_ */

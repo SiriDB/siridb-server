@@ -9,7 +9,8 @@
  *  - initial version, 21-04-2016
  *
  */
-#pragma once
+#ifndef ISO8601_H_
+#define ISO8601_H_
 
 #include <inttypes.h>
 
@@ -31,3 +32,5 @@ const char * iso8601_tzname(iso8601_tz_t tz);
  * in the string.
  */
 int64_t iso8601_parse_date(const char * str, iso8601_tz_t tz);
+
+#endif  /* ISO8601_H_ */

@@ -36,12 +36,13 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
+#include <siri/db/listener.h>
 #include <siri/err.h>
 #include <siri/help/help.h>
 #include <siri/net/bserver.h>
 #include <siri/net/clserver.h>
-#include <siri/net/socket.h>
-#include <siri/parser/listener.h>
+#include <siri/net/pipe.h>
+#include <siri/net/stream.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stddef.h>
@@ -92,7 +93,7 @@ siri_t siri = {
         .accounts=NULL,
         .dbname_regex=NULL,
         .dbname_match_data=NULL,
-        .socket=NULL};
+        .client=NULL};
 
 void siri_setup_logger(void)
 {
@@ -136,7 +137,7 @@ int siri_start(void)
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     /* initialize listener (set enter and exit functions) */
-    siriparser_init_listener();
+    siridb_init_listener();
 
     /* initialize props (set props functions) */
     siridb_init_props();
@@ -491,24 +492,20 @@ static void SIRI_walk_close_handlers(
 
     switch (handle->type)
     {
-    case UV_WORK:
-        break;
     case UV_SIGNAL:
         /* this is where we cleanup the signal handlers */
         uv_close(handle, NULL);
         break;
 
     case UV_TCP:
-        /* This can be a TCP server with data set to NULL or a SiriDB socket
-         * which should be destroyed.
-         */
+    case UV_NAMED_PIPE:
         if (handle->data == NULL)
         {
             uv_close(handle, NULL);
         }
         else
         {
-            sirinet_socket_decref(handle);
+            sirinet_stream_decref((sirinet_stream_t *) handle->data);
         }
         break;
 

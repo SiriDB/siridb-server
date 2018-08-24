@@ -9,13 +9,14 @@
  *  - initial version, 09-03-2016
  *
  */
-#pragma once
+#ifndef SIRINET_CLSERVER_H_
+#define SIRINET_CLSERVER_H_
 
 #include <uv.h>
 #include <siri/siri.h>
 
-typedef struct siri_s siri_t;
+typedef ssize_t (*sirinet_clserver_getfile)(char ** buffer, siridb_t * siridb);
 
 int sirinet_clserver_init(siri_t * siri);
 
-typedef ssize_t (*sirinet_clserver_getfile)(char ** buffer, siridb_t * siridb);
+#endif  /* SIRINET_CLSERVER_H_ */

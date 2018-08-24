@@ -9,7 +9,8 @@
  *  - initial version, 29-07-2016
  *
  */
-#pragma once
+#ifndef SIRIDB_LOOKUP_H_
+#define SIRIDB_LOOKUP_H_
 
 #include <inttypes.h>
 #include <stddef.h>
@@ -25,3 +26,5 @@ uint16_t siridb_lookup_sn_raw(
         size_t len);
 siridb_lookup_t * siridb_lookup_new(uint_fast16_t num_pools);
 void siridb_lookup_free(siridb_lookup_t * lookup);
+
+#endif  /* SIRIDB_LOOKUP_H_ */

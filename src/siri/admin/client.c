@@ -9,17 +9,18 @@
  *  - initial version, 24-03-2017
  *
  */
-#include <siri/admin/client.h>
-#include <siri/siri.h>
-#include <logger/logger.h>
-#include <siri/net/socket.h>
 #include <string.h>
-#include <siri/net/protocol.h>
-#include <siri/admin/request.h>
 #include <stdarg.h>
 #include <lock/lock.h>
-#include <siri/db/server.h>
+#include <logger/logger.h>
+#include <siri/siri.h>
 #include <siri/version.h>
+#include <siri/admin/client.h>
+#include <siri/admin/request.h>
+#include <siri/net/stream.h>
+#include <siri/net/protocol.h>
+#include <siri/net/tcp.h>
+#include <siri/db/server.h>
 
 /* 15 seconds  */
 #define CLIENT_REQUEST_TIMEOUT 15000
@@ -41,7 +42,7 @@ enum
 
 static void CLIENT_write_cb(uv_write_t * req, int status);
 static void CLIENT_on_connect(uv_connect_t * req, int status);
-static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg);
+static void CLIENT_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void CLIENT_request_timeout(uv_timer_t * handle);
 static void CLIENT_on_auth_success(siri_admin_client_t * adm_client);
 static int CLIENT_resolve_dns(
@@ -99,33 +100,32 @@ int siri_admin_client_request(
         qp_obj_t * password,
         qp_obj_t * dbname,
         const char * dbpath,
-        uv_stream_t * client,
+        sirinet_stream_t * client,
         char * err_msg)
 {
-    sirinet_socket_t * ssocket;
     siri_admin_client_t * adm_client;
     struct in_addr sa;
     struct in6_addr sa6;
 
-    if (siri.socket != NULL)
+    if (siri.client != NULL)
     {
         sprintf(err_msg, "manage socket already in use");
         return -1;
     }
 
-    siri.socket = sirinet_socket_new(SOCKET_MANAGE, &CLIENT_on_data);
-    if (siri.socket == NULL)
+    siri.client = sirinet_stream_new(STREAM_TCP_MANAGE, &CLIENT_on_data);
+    if (siri.client == NULL)
     {
         sprintf(err_msg, "memory allocation error");
         return -1;
     }
 
-    uv_tcp_init(siri.loop, siri.socket);
+    uv_tcp_init(siri.loop, (uv_tcp_t *) siri.client->stream);
 
     adm_client = (siri_admin_client_t *) malloc(sizeof(siri_admin_client_t));
     if (adm_client == NULL)
     {
-        sirinet_socket_decref(siri.socket);
+        sirinet_stream_decref(siri.client);
         sprintf(err_msg, "memory allocation error");
         return -1;
     }
@@ -146,10 +146,10 @@ int siri_admin_client_request(
     adm_client->pool = pool;
     memcpy(&adm_client->uuid, uuid, 16);
 
-    ssocket = (sirinet_socket_t *) siri.socket->data;
-    ssocket->origin = (void *) adm_client;
 
-    sirinet_socket_incref(adm_client->client);
+    siri.client->origin = (void *) adm_client;
+
+    sirinet_stream_incref(adm_client->client);
 
     if (adm_client->host == NULL ||
         adm_client->username == NULL ||
@@ -157,7 +157,7 @@ int siri_admin_client_request(
         adm_client->dbname == NULL ||
         adm_client->dbpath == NULL)
     {
-        sirinet_socket_decref(siri.socket);
+        sirinet_stream_decref(siri.client);
         sprintf(err_msg, "memory allocation error");
         return -1;
     }
@@ -170,7 +170,7 @@ int siri_admin_client_request(
         uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
-            sirinet_socket_decref(siri.socket);
+            sirinet_stream_decref(siri.client);
             sprintf(err_msg, "memory allocation error");
             return -1;
         }
@@ -182,7 +182,7 @@ int siri_admin_client_request(
         uv_ip4_addr(adm_client->host, adm_client->port, &dest);
         uv_tcp_connect(
                 req,
-                siri.socket,
+                (uv_tcp_t *) siri.client->stream,
                 (const struct sockaddr *) &dest,
                 CLIENT_on_connect);
     }
@@ -194,7 +194,7 @@ int siri_admin_client_request(
         uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
-            sirinet_socket_decref(siri.socket);
+            sirinet_stream_decref(siri.client);
             sprintf(err_msg, "memory allocation error");
             return -1;
         }
@@ -205,7 +205,7 @@ int siri_admin_client_request(
         uv_ip6_addr(adm_client->host, adm_client->port, &dest6);
         uv_tcp_connect(
                 req,
-                siri.socket,
+                (uv_tcp_t *) siri.client->stream,
                 (const struct sockaddr *) &dest6,
                 CLIENT_on_connect);
     }
@@ -216,7 +216,7 @@ int siri_admin_client_request(
                 dns_req_family_map[siri.cfg->ip_support],
                 err_msg))
         {
-            sirinet_socket_decref(siri.socket);
+            sirinet_stream_decref(siri.client);
             return -1;  /* err_msg is set */
         }
     }
@@ -231,7 +231,7 @@ void siri_admin_client_free(siri_admin_client_t * adm_client)
 {
     if (adm_client != NULL)
     {
-        sirinet_socket_decref(adm_client->client);
+        sirinet_stream_decref(adm_client->client);
         free(adm_client->host);
         free(adm_client->username);
         free(adm_client->password);
@@ -323,7 +323,7 @@ static void CLIENT_on_resolved(
         {
             uv_tcp_connect(
                     req,
-                    siri.socket,
+                    (uv_tcp_t *) siri.client->stream,
                     (const struct sockaddr *) res->ai_addr,
                     CLIENT_on_connect);
         }
@@ -367,7 +367,7 @@ static void CLIENT_err(
         siri_admin_request_rollback(adm_client->dbpath);
     }
 
-    sirinet_socket_decref(siri.socket);
+    sirinet_stream_decref(siri.client);
 
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
@@ -411,7 +411,7 @@ static void CLIENT_send_pkg(
 
     uv_write(
             req,
-            (uv_stream_t *) siri.socket,
+            siri.client->stream,
             &wrbuf,
             1,
             CLIENT_write_cb);
@@ -441,8 +441,8 @@ static void CLIENT_write_cb(uv_write_t * req, int status)
  */
 static void CLIENT_on_connect(uv_connect_t * req, int status)
 {
-    sirinet_socket_t * ssocket = req->handle->data;
-    siri_admin_client_t * adm_client = (siri_admin_client_t *) ssocket->origin;
+    sirinet_stream_t * client = req->handle->data;
+    siri_admin_client_t * adm_client = client->origin;
 
     if (status == 0)
     {
@@ -453,8 +453,8 @@ static void CLIENT_on_connect(uv_connect_t * req, int status)
 
         uv_read_start(
                 req->handle,
-                sirinet_socket_alloc_buffer,
-                sirinet_socket_on_data);
+                sirinet_stream_alloc_buffer,
+                sirinet_stream_on_data);
 
         sirinet_pkg_t * pkg;
         qp_packer_t * packer = sirinet_packer_new(512);
@@ -495,10 +495,9 @@ static void CLIENT_on_connect(uv_connect_t * req, int status)
 /*
  * on-data call-back function.
  */
-static void CLIENT_on_data(uv_stream_t * client, sirinet_pkg_t * pkg)
+static void CLIENT_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    sirinet_socket_t * ssocket = client->data;
-    siri_admin_client_t * adm_client = (siri_admin_client_t *) ssocket->origin;
+    siri_admin_client_t * adm_client = client->origin;
     log_debug(
             "Client response received (pid: %" PRIu16
             ", len: %" PRIu32 ", tp: %s)",
@@ -616,7 +615,7 @@ static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
             "Finished registering server on database '%s'",
             adm_client->dbname);
 
-    sirinet_socket_decref(siri.socket);
+    sirinet_stream_decref(siri.client);
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
 

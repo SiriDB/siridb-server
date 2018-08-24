@@ -23,8 +23,8 @@ static cfgparser_option_t * cfgparser_new_option(
         cfgparser_section_t * section,
         const char * name,
         cfgparser_tp_t tp,
-        cfgparser_u * val,
-        cfgparser_u * def);
+        cfgparser_via_t * val,
+        cfgparser_via_t * def);
 
 #define MAXLINE 255
 
@@ -242,8 +242,8 @@ cfgparser_option_t * cfgparser_string_option(
         const char * val,
         const char * def)
 {
-    cfgparser_u * val_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
-    cfgparser_u * def_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
+    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
 
     if (val_u == NULL || def_u == NULL)
     {
@@ -286,8 +286,8 @@ cfgparser_option_t * cfgparser_integer_option(
         int32_t val,
         int32_t def)
 {
-    cfgparser_u * val_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
-    cfgparser_u * def_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
+    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
     if (val_u == NULL || def_u == NULL)
     {
         ERR_ALLOC
@@ -317,8 +317,8 @@ cfgparser_option_t * cfgparser_real_option(
         double val,
         double def)
 {
-    cfgparser_u * val_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
-    cfgparser_u * def_u = (cfgparser_u *) malloc(sizeof(cfgparser_u));
+    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
     if (val_u == NULL || def_u == NULL)
     {
         ERR_ALLOC
@@ -427,8 +427,8 @@ static cfgparser_option_t * cfgparser_new_option(
         cfgparser_section_t * section,
         const char * name,
         cfgparser_tp_t tp,
-        cfgparser_u * val,
-        cfgparser_u * def)
+        cfgparser_via_t * val,
+        cfgparser_via_t * def)
 {
     cfgparser_option_t * current = section->options;
     cfgparser_option_t * prev;

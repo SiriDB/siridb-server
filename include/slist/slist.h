@@ -9,7 +9,8 @@
  *  - initial version, 06-06-2016
  *
  */
-#pragma once
+#ifndef SLIST_H_
+#define SLIST_H_
 
 #define SLIST_DEFAULT_SIZE 8
 
@@ -19,18 +20,6 @@ typedef struct slist_object_s slist_object_t;
 #include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
-
-struct slist_object_s
-{
-    uint32_t ref;
-};
-
-struct slist_s
-{
-    size_t size;
-    size_t len;
-    void * data[];
-};
 
 slist_t * slist_new(size_t size);
 slist_t * slist_copy(slist_t * source);
@@ -68,3 +57,17 @@ int slist_append_safe(slist_t ** slist, void * data);
  * Pop the last item from the list
  */
 #define slist_pop(slist) slist->data[--slist->len]
+
+struct slist_object_s
+{
+    uint32_t ref;
+};
+
+struct slist_s
+{
+    size_t size;
+    size_t len;
+    void * data[];
+};
+
+#endif  /* SLIST_H_ */

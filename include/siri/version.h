@@ -9,7 +9,8 @@
  *  - initial version, 08-03-2016
  *
  */
-#pragma once
+#ifndef SIRI_VERSION_H_
+#define SIRI_VERSION_H_
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
@@ -33,3 +34,5 @@ int siri_version_cmp(const char * version_a, const char * version_b);
 
 /* SiriDB can only connect with servers having at least this version. */
 #define SIRIDB_MINIMAL_VERSION "2.0.0"
+
+#endif  /* SIRI_VERSION_H_ */

@@ -9,11 +9,8 @@
  *  - initial version, 18-03-2016
  *
  */
-#pragma once
-
-#include <inttypes.h>
-#include <stddef.h>
-#include <stdio.h>
+#ifndef CTREE_H_
+#define CTREE_H_
 
 enum
 {
@@ -25,6 +22,29 @@ enum
 typedef struct ct_s ct_t;
 typedef struct ct_node_s ct_node_t;
 typedef struct ct_node_s * ct_nodes_t[32];
+
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdio.h>
+
+typedef int (*ct_item_cb)(
+        const char * key,
+        size_t len,
+        void * data,
+        void * args);
+typedef int (*ct_val_cb)(void * data, void * args);
+typedef void (*ct_free_cb)(void * data);
+
+ct_t * ct_new(void);
+void ct_free(ct_t * ct, ct_free_cb cb);
+int ct_add(ct_t * ct, const char * key, void * data);
+void * ct_get(ct_t * node, const char * key);
+void ** ct_getaddr(ct_t * ct, const char * key);
+void * ct_getn(ct_t * ct, const char * key, size_t n);
+void * ct_pop(ct_t * ct, const char * key);
+int ct_items(ct_t * ct, ct_item_cb cb, void * args);
+int ct_values(ct_t * ct, ct_val_cb cb, void * args);
+void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
 
 struct ct_node_s
 {
@@ -47,22 +67,4 @@ struct ct_s
     ct_nodes_t * nodes;
 };
 
-typedef int (*ct_item_cb)(
-        const char * key,
-        size_t len,
-        void * data,
-        void * args);
-typedef int (*ct_val_cb)(void * data, void * args);
-typedef void (*ct_free_cb)(void * data);
-
-ct_t * ct_new(void);
-void ct_free(ct_t * ct, ct_free_cb cb);
-int ct_add(ct_t * ct, const char * key, void * data);
-void * ct_get(ct_t * node, const char * key);
-void ** ct_getaddr(ct_t * ct, const char * key);
-void * ct_getn(ct_t * ct, const char * key, size_t n);
-void * ct_pop(ct_t * ct, const char * key);
-int ct_items(ct_t * ct, ct_item_cb cb, void * args);
-int ct_values(ct_t * ct, ct_val_cb cb, void * args);
-void ct_valuesn(ct_t * ct, size_t * n, ct_val_cb cb, void * args);
-
+#endif  /* CTREE_H_ */
