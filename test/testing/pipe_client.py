@@ -1,4 +1,3 @@
-import os
 import logging
 import asyncio
 from siridb.connector import SiriDBProtocol
