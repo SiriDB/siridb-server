@@ -20,7 +20,6 @@
 #include <siri/siri.h>
 #include <stdlib.h>
 #include <string.h>
-#include <siri/siri.h>
 
 #define MAX_ALLOWED_PKG_SIZE 20971520      /* 20 MB  */
 
@@ -275,19 +274,13 @@ void sirinet__stream_free(uv_stream_t * uvclient)
         siri.client = NULL;
         break;
     case STREAM_PIPE_CLIENT:
+        if (client->origin != NULL)
         {
-            char * pipe_name = sirinet_pipe_name((uv_pipe_t *) uvclient);
-            if (pipe_name != NULL)
-            {
-                uv_fs_t * req = malloc(sizeof(uv_fs_t));
-                if (req != NULL)
-                {
-                    uv_fs_unlink(siri.loop, req, pipe_name, (uv_fs_cb) free);
-                }
-                free(pipe_name);
-            }
+            siridb_user_t * user = client->origin;
+            siridb_user_decref(user);
         }
-
+        sirinet_pipe_unlink((uv_pipe_t *) uvclient);
+        break;
     }
     free(client->buf);
     free(client);

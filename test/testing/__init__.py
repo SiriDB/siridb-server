@@ -17,6 +17,7 @@ from .siridb import SiriDB
 from .testbase import default_test_setup
 from .testbase import TestBase
 from .series import Series
+from .pipe_client import PipeClient as SiriDBAsyncUnixConnection
 
 
 async def _run_test(test, loglevel):

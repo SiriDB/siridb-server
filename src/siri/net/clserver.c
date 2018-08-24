@@ -121,6 +121,7 @@ int sirinet_clserver_init(siri_t * siri)
 
     /* make sure data is set to NULL so we later on can check this value. */
     client_server_tcp.data = NULL;
+    client_server_pipe.data = NULL;
 
     if (siri->cfg->bind_client_addr != NULL)
     {
@@ -169,7 +170,7 @@ int sirinet_clserver_init(siri_t * siri)
     }
 
     rc = uv_listen(
-            (uv_stream_t*) &client_server_tcp,
+            (uv_stream_t *) &client_server_tcp,
             DEFAULT_BACKLOG,
             on_tcp_new_connection);
 
@@ -184,11 +185,9 @@ int sirinet_clserver_init(siri_t * siri)
 
     if (siri->cfg->pipe_support)
     {
-        char *pipe_name = siri->cfg->pipe_client_name;
+        char * pipe_name = siri->cfg->pipe_client_name;
 
-        rc = uv_pipe_bind(
-                &client_server_pipe,
-                pipe_name);
+        rc = uv_pipe_bind(&client_server_pipe, pipe_name);
 
         if (rc)
         {
@@ -197,13 +196,14 @@ int sirinet_clserver_init(siri_t * siri)
         }
 
         rc = uv_listen(
-                (uv_stream_t*) &client_server_pipe,
+                (uv_stream_t *) &client_server_pipe,
                 DEFAULT_BACKLOG,
                 on_pipe_new_connection);
 
         if (rc)
         {
-            log_error("Error listening TCP client server: %s", uv_strerror(rc));
+            log_error(
+                    "Error listening pipe client server: %s", uv_strerror(rc));
             return 1;
         }
 
