@@ -52,14 +52,23 @@ class TestPipeSupport(TestBase):
 
         await pipe_client.connect('iris', 'siri', self.db.dbname)
 
-        await pipe_client.insert(DATA)
+        self.assertEqual(
+            await pipe_client.insert(DATA),
+            {'success_msg': 'Successfully inserted 10 point(s).'})
+
+        self.assertAlmostEqual(
+            await pipe_client.query('select * from "series num_float"'),
+            {'series num_float': DATA['series num_float']})
+
+        self.assertEqual(
+            await pipe_client.query('select * from "series num_integer"'),
+            {'series num_integer': DATA['series num_integer']})
 
         self.assertEqual(
             await pipe_client.query('select * from "series_log"'),
             {'series_log': DATA['series_log']})
 
         pipe_client.close()
-
 
         # return False
 

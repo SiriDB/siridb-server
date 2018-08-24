@@ -132,7 +132,7 @@ int sirinet_bserver_init(siri_t * siri)
                     UV_TCP_IPV6ONLY : 0);
 
     rc = uv_listen(
-            (uv_stream_t*) &backend_server,
+            (uv_stream_t *) &backend_server,
             DEFAULT_BACKLOG,
             on_new_connection);
 

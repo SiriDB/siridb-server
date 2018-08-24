@@ -25,9 +25,11 @@ char * sirinet_pipe_name(uv_pipe_t * client)
 
     buffer[len] = '\0';
     return buffer;
-
 }
 
+/*
+ * Cleanup socket (pipe) file.
+ */
 void sirinet_pipe_unlink(uv_pipe_t * client)
 {
     char * pipe_name = sirinet_pipe_name(client);

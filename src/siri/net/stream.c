@@ -32,7 +32,6 @@
     sirinet_stream_decref(client);      \
     return;
 
-
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  *
@@ -40,6 +39,7 @@
  */
 sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
 {
+    size_t stream_sz;
     sirinet_stream_t * client = malloc(sizeof(sirinet_stream_t));
 
     if (client == NULL)
@@ -57,9 +57,21 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
     client->siridb = NULL;
     client->ref = 1;
 
-    size_t stream_sz = (tp == STREAM_PIPE_CLIENT)
-            ? sizeof(uv_pipe_t)
-            : sizeof(uv_tcp_t);
+    switch(tp)
+    {
+    case STREAM_TCP_CLIENT:
+    case STREAM_TCP_BACKEND:
+    case STREAM_TCP_SERVER:
+    case STREAM_TCP_MANAGE:
+        stream_sz = sizeof(uv_tcp_t);
+        break;
+    case STREAM_PIPE_CLIENT:
+        stream_sz = sizeof(uv_pipe_t);
+        break;
+    default:
+        stream_sz = sizeof(uv_stream_t);
+        assert(0);
+    }
 
     client->stream = malloc(stream_sz);
     if (client->stream == NULL)
@@ -93,7 +105,6 @@ char * sirinet_stream_name(sirinet_stream_t * client)
     }
     return NULL;
 }
-
 
 /*
  * This function can raise a SIGNAL.
@@ -222,8 +233,6 @@ void sirinet_stream_on_data(
         sirinet_stream_on_data(uvclient, 0, buf);
     }
 }
-
-
 
 /*
  * Never use this function but call sirinet_stream_decref.
