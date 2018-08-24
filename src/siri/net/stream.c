@@ -256,6 +256,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 
     switch (client->tp)
     {
+    case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */
         if (client->origin != NULL)
         {
@@ -281,14 +282,6 @@ void sirinet__stream_free(uv_stream_t * uvclient)
     case STREAM_TCP_MANAGE:  /* a server manage connection  */
         siri_admin_client_free((siri_admin_client_t *) client->origin);
         siri.client = NULL;
-        break;
-    case STREAM_PIPE_CLIENT:
-        if (client->origin != NULL)
-        {
-            siridb_user_t * user = client->origin;
-            siridb_user_decref(user);
-        }
-        sirinet_pipe_unlink((uv_pipe_t *) uvclient);
         break;
     }
     free(client->buf);

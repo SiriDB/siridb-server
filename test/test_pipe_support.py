@@ -48,27 +48,28 @@ class TestPipeSupport(TestBase):
     @default_test_setup(1, pipe_name=PIPE_NAME)
     async def run(self):
 
-        pipe_client = SiriDBAsyncUnixConnection(PIPE_NAME)
+        pipe_client0 = SiriDBAsyncUnixConnection(PIPE_NAME)
+        pipe_client1 = SiriDBAsyncUnixConnection(PIPE_NAME)
 
-        await pipe_client.connect('iris', 'siri', self.db.dbname)
+        await pipe_client0.connect('iris', 'siri', self.db.dbname)
 
         self.assertEqual(
-            await pipe_client.insert(DATA),
+            await pipe_client0.insert(DATA),
             {'success_msg': 'Successfully inserted 10 point(s).'})
 
         self.assertAlmostEqual(
-            await pipe_client.query('select * from "series num_float"'),
+            await pipe_client0.query('select * from "series num_float"'),
             {'series num_float': DATA['series num_float']})
 
         self.assertEqual(
-            await pipe_client.query('select * from "series num_integer"'),
+            await pipe_client0.query('select * from "series num_integer"'),
             {'series num_integer': DATA['series num_integer']})
 
         self.assertEqual(
-            await pipe_client.query('select * from "series_log"'),
+            await pipe_client0.query('select * from "series_log"'),
             {'series_log': DATA['series_log']})
 
-        pipe_client.close()
+        pipe_client0.close()
 
         # return False
 

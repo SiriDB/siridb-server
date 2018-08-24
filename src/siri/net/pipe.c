@@ -4,6 +4,7 @@
 #include <siri/net/pipe.h>
 #include <siri/siri.h>
 #include <xpath/xpath.h>
+#include <logger/logger.h>
 
 #define PIPE_NAME_BUF_SZ SIRI_PATH_MAX
 
@@ -28,13 +29,14 @@ char * sirinet_pipe_name(uv_pipe_t * client)
 }
 
 /*
- * Cleanup socket (pipe) file.
+ * Cleanup socket (pipe) file. (Unused)
  */
 void sirinet_pipe_unlink(uv_pipe_t * client)
 {
     char * pipe_name = sirinet_pipe_name(client);
     if (pipe_name != NULL)
     {
+        log_debug("Unlink named pipe: '%s'", pipe_name);
         uv_fs_t * req = malloc(sizeof(uv_fs_t));
         if (req != NULL)
         {
