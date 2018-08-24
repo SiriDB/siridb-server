@@ -49,7 +49,6 @@ class TestPipeSupport(TestBase):
     async def run(self):
 
         pipe_client0 = SiriDBAsyncUnixConnection(PIPE_NAME)
-        pipe_client1 = SiriDBAsyncUnixConnection(PIPE_NAME)
 
         await pipe_client0.connect('iris', 'siri', self.db.dbname)
 
