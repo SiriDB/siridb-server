@@ -41,9 +41,9 @@ DATA = {
 if os.path.exists(PIPE_NAME):
     os.unlink(PIPE_NAME)
 
+
 class TestPipeSupport(TestBase):
     title = 'Test pipe support object'
-
 
     @default_test_setup(1, pipe_name=PIPE_NAME)
     async def run(self):

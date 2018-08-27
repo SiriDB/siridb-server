@@ -25,5 +25,3 @@ class PipeClient(SiriDBAsyncConnection):
             raise exc
         else:
             self._protocol.on_authenticated()
-
-

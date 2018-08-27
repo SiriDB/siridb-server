@@ -63,6 +63,7 @@ class TestCluster(TestBase):
 
         return False
 
+
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'INFO'
     Server.HOLD_TERM = True

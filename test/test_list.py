@@ -24,8 +24,8 @@ TIME_PRECISION = 's'
 class TestList(TestBase):
     title = 'Test list'
 
-    GEN_POINTS = functools.partial(gen_points, n=1, time_precision=TIME_PRECISION)
-
+    GEN_POINTS = functools.partial(
+        gen_points, n=1, time_precision=TIME_PRECISION)
 
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):
@@ -96,7 +96,8 @@ class TestList(TestBase):
         await self.client0.query('alter database set list_limit 5000')
         with self.assertRaisesRegexp(
                 QueryError,
-                'Limit must be a value between 0 and 5000 but received: 6000.*'):
+                'Limit must be a value between 0 and 5000 '
+                'but received: 6000.*'):
             await self.client0.query(
                 'list series limit 6000')
 

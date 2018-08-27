@@ -14,4 +14,3 @@ class Series:
             for point in self._points:
                 self.points.append(point)
             self._points = None
-

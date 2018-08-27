@@ -20,7 +20,9 @@ from testing import UserAuthError
 
 
 PI = 'ԉ'
-Klingon = '     qajunpaQHeylIjmo’ batlh DuSuvqang charghwI’ ‘It.'
+Klingon = '     ' + \
+    'qajunpaQHeylIjmo’ batlh DuSuvqang charghwI’ ‘It.'
+
 
 class TestSeries(TestBase):
     title = 'Test series object'

@@ -27,7 +27,6 @@ class TestPool(TestBase):
             await client.insert_some_series(series, n=0.01, timeout=timeout)
             await asyncio.sleep(1.0)
 
-
     @default_test_setup(4)
     async def run(self):
 

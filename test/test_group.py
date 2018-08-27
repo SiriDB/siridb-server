@@ -111,23 +111,28 @@ class TestGroup(TestBase):
             await self.client1.query('alter group `two` set expression /.2/'),
             {'success_msg': "Successfully updated group 'two'."})
 
-
         time.sleep(3)
 
         result = await self.client0.query('list series `a` & `two`')
         self.assertEqual(sorted(result.pop('series')), [['a2']])
 
         result = await self.client0.query('list series `a` | `two`')
-        self.assertEqual(sorted(result.pop('series')), [['a1'], ['a2'], ['b2'], ['c2']])
+        self.assertEqual(
+            sorted(result.pop('series')),
+            [['a1'], ['a2'], ['b2'], ['c2']])
 
         result = await self.client0.query('list series `a` ^ `two`')
-        self.assertEqual(sorted(result.pop('series')), [['a1'], ['b2'], ['c2']])
+        self.assertEqual(
+            sorted(result.pop('series')),
+            [['a1'], ['b2'], ['c2']])
 
         result = await self.client0.query('list series `a` - `two`')
         self.assertEqual(sorted(result.pop('series')), [['a1']])
 
         result = await self.client0.query('list series `a`, `two` - "c2"')
-        self.assertEqual(sorted(result.pop('series')), [['a1'], ['a2'], ['b2']])
+        self.assertEqual(
+            sorted(result.pop('series')),
+            [['a1'], ['a2'], ['b2']])
 
         result = await self.client0.query('list series `a`, `two` & "c2"')
         self.assertEqual(sorted(result.pop('series')), [['c2']])
@@ -168,6 +173,7 @@ class TestGroup(TestBase):
         self.client1.close()
 
         return False
+
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'

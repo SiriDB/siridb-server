@@ -466,7 +466,7 @@ Home-page: https://github.com/transceptor-technology/siridb-email-check
         if datetime.datetime.strptime(
                 args.start_date, '%Y-%m-%d') >= datetime.datetime.today():
             exit('start date must be a date before today.')
-    except:
+    except Exception:
         exit('invalid date: {}'.format(args.start_date))
 
     setup_logger(args)

@@ -7,6 +7,7 @@ URL = \
     'http://www.google.com/finance/getprices?' \
     'i={interval}&p={days}d&f=d,o,h,l,c,v&df=cpct&q={ticker}'
 
+
 def _data_to_csv(data, ticker, interval):
     lines = []
     series = None
@@ -55,6 +56,7 @@ async def get_google_finance_data(ticker, interval, days):
             content = await resp.text()
             return _data_to_csv(content, ticker, interval)
 
+
 async def save_google_finance_data(fn, ticker, interval, days):
     """Returns Google Finance Data in CSV format.
 
@@ -68,6 +70,7 @@ async def save_google_finance_data(fn, ticker, interval, days):
     with open(fn, 'w') as f:
         f.write(csv_data)
 
+
 async def print_google_finance_data(ticker, interval, days):
     """Prints Google Finance Data in CSV format.
 
@@ -76,7 +79,7 @@ async def print_google_finance_data(ticker, interval, days):
     :param days: The historical data period in days
     :return: None
     """
-    print (await get_google_finance_data(ticker, interval, days))
+    print(await get_google_finance_data(ticker, interval, days))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -107,4 +110,3 @@ if __name__ == '__main__':
         ticker=args.ticker,
         interval=args.interval,
         days=args.days))
-

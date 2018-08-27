@@ -218,7 +218,7 @@ class TestSelect(TestBase):
         self.assertEqual(
             await self.client0.query(
                 'select filter(/l.*/) from * where type == string'),
-                {'log': [p for p in DATA['log'] if re.match('l.*', p[1])]})
+            {'log': [p for p in DATA['log'] if re.match('l.*', p[1])]})
 
         self.assertEqual(
             await self.client0.query(

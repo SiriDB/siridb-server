@@ -131,5 +131,3 @@ class SiriDB:
 
         if sleep:
             await asyncio.sleep(sleep)
-
-

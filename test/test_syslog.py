@@ -42,7 +42,6 @@ MTCH = re.compile(
 class TestSyslog(TestBase):
     title = 'Test with syslog data'
 
-
     async def insert_syslog(self, batch_size=100):
 
         with open(SYSLOG, 'r') as f:
@@ -84,6 +83,7 @@ class TestSyslog(TestBase):
         self.client0.close()
 
         return False
+
 
 if __name__ == '__main__':
     SiriDB.LOG_LEVEL = 'CRITICAL'
