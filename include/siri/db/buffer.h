@@ -15,6 +15,7 @@
 #include <siri/db/db.h>
 #include <siri/db/series.h>
 #include <siri/db/points.h>
+#include <unistd.h>
 
 #define MAX_BUFFER_SZ 10485760
 
@@ -36,5 +37,8 @@ int siridb_buffer_write_point(
         siridb_series_t * series,
         uint64_t * ts,
         qp_via_t * val);
+
+int siridb_buffer_fsync(siridb_t * siridb);
+
 
 #endif  /* SIRIDB_BUFFER_H_ */

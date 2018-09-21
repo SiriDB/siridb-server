@@ -881,6 +881,7 @@ static void INSERT_local_task(uv_async_t * handle)
 
     siridb_insert_local_t * ilocal = (siridb_insert_local_t *) handle->data;
     qp_unpacker_t * unpacker = &ilocal->unpacker;
+    siridb_t * siridb;
 
     /*
      * we check for siri_err because siridb_series_add_point()
@@ -900,7 +901,7 @@ static void INSERT_local_task(uv_async_t * handle)
         return;
     }
 
-    siridb_t * siridb = ilocal->siridb;
+    siridb = ilocal->siridb;
 
     if (siridb->buffer_fp == NULL && siridb_buffer_open(siridb))
     {
@@ -951,6 +952,7 @@ static void INSERT_local_task(uv_async_t * handle)
             ilocal->status = INSERT_LOCAL_ERROR;
         }
     }
+
     uv_mutex_unlock(&siridb->series_mutex);
     uv_mutex_unlock(&siridb->shards_mutex);
 

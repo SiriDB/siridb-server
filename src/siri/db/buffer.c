@@ -96,6 +96,12 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
             BUFFER_create_new(siridb, series);
 }
 
+int siridb_buffer_fsync(siridb_t * siridb)
+{
+    int buffer_fd = fileno(siridb->buffer_fp);
+    return (buffer_fd != -1) ? fsync(buffer_fd) : -1;
+}
+
 /*
  * Returns 0 if successful or -1 in case of an error.
  */
