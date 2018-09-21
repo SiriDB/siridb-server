@@ -74,6 +74,12 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     {
         siridb = (siridb_t *) siridb_node->data;
 
+        /* flush the buffer, maybe on each insert or another interval? */
+        if (siridb_buffer_fsync(siridb))
+        {
+            log_critical("fsync() has failed on the buffer file");
+        }
+
         server_node = siridb->servers->first;
         while (server_node != NULL)
         {
@@ -94,10 +100,5 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
         siridb_node = siridb_node->next;
     }
 
-    /* flush the buffer, maybe on each insert or another interval? */
-    if (siridb_buffer_fsync(siridb))
-    {
-        log_critical("fsync() has failed on the buffer file");
-    }
 }
 
