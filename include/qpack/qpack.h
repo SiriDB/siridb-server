@@ -172,7 +172,7 @@ static inline int qp_is_raw_term(qp_obj_t * qp_obj)
 {
     return (qp_obj->tp == QP_RAW &&
             qp_obj->len &&
-            qp_obj->via.raw[qp_obj->len - 1] == '\0');
+            (char) qp_obj->via.raw[qp_obj->len - 1] == '\0');
 }
 
 /* Add to packer functions */

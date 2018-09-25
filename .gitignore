@@ -27,6 +27,7 @@
 *.i*86
 *.x86_64
 *.hex
+*.out
 
 # Debug files
 *.dSYM/
@@ -70,4 +71,5 @@ grammar/javagrammar/
 .vscode/
 
 # Test
+itest/testdir
 test/testdir

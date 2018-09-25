@@ -1,0 +1,26 @@
+matrix:
+  include:
+    - language: c
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+      before_script:
+        - cd Release
+      script:
+        - make test
+    - language: c
+      os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+            - splint
+      script:
+        - splint *.c
+

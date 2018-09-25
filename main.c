@@ -21,9 +21,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-#if DEBUG
-#include <test/test.h>
-#endif
 
 int main(int argc, char * argv[])
 {
@@ -31,7 +28,7 @@ int main(int argc, char * argv[])
      * set local to LC_ALL
      * more info at: http://www.cprogramming.com/tutorial/unicode.html
      */
-    setlocale(LC_ALL, "");
+    (void) setlocale(LC_ALL, "");
 
     /* initialize random */
     srand(time(NULL));
@@ -53,13 +50,6 @@ int main(int argc, char * argv[])
     siridb_points_init();
 
 #if DEBUG
-    int rc;
-    /* run tests when we are in debug mode */
-    rc = run_tests();
-    if (rc)
-    {
-        exit(1);
-    }
     log_warning("Starting SiriDB Server (%s-DEBUG-RELEASE-%s)",
             SIRIDB_VERSION,
             SIRIDB_BUILD_DATE);
@@ -69,7 +59,10 @@ int main(int argc, char * argv[])
     log_info("Starting SiriDB Server (version: %s)", SIRIDB_VERSION);
 #endif
     /* initialize SiriDB mutex (used for the siridb_list) */
-    uv_mutex_init(&siri.siridb_mutex);
+    if (uv_mutex_init(&siri.siridb_mutex))
+    {
+        exit(1);
+    }
 
     /* read siridb main application configuration */
     siri_cfg_init(&siri);
