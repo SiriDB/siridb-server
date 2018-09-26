@@ -8,8 +8,9 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
+            - valgrind
       before_script:
-        - cd ./Release
+        - cd ./Release/
       script:
         - make test
     - language: c
@@ -23,10 +24,10 @@ matrix:
             - splint
       before_script:
         before_script:
-        - sudo apt-get -qq update
-        - sudo apt-get -qq install libpcre2-dev libuv1-dev uuid-dev
+        - apt-get -qq update
+        - apt-get -qq install libpcre2-dev libuv1-dev uuid-dev
         - git clone https://github.com/transceptor-technology/libcleri.git
-        - cd libcleri/Release
+        - cd ./libcleri/Release/
         - make
         - make install
         - cd ../../
