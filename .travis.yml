@@ -15,16 +15,10 @@ matrix:
     #     - make test
     - language: c
       os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-            - splint
       before_script:
+        - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         - sudo apt-get update
-        - sudo apt-get install -y libpcre2-dev libuv1-dev uuid-dev
+        - sudo apt-get install -y libpcre2-dev libuv1-dev uuid-dev g++-7 splint
         - git clone https://github.com/transceptor-technology/libcleri.git
         - cd ./libcleri/Release/
         - make
