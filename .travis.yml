@@ -21,11 +21,10 @@ matrix:
           packages:
             - g++-7
             - splint
-            - libpcre2-dev
-            - libuv1-dev
-            - uuid-dev
       before_script:
         before_script:
+        - sudo apt-get -qq update
+        - sudo apt-get -qq install libpcre2-dev libuv1-dev uuid-dev
         - git clone https://github.com/transceptor-technology/libcleri.git
         - cd libcleri/Release
         - make
