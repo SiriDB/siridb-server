@@ -9,7 +9,7 @@ matrix:
           packages:
             - g++-7
       before_script:
-        - cd Release
+        - cd ./Release
       script:
         - make test
     - language: c
@@ -21,6 +21,16 @@ matrix:
           packages:
             - g++-7
             - splint
+            - libpcre2-dev
+            - libuv1-dev
+            - uuid-dev
+      before_script:
+        before_script:
+        - git clone https://github.com/transceptor-technology/libcleri.git
+        - cd libcleri/Release
+        - make
+        - make install
+        - cd ../../
       script:
         - splint *.c
 
