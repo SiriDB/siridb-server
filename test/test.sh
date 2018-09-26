@@ -9,7 +9,7 @@ run () {
     rm "$OUT" 2> /dev/null
 
     gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -o "$OUT"
-    if hash valgrind 2>/dev/null; then
+    if [[ "$NOMEMTEST" -ne "1" ]] && hash valgrind 2>/dev/null; then
         echo -n "(memtest) "
         valgrind --tool=memcheck --error-exitcode=1 --leak-check=full -q ./$OUT
     else
@@ -19,8 +19,12 @@ run () {
     rm "$OUT" 2> /dev/null
 }
 
-for d in test_*/ ; do
-    run "${d%?}"
-done
+if [ $# -eq 0 ]; then
+    for d in test_*/ ; do
+        run "${d%?}"
+    done
+else
+    run "$1"
+fi
 
 exit $RET

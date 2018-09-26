@@ -60,6 +60,25 @@ int main()
         _assert (ct_add(ctree, "", entries[0]) == CT_EXISTS);
     }
 
+    /* test get */
+    {
+        for (unsigned int i = 0; i < num_entries; i++)
+        {
+            _assert (ct_get(ctree, entries[i]) == entries[i]);
+        }
+    }
+
+    /* test getn */
+    {
+        for (unsigned int i = 0; i < num_entries; i++)
+        {
+            _assert (ct_getn(
+                ctree,
+                entries[i],
+                strlen(entries[i])) == entries[i]);
+        }
+    }
+
     /* test pop value */
     {
         for (unsigned int i = 0; i < num_entries; i++)
