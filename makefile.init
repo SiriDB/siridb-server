@@ -1,2 +1,0 @@
-test:
-	@cd ../test && ./test.sh

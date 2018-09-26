@@ -158,7 +158,7 @@ int imap_set(imap_t * imap, uint64_t id, void * data)
  * In case of a memory error we return -1. When the id already exists -2 will
  * be returned.
  */
-int imap_add(imap_t * imap, uint64_t id, void * data)
+unsigned int imap_add(imap_t * imap, uint64_t id, void * data)
 {
 #if DEBUG
     /* insert NULL is not allowed */

@@ -51,14 +51,14 @@ endif
 
 OS := $(shell uname)
 ifeq ($(OS),Darwin)
-CRYPT := 
+CRYPT :=
 UUID :=
 else
 CRYPT := -lcrypt
 UUID := -luuid
 endif
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 
 # All Target
 all: siridb-server
@@ -67,7 +67,7 @@ all: siridb-server
 siridb-server: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LDFLAGS) $(LIBS) $(CRYPT) $(UUID) 
+	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LDFLAGS) $(LIBS) $(CRYPT) $(UUID)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -80,3 +80,6 @@ clean:
 .SECONDARY:
 
 -include ../makefile.targets
+
+test:
+	-@cd ../test && ./test.sh

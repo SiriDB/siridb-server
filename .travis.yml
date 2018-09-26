@@ -28,5 +28,6 @@ matrix:
         - sudo make install
         - cd ../../
       script:
-        - splint *.c
+        - make test
+        - CFLAGS="-Werror -std=gnu89" && make
 
