@@ -1,33 +1,17 @@
-matrix:
-  include:
-    # - language: c
-    #   os: linux
-    #   addons:
-    #     apt:
-    #       sources:
-    #         - ubuntu-toolchain-r-test
-    #       packages:
-    #         - g++-7
-    #         - valgrind
-    #   before_script:
-    #     - cd ./Release/
-    #   script:
-    #     - make test
-    - language: c
-      sudo: required
-      dist: xenial
-      before_script:
-        - sudo add-apt-repository main
-        - sudo add-apt-repository universe
-        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        - sudo apt-get update -qq
-        - sudo apt-get install -qq libpcre2-dev libuv1-dev uuid-dev g++-7 valgrind
-        - git clone https://github.com/transceptor-technology/libcleri.git
-        - cd ./libcleri/Release/
-        - make
-        - sudo make install
-        - cd ../../Release/
-      script:
-        - make test
-        - CFLAGS="-Werror -std=gnu89" && make
-
+language: c
+sudo: required
+dist: xenial
+before_script:
+  - sudo add-apt-repository main
+  - sudo add-apt-repository universe
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq libpcre2-dev libuv1-dev uuid-dev g++-7 valgrind
+  - git clone https://github.com/transceptor-technology/libcleri.git
+  - cd ./libcleri/Release/
+  - make
+  - sudo make install
+  - cd ../../Release/
+script:
+  - make test
+  - CFLAGS="-Werror -std=gnu89" make
