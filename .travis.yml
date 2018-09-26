@@ -15,7 +15,7 @@ matrix:
     #     - make test
     - language: c
       sudo: required
-      dist: bionic
+      dist: xenial
       before_script:
         - sudo add-apt-repository main
         - sudo add-apt-repository universe
