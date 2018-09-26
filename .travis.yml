@@ -17,13 +17,13 @@ matrix:
       os: linux
       addons:
         apt:
-          update: true
           sources:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
             - splint
       before_script:
+        - sudo apt-get update
         - sudo apt-get install -y libpcre2-dev libuv1-dev uuid-dev
         - git clone https://github.com/transceptor-technology/libcleri.git
         - cd ./libcleri/Release/
