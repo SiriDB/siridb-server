@@ -16,6 +16,8 @@ matrix:
     - language: c
       os: linux
       before_script:
+        - sudo add-apt-repository main
+        - sudo add-apt-repository universe
         - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
         - sudo apt-get update
         - sudo apt-get install -y libpcre2-dev libuv1-dev uuid-dev g++-7 splint
