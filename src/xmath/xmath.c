@@ -23,7 +23,9 @@ uint32_t xmath_ipow(int base, int exp)
     while (exp)
     {
         if (exp & 1)
+        {
             result *= base;
+        }
         exp >>= 1;
         base *= base;
     }

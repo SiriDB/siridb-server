@@ -1,0 +1,11 @@
+../src/siri/db/aggregate.c
+../src/siri/db/points.c
+../src/siri/db/variance.c
+../src/siri/db/median.c
+../src/siri/db/re.c
+../src/siri/err.c
+../src/qpack/qpack.c
+../src/slist/slist.c
+../src/cexpr/cexpr.c
+../src/strextra/strextra.c
+../src/logger/logger.c

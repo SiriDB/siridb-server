@@ -1,11 +1,5 @@
-/*
- * test_smap.c
- *
- *  Created on: Sep 30, 2017
- *      Author: Jeroen van der Heijden <jeroen@transceptor.technology>
- */
-
-
+#include <time.h>
+#include <locale.h>
 #include "../test.h"
 #include <iso8601/iso8601.h>
 
@@ -13,6 +7,11 @@
 int main()
 {
     test_start("iso8601");
+
+    /* Update local and timezone */
+    (void) setlocale(LC_ALL, "");
+    putenv("TZ=:UTC");
+    tzset();
 
     iso8601_tz_t amsterdam = iso8601_tz("Europe/Amsterdam");
     _assert(amsterdam > 0);
@@ -26,7 +25,6 @@ int main()
     _assert(iso8601_tz("Ams") < 0);
 
     /* Test parsing a year with time-zone information */
-    printf("%ld", iso8601_parse_date("2013", amsterdam));
     _assert(iso8601_parse_date("2013", amsterdam) == 1356994800);
 
     /* Customer offset should be preferred over UTC */

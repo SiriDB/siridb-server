@@ -15,6 +15,7 @@ static struct timeval start;
 static struct timeval end;
 
 static int status = TEST_OK;
+static int count = 0;
 
 const char * padding =
         ".............................."
@@ -22,6 +23,7 @@ const char * padding =
 
 static void test_start(char * test_name)
 {
+    count = 0;
     int padlen = 60 - strlen(test_name);
     printf("Testing %s%*.*s", test_name, padlen, padlen, padding);
     gettimeofday(&start, 0);
@@ -40,6 +42,6 @@ static int test_end(void)
     return status;
 }
 
-#define _assert(e) (void)((e)?0:(status = TEST_FAILED) && printf("\n\x1B[33mAssertion failed (%s:%d):\x1B[0m %s\n\n", __FILE__, __LINE__, #e))
+#define _assert(e) (void)((e)?count++:(status = TEST_FAILED) && printf("\n\x1B[33mAssertion failed (%s:%d):\x1B[0m %s\n\n", __FILE__, __LINE__, #e))
 
 #endif  /* SIRIDB_TEST_H_ */

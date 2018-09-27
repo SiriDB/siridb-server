@@ -1,5 +1,13 @@
 #!/bin/bash
 RET=0
+echo -n "Test using valgrind for memory errors and leaks: "
+if [[ "$NOMEMTEST" -ne "1" ]] && hash valgrind 2>/dev/null; then
+    NOMEMTEST=0;
+    echo -e "\x1B[32menabled\x1B[0m";
+else
+    NOMEMTEST=1;
+    echo -e "\x1B[33mdisabled\x1B[0m";
+fi
 
 run () {
     C_SRC=$(cat $1/sources)
@@ -8,9 +16,8 @@ run () {
     OUT=$1.out
     rm "$OUT" 2> /dev/null
 
-    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -o "$OUT"
-    if [[ "$NOMEMTEST" -ne "1" ]] && hash valgrind 2>/dev/null; then
-        echo -n "(memtest) "
+    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -lm -lpcre2-8 -lcleri -o "$OUT"
+    if [[ "$NOMEMTEST" -ne "1" ]]; then
         valgrind --tool=memcheck --error-exitcode=1 --leak-check=full -q ./$OUT
     else
         ./$OUT
@@ -24,7 +31,8 @@ if [ $# -eq 0 ]; then
         run "${d%?}"
     done
 else
-    run "$1"
+    name=`echo $1 | sed 's/\(test_\)\?\(.*\?\)$/\2/g' | sed 's/\(.*\)\/$/\1/g'`
+    run "test_$name"
 fi
 
 exit $RET

@@ -1,11 +1,3 @@
-/*
- * test_smap.c
- *
- *  Created on: Sep 30, 2017
- *      Author: Jeroen van der Heijden <jeroen@transceptor.technology>
- */
-
-
 #include "../test.h"
 #include <ctree/ctree.h>
 
@@ -35,8 +27,9 @@ int main()
 
     /* test adding values */
     {
+        unsigned int i;
         _assert (ctree->len == 0);
-        for (unsigned int i = 0; i < num_entries; i++)
+        for (i = 0; i < num_entries; i++)
         {
             _assert (ct_add(ctree, entries[i], entries[i]) == 0);
         }
@@ -49,7 +42,8 @@ int main()
 
     /* test adding duplicated values */
     {
-        for (unsigned int i = 0; i < num_entries; i++)
+        unsigned int i;
+        for (i = 0; i < num_entries; i++)
         {
             _assert (ct_add(ctree, entries[i], entries[i]) == CT_EXISTS);
         }
@@ -62,7 +56,8 @@ int main()
 
     /* test get */
     {
-        for (unsigned int i = 0; i < num_entries; i++)
+        unsigned int i;
+        for (i = 0; i < num_entries; i++)
         {
             _assert (ct_get(ctree, entries[i]) == entries[i]);
         }
@@ -70,7 +65,8 @@ int main()
 
     /* test getn */
     {
-        for (unsigned int i = 0; i < num_entries; i++)
+        unsigned int i;
+        for (i = 0; i < num_entries; i++)
         {
             _assert (ct_getn(
                 ctree,
@@ -81,7 +77,8 @@ int main()
 
     /* test pop value */
     {
-        for (unsigned int i = 0; i < num_entries; i++)
+        unsigned int i;
+        for (i = 0; i < num_entries; i++)
         {
             _assert (ct_pop(ctree, entries[i]) == entries[i]);
         }

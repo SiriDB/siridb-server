@@ -393,13 +393,13 @@ static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser)
     else
     {
         len = strlen(option->val->string);
-        if (len > SIRI_PATH_MAX-2)
+        if (len > XPATH_MAX-2)
         {
             log_warning(
                     "Pipe client name exceeds %d characters, please "
                     "check your configuration file: %s. "
                     "Using default value: '%s'",
-                    SIRI_PATH_MAX-2,
+                    XPATH_MAX-2,
                     siri.args->config,
                     siri_cfg.pipe_client_name);
         }
@@ -451,9 +451,9 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     }
     else
     {
-        memset(siri_cfg.default_db_path, 0, SIRI_PATH_MAX);
+        memset(siri_cfg.default_db_path, 0, XPATH_MAX);
 
-        if (strlen(option->val->string) >= SIRI_PATH_MAX -2 ||
+        if (strlen(option->val->string) >= XPATH_MAX -2 ||
             realpath(
                 option->val->string,
                 siri_cfg.default_db_path) == NULL)
@@ -467,17 +467,17 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
             /* keep space left for a trailing slash and a terminator char */
             strncpy(siri_cfg.default_db_path,
                     option->val->string,
-                    SIRI_PATH_MAX - 2);
+                    XPATH_MAX - 2);
         }
 
         len = strlen(siri_cfg.default_db_path);
 
-        if (len == SIRI_PATH_MAX - 2)
+        if (len == XPATH_MAX - 2)
         {
             log_warning(
                     "Default database path exceeds %d characters, please "
                     "check your configuration file: %s",
-                    SIRI_PATH_MAX - 3,
+                    XPATH_MAX - 3,
                     siri.args->config);
         }
 

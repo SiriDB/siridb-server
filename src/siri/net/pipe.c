@@ -6,7 +6,7 @@
 #include <xpath/xpath.h>
 #include <logger/logger.h>
 
-#define PIPE_NAME_BUF_SZ SIRI_PATH_MAX
+#define PIPE_NAME_BUF_SZ XPATH_MAX
 
 /*
  * Return a name for the connection if successful or NULL in case of a failure.

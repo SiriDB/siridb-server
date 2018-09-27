@@ -14,6 +14,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 void strx_upper_case(char * sptr);
 void strx_lower_case(char * sptr);

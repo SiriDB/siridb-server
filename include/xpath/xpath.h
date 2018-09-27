@@ -16,9 +16,9 @@
 #include <limits.h>
 
 #ifndef PATH_MAX
-#define SIRI_PATH_MAX 4096
+#define XPATH_MAX 4096
 #else
-#define SIRI_PATH_MAX PATH_MAX
+#define XPATH_MAX PATH_MAX
 #endif
 
 int xpath_file_exist(const char * fn);

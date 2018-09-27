@@ -35,9 +35,9 @@ struct siri_cfg_s
     uint8_t ip_support;
     uint8_t shard_compression;
     char server_address[SIRI_CFG_MAX_LEN_ADDRESS];
-    char default_db_path[SIRI_PATH_MAX];
+    char default_db_path[XPATH_MAX];
     uint8_t pipe_support;
-    char pipe_client_name[SIRI_PATH_MAX];
+    char pipe_client_name[XPATH_MAX];
 };
 
 #endif  /* SIRI_CFG_H_ */
