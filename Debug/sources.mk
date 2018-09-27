@@ -39,7 +39,6 @@ src/siri/help \
 src/siri/net \
 src/slist \
 src/strextra \
-src/test \
 src/timeit \
 src/xmath \
 src/xpath \

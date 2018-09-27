@@ -11,7 +11,6 @@ RM := rm -rf
 -include src/xpath/subdir.mk
 -include src/xmath/subdir.mk
 -include src/timeit/subdir.mk
--include src/test/subdir.mk
 -include src/strextra/subdir.mk
 -include src/slist/subdir.mk
 -include src/siri/admin/subdir.mk
