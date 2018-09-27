@@ -27,16 +27,13 @@ int siridb_buffer_open(siridb_t * siridb);
 
 int siridb_buffer_load(siridb_t * siridb);
 
-int siridb_buffer_write_len(
+int siridb_buffer_write_empty(
         siridb_t * siridb,
         siridb_series_t * series);
 
-
-int siridb_buffer_write_point(
+int siridb_buffer_write_last_point(
         siridb_t * siridb,
-        siridb_series_t * series,
-        uint64_t * ts,
-        qp_via_t * val);
+        siridb_series_t * series);
 
 int siridb_buffer_fsync(siridb_t * siridb);
 

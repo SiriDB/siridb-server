@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <xpath/xpath.h>
+#include <assert.h>
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
@@ -28,23 +29,25 @@
 static int BUFFER_create_new(siridb_t * siridb, siridb_series_t * series);
 static int BUFFER_use_empty(siridb_t * siridb, siridb_series_t * series);
 
+static const uint64_t BUFFER_end = 0xffffffffffffffff;
+
 
 /*
  * Returns 0 if success or EOF in case of an error.
  */
-int siridb_buffer_write_len(
+int siridb_buffer_write_empty(
         siridb_t * siridb,
         siridb_series_t * series)
 {
     return (
         /* go to the series position in buffer */
-        fseeko(  siridb->buffer_fp,
-                series->bf_offset + sizeof(uint32_t),
+        fseeko( siridb->buffer_fp,
+                series->bf_offset + 8,  // 4 bytes are unused
                 SEEK_SET) ||
 
-        /* write new length */
-        fwrite( &series->buffer->len,
-                sizeof(size_t),
+        /* write end ts */
+        fwrite( &BUFFER_end,
+                sizeof(uint64_t),
                 1,
                 siridb->buffer_fp) != 1) ? EOF : 0;
 }
@@ -55,25 +58,30 @@ int siridb_buffer_write_len(
  *
  * Returns 0 if success or EOF in case of an error.
  */
-int siridb_buffer_write_point(
+int siridb_buffer_write_last_point(
         siridb_t * siridb,
-        siridb_series_t * series,
-        uint64_t * ts,
-        qp_via_t * val)
+        siridb_series_t * series)
 {
-    const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t);
+    siridb_point_t * point;
+    const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t) + sizeof(uint64_t);
     char buf[sz];
+    int last_idx = series->buffer->len - 1;
+    assert (last_idx >= 0);
 
-    memcpy(buf, ts, sizeof(uint64_t));
-    memcpy(buf + sizeof(uint64_t), val, sizeof(qp_via_t));
+    point = series->buffer->data + last_idx;
+
+    memcpy(buf, &point->ts, sizeof(uint64_t));
+    memcpy(buf + sizeof(uint64_t), &point->val, sizeof(qp_via_t));
+    memcpy(
+        buf + sizeof(uint64_t) + sizeof(qp_via_t),
+        &BUFFER_end,
+        sizeof(uint64_t));
 
     return (
-        siridb_buffer_write_len(siridb, series) ||
-
         /* jump to position where to write the new point */
-        fseeko(  siridb->buffer_fp,
-                16 * (series->buffer->len - 1),
-                SEEK_CUR) ||
+        fseeko( siridb->buffer_fp,
+                series->bf_offset + 8 + (16 * last_idx),
+                SEEK_SET) ||
 
         /* write time-stamp and value */
         fwrite(buf, sz, 1, siridb->buffer_fp) != 1) ? EOF : 0;

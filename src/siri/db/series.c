@@ -145,7 +145,7 @@ int siridb_series_add_point(
         else
         {
             series->buffer->len = 0;
-            if (siridb_buffer_write_len(siridb, series))
+            if (siridb_buffer_write_empty(siridb, series))
             {
                 ERR_FILE
                 rc = -1;
@@ -154,7 +154,7 @@ int siridb_series_add_point(
     }
     else
     {
-        if (siridb_buffer_write_point(siridb, series, ts, val))
+        if (siridb_buffer_write_last_point(siridb, series))
         {
             ERR_FILE
             log_critical("Cannot write new point to buffer");
@@ -217,7 +217,7 @@ int siridb_series_add_pcache(
         }
 
         series->buffer->len = 0;
-        if (siridb_buffer_write_len(siridb, series))
+        if (siridb_buffer_write_empty(siridb, series))
         {
             ERR_FILE
             return -1;

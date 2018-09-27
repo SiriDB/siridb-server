@@ -24,7 +24,8 @@ TIME_PRECISION = 'ns'
 class TestInsert(TestBase):
     title = 'Test inserts and response'
 
-    GEN_POINTS = functools.partial(gen_points, n=1, time_precision=TIME_PRECISION)
+    GEN_POINTS = functools.partial(
+        gen_points, n=1, time_precision=TIME_PRECISION)
 
     async def _test_series(self, client):
 
@@ -34,20 +35,30 @@ class TestInsert(TestBase):
         result = await client.query('select * from "series int"')
         self.assertEqual(result['series int'], self.series_int)
 
-        result = await client.query('list series name, length, type, start, end')
+        result = await client.query(
+            'list series name, length, type, start, end')
         result['series'].sort()
         self.assertEqual(
             result,
             {   'columns': ['name', 'length', 'type', 'start', 'end'],
                 'series': [
-                    ['series float', 10000, 'float', self.series_float[0][0], self.series_float[-1][0]],
-                    ['series int', 10000, 'integer', self.series_int[0][0], self.series_int[-1][0]],
+                    [
+                        'series float',
+                        10000, 'float',
+                        self.series_float[0][0],
+                        self.series_float[-1][0]],
+                    [
+                        'series int', 10000,
+                        'integer',
+                        self.series_int[0][0],
+                        self.series_int[-1][0]],
                 ]
             })
 
     async def insert(self, client, series, n, timeout=1):
         for _ in range(n):
-            await client.insert_some_series(series, timeout=timeout, points=self.GEN_POINTS)
+            await client.insert_some_series(
+                series, timeout=timeout, points=self.GEN_POINTS)
             await asyncio.sleep(1.0)
 
     @default_test_setup(2, time_precision=TIME_PRECISION, compression=False)
@@ -62,9 +73,11 @@ class TestInsert(TestBase):
             await self.client0.insert([]),
             {'success_msg': 'Successfully inserted 0 point(s).'})
 
-        self.series_float = gen_points(tp=float, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
+        self.series_float = gen_points(
+            tp=float, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
         random.shuffle(self.series_float)
-        self.series_int = gen_points(tp=int, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
+        self.series_int = gen_points(
+            tp=int, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
         random.shuffle(self.series_int)
 
         self.assertEqual(
@@ -96,12 +109,24 @@ class TestInsert(TestBase):
         with self.assertRaises(InsertError):
             await self.client0.insert({'no points': [[]]})
 
+        self.assertEqual(
+            await self.client0.insert({
+                'ts_zero': [[0, 1]]
+                }), {'success_msg': 'Successfully inserted 1 point(s).'})
+
+        await self.client0.query('drop series "ts_zero"')
+
         with self.assertRaises(InsertError):
             await self.client0.insert([{'name': 'no points', 'points': []}])
 
         # timestamps should be interger values
         with self.assertRaises(InsertError):
             await self.client0.insert({'invalid ts': [[0.5, 6]]})
+
+        # timestamps should be interger values
+        with self.assertRaises(InsertError):
+            await self.client0.insert(
+                {'invalid ts': [[-1, 6]]})
 
         # empty series name is not allowed
         with self.assertRaises(InsertError):
