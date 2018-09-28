@@ -56,6 +56,7 @@ struct siri_s
     siri_optimize_t * optimize;
     uv_timer_t * backup;
     uv_timer_t * heartbeat;
+    uv_timer_t * buffersync;
     siri_cfg_t * cfg;
     siri_args_t * args;
     uv_mutex_t siridb_mutex;

@@ -38,6 +38,7 @@ struct siri_cfg_s
     char default_db_path[XPATH_MAX];
     uint8_t pipe_support;
     char pipe_client_name[XPATH_MAX];
+    uint32_t buffer_sync_interval;
 };
 
 #endif  /* SIRI_CFG_H_ */

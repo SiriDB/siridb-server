@@ -16,12 +16,7 @@
 #include <logger/logger.h>
 #include <siri/db/server.h>
 #include <siri/heartbeat.h>
-#include <siri/db/buffer.h>
 #include <uv.h>
-
-#if DEBUG
-#include <siri/db/series.h>
-#endif
 
 static uv_timer_t heartbeat;
 
@@ -73,12 +68,6 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     while (siridb_node != NULL)
     {
         siridb = (siridb_t *) siridb_node->data;
-
-        /* flush the buffer, maybe on each insert or another interval? */
-        if (siridb_buffer_fsync(siridb))
-        {
-            log_critical("fsync() has failed on the buffer file");
-        }
 
         server_node = siridb->servers->first;
         while (server_node != NULL)

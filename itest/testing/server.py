@@ -31,8 +31,9 @@ class Server:
 
     def __init__(self,
                  n,
-                 optimize_interval=30,
+                 optimize_interval=300,
                  heartbeat_interval=30,
+                 buffer_sync_interval=0,
                  compression=True,
                  pipe_name=None,
                  **unused):
@@ -44,6 +45,7 @@ class Server:
             pipe_name
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
+        self.buffer_sync_interval = buffer_sync_interval
         self._server_address = self.SERVER_ADDRESS
         self.server_address = \
             self._server_address.lstrip('[').rstrip(']').replace(
@@ -76,6 +78,7 @@ class Server:
         config.set('siridb', 'ip_support', self.ip_support)
         config.set('siridb', 'optimize_interval', self.optimize_interval)
         config.set('siridb', 'heartbeat_interval', self.heartbeat_interval)
+        config.set('siridb', 'buffer_sync_interval', self.buffer_sync_interval)
         config.set('siridb', 'default_db_path', self.dbpath)
         config.set('siridb', 'max_open_files', MAX_OPEN_FILES)
         config.set('siridb', 'enable_shard_compression', int(self.compression))

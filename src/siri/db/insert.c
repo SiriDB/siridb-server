@@ -13,6 +13,7 @@
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/async.h>
+#include <siri/db/buffer.h>
 #include <siri/db/forward.h>
 #include <siri/db/insert.h>
 #include <siri/db/points.h>
@@ -950,6 +951,14 @@ static void INSERT_local_task(uv_async_t * handle)
                 &ilocal->pcache))
         {
             ilocal->status = INSERT_LOCAL_ERROR;
+        }
+    }
+
+    if (siri.buffersync == NULL)
+    {
+        if (siridb_buffer_fsync(siridb))
+        {
+            log_critical("fsync() has failed on the buffer file");
         }
     }
 

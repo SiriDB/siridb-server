@@ -31,7 +31,8 @@ static siri_cfg_t siri_cfg = {
         .server_address="localhost",
         .default_db_path="/var/lib/siridb/",
         .pipe_support=0,
-        .pipe_client_name="siridb_client.sock"
+        .pipe_client_name="siridb_client.sock",
+        .buffer_sync_interval=0,
 };
 
 static void SIRI_CFG_read_uint(
@@ -129,6 +130,15 @@ void siri_cfg_init(siri_t * siri)
     {
         SIRI_CFG_read_pipe_client_name(cfgparser);
     }
+
+    tmp = siri_cfg.buffer_sync_interval;
+    SIRI_CFG_read_uint(
+            cfgparser,
+            "buffer_sync_interval",
+            0,
+            300000,
+            &tmp);
+    siri_cfg.buffer_sync_interval = (uint32_t) tmp;
 
     cfgparser_free(cfgparser);
 }

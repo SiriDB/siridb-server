@@ -86,6 +86,7 @@ siri_t siri = {
         .fh=NULL,
         .optimize=NULL,
         .heartbeat=NULL,
+        .buffersync=NULL,
         .cfg=NULL,
         .args=NULL,
         .status=SIRI_STATUS_LOADING,
@@ -191,6 +192,9 @@ int siri_start(void)
 
     /* initialize heart-beat task (bind siri.heartbeat) */
     siri_heartbeat_init(&siri);
+
+    /* initialize buffer-sync task (bind siri.buffersync) */
+    siri_buffersync_init(&siri);
 
     /* initialize backup (bind siri.backup) */
     if (siri_backup_init(&siri))
@@ -447,6 +451,9 @@ static void SIRI_signal_handler(
 
         /* stop heart-beat task */
         siri_heartbeat_stop(&siri);
+
+        /* stop buffer-sync task */
+        siri_buffersync_stop(&siri);
 
         /* destroy backup (mode) task */
         siri_backup_destroy(&siri);
