@@ -116,12 +116,27 @@ int siridb_buffer_fsync(siridb_t * siridb)
  */
 int siridb_buffer_open(siridb_t * siridb)
 {
+    int buffer_fd, rc;
     siridb_misc_get_fn(fn, siridb->buffer_path, SIRIDB_BUFFER_FN)
 
     if ((siridb->buffer_fp = fopen(fn, "r+")) == NULL)
     {
         log_critical("Cannot open '%s' for reading and writing", fn);
         return -1;
+    }
+
+    buffer_fd = fileno(siridb->buffer_fp);
+
+    if (buffer_fd == -1)
+    {
+        log_critical("Cannot get file descriptor: '%s'", fn);
+        return -1;
+    }
+
+    rc = posix_fadvise(buffer_fd, 0, 0, POSIX_FADV_RANDOM|POSIX_FADV_DONTNEED);
+    if (rc)
+    {
+        log_warning("Cannot set advice for file access: '%s' (%d)", fn, rc);
     }
 
     return 0;
