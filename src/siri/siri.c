@@ -26,6 +26,7 @@
 #include <siri/admin/account.h>
 #include <siri/admin/request.h>
 #include <siri/async.h>
+#include <siri/buffersync.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/buffer.h>
