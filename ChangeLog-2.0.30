@@ -7,3 +7,5 @@
   * Changed writing buffer length to reduce random io.
   
   * Added option to fsync the buffer on a configurable interval.
+  
+  * Use posix_fadvise() on the buffer file. (@Svedrin)
