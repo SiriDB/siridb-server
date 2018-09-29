@@ -33,7 +33,7 @@ class Server:
                  n,
                  optimize_interval=300,
                  heartbeat_interval=30,
-                 buffer_sync_interval=0,
+                 buffer_sync_interval=500,
                  compression=True,
                  pipe_name=None,
                  **unused):
