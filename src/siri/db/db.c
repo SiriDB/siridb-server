@@ -677,11 +677,8 @@ void siridb__free(siridb_t * siridb)
     log_debug("Free database: '%s'", siridb->dbname);
 #endif
 
-    /* first we should close all open files */
-    if (siridb->buffer_fp != NULL)
-    {
-        fclose(siridb->buffer_fp);
-    }
+    /* first we should close the buffer and all other open files */
+    siridb_buffer_free(siridb);
 
     if (siridb->dropped_fp != NULL)
     {

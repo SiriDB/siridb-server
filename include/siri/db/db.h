@@ -73,6 +73,7 @@ struct siridb_s
     iso8601_tz_t tz;
     size_t buffer_size;
     size_t buffer_len;
+    char * buffer_clear;
     struct timespec start_time;     /* to calculate up-time.                */
     uint64_t duration_num;          /* number duration in s, ms, us or ns   */
     uint64_t duration_log;          /* log duration in s, ms, us or ns      */

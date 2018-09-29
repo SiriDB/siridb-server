@@ -28,8 +28,7 @@
 
 static int buffer__create_new(siridb_t * siridb, siridb_series_t * series);
 static int buffer__use_empty(siridb_t * siridb, siridb_series_t * series);
-static int buffer__write_start(siridb_t * siridb, siridb_series_t * series);
-static void buffer__migrate_to_new(char * pt);
+static void buffer__migrate_to_new(char * pt, size_t sz);
 
 /* buffer__start cannot conflict with a series_id since id 0 is never used */
 static const uint32_t buffer__start = 0x00000000;
@@ -43,15 +42,18 @@ int siridb_buffer_write_empty(
         siridb_t * siridb,
         siridb_series_t * series)
 {
+    memcpy(siridb->buffer_clear, &buffer__start, sizeof(uint32_t));
+    memcpy(siridb->buffer_clear + 4, &series->id, sizeof(uint32_t));
+
     return (
         /* go to the series position in buffer */
         fseeko( siridb->buffer_fp,
-                series->bf_offset + 8,  // 4 bytes are unused
+                series->bf_offset,
                 SEEK_SET) ||
 
         /* write end ts */
-        fwrite( &buffer__end,
-                sizeof(uint64_t),
+        fwrite( siridb->buffer_clear,
+                siridb->buffer_size,
                 1,
                 siridb->buffer_fp) != 1) ? EOF : 0;
 }
@@ -67,7 +69,7 @@ int siridb_buffer_write_last_point(
         siridb_series_t * series)
 {
     siridb_point_t * point;
-    const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t) + sizeof(uint64_t);
+    const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t);
     char buf[sz];
     int last_idx = series->buffer->len - 1;
     assert (last_idx >= 0);
@@ -76,7 +78,6 @@ int siridb_buffer_write_last_point(
 
     memcpy(buf, &point->ts, sizeof(uint64_t));
     memcpy(buf + sizeof(uint64_t), &point->val, sizeof(qp_via_t));
-    memcpy(buf + 16, &buffer__end, sizeof(uint64_t));
 
     return (
         /* jump to position where to write the new point */
@@ -142,9 +143,10 @@ int siridb_buffer_open(siridb_t * siridb)
     return 0;
 }
 
-static void buffer__migrate_to_new(char * pt)
+static void buffer__migrate_to_new(char * pt, size_t sz)
 {
     char * npt = pt;
+    char * end = pt + sz;
     uint32_t series_id = *((uint32_t *) pt);
     pt += sizeof(uint32_t);
     size_t num = *((size_t *) pt);
@@ -154,10 +156,13 @@ static void buffer__migrate_to_new(char * pt)
     npt += sizeof(uint32_t);
     memcpy(npt, &series_id, sizeof(uint32_t));
     npt += sizeof(uint32_t);
-
     memmove(npt, pt, num * 16);
     npt += num * 16;
-    memcpy(npt, &buffer__end, sizeof(uint64_t));
+
+    for (; npt < end; npt += sizeof(uint64_t))
+    {
+        memcpy(npt, &buffer__end, sizeof(uint64_t));
+    }
 }
 
 /*
@@ -171,7 +176,7 @@ int siridb_buffer_load(siridb_t * siridb)
     size_t read_at_once = 8;
     size_t num, i;
     char buffer[siridb->buffer_size * read_at_once];
-    char * pt;
+    char * pt, * end;
     long int offset = 0;
     siridb_series_t * series;
     _Bool log_migrate = 1;
@@ -179,6 +184,21 @@ int siridb_buffer_load(siridb_t * siridb)
     uint64_t * ts;
 
     log_info("Loading and cleanup buffer");
+
+    siridb->buffer_clear = malloc(siridb->buffer_size);
+    if (siridb->buffer_clear == NULL)
+    {
+        log_critical("Allocation error while loading buffer");
+        return -1;
+    }
+
+    for (   pt = siridb->buffer_clear,
+            end = siridb->buffer_clear + siridb->buffer_size;
+            pt < end;
+            pt += sizeof(uint64_t))
+    {
+        memcpy(pt, &buffer__end, sizeof(uint64_t));
+    }
 
     siridb_misc_get_fn(fn, siridb->buffer_path, SIRIDB_BUFFER_FN)
     siridb_misc_get_fn(fn_temp, siridb->buffer_path, "__" SIRIDB_BUFFER_FN)
@@ -229,7 +249,7 @@ int siridb_buffer_load(siridb_t * siridb)
                     log_warning("Buffer will be migrated");
                     log_migrate = 0;
                 }
-                buffer__migrate_to_new(pt);
+                buffer__migrate_to_new(pt, siridb->buffer_size);
             }
 
             pt += sizeof(uint32_t);
@@ -292,17 +312,15 @@ int siridb_buffer_load(siridb_t * siridb)
     return 0;
 }
 
-static int buffer__write_start(siridb_t * siridb, siridb_series_t * series)
+void siridb_buffer_free(siridb_t * siridb)
 {
-    const size_t sz = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t);
-    char buf[sz];
-
-    memcpy(buf, &buffer__start, sizeof(uint32_t));
-    memcpy(buf + sizeof(uint32_t), &series->id, sizeof(uint32_t));
-    memcpy(buf + sizeof(uint64_t), &buffer__end, sizeof(uint64_t));
-
-    /* write series ID and 0 length to buffer */
-    return (fwrite(buf, sz, 1, siridb->buffer_fp) == 1) ? 0 : -1;
+    if (siridb->buffer_fp != NULL)
+    {
+        fclose(siridb->buffer_fp);
+        siridb->buffer_fp = NULL;
+    }
+    free(siridb->buffer_clear);
+    siridb->buffer_clear = NULL;
 }
 
 /*
@@ -319,15 +337,7 @@ static int buffer__use_empty(siridb_t * siridb, siridb_series_t * series)
 {
     series->bf_offset = (long int) slist_pop(siridb->empty_buffers);
 
-    /* jump to the correct buffer position */
-    if (fseeko(siridb->buffer_fp, series->bf_offset, SEEK_SET))
-    {
-        ERR_FILE
-        return -1;
-    }
-
-    /* write series ID and 0 length to buffer */
-    if (buffer__write_start(siridb, series))
+    if (siridb_buffer_write_empty(siridb, series))
     {
         ERR_FILE
         return -1;
@@ -370,7 +380,7 @@ static int buffer__create_new(siridb_t * siridb, siridb_series_t * series)
     }
 
     /* write buffer start and series ID to buffer */
-    if (buffer__write_start(siridb, series))
+    if (siridb_buffer_write_empty(siridb, series))
     {
         ERR_FILE
         return -1;
