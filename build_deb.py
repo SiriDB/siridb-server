@@ -13,9 +13,11 @@ import argparse
 VERSION_FILE = 'include/siri/version.h'
 CHANGELOG_FILE = 'ChangeLog'
 
+
 def _version_levels():
     for n in ('MAJOR', 'MINOR', 'PATCH'):
         yield re.compile('^#define SIRIDB_VERSION_{} ([0-9]+)$'.format(n))
+
 
 def _get_version():
     version_gen = _version_levels()
@@ -35,12 +37,14 @@ def _get_version():
 
     raise ValueError('Cannot find version in {}'.format(VERSION_FILE))
 
+
 def _get_changelog(version):
     with open('ChangeLog-{}'.format(version), 'r') as f:
         content = f.read()
     if not content:
         raise ValueError('Changelog required!')
     return content
+
 
 def _get_distribution():
     '''Returns distribution code name. (Ubuntu)'''
@@ -234,8 +238,9 @@ if __name__ == '__main__':
     os.chmod(rules_file, os.stat(rules_file).st_mode | stat.S_IEXEC)
 
     with open(os.path.join(debian_path, 'links'), 'w') as f:
-        f.write('/usr/lib/siridb/server/{package} /usr/local/bin/{package}\n'.format(
-            **config))
+        f.write(
+            '/usr/lib/siridb/server/{package} /usr/local/bin/{package}\n'
+            .format(**config))
 
     with open(os.path.join(debian_path, 'install'), 'w') as f:
         f.write('''src/usr /

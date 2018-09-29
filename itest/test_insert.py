@@ -40,7 +40,8 @@ class TestInsert(TestBase):
         result['series'].sort()
         self.assertEqual(
             result,
-            {   'columns': ['name', 'length', 'type', 'start', 'end'],
+            {
+                'columns': ['name', 'length', 'type', 'start', 'end'],
                 'series': [
                     [
                         'series float',
