@@ -42,9 +42,7 @@ int siridb_buffer_write_empty(
         siridb_t * siridb,
         siridb_series_t * series)
 {
-    memcpy(siridb->buffer_clear, &buffer__start, sizeof(uint32_t));
     memcpy(siridb->buffer_clear + 4, &series->id, sizeof(uint32_t));
-
     return (
         /* go to the series position in buffer */
         fseeko( siridb->buffer_fp,
@@ -108,6 +106,10 @@ int siridb_buffer_new_series(siridb_t * siridb, siridb_series_t * series)
 
 int siridb_buffer_fsync(siridb_t * siridb)
 {
+    if (siridb->buffer_fp == NULL)
+    {
+        return 0;
+    }
     int buffer_fd = fileno(siridb->buffer_fp);
     return (buffer_fd != -1) ? fsync(buffer_fd) : -1;
 }
@@ -199,6 +201,8 @@ int siridb_buffer_load(siridb_t * siridb)
     {
         memcpy(pt, &buffer__end, sizeof(uint64_t));
     }
+
+    memcpy(siridb->buffer_clear, &buffer__start, sizeof(uint32_t));
 
     siridb_misc_get_fn(fn, siridb->buffer_path, SIRIDB_BUFFER_FN)
     siridb_misc_get_fn(fn_temp, siridb->buffer_path, "__" SIRIDB_BUFFER_FN)

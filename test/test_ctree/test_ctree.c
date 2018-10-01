@@ -1,8 +1,8 @@
 #include "../test.h"
 #include <ctree/ctree.h>
 
-const unsigned int num_entries = 14;
-char * entries[] = {
+static const unsigned int num_entries = 14;
+static char * entries[] = {
     "Zero",
     "First entry",
     "Second entry",
@@ -16,7 +16,7 @@ char * entries[] = {
     "entry 10",
     "entry 11",
     "entry 12",
-    "entry-last"
+    "entry-last",
 };
 
 int main()
