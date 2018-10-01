@@ -136,11 +136,13 @@ int siridb_buffer_open(siridb_t * siridb)
         return -1;
     }
 
+#ifndef __APPLE__
     rc = posix_fadvise(buffer_fd, 0, 0, POSIX_FADV_RANDOM|POSIX_FADV_DONTNEED);
     if (rc)
     {
         log_warning("Cannot set advice for file access: '%s' (%d)", fn, rc);
     }
+#endif
 
     return 0;
 }
