@@ -136,7 +136,9 @@ int siridb_buffer_open(siridb_t * siridb)
         return -1;
     }
 
-#ifndef __APPLE__
+#ifdef __APPLE__
+    rc = 0;  /* no posix_fadvise on apple */
+#else
     rc = posix_fadvise(buffer_fd, 0, 0, POSIX_FADV_RANDOM|POSIX_FADV_DONTNEED);
     if (rc)
     {
@@ -144,7 +146,7 @@ int siridb_buffer_open(siridb_t * siridb)
     }
 #endif
 
-    return 0;
+    return rc;
 }
 
 static void buffer__migrate_to_new(char * pt, size_t sz)
