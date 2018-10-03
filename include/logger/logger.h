@@ -12,11 +12,10 @@
 #ifndef LOGGER_H_
 #define LOGGER_H_
 
+#include <stdio.h>
 #ifdef __APPLE__
-#include <reent.h>
 typedef struct __sFILE LOGGER_IO_FILE;
 #else
-#include <stdio.h>
 typedef struct _IO_FILE LOGGER_IO_FILE;
 #endif
 
