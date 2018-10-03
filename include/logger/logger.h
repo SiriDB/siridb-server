@@ -13,10 +13,11 @@
 #define LOGGER_H_
 
 #ifdef __APPLE__
-#define _LOGGER_IO_FILE __sFILE
+#include <reent.h>
+typedef struct __sFILE LOGGER_IO_FILE;
 #else
 #include <stdio.h>
-#define _LOGGER_IO_FILE _IO_FILE
+typedef struct _IO_FILE LOGGER_IO_FILE;
 #endif
 
 #define LOGGER_DEBUG 0
@@ -33,7 +34,7 @@ typedef struct logger_s logger_t;
 
 const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS];
 
-void logger_init(struct _LOGGER_IO_FILE * ostream, int log_level);
+void logger_init(LOGGER_IO_FILE * ostream, int log_level);
 void logger_set_level(int log_level);
 const char * logger_level_name(int log_level);
 
@@ -71,7 +72,7 @@ extern logger_t Logger;
 
 struct logger_s
 {
-    struct _LOGGER_IO_FILE * ostream;
+    LOGGER_IO_FILE * ostream;
     int level;
     const char * level_name;
     int flags;
