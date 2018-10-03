@@ -3633,7 +3633,7 @@ static void exit_set_backup_mode(uv_async_t * handle)
                         server,
                         pkg,
                         0,
-                        on_ack_response,
+                        (sirinet_promise_cb) on_ack_response,
                         handle,
                         0))
                 {
@@ -3910,7 +3910,7 @@ static void exit_set_log_level(uv_async_t * handle)
                             server,
                             pkg,
                             0,
-                            on_ack_response,
+                            (sirinet_promise_cb) on_ack_response,
                             handle,
                             0))
                     {

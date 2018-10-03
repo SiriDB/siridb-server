@@ -328,7 +328,7 @@ void siridb_server_send_flags(siridb_server_t * server)
             server,
             pkg,
             SIRIDB_SERVER_FLAGS_TIMEOUT,
-            SERVER_on_flags_update_response,
+            (sirinet_promise_cb) SERVER_on_flags_update_response,
             NULL,
             0))
     {
@@ -727,7 +727,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                         server,
                         pkg,
                         0,
-                        SERVER_on_auth_response,
+                        (sirinet_promise_cb) SERVER_on_auth_response,
                         NULL,
                         0))
                 {

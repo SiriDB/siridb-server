@@ -394,7 +394,7 @@ void siridb_servers_send_pkg(
                         server,
                         pkg,
                         timeout,
-                        sirinet_promises_on_response,
+                        (sirinet_promise_cb) sirinet_promises_on_response,
                         promises,
                         FLAG_KEEP_PKG))
                 {

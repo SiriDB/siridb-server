@@ -1174,7 +1174,7 @@ static void INSERT_points_to_pools(uv_async_t * handle)
                     siridb->pools->pool + n,
                     pkg,
                     INSERT_TIMEOUT,
-                    sirinet_promises_on_response,
+                    (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
                     0))
             {

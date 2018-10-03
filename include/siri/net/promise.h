@@ -25,11 +25,9 @@ typedef enum
 } sirinet_promise_status_t;
 
 typedef struct sirinet_promise_s sirinet_promise_t;
-
-typedef struct sirinet_pkg_s sirinet_pkg_t;
 typedef void (* sirinet_promise_cb)(
         sirinet_promise_t * promise,
-        sirinet_pkg_t * pkg,
+        void * data,
         int status);
 
 #include <uv.h>

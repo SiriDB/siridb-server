@@ -233,7 +233,7 @@ static void REPLICATE_work(uv_timer_t * handle)
                 siridb->replica,
                 pkg,
                 REPLICATE_TIMEOUT,
-                REPLICATE_on_repl_response,
+                (sirinet_promise_cb) REPLICATE_on_repl_response,
                 siridb,
                 0))
         {
@@ -250,7 +250,7 @@ static void REPLICATE_work(uv_timer_t * handle)
                     siridb->replica,
                     pkg,
                     0,
-                    REPLICATE_on_repl_finished_response,
+                    (sirinet_promise_cb) REPLICATE_on_repl_finished_response,
                     NULL,
                     0))
             {

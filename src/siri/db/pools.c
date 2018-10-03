@@ -241,7 +241,7 @@ void siridb_pools_send_pkg(
                     pool,
                     pkg,
                     timeout,
-                    sirinet_promises_on_response,
+                    (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
                     FLAG_KEEP_PKG | flags))
             {
@@ -300,7 +300,7 @@ void siridb_pools_send_pkg_2some(
                     pool,
                     pkg,
                     timeout,
-                    sirinet_promises_on_response,
+                    (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
                     FLAG_KEEP_PKG | flags))
             {
