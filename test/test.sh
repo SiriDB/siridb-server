@@ -10,6 +10,9 @@ else
 fi
 
 run () {
+    if [ ! -f $1/sources ]; then
+       return;
+    fi
     C_SRC=$(cat $1/sources)
 
     SOURCE=$1/$1.c
@@ -24,6 +27,7 @@ run () {
     fi
     rc=$?; if [[ $rc != 0 ]]; then RET=$((RET+1)); fi
     rm "$OUT" 2> /dev/null
+    rm -r "$OUT.dSYM" 2> /dev/null
 }
 
 if [ $# -eq 0 ]; then
