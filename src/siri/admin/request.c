@@ -587,7 +587,7 @@ static cproto_server_t ADMIN_on_new_database(
     buffer_size = (qp_buffer_size.tp == QP_HOOK) ?
             DEFAULT_BUFFER_SIZE : qp_buffer_size.via.int64;
 
-    if (buffer_size % 512 || buffer_size < 512 || buffer_size > MAX_BUFFER_SZ)
+    if (!siridb_buffer_is_valid_size(buffer_size))
     {
         sprintf(err_msg,
                 "invalid buffer size: %" PRId64

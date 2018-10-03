@@ -9,6 +9,9 @@
  *  - initial version, 01-04-2016
  *
  */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 #include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
@@ -55,7 +58,7 @@ siridb_buffer_t * siridb_buffer_new(void)
     buffer->fd = 0;
     buffer->fp = NULL;
     buffer->len = 0;
-    buffer->nsize = 0;
+    buffer->nsize = 0;  /* 0 means no new size */
     buffer->path = NULL;
     buffer->size = 0;
     buffer->template = NULL;
@@ -73,6 +76,50 @@ void siridb_buffer_free(siridb_buffer_t * buffer)
     free(buffer->path);
     slist_free(buffer->empty);
     free(buffer);
+}
+
+_Bool siridb_buffer_is_valid_size(ssize_t ssize)
+{
+    return ssize >= 512 && (ssize % 512) == 0 && ssize <= MAX_BUFFER_SZ;
+}
+
+void siridb_buffer_set_path(siridb_buffer_t * buffer, const char * str)
+{
+    size_t lstr = strlen(str);
+    size_t lf = strlen(SIRIDB_BUFFER_FN);      // size of "buffer.dat"
+    size_t lspf = strlen("/" SIRIDB_BUFFER_FN); // size of "/buffer.dat"
+    assert (buffer->path == NULL);
+
+    if (str[lstr-1] == '/')
+    {
+        buffer->path = strdup(str);
+    }
+    else if (lstr >= lspf && strcmp(str+lstr-lspf, "/" SIRIDB_BUFFER_FN) == 0)
+    {
+        buffer->path = strndup(str, lstr-lf);
+    }
+    else if (asprintf(&buffer->path, "%s/", str) < 0)
+    {
+        free(buffer->path);
+        buffer->path = NULL;
+    }
+
+    if (buffer->path == NULL)
+    {
+        log_critical("Allocation error while setting buffer path");
+        return;
+    }
+}
+
+int siridb_buffer_test_path(siridb_t * siridb)
+{
+    siridb_misc_get_fn(fn, siridb->buffer->path, SIRIDB_BUFFER_FN)
+    if (siridb->series_map->len && !xpath_file_exist(fn))
+    {
+        log_critical("Cannot read buffer file: '%s'", fn);
+        return -1;
+    }
+    return 0;
 }
 
 /*
@@ -215,9 +262,9 @@ int siridb_buffer_load(siridb_t * siridb)
     siridb_buffer_t * buffer = siridb->buffer;
     FILE * fp;
     FILE * fp_temp;
-    size_t read_at_once = 8;
+    size_t read_at_once = (size_t) (MAX_BUFFER_SZ / buffer->size);
     size_t num, i;
-    char buf[buffer->size * read_at_once];
+    char * buf;
     char * pt, * end;
     long int offset = 0;
     siridb_series_t * series;
@@ -227,9 +274,11 @@ int siridb_buffer_load(siridb_t * siridb)
 
     log_info("Loading and cleanup buffer");
 
+    buf = malloc(read_at_once * buffer->size);
     buffer->template = malloc(buffer->size);
-    if (buffer->template == NULL)
+    if (buf == NULL || buffer->template == NULL)
     {
+        free(buf);
         log_critical("Allocation error while loading buffer");
         return -1;
     }
@@ -249,6 +298,7 @@ int siridb_buffer_load(siridb_t * siridb)
 
     if (xpath_file_exist(fn_temp))
     {
+        free(buf);
         log_error(
                 "Temporary buffer file found: '%s'. "
                 "Check if something went wrong or remove this file", fn_temp);
@@ -257,13 +307,8 @@ int siridb_buffer_load(siridb_t * siridb)
 
     if ((fp = fopen(fn, "r")) == NULL)
     {
-        if (siridb->series_map->len)
-        {
-            log_critical("Buffer file '%s' not found.", fn);
-            return -1;
-        }
-        log_warning("Buffer file '%s' not found, create a new one.", fn);
-
+        free(buf);
+        log_info("Buffer file '%s' not found, create a new one.", fn);
         if ((fp = fopen(fn, "w")) == NULL)
         {
             log_critical("Cannot create buffer file '%s'.", fn);
@@ -276,6 +321,7 @@ int siridb_buffer_load(siridb_t * siridb)
     {
         log_critical("Cannot open '%s' for writing", fn_temp);
         fclose(fp);
+        free(buf);
         return -1;
     }
 
@@ -314,7 +360,7 @@ int siridb_buffer_load(siridb_t * siridb)
                         series->id);
                 fclose(fp);
                 fclose(fp_temp);
-
+                free(buf);
                 return -1;  /* signal is raised */
             }
 
@@ -338,11 +384,13 @@ int siridb_buffer_load(siridb_t * siridb)
                         fn_temp);
                 fclose(fp);
                 fclose(fp_temp);
-
+                free(buf);
                 return -1;
             }
         }
     }
+
+    free(buf);
 
     if (fclose(fp) ||
         fclose(fp_temp) ||

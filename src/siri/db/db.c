@@ -184,6 +184,14 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
+    /* test buffer path */
+    if (siridb_buffer_test_path(siridb))
+    {
+        log_error("Cannot read buffer for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return NULL;
+    }
+
     /* load shards */
     if (siridb_shards_load(siridb))
     {
@@ -372,8 +380,7 @@ static int siridb__from_unpacker(
 
     /* read buffer size, same buffer_size requirements are used in request.c */
     if (    qp_next(unpacker, &qp_obj) != QP_INT64 ||
-            qp_obj.via.int64 % 512 ||
-            qp_obj.via.int64 < 512)
+            !siridb_buffer_is_valid_size(qp_obj.via.int64))
     {
         READ_DB_EXIT_WITH_ERROR("Cannot read buffer size.")
     }
@@ -835,34 +842,29 @@ static int siridb__read_conf(siridb_t * siridb)
 
     /* read buffer_path from database.conf */
     rc = cfgparser_get_option(&option, cfgparser, "buffer", "path");
-    if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING)
-    {
-        size_t len = strlen(option->val->string);
-        buffer->path = NULL;
-        if (option->val->string[len - 1] == '/')
-        {
-            buffer->path = strdup(option->val->string);
-        }
-        else if (
-                len >= 11 &&
-                strcmp(option->val->string + (len-11), "/buffer.dat") == 0)
-        {
-            buffer->path = strndup(option->val->string, len-10);
-        }
-        else if (asprintf(&buffer->path, "%s/", option->val->string) < 0)
-        {
-            buffer->path = NULL;
-        }
-    }
-    else
-    {
-        buffer->path = strdup(siridb->dbpath);
-    }
+    siridb_buffer_set_path(
+        buffer,
+        (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_STRING) ?
+                option->val->string : siridb->dbpath);
 
+    /* read buffer size from database.conf */
     rc = cfgparser_get_option(&option, cfgparser, "buffer", "size");
     if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_INTEGER)
     {
-
+        ssize_t ssize = option->val->integer;
+        if (!siridb_buffer_is_valid_size(ssize))
+        {
+            log_warning(
+                "Invalid buffer size: %" PRId64
+                " (expecting a multiple of 512 with a maximum of %" PRId64 ")",
+                ssize,
+                (int64_t) MAX_BUFFER_SZ);
+        }
+        else
+        {
+            buffer->nsize = (buffer->size == (size_t) ssize) ?
+                    0 : (size_t) ssize;
+        }
     }
 
     cfgparser_free(cfgparser);

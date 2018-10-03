@@ -99,6 +99,21 @@ siridb_points_t * siridb_points_new(size_t size, points_tp tp)
 }
 
 /*
+ * Resize points to a new size. Returns 0 when successful or -1 if failed.
+ */
+int siridb_points_resize(siridb_points_t * points, size_t n)
+{
+    assert( points->len <= n );
+    siridb_point_t * tmp = realloc(points->data, sizeof(siridb_point_t) * n);
+    if (tmp == NULL && n)
+    {
+        return -1;
+    }
+    points->data = tmp;
+    return 0;
+}
+
+/*
  * Returns a copy of points or NULL in case of an error. NULL is also returned
  * if points is NULL.
  */

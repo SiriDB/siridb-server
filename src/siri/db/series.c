@@ -761,27 +761,10 @@ siridb_points_t * siridb_series_get_points(
         }
     }
 
-    if (points->len < size)
+    if (points->len < size && siridb_points_resize(points, points->len))
     {
-        /* shrink allocation size */
-        point = (siridb_point_t *)
-                realloc(points->data, points->len * sizeof(siridb_point_t));
-        if (point == NULL && points->len)
-        {
-            log_error("Re-allocation points has failed");
-        }
-        else
-        {
-            points->data = point;
-        }
+        log_error("Re-allocation points has failed");
     }
-#if DEBUG
-    else
-    {
-        /* size must be equal if not smaller */
-        assert (points->len == size);
-    }
-#endif
 
     return points;
 }
