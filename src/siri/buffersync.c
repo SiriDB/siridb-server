@@ -60,7 +60,7 @@ static void BUFFERSYNC_cb(uv_timer_t * handle __attribute__((unused)))
         siridb = (siridb_t *) siridb_node->data;
 
         /* flush the buffer, maybe on each insert or another interval? */
-        if (siridb_buffer_fsync(siridb))
+        if (siridb_buffer_fsync(siridb->buffer))
         {
             log_critical("fsync() has failed on the buffer file");
         }

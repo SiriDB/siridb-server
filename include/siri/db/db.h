@@ -42,6 +42,7 @@ typedef struct siridb_s siridb_t;
 #include <siri/db/groups.h>
 #include <siri/db/tasks.h>
 #include <siri/db/time.h>
+#include <siri/db/buffer.h>
 
 int32_t siridb_get_uptime(siridb_t * siridb);
 int8_t siridb_get_idle_percentage(siridb_t * siridb);
@@ -71,19 +72,15 @@ struct siridb_s
     uint32_t list_limit;
     uuid_t uuid;
     iso8601_tz_t tz;
-    size_t buffer_size;
-    size_t buffer_len;
-    char * buffer_clear;
     struct timespec start_time;     /* to calculate up-time.                */
     uint64_t duration_num;          /* number duration in s, ms, us or ns   */
     uint64_t duration_log;          /* log duration in s, ms, us or ns      */
     char * dbname;
     char * dbpath;
-    char * buffer_path;
     double drop_threshold;
     size_t received_points;
     size_t selected_points;
-    slist_t * empty_buffers;
+
     siridb_time_t * time;
     siridb_server_t * server;
     siridb_server_t * replica;
@@ -95,13 +92,13 @@ struct siridb_s
     uv_mutex_t series_mutex;
     uv_mutex_t shards_mutex;
     imap_t * shards;
-    FILE * buffer_fp;
     FILE * dropped_fp;
     qp_fpacker_t * store;
     siridb_fifo_t * fifo;
     siridb_replicate_t * replicate;
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
+    siridb_buffer_t * buffer;
     siridb_tasks_t tasks;
 };
 

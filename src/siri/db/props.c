@@ -277,7 +277,7 @@ static void prop_buffer_path(
         int map)
 {
     SIRIDB_PROP_MAP("buffer_path", 11)
-    qp_add_string(packer, siridb->buffer_path);
+    qp_add_string(packer, siridb->buffer->path);
 }
 
 static void prop_buffer_size(
@@ -286,7 +286,7 @@ static void prop_buffer_size(
         int map)
 {
     SIRIDB_PROP_MAP("buffer_size", 11)
-    qp_add_int32(packer, (int32_t) siridb->buffer_size);
+    qp_add_int32(packer, (int32_t) siridb->buffer->size);
 }
 
 static void prop_dbname(

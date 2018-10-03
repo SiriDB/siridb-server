@@ -25,7 +25,7 @@ long int procinfo_total_physical_memory(void);
 long int procinfo_total_virtual_memory(void);
 
 /* Total Open Files */
-long int procinfo_open_files(const char * path);
+long int procinfo_open_files(const char * path, int include_fd);
 
 
 #endif  /* PROCINFO_H_ */

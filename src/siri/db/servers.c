@@ -574,7 +574,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             qp_add_string(
                     query->packer,
                     (siridb->server == server) ?
-                            siridb->buffer_path :
+                            siridb->buffer->path :
                             (server->buffer_path != NULL) ?
                                     server->buffer_path : "");
             break;
@@ -582,7 +582,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             qp_add_int64(
                     query->packer,
                     (siridb->server == server) ?
-                            siridb->buffer_size : server->buffer_size);
+                            siridb->buffer->size : server->buffer_size);
             break;
         case CLERI_GID_K_DBPATH:
             qp_add_string(

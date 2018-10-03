@@ -109,7 +109,7 @@ long int procinfo_total_physical_memory(void)
 #endif
 
 #ifdef __APPLE__
-long int procinfo_open_files(const char * path)
+long int procinfo_open_files(const char * path, int include_fd)
 {
     pid_t pid = getpid();
     size_t len = strlen(path);
@@ -147,15 +147,25 @@ long int procinfo_open_files(const char * path)
             if (    res == PROC_PIDFDVNODEPATHINFO_SIZE &&
                     strncmp(path, vnode_info.pvip.vip_path, len) == 0)
             {
+                vnode_info
                 count++;
             }
+            else if (
+                    res == PROC_PIDFDVNODEPATHINFO_SIZE &&
+                    include_fd >= 0 &&
+                    include_fd == fd_info[i].proc_fd)
+            {
+                include_fd = -1;
+                count++;
+            };
+
         }
     }
     free(fd_info);
     return count;
 }
 #else
-long int procinfo_open_files(const char * path)
+long int procinfo_open_files(const char * path, int include_fd)
 {
     long int count = 0;
     DIR * dirp;
@@ -174,7 +184,6 @@ long int procinfo_open_files(const char * path)
         if (entry->d_type == DT_REG || entry->d_type == DT_LNK)
         {
             snprintf(buffer, XPATH_MAX, "/proc/self/fd/%s", entry->d_name);
-
             if (realpath(buffer, buf) == NULL)
             {
                 continue;
@@ -184,6 +193,13 @@ long int procinfo_open_files(const char * path)
             {
                 count++;
             }
+            else if (
+                    include_fd >= 0 &&
+                    include_fd == strtol(entry->d_name, NULL, 10))
+            {
+                include_fd = -1;
+                count++;
+            };
         }
     }
     closedir(dirp);

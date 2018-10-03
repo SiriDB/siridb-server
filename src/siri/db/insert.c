@@ -904,7 +904,7 @@ static void INSERT_local_task(uv_async_t * handle)
 
     siridb = ilocal->siridb;
 
-    if (siridb->buffer_fp == NULL && siridb_buffer_open(siridb))
+    if (siridb->buffer->fp == NULL && siridb_buffer_open(siridb->buffer))
     {
         ERR_FILE
         ilocal->status = INSERT_LOCAL_ERROR;
@@ -956,7 +956,7 @@ static void INSERT_local_task(uv_async_t * handle)
 
     if (siri.buffersync == NULL)
     {
-        if (siridb_buffer_fsync(siridb))
+        if (siridb_buffer_fsync(siridb->buffer))
         {
             log_critical("fsync() has failed on the buffer file");
         }

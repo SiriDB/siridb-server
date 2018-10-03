@@ -133,7 +133,7 @@ int siridb_series_add_point(
      */
     siridb_points_add_point(series->buffer, ts, val);
 
-    if (series->buffer->len == siridb->buffer_len)
+    if (series->buffer->len == siridb->buffer->len)
     {
         if (siridb_shards_add_points(
                 siridb,
@@ -145,7 +145,7 @@ int siridb_series_add_point(
         else
         {
             series->buffer->len = 0;
-            if (siridb_buffer_write_empty(siridb, series))
+            if (siridb_buffer_write_empty(siridb->buffer, series))
             {
                 ERR_FILE
                 rc = -1;
@@ -154,7 +154,7 @@ int siridb_series_add_point(
     }
     else
     {
-        if (siridb_buffer_write_last_point(siridb, series))
+        if (siridb_buffer_write_last_point(siridb->buffer, series))
         {
             ERR_FILE
             log_critical("Cannot write new point to buffer");
@@ -181,7 +181,7 @@ int siridb_series_add_pcache(
         siridb_series_t *__restrict series,
         siridb_pcache_t *__restrict pcache)
 {
-    if (pcache->len > siridb->buffer_len || series->buffer == NULL)
+    if (pcache->len > siridb->buffer->len || series->buffer == NULL)
     {
         series->length += pcache->len;
 
@@ -191,7 +191,7 @@ int siridb_series_add_pcache(
                 (siridb_points_t *) pcache);
     }
 
-    if (pcache->len + series->buffer->len > siridb->buffer_len)
+    if (pcache->len + series->buffer->len > siridb->buffer->len)
     {
         series->length += pcache->len;
 
@@ -217,7 +217,7 @@ int siridb_series_add_pcache(
         }
 
         series->buffer->len = 0;
-        if (siridb_buffer_write_empty(siridb, series))
+        if (siridb_buffer_write_empty(siridb->buffer, series))
         {
             ERR_FILE
             return -1;
@@ -287,7 +287,7 @@ siridb_series_t * siridb_series_new(
     }
 
     /* create a buffer for series (except string series) */
-    if (tp != TP_STRING && siridb_buffer_new_series(siridb, series))
+    if (tp != TP_STRING && siridb_buffer_new_series(siridb->buffer, series))
     {
         /* signal is raised */
         log_critical("Could not create buffer for series '%s'.",
@@ -354,7 +354,7 @@ void siridb__series_free(siridb_series_t *__restrict series)
         if (series->flags & SIRIDB_SERIES_IS_DROPPED)
         {
             slist_append_safe(
-                &series->siridb->empty_buffers,
+                &series->siridb->buffer->empty,
                 (void *) series->bf_offset);
         }
     }

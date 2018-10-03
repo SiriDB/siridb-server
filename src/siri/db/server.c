@@ -711,8 +711,8 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_int8(packer, siri.cfg->ip_support) ||
                 qp_add_string_term(packer, uv_version_string()) ||
                 qp_add_string_term(packer, siridb->dbpath) ||
-                qp_add_string_term(packer, siridb->buffer_path) ||
-                qp_add_int64(packer, (int64_t) siridb->buffer_size) ||
+                qp_add_string_term(packer, siridb->buffer->path) ||
+                qp_add_int64(packer, (int64_t) siridb->buffer->size) ||
                 qp_add_int32(packer, (int32_t) siri.startup_time) ||
                 qp_add_string_term(packer, siridb->server->address) ||
                 qp_add_int32(packer, (int32_t) siridb->server->port))
@@ -1013,7 +1013,7 @@ int siridb_server_cexpr_cb(
         return cexpr_str_cmp(
                 cond->operator,
                 (wserver->siridb->server == wserver->server) ?
-                        wserver->siridb->buffer_path :
+                        wserver->siridb->buffer->path :
                         (wserver->server->buffer_path != NULL) ?
                                 wserver->server->buffer_path : "",
                 cond->str);
@@ -1022,7 +1022,7 @@ int siridb_server_cexpr_cb(
         return cexpr_int_cmp(
                 cond->operator,
                 (wserver->siridb->server == wserver->server) ?
-                        wserver->siridb->buffer_size :
+                        wserver->siridb->buffer->size :
                         wserver->server->buffer_size,
                 cond->int64);
 

@@ -173,11 +173,11 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
         siridb_fifo_close(siridb->fifo);
     }
 
-    if (siridb->buffer_fp != NULL)
+    if (siridb->buffer->fp != NULL)
     {
-        if (fclose(siridb->buffer_fp) == 0)
+        if (fclose(siridb->buffer->fp) == 0)
         {
-            siridb->buffer_fp = NULL;
+            siridb->buffer->fp = NULL;
         }
         else
         {
