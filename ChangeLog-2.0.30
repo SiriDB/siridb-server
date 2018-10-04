@@ -13,3 +13,4 @@
   * The buffer size can now be adjusted by using the database.conf 
     configuration file.
   
+  * Added conversion of invalid value types.
