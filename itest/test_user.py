@@ -62,11 +62,13 @@ class TestUser(TestBase):
             "Successfully granted permissions to user 'sasientje'.")
 
         await self.db.add_replica(self.server1, 0)
-        await self.assertIsRunning(self.db, self.client0, timeout=10)
+        await self.assertIsRunning(self.db, self.client0, timeout=20)
         await self.db.add_pool(self.server2)
 
         await self.client1.connect()
         await self.client2.connect()
+
+        await asyncio.sleep(15)
 
         result = await self.client1.query('list users where access < full ')
         self.assertEqual(result.pop('users'), [['sasientje', 'modify']])
