@@ -1,0 +1,3 @@
+Release/siridb-server      /usr/bin
+siridb.conf                /etc/siridb
+help                       /usr/share/doc/siridb-server

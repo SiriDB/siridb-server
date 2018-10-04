@@ -1,0 +1,13 @@
+[Unit]
+Description=SiriDB Server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/siridb-server --config /etc/siridb/siridb.conf --log-level warning
+StandardOutput=journal
+LimitNOFILE=65535
+TimeoutStartSec=10
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target
