@@ -152,20 +152,19 @@ int siridb_buffer_write_empty(
  *
  * Returns 0 if success or EOF in case of an error.
  */
-int siridb_buffer_write_last_point(
+int siridb_buffer_write_point(
         siridb_buffer_t * buffer,
-        siridb_series_t * series)
+        siridb_series_t * series,
+        uint64_t * ts,
+        qp_via_t * val)
 {
-    siridb_point_t * point;
     const size_t sz = sizeof(uint64_t) + sizeof(qp_via_t);
     char buf[sz];
-    int last_idx = series->buffer->len - 1;
+
+    ssize_t last_idx = series->buffer->len - 1;
     assert (last_idx >= 0);
-
-    point = series->buffer->data + last_idx;
-
-    memcpy(buf, &point->ts, sizeof(uint64_t));
-    memcpy(buf + sizeof(uint64_t), &point->val, sizeof(qp_via_t));
+    memcpy(buf, ts, sizeof(uint64_t));
+    memcpy(buf + sizeof(uint64_t), val, sizeof(qp_via_t));
 
     return (
         /* jump to position where to write the new point */

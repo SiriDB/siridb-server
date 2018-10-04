@@ -59,6 +59,8 @@ class Server:
         self.dbpath = os.path.join(TEST_DIR, 'dbpath{}'.format(self.n))
         self.name = 'SiriDB:{}'.format(self.listen_backend_port)
         self.pid = None
+        self.buffer_path = None
+        self.buffer_size = None
 
     @property
     def addr(self):
@@ -163,6 +165,35 @@ class Server:
 
         self.pid = None
         return True
+
+    def set_buffer_size(self, db, buffer_size):
+        self.buffer_size = buffer_size
+        config = configparser.RawConfigParser()
+        config.add_section('buffer')
+        if self.buffer_path is not None:
+            config.set('buffer', 'path', self.buffer_path)
+        config.set('buffer', 'size', self.buffer_size)
+        with open(os.path.join(
+                self.dbpath, db.dbname, 'database.conf'), 'w') as f:
+            config.write(f)
+
+    def set_buffer_path(self, db, buffer_path):
+        assert(buffer_path.endswith('/'))
+        curfile = os.path.join(self.dbpath, db.dbname, 'buffer.dat') \
+            if self.buffer_path is None else \
+            os.path.join(self.buffer_path, 'buffer.dat')
+        if not os.path.exists(buffer_path):
+            os.makedirs(buffer_path)
+        os.rename(curfile, os.path.join(buffer_path, 'buffer.dat'))
+        self.buffer_path = buffer_path
+        config = configparser.RawConfigParser()
+        config.add_section('buffer')
+        config.set('buffer', 'path', self.buffer_path)
+        if self.buffer_size is not None:
+            config.set('buffer', 'size', self.buffer_size)
+        with open(os.path.join(
+                self.dbpath, db.dbname, 'database.conf'), 'w') as f:
+            config.write(f)
 
     def kill(self):
         print("!!!!!!!!!!!! KILLL !!!!!!!!!!")

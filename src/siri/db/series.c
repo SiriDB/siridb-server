@@ -44,6 +44,13 @@
 #define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
+/*
+ * Used for storing double and integers as string. this is not very important
+ * if it will not store all characters generated so 64 is more than enough
+ */
+#define STR_TYPE_BUF_SZ 64
+static char str_type_buf[STR_TYPE_BUF_SZ];
+
 static int SERIES_save(siridb_t * siridb);
 static int SERIES_load(siridb_t * siridb, imap_t * dropped);
 static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped);
@@ -154,7 +161,7 @@ int siridb_series_add_point(
     }
     else
     {
-        if (siridb_buffer_write_last_point(siridb->buffer, series))
+        if (siridb_buffer_write_point(siridb->buffer, series, ts, val))
         {
             ERR_FILE
             log_critical("Cannot write new point to buffer");
@@ -935,6 +942,86 @@ siridb_points_t * siridb_series_get_count(siridb_series_t * series)
     return points;
 }
 
+void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj)
+{
+    switch(series->tp)
+    {
+    case TP_INT:
+        if (qp_obj->tp != QP_INT64)
+        {
+            if (qp_obj->tp == QP_DOUBLE)
+            {
+                double d = qp_obj->via.real;
+                qp_obj->via.int64 = (int64_t) d;
+            }
+            else if (qp_obj->tp == QP_RAW)
+            {
+                char * s = strndup(qp_obj->via.str, qp_obj->len);
+                qp_obj->via.int64 = \
+                        (s == NULL) ? 0 : (int64_t) strtoll(s, NULL, 10);
+                free(s);
+            }
+            else
+            {
+                assert(0);
+            }
+            qp_obj->tp = QP_INT64;
+        }
+        return;
+    case TP_DOUBLE:
+        if (qp_obj->tp != QP_DOUBLE)
+        {
+            if (qp_obj->tp == QP_INT64)
+            {
+                int64_t i = qp_obj->via.int64;
+                qp_obj->via.real = (double) i;
+            }
+            else if (qp_obj->tp == QP_RAW)
+            {
+                char * s = strndup(qp_obj->via.str, qp_obj->len);
+                qp_obj->via.real = \
+                        (s == NULL) ? 0.0 : strtod(s, NULL);
+                free(s);
+            }
+            else
+            {
+                assert(0);
+            }
+            qp_obj->tp = TP_DOUBLE;
+        }
+        return;
+    case TP_STRING:
+        if (qp_obj->tp != QP_RAW)
+        {
+            if (qp_obj->tp == QP_INT64)
+            {
+                snprintf(
+                        str_type_buf,
+                        STR_TYPE_BUF_SZ,
+                        "%" PRId64,
+                        qp_obj->via.int64);
+                qp_obj->via.str = str_type_buf;
+            }
+            else if (qp_obj->tp == QP_DOUBLE)
+            {
+                snprintf(
+                        str_type_buf,
+                        STR_TYPE_BUF_SZ,
+                        "%f",
+                        qp_obj->via.real);
+                qp_obj->via.str = str_type_buf;
+            }
+            else
+            {
+                assert(0);
+            }
+            qp_obj->tp = QP_RAW;
+        }
+        return;
+    }
+    assert (0);
+}
+
 /*
  * Calculate the server id.
  * Returns 0 or 1, representing a server in a pool)
@@ -1466,6 +1553,7 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     siridb_series_t * series;
     qp_types_t tp;
     uint32_t series_id;
+    uint8_t series_tp;
 
     /* we should not have any series at this moment */
     assert(siridb->max_series_id == 0);
@@ -1502,10 +1590,11 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 
         if (imap_get(dropped, series_id) == NULL)
         {
+            series_tp = (uint8_t) qp_series_tp.via.int64;
             series = SERIES_new(
                     siridb,
                     series_id,
-                    (uint8_t) qp_series_tp.via.int64,
+                    series_tp,
                     siridb->server->pool,
                     (const char *) qp_series_name.via.raw);
             if (series != NULL)

@@ -87,7 +87,7 @@ DATA = {
 class TestSelect(TestBase):
     title = 'Test select and aggregate functions'
 
-    @default_test_setup(1, compression=False)
+    @default_test_setup(1, compression=False, buffer_size=1024)
     async def run(self):
         await self.client0.connect()
 

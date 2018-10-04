@@ -23,6 +23,48 @@ PI = 'ԉ'
 Klingon = '     ' + \
     'qajunpaQHeylIjmo’ batlh DuSuvqang charghwI’ ‘It.'
 
+data = {
+    'string': [
+        [1538660000, "some string value"],
+        [1538660010, -123456789],
+        [1538660020, -0.5],
+        [1538660030, 1/3],
+    ],
+    'integer': [
+        [1538660000, 1],
+        [1538660010, 35.6],
+        [1538660020, "-50,6%"],
+        [1538660030, ""],
+    ],
+    'double': [
+        [1538660000, 1.0],
+        [1538660010, -35],
+        [1538660010, "-50,6%"],
+        [1538660030, ""],
+    ]
+}
+
+expected = {
+    'string': [
+        [1538660000, "some string value"],
+        [1538660010, '-123456789'],
+        [1538660020, '-0,500000'],
+        [1538660030, '0,333333'],
+    ],
+    'integer': [
+        [1538660000, 1],
+        [1538660010, 35],
+        [1538660020, -50],
+        [1538660030, 0],
+    ],
+    'double': [
+        [1538660000, 1.0],
+        [1538660010, -35.0],
+        [1538660010, -50.6],
+        [1538660030, 0.0],
+    ]
+}
+
 
 class TestSeries(TestBase):
     title = 'Test series object'
@@ -46,6 +88,15 @@ class TestSeries(TestBase):
         self.assertEqual(
             await self.client0.query('select * from "{}"'.format(Klingon)),
             {Klingon: sorted(points)})
+
+        self.assertEqual(
+            await self.client0.insert(data),
+            {'success_msg': 'Successfully inserted 12 point(s).'})
+
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select * from "string", "integer", "double"'),
+            expected)
 
         self.client0.close()
 

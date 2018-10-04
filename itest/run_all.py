@@ -14,6 +14,7 @@ from test_compression import TestCompression
 from test_log import TestLog
 from test_log import TestLog
 from test_pipe_support import TestPipeSupport
+from test_buffer import TestBuffer
 
 
 Server.BUILDTYPE = 'Release'
@@ -31,3 +32,4 @@ if __name__ == '__main__':
     run_test(TestUser())
     run_test(TestLog())
     run_test(TestPipeSupport())
+    run_test(TestBuffer())

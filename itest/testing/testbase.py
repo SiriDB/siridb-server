@@ -116,7 +116,9 @@ class TestBase(unittest.TestCase):
                     assert isinstance(point, list) and len(point) == 2, \
                         'Expecting a point to be a list of 2 items'
                     super().assertEqual(a[series][i][0], point[0])
-                    if math.isnan(a[series][i][1]):
+                    if isinstance(a[series][i][1], str):
+                        super().assertEqual(a[series][i][1], point[1])
+                    elif math.isnan(a[series][i][1]):
                         assert math.isnan(point[1]), \
                             'Expecting point `{}` to be `nan`, got: `{}`' \
                             .format(i, point[1])

@@ -77,7 +77,7 @@ class Series:
     _interval_range = None
     _r = None
 
-    def __init__(self, r, allowed_kinds=(int, float, str)):
+    def __init__(self, r, allowed_kinds=(int, float, str), wrong_type=False):
         self.kind = r.choice(allowed_kinds)
         self.lval = {
             str: '',
@@ -96,13 +96,13 @@ class Series:
         self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
         self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
-        self.as_int = self.kind == float and r.random() > 0.9
+        self.as_int = wrong_type and self.kind == float and r.random() > 0.9
         self.likely_inf = r.random() * 0.2 \
             if self.kind == float and r.random() > 0.95 else False
         self.likely_nan = r.random() * 0.2 \
             if self.kind == float and r.random() > 0.95 else False
 
-        self.gen_float = self.kind == int and r.random() > 0.97
+        self.gen_float = wrong_type and self.kind == int and r.random() > 0.97
 
         self.name = self._gen_name()
         Series._series.append(self)
@@ -166,7 +166,10 @@ class Series:
         kinds = [translate[k] for k in args.kinds]
 
         for i in range(args.num_series):
-            Series(r=series_rand, allowed_kinds=kinds)
+            Series(
+                r=series_rand,
+                allowed_kinds=kinds,
+                wrong_type=args.wrong_type)
 
     def _gen_name(self):
         name = '/n:{}/range:{},{}/eq:{}/cs:{}/opt:{}{}{}{}{}'.format(
@@ -408,6 +411,11 @@ if __name__ == '__main__':
         nargs='+',
         default=('int', 'float'),
         choices=('int', 'float'))  # , 'str'
+
+    parser.add_argument(
+        '--wrong-type',
+        action='store_true',
+        help='Allow series to insert points using a wrong type')
 
     parser.add_argument(
         '--max-parallel',

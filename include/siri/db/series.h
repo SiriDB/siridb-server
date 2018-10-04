@@ -116,6 +116,7 @@ siridb_points_t * siridb_series_get_first(
 siridb_points_t * siridb_series_get_last(
         siridb_series_t * series, int * required_shard);
 siridb_points_t * siridb_series_get_count(siridb_series_t * series);
+void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj);
 /*
  * Increment the series reference counter.
  */

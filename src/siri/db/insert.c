@@ -553,6 +553,7 @@ static int8_t INSERT_local_work(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
+        siridb_series_ensure_type(series, &qp_series_val);
         if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
                 series->buffer != NULL)
         {
@@ -584,10 +585,7 @@ static int8_t INSERT_local_work(
             if (series->tp == TP_STRING)
             {
                 val = &forstr;
-                val->str = qp_is_raw(qp_series_val.tp) ?
-                        strndup(qp_series_val.via.str, qp_series_val.len) :
-                        strdup("");
-
+                val->str = strndup(qp_series_val.via.str, qp_series_val.len);
                 if (val->str == NULL)
                 {
                     ERR_ALLOC
@@ -606,13 +604,12 @@ static int8_t INSERT_local_work(
             {
                 qp_next(unpacker, &qp_series_ts); /* ts     */
                 qp_next(unpacker, &qp_series_val); /* val   */
+                siridb_series_ensure_type(series, &qp_series_val);
 
                 if (series->tp == TP_STRING)
                 {
-                    val->str = qp_is_raw(qp_series_val.tp) ?
-                            strndup(qp_series_val.via.str, qp_series_val.len) :
-                            strdup("");
-
+                    val->str = \
+                            strndup(qp_series_val.via.str, qp_series_val.len);
                     if (val->str == NULL)
                     {
                         ERR_ALLOC
@@ -772,6 +769,8 @@ static int INSERT_local_work_test(
         ts = (uint64_t *) &qp_series_ts.via.int64;
         SERIES_UPDATE_TS(series)
 
+        siridb_series_ensure_type(series, &qp_series_val);
+
         if ((tp = qp_next(unpacker, qp_series_name)) != QP_ARRAY2 &&
                 series->buffer != NULL)
         {
@@ -803,10 +802,7 @@ static int INSERT_local_work_test(
             if (series->tp == TP_STRING)
             {
                 val = &forstr;
-                val->str = qp_is_raw(qp_series_val.tp) ?
-                        strndup(qp_series_val.via.str, qp_series_val.len) :
-                        strdup("");
-
+                val->str = strndup(qp_series_val.via.str, qp_series_val.len);
                 if (val->str == NULL)
                 {
                     ERR_ALLOC
@@ -824,13 +820,12 @@ static int INSERT_local_work_test(
             {
                 qp_next(unpacker, &qp_series_ts);   /*    ts    */
                 qp_next(unpacker, &qp_series_val);  /*    val   */
+                siridb_series_ensure_type(series, &qp_series_val);
 
                 if (series->tp == TP_STRING)
                 {
-                    val->str = qp_is_raw(qp_series_val.tp) ?
-                            strndup(qp_series_val.via.str, qp_series_val.len) :
-                            strdup("");
-
+                    val->str = \
+                            strndup(qp_series_val.via.str, qp_series_val.len);
                     if (val->str == NULL)
                     {
                         ERR_ALLOC

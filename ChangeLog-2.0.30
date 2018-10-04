@@ -10,4 +10,6 @@
   
   * Use posix_fadvise() on the buffer file. (@Svedrin)
   
-  * Refactor buffer and cleanup alternative buffer path.
+  * The buffer size can now be adjusted by using the database.conf 
+    configuration file.
+  

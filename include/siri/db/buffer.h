@@ -34,9 +34,11 @@ int siridb_buffer_test_path(siridb_t * siridb);
 int siridb_buffer_write_empty(
         siridb_buffer_t * buffer,
         siridb_series_t * series);
-int siridb_buffer_write_last_point(
+int siridb_buffer_write_point(
         siridb_buffer_t * buffer,
-        siridb_series_t * series);
+        siridb_series_t * series,
+        uint64_t * ts,
+        qp_via_t * val);
 
 struct siridb_buffer_s
 {
