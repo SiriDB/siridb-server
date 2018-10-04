@@ -48,7 +48,16 @@ Compile (replace Release with Debug for a debug build):
 cd ./Release
 make clean
 make
-```	
+```
+
+Build Debian packages:
+
+```
+apt-get install devscripts lintian
+git archive -o ../siridb-server_2.0.29.orig.tar.gz master
+debuild -us -uc
+```
+
 #### OSX
 Install the following requirements:
 ```
