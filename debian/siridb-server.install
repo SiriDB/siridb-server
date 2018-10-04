@@ -1,3 +1,4 @@
 Release/siridb-server      /usr/bin
 siridb.conf                /etc/siridb
+README.md                  /usr/share/doc/siridb-server
 help                       /usr/share/doc/siridb-server
