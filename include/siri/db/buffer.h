@@ -41,7 +41,7 @@ int siridb_buffer_write_last_point(
 struct siridb_buffer_s
 {
     size_t size;            /* size for one series inside the buffer */
-    size_t nsize;           /* optional new size from database.conf */
+    size_t _to_size;        /* optional new size from database.conf */
     size_t len;             /* number of points allocated per series */
     char * template;        /* template for writing an empty buffer */
     char * path;            /* path where the buffer file is stored */

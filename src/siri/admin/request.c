@@ -43,7 +43,12 @@
 "# Alternative path to save the buffer file.\n" \
 "# In case you later plan to change this location you manually need to move\n" \
 "# the buffer file to the new location.\n" \
-"# path = <buffer_path>\n"
+"# path = <buffer_path>\n" \
+"\n" \
+"# Buffer size in bytes. This size must be a multiple of 512 with a maximum\n" \
+"# of 1048576 bytes. Be careful using large values since SiriDB will require\n" \
+"# memory based on this value. A value between 1024 and 32768 is recommended.\n" \
+"# size = 1024\n"
 
 #define CHECK_DBNAME_AND_CREATE_PATH                                        \
     pcre_exec_ret = pcre2_match(                                            \

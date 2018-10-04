@@ -385,9 +385,8 @@ static int siridb__from_unpacker(
         READ_DB_EXIT_WITH_ERROR("Cannot read buffer size.")
     }
 
-    /* bind buffer size and len to SiriDB */
+    /* bind buffer size to SiriDB */
     (*siridb)->buffer->size = (size_t) qp_obj.via.int64;
-    (*siridb)->buffer->len = (*siridb)->buffer->size / sizeof(siridb_point_t);
 
     /* read number duration  */
     if (qp_next(unpacker, &qp_obj) != QP_INT64)
@@ -849,6 +848,7 @@ static int siridb__read_conf(siridb_t * siridb)
 
     /* read buffer size from database.conf */
     rc = cfgparser_get_option(&option, cfgparser, "buffer", "size");
+
     if (rc == CFGPARSER_SUCCESS && option->tp == CFGPARSER_TP_INTEGER)
     {
         ssize_t ssize = option->val->integer;
@@ -862,11 +862,26 @@ static int siridb__read_conf(siridb_t * siridb)
         }
         else
         {
-            buffer->nsize = (buffer->size == (size_t) ssize) ?
+            buffer->_to_size = (buffer->size == (size_t) ssize) ?
                     0 : (size_t) ssize;
         }
     }
-
+    else
+    {
+        FILE * fp = fopen(buf, "a");
+        if (fp != NULL)
+        {
+            if (rc == CFGPARSER_ERR_SECTION_NOT_FOUND)
+            {
+                (void) fprintf(fp, "\n[buffer]\nsize = %zu\n", buffer->size);
+            }
+            else if (rc == CFGPARSER_ERR_OPTION_NOT_FOUND)
+            {
+                (void) fprintf(fp, "\nsize = %zu\n", buffer->size);
+            }
+            (void) fclose(fp);
+        }
+    }
     cfgparser_free(cfgparser);
 
     return (buffer->path == NULL) ? -1 : 0;
