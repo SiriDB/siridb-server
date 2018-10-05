@@ -73,3 +73,11 @@ grammar/javagrammar/
 # Test
 itest/testdir
 test/testdir
+
+# Debian
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/siridb-server.postrm.debhelper
+debian/siridb-server.substvars
+debian/siridb-server/
