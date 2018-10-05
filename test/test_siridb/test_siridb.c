@@ -113,8 +113,6 @@ static int test_series_ensure_type(void)
 
 int main()
 {
-
-
     return (
         test_series_ensure_type() ||
         0

@@ -27,7 +27,7 @@ def default_test_setup(nservers=1, **kwargs):
 
             close = await func(self)
 
-            if close or close is None:
+            if close or close is None or Server.TERMINAL is None:
                 for server in self.servers:
                     result = await server.stop()
                     self.assertTrue(

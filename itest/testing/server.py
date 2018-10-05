@@ -25,7 +25,7 @@ class Server:
     BUILDTYPE = BUILDTYPE
     SERVER_ADDRESS = '%HOSTNAME'
     IP_SUPPORT = 'ALL'
-    USE_XFCE4 = False
+    TERMINAL = None  # one of [ 'XTERM', 'XFCE4_TERMINAL', None  ]
     BIND_CLIENT_ADDRESS = "::"
     BIND_SERVER_ADDRESS = "::"
 
@@ -107,7 +107,7 @@ class Server:
     async def start(self, sleep=None):
         prev = self._get_pid_set()
 
-        if self.USE_XFCE4:
+        if self.TERMINAL == 'XFCE4_TERMINAL':
             rc = subprocess.Popen(
                 'xfce4-terminal -e "{}{} --config {} --log-colorized"'
                 ' --title {} --geometry={}{}'
@@ -118,7 +118,7 @@ class Server:
                         self.GEOMETRY,
                         ' -H' if self.HOLD_TERM else ''),
                 shell=True)
-        else:
+        elif self.TERMINAL == 'XTERM':
             rc = subprocess.Popen(
                'xterm {}-title {} -geometry {} -e "{}{} --config {}"'
                .format('-hold ' if self.HOLD_TERM else '',
@@ -128,6 +128,18 @@ class Server:
                        SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
                        self.cfgfile),
                shell=True)
+        else:
+            with open(f'{self.name}-err.log', 'a') as err:
+                with open(f'testdir/{self.name}-out.log', 'a') as out:
+                    rc = subprocess.Popen(
+                        '{}{} --config {}'
+                        .format(VALGRIND if self.MEM_CHECK else '',
+                                SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
+                                self.cfgfile),
+                        stderr=err,
+                        stdout=out,
+                        shell=True)
+                    self.assertEqual(rc, 0)
 
         await asyncio.sleep(5)
 
