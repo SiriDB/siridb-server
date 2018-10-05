@@ -987,7 +987,7 @@ void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj)
             {
                 assert(0);
             }
-            qp_obj->tp = TP_DOUBLE;
+            qp_obj->tp = QP_DOUBLE;
         }
         return;
     case TP_STRING:
@@ -995,7 +995,7 @@ void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj)
         {
             if (qp_obj->tp == QP_INT64)
             {
-                snprintf(
+                qp_obj->len = snprintf(
                         str_type_buf,
                         STR_TYPE_BUF_SZ,
                         "%" PRId64,
@@ -1004,7 +1004,7 @@ void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj)
             }
             else if (qp_obj->tp == QP_DOUBLE)
             {
-                snprintf(
+                qp_obj->len = snprintf(
                         str_type_buf,
                         STR_TYPE_BUF_SZ,
                         "%f",

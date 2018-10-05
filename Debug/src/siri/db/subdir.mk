@@ -8,7 +8,6 @@ C_SRCS += \
 ../src/siri/db/aggregate.c \
 ../src/siri/db/auth.c \
 ../src/siri/db/buffer.c \
-../src/siri/db/chunk.c \
 ../src/siri/db/db.c \
 ../src/siri/db/ffile.c \
 ../src/siri/db/fifo.c \

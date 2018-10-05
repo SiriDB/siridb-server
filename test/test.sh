@@ -9,6 +9,12 @@ else
     echo -e "\x1B[33mdisabled\x1B[0m";
 fi
 
+if [[ "$OSTYPE" == "darwin" ]]; then
+    LCRYPT=
+else
+    LCRYPT=-lcrypt
+fi
+
 run () {
     if [ ! -f $1/sources ]; then
        return;
@@ -19,7 +25,7 @@ run () {
     OUT=$1.out
     rm "$OUT" 2> /dev/null
 
-    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -lm -lpcre2-8 -lcleri -o "$OUT"
+    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -lm -lpcre2-8 -lcleri -luuid -luv $LCRYPT -o "$OUT"
     if [[ "$NOMEMTEST" -ne "1" ]]; then
         valgrind --tool=memcheck --error-exitcode=1 --leak-check=full -q ./$OUT
     else
