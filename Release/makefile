@@ -81,4 +81,4 @@ clean:
 -include ../makefile.targets
 
 test:
-	-@cd ../test && ./test.sh
+	@cd ../test && ./test.sh
