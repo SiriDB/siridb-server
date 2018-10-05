@@ -110,7 +110,7 @@ When not using one of the above, you can still communicate to SiriDB using [Siri
 ## Query language
 Documentation about the query language can be found at https://siridb.net/documentation.
 
-## Running integration
+## Integration testing
 Build integration test image
 ```
 docker build -t siridb/itest -f itest/Dockerfile .
