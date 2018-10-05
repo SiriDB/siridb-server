@@ -75,7 +75,7 @@ class TestServer(TestBase):
         result = await self.client1.query('list servers log_level')
         self.assertEqual(result.pop('servers'), [['debug'], ['debug']])
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Query error at position 42. Expecting "
                 "debug, info, warning, error or critical"):
@@ -103,13 +103,13 @@ class TestServer(TestBase):
         await self.db.add_replica(self.server2, 1)
         await self.assertIsRunning(self.db, self.client0, timeout=10)
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Cannot remove server 'localhost:9010' "
                 "because this is the only server for pool 0"):
             await self.client1.query('drop server "localhost:9010"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Cannot remove server 'localhost:9012' "
                 "because the server is still online.*"):

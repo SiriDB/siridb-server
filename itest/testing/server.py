@@ -31,6 +31,7 @@ class Server:
 
     def __init__(self,
                  n,
+                 title,
                  optimize_interval=300,
                  heartbeat_interval=30,
                  buffer_sync_interval=500,
@@ -38,6 +39,7 @@ class Server:
                  pipe_name=None,
                  **unused):
         self.n = n
+        self.test_title = title.lower().replace(' ', '_')
         self.compression = compression
         self.enable_pipe_support = int(bool(pipe_name))
         self.pipe_name = \
@@ -106,9 +108,8 @@ class Server:
 
     async def start(self, sleep=None):
         prev = self._get_pid_set()
-
-        if self.TERMINAL == 'XFCE4_TERMINAL':
-            rc = subprocess.Popen(
+        if self.TERMINAL == 'xfce4-terminal':
+            self.proc = subprocess.Popen(
                 'xfce4-terminal -e "{}{} --config {} --log-colorized"'
                 ' --title {} --geometry={}{}'
                 .format(VALGRIND if self.MEM_CHECK else '',
@@ -118,8 +119,8 @@ class Server:
                         self.GEOMETRY,
                         ' -H' if self.HOLD_TERM else ''),
                 shell=True)
-        elif self.TERMINAL == 'XTERM':
-            rc = subprocess.Popen(
+        elif self.TERMINAL == 'xterm':
+            self.proc = subprocess.Popen(
                'xterm {}-title {} -geometry {} -e "{}{} --config {}"'
                .format('-hold ' if self.HOLD_TERM else '',
                        self.name,
@@ -129,9 +130,13 @@ class Server:
                        self.cfgfile),
                shell=True)
         else:
-            with open(f'{self.name}-err.log', 'a') as err:
-                with open(f'testdir/{self.name}-out.log', 'a') as out:
-                    rc = subprocess.Popen(
+            with open(
+                    f'testdir/{self.test_title}-{self.name}-err.log',
+                    'a') as err:
+                with open(
+                        f'testdir/{self.test_title}-{self.name}-out.log',
+                        'a') as out:
+                    self.proc = subprocess.Popen(
                         '{}{} --config {}'
                         .format(VALGRIND if self.MEM_CHECK else '',
                                 SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
@@ -139,7 +144,6 @@ class Server:
                         stderr=err,
                         stdout=out,
                         shell=True)
-                    self.assertEqual(rc, 0)
 
         await asyncio.sleep(5)
 
@@ -156,6 +160,9 @@ class Server:
             while (timeout and self.is_active()):
                 await asyncio.sleep(1.0)
                 timeout -= 1
+
+        self.proc.communicate()
+        assert (self.proc.returncode == 0)
 
         if timeout:
             self.pid = None

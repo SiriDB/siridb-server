@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 as builder
 COPY ./main.c ./main.c
 COPY ./src/ ./src/
 COPY ./include/ ./include/
@@ -16,9 +16,15 @@ RUN cd ./Release && \
 
 FROM python
 RUN apt-get update && \
-    apt-get install -y valgrind
-COPY --from=0 ./Release/siridb-server /Release/siridb-server
+    apt-get install -y \
+        valgrind \
+        libuv1 \
+        libpcre2-8-0 && \
+    wget https://github.com/SiriDB/siridb-admin/releases/download/1.1.3/siridb-admin_1.1.3_linux_amd64.bin -O /usr/local/bin/siridb-admin && \
+    chmod +x /usr/local/bin/siridb-admin
+COPY --from=builder ./Release/siridb-server /Release/siridb-server
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libcleri* /usr/lib/x86_64-linux-gnu/
 COPY ./itest/ /itest/
 WORKDIR /itest
 RUN pip install -r requirements.txt
-CMD [ "python", "test_select.py" ]
+CMD [ "python", "run_all.py", "-m", "-b=Release" ]

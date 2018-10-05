@@ -94,7 +94,7 @@ class TestList(TestBase):
         await self.client0.query('list series /.*/ ^ /a.*/ ^ /.*/')
 
         await self.client0.query('alter database set list_limit 5000')
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Limit must be a value between 0 and 5000 '
                 'but received: 6000.*'):

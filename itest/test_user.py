@@ -32,17 +32,17 @@ class TestUser(TestBase):
         with self.assertRaises(QueryError):
             await self.client0.query('create user "sasientje" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'User name should be at least 2 characters.'):
             await self.client0.query('create user "s" set password "123456" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'User name contains illegal characters.*'):
             await self.client0.query('create user "  " set password "123456" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Password should be at least 4 characters.'):
             await self.client0.query('create user "aa" set password "123" ')
@@ -97,7 +97,7 @@ class TestUser(TestBase):
         result = await self.server0.stop()
         self.assertTrue(result)
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Password should be at least 4 characters."):
             result = await self.client1.query(
@@ -118,7 +118,7 @@ class TestUser(TestBase):
         result = await self.client0.query("show who_am_i ")
         self.assertEqual(result['data'][0]['value'], 'sasientje')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 UserAuthError,
                 "Access denied. User 'sasientje' has no 'insert' privileges."):
             result = await self.client0.insert({'no access test': [[1, 1.0]]})
@@ -137,35 +137,35 @@ class TestUser(TestBase):
         result = await self.client0.query('count users where name == "pee"')
         self.assertEqual(result.pop('users'), 1, msg='Expecting 1 user (pee)')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 UserAuthError,
                 "Access denied. User 'sasientje' has no 'grant' privileges."):
             result = await self.client0.query('grant full to user "pee" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "User name should be at least 2 characters."):
             result = await self.client1.query('alter user "pee" set name "p" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "^User name contains illegal characters.*"):
             result = await self.client1.query(
                 'alter user "pee" set name " p " ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "User 'iris' already exists."):
             result = await self.client1.query(
                 'alter user "pee" set name "iris" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "User 'iris' already exists."):
             result = await self.client1.query(
                 'alter user "pee" set name "iris" ')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Cannot find user: 'Pee'"):
             result = await self.client1.query(

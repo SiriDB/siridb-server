@@ -1,0 +1,4 @@
+testdir/
+Dockerfile
+*.log
+__pycache__/

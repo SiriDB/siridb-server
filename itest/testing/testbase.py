@@ -14,7 +14,8 @@ def default_test_setup(nservers=1, **kwargs):
         async def wrapped(self):
             self.db = SiriDB(**kwargs)
 
-            self.servers = [Server(n, **kwargs) for n in range(nservers)]
+            self.servers = [
+                Server(n, title=self.title, **kwargs) for n in range(nservers)]
             for n, server in enumerate(self.servers):
                 setattr(self, 'server{}'.format(n), server)
                 setattr(self, 'client{}'.format(n), Client(self.db, server))
@@ -117,7 +118,9 @@ class TestBase(unittest.TestCase):
                         'Expecting a point to be a list of 2 items'
                     super().assertEqual(a[series][i][0], point[0])
                     if isinstance(a[series][i][1], str):
-                        super().assertEqual(a[series][i][1], point[1])
+                        super().assertEqual(
+                            a[series][i][1].replace(',', '.'),
+                            point[1].replace(',', '.'))
                     elif math.isnan(a[series][i][1]):
                         assert math.isnan(point[1]), \
                             'Expecting point `{}` to be `nan`, got: `{}`' \

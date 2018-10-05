@@ -36,17 +36,17 @@ class TestGroup(TestBase):
     async def run(self):
         await self.client0.connect()
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group name should be at least 1 characters.'):
             await self.client0.query('create group `` for /c.*/')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group name should be at least 1 characters.'):
             await self.client0.query('create group `` for /c.*/')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group name should be at most [0-9]+ characters.'):
             await self.client0.query(
@@ -56,7 +56,7 @@ class TestGroup(TestBase):
             await self.client0.query('create group `a` for /a.*/'),
             {'success_msg': "Successfully created group 'a'."})
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group \'a\' already exists.'):
             await self.client0.query('create group `a` for /a.*/')
@@ -94,7 +94,7 @@ class TestGroup(TestBase):
         result = await self.client1.query('list groups series')
         self.assertEqual(result.pop('groups'), [[2], [2], [2]])
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Cannot compile regular expression.*"):
             result = await self.client1.query('create group `invalid` for /(/')
@@ -137,7 +137,7 @@ class TestGroup(TestBase):
         result = await self.client0.query('list series `a`, `two` & "c2"')
         self.assertEqual(sorted(result.pop('series')), [['c2']])
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 "Cannot compile regular expression.*"):
             await self.client1.query('alter group `a` set expression /(.*/')
@@ -150,7 +150,7 @@ class TestGroup(TestBase):
         # await self.client0.query('drop group `b`')
         await self.client0.query('drop group `c`')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group \'c\' does not exist.'):
             await self.client0.query('drop group `c`')

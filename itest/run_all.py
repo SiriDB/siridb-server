@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from testing import run_test
 from testing import Server
+from testing import parse_args
 from test_cluster import TestCluster
 from test_group import TestGroup
 from test_list import TestList
@@ -17,10 +18,8 @@ from test_pipe_support import TestPipeSupport
 from test_buffer import TestBuffer
 
 
-Server.BUILDTYPE = 'Release'
-
 if __name__ == '__main__':
-    # run_test(TestCluster())
+    parse_args()
     run_test(TestCompression())
     run_test(TestGroup())
     run_test(TestList())

@@ -19,6 +19,7 @@ from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
+from testing import parse_args
 
 
 DATA = {
@@ -338,82 +339,82 @@ class TestSelect(TestBase):
             await self.client0.query('select difference() from "one"'),
             {'one': []})
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Regular expressions can only be used with.*'):
             await self.client0.query('select filter(~//) from "log"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use a string filter on number type.'):
             await self.client0.query('select filter(//) from "aggr"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use mean\(\) on string type\.'):
             await self.client0.query('select mean(1w) from "log"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Group by time must be an integer value larger than zero\.'):
             await self.client0.query('select mean(0) from "aggr"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Limit must be an integer value larger than zero\.'):
             await self.client0.query('select limit(6 - 6, mean) from "aggr"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use a string filter on number type\.'):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use difference\(\) on string type\.'):
             await self.client0.query('select difference() from "log"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative(6, 3) from "log"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative() from "log"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Max depth reached in \'where\' expression!'):
             await self.client0.query(
                 'select * from "aggr" where ((((((length > 1))))))')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Cannot compile regular expression.*'):
             await self.client0.query(
                 'select * from /(bla/')
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Memory allocation error or maximum recursion depth reached.'):
             await self.client0.query(
                 'select * from "aggr" where length > {}'.format('(' * 500))
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                     QueryError,
                     'Query too long.'):
             await self.client0.query('select * from "{}"'.format('a' * 65535))
 
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                     QueryError,
                     'Error while merging points. Make sure the destination '
                     'series name is valid.'):
@@ -476,7 +477,7 @@ class TestSelect(TestBase):
         self.assertIn('aggr-maximum', result)
 
         await self.client0.query('alter database set select_points_limit 10')
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
                 QueryError,
                 'Query has reached the maximum number of selected points.*'):
             await self.client0.query(
@@ -490,9 +491,5 @@ class TestSelect(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.TERMINAL = 'XTERM'
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestSelect())
