@@ -226,7 +226,7 @@ class TestLog(TestBase):
         result = await self.server0.stop()
         self.assertTrue(result)
 
-        await self.server0.start(sleep=10)
+        await self.server0.start(sleep=20)
 
         await self.client0.connect()
 

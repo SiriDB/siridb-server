@@ -138,9 +138,9 @@ class TestInsert(TestBase):
             await self.client0.insert([{'name': '', 'points': [[1, 0]]}])
 
         await self.db.add_replica(self.server1, 0, sleep=30)
-        # await self.db.add_pool(self.server1, sleep=3)
+        # await self.db.add_pool(self.server1, sleep=30)
 
-        await self.assertIsRunning(self.db, self.client0, timeout=3)
+        await self.assertIsRunning(self.db, self.client0, timeout=30)
 
         await self.client1.connect()
 

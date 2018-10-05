@@ -78,7 +78,7 @@ class TestPool(TestBase):
         await asyncio.wait_for(task1, None)
         await asyncio.wait_for(task2, None)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
         await self.assertSeries(self.client0, series)
         await self.assertSeries(self.client1, series)

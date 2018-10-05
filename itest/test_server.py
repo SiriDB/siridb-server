@@ -88,7 +88,7 @@ class TestServer(TestBase):
 
         self.server1.listen_backend_port = 9111
         self.server1.create()
-        await self.server1.start(sleep=35)
+        await self.server1.start(sleep=20)
 
         await asyncio.sleep(35)
 
@@ -101,7 +101,7 @@ class TestServer(TestBase):
             {'name': 'server', 'value': 'localhost:9111'}])
 
         await self.db.add_replica(self.server2, 1)
-        await self.assertIsRunning(self.db, self.client0, timeout=10)
+        await self.assertIsRunning(self.db, self.client0, timeout=35)
 
         with self.assertRaisesRegex(
                 QueryError,
@@ -121,7 +121,7 @@ class TestServer(TestBase):
         result = await self.server2.stop()
         self.assertTrue(result)
 
-        await self.server1.start(sleep=10)
+        await self.server1.start(sleep=30)
 
         result = await self.client1.query('show status')
         self.assertEqual(result.pop('data'), [

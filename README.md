@@ -16,7 +16,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [SiriDB Prompt](#siridb-prompt)
     * [Grafana](#grafana)
   * [API/Query language](#query-language)
-  
+
 ---------------------------------------
 
 ## Installation
@@ -32,15 +32,15 @@ The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You
 
 ### Compile from source
 >From version 2.0.19 libcleri is not included as part of this source anymore
->and needs to be installed separately. libcleri can be found here: 
+>and needs to be installed separately. libcleri can be found here:
 >[https://github.com/transceptor-technology/libcleri](https://github.com/transceptor-technology/libcleri)
 
 #### Linux
 Install the following requirements: (Ubuntu)
 ```
 sudo apt install libpcre2-dev
-sudo apt install libuv1-dev 
-sudo apt install uuid-dev 
+sudo apt install libuv1-dev
+sudo apt install uuid-dev
 ```
 
 Compile (replace Release with Debug for a debug build):
@@ -66,7 +66,7 @@ brew install libuv
 brew install ossp-uuid
 ```
 Compile (replace Release with Debug for a debug build):
-```    
+```
 cd ./Release
 export CFLAGS="-I/usr/local/include"
 export LDFLAGS="-L/usr/local/lib"
@@ -87,7 +87,7 @@ An example configuration file can be found here:
 [SiriDB Admin](https://github.com/SiriDB/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/SiriDB/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/SiriDB/siridb-admin/releases/latest).
 
 ## Using SiriDB
-SiriDB has several tools available to connect to a SiriDB database. 
+SiriDB has several tools available to connect to a SiriDB database.
 
 ### SiriDB Connectors
 The following native connectors are available:
@@ -95,7 +95,7 @@ The following native connectors are available:
  - [Python](https://github.com/SiriDB/siridb-connector#readme)
  - [Go](https://github.com/SiriDB/go-siridb-connector#readme)
  - [Node.js](https://github.com/SiriDB/siridb-nodejs-addon#readme)
- 
+
 When not using one of the above, you can still communicate to SiriDB using [SiriDB HTTP](#siridb-http).
 
 ### SiriDB HTTP
@@ -109,3 +109,14 @@ When not using one of the above, you can still communicate to SiriDB using [Siri
 
 ## Query language
 Documentation about the query language can be found at https://siridb.net/documentation.
+
+## Running integration
+Build integration test image
+```
+docker build -t siridb/itest -f itest/Dockerfile .
+```
+
+Run integration tests
+```
+docker run siridb/itest:latest
+```

@@ -24,7 +24,7 @@ def default_test_setup(nservers=1, **kwargs):
 
             time.sleep(2.0)
 
-            await self.db.create_on(self.server0, sleep=2)
+            await self.db.create_on(self.server0, sleep=5)
 
             close = await func(self)
 
