@@ -9,4 +9,4 @@ override_dh_auto_clean:
 	cd Release && make clean
 
 override_dh_auto_build:
-	cd Release && make
+	cd Release && make && make test
