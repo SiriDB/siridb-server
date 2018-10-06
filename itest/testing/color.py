@@ -3,6 +3,7 @@ NORMAL = '\x1B[0m'
 RED = '\x1B[31m'
 GREEN = '\x1B[32m'
 YELLOW = '\x1B[33m'
+LYELLOW = '\x1b[93m'
 
 
 class Color:
@@ -19,4 +20,6 @@ class Color:
     def error(text):
         return f'{RED}{text}{NORMAL}'
 
-
+    @staticmethod
+    def info(text):
+        return f'{LYELLOW}{text}{NORMAL}'

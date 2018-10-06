@@ -1,4 +1,3 @@
-BUILDTYPE = 'Debug'
 TEST_DIR = './testdir'
 SIRIDBC = '../{BUILDTYPE}/siridb-server'
 ADMIN = '/usr/local/bin/siridb-admin'

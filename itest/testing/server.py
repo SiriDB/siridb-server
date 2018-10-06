@@ -10,7 +10,6 @@ import platform
 from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
-from .constants import BUILDTYPE
 from .constants import MAX_OPEN_FILES
 
 MEM_PROC = \
@@ -22,7 +21,7 @@ class Server:
     HOLD_TERM = False
     GEOMETRY = '140x60'
     MEM_CHECK = False
-    BUILDTYPE = BUILDTYPE
+    BUILDTYPE = 'Release'
     SERVER_ADDRESS = '%HOSTNAME'
     IP_SUPPORT = 'ALL'
     TERMINAL = None  # one of [ 'XTERM', 'XFCE4_TERMINAL', None  ]

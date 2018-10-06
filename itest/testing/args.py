@@ -3,6 +3,7 @@ import subprocess
 import argparse
 from .server import Server
 from .color import Color
+from .constants import SIRIDBC
 
 
 def is_valgrind_installed():
@@ -13,6 +14,26 @@ def is_valgrind_installed():
             if e.errno == os.errno.ENOENT:
                 return False
     return True
+
+
+def print_siridb_version(args):
+    fn = SIRIDBC.format(BUILDTYPE=args.build)
+    try:
+        p = subprocess.Popen(
+            [fn, '--version'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        print(Color.error(f'Cannot find: {fn}'))
+        exit(1)
+
+    output, err = p.communicate()
+    rc = p.returncode
+    if rc or err:
+        print(Color.error(f'Cannot use: {fn}'))
+        exit(1)
+
+    print(f'Test with: {Color.info(output.decode().splitlines()[0])}')
 
 
 def parse_args():
@@ -52,6 +73,7 @@ def parse_args():
 
     has_valgrind = is_valgrind_installed()
 
+    print_siridb_version(args)
     print("Test using valgrind for memory errors and leaks: ", end='')
     if args.mem_check and not has_valgrind:
         print(Color.warning('disabled (!! valgrind not found !!)'))
