@@ -1,5 +1,18 @@
+import os
+import subprocess
 import argparse
 from .server import Server
+from .color import Color
+
+
+def is_valgrind_installed():
+    with open(os.devnull, 'w') as fnull:
+        try:
+            subprocess.call(['valgrind'], stdout=fnull, stderr=fnull)
+        except OSError as e:
+            if e.errno == os.errno.ENOENT:
+                return False
+    return True
 
 
 def parse_args():
@@ -37,7 +50,17 @@ def parse_args():
 
     args = parser.parse_args()
 
-    Server.MEM_CHECK = args.mem_check
+    has_valgrind = is_valgrind_installed()
+
+    print("Test using valgrind for memory errors and leaks: ", end='')
+    if args.mem_check and not has_valgrind:
+        print(Color.warning('disabled (!! valgrind not found !!)'))
+    elif not args.mem_check:
+        print(Color.warning('disabled'))
+    else:
+        print(Color.success('enabled'))
+
+    Server.MEM_CHECK = args.mem_check and has_valgrind
     Server.HOLD_TERM = args.keep
     Server.TERMINAL = args.terminal
     Server.BUILDTYPE = args.build

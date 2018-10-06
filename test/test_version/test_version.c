@@ -1,9 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include "../test.h"
 #include <siri/version.h>
 
 
-#include <stdio.h>
-#include <stdlib.h>
 
 int old_version_cmp(const char * version_a, const char * version_b)
 {
@@ -16,8 +16,6 @@ int old_version_cmp(const char * version_a, const char * version_b)
     {
         a = strtol(str_a, &str_a, 10);
         b = strtol(str_b, &str_b, 10);
-
-        printf("%ld - %ld\n", a, b);
 
         if (a != b)
         {
