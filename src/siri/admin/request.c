@@ -837,9 +837,7 @@ static cproto_server_t ADMIN_on_get_version(
     if (packer != NULL)
     {
         if (!qp_add_type(packer, QP_ARRAY_OPEN) &&
-            !qp_add_string(packer, SIRIDB_VERSION) &&
-            !qp_add_string(packer, SIRIDB_VERSION_PRE_RELEASE) &&
-            !qp_add_string(packer, SIRIDB_VERSION_BUILD_RELEASE))
+            !qp_add_string(packer, SIRIDB_VERSION))
         {
             *packaddr = packer;
             return CPROTO_ACK_ADMIN_DATA;
