@@ -330,13 +330,7 @@ next:
 
 static void SIRI_destroy(void)
 {
-#ifndef DEBUG
-    log_info("Closing SiriDB Server (version: %s)", SIRIDB_VERSION);
-#else
-    log_warning("Closing SiriDB Server (%s-DEBUG-RELEASE-%s)",
-            SIRIDB_VERSION,
-            SIRIDB_BUILD_DATE);
-#endif
+    log_warning("Closing SiriDB Server (version: %s)", SIRIDB_VERSION);
     /* stop the event loop */
     uv_stop(siri.loop);
 

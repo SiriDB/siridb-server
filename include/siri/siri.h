@@ -15,7 +15,6 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #define SIRI_MAX_SIZE_ERR_MSG 1024
-#define SIRIDB_BUILD_DATE __DATE__ " " __TIME__
 #define MAX_NUMBER_DB 4
 
 typedef enum

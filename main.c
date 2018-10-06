@@ -49,15 +49,9 @@ int main(int argc, char * argv[])
     /* initialize points dictionary */
     siridb_points_init();
 
-#if DEBUG
-    log_warning("Starting SiriDB Server (%s-DEBUG-RELEASE-%s)",
-            SIRIDB_VERSION,
-            SIRIDB_BUILD_DATE);
-#else
-
     /* start server */
     log_info("Starting SiriDB Server (version: %s)", SIRIDB_VERSION);
-#endif
+
     /* initialize SiriDB mutex (used for the siridb_list) */
     if (uv_mutex_init(&siri.siridb_mutex))
     {
