@@ -33,4 +33,3 @@ class Task():
             print(
                 f'{self.title:.<76}'
                 f'{Color.error("FAILED")} ({self.duration:.2f} seconds)')
-

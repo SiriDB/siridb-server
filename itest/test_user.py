@@ -17,6 +17,7 @@ from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
+from testing import parse_args
 
 
 class TestUser(TestBase):
@@ -188,8 +189,5 @@ class TestUser(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = False
-    Server.MEM_CHECK = False
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestUser())

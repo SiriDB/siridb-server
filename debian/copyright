@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: siridb-server
-Source: http://siridb.net
+Source: https://siridb.net
 
 Files: *
 Copyright: 2016 Transceptor Technology

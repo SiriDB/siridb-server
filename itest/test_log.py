@@ -17,6 +17,7 @@ from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
+from testing import parse_args
 
 
 DATA = {
@@ -249,8 +250,5 @@ class TestLog(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestLog())

@@ -99,7 +99,7 @@ if __name__ == '__main__':
         archother={
             '32bit': 'i386',
             '64bit': 'x86_64'}[platform.architecture()[0]],
-        homepage='http://siridb.net',
+        homepage='https://siridb.net',
         distribution=_get_distribution(),
         curdate=datetime.datetime.utcnow().strftime('%d %b %Y'),
         year=datetime.datetime.utcnow().year,

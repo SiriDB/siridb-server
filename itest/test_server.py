@@ -17,6 +17,7 @@ from testing import ServerError
 from testing import SiriDB
 from testing import TestBase
 from testing import UserAuthError
+from testing import parse_args
 
 
 class TestServer(TestBase):
@@ -31,7 +32,7 @@ class TestServer(TestBase):
         await self.client0.connect()
 
         await self.db.add_pool(self.server1)
-        await self.assertIsRunning(self.db, self.client0, timeout=12)
+        await self.assertIsRunning(self.db, self.client0, timeout=20)
         await asyncio.sleep(5)
 
         await self.client1.connect()
@@ -149,8 +150,5 @@ class TestServer(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestServer())
