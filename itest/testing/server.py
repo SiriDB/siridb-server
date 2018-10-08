@@ -11,10 +11,18 @@ from .constants import SIRIDBC
 from .constants import TEST_DIR
 from .constants import VALGRIND
 from .constants import MAX_OPEN_FILES
+from .color import Color
+
 
 MEM_PROC = \
     'memcheck-amd64-' if platform.architecture()[0] == '64bit' else \
     'memcheck-x86-li'
+
+
+def get_file_content(fn):
+    with open(fn, 'r') as f:
+        data = f.read()
+        return data
 
 
 class Server:
@@ -128,13 +136,11 @@ class Server:
                        SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
                        self.cfgfile),
                shell=True)
-        else:
-            with open(
-                    f'testdir/{self.test_title}-{self.name}-err.log',
-                    'a') as err:
-                with open(
-                        f'testdir/{self.test_title}-{self.name}-out.log',
-                        'a') as out:
+        elif self.TERMINAL is None:
+            errfn = f'testdir/{self.test_title}-{self.name}-err.log'
+            outfn = f'testdir/{self.test_title}-{self.name}-out.log'
+            with open(errfn, 'a') as err:
+                with open(outfn, 'a') as out:
                     self.proc = subprocess.Popen(
                         '{}{} --config {}'
                         .format(VALGRIND if self.MEM_CHECK else '',
@@ -147,7 +153,22 @@ class Server:
         await asyncio.sleep(5)
 
         my_pid = self._get_pid_set() - prev
-        assert (len(my_pid) == 1)
+        if len(my_pid) != 1:
+            if self.TERMINAL is None:
+                if os.path.exists(outfn) and os.path.getsize(outfn):
+                    reasoninfo = get_file_content(outfn)
+                elif os.path.exists(errfn):
+                    reasoninfo = get_file_content(errfn)
+                else:
+                    reasoninfo = 'unknown'
+                assert 0, (
+                    f'{Color.error("Failed to start SiriDB server")}\n'
+                    f'{Color.info(reasoninfo)}\n')
+            else:
+                assert 0, (
+                    'Failed to start SiriDB server. A possible reason could '
+                    'be that another process is using the same port.')
+
         self.pid = my_pid.pop()
         if sleep:
             await asyncio.sleep(sleep)
