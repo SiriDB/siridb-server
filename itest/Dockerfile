@@ -1,8 +1,4 @@
 FROM ubuntu:18.04 as builder
-COPY ./main.c ./main.c
-COPY ./src/ ./src/
-COPY ./include/ ./include/
-COPY ./Release/ ./Release/
 RUN apt-get update && \
     apt-get install -y \
         libcleri-dev \
@@ -10,6 +6,10 @@ RUN apt-get update && \
         libpcre2-dev \
         uuid-dev \
         build-essential
+COPY ./main.c ./main.c
+COPY ./src/ ./src/
+COPY ./include/ ./include/
+COPY ./Release/ ./Release/
 RUN cd ./Release && \
     make clean && \
     make
