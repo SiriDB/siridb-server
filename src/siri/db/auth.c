@@ -50,7 +50,7 @@ cproto_server_t siridb_auth_user_request(
     }
 
     if ((user = siridb_users_get_user(
-            siridb->users,
+            siridb,
             username,
             password)) == NULL)
     {

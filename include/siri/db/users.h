@@ -28,7 +28,7 @@ int siridb_users_drop_user(
         const char * username,
         char * err_msg);
 siridb_user_t * siridb_users_get_user(
-        llist_t * users,
+        siridb_t * siridb,
         const char * username,
         const char * password);
 int siridb_users_save(siridb_t * siridb);

@@ -617,7 +617,7 @@ static void enter_alter_user(uv_async_t * handle)
     char name[user_node->len - 1];
     strx_extract_string(name, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb->users, name, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb, name, NULL)) == NULL)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
@@ -744,7 +744,7 @@ static void enter_grant_user(uv_async_t * handle)
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb->users, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
                 "Cannot find user: '%s'", username);
@@ -964,7 +964,7 @@ static void enter_revoke_user(uv_async_t * handle)
     char username[user_node->len - 1];
     strx_extract_string(username, user_node->str, user_node->len);
 
-    if ((user = siridb_users_get_user(siridb->users, username, NULL)) == NULL)
+    if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,

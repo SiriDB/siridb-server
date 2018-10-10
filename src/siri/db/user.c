@@ -89,23 +89,34 @@ int siridb_user_set_password(
 
     if (strlen(password) < SIRIDB_MIN_PASSWORD_LEN)
     {
-        sprintf(err_msg, "Password should be at least %d characters.",
-                SIRIDB_MIN_PASSWORD_LEN);
+        if (err_msg != NULL)
+        {
+            sprintf(err_msg,
+                    "Password should be at least %d characters.",
+                    SIRIDB_MIN_PASSWORD_LEN);
+        }
         return -1;
     }
 
     if (strlen(password) > SIRIDB_MAX_PASSWORD_LEN)
     {
-        sprintf(err_msg, "Password should be at most %d characters.",
-                SIRIDB_MAX_PASSWORD_LEN);
+        if (err_msg != NULL)
+        {
+            sprintf(err_msg,
+                    "Password should be at most %d characters.",
+                    SIRIDB_MAX_PASSWORD_LEN);
+        }
         return -1;
     }
 
     if (!strx_is_graph(password))
     {
-        sprintf(err_msg,
-                "Password contains illegal characters. (only graphical "
-                "characters are allowed, no spaces, tabs etc.)");
+        if (err_msg != NULL)
+        {
+            sprintf(err_msg,
+                    "Password contains illegal characters. (only graphical "
+                    "characters are allowed, no spaces, tabs etc.)");
+        }
         return -1;
     }
 
@@ -162,7 +173,7 @@ int siridb_user_set_name(
         return 1;
     }
 
-    if (siridb_users_get_user(siridb->users, name, NULL) != NULL)
+    if (siridb_users_get_user(siridb, name, NULL) != NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,

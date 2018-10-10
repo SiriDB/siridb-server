@@ -207,10 +207,11 @@ int siridb_users_add_user(
  * the user will be returned when found.
  */
 siridb_user_t * siridb_users_get_user(
-        llist_t * users,
+        siridb_t * siridb,
         const char * name,
         const char * password)
 {
+    llist_t * users = siridb->users;
     siridb_user_t * user;
     char pw[OWCRYPT_SZ];
 
@@ -219,7 +220,6 @@ siridb_user_t * siridb_users_get_user(
     char * fallback_pw;
     struct crypt_data fallback_data;
 #endif
-
 
     if ((user = llist_get(
             users,
@@ -243,9 +243,15 @@ siridb_user_t * siridb_users_get_user(
     /* Required for compatibility with version < 2.0.14 */
     else if (user->password[0] == '$')
     {
+        /* this will migrate as soon as a user logs in */
+        _Bool is_valid;
         fallback_data.initialized = 0;
         fallback_pw = crypt_r(password, user->password, &fallback_data);
-        return (strcmp(fallback_pw, user->password) == 0) ? user : NULL;
+        is_valid = strcmp(fallback_pw, user->password) == 0;
+        (void) (is_valid && \
+                siridb_user_set_password(user, password, NULL) == 0 && \
+                siridb_users_save(siridb));
+        return is_valid ? user : NULL;
     }
 #endif
     return NULL;
