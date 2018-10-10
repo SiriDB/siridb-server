@@ -493,10 +493,7 @@ siridb_points_t * siridb_aggregate_run(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
-#if DEBUG
     assert (source->len);
-#endif
-
     if (aggr->limit)
     {
         return AGGREGATE_limit(source, aggr, err_msg);
@@ -1121,13 +1118,7 @@ static siridb_points_t * AGGREGATE_group_by(
             points->data = point;
         }
     }
-#if DEBUG
-    else
-    {
-        /* if not smaller it must be equal */
-        assert (points->len == max_sz);
-    }
-#endif
+    /* else { assert (points->len == max_sz); } */
 
     return points;
 }
@@ -1148,9 +1139,7 @@ static int aggr_derivative(
         siridb_aggr_t * aggr,
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1194,9 +1183,7 @@ static int aggr_difference(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     switch (points->tp)
     {
@@ -1252,9 +1239,7 @@ static int aggr_max(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1298,9 +1283,7 @@ static int aggr_mean(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     double sum = 0.0;
     size_t i;
@@ -1341,9 +1324,7 @@ static int aggr_median(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1385,9 +1366,7 @@ static int aggr_median_high(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1420,9 +1399,7 @@ static int aggr_median_low(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1455,9 +1432,7 @@ static int aggr_min(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     if (points->tp == TP_STRING)
     {
@@ -1501,9 +1476,7 @@ static int aggr_pvariance(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     switch (points->tp)
     {
@@ -1530,9 +1503,7 @@ static int aggr_sum(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     switch (points->tp)
     {
@@ -1586,9 +1557,7 @@ static int aggr_variance(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     switch (points->tp)
     {
@@ -1616,9 +1585,7 @@ static int aggr_stddev(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg)
 {
-#if DEBUG
     assert (points->len);
-#endif
 
     switch (points->tp)
     {
@@ -1646,9 +1613,8 @@ static int aggr_first(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg __attribute__((unused)))
 {
-#if DEBUG
     assert (points->len);
-#endif
+
     siridb_point_t * source = points->data;
 
     switch (points->tp)
@@ -1682,9 +1648,8 @@ static int aggr_last(
         siridb_aggr_t * aggr __attribute__((unused)),
         char * err_msg __attribute__((unused)))
 {
-#if DEBUG
     assert (points->len);
-#endif
+
     siridb_point_t * source = points->data + (points->len - 1);
 
     switch (points->tp)

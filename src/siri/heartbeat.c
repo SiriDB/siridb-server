@@ -59,9 +59,7 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     llist_node_t * siridb_node;
     llist_node_t * server_node;
 
-#if DEBUG
     log_debug("Start heart-beat task");
-#endif
 
     siridb_node = siri.siridb_list->first;
 

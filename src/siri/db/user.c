@@ -238,9 +238,6 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond)
  */
 void siridb__user_free(siridb_user_t * user)
 {
-#if DEBUG
-    log_debug("Free user: '%s'", user->name);
-#endif
     free(user->name);
     free(user->password);
     free(user);

@@ -377,10 +377,6 @@ static int GROUPS_nseries(
 static void GROUPS_free(siridb_groups_t * groups)
 {
     size_t i;
-
-#if DEBUG
-    log_debug("Free groups");
-#endif
     free(groups->fn);
 
     if (groups->nseries != NULL)
@@ -604,10 +600,8 @@ static void GROUPS_init_groups(siridb_t * siridb)
     siridb_series_t * series;
     size_t i;
 
-#if DEBUG
     /* do not run this function when no groups need initialization */
     assert (siridb->groups->ngroups->len);
-#endif
 
     uv_mutex_lock(&siridb->series_mutex);
 
@@ -628,10 +622,8 @@ static void GROUPS_init_groups(siridb_t * siridb)
     {
         group = (siridb_group_t *) slist_pop(groups->ngroups);
 
-#if DEBUG
         /* we must be sure this group is empty */
         assert (group->series->len == 0);
-#endif
 
         if (~group->flags & GROUP_FLAG_DROPPED)
         {

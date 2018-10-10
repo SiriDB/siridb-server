@@ -671,13 +671,11 @@ static int64_t get_ts(
     struct tm tm;
     time_t ts;
 
-#if DEBUG
     /* must be a valid timezone */
     assert (tz >= 0 && tz < TZ_LEN);
 
     /* timezone must be 0 (UTC) */
     assert (timezone == 0);
-#endif
 
     memset(&tm, 0, sizeof(struct tm));
 

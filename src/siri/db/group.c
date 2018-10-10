@@ -359,9 +359,6 @@ void siridb__group_free(siridb_group_t * group)
 {
     size_t i;
 
-#if DEBUG
-    log_debug("Free group: '%s'", group->name);
-#endif
     free(group->name);
     free(group->source);
 

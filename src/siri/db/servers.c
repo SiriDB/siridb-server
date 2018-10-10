@@ -236,11 +236,9 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
         if (siridb->server->pool == server->pool)
         {
             /* this is a replica for 'this' pool */
-#if DEBUG
             assert (siridb->replicate == NULL);
             assert (siridb->fifo == NULL);
             assert (siridb->replica == NULL);
-#endif
             siridb->replica = server;
             siridb->fifo = siridb_fifo_new(siridb);
 

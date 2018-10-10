@@ -98,9 +98,7 @@ void siri_optimize_pause(void)
  */
 void siri_optimize_continue(void)
 {
-#if DEBUG
     assert (optimize.pause);
-#endif
     if (!--optimize.pause && optimize.status == SIRI_OPTIMIZE_PAUSED_MAIN)
     {
         log_debug("Optimize task was paused by the main thread, continue...");
@@ -118,9 +116,7 @@ int siri_optimize_wait(void)
     /* its possible that another database is paused, but we wait anyway */
     if (optimize.pause)
     {
-#if DEBUG
         assert (optimize.status == SIRI_OPTIMIZE_RUNNING);
-#endif
         optimize.status = SIRI_OPTIMIZE_PAUSED;
 
         /* close open index file in case this is required */
@@ -185,9 +181,8 @@ int siri_optimize_wait(void)
  */
 int siri_optimize_create_idx(const char * fn)
 {
-#if DEBUG
     assert (optimize.idx_fn == NULL && strlen(fn) > 3);
-#endif
+
     /* copy file name */
     optimize.idx_fn = strdup(fn);
     if (optimize.idx_fn == NULL)
@@ -308,9 +303,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         size_t j;
         siridb = (siridb_t *) slsiridb->data[i];
 
-#if DEBUG
         log_debug("Start optimizing database '%s'", siridb->dbname);
-#endif
 
         uv_mutex_lock(&siridb->shards_mutex);
 
@@ -383,9 +376,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         {
             break;
         }
-#if DEBUG
         log_debug("Finished optimizing database '%s'", siridb->dbname);
-#endif
     }
     OPTIMIZE_cleanup(slsiridb);
 }

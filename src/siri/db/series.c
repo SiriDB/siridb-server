@@ -127,10 +127,8 @@ int siridb_series_add_point(
         uint64_t * ts,
         qp_via_t * val)
 {
-#if DEBUG
     assert (!siri_err);
     assert (series->buffer != NULL);
-#endif
     int rc = 0;
 
     series->length++;
@@ -340,13 +338,6 @@ void siridb__series_free(siridb_series_t *__restrict series)
     siridb_shard_t * shard;
     uint_fast32_t i;
 
-#if DEBUG
-    if (siri.status == SIRI_STATUS_RUNNING || 0)
-    {
-        log_debug("Free series: '%s'", series->name);
-    }
-#endif
-
     /* mark shards with dropped series flag */
     for (i = 0; i < series->idx_len; i++)
     {
@@ -379,10 +370,8 @@ int siridb_series_load(siridb_t * siridb)
 {
     imap_t * dropped;
 
-#if DEBUG
     /* we must have a server because we need to know the pool id */
     assert (siridb->server != NULL);
-#endif
     log_info("Loading series");
 
     dropped = imap_new();
@@ -509,9 +498,7 @@ void siridb_series_drop_prepare(siridb_t * siridb, siridb_series_t * series)
  */
 int siridb_series_drop_commit(siridb_t * siridb, siridb_series_t * series)
 {
-#if DEBUG
     assert (series->flags & SIRIDB_SERIES_IS_DROPPED);
-#endif
 
     int rc = 0;
 
@@ -813,10 +800,8 @@ siridb_points_t * siridb_series_get_first(
 
     (*required_shard)++;
 
-#if DEBUG
     /* if not in the buffer, then if must be in a shard */
     assert (series->idx_len);
-#endif
 
     idx_t * first = series->idx;
 
@@ -835,11 +820,9 @@ siridb_points_t * siridb_series_get_first(
             &start,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
-#if DEBUG
     /* we must have at least one point, more points are possible when
      * having multiple points at the same time-stamp. */
     assert (points->len);
-#endif
 
     while (points->len > 1)
     {
@@ -879,11 +862,8 @@ siridb_points_t * siridb_series_get_last(
 
     (*required_shard)++;
 
-
-#if DEBUG
     /* if not in the buffer, then if must be in a shard */
     assert (series->idx_len);
-#endif
 
     /* if not in the buffer, then if must be in a shard */
 
@@ -912,11 +892,9 @@ siridb_points_t * siridb_series_get_last(
             NULL,
             series->flags & SIRIDB_SERIES_HAS_OVERLAP);
 
-#if DEBUG
     /* we must have at least one point, more points are possible when
      * having multiple points at the same time-stamp. */
     assert (points->len);
-#endif
 
     while (points->len > 1)
     {
@@ -1079,13 +1057,11 @@ int siridb_series_optimize_shard(
             size += idx->len;
             end++;
 
-#if DEBUG
             /*
              * we have at least 2 references to the shard so we never
              * reach 0 here.  (this ref + optimize ref)
              */
             assert(shard->replacing->ref >= 2);
-#endif
             siridb_shard_decref(shard->replacing);
         }
         else if (idx->shard == shard && end)
@@ -1170,9 +1146,7 @@ int siridb_series_optimize_shard(
             }
             while (idx->shard == shard);
 
-#if DEBUG
             assert (idx->shard == shard->replacing);
-#endif
 
             idx->shard = shard;
             idx->start_ts = points->data[pstart].ts;
@@ -1235,13 +1209,11 @@ int siridb_series_optimize_shard(
             series->idx = idx;
         }
     }
-#if DEBUG
     else
     {
         /* start must be equal to end if not smaller */
         assert (i == end);
     }
-#endif
 
     if (series->flags & SIRIDB_SERIES_HAS_OVERLAP)
     {
@@ -1326,9 +1298,8 @@ static void SERIES_update_overlap(siridb_series_t *__restrict series)
 {
     uint_fast32_t i;
 
-#if DEBUG
     assert (series->flags & SIRIDB_SERIES_HAS_OVERLAP);
-#endif
+
     for (i = 1; i < series->idx_len; i++)
     {
         if (series->idx[i - 1].end_ts > series->idx[i].start_ts)
@@ -1397,11 +1368,9 @@ static siridb_series_t * SERIES_new(
                 series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
             }
 
-#if DEBUG
             /* make sure these two are exactly the same */
             assert (siridb_series_server_id(series) ==
                     siridb_series_server_id_by_name(series->name));
-#endif
 
             if (siridb->time->precision == SIRIDB_TIME_SECONDS)
             {

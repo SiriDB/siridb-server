@@ -291,9 +291,7 @@ int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
  */
 siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
 {
-#if DEBUG
     assert (plist->len >= 2);
-#endif
     siridb_points_t * points;
     siridb_points_t * tpts = NULL;
     size_t n = 0;
@@ -340,10 +338,8 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
         i++;
     }
 
-#if DEBUG
     /* we have at least one series left */
     assert (plist->len >= 1);
-#endif
 
     if (plist->len == 1)
     {
@@ -1410,10 +1406,8 @@ static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points)
             usleep(3000);
         }
     }
-#if DEBUG
     /* size should be exactly zero */
     assert (n == 0);
-#endif
 }
 
 
@@ -1458,10 +1452,8 @@ static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
             usleep(3000);
         }
     }
-#if DEBUG
     /* size should be exactly zero */
     assert (n == 0);
-#endif
 }
 
 /*
@@ -1499,10 +1491,8 @@ static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
         }
     }
 
-#if DEBUG
     /* size should be exactly zero */
     assert (n == 0);
-#endif
 
     usleep(5000);
 

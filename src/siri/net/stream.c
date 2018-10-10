@@ -250,10 +250,6 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 {
     sirinet_stream_t * client = uvclient->data;
 
-#if DEBUG
-    log_debug("Free socket client type: %d", client->tp);
-#endif
-
     switch (client->tp)
     {
     case STREAM_PIPE_CLIENT:

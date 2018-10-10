@@ -1540,10 +1540,6 @@ void siridb__shard_free(siridb_shard_t * shard)
     /* this will close the file, even when other references exist */
     siri_fp_decref(shard->fp);
 
-#if DEBUG
-    log_debug("Free shard id: %" PRIu64, shard->id);
-#endif
-
     free(shard->fn);
     free(shard);
 }

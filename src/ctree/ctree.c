@@ -630,10 +630,7 @@ static int CT_add(
  */
 static void CT_merge_node(ct_node_t * node)
 {
-#if DEBUG
     assert(node->size == 1 && node->data == NULL);
-#endif
-
     ct_node_t * child_node;
     char * tmp;
     uint_fast16_t i, end;

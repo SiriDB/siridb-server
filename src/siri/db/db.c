@@ -572,10 +572,6 @@ int siridb_save(siridb_t * siridb)
  */
 void siridb__free(siridb_t * siridb)
 {
-#if DEBUG
-    log_debug("Free database: '%s'", siridb->dbname);
-#endif
-
     /* first we should close the buffer and all other open files */
     if (siridb->buffer != NULL)
     {

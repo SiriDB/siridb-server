@@ -106,9 +106,7 @@ static void CLSERVER_on_register_server_response(
 
 int sirinet_clserver_init(siri_t * siri)
 {
-#if DEBUG
     assert (loop == NULL && siri->loop != NULL);
-#endif
 
     int rc;
     int ip_v6 = 0;  /* false */

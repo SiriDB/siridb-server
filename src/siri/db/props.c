@@ -523,10 +523,8 @@ static void prop_time_precision(
 {
     SIRIDB_PROP_MAP("time_precision", 14)
 
-#if DEBUG
     assert (siridb->time->precision >= SIRIDB_TIME_SECONDS &&
             siridb->time->precision <= SIRIDB_TIME_NANOSECONDS);
-#endif
 
     qp_add_string(packer, siridb_time_short_map[siridb->time->precision]);
 }

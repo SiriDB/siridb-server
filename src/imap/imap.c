@@ -115,10 +115,8 @@ void imap_free(imap_t * imap, imap_free_cb cb)
  */
 int imap_set(imap_t * imap, uint64_t id, void * data)
 {
-#if DEBUG
     /* insert NULL is not allowed */
     assert (data != NULL);
-#endif
     int rc;
     imap_node_t * nd = imap->nodes + (id % IMAP_NODE_SZ);
     id /= IMAP_NODE_SZ;
@@ -160,10 +158,9 @@ int imap_set(imap_t * imap, uint64_t id, void * data)
  */
 int imap_add(imap_t * imap, uint64_t id, void * data)
 {
-#if DEBUG
     /* insert NULL is not allowed */
     assert (data != NULL);
-#endif
+
     imap_node_t * nd = imap->nodes + (id % IMAP_NODE_SZ);
     id /= IMAP_NODE_SZ;
 
@@ -460,10 +457,8 @@ void imap_union_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
-#endif
                     /* we are sure there is a ref left */
                     slist_object_decref(imap_nd->data);
                 }
@@ -597,10 +592,9 @@ void imap_difference_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
-#endif
+
                     /* we are sure to have one ref left */
                     slist_object_decref(dest_nd->data);
                     dest_nd->data = NULL;
@@ -667,10 +661,9 @@ void imap_symmetric_difference_ref(
             {
                 if (dest_nd->data != NULL)
                 {
-#if DEBUG
                     /* this must be the same object */
                     assert (imap_nd->data == dest_nd->data);
-#endif
+
                     /* we are sure to have one ref left */
                     slist_object_decref(dest_nd->data);
 
@@ -980,10 +973,8 @@ static void IMAP_union_ref(imap_node_t * dest, imap_node_t * node)
         {
             if (dest_nd->data != NULL)
             {
-#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
-#endif
                 /* we are sure there is a ref left */
                 slist_object_decref(node_nd->data);
             }
@@ -1087,10 +1078,8 @@ static void IMAP_difference_ref(
         {
             if (dest_nd->data != NULL)
             {
-#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
-#endif
                 /* we are sure to have one ref left */
                 slist_object_decref(dest_nd->data);
                 dest_nd->data = NULL;
@@ -1143,10 +1132,9 @@ static void IMAP_symmetric_difference_ref(
         {
             if (dest_nd->data != NULL)
             {
-#if DEBUG
                 /* this must be the same object */
                 assert (node_nd->data == dest_nd->data);
-#endif
+
                 /* we are sure to have one ref left */
                 slist_object_decref(dest_nd->data);
 

@@ -67,9 +67,7 @@ sirinet_pkg_t * sirinet_pkg_new(
  */
 qp_packer_t * sirinet_packer_new(size_t alloc_size)
 {
-#if DEBUG
     assert (alloc_size >= sizeof(sirinet_pkg_t));
-#endif
 
     qp_packer_t * packer = qp_packer_new(alloc_size);
     if (packer == NULL)
@@ -119,9 +117,7 @@ sirinet_pkg_t * sirinet_pkg_err(
         uint8_t tp,
         const char * msg)
 {
-#if DEBUG
     assert (msg != NULL);
-#endif
 
     sirinet_pkg_t * pkg;
     qp_packer_t * packer = sirinet_packer_new(len + 20 + sizeof(sirinet_pkg_t));

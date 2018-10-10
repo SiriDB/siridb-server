@@ -142,9 +142,7 @@ void qp_unpacker_init(qp_unpacker_t * unpacker, unsigned char * pt, size_t len)
  */
 void qp_unpacker_ff_free(qp_unpacker_t * unpacker)
 {
-#if DEBUG
     assert(unpacker != NULL);
-#endif
     free(unpacker->source);
     free(unpacker);
 }
@@ -246,9 +244,7 @@ qp_packer_t * qp_packer_new(size_t alloc_size)
  */
 void qp_packer_free(qp_packer_t * packer)
 {
-#if DEBUG
     assert(packer != NULL);
-#endif
     free(packer->buffer);
     free(packer);
 }
@@ -587,10 +583,7 @@ int qp_add_null(qp_packer_t * packer) QP_PLAIN_OBJ(QP_NULL)
  */
 int qp_add_type(qp_packer_t * packer, qp_types_t tp)
 {
-#if DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
-#endif
-
     QP_RESIZE(1)
     packer->buffer[packer->len++] = tp;
     return 0;
@@ -601,10 +594,7 @@ int qp_add_type(qp_packer_t * packer, qp_types_t tp)
  */
 int qp_fadd_type(qp_fpacker_t * fpacker, qp_types_t tp)
 {
-#if DEBUG
     assert(tp >= QP_ARRAY0 && tp <= QP_MAP_CLOSE);
-#endif
-
     return (fputc(tp, fpacker) == (int) tp) ? 0 : EOF;
 }
 

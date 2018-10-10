@@ -28,11 +28,9 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
  */
 void siridb_pools_init(siridb_t * siridb)
 {
-#if DEBUG
     assert (siridb->pools == NULL);
     assert (siridb->servers != NULL && siridb->servers->len > 0);
     assert (siridb->server != NULL);
-#endif
 
     siridb->pools = malloc(sizeof(siridb_pools_t));
     if (siridb->pools == NULL)
@@ -123,9 +121,9 @@ siridb_pool_t * siridb_pools_append(
             pool->len = 0;
             siridb_pool_add_server(pool, server);
             pools->len++;
-#if DEBUG
+
             assert (pools->prev_lookup == NULL);
-#endif
+
             pools->prev_lookup = pools->lookup;
             pools->lookup = lookup;
         }

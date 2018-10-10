@@ -8,7 +8,7 @@
 #define DEFAULT_LOG_FILE_MAX_SIZE 50000000
 #define DEFAULT_LOG_FILE_NUM_BACKUPS 6
 
-#if DEBUG
+#ifndef NDEBUG
 #define DEFAULT_LOG_LEVEL "debug"
 #else
 #define DEFAULT_LOG_LEVEL "info"

@@ -75,9 +75,7 @@ static uv_tcp_t backend_server;
 
 int sirinet_bserver_init(siri_t * siri)
 {
-#if DEBUG
     assert (loop == NULL);
-#endif
 
     int rc;
     int ip_v6 = 0;  /* false */
@@ -518,9 +516,7 @@ static void on_insert(
     siridb_t * siridb = client->siridb;
     if ((flags & INSERT_FLAG_POOL) && siridb->replica != NULL)
     {
-#if DEBUG
         assert (siridb->fifo != NULL);
-#endif
         sirinet_pkg_t * repl_pkg;
 
         if (siridb->replicate->initsync == NULL)

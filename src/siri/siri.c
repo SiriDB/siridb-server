@@ -103,7 +103,7 @@ void siri_setup_logger(void)
     char lname[255];
     size_t len = strlen(siri.args->log_level);
 
-#ifndef DEBUG
+#ifdef NDEBUG
     /* force colors while debugging... */
     if (siri.args->log_colorized)
 #endif
@@ -515,7 +515,7 @@ static void SIRI_walk_close_handlers(
         /* we do not expect any timer object since they should all be closed
          * (or at least closing) at this point.
          */
-#if DEBUG
+#ifndef NDEBUG
         LOGC(   "Found a non closing Timer, all timers should "
                 "be stopped at this point.");
 #endif
@@ -524,7 +524,7 @@ static void SIRI_walk_close_handlers(
         break;
 
     case UV_ASYNC:
-#if DEBUG
+#ifndef NDEBUG
         LOGC(   "An async task is only expected to be found in case "
                 "not all tasks were closed within the timeout limit, "
                 "or when a critical signal error is raised.");
@@ -534,7 +534,7 @@ static void SIRI_walk_close_handlers(
 
     default:
 
-#if DEBUG
+#ifndef NDEBUG
         LOGC("Oh oh, we might need to implement type %d", handle->type);
         assert(0);
 #endif

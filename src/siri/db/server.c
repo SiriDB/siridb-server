@@ -135,11 +135,9 @@ int siridb_server_send_pkg(
         void * data,
         int flags)
 {
-#if DEBUG
     assert (server->client != NULL);
     assert (server->promises != NULL);
     assert (cb != NULL);
-#endif
     int rc;
     uint8_t n = 0;
     sirinet_promise_t * promise =
@@ -309,16 +307,12 @@ siridb_server_t * siridb_server_register(
 void siridb_server_send_flags(siridb_server_t * server)
 {
 
-#if DEBUG
     assert (server->client != NULL);
     assert (siridb_server_is_online(server));
-#endif
 
     sirinet_stream_t * client = server->client;
 
-#if DEBUG
     assert (client->siridb != NULL);
-#endif
 
     int16_t n = client->siridb->server->flags;
     QP_PACK_INT16(buffer, n)
@@ -402,10 +396,8 @@ int siridb_server_update_address(
  */
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
 {
-#if DEBUG
     /* server->socket must be NULL at this point */
     assert (server->client == NULL);
-#endif
 
     server->client = sirinet_stream_new(STREAM_TCP_SERVER, &SERVER_on_data);
 
@@ -880,17 +872,13 @@ siridb_server_t * siridb_server_from_node(
 int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
 {
     int rc = 0;
-#if DEBUG
     assert (siridb->server != server);
-#endif
     siridb_pool_t * pool = siridb->pools->pool + server->pool;
 
     switch (server->id)
     {
     case 0:
-#if DEBUG
         assert (pool->len == 2);
-#endif
         pool->server[0] = pool->server[1];
         pool->server[0]->id = 0;
         /* FALLTHRU */
@@ -933,12 +921,11 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
         siridb_server_decref(server);
         rc = siridb_servers_save(siridb);
     }
-#if DEBUG
     else
     {
+        /* can never be reached */
         assert (0);
     }
-#endif
     return rc;
 }
 
@@ -950,9 +937,6 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
  */
 void siridb__server_free(siridb_server_t * server)
 {
-#if DEBUG
-    log_debug("Free server: '%s'", server->name);
-#endif
     /* we MUST first free the promises because each promise has a reference to
      * this server and the promise callback might depend on this.
      */
@@ -1230,9 +1214,7 @@ static int SERVER_update_name(siridb_server_t * server)
     char * tmp;
     int fmt_as_ipv6 = 0;  /* false */
 
-#if DEBUG
     assert (server->port > 0);
-#endif
 
     /* append 'string' length for server->port */
     for (; i; i /= 10, len++);
@@ -1246,9 +1228,7 @@ static int SERVER_update_name(siridb_server_t * server)
     /* append 'address' length */
     len += strlen(server->address);
 
-#if DEBUG
     assert (len > 0);
-#endif
 
     /* allocate enough space */
     tmp = (char *) realloc(server->name, len);

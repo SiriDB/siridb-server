@@ -91,9 +91,7 @@ siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
     /* we have at least one fifo in the list */
     fifo->out = (siridb_ffile_t *) llist_shift(fifo->fifos);
 
-#if DEBUG
     assert (fifo->out != NULL);
-#endif
 
     if (fifo->out->fp == NULL)
     {
@@ -217,9 +215,7 @@ int siridb_fifo_commit(siridb_fifo_t * fifo)
         }
     }
 
-#if DEBUG
     assert (fifo->out != NULL);
-#endif
 
     return siri_err;
 }
@@ -241,9 +237,7 @@ int siridb_fifo_commit_err(siridb_fifo_t * fifo)
  */
 int siridb_fifo_close(siridb_fifo_t * fifo)
 {
-#if DEBUG
     assert (fifo->in->fp != NULL);
-#endif
     int rc = 0;
 
     /* close the 'in' fifo */
@@ -266,10 +260,7 @@ int siridb_fifo_close(siridb_fifo_t * fifo)
  */
 int siridb_fifo_open(siridb_fifo_t * fifo)
 {
-#if DEBUG
     assert (fifo->in->fp == NULL);
-#endif
-
     /* open fifo 'in' */
     siridb_ffile_open(fifo->in, "r+");
 

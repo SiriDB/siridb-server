@@ -96,9 +96,7 @@ cexpr_t * cexpr_from_node(cleri_node_t * node)
     {
         /* successful */
         cexpr = CEXPR_close_curly(&list);
-#if DEBUG
         assert (list.len == 0 && condition == NULL);
-#endif
     }
     else if (condition != NULL)
     {
@@ -179,10 +177,7 @@ int cexpr_str_cmp(
         const char * b)
 {
     /* both a and b MUST be terminated strings */
-
-#if DEBUG
     assert (a != NULL && b != NULL);
-#endif
 
     switch (operator)
     {
@@ -218,9 +213,8 @@ int cexpr_bool_cmp(
         const int64_t a,
         const int64_t b)
 {
-#if DEBUG
     assert ((a == 0 || a == 1) && (b == 0 || b == 1));
-#endif
+
     switch (operator)
     {
     case CEXPR_EQ:
@@ -243,10 +237,8 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
     switch (cexpr->operator)
     {
     case CEXPR_AND:
-#if DEBUG
         /* tp_a cannot be VIA_NULL, but tp_b can */
         assert (cexpr->tp_a != VIA_NULL);
-#endif
         return  ((cexpr->tp_a == VIA_CEXPR) ?
                     cexpr_run(cexpr->via_a.cexpr, cb, obj) :
                     cb(obj, cexpr->via_a.cond)) &&
@@ -254,10 +246,8 @@ int cexpr_run(cexpr_t * cexpr, cexpr_cb_t cb, void * obj)
                     cexpr_run(cexpr->via_b.cexpr, cb, obj) :
                     cb(obj, cexpr->via_b.cond)));
     case CEXPR_OR:
-#if DEBUG
         /* both tp_a and tp_b can NEVER be VIA_NULL */
         assert (cexpr->tp_a != VIA_NULL && cexpr->tp_b != VIA_NULL);
-#endif
         return  ((cexpr->tp_a == VIA_CEXPR) ?
                     cexpr_run(cexpr->via_a.cexpr, cb, obj) :
                     cb(obj, cexpr->via_a.cond)) ||
@@ -327,9 +317,7 @@ cexpr_operator_t cexpr_operator_fn(cleri_node_t * node)
     }
     else
     {
-#if DEBUG
         assert (node->len == 2);
-#endif
         switch (*node->str)
         {
         case '=': return CEXPR_EQ;
@@ -668,9 +656,7 @@ static void CEXPR_push_condition(cexpr_t * cexpr, cexpr_condition_t * cond)
     }
     else
     {
-#if DEBUG
-        assert(cexpr->tp_b == VIA_NULL);
-#endif
+        assert(cexpr->tp_b == VIA_NULL);#endif
         cexpr->tp_b = VIA_COND;
         cexpr->via_b.cond = cond;
     }
@@ -704,9 +690,7 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
     }
     else
     {
-#if DEBUG
         assert(cexpr->tp_b == VIA_NULL);
-#endif
         cexpr->tp_b = VIA_CEXPR;
         cexpr->via_b.cexpr = new_cexpr;
     }
@@ -716,9 +700,7 @@ static cexpr_t * CEXPR_open_curly(cexpr_t * cexpr, cexpr_list_t * list)
 
 static cexpr_t * CEXPR_close_curly(cexpr_list_t * list)
 {
-#if DEBUG
     assert (list->len > 0);
-#endif
     list->len--;
     return list->cexpr[list->len];
 }

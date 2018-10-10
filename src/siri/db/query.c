@@ -32,10 +32,6 @@
 #include <sys/time.h>
 #include <siri/err.h>
 
-#if DEBUG
-#include <motd/motd.h>
-#endif
-
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
@@ -179,10 +175,6 @@ void siridb_query_free(uv_handle_t * handle)
 
     /* free handle */
     free(handle);
-
-    #if DEBUG
-    log_debug("Free query!, hooray!");
-    #endif
 }
 
 void siridb_send_query_result(uv_async_t * handle)
@@ -192,13 +184,9 @@ void siridb_send_query_result(uv_async_t * handle)
      * clean everything without sending things in case of a client failure
      */
     siridb_query_t * query = (siridb_query_t *) handle->data;
-#if DEBUG
-    if (query->packer == NULL)
-    {
-        sprintf(query->err_msg, "CRITICAL: We have nothing to send!");
-        return siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-    }
-#endif
+
+    assert (query->packer != NULL);
+
     sirinet_pkg_t * pkg = sirinet_packer2pkg(
             query->packer,
             query->pid,
@@ -319,13 +307,10 @@ void siridb_query_forward(
             break;
 
         case SIRIDB_QUERY_FWD_SOME_POOLS:
-#if DEBUG
-
             assert (((query_select_t *) ((siridb_query_t *)
                     handle->data)->data)->tp == QUERIES_SELECT);
             assert (((query_select_t *) ((siridb_query_t *)
                     handle->data)->data)->pmap != NULL);
-#endif
             pkg->tp = BPROTO_QUERY_SERVER;
             {
                 slist_t * borrow_list = imap_slist(((query_select_t *) (
@@ -405,9 +390,7 @@ void siridb_query_timeit_from_unpacker(
         siridb_query_t * query,
         qp_unpacker_t * unpacker)
 {
-#if DEBUG
     assert (query->timeit != NULL);
-#endif
 
     qp_types_t tp = qp_next(unpacker, NULL);
 
@@ -530,8 +513,6 @@ static void QUERY_send_no_query(uv_async_t * handle)
     query->packer = sirinet_packer_new(512);
     qp_add_type(query->packer, QP_MAP1);
 
-#ifndef DEBUG
-    /* production version returns timestamp now */
     siridb_t * siridb = query->client->siridb;
 
     qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
@@ -547,15 +528,6 @@ static void QUERY_send_no_query(uv_async_t * handle)
         qp_add_int64(query->packer, (int64_t) (ts * factor));
     }
 
-#else
-    /* development release returns motd */
-    const char * msg;
-    msg = motd_get_random_msg();
-    qp_add_raw(query->packer, (const unsigned char *) "motd", 4);
-    qp_add_string(query->packer, msg);
-
-
-#endif
     siridb_send_query_result(handle);
 }
 
