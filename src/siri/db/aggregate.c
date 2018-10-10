@@ -926,6 +926,7 @@ static siridb_points_t * AGGREGATE_filter(
 
         default:
             assert (0);
+            dpt = NULL;
             break;
         }
 
@@ -1167,6 +1168,8 @@ static int aggr_derivative(
             break;
         default:
             assert (0);
+            first = 0.0;
+            last = 0.0;
             break;
         }
 

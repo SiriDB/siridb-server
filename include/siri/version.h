@@ -23,7 +23,7 @@
  */
 #define SIRIDB_VERSION_PRE_RELEASE "-alpha-0"
 
-#if DEBUG
+#ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
 #else
 #define SIRIDB_VERSION_BUILD_RELEASE ""

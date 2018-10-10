@@ -3798,6 +3798,7 @@ static void exit_set_log_level(uv_async_t * handle)
         break;
     default:
         assert (0);
+        log_level = LOGGER_DEBUG;
         break;
     }
 
@@ -4605,6 +4606,7 @@ static void async_no_points_aggregate(uv_async_t * handle)
             break;
         default:
             assert (0);
+            points = NULL;
         }
 
         uv_mutex_unlock(&siridb->series_mutex);

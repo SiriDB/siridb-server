@@ -656,7 +656,7 @@ static void CEXPR_push_condition(cexpr_t * cexpr, cexpr_condition_t * cond)
     }
     else
     {
-        assert(cexpr->tp_b == VIA_NULL);#endif
+        assert(cexpr->tp_b == VIA_NULL);
         cexpr->tp_b = VIA_COND;
         cexpr->via_b.cond = cond;
     }
