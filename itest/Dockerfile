@@ -12,7 +12,7 @@ COPY ./include/ ./include/
 COPY ./Release/ ./Release/
 RUN cd ./Release && \
     make clean && \
-    make
+    CFLAGS="-Werror -std=gnu89" make
 
 FROM python
 RUN apt-get update && \
