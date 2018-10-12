@@ -1,3 +1,18 @@
+siridb-server (2.0.30-1) unstable; urgency=medium
+
+  * New upstream release
+    - SiriDB Server can now compile with gnu89/gnu90 (#101)
+    - Removed deprecated info- and loaddb requests
+    - Added named pipe support (#104, @pavelxdd)
+    - Changed writing buffer length to reduce random io
+    - Added option to fsync the buffer on a configurable interval
+    - Use posix_fadvise() on the buffer file (@Svedrin)
+    - The buffer size can now be adjusted by using the database.conf
+      configuration file
+    - Added conversion of invalid value types
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 12 Oct 2018 19:44:24 +0200
+
 siridb-server (2.0.29-1) unstable; urgency=medium
 
   * New upstream release
