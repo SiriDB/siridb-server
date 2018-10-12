@@ -82,3 +82,5 @@ debian/files
 debian/siridb-server.postrm.debhelper
 debian/siridb-server.substvars
 debian/siridb-server/
+Release/siridb-server.1
+
