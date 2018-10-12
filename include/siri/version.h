@@ -13,7 +13,7 @@
  * This should be an empty string when building a final release.
  * Examples: "-alpha-0" "-alpha-1", ""
  */
-#define SIRIDB_VERSION_PRE_RELEASE "-alpha-2"
+#define SIRIDB_VERSION_PRE_RELEASE ""
 
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
