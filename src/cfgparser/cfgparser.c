@@ -336,19 +336,19 @@ const char * cfgparser_errmsg(cfgparser_return_t err)
     switch (err)
     {
     case CFGPARSER_SUCCESS:
-        return "success: configuration file parsed successfully";
+        return "configuration file parsed successfully";
     case CFGPARSER_ERR_READING_FILE:
-        return "error: cannot open file for reading";
+        return "cannot open file for reading";
     case CFGPARSER_ERR_SESSION_NOT_OPEN:
-        return "error: got a line without a section";
+        return "got a line without a section";
     case CFGPARSER_ERR_MISSING_EQUAL_SIGN:
-        return "error: missing equal sign in at least one line";
+        return "missing equal sign in at least one line";
     case CFGPARSER_ERR_OPTION_ALREADY_DEFINED:
-        return "error: option defined twice within one section";
+        return "option defined twice within one section";
     case CFGPARSER_ERR_SECTION_NOT_FOUND:
-        return "error: section not found";
+        return "section not found";
     case CFGPARSER_ERR_OPTION_NOT_FOUND:
-        return "error: option not found";
+        return "option not found";
     }
     return "";
 }
