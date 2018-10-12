@@ -24,6 +24,8 @@ Depends:
  ucf,
  ${misc:Depends},
  ${shlibs:Depends},
+ libuv1 (>= 1.8.0),
+ libcleri0 (>= 0.9.3),
 Description: SiriDB time series database server
  SiriDB is a scalable, robust and fast time series database. Build from the
  ground up SiriDB uses a mechanism to operate without a global index and allows
