@@ -37,6 +37,7 @@
 *.d
 *.d
 /testdir
+*.log
 
 # Eclipse
 /.settings

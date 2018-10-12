@@ -1,2 +1,0 @@
-  * Fixed wrapping imap to vec functions with appropriate locks. 
-    (see issue #51)

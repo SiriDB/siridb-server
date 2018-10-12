@@ -1,9 +1,0 @@
-  * Replaced a few tabs with spaces for indentation.
-  
-  * Improve startup speed by creating separate index files for the shards
-    while optimizing. (issue #75)
-    
-  * Fixed accidentally removing a shard from the index by the optimize thread.
-    This was very unlikely to happen but technically a shard could be dropped
-    and been re-created between checking the shard flags and locking the 
-    shards mutex for replacing the shard in the index. 

@@ -1,3 +1,0 @@
-  * Update help files.
-
-  * Fixed bug in ctree which could occur when merging series. (issue #49) 
