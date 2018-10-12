@@ -1,4 +1,4 @@
-siridb-server (2.0.30-0~siridb1) unstable; urgency=medium
+siridb-server (2.0.30-0~tt1) unstable; urgency=medium
 
   * New upstream release
     - SiriDB Server can now compile with gnu89/gnu90 (#101)
