@@ -1,6 +1,6 @@
 TEST_DIR = './testdir'
 SIRIDBC = '../{BUILDTYPE}/siridb-server'
-SERVICE = '/usr/local/bin/siridb-service'
+SERVICE = '/usr/local/bin/siridb-admin'
 VALGRIND = 'valgrind' \
   ' --tool=memcheck' \
   ' --error-exitcode=1' \
