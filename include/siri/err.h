@@ -1,13 +1,5 @@
 /*
- * error.h - SiriDB Error.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 30-06-2016
- *
+ * err.h - SiriDB Error.
  */
 #ifndef SIRI_ERR_H_
 #define SIRI_ERR_H_

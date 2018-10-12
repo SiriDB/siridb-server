@@ -1,13 +1,24 @@
 /*
  * groups.h - Groups (saved regular expressions).
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
+ * Info groups->mutex:
  *
- * changes
- *  - initial version, 16-08-2016
+ *  Main thread:
+ *      groups->groups :    read (no lock)      write (lock)
+ *      groups->nseries :   read (lock)         write (lock)
+ *      groups->ngroups :   read (lock)         write (lock)
+ *      group->series :     read (lock)         write (not allowed)
+
+ *  Other threads:
+ *      groups->groups :    read (lock)         write (not allowed)
+ *      groups->nseries :   read (lock)         write (lock)
+ *      groups->ngroups :   read (lock)         write (lock)
  *
+ *  Group thread:
+ *      group->series :     read (no lock)      write (lock)
+ *
+ *  Note:   One exception to 'not allowed' are the free functions
+ *          since they only run when no other references to the object exist.
  */
 #ifndef SIRIDB_GROUPS_H_
 #define SIRIDB_GROUPS_H_
@@ -24,7 +35,7 @@ typedef struct siridb_groups_s siridb_groups_t;
 #define GROUPS_FLAG_DROPPED_SERIES 1
 
 #include <ctree/ctree.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <uv.h>
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
@@ -58,8 +69,8 @@ struct siridb_groups_s
     uint8_t ref;
     char * fn;
     ct_t * groups;
-    slist_t * nseries;  /* list of series we need to assign to groups */
-    slist_t * ngroups;  /* list of groups which need initialization */
+    vec_t * nseries;  /* list of series we need to assign to groups */
+    vec_t * ngroups;  /* list of groups which need initialization */
     uv_mutex_t mutex;
     uv_work_t work;
 };

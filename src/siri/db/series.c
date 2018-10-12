@@ -1,12 +1,6 @@
 /*
- * series.c - Series
+ * series.c - SiriDB Time Series.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 29-03-2016
  *
  * Info siridb->series_mutex:
  *
@@ -351,7 +345,7 @@ void siridb__series_free(siridb_series_t *__restrict series)
         siridb_points_free(series->buffer);
         if (series->flags & SIRIDB_SERIES_IS_DROPPED)
         {
-            slist_append_safe(
+            vec_append_safe(
                 &series->siridb->buffer->empty,
                 (void *) series->bf_offset);
         }

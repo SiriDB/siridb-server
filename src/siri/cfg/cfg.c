@@ -1,3 +1,6 @@
+/*
+ * cfg.h - Read the global SiriDB configuration file. (usually siridb.conf)
+ */
 #include <cfgparser/cfgparser.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -5,7 +8,7 @@
 #include <siri/cfg/cfg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
@@ -651,9 +654,9 @@ static void SIRI_CFG_read_address_port(
 
         if (    !strlen(address) ||
                 strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
-                !strx_is_int(port) ||
+                !xstr_is_int(port) ||
                 strcpy(address_pt, address) == NULL ||
-                strx_replace_str(
+                xstr_replace_str(
                         address_pt,
                         "%HOSTNAME",
                         hostname,

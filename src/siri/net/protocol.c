@@ -1,13 +1,5 @@
 /*
- * protocol.c - Protocol for SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 01-08-2016
- *
+ * protocol.c - Protocol definitions for SiriDB.
  */
 #include <siri/net/protocol.h>
 #include <stdio.h>
@@ -31,7 +23,7 @@ const char * sirinet_cproto_client_str(cproto_client_t n)
     case CPROTO_REQ_FILE_DATABASE: return "CPROTO_REQ_FILE_DATABASE";
     /* end internal usage */
 
-    case CPROTO_REQ_ADMIN: return "CPROTO_REQ_ADMIN";
+    case CPROTO_REQ_SERVICE: return "CPROTO_REQ_SERVICE";
 
     default:
         sprintf(protocol_str, "CPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
@@ -49,8 +41,8 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_RES_ACK: return "CPROTO_RES_ACK";
     case CPROTO_RES_FILE: return "CPROTO_RES_FILE";
 
-    case CPROTO_ACK_ADMIN: return "CPROTO_ACK_ADMIN";
-    case CPROTO_ACK_ADMIN_DATA: return "CPROTO_ACK_ADMIN_DATA";
+    case CPROTO_ACK_SERVICE: return "CPROTO_ACK_SERVICE";
+    case CPROTO_ACK_SERVICE_DATA: return "CPROTO_ACK_SERVICE_DATA";
 
     case CPROTO_ERR_MSG: return "CPROTO_ERR_MSG";
     case CPROTO_ERR_QUERY: return "CPROTO_ERR_QUERY";
@@ -63,8 +55,8 @@ const char * sirinet_cproto_server_str(cproto_server_t n)
     case CPROTO_ERR_AUTH_CREDENTIALS: return "CPROTO_ERR_AUTH_CREDENTIALS";
     case CPROTO_ERR_AUTH_UNKNOWN_DB: return "CPROTO_ERR_AUTH_UNKNOWN_DB";
     case CPROTO_ERR_FILE: return "CPROTO_ERR_FILE";
-    case CPROTO_ERR_ADMIN: return "CPROTO_ERR_ADMIN";
-    case CPROTO_ERR_ADMIN_INVALID_REQUEST: return "CPROTO_ERR_ADMIN_INVALID_REQUEST";
+    case CPROTO_ERR_SERVICE: return "CPROTO_ERR_SERVICE";
+    case CPROTO_ERR_SERVICE_INVALID_REQUEST: return "CPROTO_ERR_SERVICE_INVALID_REQUEST";
     default:
         sprintf(protocol_str, "CPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
         return protocol_str;

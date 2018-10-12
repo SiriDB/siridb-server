@@ -1,13 +1,5 @@
 /*
  * query.c - Responsible for parsing queries.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
  */
 #include <assert.h>
 #include <cleri/cleri.h>
@@ -27,7 +19,7 @@
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
 #include <siri/siri.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 #include <sys/time.h>
 #include <siri/err.h>
@@ -276,7 +268,7 @@ void siridb_query_forward(
         case SIRIDB_QUERY_FWD_SERVERS:
             pkg->tp = BPROTO_QUERY_SERVER;
             {
-                slist_t * servers = siridb_servers_other2slist(siridb);
+                vec_t * servers = siridb_servers_other2vec(siridb);
                 if (servers != NULL)
                 {
                     siridb_servers_send_pkg(
@@ -285,7 +277,7 @@ void siridb_query_forward(
                             SIRIDB_FWD_SERVERS_TIMEOUT,
                             cb,
                             handle);
-                    slist_free(servers);
+                    vec_free(servers);
                 }
                 else
                 {
@@ -313,11 +305,11 @@ void siridb_query_forward(
                     handle->data)->data)->pmap != NULL);
             pkg->tp = BPROTO_QUERY_SERVER;
             {
-                slist_t * borrow_list = imap_slist(((query_select_t *) (
+                vec_t * borrow_list = imap_vec(((query_select_t *) (
                         (siridb_query_t *) handle->data)->data)->pmap);
                 if (borrow_list != NULL)
                 {
-                    /* if slist is NULL, a signal is raised */
+                    /* if vec is NULL, a signal is raised */
                     siridb_pools_send_pkg_2some(
                             borrow_list,
                             pkg,
@@ -828,7 +820,7 @@ static int QUERY_time_expr(
             char datestr[node->len - 1];
 
             /* extract date string */
-            strx_extract_string(datestr, node->str, node->len);
+            xstr_extract_string(datestr, node->str, node->len);
 
             /* get timestamp from date string */
             int64_t ts = iso8601_parse_date(datestr, walker->siridb->tz);

@@ -1,13 +1,5 @@
 /*
  * query.h - Responsible for parsing queries.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
  */
 #ifndef SIRIDB_QUERY_H_
 #define SIRIDB_QUERY_H_

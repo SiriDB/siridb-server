@@ -1,15 +1,6 @@
 /*
- * pcache.h - Points structure with notion or its size
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-10-2016
- *
+ * pcache.c - Points structure with notion of its size.
  */
-
 #include <assert.h>
 #include <siri/db/pcache.h>
 #include <siri/err.h>

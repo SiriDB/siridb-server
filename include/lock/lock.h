@@ -1,13 +1,5 @@
 /*
- * lock.h - SiriDB Lock.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-07-2016
- *
+ * lock.h - Lock a directory by using a lock file.
  */
 #ifndef LOCK_H_
 #define LOCK_H_

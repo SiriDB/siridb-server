@@ -1,13 +1,5 @@
 /*
- * filehandler.c - Filehandler for shard files.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-04-2016
- *
+ * handler.c - File handler for shard files.
  */
 #include <logger/logger.h>
 #include <siri/err.h>

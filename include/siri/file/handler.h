@@ -1,13 +1,5 @@
 /*
- * filehandler.h - Filehandler for shard files.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-04-2016
- *
+ * handler.h - File handler for shard files.
  */
 #ifndef SIRI_FH_H_
 #define SIRI_FH_H_

@@ -1,15 +1,7 @@
 /*
- * account.c - SiriDB Administrative User.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 16-03-2017
- *
+ * account.c - SiriDB Service Account.
  */
-#include <siri/admin/account.h>
+#include <siri/service/account.h>
 #include <stddef.h>
 #include <owcrypt/owcrypt.h>
 #include <xpath/xpath.h>
@@ -17,24 +9,24 @@
 #include <stdarg.h>
 #include <logger/logger.h>
 
-#define SIRI_ADMIN_ACCOUNT_SCHEMA 1
+#define SIRI_SERVICE_ACCOUNT_SCHEMA 1
 #define FILENAME ".accounts.dat"
 
 #define DEFAULT_ACCOUNT "sa"
 #define DEFAULT_PASSWORD "siri"
 
-static int ACCOUNT_free(siri_admin_account_t * account, void * args);
-static int ACCOUNT_save(siri_admin_account_t * account, qp_fpacker_t * fpacker);
+static int ACCOUNT_free(siri_service_account_t * account, void * args);
+static int ACCOUNT_save(siri_service_account_t * account, qp_fpacker_t * fpacker);
 static void ACCOUNT_msg(char * err_msg, char * fmt, ...);
 static int ACCOUNT_cmp(
-        siri_admin_account_t * account,
+        siri_service_account_t * account,
         qp_obj_t * qp_account);
 
 /*
  * Initialize siri->accounts. Returns 0 if successful or -1 in case of an error
  * (a signal might be raised because of qpack)
  */
-int siri_admin_account_init(siri_t * siri)
+int siri_service_account_init(siri_t * siri)
 {
     qp_unpacker_t * unpacker;
     qp_obj_t qp_schema;
@@ -63,12 +55,12 @@ int siri_admin_account_init(siri_t * siri)
         qp_password.via.raw = (unsigned char *) DEFAULT_PASSWORD;
         qp_password.len = 4;
 
-        return (siri_admin_account_new(
+        return (siri_service_account_new(
                 siri,
                 &qp_account,
                 &qp_password,
                 0,
-                NULL) || siri_admin_account_save(siri, NULL));
+                NULL) || siri_service_account_save(siri, NULL));
     }
 
     if ((unpacker = qp_unpacker_ff(fn)) == NULL)
@@ -78,7 +70,7 @@ int siri_admin_account_init(siri_t * siri)
 
     if (    !qp_is_array(qp_next(unpacker, NULL)) ||
             qp_next(unpacker, &qp_schema) != QP_INT64 ||
-            qp_schema.via.int64 != SIRI_ADMIN_ACCOUNT_SCHEMA)
+            qp_schema.via.int64 != SIRI_SERVICE_ACCOUNT_SCHEMA)
     {
         log_critical("Invalid schema detected in '%s'", fn);
         qp_unpacker_ff_free(unpacker);
@@ -91,7 +83,7 @@ int siri_admin_account_init(siri_t * siri)
             qp_next(unpacker, &qp_password) == QP_RAW &&
             qp_password.len > 12)  /* old and new passwords are > 12 */
     {
-        rc = siri_admin_account_new(siri, &qp_account, &qp_password, 1, NULL);
+        rc = siri_service_account_new(siri, &qp_account, &qp_password, 1, NULL);
     }
 
     qp_unpacker_ff_free(unpacker);
@@ -106,19 +98,19 @@ int siri_admin_account_init(siri_t * siri)
  *
  * is_encrypted should be zero if the password is not encrypted yet.
  *
- * Note: the account will not be saved to disk. Call siri_admin_account_save()
+ * Note: the account will not be saved to disk. Call siri_service_account_save()
  *       to save a new service account.
  */
-int siri_admin_account_new(
+int siri_service_account_new(
         siri_t * siri,
         qp_obj_t * qp_account,
         qp_obj_t * qp_password,
         int is_encrypted,
         char * err_msg)
 {
-    siri_admin_account_t * account;
+    siri_service_account_t * account;
 
-    account = (siri_admin_account_t *) llist_get(
+    account = (siri_service_account_t *) llist_get(
             siri->accounts,
             (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
@@ -149,7 +141,7 @@ int siri_admin_account_new(
         return -1;
     }
 
-    account = (siri_admin_account_t *) malloc(sizeof(siri_admin_account_t));
+    account = (siri_service_account_t *) malloc(sizeof(siri_service_account_t));
     if (account == NULL)
     {
         ACCOUNT_msg(err_msg, "memory allocation error");
@@ -190,17 +182,17 @@ int siri_admin_account_new(
 /*
  * Returns 0 if the account/password is valid or another value if not.
  */
-int siri_admin_account_check(
+int siri_service_account_check(
         siri_t * siri,
         qp_obj_t * qp_account,
         qp_obj_t * qp_password,
         char * err_msg)
 {
-    siri_admin_account_t * account;
+    siri_service_account_t * account;
     char pw[OWCRYPT_SZ];
     char * password;
 
-    account = (siri_admin_account_t *) llist_get(
+    account = (siri_service_account_t *) llist_get(
             siri->accounts,
             (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
@@ -243,20 +235,20 @@ int siri_admin_account_check(
 /*
  * Returns 0 if the password is successful changed or -1 if not.
  *
- * Note: the password change is not saved, call siri_admin_account_save().
+ * Note: the password change is not saved, call siri_service_account_save().
  */
-int siri_admin_account_change_password(
+int siri_service_account_change_password(
         siri_t * siri,
         qp_obj_t * qp_account,
         qp_obj_t * qp_password,
         char * err_msg)
 {
-    siri_admin_account_t * account;
+    siri_service_account_t * account;
     char encrypted[OWCRYPT_SZ];
     char salt[OWCRYPT_SALT_SZ];
     char * password;
 
-    account = (siri_admin_account_t *) llist_get(
+    account = (siri_service_account_t *) llist_get(
             siri->accounts,
             (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
@@ -305,15 +297,15 @@ int siri_admin_account_change_password(
 /*
  * Returns 0 if dropped or -1 in case the account was not found.
  *
- * Note: accounts are not saved, call siri_admin_account_save().
+ * Note: accounts are not saved, call siri_service_account_save().
  */
-int siri_admin_account_drop(
+int siri_service_account_drop(
         siri_t * siri,
         qp_obj_t * qp_account,
         char * err_msg)
 {
-    siri_admin_account_t * account;
-    account = (siri_admin_account_t *) llist_remove(
+    siri_service_account_t * account;
+    account = (siri_service_account_t *) llist_remove(
             siri->accounts,
             (llist_cb) ACCOUNT_cmp,
             (void *) qp_account);
@@ -334,7 +326,7 @@ int siri_admin_account_drop(
 /*
  * Destroy service accounts. siri->accounts is allowed to be NULL.
  */
-void siri_admin_account_destroy(siri_t * siri)
+void siri_service_account_destroy(siri_t * siri)
 {
     if (siri->accounts != NULL)
     {
@@ -345,7 +337,7 @@ void siri_admin_account_destroy(siri_t * siri)
 /*
  * Returns 0 if successful or EOF if not.
  */
-int siri_admin_account_save(siri_t * siri, char * err_msg)
+int siri_service_account_save(siri_t * siri, char * err_msg)
 {
     qp_fpacker_t * fpacker;
 
@@ -363,7 +355,7 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRI_ADMIN_ACCOUNT_SCHEMA) ||
+        qp_fadd_int16(fpacker, SIRI_SERVICE_ACCOUNT_SCHEMA) ||
 
         /* we can and should skip this if we have no accounts to save */
         llist_walk(siri->accounts, (llist_cb) ACCOUNT_save, fpacker) ||
@@ -381,7 +373,7 @@ int siri_admin_account_save(siri_t * siri, char * err_msg)
  * Destroy an account.
  */
 static int ACCOUNT_free(
-        siri_admin_account_t * account,
+        siri_service_account_t * account,
         void * args __attribute__((unused)))
 {
     free(account->account);
@@ -393,7 +385,7 @@ static int ACCOUNT_free(
 /*
  * Returns 0 if successful and -1 in case an error occurred.
  */
-static int ACCOUNT_save(siri_admin_account_t * account, qp_fpacker_t * fpacker)
+static int ACCOUNT_save(siri_service_account_t * account, qp_fpacker_t * fpacker)
 {
     int rc = 0;
 
@@ -420,7 +412,7 @@ static void ACCOUNT_msg(char * err_msg, char * fmt, ...)
 }
 
 static int ACCOUNT_cmp(
-        siri_admin_account_t * account,
+        siri_service_account_t * account,
         qp_obj_t * qp_account)
 {
     size_t len = strlen(account->account);

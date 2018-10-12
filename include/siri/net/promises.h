@@ -1,23 +1,14 @@
 /*
- * promises.h - Promises SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- *
- * changes
- *  - initial version, 13-07-2016
- *
+ * promises.h - Collection for promised.
  */
 #ifndef SIRINET_PROMISES_H_
 #define SIRINET_PROMISES_H_
 
 typedef struct sirinet_promises_s sirinet_promises_t;
 
-#include <slist/slist.h>
+#include <vec/vec.h>
 typedef void (* sirinet_promises_cb)(
-        slist_t * promises,
+        vec_t * promises,
         void * data);
 
 #include <siri/net/promise.h>
@@ -28,7 +19,7 @@ sirinet_promises_t * sirinet_promises_new(
         sirinet_promises_cb cb,
         void * data,
         sirinet_pkg_t * pkg);
-void sirinet_promises_llist_free(slist_t * promises);
+void sirinet_promises_llist_free(vec_t * promises);
 void sirinet_promises_on_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
@@ -39,14 +30,14 @@ if (promises->promises->len == promises->promises->size)    \
 {                                                           \
     free(promises->pkg);                                    \
     promises->cb(promises->promises, promises->data);       \
-    slist_free(promises->promises);                         \
+    vec_free(promises->promises);                         \
     free(promises);                                         \
 }
 
 struct sirinet_promises_s
 {
     sirinet_promises_cb cb;
-    slist_t * promises;
+    vec_t * promises;
     void * data;
     sirinet_pkg_t * pkg;
 };

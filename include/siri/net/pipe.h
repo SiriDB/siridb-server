@@ -1,3 +1,6 @@
+/*
+ * pipe.h - Named Pipe support.
+ */
 #ifndef SIRINET_PIPE_H_
 #define SIRINET_PIPE_H_
 

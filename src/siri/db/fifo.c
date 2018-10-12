@@ -1,13 +1,5 @@
 /*
  * fifo.c - First in, first out file buffer .
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 30-06-2016
- *
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

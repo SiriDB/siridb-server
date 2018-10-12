@@ -1,13 +1,5 @@
 /*
  * auth.h - Handle SiriDB authentication.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
  */
 #ifndef SIRIDB_AUTH_H_
 #define SIRIDB_AUTH_H_

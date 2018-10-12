@@ -1,17 +1,9 @@
 /*
- * stream.c - Handle Stream request.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 09-03-2016
- *
+ * stream.c - For handling streams.
  */
 #include <assert.h>
 #include <logger/logger.h>
-#include <siri/admin/client.h>
+#include <siri/service/client.h>
 #include <siri/err.h>
 #include <siri/net/protocol.h>
 #include <siri/net/stream.h>
@@ -276,7 +268,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
         }
         break;
     case STREAM_TCP_MANAGE:  /* a server manage connection  */
-        siri_admin_client_free((siri_admin_client_t *) client->origin);
+        siri_service_client_free((siri_service_client_t *) client->origin);
         siri.client = NULL;
         break;
     }

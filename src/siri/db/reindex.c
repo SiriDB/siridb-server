@@ -1,13 +1,6 @@
 /*
  * reindex.c - SiriDB Re-index.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 27-07-2016
- *
  * Differences while re-indexing:
  *
  *  - Group information like number of series will be updated at a lower

@@ -1,13 +1,5 @@
 /*
- * qpack.c - efficient binary serialization format
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 11-03-2016
- *          ((l + n) // 4 + 1) * 4
+ * qpack.c - Efficient binary serialization format.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

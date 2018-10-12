@@ -1,15 +1,6 @@
 /*
- * llist.c - Linked List
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 03-05-2016
- *
+ * llist.c - Linked List implementation.
  */
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <llist/llist.h>
@@ -248,11 +239,11 @@ void * llist_get(llist_t * llist, llist_cb cb, void * args)
  * Copy the linked list to a simple list.
  * (returns NULL in case an error has occurred)
  */
-slist_t * llist2slist(llist_t * llist)
+vec_t * llist2vec(llist_t * llist)
 {
-    slist_t * slist = slist_new(llist->len);
+    vec_t * vec = vec_new(llist->len);
 
-    if (slist == NULL)
+    if (vec == NULL)
     {
         return NULL;
     }
@@ -262,12 +253,12 @@ slist_t * llist2slist(llist_t * llist)
 
     for  (n = 0; node != NULL; n++, node = node->next)
     {
-        slist->data[n] = node->data;
+        vec->data[n] = node->data;
     }
 
-    slist->len = n;
+    vec->len = n;
 
-    return slist;
+    return vec;
 }
 
 /*

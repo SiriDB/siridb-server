@@ -1,13 +1,5 @@
 /*
- * stream.h - Streams, used for uv_tcp_t and uv_pipe_t.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2018, Transceptor Technology
- *
- * changes
- *  - initial version, 22-08-2018
- *
+ * stream.h - For handling streams.
  */
 #ifndef SIRINET_STREAM_H_
 #define SIRINET_STREAM_H_

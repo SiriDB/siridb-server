@@ -1,2 +1,2 @@
-  * Fixed wrapping imap to slist functions with appropriate locks. 
+  * Fixed wrapping imap to vec functions with appropriate locks. 
     (see issue #51)

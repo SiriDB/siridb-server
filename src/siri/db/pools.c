@@ -1,14 +1,6 @@
 /*
- * pools.c - Generate pools lookup.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-05-2016
+ * pools.c - Collection of pools.
  */
-
 #include <assert.h>
 #include <llist/llist.h>
 #include <logger/logger.h>
@@ -247,7 +239,7 @@ void siridb_pools_send_pkg(
                         "Cannot send package to pool '%u' "
                         "(no accessible server found)",
                         pid);
-                slist_append(promises->promises, NULL);
+                vec_append(promises->promises, NULL);
             }
         }
 
@@ -257,10 +249,10 @@ void siridb_pools_send_pkg(
 
 /*
  * This function will send a package to one accessible server in the pools
- * provided by the 'slist'. The promises call-back function should be
+ * provided by the 'vec'. The promises call-back function should be
  * used to check if the package has been send successfully to all pools.
  *
- * The 'slist' can be destroyed after this function has returned.
+ * The 'vec' can be destroyed after this function has returned.
  *
  * This function can raise a SIGNAL when allocation errors occur.
  *
@@ -270,7 +262,7 @@ void siridb_pools_send_pkg(
  * will always be destroyed.
  */
 void siridb_pools_send_pkg_2some(
-        slist_t * slist,
+        vec_t * vec,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
@@ -278,7 +270,7 @@ void siridb_pools_send_pkg_2some(
         int flags)
 {
     sirinet_promises_t * promises =
-            sirinet_promises_new(slist->len, cb, data, pkg);
+            sirinet_promises_new(vec->len, cb, data, pkg);
 
     if (promises == NULL)
     {
@@ -290,9 +282,9 @@ void siridb_pools_send_pkg_2some(
         siridb_pool_t * pool;
         size_t i;
 
-        for (i = 0; i < slist->len; i++)
+        for (i = 0; i < vec->len; i++)
         {
-            pool = slist->data[i];
+            pool = vec->data[i];
 
             if (siridb_pool_send_pkg(
                     pool,
@@ -305,7 +297,7 @@ void siridb_pools_send_pkg_2some(
                 log_debug(
                         "Cannot send package to at least on pool "
                         "(no accessible server found)");
-                slist_append(promises->promises, NULL);
+                vec_append(promises->promises, NULL);
             }
         }
 

@@ -1,20 +1,12 @@
 /*
- * cfgparser.c - module for reading (and later writing) to INI style files.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * cfgparser.c - Reading (and later writing) to INI style files.
  */
 #include <cfgparser/cfgparser.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <siri/err.h>
 
 static void cfgparser_free_sections(cfgparser_section_t * root);
@@ -60,7 +52,7 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
         pt = line;
 
         /* trims all whitespace */
-        strx_trim(&pt, 0);
+        xstr_trim(&pt, 0);
 
         if (*pt == '#' || *pt == 0)
         {
@@ -69,8 +61,8 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
 
         if (*pt == '[' && pt[strlen(pt) - 1] == ']')
         {
-            strx_trim(&pt, '[');
-            strx_trim(&pt, ']');
+            xstr_trim(&pt, '[');
+            xstr_trim(&pt, ']');
             section = cfgparser_section(cfgparser, pt);
             if (section == NULL)
             {
@@ -111,11 +103,11 @@ cfgparser_return_t cfgparser_read(cfgparser_t * cfgparser, const char * fn)
         }
 
 
-        if (strx_is_int(pt))
+        if (xstr_is_int(pt))
         {
             option = cfgparser_integer_option(section, name, atoi(pt), 0);
         }
-        else if (strx_is_float(pt))
+        else if (xstr_is_float(pt))
         {
             sscanf(pt, "%lf", &d);
             option = cfgparser_real_option(section, name, d, 0.0f);

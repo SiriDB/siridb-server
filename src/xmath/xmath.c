@@ -1,13 +1,5 @@
 /*
- * xmath.c - Extra math functions which are useful.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 12-03-2016
- *
+ * xmath.c - Extra math functions functions used by SiriDB.
  */
 #include <xmath/xmath.h>
 #include <stdarg.h>

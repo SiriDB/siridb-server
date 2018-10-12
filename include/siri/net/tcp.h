@@ -1,13 +1,5 @@
 /*
- * tcp.h
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2018, Transceptor Technology
- *
- * changes
- *  - initial version, 22-08-2018
- *
+ * tcp.h - TCP support.
  */
 #ifndef SIRINET_TCP_H_
 #define SIRINET_TCP_H_

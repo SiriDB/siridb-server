@@ -1,3 +1,6 @@
+/*
+ * pipe.c - Named Pipe support.
+ */
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>

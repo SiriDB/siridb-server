@@ -1,13 +1,5 @@
 /*
- * argparse.h - module for parsing command line arguments.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * argparse.h - Module for parsing command line arguments.
  */
 #ifndef ARGPARSE_H_
 #define ARGPARSE_H_

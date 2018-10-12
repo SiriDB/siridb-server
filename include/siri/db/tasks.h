@@ -1,13 +1,5 @@
 /*
- * tasks.h - SiriDB Error.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 31-10-2016
- *
+ * tasks.f - Counters for info on SiriDB tasks.
  */
 #ifndef SIRIDB_TASKS_H_
 #define SIRIDB_TASKS_H_

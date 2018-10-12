@@ -1,12 +1,5 @@
 /*
- * cfg.h - SiriDB Config.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 16-03-2017
+ * cfg.h - Read the global SiriDB configuration file. (usually siridb.conf)
  */
 #ifndef SIRI_CFG_H_
 #define SIRI_CFG_H_

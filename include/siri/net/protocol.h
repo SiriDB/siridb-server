@@ -1,13 +1,5 @@
 /*
- * protocol.h - Protocol for SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 17-03-2016
- *
+ * protocol.c - Protocol definitions for SiriDB.
  */
 #ifndef SIRINET_PROTOCOL_H_
 #define SIRINET_PROTOCOL_H_
@@ -27,8 +19,8 @@ typedef enum
     CPROTO_REQ_FILE_GROUPS=9,           /* empty                            */
     CPROTO_REQ_FILE_DATABASE=10,        /* empty                            */
 
-    /* Public Administrative API request */
-    CPROTO_REQ_ADMIN=32,                /* (user, password, request, {...}) */
+    /* Public Service API request */
+    CPROTO_REQ_SERVICE=32,              /* (user, password, request, {...}) */
 } cproto_client_t;
 
 typedef enum
@@ -40,9 +32,9 @@ typedef enum
     CPROTO_RES_ACK=3,                   /* empty                            */
     CPROTO_RES_FILE=5,                  /* file content                     */
 
-    /* Administrative API success */
-    CPROTO_ACK_ADMIN=32,                /* empty                            */
-    CPROTO_ACK_ADMIN_DATA=33,           /* [...]                            */
+    /* Service API success */
+    CPROTO_ACK_SERVICE=32,                /* empty                          */
+    CPROTO_ACK_SERVICE_DATA=33,           /* [...]                          */
 
     /* errors 64-69 are errors with messages */
     CPROTO_ERR_MSG=64,                  /* {"error_msg": ...}               */
@@ -57,9 +49,9 @@ typedef enum
     CPROTO_ERR_AUTH_UNKNOWN_DB=73,      /* empty                            */
     CPROTO_ERR_FILE=75,                 /* empty                            */
 
-    /* Administrative API errors */
-    CPROTO_ERR_ADMIN=96,                /* {"error_msg": ...}               */
-    CPROTO_ERR_ADMIN_INVALID_REQUEST=97,/* empty                            */
+    /* Service API errors */
+    CPROTO_ERR_SERVICE=96,                /* {"error_msg": ...}             */
+    CPROTO_ERR_SERVICE_INVALID_REQUEST=97,/* empty                          */
     CPROTO_DEFERRED=127                 /* deferred...                      */
 } cproto_server_t;
 

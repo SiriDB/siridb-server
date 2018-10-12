@@ -1,13 +1,5 @@
 /*
- * servers.c - SiriDB Servers.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-06-2016
- *
+ * servers.c - Collection of SiriDB servers.
  */
 #include <assert.h>
 #include <llist/llist.h>
@@ -330,10 +322,10 @@ int siridb_servers_register(siridb_t * siridb, siridb_server_t * server)
  *
  * In case of an error, NULL is returned.
  */
-slist_t * siridb_servers_other2slist(siridb_t * siridb)
+vec_t * siridb_servers_other2vec(siridb_t * siridb)
 {
     siridb_server_t * server;
-    slist_t * servers = slist_new(siridb->servers->len - 1);
+    vec_t * servers = vec_new(siridb->servers->len - 1);
     llist_node_t * node;
 
     if (servers == NULL)
@@ -348,7 +340,7 @@ slist_t * siridb_servers_other2slist(siridb_t * siridb)
         server = node->data;
         if (server != siridb->server)
         {
-            slist_append(servers, server);
+            vec_append(servers, server);
         }
     }
 
@@ -364,7 +356,7 @@ slist_t * siridb_servers_other2slist(siridb_t * siridb)
  * using the arguments (NULL, data).
  */
 void siridb_servers_send_pkg(
-        slist_t * servers,
+        vec_t * servers,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,
@@ -399,14 +391,14 @@ void siridb_servers_send_pkg(
                     log_critical(
                             "Allocation error while trying to send a package "
                             "to '%s'", server->name);
-                    slist_append(promises->promises, NULL);
+                    vec_append(promises->promises, NULL);
                 }
             }
             else
             {
                 log_debug("Cannot send package to '%s' (server is offline)",
                         server->name);
-                slist_append(promises->promises, NULL);
+                vec_append(promises->promises, NULL);
             }
 
         }
@@ -541,7 +533,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
     query_list_t * qlist = query->data;
-    slist_t * props = qlist->props;
+    vec_t * props = qlist->props;
     siridb_t * siridb = query->client->siridb;
     cexpr_t * where_expr = qlist->where_expr;
     size_t i;

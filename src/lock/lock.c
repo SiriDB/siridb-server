@@ -1,15 +1,5 @@
 /*
- * lock.c - SiriDB Lock.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * This module works only in Linux
- *
- * changes
- *  - initial version, 13-07-2016
- *
+ * lock.c - Lock a directory by using a lock file.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

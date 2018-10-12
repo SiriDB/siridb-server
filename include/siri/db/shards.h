@@ -1,13 +1,16 @@
 /*
- * shards.h - SiriDB shards.
+ * shards.h - Collection of SiriDB shards.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
+ * Info shards->mutex:
  *
- * changes
- *  - initial version, 04-04-2016
+ *  Main thread:
+ *      siridb->shards :    read (lock)         write (lock)
+
+ *  Other threads:
+ *      siridb->shards :    read (lock)         write (lock)
  *
+ *  Note: since series->idx hold a reference to a shard, a lock to the
+ *        series_mutex is required in some cases.
  */
 #ifndef SIRIDB_SHARDS_H_
 #define SIRIDB_SHARDS_H_

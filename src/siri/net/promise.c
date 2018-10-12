@@ -1,14 +1,5 @@
 /*
- * promise.c - Promise SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- *
- * changes
- *  - initial version, 23-06-2016
- *
+ * promise.c - Promise used for sending to data to SiriDB servers.
  */
 #include <assert.h>
 #include <logger/logger.h>

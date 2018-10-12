@@ -1,13 +1,5 @@
 /*
- * listener.h - contains functions for processing queries.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
+ * listener.h - Contains functions for processing queries.
  */
 #ifndef SIRIDB_LISTENER_H_
 #define SIRIDB_LISTENER_H_

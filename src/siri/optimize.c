@@ -1,20 +1,12 @@
 /*
  * optimize.c - Optimize task SiriDB.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
  * There is one and only one optimize task thread running for SiriDB. For this
  * reason we do not need to parse data but we should only take care for locks
  * while writing data.
  *
- *
  * Thread debugging:
  *  log_debug("getpid: %d - pthread_self: %lu",getpid(), pthread_self());
- *
- * changes
- *  - initial version, 09-05-2016
  *
  */
 #include <assert.h>
@@ -22,7 +14,7 @@
 #include <siri/db/shard.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <unistd.h>
 
 static siri_optimize_t optimize = {
@@ -33,7 +25,7 @@ static siri_optimize_t optimize = {
 };
 
 static void OPTIMIZE_work(uv_work_t * work);
-static void OPTIMIZE_cleanup(slist_t * slsiridb);
+static void OPTIMIZE_cleanup(vec_t * slsiridb);
 static void OPTIMIZE_work_finish(uv_work_t * work, int status);
 static void OPTIMIZE_cb(uv_timer_t * handle);
 
@@ -264,8 +256,8 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
      * Optimize Thread
      */
 
-    slist_t * slsiridb;
-    slist_t * slshards;
+    vec_t * slsiridb;
+    vec_t * slshards;
     siridb_t * siridb;
     siridb_shard_t * shard;
     uint8_t c = siri.cfg->shard_compression;
@@ -280,7 +272,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
     uv_mutex_lock(&siri.siridb_mutex);
 
-    slsiridb = llist2slist(siri.siridb_list);
+    slsiridb = llist2vec(siri.siridb_list);
     if (slsiridb != NULL)
     {
         for (i = 0; i < slsiridb->len; i++)
@@ -307,7 +299,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        slshards = imap_2slist_ref(siridb->shards);
+        slshards = imap_2vec_ref(siridb->shards);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -370,7 +362,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
             siridb_shard_decref(shard);
         }
 
-        slist_free(slshards);
+        vec_free(slshards);
 
         if (siri_optimize_wait() == SIRI_OPTIMIZE_CANCELLED)
         {
@@ -381,7 +373,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     OPTIMIZE_cleanup(slsiridb);
 }
 
-static void OPTIMIZE_cleanup(slist_t * slsiridb)
+static void OPTIMIZE_cleanup(vec_t * slsiridb)
 {
     if (slsiridb != NULL)
     {
@@ -394,7 +386,7 @@ static void OPTIMIZE_cleanup(slist_t * slsiridb)
             siridb_decref(siridb);
         }
 
-        slist_free(slsiridb);
+        vec_free(slsiridb);
     }
 }
 

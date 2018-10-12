@@ -1,14 +1,5 @@
 /*
- * async.h - SiriDB async wrapper
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- *
- * changes
- *  - initial version, 21-07-2016
- *
+ * async.h - SiriDB async wrapper.
  */
 #ifndef SIRI_ASYC_H_
 #define SIRI_ASYC_H_

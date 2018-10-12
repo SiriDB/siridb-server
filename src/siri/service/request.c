@@ -1,21 +1,12 @@
 /*
- * request.c - SiriDB Administrative Request.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 16-03-2017
- *
+ * request.c - SiriDB Service Request.
  */
-
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include <siri/admin/account.h>
-#include <siri/admin/client.h>
+#include <siri/service/account.h>
+#include <siri/service/client.h>
 #include <stddef.h>
-#include <siri/admin/request.h>
+#include <siri/service/request.h>
 #include <siri/siri.h>
 #include <logger/logger.h>
 #include <pcre2.h>
@@ -68,12 +59,12 @@
                 "invalid database name: '%.*s'",                            \
                 (int) qp_dbname.len,                                        \
                 qp_dbname.via.raw);                                         \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }                                                                       \
                                                                             \
     if (llist_get(                                                          \
             siri.siridb_list,                                               \
-            (llist_cb) ADMIN_find_database,                                 \
+            (llist_cb) SERVICE_find_database,                                 \
             &qp_dbname) != NULL)                                            \
     {                                                                       \
         snprintf(                                                           \
@@ -82,7 +73,7 @@
                 "database name already exists: '%.*s'",                     \
                 (int) qp_dbname.len,                                        \
                 qp_dbname.via.raw);                                         \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }                                                                       \
                                                                             \
     dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;     \
@@ -100,7 +91,7 @@
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "database directory already exists: %s",                    \
                 dbpath);                                                    \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }                                                                       \
                                                                             \
     if (mkdir(dbpath, 0700) == -1)                                          \
@@ -110,7 +101,7 @@
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot create directory: %s",                              \
                 dbpath);                                                    \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }                                                                       \
                                                                             \
     char dbfn[dbpath_len + max_filename_sz];                                \
@@ -119,73 +110,73 @@
     fp = fopen(dbfn, "w");                                                  \
     if (fp == NULL)                                                         \
     {                                                                       \
-        siri_admin_request_rollback(dbpath);                                \
+        siri_service_request_rollback(dbpath);                                \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot open file for writing: %s",                         \
                 dbfn);                                                      \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }                                                                       \
                                                                             \
     rc = fputs(DEFAULT_CONF, fp);                                           \
                                                                             \
     if (fclose(fp) || rc < 0)                                               \
     {                                                                       \
-        siri_admin_request_rollback(dbpath);                                \
+        siri_service_request_rollback(dbpath);                                \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot write file: %s",                                    \
                 dbfn);                                                      \
-        return CPROTO_ERR_ADMIN;                                            \
+        return CPROTO_ERR_SERVICE;                                            \
     }
 
-static cproto_server_t ADMIN_on_new_account(
+static cproto_server_t SERVICE_on_new_account(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
-static cproto_server_t ADMIN_on_change_password(
+static cproto_server_t SERVICE_on_change_password(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
-static cproto_server_t ADMIN_on_drop_account(
+static cproto_server_t SERVICE_on_drop_account(
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
         char * err_msg);
-static cproto_server_t ADMIN_on_new_database(
+static cproto_server_t SERVICE_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
-static cproto_server_t ADMIN_on_new_replica_or_pool(
+static cproto_server_t SERVICE_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
         sirinet_stream_t * client,
         int req,
         char * err_msg);
-static cproto_server_t ADMIN_on_get_version(
+static cproto_server_t SERVICE_on_get_version(
         qp_unpacker_t * qp_unpacker,
         qp_packer_t ** packaddr,
         char * err_msg);
-static cproto_server_t ADMIN_on_get_accounts(
+static cproto_server_t SERVICE_on_get_accounts(
         qp_unpacker_t * qp_unpacker,
         qp_packer_t ** packaddr,
         char * err_msg);
-static cproto_server_t ADMIN_on_get_databases(
+static cproto_server_t SERVICE_on_get_databases(
         qp_unpacker_t * qp_unpacker,
         qp_packer_t ** packaddr,
         char * err_msg);
-static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision);
-static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision);
-static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer);
-static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname);
-static int ADMIN_list_accounts(
-        siri_admin_account_t * account,
+static int8_t SERVICE_time_precision(qp_obj_t * qp_time_precision);
+static int64_t SERVICE_duration(qp_obj_t * qp_duration, uint8_t time_precision);
+static int SERVICE_list_databases(siridb_t * siridb, qp_packer_t * packer);
+static int SERVICE_find_database(siridb_t * siridb, qp_obj_t * dbname);
+static int SERVICE_list_accounts(
+        siri_service_account_t * account,
         qp_packer_t * packer);
 
 static size_t max_filename_sz;
 
 /*
- * Initialize administrative requests. (called once when initializing SiriDB)
+ * Initialize service requests. (called once when initializing SiriDB)
  */
-int siri_admin_request_init(void)
+int siri_service_request_init(void)
 {
     max_filename_sz = xmath_max_size(
             3,
@@ -226,20 +217,20 @@ int siri_admin_request_init(void)
 }
 
 /*
- * Destroy administrative requests. (only called when exiting SiriDB)
+ * Destroy service requests. (only called when exiting SiriDB)
  */
-void siri_admin_request_destroy(void)
+void siri_service_request_destroy(void)
 {
     pcre2_match_data_free(siri.dbname_match_data);
     pcre2_code_free(siri.dbname_regex);
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN or CPROTO_DEFERRED when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * Returns CPROTO_ACK_SERVICE or CPROTO_DEFERRED when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-cproto_server_t siri_admin_request(
+cproto_server_t siri_service_request(
         int tp,
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
@@ -248,47 +239,47 @@ cproto_server_t siri_admin_request(
         sirinet_stream_t * client,
         char * err_msg)
 {
-    switch ((admin_request_t) tp)
+    switch ((service_request_t) tp)
     {
-    case ADMIN_NEW_ACCOUNT_:
-        return ADMIN_on_new_account(qp_unpacker, err_msg);
-    case ADMIN_CHANGE_PASSWORD_:
-        return ADMIN_on_change_password(qp_unpacker, err_msg);
-    case ADMIN_DROP_ACCOUNT_:
-        return ADMIN_on_drop_account(qp_unpacker, qp_account, err_msg);
-    case ADMIN_NEW_DATABASE_:
-        return ADMIN_on_new_database(qp_unpacker, err_msg);
-    case ADMIN_NEW_POOL:
-        return ADMIN_on_new_replica_or_pool(
+    case SERVICE_NEW_ACCOUNT_:
+        return SERVICE_on_new_account(qp_unpacker, err_msg);
+    case SERVICE_CHANGE_PASSWORD_:
+        return SERVICE_on_change_password(qp_unpacker, err_msg);
+    case SERVICE_DROP_ACCOUNT_:
+        return SERVICE_on_drop_account(qp_unpacker, qp_account, err_msg);
+    case SERVICE_NEW_DATABASE_:
+        return SERVICE_on_new_database(qp_unpacker, err_msg);
+    case SERVICE_NEW_POOL:
+        return SERVICE_on_new_replica_or_pool(
                 qp_unpacker,
                 pid,
                 client,
-                ADMIN_NEW_POOL,
+                SERVICE_NEW_POOL,
                 err_msg);
-    case ADMIN_NEW_REPLICA:
-        return ADMIN_on_new_replica_or_pool(
+    case SERVICE_NEW_REPLICA:
+        return SERVICE_on_new_replica_or_pool(
                 qp_unpacker,
                 pid,
                 client,
-                ADMIN_NEW_REPLICA,
+                SERVICE_NEW_REPLICA,
                 err_msg);
-    case ADMIN_GET_VERSION:
-        return ADMIN_on_get_version(qp_unpacker, packaddr, err_msg);
-    case ADMIN_GET_ACCOUNTS:
-        return ADMIN_on_get_accounts(qp_unpacker, packaddr, err_msg);
-    case ADMIN_GET_DATABASES:
-        return ADMIN_on_get_databases(qp_unpacker, packaddr, err_msg);
+    case SERVICE_GET_VERSION:
+        return SERVICE_on_get_version(qp_unpacker, packaddr, err_msg);
+    case SERVICE_GET_ACCOUNTS:
+        return SERVICE_on_get_accounts(qp_unpacker, packaddr, err_msg);
+    case SERVICE_GET_DATABASES:
+        return SERVICE_on_get_databases(qp_unpacker, packaddr, err_msg);
     default:
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * Returns CPROTO_ACK_SERVICE when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-static cproto_server_t ADMIN_on_new_account(
+static cproto_server_t SERVICE_on_new_account(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
 {
@@ -299,7 +290,7 @@ static cproto_server_t ADMIN_on_new_account(
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
@@ -320,30 +311,30 @@ static cproto_server_t ADMIN_on_new_account(
         {
             continue;
         }
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_account.tp == QP_HOOK || qp_password.tp == QP_HOOK)
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
-    return (siri_admin_account_new(
+    return (siri_service_account_new(
             &siri,
             &qp_account,
             &qp_password,
             0,
             err_msg) ||
-            siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
+            siri_service_account_save(&siri, err_msg)) ?
+                    CPROTO_ERR_SERVICE : CPROTO_ACK_SERVICE;
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * Returns CPROTO_ACK_SERVICE when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-static cproto_server_t ADMIN_on_change_password(
+static cproto_server_t SERVICE_on_change_password(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
 {
@@ -354,7 +345,7 @@ static cproto_server_t ADMIN_on_change_password(
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
@@ -375,29 +366,29 @@ static cproto_server_t ADMIN_on_change_password(
         {
             continue;
         }
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_account.tp == QP_HOOK || qp_password.tp == QP_HOOK)
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
-    return (siri_admin_account_change_password(
+    return (siri_service_account_change_password(
             &siri,
             &qp_account,
             &qp_password,
             err_msg) ||
-            siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
+            siri_service_account_save(&siri, err_msg)) ?
+                    CPROTO_ERR_SERVICE : CPROTO_ACK_SERVICE;
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * Returns CPROTO_ACK_SERVICE when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-static cproto_server_t ADMIN_on_drop_account(
+static cproto_server_t SERVICE_on_drop_account(
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
         char * err_msg)
@@ -408,7 +399,7 @@ static cproto_server_t ADMIN_on_drop_account(
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
@@ -421,12 +412,12 @@ static cproto_server_t ADMIN_on_drop_account(
         {
             continue;
         }
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_target.tp == QP_HOOK)
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_target.len == qp_account->len &&
@@ -436,23 +427,23 @@ static cproto_server_t ADMIN_on_drop_account(
             qp_target.len) == 0)
     {
         sprintf(err_msg, "cannot drop your own account");
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
-    return (siri_admin_account_drop(
+    return (siri_service_account_drop(
             &siri,
             &qp_target,
             err_msg) ||
-            siri_admin_account_save(&siri, err_msg)) ?
-                    CPROTO_ERR_ADMIN : CPROTO_ACK_ADMIN;
+            siri_service_account_save(&siri, err_msg)) ?
+                    CPROTO_ERR_SERVICE : CPROTO_ACK_SERVICE;
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * Returns CPROTO_ACK_SERVICE when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-static cproto_server_t ADMIN_on_new_database(
+static cproto_server_t SERVICE_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
 {
@@ -480,7 +471,7 @@ static cproto_server_t ADMIN_on_new_database(
         sprintf(err_msg,
                 "maximum number of databases is reached (%zd)",
                 siri.siridb_list->len);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     qp_dbname.tp = QP_HOOK;
@@ -491,7 +482,7 @@ static cproto_server_t ADMIN_on_new_database(
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
@@ -536,16 +527,16 @@ static cproto_server_t ADMIN_on_new_database(
         {
             continue;
         }
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_dbname.tp == QP_HOOK)
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     time_precision = (qp_time_precision.tp == QP_HOOK) ?
-            DEFAULT_TIME_PRECISION : ADMIN_time_precision(&qp_time_precision);
+            DEFAULT_TIME_PRECISION : SERVICE_time_precision(&qp_time_precision);
     if (time_precision == -1)
     {
         snprintf(
@@ -554,12 +545,12 @@ static cproto_server_t ADMIN_on_new_database(
                 "invalid time precision: '%.*s' (expecting s, ms, us or ns)",
                 (int) qp_time_precision.len,
                 qp_time_precision.via.raw);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     duration_num = (qp_duration_num.tp == QP_HOOK) ?
             DEFAULT_DURATION_NUM * xmath_ipow(1000, time_precision):
-            ADMIN_duration(&qp_duration_num, time_precision);
+            SERVICE_duration(&qp_duration_num, time_precision);
 
     if (duration_num == -1)
     {
@@ -570,12 +561,12 @@ static cproto_server_t ADMIN_on_new_database(
                 "(valid examples: 6h, 2d or 1w)",
                 (int) qp_duration_num.len,
                 qp_duration_num.via.raw);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     duration_log = (qp_duration_log.tp == QP_HOOK) ?
             DEFAULT_DURATION_LOG * xmath_ipow(1000, time_precision):
-            ADMIN_duration(&qp_duration_log, time_precision);
+            SERVICE_duration(&qp_duration_log, time_precision);
 
     if (duration_log == -1)
     {
@@ -586,7 +577,7 @@ static cproto_server_t ADMIN_on_new_database(
                 "(valid examples: 6h, 2d or 1w)",
                 (int) qp_duration_log.len,
                 qp_duration_log.via.raw);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     buffer_size = (qp_buffer_size.tp == QP_HOOK) ?
@@ -599,7 +590,7 @@ static cproto_server_t ADMIN_on_new_database(
                 " (expecting a multiple of 512 with a maximum of %" PRId64 ")",
                 buffer_size,
                 (int64_t) MAX_BUFFER_SZ);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     CHECK_DBNAME_AND_CREATE_PATH
@@ -608,13 +599,13 @@ static cproto_server_t ADMIN_on_new_database(
     fp = qp_open(dbfn, "w");
     if (fp == NULL)
     {
-        siri_admin_request_rollback(dbpath);
+        siri_service_request_rollback(dbpath);
         snprintf(
                 err_msg,
                 SIRI_MAX_SIZE_ERR_MSG,
                 "cannot open file for writing: %s",
                 dbfn);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
     rc = 0;
     uuid_generate(uuid);
@@ -638,21 +629,21 @@ static cproto_server_t ADMIN_on_new_database(
 
     if (qp_close(fp) || rc == -1)
     {
-        siri_admin_request_rollback(dbpath);
+        siri_service_request_rollback(dbpath);
         snprintf(
                 err_msg,
                 SIRI_MAX_SIZE_ERR_MSG,
                 "cannot write file: %s",
                 dbfn);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     siridb = siridb_new(dbpath, LOCK_QUIT_IF_EXIST);
     if (siridb == NULL)
     {
-        siri_admin_request_rollback(dbpath);
+        siri_service_request_rollback(dbpath);
         sprintf(err_msg, "error loading database");
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     siridb->server->flags |= SERVER_FLAG_RUNNING;
@@ -660,15 +651,15 @@ static cproto_server_t ADMIN_on_new_database(
     /* Force one heart-beat */
     siri_heartbeat_force();
 
-    return CPROTO_ACK_ADMIN;
+    return CPROTO_ACK_SERVICE;
 }
 
 /*
  * Returns CPROTO_DEFERRED when successful.
- * In case of an error CPROTO_ERR_ADMIN can be returned in which case err_msg
- * is set, or CPROTO_ERR_ADMIN_INVALID_REQUEST is returned.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
  */
-static cproto_server_t ADMIN_on_new_replica_or_pool(
+static cproto_server_t SERVICE_on_new_replica_or_pool(
         qp_unpacker_t * qp_unpacker,
         uint16_t pid,
         sirinet_stream_t * client,
@@ -698,7 +689,7 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
         sprintf(err_msg,
                 "maximum number of databases is reached (%zd)",
                 siri.siridb_list->len);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     qp_dbname.tp = QP_HOOK;
@@ -710,7 +701,7 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
 
     if (!qp_is_map(qp_next(qp_unpacker, NULL)))
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
@@ -758,20 +749,20 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
             continue;
         }
 
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_dbname.tp == QP_HOOK ||
         (
-            (req == ADMIN_NEW_POOL && qp_pool.tp != QP_HOOK) ||
-            (req == ADMIN_NEW_REPLICA && qp_pool.tp == QP_HOOK)
+            (req == SERVICE_NEW_POOL && qp_pool.tp != QP_HOOK) ||
+            (req == SERVICE_NEW_REPLICA && qp_pool.tp == QP_HOOK)
         ) ||
         qp_host.tp == QP_HOOK ||
         qp_port.tp == QP_HOOK ||
         qp_username.tp == QP_HOOK ||
         qp_password.tp == QP_HOOK)
     {
-        return CPROTO_ERR_ADMIN_INVALID_REQUEST;
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
     if (qp_port.via.int64 < 1 || qp_port.via.int64 > 65535)
@@ -780,7 +771,7 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
                 "invalid port number: %" PRId64
                 " (expecting a value between 0 and 65536)",
                 qp_port.via.int64);
-        return CPROTO_ERR_ADMIN;
+        return CPROTO_ERR_SERVICE;
     }
 
     port = (uint16_t) qp_port.via.int64;
@@ -788,27 +779,27 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
 
     CHECK_DBNAME_AND_CREATE_PATH
 
-    if (req == ADMIN_NEW_POOL)
+    if (req == SERVICE_NEW_POOL)
     {
         sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
         fp = fopen(dbfn, "w");
         if (fp == NULL || fclose(fp))
         {
-            siri_admin_request_rollback(dbpath);
+            siri_service_request_rollback(dbpath);
             snprintf(
                     err_msg,
                     SIRI_MAX_SIZE_ERR_MSG,
                     "cannot open file for writing: %s",
                     dbfn);
-            return CPROTO_ERR_ADMIN;
+            return CPROTO_ERR_SERVICE;
         }
     }
 
-    if (siri_admin_client_request(
+    if (siri_service_client_request(
             pid,
             port,
             /* -1 = new pool  */
-            (req == ADMIN_NEW_POOL) ? -1 : qp_pool.via.int64,
+            (req == SERVICE_NEW_POOL) ? -1 : qp_pool.via.int64,
             &uuid,
             &qp_host,
             &qp_username,
@@ -818,17 +809,17 @@ static cproto_server_t ADMIN_on_new_replica_or_pool(
             client,
             err_msg))
     {
-        siri_admin_request_rollback(dbpath);
-        return CPROTO_ERR_ADMIN;
+        siri_service_request_rollback(dbpath);
+        return CPROTO_ERR_SERVICE;
     }
     return CPROTO_DEFERRED;
 }
 
 /*
- * Returns CPROTO_ACK_ADMIN_DATA when successful.
- * In case of an error CPROTO_ERR_ADMIN will be returned and err_msg is set
+ * Returns CPROTO_ACK_SERVICE_DATA when successful.
+ * In case of an error CPROTO_ERR_SERVICE will be returned and err_msg is set
  */
-static cproto_server_t ADMIN_on_get_version(
+static cproto_server_t SERVICE_on_get_version(
         qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
@@ -840,17 +831,17 @@ static cproto_server_t ADMIN_on_get_version(
             !qp_add_string(packer, SIRIDB_VERSION))
         {
             *packaddr = packer;
-            return CPROTO_ACK_ADMIN_DATA;
+            return CPROTO_ACK_SERVICE_DATA;
         }
 
         /* error, free packer */
         qp_packer_free(packer);
     }
     sprintf(err_msg, "memory allocation error");
-    return CPROTO_ERR_ADMIN;
+    return CPROTO_ERR_SERVICE;
 }
 
-static cproto_server_t ADMIN_on_get_accounts(
+static cproto_server_t SERVICE_on_get_accounts(
         qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
@@ -863,21 +854,21 @@ static cproto_server_t ADMIN_on_get_accounts(
 
         if (!llist_walk(
                 siri.accounts,
-                (llist_cb) ADMIN_list_accounts,
+                (llist_cb) SERVICE_list_accounts,
                 packer))
         {
             *packaddr = packer;
-            return CPROTO_ACK_ADMIN_DATA;
+            return CPROTO_ACK_SERVICE_DATA;
         }
 
         /* error, free packer */
         qp_packer_free(packer);
     }
     sprintf(err_msg, "memory allocation error");
-    return CPROTO_ERR_ADMIN;
+    return CPROTO_ERR_SERVICE;
 }
 
-static cproto_server_t ADMIN_on_get_databases(
+static cproto_server_t SERVICE_on_get_databases(
         qp_unpacker_t * qp_unpacker __attribute__((unused)),
         qp_packer_t ** packaddr,
         char * err_msg)
@@ -890,21 +881,21 @@ static cproto_server_t ADMIN_on_get_databases(
 
         if (!llist_walk(
                 siri.siridb_list,
-                (llist_cb) ADMIN_list_databases,
+                (llist_cb) SERVICE_list_databases,
                 packer))
         {
             *packaddr = packer;
-            return CPROTO_ACK_ADMIN_DATA;
+            return CPROTO_ACK_SERVICE_DATA;
         }
 
         /* error, free packer */
         qp_packer_free(packer);
     }
     sprintf(err_msg, "memory allocation error");
-    return CPROTO_ERR_ADMIN;
+    return CPROTO_ERR_SERVICE;
 }
 
-void siri_admin_request_rollback(const char * dbpath)
+void siri_service_request_rollback(const char * dbpath)
 {
     size_t dbpath_len = strlen(dbpath);
     char dbfn[dbpath_len + max_filename_sz];
@@ -921,7 +912,7 @@ void siri_admin_request_rollback(const char * dbpath)
     }
 }
 
-static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision)
+static int8_t SERVICE_time_precision(qp_obj_t * qp_time_precision)
 {
     if (qp_time_precision->tp != QP_RAW)
     {
@@ -943,7 +934,7 @@ static int8_t ADMIN_time_precision(qp_obj_t * qp_time_precision)
     return -1;
 }
 
-static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
+static int64_t SERVICE_duration(qp_obj_t * qp_duration, uint8_t time_precision)
 {
     char * endptr;
     long int val;
@@ -975,12 +966,12 @@ static int64_t ADMIN_duration(qp_obj_t * qp_duration, uint8_t time_precision)
     return -1;
 }
 
-static int ADMIN_list_databases(siridb_t * siridb, qp_packer_t * packer)
+static int SERVICE_list_databases(siridb_t * siridb, qp_packer_t * packer)
 {
     return qp_add_string(packer, siridb->dbname);
 }
 
-static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname)
+static int SERVICE_find_database(siridb_t * siridb, qp_obj_t * dbname)
 {
     return (
         strlen(siridb->dbname) == dbname->len &&
@@ -990,8 +981,8 @@ static int ADMIN_find_database(siridb_t * siridb, qp_obj_t * dbname)
             dbname->len) == 0);
 }
 
-static int ADMIN_list_accounts(
-        siri_admin_account_t * account,
+static int SERVICE_list_accounts(
+        siri_service_account_t * account,
         qp_packer_t * packer)
 {
     return qp_add_string(packer, account->account);

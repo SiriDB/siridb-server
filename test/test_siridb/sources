@@ -1,4 +1,4 @@
-../src/slist/slist.c
+../src/vec/vec.c
 ../src/ctree/ctree.c
 ../src/xpath/xpath.c
 ../src/xmath/xmath.c
@@ -6,7 +6,7 @@
 ../src/imap/imap.c
 ../src/llist/llist.c
 ../src/logger/logger.c
-../src/strextra/strextra.c
+../src/xstr/xstr.c
 ../src/cfgparser/cfgparser.c
 ../src/owcrypt/owcrypt.c
 ../src/cexpr/cexpr.c
@@ -73,9 +73,9 @@
 ../src/siri/db/walker.c
 ../src/siri/file/handler.c
 ../src/siri/file/pointer.c
-../src/siri/admin/account.c
-../src/siri/admin/client.c
-../src/siri/admin/request.c
+../src/siri/service/account.c
+../src/siri/service/client.c
+../src/siri/service/request.c
 ../src/siri/help/help.c
 ../src/siri/cfg/cfg.c
 ../src/siri/grammar/grammar.c

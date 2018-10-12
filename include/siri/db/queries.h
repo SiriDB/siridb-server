@@ -1,13 +1,5 @@
 /*
- * queries.h - Querie helpers for listener
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 03-05-2016
- *
+ * queries.h - Query helpers for listener.
  */
 #ifndef SIRIDB_QUERIES_H_
 #define SIRIDB_QUERIES_H_
@@ -15,7 +7,7 @@
 #include <uv.h>
 #include <inttypes.h>
 #include <imap/imap.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <cexpr/cexpr.h>
 #include <cleri/cleri.h>
 #include <ctree/ctree.h>
@@ -53,8 +45,8 @@ uint8_t flags;                  \
 imap_t * series_map;            \
 imap_t * series_tmp;            \
 imap_t * pmap;                  \
-slist_t * slist;                \
-size_t slist_index;             \
+vec_t * vec;                \
+size_t vec_index;             \
 imap_update_cb update_cb;       \
 cexpr_t * where_expr;           \
 pcre2_code * regex;             \
@@ -117,13 +109,13 @@ struct query_drop_s
 {
     QUERY_DEF
     size_t n;  /* keep a counter for number of drops.   */
-    slist_t * shards_list;
+    vec_t * shards_list;
 };
 
 struct query_list_s
 {
     QUERY_DEF
-    slist_t * props;  /* will be freed      */
+    vec_t * props;  /* will be freed      */
     size_t limit;
 };
 
@@ -138,8 +130,8 @@ struct query_select_s
     char * merge_as;
     ct_t * result;
     imap_t * points_map;    /* points_map for caching                       */
-    slist_t * alist;        /* aggregation list (can be used multiple times)*/
-    slist_t * mlist;        /* merge aggregation list                       */
+    vec_t * alist;        /* aggregation list (can be used multiple times)*/
+    vec_t * mlist;        /* merge aggregation list                       */
 };
 
 #endif  /* SIRIDB_QUERIES_H_ */

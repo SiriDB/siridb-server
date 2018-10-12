@@ -1,13 +1,5 @@
 /*
  * aggregate.c - SiriDB aggregation methods.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 15-04-2016
- *
  */
 #include <assert.h>
 #include <limits.h>
@@ -17,25 +9,25 @@
 #include <siri/db/variance.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/re.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <stddef.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <math.h>
 
 #define AGGR_NEW                                    \
 if ((aggr = AGGREGATE_new(gid)) == NULL)            \
 {                                                   \
     sprintf(err_msg, "Memory allocation error.");   \
-    siridb_aggregate_list_free(slist);              \
+    siridb_aggregate_list_free(vec);              \
     return NULL;                                    \
 }
 
-#define SLIST_APPEND                                \
-if (slist_append_safe(&slist, aggr))                \
+#define VEC_APPEND                                \
+if (vec_append_safe(&vec, aggr))                \
 {                                                   \
     sprintf(err_msg, "Memory allocation error.");   \
     AGGREGATE_free(aggr);                           \
-    siridb_aggregate_list_free(slist);              \
+    siridb_aggregate_list_free(vec);              \
     return NULL;                                    \
 }
 
@@ -204,12 +196,12 @@ void siridb_init_aggregates(void)
 /*
  * Returns NULL in case an error has occurred and the err_msg will be set.
  */
-slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
+vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 {
     uint32_t gid;
     siridb_aggr_t * aggr;
-    slist_t * slist = slist_new(SLIST_DEFAULT_SIZE);
-    if (slist == NULL)
+    vec_t * vec = vec_new(VEC_DEFAULT_SIZE);
+    if (vec == NULL)
     {
         sprintf(err_msg, "Memory allocation error.");
         return NULL;
@@ -233,7 +225,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                             "Limit must be an integer value "
                             "larger than zero.");
                     AGGREGATE_free(aggr);
-                    siridb_aggregate_list_free(slist);
+                    siridb_aggregate_list_free(vec);
                     return NULL;
                 }
 
@@ -303,7 +295,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 }
             }
 
-            SLIST_APPEND
+            VEC_APPEND
 
             break;
 
@@ -332,12 +324,12 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 if (AGGREGATE_init_filter(aggr, onode, err_msg))
                 {
                     AGGREGATE_free(aggr);
-                    siridb_aggregate_list_free(slist);
+                    siridb_aggregate_list_free(vec);
                     return NULL;  /* err_msg is set */
                 }
             }
 
-            SLIST_APPEND
+            VEC_APPEND
 
             break;
 
@@ -359,7 +351,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                                 "Time-span must be an integer value "
                                 "larger than zero.");
                         AGGREGATE_free(aggr);
-                        siridb_aggregate_list_free(slist);
+                        siridb_aggregate_list_free(vec);
                         return NULL;
                     }
 
@@ -375,7 +367,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                                     "Group by time must be an integer "
                                     "value larger than zero.");
                             AGGREGATE_free(aggr);
-                            siridb_aggregate_list_free(slist);
+                            siridb_aggregate_list_free(vec);
                             return NULL;
                         }
 
@@ -384,7 +376,7 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 }
             }
 
-            SLIST_APPEND
+            VEC_APPEND
 
             break;
 
@@ -417,12 +409,12 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                             "Group by time must be an integer value "
                             "larger than zero.");
                     AGGREGATE_free(aggr);
-                    siridb_aggregate_list_free(slist);
+                    siridb_aggregate_list_free(vec);
                     return NULL;
                 }
             }
 
-            SLIST_APPEND
+            VEC_APPEND
 
             break;
 
@@ -447,13 +439,13 @@ slist_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         children = children->next->next;
     }
 
-    return slist;
+    return vec;
 }
 
 /*
  * Destroy aggregates list. (parsing NULL is not allowed)
  */
-void siridb_aggregate_list_free(slist_t * alist)
+void siridb_aggregate_list_free(vec_t * alist)
 {
     size_t i;
     for (i = 0; i < alist->len; i++)
@@ -591,7 +583,7 @@ static int AGGREGATE_init_filter(
 
     case CLERI_GID_R_FLOAT:
         aggr->filter_tp = TP_DOUBLE;
-        aggr->filter_via.real = strx_to_double(node->str, node->len);
+        aggr->filter_via.real = xstr_to_double(node->str, node->len);
         break;
 
     case CLERI_GID_STRING:
@@ -602,7 +594,7 @@ static int AGGREGATE_init_filter(
             sprintf(err_msg, "Memory allocation error.");
             return -1;
         }
-        strx_extract_string(
+        xstr_extract_string(
                 (char *) aggr->filter_via.raw, node->str, node->len);
         return 0;
 

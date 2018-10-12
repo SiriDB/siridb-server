@@ -1,13 +1,5 @@
 /*
- * forward.c - Handle forwarding series while re-indexing
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 31-07-2016
- *
+ * forward.c - Handle forwarding series while re-indexing.
  */
 #include <qpack/qpack.h>
 #include <siri/async.h>
@@ -17,7 +9,7 @@
 #include <siri/net/protocol.h>
 #include <stddef.h>
 
-static void FORWARD_on_response(slist_t * promises, uv_async_t * handle);
+static void FORWARD_on_response(vec_t * promises, uv_async_t * handle);
 static void FORWARD_free(uv_handle_t * handle);
 
 /*
@@ -168,7 +160,7 @@ void siridb_forward_points_to_pools(uv_async_t * handle)
  *
  * This function can raise a SIGNAL.
  */
-static void FORWARD_on_response(slist_t * promises, uv_async_t * handle)
+static void FORWARD_on_response(vec_t * promises, uv_async_t * handle)
 {
     if (promises != NULL)
     {

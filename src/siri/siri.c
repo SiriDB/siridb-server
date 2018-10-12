@@ -1,12 +1,6 @@
 /*
- * siri.h - global methods for SiriDB.
+ * siri.c - Root for SiriDB.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
  *
  * Info siri->siridb_mutex:
  *
@@ -23,8 +17,8 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
-#include <siri/admin/account.h>
-#include <siri/admin/request.h>
+#include <siri/service/account.h>
+#include <siri/service/request.h>
 #include <siri/async.h>
 #include <siri/buffersync.h>
 #include <siri/cfg/cfg.h>
@@ -48,7 +42,7 @@
 #include <siri/version.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -114,7 +108,7 @@ void siri_setup_logger(void)
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
         strcpy(lname, LOGGER_LEVEL_NAMES[n]);
-        strx_lower_case(lname);
+        xstr_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
             logger_init(stdout, n);
@@ -169,8 +163,8 @@ int siri_start(void)
     uv_loop_init(siri.loop);
 
     /* initialize the back-end-, client- server and load databases */
-    if (    (rc = siri_admin_account_init(&siri)) ||
-            (rc = siri_admin_request_init()) ||
+    if (    (rc = siri_service_account_init(&siri)) ||
+            (rc = siri_service_request_init()) ||
             (rc = sirinet_bserver_init(&siri)) ||
             (rc = sirinet_clserver_init(&siri)) ||
             (rc = SIRI_load_databases()))
@@ -241,11 +235,11 @@ void siri_free(void)
     /* free siridb grammar */
     cleri_grammar_free(siri.grammar);
 
-    /* free siridb administrative accounts */
-    siri_admin_account_destroy(&siri);
+    /* free siridb service accounts */
+    siri_service_account_destroy(&siri);
 
-    /* free siridb admin request */
-    siri_admin_request_destroy();
+    /* free siridb service request */
+    siri_service_request_destroy();
 
     /* free config */
     siri_cfg_destroy(&siri);

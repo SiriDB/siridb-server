@@ -1,13 +1,5 @@
 /*
  * points.c - Array object for points.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-04-2016
- *
  */
 #include <siri/db/points.h>
 #include <logger/logger.h>
@@ -17,7 +9,7 @@
 #include <siri/err.h>
 #include <unistd.h>
 #include <string.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 
 #define MAX_ITERATE_MERGE_COUNT 1000
 #define POINTS_MAX_QSORT 250000
@@ -37,11 +29,11 @@ static void POINTS_unzip_raw(
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
-static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points);
-static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points);
+static void POINTS_sort_while_merge(vec_t * plist, siridb_points_t * points);
+static void POINTS_merge_and_sort(vec_t * plist, siridb_points_t * points);
 static void POINTS_simple_sort(siridb_points_t * points);
 static inline int POINTS_compare(const void * a, const void * b);
-static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points);
+static void POINTS_highest_and_merge(vec_t * plist, siridb_points_t * points);
 static size_t POINTS_strlen_check_ascii(const char * str, uint8_t * is_ascii);
 static void POINTS_output_literal(
         size_t len,
@@ -289,7 +281,7 @@ int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
  * (err_msg is set when an error has occurred)
  * Use this function only when having at least two 'series' in the list.
  */
-siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
+siridb_points_t * siridb_points_merge(vec_t * plist, char * err_msg)
 {
     assert (plist->len >= 2);
     siridb_points_t * points;
@@ -348,7 +340,7 @@ siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg)
          * list length to 0. We do have to restore the points length since
          * this is decremented by one.
          */
-        points = (siridb_points_t *) slist_pop(plist);
+        points = (siridb_points_t *) vec_pop(plist);
         points->len++;
         return points;
     }
@@ -1158,7 +1150,7 @@ int siridb_points_unzip_string_raw(
     {
         size_t slen;
         points->data[points->len].ts = *tpt;
-        points->data[points->len].val.str = strx_dup(cpt, &slen);
+        points->data[points->len].val.str = xstr_dup(cpt, &slen);
         cpt += slen + 1;
     }
     return 0;
@@ -1344,7 +1336,7 @@ static void POINTS_unzip_raw(
  * This merge method works best when having both a lot of series and having
  * any number of points for each series.
  */
-static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points)
+static void POINTS_highest_and_merge(vec_t * plist, siridb_points_t * points)
 {
     siridb_points_t ** m = NULL;
     size_t i, n, l = 0;
@@ -1415,7 +1407,7 @@ static void POINTS_highest_and_merge(slist_t * plist, siridb_points_t * points)
  * This merge method works best for only a few series with possible a lot
  * of points.
  */
-static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
+static void POINTS_sort_while_merge(vec_t * plist, siridb_points_t * points)
 {
     siridb_points_t ** m;
     size_t i, n;
@@ -1460,7 +1452,7 @@ static void POINTS_sort_while_merge(slist_t * plist, siridb_points_t * points)
  * This merge method works best when having a lot of series with only one point
  * or when the total number of points it not so high.
  */
-static void POINTS_merge_and_sort(slist_t * plist, siridb_points_t * points)
+static void POINTS_merge_and_sort(vec_t * plist, siridb_points_t * points)
 {
     siridb_points_t ** m;
     size_t i, n;

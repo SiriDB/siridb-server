@@ -1,13 +1,5 @@
 /*
- * lookup.c - SiriDB Pool lookup.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 29-07-2016
- *
+ * lookup.c - Find and assign to which pool series belong.
  */
 #include <siri/db/lookup.h>
 #include <siri/err.h>

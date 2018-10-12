@@ -1,13 +1,5 @@
 /*
- * pool.h - Generate pool lookup.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 25-03-2016
- *
+ * pool.h - SiriDB pool containing one or two servers.
  */
 #ifndef SIRIDB_POOL_H_
 #define SIRIDB_POOL_H_

@@ -1,13 +1,5 @@
 /*
  * pkg.h - SiriDB Package type.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 18-06-2016
- *
  */
 #ifndef SIRINET_PKG_H_
 #define SIRINET_PKG_H_

@@ -1,13 +1,5 @@
 /*
- * strextra.c - Extra String functions used by SiriDB
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 19-03-2016
- *
+ * xstr.c - Extra String functions used by SiriDB.
  */
 #include <ctype.h>
 #include <inttypes.h>
@@ -18,19 +10,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-void strx_lower_case(char * sptr)
+void xstr_lower_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
         *sptr = tolower( (unsigned char) * sptr);
 }
 
-void strx_upper_case(char * sptr)
+void xstr_upper_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
         *sptr = toupper( (unsigned char) * sptr);
 }
 
-void strx_replace_char(char * sptr, char orig, char repl)
+void xstr_replace_char(char * sptr, char orig, char repl)
 {
     for (; *sptr != '\0'; sptr++)
     {
@@ -48,7 +40,7 @@ void strx_replace_char(char * sptr, char orig, char repl)
  * Returns 0 if successful or -1 if the replaced string does not fit. In this
  * case the original string is untouched. The new string is terminated.
  */
-int strx_replace_str(char * str, char * o, char * r, size_t n)
+int xstr_replace_str(char * str, char * o, char * r, size_t n)
 {
     char buffer[n];
     char * pos, * s;
@@ -88,7 +80,7 @@ int strx_replace_str(char * str, char * o, char * r, size_t n)
  *      split: ' ' and join with '_'
  *      result: "this_is_a_test"
  */
-void strx_split_join(char * pt, char split_chr, char join_chr)
+void xstr_split_join(char * pt, char split_chr, char join_chr)
 {
     int join = -1;
     char * dest = pt;
@@ -115,7 +107,7 @@ void strx_split_join(char * pt, char split_chr, char join_chr)
     *dest = '\0';
 }
 
-void strx_trim(char ** str, char chr)
+void xstr_trim(char ** str, char chr)
 {
     /*
      * trim: when chr is 0 we will trim whitespace,
@@ -150,7 +142,7 @@ void strx_trim(char ** str, char chr)
 /*
  * returns true or false
  */
-bool strx_is_empty(const char * str)
+bool xstr_is_empty(const char * str)
 {
     const char * test = str;
     for (; *test; test++)
@@ -163,7 +155,7 @@ bool strx_is_empty(const char * str)
     return true;
 }
 
-bool strx_is_int(const char * str)
+bool xstr_is_int(const char * str)
 {
    /* Handle negative numbers.  */
    if (*str == '-')
@@ -193,7 +185,7 @@ bool strx_is_int(const char * str)
    return true;
 }
 
-bool strx_is_float(const char * str)
+bool xstr_is_float(const char * str)
 {
    /* Handle negative numbers.   */
    if (*str == '-' || *str == '+')
@@ -227,7 +219,7 @@ bool strx_is_float(const char * str)
    return dots == 1;
 }
 
-bool strx_is_graph(const char * str)
+bool xstr_is_graph(const char * str)
 {
     for (; *str; str++)
     {
@@ -247,7 +239,7 @@ bool strx_is_graph(const char * str)
  * 'dest' string will be terminated and the return value is the new
  * length of 'dest'.
  */
-size_t strx_extract_string(char * dest, const char * source, size_t len)
+size_t xstr_extract_string(char * dest, const char * source, size_t len)
 {
     size_t i = 0;
 
@@ -280,7 +272,7 @@ size_t strx_extract_string(char * dest, const char * source, size_t len)
  *      - string is allowed to have one dot (.) at most but not required
  *      - string can start with a plus (+) or minus (-) sign.
  */
-double strx_to_double(const char * src, size_t len)
+double xstr_to_double(const char * src, size_t len)
 {
     char * pt = (char *) src;
     double d = 0;
@@ -330,7 +322,7 @@ double strx_to_double(const char * src, size_t len)
  *      - len > 0
  *      - string can only contain characters [0..9] and no signs
  */
-uint64_t strx_to_uint64(const char * src, size_t len)
+uint64_t xstr_to_uint64(const char * src, size_t len)
 {
     char * pt = (char *) src;
 
@@ -347,7 +339,7 @@ uint64_t strx_to_uint64(const char * src, size_t len)
 /*
  * Returns a string duplicate like strdup() and set the strlen() to n;
  */
-char * strx_dup(const char * src, size_t * n)
+char * xstr_dup(const char * src, size_t * n)
 {
     *n = strlen(src);
     char * nstr = (char *) malloc(*n + 1);

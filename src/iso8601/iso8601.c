@@ -1,18 +1,6 @@
 /*
- * iso8601.c - Library to parse ISO 8601 dates
- *
- * Note: time-zones are found with tzset() in either /usr/lib/zoneinfo/ or
- *       /usr/share/zoneinfo/
- *
- *       (This library is Linux only)
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 21-04-2016
- *
+ * iso8601.c - Library to parse ISO 8601 dates. Time-zones are found with
+ *             tzset() in either /usr/lib/zoneinfo/ or /usr/share/zoneinfo/.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

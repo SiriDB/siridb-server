@@ -1,13 +1,5 @@
 /*
- * qpack.h - efficient binary serialization format
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 11-03-2016
- *
+ * qpack.h - Efficient binary serialization format.
  */
 #ifndef QPACK_H_
 #define QPACK_H_

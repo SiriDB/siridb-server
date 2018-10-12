@@ -1,13 +1,5 @@
 /*
  * cexpr.c - Conditional expressions.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-06-2016
- *
  */
 #include <cexpr/cexpr.h>
 #include <assert.h>
@@ -18,7 +10,7 @@
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
 #include <siri/db/access.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 
 #define VIA_NULL 0
 #define VIA_CEXPR 1
@@ -402,7 +394,7 @@ static cexpr_t * CEXPR_walk_node(
                 {
                     return NULL;
                 }
-                strx_extract_string((*condition)->str, node->str, node->len);
+                xstr_extract_string((*condition)->str, node->str, node->len);
                 SET_CONDITION_AND_RETURN
             }
             /* can be a choice between keywords, in that case just wait */

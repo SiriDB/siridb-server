@@ -1,10 +1,5 @@
 /*
  * buffersync.c - Buffer sync.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2018, Transceptor Technology
- *
  */
 #include <logger/logger.h>
 #include <siri/db/server.h>

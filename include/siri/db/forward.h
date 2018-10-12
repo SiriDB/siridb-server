@@ -1,13 +1,5 @@
 /*
- * forward.h - Handle forwarding series while re-indexing
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 31-07-2016
- *
+ * forward.h - Handle forwarding series while re-indexing.
  */
 #ifndef SIRIDB_FORWARD_H_
 #define SIRIDB_FORWARD_H_

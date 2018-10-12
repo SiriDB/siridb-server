@@ -1,13 +1,5 @@
 /*
- * db.c - contains functions  and constants for a SiriDB database.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
+ * db.c - SiriDB database.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -34,7 +26,7 @@
 #include <string.h>
 #include <uuid/uuid.h>
 #include <xpath/xpath.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <timeit/timeit.h>
 
 /*
@@ -228,9 +220,9 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     log_info("Updating series properties");
 
     /* create a copy since 'siridb_series_update_props' might drop a series */
-    slist_t * slist = imap_2slist(siridb->series_map);
+    vec_t * vec = imap_2vec(siridb->series_map);
 
-    if (slist == NULL)
+    if (vec == NULL)
     {
         log_error("Could update series properties for database '%s'",
                 siridb->dbname);
@@ -238,12 +230,12 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
-    for (i = 0; i < slist->len; i++)
+    for (i = 0; i < vec->len; i++)
     {
-        siridb_series_update_props(siridb, (siridb_series_t * )slist->data[i]);
+        siridb_series_update_props(siridb, (siridb_series_t * )vec->data[i]);
     }
 
-    slist_free(slist);
+    vec_free(vec);
 
     /* generate pools, this can raise a signal */
     log_info("Initialize pools");

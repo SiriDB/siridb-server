@@ -1,13 +1,5 @@
 /*
  * group.h - Group (saved regular expressions).
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 16-08-2016
- *
  */
 #ifndef SIRIDB_GROUP_H_
 #define SIRIDB_GROUP_H_
@@ -18,7 +10,7 @@
 
 typedef struct siridb_group_s siridb_group_t;
 
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <siri/db/series.h>
 #include <pcre2.h>
 
@@ -56,7 +48,7 @@ struct siridb_group_s
     uint32_t n;     /* total series (needs an update from all pools) */
     char * name;
     char * source;  /* pattern/flags representation */
-    slist_t * series;
+    vec_t * series;
     pcre2_code * regex;
     pcre2_match_data * match_data;
 };

@@ -148,7 +148,7 @@ siridb_servers_get_file(): ssize_t
 siridb_servers_list(): int
 siridb_servers_load(): int
 siridb_servers_online(): int
-siridb_servers_other2slist(): *slist_t
+siridb_servers_other2vec(): *vec_t
 siridb_servers_register(): int
 siridb_servers_save(): int
 siridb_servers_send_flags(): void
@@ -566,8 +566,8 @@ flags: uint8_t
 fn: *char
 groups: *ct_t
 mutex: uv_mutex_t 
-ngroups: *slist_t
-nseries: *slist_t
+ngroups: *vec_t
+nseries: *vec_t
 ref: uint8_t
 status: uint8_t
 work: uv_work_t
@@ -614,7 +614,7 @@ name: *char
 ref: uint16_t
 regex: *pcre 
 regex_extra: *pcre_extra
-series: *slist_t
+series: *vec_t
 source: *char
 --
 siridb__group_decref(): void

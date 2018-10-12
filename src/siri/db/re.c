@@ -1,13 +1,5 @@
 /*
- * re.c - Helpers for regular expressions
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-08-2016
- *
+ * re.c - Helpers for regular expressions.
  */
 #include <assert.h>
 #include <siri/db/db.h>

@@ -1,12 +1,14 @@
 /*
- * siri.h - global methods for SiriDB.
+ * siri.h - Root for SiriDB.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
  *
- * changes
- *  - initial version, 08-03-2016
+ * Info siri->siridb_mutex:
+ *
+ *  Main thread:
+ *      siri->siridb_list :    read (no lock)          write (lock)
+ *
+ *  Other threads:
+ *      siri->siridb_list :    read (lock)          write (not allowed)
  *
  */
 #ifndef SIRI_H_
@@ -61,10 +63,10 @@ struct siri_s
     uv_mutex_t siridb_mutex;
     uint32_t startup_time;
 
-    /* initialized by sidi_admin_account_init */
+    /* initialized by sidi_service_account_init */
     llist_t * accounts;
 
-    /* initialized by sidi_admin_request_init */
+    /* initialized by sidi_service_request_init */
     pcre2_code * dbname_regex;
     pcre2_match_data * dbname_match_data;
 

@@ -1,12 +1,12 @@
 /*
  * optimize.h - Optimize task SiriDB.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
+ * There is one and only one optimize task thread running for SiriDB. For this
+ * reason we do not need to parse data but we should only take care for locks
+ * while writing data.
  *
- * changes
- *  - initial version, 09-05-2016
+ * Thread debugging:
+ *  log_debug("getpid: %d - pthread_self: %lu",getpid(), pthread_self());
  *
  */
 #ifndef SIRI_OPTIMIZE_H_

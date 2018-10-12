@@ -1,13 +1,5 @@
 /*
- * version.h - contains SiriDB version info.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * version.h - SiriDB version info.
  */
 #ifndef SIRI_VERSION_H_
 #define SIRI_VERSION_H_

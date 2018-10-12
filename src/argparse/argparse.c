@@ -1,13 +1,5 @@
 /*
- * argparse.c - module for parsing command line arguments.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * argparse.c - Module for parsing command line arguments.
  */
 #include <argparse/argparse.h>
 #include <libgen.h>
@@ -15,7 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 #include <assert.h>
 
@@ -243,8 +235,8 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
             strcpy(uname, current->argument->name);
-            strx_replace_char(uname, '-', '_');
-            strx_upper_case(uname);
+            xstr_replace_char(uname, '-', '_');
+            xstr_upper_case(uname);
             if (current->argument->shortcut)
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[-%c %s] ",
@@ -312,8 +304,8 @@ static void print_help(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
             strcpy(uname, current->argument->name);
-            strx_replace_char(uname, '-', '_');
-            strx_upper_case(uname);
+            xstr_replace_char(uname, '-', '_');
+            xstr_upper_case(uname);
             if (current->argument->shortcut)
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         " -%c %s,",

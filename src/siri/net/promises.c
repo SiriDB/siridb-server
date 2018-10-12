@@ -1,14 +1,5 @@
 /*
- * promises.c - Promises SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- *
- * changes
- *  - initial version, 13-07-2016
- *
+ * promises.c - Collection for promised.
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -36,7 +27,7 @@ sirinet_promises_t * sirinet_promises_new(
 
         promises->cb = cb;
         promises->data = data;
-        promises->promises = slist_new(size);
+        promises->promises = vec_new(size);
         promises->pkg = pkg;
 
         if (promises->promises == NULL)
@@ -53,7 +44,7 @@ sirinet_promises_t * sirinet_promises_new(
  * This function can be used to free promises with data. It assumes
  * data simple can be destroyed with simple calling free().
  */
-void sirinet_promises_llist_free(slist_t * promises)
+void sirinet_promises_llist_free(vec_t * promises)
 {
     sirinet_promise_t * promise;
     size_t i;
@@ -99,7 +90,7 @@ void sirinet_promises_on_response(
         promise->data = (void *) sirinet_pkg_dup(pkg);
     }
 
-    slist_append(promises->promises, (void *) promise);
+    vec_append(promises->promises, (void *) promise);
 
     SIRINET_PROMISES_CHECK(promises)
 }

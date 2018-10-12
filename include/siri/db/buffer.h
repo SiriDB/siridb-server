@@ -1,13 +1,5 @@
 /*
- * buffer.h - Buffer for integer and double series.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 01-04-2016
- *
+ * buffer.h - Buffer for integer and double values.
  */
 #ifndef SIRIDB_BUFFER_H_
 #define SIRIDB_BUFFER_H_
@@ -47,7 +39,7 @@ struct siridb_buffer_s
     size_t len;             /* number of points allocated per series */
     char * template;        /* template for writing an empty buffer */
     char * path;            /* path where the buffer file is stored */
-    slist_t * empty;        /* list with empty buffer spaces */
+    vec_t * empty;        /* list with empty buffer spaces */
     FILE * fp;              /* buffer file pointer */
     int fd;                 /* buffer file descriptor */
 };

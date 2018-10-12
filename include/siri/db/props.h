@@ -1,13 +1,5 @@
 /*
  * props.h - Functions to return SiriDB properties.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 17-03-2016
- *
  */
 #ifndef SIRIDB_PROPS_H_
 #define SIRIDB_PROPS_H_

@@ -235,7 +235,7 @@ siridb-server (2.0.16) xenial; urgency=medium
     SiriDB Admin Tool can be used to talk with the new API and provides both a
     command-line and a graphical web interface. Pre-compiled versions for
     different platforms can be found and downloaded from:
-    https://github.com/transceptor-technology/siridb-admin/releases/latest
+    https://github.com/transceptor-technology/siridb-service/releases/latest
 
   * Added version check before creating a new pool or replica. (issue #62)
 
@@ -281,7 +281,7 @@ siridb-server (2.0.14) xenial; urgency=medium
 
 siridb-server (2.0.13) xenial; urgency=medium
 
-  * Fixed wrapping imap to slist functions with appropriate locks.
+  * Fixed wrapping imap to vec functions with appropriate locks.
     (see issue #51)
 
  -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 17 Feb 2017 13:46:53 +0000

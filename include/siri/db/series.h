@@ -1,13 +1,19 @@
 /*
- * series.h - Series
+ * series.c - SiriDB Time Series.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
  *
- * changes
- *  - initial version, 29-03-2016
+ * Info siridb->series_mutex:
  *
+ *  Main thread:
+ *      siridb->series_map :    read (no lock)      write (lock)
+ *      series->idx :           read (lock)         write (lock)
+ *
+ *  Other threads:
+ *      siridb->series_map :    read (lock)          write (not allowed)
+ *      series->idx :           read (lock)         write (lock)
+ *
+ *  Note:   One exception to 'not allowed' are the free functions
+ *          since they only run when no other references to the object exist.
  */
 #ifndef SIRIDB_SERIES_H_
 #define SIRIDB_SERIES_H_

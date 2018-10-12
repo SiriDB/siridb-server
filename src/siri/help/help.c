@@ -1,13 +1,5 @@
 /*
- * help.c - Help for SiriDB
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 23-09-2016
- *
+ * help.c - Help for SiriDB.
  */
 #include <limits.h>
 #include <logger/logger.h>

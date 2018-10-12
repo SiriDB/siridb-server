@@ -1,10 +1,5 @@
 /*
  * buffersync.h - Buffer sync.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2018, Transceptor Technology
- *
  */
 #ifndef SIRI_BUFFERSYNC_H_
 #define SIRI_BUFFERSYNC_H_

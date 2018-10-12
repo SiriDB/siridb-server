@@ -1,13 +1,5 @@
 /*
  * insert.c - Handler database inserts.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 24-03-2016
- *
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -47,7 +39,7 @@ if (*ts > series->end)              \
 
 static void INSERT_free(uv_handle_t * handle);
 static void INSERT_points_to_pools(uv_async_t * handle);
-static void INSERT_on_response(slist_t * promises, uv_async_t * handle);
+static void INSERT_on_response(vec_t * promises, uv_async_t * handle);
 static uint16_t INSERT_get_pool(siridb_t * siridb, qp_obj_t * qp_series_name);
 
 static void INSERT_local_free_cb(uv_async_t * handle);
@@ -366,7 +358,7 @@ int insert_init_backend_local(
  *
  * This function can raise a SIGNAL.
  */
-static void INSERT_on_response(slist_t * promises, uv_async_t * handle)
+static void INSERT_on_response(vec_t * promises, uv_async_t * handle)
 {
     if (promises != NULL)
     {
@@ -972,7 +964,7 @@ static void INSERT_local_promise_cb(
             NULL);
     sirinet_promises_t * promises = (sirinet_promises_t *) promise->data;
     promise->data = pkg;
-    slist_append(promises->promises, (void *) promise);
+    vec_append(promises->promises, (void *) promise);
 
     SIRINET_PROMISES_CHECK(promises)
 }

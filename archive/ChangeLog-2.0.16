@@ -17,6 +17,6 @@
     SiriDB Admin Tool can be used to talk with the new API and provides both a 
     command-line and a graphical web interface. Pre-compiled versions for 
     different platforms can be found and downloaded from:
-    https://github.com/transceptor-technology/siridb-admin/releases/latest
+    https://github.com/transceptor-technology/siridb-service/releases/latest
     
   * Added version check before creating a new pool or replica. (issue #62)

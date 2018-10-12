@@ -1,13 +1,5 @@
 /*
  * points.h - Array object for points.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-04-2016
- *
  */
 #ifndef SIRIDB_POINTS_H_
 #define SIRIDB_POINTS_H_
@@ -27,7 +19,7 @@ typedef struct siridb_points_s siridb_points_t;
 #include <stdlib.h>
 #include <inttypes.h>
 #include <qpack/qpack.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 
 void siridb_points_init(void);
 siridb_points_t * siridb_points_new(size_t size, points_tp tp);
@@ -41,7 +33,7 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points);
 int siridb_points_pack(siridb_points_t * points, qp_packer_t * packer);
 void siridb_points_ts_correction(siridb_points_t * points, double factor);
 int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer);
-siridb_points_t * siridb_points_merge(slist_t * plist, char * err_msg);
+siridb_points_t * siridb_points_merge(vec_t * plist, char * err_msg);
 unsigned char * siridb_points_zip_double(
         siridb_points_t * points,
         uint_fast32_t start,

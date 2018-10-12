@@ -1,13 +1,5 @@
 /*
  * group.c - Group (saved regular expressions).
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 16-08-2016
- *
  */
 #include <assert.h>
 #include <siri/db/db.h>
@@ -16,9 +8,9 @@
 #include <siri/db/series.h>
 #include <siri/err.h>
 #include <siri/grammar/grammar.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <stdlib.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 
 #define SIRIDB_MIN_GROUP_LEN 1
 #define SIRIDB_MAX_GROUP_LEN 255
@@ -46,7 +38,7 @@ siridb_group_t * siridb_group_new(
         group->flags = GROUP_FLAG_INIT;
         group->name = NULL;
         group->source = strndup(source, source_len);
-        group->series = slist_new(SLIST_DEFAULT_SIZE);
+        group->series = vec_new(VEC_DEFAULT_SIZE);
         group->regex = NULL;
         group->match_data = NULL;
 
@@ -187,7 +179,7 @@ void siridb_group_cleanup(siridb_group_t * group)
 
     group->series->len -= dropped;
 
-    slist_compact(&group->series);
+    vec_compact(&group->series);
 }
 
 /*
@@ -207,7 +199,7 @@ int siridb_group_test_series(siridb_group_t * group, siridb_series_t * series)
 
     if (rc >= 0)
     {
-        if (slist_append_safe(&group->series, series))
+        if (vec_append_safe(&group->series, series))
         {
             log_critical(
                     "Cannot append series '%s' to group '%s'",
@@ -281,13 +273,13 @@ int siridb_group_update_expression(
 
     group->series->len = 0;
 
-    slist_compact(&group->series);
+    vec_compact(&group->series);
 
     if (~group->flags & GROUP_FLAG_INIT)
     {
         group->flags |= GROUP_FLAG_INIT;
 
-        if (slist_append_safe(&groups->ngroups, group))
+        if (vec_append_safe(&groups->ngroups, group))
         {
             /* we log critical since allocation errors are critical, this does
              * however not influence the running SiriDB in is not critical in that
@@ -370,7 +362,7 @@ void siridb__group_free(siridb_group_t * group)
             series = (siridb_series_t *) group->series->data[i];
             siridb_series_decref(series);
         }
-        slist_free(group->series);
+        vec_free(group->series);
     }
 
     pcre2_code_free(group->regex);

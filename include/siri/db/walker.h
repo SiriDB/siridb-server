@@ -1,13 +1,5 @@
 /*
- * walker.h - creates enter and exit nodes
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-06-2016
- *
+ * walker.h - Creates enter and exit nodes.
  */
 #ifndef SIRIDB_WALKER_H_
 #define SIRIDB_WALKER_H_

@@ -1,13 +1,5 @@
 /*
- * expr.h - Parse expression
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 19-04-2016
- *
+ * expr.h - For parsing expressions.
  */
 #ifndef EXPR_H_
 #define EXPR_H_

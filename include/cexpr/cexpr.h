@@ -1,13 +1,5 @@
 /*
  * cexpr.h - Conditional expressions.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-06-2016
- *
  */
 #ifndef CEXPR_H_
 #define CEXPR_H_

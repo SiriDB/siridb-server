@@ -1,13 +1,6 @@
 /*
- * iso8601.h - Library to parse ISO 8601 dates
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 21-04-2016
- *
+ * iso8601.h - Library to parse ISO 8601 dates. Time-zones are found with
+ *             tzset() in either /usr/lib/zoneinfo/ or /usr/share/zoneinfo/.
  */
 #ifndef ISO8601_H_
 #define ISO8601_H_

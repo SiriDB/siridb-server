@@ -1,13 +1,5 @@
 /*
- * users.h - contains functions for a SiriDB database members.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-05-2016
- *
+ * users.h - Collection of database users.
  */
 #ifndef SIRIDB_USERS_H_
 #define SIRIDB_USERS_H_

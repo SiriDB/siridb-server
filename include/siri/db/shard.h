@@ -1,13 +1,5 @@
 /*
- * shard.h - SiriDB Shard.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-04-2016
- *
+ * shard.h - SiriDB shard file.
  */
 #ifndef SIRIDB_SHARD_H_
 #define SIRIDB_SHARD_H_

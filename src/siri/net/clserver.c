@@ -1,14 +1,5 @@
-
 /*
- * clserver.c - TCP server for serving client requests.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 09-03-2016
- *
+ * clserver.c - Listen for client requests.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -19,8 +10,8 @@
 #include <logger/logger.h>
 #include <qpack/qpack.h>
 #include <siri/siri.h>
-#include <siri/admin/account.h>
-#include <siri/admin/request.h>
+#include <siri/service/account.h>
+#include <siri/service/request.h>
 #include <siri/db/access.h>
 #include <siri/db/auth.h>
 #include <siri/db/insert.h>
@@ -86,7 +77,7 @@ static void on_reqfile(
         sirinet_pkg_t * pkg,
         sirinet_clserver_getfile getfile);
 static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg);
-static void on_req_admin(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_req_service(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void CLSERVER_send_server_error(
         siridb_t * siridb,
         sirinet_stream_t * client,
@@ -95,7 +86,7 @@ static void CLSERVER_send_pool_error(
         sirinet_stream_t * client,
         sirinet_pkg_t * pkg);
 static void CLSERVER_on_register_server_response(
-        slist_t * promises,
+        vec_t * promises,
         siridb_server_async_t * server_reg);
 
 #define POOL_ERR_MSG \
@@ -307,8 +298,8 @@ static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
         case CPROTO_REQ_FILE_DATABASE:
             on_reqfile(client, pkg, siridb_get_file);
             break;
-        case CPROTO_REQ_ADMIN:
-            on_req_admin(client, pkg);
+        case CPROTO_REQ_SERVICE:
+            on_req_service(client, pkg);
             break;
         }
     }
@@ -710,7 +701,7 @@ static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     sirinet_pkg_t * package = NULL;
     siridb_server_t * new_server = NULL;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
-    slist_t * servers = NULL;
+    vec_t * servers = NULL;
 
     if (siridb->server->flags != SERVER_FLAG_RUNNING)
     {
@@ -760,7 +751,7 @@ static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     else
     {
         /* make a copy of the current servers */
-        servers = siridb_servers_other2slist(siridb);
+        servers = siridb_servers_other2vec(siridb);
         if (servers == NULL)
         {
             sprintf(err_msg, "Memory allocation error.");
@@ -826,10 +817,10 @@ static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     }
 
     /* free the servers or NULL */
-    slist_free(servers);
+    vec_free(servers);
 }
 
-static void on_req_admin(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+static void on_req_service(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     qp_unpacker_t unpacker;
     qp_packer_t * packer = NULL;
@@ -846,14 +837,14 @@ static void on_req_admin(sirinet_stream_t * client, sirinet_pkg_t * pkg)
             qp_next(&unpacker, &qp_password) == QP_RAW &&
             qp_next(&unpacker, &qp_request) == QP_INT64)
     {
-        tp = (siri_admin_account_check(
+        tp = (siri_service_account_check(
                 &siri,
                 &qp_username,
                 &qp_password,
                 err_msg)) ?
-            CPROTO_ERR_ADMIN
+            CPROTO_ERR_SERVICE
             :
-            siri_admin_request(
+            siri_service_request(
                     qp_request.via.int64,
                     &unpacker,
                     &qp_username,
@@ -864,33 +855,33 @@ static void on_req_admin(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 
         package =
                 (tp == CPROTO_DEFERRED) ? NULL :
-                (tp == CPROTO_ERR_ADMIN) ? sirinet_pkg_err(
+                (tp == CPROTO_ERR_SERVICE) ? sirinet_pkg_err(
                         pkg->pid,
                         strlen(err_msg),
                         tp,
                         err_msg) :
-                (tp == CPROTO_ACK_ADMIN_DATA) ? sirinet_packer2pkg(
+                (tp == CPROTO_ACK_SERVICE_DATA) ? sirinet_packer2pkg(
                         packer,
                         pkg->pid,
                         tp) : sirinet_pkg_new(pkg->pid, 0, tp, NULL);
     }
     else
     {
-        log_error("Invalid administrative request received.");
+        log_error("Invalid service request received.");
         package = sirinet_pkg_new(
                 pkg->pid,
                 0,
-                CPROTO_ERR_ADMIN_INVALID_REQUEST,
+                CPROTO_ERR_SERVICE_INVALID_REQUEST,
                 NULL);
     }
     if (package != NULL)
     {
         switch (package->tp)
         {
-        case CPROTO_ERR_ADMIN_INVALID_REQUEST:
+        case CPROTO_ERR_SERVICE_INVALID_REQUEST:
             log_warning("Received an invalid manage request.");
             break;
-        case CPROTO_ERR_ADMIN:
+        case CPROTO_ERR_SERVICE:
             log_warning("Error handling manage request: %s", err_msg);
             break;
         }
@@ -904,7 +895,7 @@ static void on_req_admin(sirinet_stream_t * client, sirinet_pkg_t * pkg)
  * Typedef: sirinet_promises_cb
  */
 static void CLSERVER_on_register_server_response(
-        slist_t * promises,
+        vec_t * promises,
         siridb_server_async_t * server_reg)
 {
     if (promises != NULL)

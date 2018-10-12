@@ -2,7 +2,7 @@ import os
 import logging
 import random
 import asyncio
-from .constants import ADMIN
+from .constants import SERVICE
 
 VERBOSE = ' --verbose'
 
@@ -35,7 +35,7 @@ class SiriDB:
             server.name))
 
         rc = os.system(
-            '{admin} '
+            '{service} '
             '-u sa -p siri -s {addr} '
             'new-database '
             '--db-name {dbname} '
@@ -44,7 +44,7 @@ class SiriDB:
             '--duration-num {duration_num} '
             '--buffer-size {buffer_size}'
             '{verbose}'.format(
-                admin=ADMIN,
+                service=SERVICE,
                 addr=server.addr,
                 verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
                 else ' >/dev/null',
@@ -70,7 +70,7 @@ class SiriDB:
             remote_server = random.choice(self.servers)
 
         rc = os.system(
-            '{admin} '
+            '{service} '
             '-u sa -p siri -s {addr} '
             'new-replica '
             '--db-name {dbname} '
@@ -79,7 +79,7 @@ class SiriDB:
             '--db-password {dbpassword} '
             '--pool {pool} '
             '--force{verbose}'.format(
-                admin=ADMIN,
+                service=SERVICE,
                 addr=server.addr,
                 dbaddr=remote_server.addr,
                 dbuser=username,
@@ -108,7 +108,7 @@ class SiriDB:
             remote_server = random.choice(self.servers)
 
         rc = os.system(
-            '{admin} '
+            '{service} '
             '-u sa -p siri -s {addr} '
             'new-pool '
             '--db-name {dbname} '
@@ -116,7 +116,7 @@ class SiriDB:
             '--db-user {dbuser} '
             '--db-password {dbpassword} '
             '--force{verbose}'.format(
-                admin=ADMIN,
+                service=SERVICE,
                 addr=server.addr,
                 dbaddr=remote_server.addr,
                 dbuser=username,

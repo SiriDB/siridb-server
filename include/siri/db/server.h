@@ -1,13 +1,5 @@
 /*
- * server.h - SiriDB Server.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 17-03-2016
- *
+ * server.h - Each SiriDB database has at least one server.
  */
 #ifndef SIRIDB_SERVER_H_
 #define SIRIDB_SERVER_H_

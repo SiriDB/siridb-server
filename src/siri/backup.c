@@ -1,13 +1,5 @@
 /*
  * backup.c - Set SiriDB in backup mode.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 27-09-2016
- *
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -214,7 +206,7 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
          * A lock is not needed since the optimize thread is paused and this
          * is running from the main thread.
          */
-        slist_t * shard_list = imap_2slist(siridb->shards);
+        vec_t * shard_list = imap_2vec(siridb->shards);
 
         if (shard_list == NULL)
         {
@@ -237,6 +229,6 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
             }
         }
 
-        slist_free(shard_list);
+        vec_free(shard_list);
     }
 }

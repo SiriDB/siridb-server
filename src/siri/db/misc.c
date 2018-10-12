@@ -1,13 +1,5 @@
 /*
  * misc.c - Miscellaneous functions used by SiriDB.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 18-08-2016
- *
  */
 #include <siri/db/misc.h>
 #include <stdlib.h>

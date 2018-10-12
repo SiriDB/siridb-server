@@ -5,7 +5,7 @@
 ../src/siri/db/re.c
 ../src/siri/err.c
 ../src/qpack/qpack.c
-../src/slist/slist.c
+../src/vec/vec.c
 ../src/cexpr/cexpr.c
-../src/strextra/strextra.c
+../src/xstr/xstr.c
 ../src/logger/logger.c

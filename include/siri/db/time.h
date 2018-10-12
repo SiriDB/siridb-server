@@ -1,13 +1,5 @@
 /*
  * time.h - Time- and time precision functions and constants.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 09-03-2016
- *
  */
 #ifndef SIRIDB_TIME_H_
 #define SIRIDB_TIME_H_

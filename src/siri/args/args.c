@@ -1,3 +1,6 @@
+/*
+ * args.c - Parse SiriDB command line arguments.
+ */
 #include <siri/args/args.h>
 #include <argparse/argparse.h>
 #include <siri/version.h>

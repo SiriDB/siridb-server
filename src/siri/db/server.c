@@ -1,13 +1,5 @@
 /*
- * server.c - SiriDB Server.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 17-03-2016
- *
+ * server.c - Each SiriDB database has at least one server.
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -22,7 +14,7 @@
 #include <siri/net/tcp.h>
 #include <siri/siri.h>
 #include <siri/version.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 
 #define SIRIDB_SERVERS_FN "servers.dat"
@@ -832,7 +824,7 @@ siridb_server_t * siridb_server_from_node(
     case CLERI_TP_CHOICE:  /* server name   */
         {
             char name[server_node->len - 1];
-            strx_extract_string(name, server_node->str, server_node->len);
+            xstr_extract_string(name, server_node->str, server_node->len);
             server = siridb_servers_by_name(siridb->servers, name);
         }
         break;

@@ -52,7 +52,7 @@ static imap_t * imap_tmp;
 
 static int test__imap_decref_cb(char * series)
 {
-    ((slist_object_t *) series)->ref--;
+    ((vec_object_t *) series)->ref--;
     return 1;
 }
 

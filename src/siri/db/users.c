@@ -1,13 +1,5 @@
 /*
- * users.c - contains functions for a SiriDB database members.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 04-05-2016
- *
+ * users.c - Collection of database users.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -20,7 +12,7 @@
 #include <siri/db/misc.h>
 #include <siri/err.h>
 #include <stdlib.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 #include <time.h>
 #include <xpath/xpath.h>

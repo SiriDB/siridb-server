@@ -1,16 +1,6 @@
 /*
  * median.c - Calculate median, median high and median low.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 16-04-2016
- *
  */
-
-
 #include <siri/db/median.h>
 #include <siri/db/points.h>
 #include <stdbool.h>

@@ -1,18 +1,10 @@
 /*
- * client.h - Client for expanding a siridb database.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 24-03-2017
- *
+ * client.h - Client for expanding a SiriDB database.
  */
-#ifndef SIRI_ADMIN_CLIENT_H_
-#define SIRI_ADMIN_CLIENT_H_
+#ifndef SIRI_SERVICE_CLIENT_H_
+#define SIRI_SERVICE_CLIENT_H_
 
-typedef struct siri_admin_client_s siri_admin_client_t;
+typedef struct siri_service_client_s siri_service_client_t;
 
 #include <inttypes.h>
 #include <uv.h>
@@ -20,7 +12,7 @@ typedef struct siri_admin_client_s siri_admin_client_t;
 #include <uuid/uuid.h>
 #include <siri/net/pkg.h>
 
-int siri_admin_client_request(
+int siri_service_client_request(
         uint16_t pid,
         uint16_t port,
         int pool,
@@ -33,9 +25,9 @@ int siri_admin_client_request(
         sirinet_stream_t * client,
         char * err_msg);
 
-void siri_admin_client_free(siri_admin_client_t * adm_client);
+void siri_service_client_free(siri_service_client_t * adm_client);
 
-struct siri_admin_client_s
+struct siri_service_client_s
 {
     uint8_t request;
     uint8_t flags;
@@ -52,4 +44,4 @@ struct siri_admin_client_s
     sirinet_pkg_t * pkg;
 };
 
-#endif  /* SIRI_ADMIN_CLIENT_H_ */
+#endif  /* SIRI_SERVICE_CLIENT_H_ */

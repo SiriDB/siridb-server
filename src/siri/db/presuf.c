@@ -1,13 +1,5 @@
 /*
  * presuf.c - Prefix and Suffix store.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-08-2016
- *
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -16,7 +8,7 @@
 #include <siri/grammar/grammar.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <string.h>
 
 siridb_presuf_t * PRESUF_add(siridb_presuf_t ** presuf);
@@ -80,7 +72,7 @@ siridb_presuf_t * siridb_presuf_add(
                 if (nps->prefix != NULL)
                 {
                     /* not critical if suffix is still NULL */
-                    nps->len += strx_extract_string(
+                    nps->len += xstr_extract_string(
                             nps->prefix,
                             ps_children->next->node->str,
                             ps_children->next->node->len);
@@ -92,7 +84,7 @@ siridb_presuf_t * siridb_presuf_add(
                 if (nps->suffix != NULL)
                 {
                     /* not critical if suffix is still NULL */
-                    nps->len += strx_extract_string(
+                    nps->len += xstr_extract_string(
                             nps->suffix,
                             ps_children->next->node->str,
                             ps_children->next->node->len);

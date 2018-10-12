@@ -1,13 +1,5 @@
 /*
- * filepointer.h - File-pointer used in combination with file-handler.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-04-2016
- *
+ * pointer.c - File pointer used in combination with file handler.
  */
 #include <logger/logger.h>
 #include <siri/err.h>

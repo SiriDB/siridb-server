@@ -1,13 +1,5 @@
 /*
- * initsync.c - Initial replica synchronization
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 22-07-2016
- *
+ * initsync.c - Initial replica synchronization.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

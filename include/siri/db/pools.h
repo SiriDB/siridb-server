@@ -1,13 +1,5 @@
 /*
- * pools.h - Generate pools lookup.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 25-03-2016
- *
+ * pools.h - Collection of pools.
  */
 #ifndef SIRIDB_POOLS_H_
 #define SIRIDB_POOLS_H_
@@ -21,7 +13,7 @@ typedef struct siridb_pools_s siridb_pools_t;
 #include <siri/net/pkg.h>
 #include <siri/net/promise.h>
 #include <siri/net/promises.h>
-#include <slist/slist.h>
+#include <vec/vec.h>
 #include <siri/db/lookup.h>
 
 void siridb_pools_init(siridb_t * siridb);
@@ -41,7 +33,7 @@ void siridb_pools_send_pkg(
         void * data,
         int flags);
 void siridb_pools_send_pkg_2some(
-        slist_t * slist,
+        vec_t * vec,
         sirinet_pkg_t * pkg,
         uint64_t timeout,
         sirinet_promises_cb cb,

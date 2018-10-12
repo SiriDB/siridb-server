@@ -1,13 +1,5 @@
 /*
  * auth.c - Handle SiriDB authentication.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
  */
 #include <assert.h>
 #include <logger/logger.h>

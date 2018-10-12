@@ -1,13 +1,5 @@
 /*
- * logger.c - log module
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * logger.h - Logging module.
  */
 #include <logger/logger.h>
 #include <stdio.h>

@@ -1,13 +1,5 @@
 /*
- * client.c - Client for expanding a siridb database.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 24-03-2017
- *
+ * client.c - Client for expanding a SiriDB database.
  */
 #include <string.h>
 #include <stdarg.h>
@@ -15,8 +7,8 @@
 #include <logger/logger.h>
 #include <siri/siri.h>
 #include <siri/version.h>
-#include <siri/admin/client.h>
-#include <siri/admin/request.h>
+#include <siri/service/client.h>
+#include <siri/service/request.h>
 #include <siri/net/stream.h>
 #include <siri/net/protocol.h>
 #include <siri/net/tcp.h>
@@ -44,9 +36,9 @@ static void CLIENT_write_cb(uv_write_t * req, int status);
 static void CLIENT_on_connect(uv_connect_t * req, int status);
 static void CLIENT_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void CLIENT_request_timeout(uv_timer_t * handle);
-static void CLIENT_on_auth_success(siri_admin_client_t * adm_client);
+static void CLIENT_on_auth_success(siri_service_client_t * adm_client);
 static int CLIENT_resolve_dns(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         int ai_family,
         char * err_msg);
 static void CLIENT_on_resolved(
@@ -54,33 +46,33 @@ static void CLIENT_on_resolved(
         int status,
         struct addrinfo * res);
 static void CLIENT_err(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         const char * fmt,
         ...);
 static void CLIENT_send_pkg(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_error_msg(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
-static void CLIENT_on_register_server(siri_admin_client_t * adm_client);
+static void CLIENT_on_register_server(siri_service_client_t * adm_client);
 static void CLIENT_on_file_database(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_file_servers(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_file_groups(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_file_users(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_request_pools(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 static void CLIENT_on_request_status(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg);
 
 /*
@@ -90,7 +82,7 @@ static void CLIENT_on_request_status(
  * successful, a response will be send to the provided client using the given
  * pid.
  */
-int siri_admin_client_request(
+int siri_service_client_request(
         uint16_t pid,
         uint16_t port,
         int pool,
@@ -103,7 +95,7 @@ int siri_admin_client_request(
         sirinet_stream_t * client,
         char * err_msg)
 {
-    siri_admin_client_t * adm_client;
+    siri_service_client_t * adm_client;
     struct in_addr sa;
     struct in6_addr sa6;
 
@@ -122,7 +114,7 @@ int siri_admin_client_request(
 
     uv_tcp_init(siri.loop, (uv_tcp_t *) siri.client->stream);
 
-    adm_client = (siri_admin_client_t *) malloc(sizeof(siri_admin_client_t));
+    adm_client = (siri_service_client_t *) malloc(sizeof(siri_service_client_t));
     if (adm_client == NULL)
     {
         sirinet_stream_decref(siri.client);
@@ -227,7 +219,7 @@ int siri_admin_client_request(
 /*
  * Destroy the client request. (will be called when the socket is destroyed)
  */
-void siri_admin_client_free(siri_admin_client_t * adm_client)
+void siri_service_client_free(siri_service_client_t * adm_client)
 {
     if (adm_client != NULL)
     {
@@ -248,7 +240,7 @@ void siri_admin_client_free(siri_admin_client_t * adm_client)
  * err_msg is set.
  */
 static int CLIENT_resolve_dns(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         int ai_family,
         char * err_msg)
 {
@@ -302,7 +294,7 @@ static void CLIENT_on_resolved(
         int status,
         struct addrinfo * res)
 {
-    siri_admin_client_t * adm_client = (siri_admin_client_t *) resolver->data;
+    siri_service_client_t * adm_client = (siri_service_client_t *) resolver->data;
 
     if (status < 0)
     {
@@ -338,7 +330,7 @@ static void CLIENT_on_resolved(
  * the request. A package with the error message will be send to the client.
  */
 static void CLIENT_err(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         const char * fmt,
         ...)
 {
@@ -352,7 +344,7 @@ static void CLIENT_err(
     sirinet_pkg_t * package = sirinet_pkg_err(
             adm_client->pid,
             strlen(err_msg),
-            CPROTO_ERR_ADMIN,
+            CPROTO_ERR_SERVICE,
             err_msg);
 
     if (package != NULL)
@@ -364,7 +356,7 @@ static void CLIENT_err(
 
     if (~adm_client->flags & CLIENT_FLAGS_NO_ROLLBACK)
     {
-        siri_admin_request_rollback(adm_client->dbpath);
+        siri_service_request_rollback(adm_client->dbpath);
     }
 
     sirinet_stream_decref(siri.client);
@@ -381,7 +373,7 @@ static void CLIENT_err(
  * Note: pkg will be freed by calling this function.
  */
 static void CLIENT_send_pkg(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
@@ -422,7 +414,7 @@ static void CLIENT_send_pkg(
  */
 static void CLIENT_write_cb(uv_write_t * req, int status)
 {
-    siri_admin_client_t * adm_client = (siri_admin_client_t *)  req->data;
+    siri_service_client_t * adm_client = (siri_service_client_t *)  req->data;
 
     if (status)
     {
@@ -442,7 +434,7 @@ static void CLIENT_write_cb(uv_write_t * req, int status)
 static void CLIENT_on_connect(uv_connect_t * req, int status)
 {
     sirinet_stream_t * client = req->handle->data;
-    siri_admin_client_t * adm_client = client->origin;
+    siri_service_client_t * adm_client = client->origin;
 
     if (status == 0)
     {
@@ -497,7 +489,7 @@ static void CLIENT_on_connect(uv_connect_t * req, int status)
  */
 static void CLIENT_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    siri_admin_client_t * adm_client = client->origin;
+    siri_service_client_t * adm_client = client->origin;
     log_debug(
             "Client response received (pid: %" PRIu16
             ", len: %" PRIu32 ", tp: %s)",
@@ -598,12 +590,12 @@ static void CLIENT_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 /*
  * Called when register server was successful.
  */
-static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
+static void CLIENT_on_register_server(siri_service_client_t * adm_client)
 {
     sirinet_pkg_t * package = sirinet_pkg_new(
             adm_client->pid,
             0,
-            CPROTO_ACK_ADMIN,
+            CPROTO_ACK_SERVICE,
             NULL);
 
     if (package != NULL)
@@ -623,7 +615,7 @@ static void CLIENT_on_register_server(siri_admin_client_t * adm_client)
  * Called when database.dat is received.
  */
 static void CLIENT_on_file_database(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
@@ -713,7 +705,7 @@ static void CLIENT_on_file_database(
  * Called when servers.dat is received.
  */
 static void CLIENT_on_file_servers(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
@@ -799,7 +791,7 @@ static void CLIENT_on_file_servers(
  * Called when groups.dat is received.
  */
 static void CLIENT_on_file_groups(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
@@ -841,7 +833,7 @@ static void CLIENT_on_file_groups(
  * Called when users.dat is received.
  */
 static void CLIENT_on_file_users(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     FILE * fp;
@@ -885,7 +877,7 @@ static void CLIENT_on_file_users(
  * or checks if a given pool for a new replica is valid.
  */
 static void CLIENT_on_request_pools(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     qp_unpacker_t unpacker;
@@ -1033,7 +1025,7 @@ static void CLIENT_on_request_pools(
  * to have the running status once more)
  */
 static void CLIENT_on_request_status(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     qp_unpacker_t unpacker;
@@ -1179,7 +1171,7 @@ static void CLIENT_on_request_status(
  * Called when an error message is received.
  */
 static void CLIENT_on_error_msg(
-        siri_admin_client_t * adm_client,
+        siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
     qp_unpacker_t unpacker;
@@ -1211,7 +1203,7 @@ static void CLIENT_on_error_msg(
 /*
  * Called when authentication is successful.
  */
-static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
+static void CLIENT_on_auth_success(siri_service_client_t * adm_client)
 {
     sirinet_pkg_t * pkg;
     qp_packer_t * packer = sirinet_packer_new(512);
@@ -1236,7 +1228,7 @@ static void CLIENT_on_auth_success(siri_admin_client_t * adm_client)
  */
 static void CLIENT_request_timeout(uv_timer_t * handle)
 {
-    siri_admin_client_t * adm_client = (siri_admin_client_t *) handle->data;
+    siri_service_client_t * adm_client = (siri_service_client_t *) handle->data;
 
     adm_client->flags |= CLIENT_FLAGS_TIMEOUT;
 

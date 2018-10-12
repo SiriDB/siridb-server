@@ -1,13 +1,5 @@
 /*
- * buffer.c - Buffer for integer and double series.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 01-04-2016
- *
+ * buffer.c - Buffer for integer and double values.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -52,7 +44,7 @@ siridb_buffer_t * siridb_buffer_new(void)
     {
         return NULL;
     }
-    buffer->empty = slist_new(SLIST_DEFAULT_SIZE);
+    buffer->empty = vec_new(VEC_DEFAULT_SIZE);
     if (buffer->empty == NULL)
     {
         free(buffer);
@@ -77,7 +69,7 @@ void siridb_buffer_free(siridb_buffer_t * buffer)
     }
     free(buffer->template);
     free(buffer->path);
-    slist_free(buffer->empty);
+    vec_free(buffer->empty);
     free(buffer);
 }
 
@@ -443,7 +435,7 @@ static int buffer__use_empty(
         siridb_buffer_t * buffer,
         siridb_series_t * series)
 {
-    series->bf_offset = (long int) slist_pop(buffer->empty);
+    series->bf_offset = (long int) vec_pop(buffer->empty);
 
     if (siridb_buffer_write_empty(buffer, series))
     {
@@ -507,7 +499,7 @@ static int buffer__create_new(
 
     while ((buffer_pos -= buffer->size) > series->bf_offset)
     {
-        slist_append_safe(&buffer->empty, (void *) buffer_pos);
+        vec_append_safe(&buffer->empty, (void *) buffer_pos);
     }
 
     return 0;

@@ -1,5 +1,5 @@
 #include "../test.h"
-#include <slist/slist.h>
+#include <vec/vec.h>
 
 const unsigned int num_entries = 14;
 char * entries[] = {
@@ -21,56 +21,56 @@ char * entries[] = {
 
 int main()
 {
-    test_start("slist");
+    test_start("vec");
 
-    /* slist_append_safe */
+    /* vec_append_safe */
     {
-        slist_t * slist = slist_new(0);
-        _assert (slist->len == 0);
-        _assert (slist->size == 0);
+        vec_t * vec = vec_new(0);
+        _assert (vec->len == 0);
+        _assert (vec->size == 0);
 
         unsigned int i;
         for (i = 0; i < num_entries; i++)
         {
-            _assert (slist_append_safe(&slist, entries[i]) == 0);
+            _assert (vec_append_safe(&vec, entries[i]) == 0);
         }
 
-        /* slist_copy */
+        /* vec_copy */
         {
-            slist_t * slistcp = slist_copy(slist);
+            vec_t * veccp = vec_copy(vec);
             unsigned int i;
             for (i = 0; i < num_entries; i++)
             {
-                _assert (slistcp->data[i] == entries[i]);
+                _assert (veccp->data[i] == entries[i]);
             }
-            slist_free(slistcp);
+            vec_free(veccp);
         }
 
-        _assert (slist->len == num_entries);
-        slist_free(slist);
+        _assert (vec->len == num_entries);
+        vec_free(vec);
     }
 
-    /* slist_append */
+    /* vec_append */
     {
-        slist_t * slist = slist_new(num_entries);
-        _assert (slist->len == 0);
-        _assert (slist->size == num_entries);
+        vec_t * vec = vec_new(num_entries);
+        _assert (vec->len == 0);
+        _assert (vec->size == num_entries);
 
         unsigned int i;
         for (i = 0; i < num_entries; i++)
         {
-            slist_append(slist, entries[i]);
+            vec_append(vec, entries[i]);
         }
 
-        _assert (slist->len == num_entries);
+        _assert (vec->len == num_entries);
 
-        /* slist_pop */
+        /* vec_pop */
         for (i = num_entries; i-- > 0;)
         {
-            _assert (slist_pop(slist) == entries[i]);
+            _assert (vec_pop(vec) == entries[i]);
         }
 
-        slist_free(slist);
+        vec_free(vec);
     }
 
 

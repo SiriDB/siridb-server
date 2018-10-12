@@ -27,7 +27,7 @@ src/logger \
 src/owcrypt \
 src/procinfo \
 src/qpack \
-src/siri/admin \
+src/siri/service \
 src/siri/args \
 src/siri \
 src/siri/cfg \
@@ -36,8 +36,8 @@ src/siri/file \
 src/siri/grammar \
 src/siri/help \
 src/siri/net \
-src/slist \
-src/strextra \
+src/vec \
+src/xstr \
 src/timeit \
 src/xmath \
 src/xpath \

@@ -1,13 +1,5 @@
 /*
- * walker.h - creates enter and exit nodes
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-06-2016
- *
+ * walker.c - Creates enter and exit nodes.
  */
 #include <siri/db/walker.h>
 #include <siri/err.h>

@@ -1,12 +1,5 @@
 /*
- * args.h - SiriDB Arguments.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 16-03-2017
+ * args.h - Parse SiriDB command line arguments.
  */
 #ifndef SIRI_ARGS_H_
 #define SIRI_ARGS_H_

@@ -1,13 +1,5 @@
 /*
  * time.c - Time- and time precision functions and constants.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 09-03-2016
- *
  */
 #include <assert.h>
 #include <logger/logger.h>

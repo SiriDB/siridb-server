@@ -1,13 +1,5 @@
 /*
- * expr.c - Parse expression
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 19-04-2016
- *
+ * expr.c - For parsing expressions.
  */
 #include <stdio.h>
 #include <ctype.h>

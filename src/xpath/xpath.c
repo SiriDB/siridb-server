@@ -1,13 +1,5 @@
 /*
- * xpath.c - Path and file tools
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 15-07-2016
- *
+ * xpath.c - Path and file tools.
  */
 #include <limits.h>
 #include <logger/logger.h>

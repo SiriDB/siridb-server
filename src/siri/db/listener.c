@@ -1,13 +1,5 @@
 /*
- * listener.c - contains functions for processing queries.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
+ * listener.c - Contains functions for processing queries.
  */
 #include <assert.h>
 #include <cexpr/cexpr.h>
@@ -39,7 +31,7 @@
 #include <siri/net/protocol.h>
 #include <siri/net/clserver.h>
 #include <siri/siri.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <sys/time.h>
 
 
@@ -273,14 +265,14 @@ static void on_ack_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
-static void on_alter_xxx_response(slist_t * promises, uv_async_t * handle);
-static void on_count_xxx_response(slist_t * promises, uv_async_t * handle);
-static void on_drop_series_response(slist_t * promises, uv_async_t * handle);
-static void on_drop_shards_response(slist_t * promises, uv_async_t * handle);
-static void on_groups_response(slist_t * promises, uv_async_t * handle);
-static void on_list_xxx_response(slist_t * promises, uv_async_t * handle);
-static void on_select_response(slist_t * promises, uv_async_t * handle);
-static void on_update_xxx_response(slist_t * promises, uv_async_t * handle);
+static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle);
+static void on_count_xxx_response(vec_t * promises, uv_async_t * handle);
+static void on_drop_series_response(vec_t * promises, uv_async_t * handle);
+static void on_drop_shards_response(vec_t * promises, uv_async_t * handle);
+static void on_groups_response(vec_t * promises, uv_async_t * handle);
+static void on_list_xxx_response(vec_t * promises, uv_async_t * handle);
+static void on_select_response(vec_t * promises, uv_async_t * handle);
+static void on_update_xxx_response(vec_t * promises, uv_async_t * handle);
 
 /* helper functions */
 static void master_select_work(uv_work_t * handle);
@@ -293,7 +285,7 @@ static int items_select_master(
 static int items_select_master_merge(
         const char * name,
         size_t len,
-        slist_t * plist,
+        vec_t * plist,
         uv_async_t * handle);
 static int items_select_other(
         const char * name,
@@ -303,7 +295,7 @@ static int items_select_other(
 static int items_select_other_merge(
         const char * name,
         size_t len,
-        slist_t * plist,
+        vec_t * plist,
         uv_async_t * handle);
 static void on_select_unpack_points(
         qp_unpacker_t * unpacker,
@@ -522,7 +514,7 @@ static void enter_alter_group(uv_async_t * handle)
     siridb_group_t * group;
 
     char name[group_node->len - 1];
-    strx_extract_string(name, group_node->str, group_node->len);
+    xstr_extract_string(name, group_node->str, group_node->len);
 
     if ((group = ct_get(siridb->groups->groups, name)) == NULL)
     {
@@ -615,7 +607,7 @@ static void enter_alter_user(uv_async_t * handle)
     siridb_user_t * user;
 
     char name[user_node->len - 1];
-    strx_extract_string(name, user_node->str, user_node->len);
+    xstr_extract_string(name, user_node->str, user_node->len);
 
     if ((user = siridb_users_get_user(siridb, name, NULL)) == NULL)
     {
@@ -742,7 +734,7 @@ static void enter_grant_user(uv_async_t * handle)
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
     char username[user_node->len - 1];
-    strx_extract_string(username, user_node->str, user_node->len);
+    xstr_extract_string(username, user_node->str, user_node->len);
 
     if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
     {
@@ -787,7 +779,7 @@ static void enter_group_match(uv_async_t * handle)
     char group_name[node->len - 1];
 
     /* extract series name */
-    strx_extract_string(group_name, node->str, node->len);
+    xstr_extract_string(group_name, node->str, node->len);
 
     siridb_group_t * group =
             (siridb_group_t *) ct_get(siridb->groups->groups, group_name);
@@ -857,7 +849,7 @@ static void enter_help(uv_async_t * handle)
 
     query->free_cb = (uv_close_cb) query_help_free;
 
-    strx_split_join(query->data, ' ', '_');
+    xstr_split_join(query->data, ' ', '_');
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }
@@ -931,7 +923,7 @@ static void enter_merge_as(uv_async_t * handle)
         MEM_ERR_RET
     }
 
-    strx_extract_string(q_select->merge_as, node->str, node->len);
+    xstr_extract_string(q_select->merge_as, node->str, node->len);
 
     if (IS_MASTER && query->nodes->node->children->next->next->next != NULL)
     {
@@ -962,7 +954,7 @@ static void enter_revoke_user(uv_async_t * handle)
                 query->nodes->node->children->next->node;
     siridb_user_t * user;
     char username[user_node->len - 1];
-    strx_extract_string(username, user_node->str, user_node->len);
+    xstr_extract_string(username, user_node->str, user_node->len);
 
     if ((user = siridb_users_get_user(siridb, username, NULL)) == NULL)
     {
@@ -1096,7 +1088,7 @@ static void enter_set_name(uv_async_t * handle)
                 query->nodes->node->children->next->next->node;
 
     char name[name_node->len - 1];
-    strx_extract_string(name, name_node->str, name_node->len);
+    xstr_extract_string(name, name_node->str, name_node->len);
 
     query_alter_t * q_alter = (query_alter_t *) query->data;
     switch (q_alter->alter_tp)
@@ -1142,7 +1134,7 @@ static void enter_set_password(uv_async_t * handle)
             query->nodes->node->children->next->next->node;
 
     char password[pw_node->len - 1];
-    strx_extract_string(password, pw_node->str, pw_node->len);
+    xstr_extract_string(password, pw_node->str, pw_node->len);
 
     if (siridb_user_set_password(user, password, query->err_msg))
     {
@@ -1165,7 +1157,7 @@ static void enter_series_name(uv_async_t * handle)
     char series_name[node->len - 1];
 
     /* extract series name */
-    strx_extract_string(series_name, node->str, node->len);
+    xstr_extract_string(series_name, node->str, node->len);
 
     if (siridb_is_reindexing(siridb))
     {
@@ -1328,7 +1320,7 @@ static void enter_series_all(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    q_wrapper->slist = imap_2slist_ref(
+    q_wrapper->vec = imap_2vec_ref(
             (   q_wrapper->update_cb == NULL ||
                 q_wrapper->update_cb == &imap_union_ref ||
                 q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
@@ -1339,25 +1331,25 @@ static void enter_series_all(uv_async_t * handle)
     q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
             q_wrapper->series_map : imap_new();
 
-    if (q_wrapper->slist == NULL || q_wrapper->series_tmp == NULL)
+    if (q_wrapper->vec == NULL || q_wrapper->series_tmp == NULL)
     {
         MEM_ERR_RET
     }
 
-    for (q_wrapper->slist_index = 0;
-         q_wrapper->slist_index < q_wrapper->slist->len;
-         ++q_wrapper->slist_index)
+    for (q_wrapper->vec_index = 0;
+         q_wrapper->vec_index < q_wrapper->vec->len;
+         ++q_wrapper->vec_index)
     {
-        series = q_wrapper->slist->data[q_wrapper->slist_index];
+        series = q_wrapper->vec->data[q_wrapper->vec_index];
         if (imap_add(q_wrapper->series_tmp, series->id, series))
         {
             MEM_ERR_RET
         }
     }
 
-    slist_free(q_wrapper->slist);
-    q_wrapper->slist = NULL;
-    q_wrapper->slist_index = 0;
+    vec_free(q_wrapper->vec);
+    q_wrapper->vec = NULL;
+    q_wrapper->vec_index = 0;
 
     if (q_wrapper->update_cb != NULL)
     {
@@ -1399,7 +1391,7 @@ static void enter_series_re(uv_async_t * handle)
     {
         uv_mutex_lock(&siridb->series_mutex);
 
-        q_wrapper->slist = imap_2slist_ref(
+        q_wrapper->vec = imap_2vec_ref(
                 (   q_wrapper->update_cb == NULL ||
                     q_wrapper->update_cb == &imap_union_ref ||
                     q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
@@ -1410,7 +1402,7 @@ static void enter_series_re(uv_async_t * handle)
         q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
                 q_wrapper->series_map : imap_new();
 
-        if (q_wrapper->slist == NULL || q_wrapper->series_tmp == NULL)
+        if (q_wrapper->vec == NULL || q_wrapper->series_tmp == NULL)
         {
             MEM_ERR_RET
         }
@@ -1504,7 +1496,7 @@ static void enter_xxx_columns(uv_async_t * handle)
     cleri_children_t * columns = query->nodes->node->children;
     query_list_t * qlist = (query_list_t *) query->data;
 
-    qlist->props = slist_new(DEFAULT_ALLOC_COLUMNS);
+    qlist->props = vec_new(DEFAULT_ALLOC_COLUMNS);
 
     if (qlist->props == NULL)
     {
@@ -1518,7 +1510,7 @@ static void enter_xxx_columns(uv_async_t * handle)
                 (const unsigned char *) columns->node->str,
                 columns->node->len);
 
-        if (slist_append_safe(
+        if (vec_append_safe(
                 &qlist->props,
                 &columns->node->children->node->cl_obj->gid))
         {
@@ -1786,13 +1778,13 @@ static void exit_count_series(uv_async_t * handle)
     {
         uv_mutex_lock(&siridb->series_mutex);
 
-        q_count->slist = imap_2slist_ref(
+        q_count->vec = imap_2vec_ref(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        if (q_count->slist == NULL)
+        if (q_count->vec == NULL)
         {
             MEM_ERR_RET
         }
@@ -1829,28 +1821,28 @@ static void exit_count_series_length(uv_async_t * handle)
     if (q_count->where_expr == NULL)
     {
         size_t i;
-        slist_t * slist;
+        vec_t * vec;
         siridb_series_t * series;
 
         uv_mutex_lock(&siridb->series_mutex);
 
-        slist = imap_2slist((q_count->series_map == NULL) ?
+        vec = imap_2vec((q_count->series_map == NULL) ?
                 siridb->series_map : q_count->series_map);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        if (slist == NULL)
+        if (vec == NULL)
         {
             MEM_ERR_RET
         }
 
-        for (i = 0; i < slist->len; i++)
+        for (i = 0; i < vec->len; i++)
         {
-            series = (siridb_series_t *) slist->data[i];
+            series = (siridb_series_t *) vec->data[i];
             q_count->n += series->length;
         }
 
-        slist_free(slist);
+        vec_free(vec);
 
         if (IS_MASTER)
         {
@@ -1873,13 +1865,13 @@ static void exit_count_series_length(uv_async_t * handle)
 
         uv_mutex_lock(&siridb->series_mutex);
 
-        q_count->slist = imap_2slist_ref(
+        q_count->vec = imap_2vec_ref(
                 (q_count->series_map == NULL) ?
                         siridb->series_map : q_count->series_map);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        if (q_count->slist == NULL)
+        if (q_count->vec == NULL)
         {
             MEM_ERR_RET
         }
@@ -2046,11 +2038,11 @@ static void exit_count_shards(uv_async_t * handle)
                 .server=siridb->server
         };
         size_t i;
-        slist_t * shards_list;
+        vec_t * shards_list;
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        shards_list = imap_2slist_ref(siridb->shards);
+        shards_list = imap_2vec_ref(siridb->shards);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2080,7 +2072,7 @@ static void exit_count_shards(uv_async_t * handle)
             siridb_shard_decref(vshard.shard);
         }
 
-        slist_free(shards_list);
+        vec_free(shards_list);
     }
 
     if (IS_MASTER)
@@ -2105,7 +2097,7 @@ static void exit_count_shards_size(uv_async_t * handle)
     query_count_t * q_count = (query_count_t *) query->data;
     uint64_t duration;
     size_t i;
-    slist_t * shards_list;
+    vec_t * shards_list;
     siridb_shard_view_t vshard = {
             .server=siridb->server
     };
@@ -2114,7 +2106,7 @@ static void exit_count_shards_size(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2slist_ref(siridb->shards);
+    shards_list = imap_2vec_ref(siridb->shards);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2144,7 +2136,7 @@ static void exit_count_shards_size(uv_async_t * handle)
         siridb_shard_decref(vshard.shard);
     }
 
-    slist_free(shards_list);
+    vec_free(shards_list);
 
     if (IS_MASTER)
     {
@@ -2199,7 +2191,7 @@ static void exit_create_group(uv_async_t * handle)
     MASTER_CHECK_ACCESSIBLE(siridb)
 
     char group_name[name_nd->len - 1];
-    strx_extract_string(group_name, name_nd->str, name_nd->len);
+    xstr_extract_string(group_name, name_nd->str, name_nd->len);
 
     if (siridb_groups_add_group(
             siridb->groups,
@@ -2263,7 +2255,7 @@ static void exit_create_user(uv_async_t * handle)
     MASTER_CHECK_ACCESSIBLE(siridb)
 
     char name[user_node->len - 1];
-    strx_extract_string(name, user_node->str, user_node->len);
+    xstr_extract_string(name, user_node->str, user_node->len);
 
     if (siridb_user_set_name(
             siridb,
@@ -2324,7 +2316,7 @@ static void exit_drop_group(uv_async_t * handle)
 
     char name[group_node->len - 1];
 
-    strx_extract_string(name, group_node->str, group_node->len);
+    xstr_extract_string(name, group_node->str, group_node->len);
 
     if (siridb_groups_drop_group(siridb->groups, name, query->err_msg))
     {
@@ -2360,18 +2352,18 @@ static void exit_drop_series(uv_async_t * handle)
     MASTER_CHECK_ACCESSIBLE(siridb)
 
     /*
-     * We transform or copy the references from imap to slist because we need
+     * We transform or copy the references from imap to vec because we need
      * this list for both filtering or performing the actual drop.
      */
     uv_mutex_lock(&siridb->series_mutex);
 
-    q_drop->slist = (q_drop->series_map == NULL) ?
-        imap_2slist_ref(siridb->series_map) :
-        imap_slist_pop(q_drop->series_map);
+    q_drop->vec = (q_drop->series_map == NULL) ?
+        imap_2vec_ref(siridb->series_map) :
+        imap_vec_pop(q_drop->series_map);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
-    if (q_drop->slist == NULL)
+    if (q_drop->vec == NULL)
     {
         MEM_ERR_RET
     }
@@ -2419,10 +2411,10 @@ static void exit_drop_series(uv_async_t * handle)
     else
     {
         double percent = (double)
-                q_drop->slist->len / siridb->series_map->len;
+                q_drop->vec->len / siridb->series_map->len;
 
         if (IS_MASTER &&
-            q_drop->slist->len &&
+            q_drop->vec->len &&
             (~q_drop->flags & QUERIES_IGNORE_DROP_THRESHOLD) &&
             percent >= siridb->drop_threshold)
         {
@@ -2440,7 +2432,7 @@ static void exit_drop_series(uv_async_t * handle)
         {
             QP_ADD_SUCCESS
 
-            q_drop->n = q_drop->slist->len;
+            q_drop->n = q_drop->vec->len;
 
             uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
 
@@ -2541,7 +2533,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    q_drop->shards_list = imap_2slist_ref(siridb->shards);
+    q_drop->shards_list = imap_2vec_ref(siridb->shards);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2643,7 +2635,7 @@ static void exit_drop_user(uv_async_t * handle)
             query->nodes->node->children->next->node;
     char username[user_node->len - 1];
 
-    strx_extract_string(username, user_node->str, user_node->len);
+    xstr_extract_string(username, user_node->str, user_node->len);
 
     if (siridb_users_drop_user(
             siridb,
@@ -2824,16 +2816,16 @@ static void exit_list_pools(uv_async_t * handle)
 
     if (q_list->props == NULL)
     {
-        q_list->props = slist_new(3);
+        q_list->props = vec_new(3);
 
         if (q_list->props == NULL)
         {
             MEM_ERR_RET
         }
 
-        slist_append(q_list->props, &GID_K_POOL);
-        slist_append(q_list->props, &GID_K_SERVERS);
-        slist_append(q_list->props, &GID_K_SERIES);
+        vec_append(q_list->props, &GID_K_POOL);
+        vec_append(q_list->props, &GID_K_SERVERS);
+        vec_append(q_list->props, &GID_K_SERIES);
         qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
         qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
         qp_add_raw(query->packer, (const unsigned char *) "series", 6);
@@ -2897,14 +2889,14 @@ static void exit_list_series(uv_async_t * handle)
 
     if (q_list->props == NULL)
     {
-        q_list->props = slist_new(1);
+        q_list->props = vec_new(1);
 
         if (q_list->props == NULL)
         {
             MEM_ERR_RET
         }
 
-        slist_append(q_list->props, &GID_K_NAME);
+        vec_append(q_list->props, &GID_K_NAME);
         qp_add_raw(query->packer, (const unsigned char *) "name", 4);
     }
 
@@ -2915,12 +2907,12 @@ static void exit_list_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    q_list->slist = imap_2slist_ref((q_list->series_map == NULL) ?
+    q_list->vec = imap_2vec_ref((q_list->series_map == NULL) ?
                     siridb->series_map : q_list->series_map);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
-    if (q_list->slist == NULL)
+    if (q_list->vec == NULL)
     {
         MEM_ERR_RET;
     }
@@ -2975,18 +2967,18 @@ static void exit_list_servers(uv_async_t * handle)
 
     if (q_list->props == NULL)
     {
-        q_list->props = slist_new(5);
+        q_list->props = vec_new(5);
 
         if (q_list->props == NULL)
         {
             MEM_ERR_RET
         }
 
-        slist_append(q_list->props, &GID_K_NAME);
-        slist_append(q_list->props, &GID_K_POOL);
-        slist_append(q_list->props, &GID_K_VERSION);
-        slist_append(q_list->props, &GID_K_ONLINE);
-        slist_append(q_list->props, &GID_K_STATUS);
+        vec_append(q_list->props, &GID_K_NAME);
+        vec_append(q_list->props, &GID_K_POOL);
+        vec_append(q_list->props, &GID_K_VERSION);
+        vec_append(q_list->props, &GID_K_ONLINE);
+        vec_append(q_list->props, &GID_K_STATUS);
         qp_add_raw(query->packer, (const unsigned char *) "name", 4);
         qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
         qp_add_raw(query->packer, (const unsigned char *) "version", 7);
@@ -3041,11 +3033,11 @@ static void exit_list_shards(uv_async_t * handle)
             .server=siridb->server
     };
     size_t i;
-    slist_t * shards_list;
+    vec_t * shards_list;
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2slist_ref(siridb->shards);
+    shards_list = imap_2vec_ref(siridb->shards);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -3056,18 +3048,18 @@ static void exit_list_shards(uv_async_t * handle)
 
     if (q_list->props == NULL)
     {
-        q_list->props = slist_new(5);
+        q_list->props = vec_new(5);
 
         if (q_list->props == NULL)
         {
             MEM_ERR_RET
         }
 
-        slist_append(q_list->props, &GID_K_SID);
-        slist_append(q_list->props, &GID_K_POOL);
-        slist_append(q_list->props, &GID_K_SERVER);
-        slist_append(q_list->props, &GID_K_START);
-        slist_append(q_list->props, &GID_K_END);
+        vec_append(q_list->props, &GID_K_SID);
+        vec_append(q_list->props, &GID_K_POOL);
+        vec_append(q_list->props, &GID_K_SERVER);
+        vec_append(q_list->props, &GID_K_START);
+        vec_append(q_list->props, &GID_K_END);
         qp_add_raw(query->packer, (const unsigned char *) "sid", 3);
         qp_add_raw(query->packer, (const unsigned char *) "pool", 4);
         qp_add_raw(query->packer, (const unsigned char *) "server", 6);
@@ -3144,7 +3136,7 @@ static void exit_list_shards(uv_async_t * handle)
         siridb_shard_decref(vshard.shard);
     }
 
-    slist_free(shards_list);
+    vec_free(shards_list);
 
     if (IS_MASTER && q_list->limit)
     {
@@ -3169,7 +3161,7 @@ static void exit_list_users(uv_async_t * handle)
     siridb_t * siridb = query->client->siridb;
 
     llist_node_t * node = siridb->users->first;
-    slist_t * props = ((query_list_t *) query->data)->props;
+    vec_t * props = ((query_list_t *) query->data)->props;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_user_cexpr_cb;
     query_list_t * q_list = (query_list_t *) query->data;
     cexpr_t * where_expr = q_list->where_expr;
@@ -3299,10 +3291,10 @@ static void exit_select_aggregate(uv_async_t * handle)
 
     if (q_select->where_expr != NULL)
     {
-        /* we transform the references from imap to slist */
-        q_select->slist = imap_slist_pop(q_select->series_map);
+        /* we transform the references from imap to vec */
+        q_select->vec = imap_vec_pop(q_select->series_map);
 
-        if (q_select->slist == NULL)
+        if (q_select->vec == NULL)
         {
             MEM_ERR_RET
         }
@@ -3357,7 +3349,7 @@ static void exit_select_aggregate(uv_async_t * handle)
         {
             if (q_select->merge_as != NULL)
             {
-                slist_t * plist = slist_new(SLIST_DEFAULT_SIZE);
+                vec_t * plist = vec_new(VEC_DEFAULT_SIZE);
 
                 if (plist == NULL || ct_add(
                         q_select->result,
@@ -3370,7 +3362,7 @@ static void exit_select_aggregate(uv_async_t * handle)
                     sprintf(query->err_msg,
                             "Error while merging points. Make sure the "
                             "destination series name is valid.");
-                    slist_free(plist);
+                    vec_free(plist);
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                     return;
                 }
@@ -3386,9 +3378,9 @@ static void exit_select_aggregate(uv_async_t * handle)
                     siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                     return;
                 }
-                q_select->slist = imap_2slist_ref(q_select->series_map);
+                q_select->vec = imap_2vec_ref(q_select->series_map);
 
-                if (q_select->slist == NULL)
+                if (q_select->vec == NULL)
                 {
                     MEM_ERR_RET
                 }
@@ -3514,7 +3506,7 @@ static void exit_set_address(uv_async_t * handle)
     }
 
     char address[node->len - 1];
-    strx_extract_string(address, node->str, node->len);
+    xstr_extract_string(address, node->str, node->len);
 
     int rc;
     rc = siridb_server_update_address(siridb, server, address, server->port);
@@ -3651,7 +3643,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    double drop_threshold = strx_to_double(node->str, node->len);
+    double drop_threshold = xstr_to_double(node->str, node->len);
 
     if (drop_threshold < 0.0 || drop_threshold > 1.0)
     {
@@ -3713,7 +3705,7 @@ static void exit_set_list_limit(uv_async_t * handle)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    uint64_t limit = strx_to_uint64(node->str, node->len);
+    uint64_t limit = xstr_to_uint64(node->str, node->len);
 
     if (limit < 1000 || limit >= 4294967296)
     {
@@ -3923,7 +3915,7 @@ static void exit_set_port(uv_async_t * handle)
     }
 
 
-    uint64_t port = strx_to_uint64(node->str, node->len);
+    uint64_t port = xstr_to_uint64(node->str, node->len);
 
     if (port > 65535)
     {
@@ -3971,7 +3963,7 @@ static void exit_set_select_points_limit(uv_async_t * handle)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    uint64_t limit = strx_to_uint64(node->str, node->len);
+    uint64_t limit = xstr_to_uint64(node->str, node->len);
 
     if (limit < 1 || limit >= 4294967296)
     {
@@ -4033,7 +4025,7 @@ static void exit_set_timezone(uv_async_t * handle)
     MASTER_CHECK_ACCESSIBLE(siridb)
 
     char timezone[node->len - 1];
-    strx_extract_string(timezone, node->str, node->len);
+    xstr_extract_string(timezone, node->str, node->len);
 
     iso8601_tz_t new_tz = iso8601_tz(timezone);
 
@@ -4207,20 +4199,20 @@ static void async_count_series(uv_async_t * handle)
     query_count_t * q_count = (query_count_t *) query->data;
     uint8_t async_more = 0;
 
-    size_t index_end = q_count->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_count->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_count->slist->len)
+    if (index_end >= q_count->vec->len)
     {
-        index_end = q_count->slist->len;
+        index_end = q_count->vec->len;
     }
     else
     {
         async_more = 1;
     }
 
-    for (; q_count->slist_index < index_end; q_count->slist_index++)
+    for (; q_count->vec_index < index_end; q_count->vec_index++)
     {
-        series = (siridb_series_t *) q_count->slist->data[q_count->slist_index];
+        series = (siridb_series_t *) q_count->vec->data[q_count->vec_index];
         q_count->n += cexpr_run(
                     q_count->where_expr,
                     (cexpr_cb_t) siridb_series_cexpr_cb,
@@ -4255,20 +4247,20 @@ static void async_count_series_length(uv_async_t * handle)
     query_count_t * q_count = (query_count_t *) query->data;
     uint8_t async_more = 0;
 
-    size_t index_end = q_count->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_count->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_count->slist->len)
+    if (index_end >= q_count->vec->len)
     {
-        index_end = q_count->slist->len;
+        index_end = q_count->vec->len;
     }
     else
     {
         async_more = 1;
     }
 
-    for (; q_count->slist_index < index_end; q_count->slist_index++)
+    for (; q_count->vec_index < index_end; q_count->vec_index++)
     {
-        series = (siridb_series_t *) q_count->slist->data[q_count->slist_index];
+        series = (siridb_series_t *) q_count->vec->data[q_count->vec_index];
 
         if (cexpr_run(
                 q_count->where_expr,
@@ -4310,11 +4302,11 @@ static void async_drop_series(uv_async_t * handle)
     siridb_series_t * series;
     uint8_t async_more = 0;
 
-    size_t index_end = q_drop->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_drop->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_drop->slist->len)
+    if (index_end >= q_drop->vec->len)
     {
-        index_end = q_drop->slist->len;
+        index_end = q_drop->vec->len;
     }
     else
     {
@@ -4323,9 +4315,9 @@ static void async_drop_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    for (; q_drop->slist_index < index_end; q_drop->slist_index++)
+    for (; q_drop->vec_index < index_end; q_drop->vec_index++)
     {
-        series = (siridb_series_t *) q_drop->slist->data[q_drop->slist_index];
+        series = (siridb_series_t *) q_drop->vec->data[q_drop->vec_index];
         siridb_series_drop(siridb, series);
         siridb_series_decref(series);
     }
@@ -4333,7 +4325,7 @@ static void async_drop_series(uv_async_t * handle)
     uv_mutex_unlock(&siridb->series_mutex);
 
     /* flush dropped file change to disk */
-    if (q_drop->slist->len)
+    if (q_drop->vec->len)
     {
         siridb_series_flush_dropped(siridb);
     }
@@ -4366,7 +4358,7 @@ static void async_drop_shards(uv_async_t * handle)
 
     if (q_drop->shards_list->len)
     {
-        siridb_shard_t * shard = (siridb_shard_t *) slist_pop(
+        siridb_shard_t * shard = (siridb_shard_t *) vec_pop(
                 q_drop->shards_list);
 
         siridb_shard_drop(
@@ -4401,21 +4393,21 @@ static void async_filter_series(uv_async_t * handle)
     cexpr_t * where_expr = q_wrapper->where_expr;
     uint8_t async_more = 0;
     siridb_series_t * series;
-    size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_wrapper->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_wrapper->slist->len)
+    if (index_end >= q_wrapper->vec->len)
     {
-        index_end = q_wrapper->slist->len;
+        index_end = q_wrapper->vec->len;
     }
     else
     {
         async_more = 1;
     }
 
-    for (; q_wrapper->slist_index < index_end; q_wrapper->slist_index++)
+    for (; q_wrapper->vec_index < index_end; q_wrapper->vec_index++)
     {
         series = (siridb_series_t *)
-                q_wrapper->slist->data[q_wrapper->slist_index];
+                q_wrapper->vec->data[q_wrapper->vec_index];
 
         if (cexpr_run(
                 where_expr,
@@ -4441,10 +4433,10 @@ static void async_filter_series(uv_async_t * handle)
     else
     {
         /* free the s-list object and reset index */
-        slist_free(q_wrapper->slist);
+        vec_free(q_wrapper->vec);
 
-        q_wrapper->slist = NULL;
-        q_wrapper->slist_index = 0;
+        q_wrapper->vec = NULL;
+        q_wrapper->vec_index = 0;
 
         /* cleanup where statement since we do not need it anymore */
         cexpr_free(q_wrapper->where_expr);
@@ -4470,26 +4462,26 @@ static void async_list_series(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
-    slist_t * props = q_list->props;
+    vec_t * props = q_list->props;
     cexpr_t * where_expr = q_list->where_expr;
     uint8_t async_more = 0;
     siridb_series_t * series;
     size_t i;
-    size_t index_end = q_list->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_list->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_list->slist->len)
+    if (index_end >= q_list->vec->len)
     {
-        index_end = q_list->slist->len;
+        index_end = q_list->vec->len;
     }
     else
     {
         async_more = 1;
     }
 
-    for (;  q_list->limit && q_list->slist_index < index_end;
-            q_list->slist_index++)
+    for (;  q_list->limit && q_list->vec_index < index_end;
+            q_list->vec_index++)
     {
-        series = (siridb_series_t *) q_list->slist->data[q_list->slist_index];
+        series = (siridb_series_t *) q_list->vec->data[q_list->vec_index];
 
         if (where_expr == NULL || cexpr_run(
                     where_expr,
@@ -4569,8 +4561,8 @@ static void async_no_points_aggregate(uv_async_t * handle)
     siridb_points_t * aggr_points;
     int required_shard = 0;
 
-    for (;  q_select->slist_index < q_select->slist->len;
-            ++q_select->slist_index)
+    for (;  q_select->vec_index < q_select->vec->len;
+            ++q_select->vec_index)
     {
         if (required_shard > MAX_BATCH_REQUIRE_SHARD)
         {
@@ -4579,7 +4571,7 @@ static void async_no_points_aggregate(uv_async_t * handle)
         }
 
         series = (siridb_series_t *)
-                q_select->slist->data[q_select->slist_index];
+                q_select->vec->data[q_select->vec_index];
         /*
          * We must decrement the ref count immediately since the index is
          * incremented by one. The series will not be freed since at least
@@ -4657,18 +4649,18 @@ static void async_no_points_aggregate(uv_async_t * handle)
             }
             else
             {
-                slist_t ** plist;
+                vec_t ** plist;
 
                 name = siridb_presuf_name(
                         q_select->presuf,
                         q_select->merge_as,
                         strlen(q_select->merge_as));
 
-                plist = (slist_t **) ct_getaddr(q_select->result, name);
+                plist = (vec_t **) ct_getaddr(q_select->result, name);
 
                 if (    name == NULL ||
                         plist == NULL ||
-                        slist_append_safe(plist, points))
+                        vec_append_safe(plist, points))
                 {
                     sprintf(query->err_msg, "Error adding points to map.");
                     siridb_points_free(points);
@@ -4689,9 +4681,9 @@ static void async_no_points_aggregate(uv_async_t * handle)
         siridb_aggregate_list_free(q_select->alist);
         q_select->alist = NULL;
 
-        slist_free(q_select->slist);
-        q_select->slist = NULL;
-        q_select->slist_index = 0;
+        vec_free(q_select->vec);
+        q_select->vec = NULL;
+        q_select->vec_index = 0;
 
         SIRIPARSER_ASYNC_NEXT_NODE
     }
@@ -4722,7 +4714,7 @@ static void async_select_aggregate(uv_async_t * handle)
     }
 
     series = (siridb_series_t *)
-            q_select->slist->data[q_select->slist_index];
+            q_select->vec->data[q_select->vec_index];
 
     /*
      * We must decrement the ref count immediately since we now update the
@@ -4731,7 +4723,7 @@ static void async_select_aggregate(uv_async_t * handle)
      */
     siridb_series_decref(series);
 
-    if ((++q_select->slist_index) < q_select->slist->len)
+    if ((++q_select->vec_index) < q_select->vec->len)
     {
         async_more = 1;
     }
@@ -4816,18 +4808,18 @@ static void async_select_aggregate(uv_async_t * handle)
         }
         else
         {
-            slist_t ** plist;
+            vec_t ** plist;
 
             name = siridb_presuf_name(
                     q_select->presuf,
                     q_select->merge_as,
                     strlen(q_select->merge_as));
 
-            plist = (slist_t **) ct_getaddr(q_select->result, name);
+            plist = (vec_t **) ct_getaddr(q_select->result, name);
 
             if (    name == NULL ||
                     plist == NULL ||
-                    slist_append_safe(plist, points))
+                    vec_append_safe(plist, points))
             {
                 sprintf(query->err_msg, "Error adding points to map.");
                 siridb_points_free(points);
@@ -4847,9 +4839,9 @@ static void async_select_aggregate(uv_async_t * handle)
         siridb_aggregate_list_free(q_select->alist);
         q_select->alist = NULL;
 
-        slist_free(q_select->slist);
-        q_select->slist = NULL;
-        q_select->slist_index = 0;
+        vec_free(q_select->vec);
+        q_select->vec = NULL;
+        q_select->vec_index = 0;
 
         SIRIPARSER_ASYNC_NEXT_NODE
     }
@@ -4861,11 +4853,11 @@ static void async_series_re(uv_async_t * handle)
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
     uint8_t async_more = 0;
     siridb_series_t * series;
-    size_t index_end = q_wrapper->slist_index + MAX_ITERATE_COUNT;
+    size_t index_end = q_wrapper->vec_index + MAX_ITERATE_COUNT;
 
-    if (index_end >= q_wrapper->slist->len)
+    if (index_end >= q_wrapper->vec->len)
     {
-        index_end = q_wrapper->slist->len;
+        index_end = q_wrapper->vec->len;
     }
     else
     {
@@ -4874,10 +4866,10 @@ static void async_series_re(uv_async_t * handle)
 
     int pcre_exec_ret;
 
-    for (; q_wrapper->slist_index < index_end; q_wrapper->slist_index++)
+    for (; q_wrapper->vec_index < index_end; q_wrapper->vec_index++)
     {
         series = (siridb_series_t *)
-                q_wrapper->slist->data[q_wrapper->slist_index];
+                q_wrapper->vec->data[q_wrapper->vec_index];
 
         pcre_exec_ret = pcre2_match(
                 q_wrapper->regex,
@@ -4901,7 +4893,7 @@ static void async_series_re(uv_async_t * handle)
     else
     {
         /* free the s-list object and reset index */
-        slist_free(q_wrapper->slist);
+        vec_free(q_wrapper->vec);
 
         pcre2_code_free(q_wrapper->regex);
         pcre2_match_data_free(q_wrapper->match_data);
@@ -4909,8 +4901,8 @@ static void async_series_re(uv_async_t * handle)
         q_wrapper->regex = NULL;
         q_wrapper->match_data = NULL;
 
-        q_wrapper->slist = NULL;
-        q_wrapper->slist_index = 0;
+        q_wrapper->vec = NULL;
+        q_wrapper->vec_index = 0;
 
         if (q_wrapper->update_cb != NULL)
         {
@@ -4990,7 +4982,7 @@ static void on_ack_response(
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_alter_xxx_response(slist_t * promises, uv_async_t * handle)
+static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5059,7 +5051,7 @@ static void on_alter_xxx_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
+static void on_count_xxx_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5130,7 +5122,7 @@ static void on_count_xxx_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
+static void on_drop_series_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5186,7 +5178,7 @@ static void on_drop_series_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
+static void on_drop_shards_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5242,7 +5234,7 @@ static void on_drop_shards_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_groups_response(slist_t * promises, uv_async_t * handle)
+static void on_groups_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5304,7 +5296,7 @@ static void on_groups_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
+static void on_list_xxx_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5386,7 +5378,7 @@ static void on_list_xxx_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_select_response(slist_t * promises, uv_async_t * handle)
+static void on_select_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5562,7 +5554,7 @@ static void on_select_response(slist_t * promises, uv_async_t * handle)
  *
  * Make sure to run siri_async_incref() on the handle
  */
-static void on_update_xxx_response(slist_t * promises, uv_async_t * handle)
+static void on_update_xxx_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
@@ -5705,7 +5697,7 @@ static int items_select_master(
 static int items_select_master_merge(
         const char * name,
         size_t len,
-        slist_t * plist,
+        vec_t * plist,
         uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -5728,7 +5720,7 @@ static int items_select_master_merge(
         }
         break;
     case 1:
-        points = slist_pop(plist);
+        points = vec_pop(plist);
         break;
     default:
         points = siridb_points_merge(plist, query->err_msg);
@@ -5811,7 +5803,7 @@ static int items_select_other(
 static int items_select_other_merge(
         const char * name,
         size_t len,
-        slist_t * plist,
+        vec_t * plist,
         uv_async_t * handle)
 {
     size_t i;
@@ -5905,7 +5897,7 @@ static void on_select_unpack_merged_points(
             qp_is_raw_term(qp_name) &&
             qp_is_array(qp_next(unpacker, NULL)))
     {
-        slist_t ** plist = (slist_t **) ct_getaddr(
+        vec_t ** plist = (vec_t **) ct_getaddr(
                 q_select->result,
                 (const char *) qp_name->via.raw);
 
@@ -5944,7 +5936,7 @@ static void on_select_unpack_merged_points(
                     memcpy(points->data, qp_points->via.raw, qp_points->len);
                 }
 
-                if (slist_append_safe(plist, points))
+                if (vec_append_safe(plist, points))
                 {
                     siridb_points_free(points);
                 }
@@ -5964,7 +5956,7 @@ static int values_list_groups(siridb_group_t * group, uv_async_t * handle)
     siridb_query_t * query = (siridb_query_t *) handle->data;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_group_cexpr_cb;
-    slist_t * props = ((query_list_t *) query->data)->props;
+    vec_t * props = ((query_list_t *) query->data)->props;
 
     if (where_expr == NULL || cexpr_run(where_expr, cb, group))
     {
@@ -6005,12 +5997,12 @@ static void finish_list_groups(uv_async_t * handle)
 
     if (q_list->props == NULL)
     {
-        q_list->props = slist_new(1);
+        q_list->props = vec_new(1);
         if (q_list->props == NULL)
         {
             MEM_ERR_RET
         }
-        slist_append(q_list->props, &GID_K_NAME);
+        vec_append(q_list->props, &GID_K_NAME);
         qp_add_raw(query->packer, (const unsigned char *) "name", 4);
     }
 

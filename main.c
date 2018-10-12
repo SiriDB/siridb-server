@@ -1,12 +1,10 @@
 /*
  * main.c - SiriDB.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
+ * author/maintainer : Jeroen van der Heijden <jeroen@transceptor.technology>
+ * contributors      : https://github.com/SiriDB/siridb-server/contributors
+ * home page         : https://siridb.net
+ * copyright         : 2018, Transceptor Technology
  *
  */
 #include <locale.h>

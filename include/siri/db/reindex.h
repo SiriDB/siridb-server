@@ -1,13 +1,19 @@
 /*
  * reindex.h - SiriDB Re-index.
  *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
+ * Differences while re-indexing:
  *
- * changes
- *  - initial version, 27-07-2016
+ *  - Group information like number of series will be updated at a lower
+ *    interval which leads to probably incorrect number of series per group.
+ *    Selections for series in a group or a list of series per group are still
+ *    correct and can only lack of brand new series. (newer than 30 seconds)
  *
+ *  - Selecting an unknown series usually raises a QueryError but we do not
+ *    raise this error during re-indexing since the series might be in either
+ *    the old- or new pool. (selecting series during re-indexing has therefore
+ *    the same behavior as a regular expression selection)
+ *
+ *  - Drop server is not allowed while re-indexing.
  */
 #ifndef SIRIDB_REINDEX_H_
 #define SIRIDB_REINDEX_H_

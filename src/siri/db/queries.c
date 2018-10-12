@@ -1,13 +1,5 @@
 /*
- * queries.c - Querie helpers for listener
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 03-05-2016
- *
+ * queries.c - Query helpers for listener.
  */
 #include <assert.h>
 #include <logger/logger.h>
@@ -24,8 +16,8 @@
 q->flags = 0;                       \
 q->series_map = NULL;               \
 q->series_tmp = NULL;               \
-q->slist = NULL;                    \
-q->slist_index = 0;                 \
+q->vec = NULL;                    \
+q->vec_index = 0;                 \
 q->pmap = NULL;                     \
 q->update_cb = NULL;                \
 q->where_expr = NULL;               \
@@ -46,15 +38,15 @@ if (q->series_tmp != NULL)                                      \
             q->series_tmp,                                      \
             (imap_free_cb) &siridb__series_decref);             \
 }                                                               \
-if (q->slist != NULL)                                           \
+if (q->vec != NULL)                                           \
 {                                                               \
     siridb_series_t * series;                                   \
-    for (; q->slist_index < q->slist->len; q->slist_index++)    \
+    for (; q->vec_index < q->vec->len; q->vec_index++)    \
     {                                                                   \
-        series = (siridb_series_t *) q->slist->data[q->slist_index];    \
+        series = (siridb_series_t *) q->vec->data[q->vec_index];    \
         siridb_series_decref(series);                                   \
     }                                                                   \
-    slist_free(q->slist);                                       \
+    vec_free(q->vec);                                       \
 }                                                               \
 if (q->where_expr != NULL)                                      \
 {                                                               \
@@ -69,7 +61,7 @@ pcre2_match_data_free(q->match_data);                           \
 free(q);                                                        \
 siridb_query_free(handle);
 
-static void QUERIES_free_merge_result(slist_t * plist);
+static void QUERIES_free_merge_result(vec_t * plist);
 
 query_select_t * query_select_new(void)
 {
@@ -225,11 +217,11 @@ void query_drop_free(uv_handle_t * handle)
         siridb_shard_t * shard;
         while (q_drop->shards_list->len)
         {
-            shard = (siridb_shard_t *) slist_pop(q_drop->shards_list);
+            shard = (siridb_shard_t *) vec_pop(q_drop->shards_list);
             siridb_shard_decref(shard);
         }
 
-        slist_free(q_drop->shards_list);
+        vec_free(q_drop->shards_list);
     }
 
     QUERIES_FREE(q_drop, handle)
@@ -242,7 +234,7 @@ void query_list_free(uv_handle_t * handle)
 
     if (q_list->props != NULL)
     {
-        slist_free(q_list->props);
+        vec_free(q_list->props);
     }
 
     QUERIES_FREE(q_list, handle)
@@ -296,7 +288,7 @@ void query_help_free(uv_handle_t * handle)
     siridb_query_free(handle);
 }
 
-static void QUERIES_free_merge_result(slist_t * plist)
+static void QUERIES_free_merge_result(vec_t * plist)
 {
     size_t i;
     for (i = 0; i < plist->len; i ++)

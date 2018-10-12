@@ -1,13 +1,5 @@
 /*
  * presuf.h - Prefix and Suffix store.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-08-2016
- *
  */
 #ifndef SIRIDB_PRESUF_H_
 #define SIRIDB_PRESUF_H_

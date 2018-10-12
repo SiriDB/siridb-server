@@ -1,13 +1,5 @@
 /*
  * owcrypt.h - One Way Encryption. (used for storing a database user password)
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
- *
- * changes
- *  - initial version, 24-02-2017
- *
  */
 #ifndef OWCRYPT_H_
 #define OWCRYPT_H_

@@ -1,13 +1,5 @@
 /*
- * user.c - contains functions for a SiriDB database member.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 10-03-2016
- *
+ * user.c - Contains functions for a SiriDB database user.
  */
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -20,7 +12,7 @@
 #include <siri/db/users.h>
 #include <siri/err.h>
 #include <siri/grammar/grammar.h>
-#include <strextra/strextra.h>
+#include <xstr/xstr.h>
 #include <owcrypt/owcrypt.h>
 #include <string.h>
 
@@ -109,7 +101,7 @@ int siridb_user_set_password(
         return -1;
     }
 
-    if (!strx_is_graph(password))
+    if (!xstr_is_graph(password))
     {
         if (err_msg != NULL)
         {
@@ -165,7 +157,7 @@ int siridb_user_set_name(
         return 1;
     }
 
-    if (!strx_is_graph(name))
+    if (!xstr_is_graph(name))
     {
         sprintf(err_msg,
                 "User name contains illegal characters. (only graphical "

@@ -1,13 +1,5 @@
 /*
- * cfgparser.h - module for reading (and later writing) to INI style files.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 08-03-2016
- *
+ * cfgparser.h - Reading (and later writing) to INI style files.
  */
 #ifndef CFGPARSER_H_
 #define CFGPARSER_H_

@@ -1,13 +1,5 @@
 /*
  * access.c - Access constants and functions.
- *
- * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2016, Transceptor Technology
- *
- * changes
- *  - initial version, 13-03-2016
- *
  */
 #include <siri/db/access.h>
 #include <stdio.h>
