@@ -25,9 +25,9 @@ SiriDB is a highly-scalable, robust and super fast time series database.
 ### Ubuntu
 For Ubuntu we have a deb package available which can be downloaded [here](https://github.com/SiriDB/siridb-server/releases/latest).
 
-Note: SiriDB requires *libexpat1*, *libuv1* and *libpcre2-8-0*, these libraries can be easily installed using apt:
+Note: SiriDB requires *libexpat1*, *libuv1*, *libpcre2-8-0* and *libcleri0* these libraries can be easily installed using apt:
 ```
-apt install libexpat1 libuv1 libpcre2-8-0
+apt install libexpat1 libuv1 libpcre2-8-0 libcleri0
 ```
 
 The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You might want to view or change this file before starting SiriDB.
@@ -36,10 +36,12 @@ The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You
 >From version 2.0.19 libcleri is not included as part of this source anymore
 >and needs to be installed separately. libcleri can be found here:
 >[https://github.com/transceptor-technology/libcleri](https://github.com/transceptor-technology/libcleri)
+>or can be installed using `apt`.
 
 #### Linux
-Install the following requirements: (Ubuntu)
+Install the following requirements: (Ubuntu 18.04)
 ```
+sudo apt install libcleri-dev
 sudo apt install libpcre2-dev
 sudo apt install libuv1-dev
 sudo apt install uuid-dev
