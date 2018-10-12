@@ -171,7 +171,7 @@ static void SIRI_CFG_read_uint(
     {
         log_warning(
                 "Missing '%s' in '%s' (%s). "
-                "Using default value: '%u'",
+                "Using default value: %u",
                 option_name,
                 siri.args->config,
                 cfgparser_errmsg(rc),
@@ -181,7 +181,7 @@ static void SIRI_CFG_read_uint(
     {
         log_warning(
                 "Error reading '%s' in '%s': %s. "
-                "Using default value: '%u'",
+                "Using default value: %u",
                 option_name,
                 siri.args->config,
                 "error: expecting an integer value",
@@ -192,7 +192,7 @@ static void SIRI_CFG_read_uint(
         log_warning(
                 "Error reading '%s' in '%s': "
                 "error: value should be between %d and %d but got %d. "
-                "Using default value: '%u'",
+                "Using default value: %u",
                 option_name,
                 siri.args->config,
                 min,
