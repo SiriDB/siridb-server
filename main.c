@@ -22,10 +22,7 @@
 
 int main(int argc, char * argv[])
 {
-    /*
-     * set local to LC_ALL
-     * more info at: http://www.cprogramming.com/tutorial/unicode.html
-     */
+    /* set local to LC_ALL */
     (void) setlocale(LC_ALL, "");
 
     /* initialize random */

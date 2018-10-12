@@ -9,6 +9,8 @@ SiriDB is a highly-scalable, robust and super fast time series database.
       * [Linux](#linux)
       * [OSX](#osx)
       * [Configuration](#configuration)
+    * [Build Debian package](#build-debian-package)
+    * [Run integration tests](#run-integration-tests)
   * [Create or expand a database](#create-or-expand-a-database)
   * [Using SiriDB](#using-siridb)
     * [SiriDB Connectors](#siridb-connectors)
@@ -47,15 +49,8 @@ Compile (replace Release with Debug for a debug build):
 ```
 cd ./Release
 make clean
+make test
 make
-```
-
-Build Debian packages:
-
-```
-apt-get install devscripts lintian
-git archive -o ../siridb-server_2.0.29.orig.tar.gz master
-debuild -us -uc
 ```
 
 #### OSX
@@ -71,17 +66,53 @@ cd ./Release
 export CFLAGS="-I/usr/local/include"
 export LDFLAGS="-L/usr/local/lib"
 make clean
+make test
 make
 ```
+
 #### Configuration
 SiriDB requires a configuration file to run. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument.
 
 ```
 $ siridb-server -c /my/path/siridb.conf
 ```
-
 An example configuration file can be found here:
 [https://github.com/SiriDB/siridb-server/blob/master/siridb.conf](https://github.com/SiriDB/siridb-server/blob/master/siridb.conf)
+
+### Build Debian package:
+
+Install required packages (*autopkgtest is required for running the tests*)
+```
+apt-get install devscripts lintian help2man autopkgtest
+```
+
+Create archive
+```
+git archive -o ../siridb-server_2.0.30.orig.tar.gz master
+```
+
+Run tests
+```
+autopkgtest -B -- null
+```
+
+Build package
+```
+debuild -us -uc
+```
+
+## Run integration tests
+The simplest way to run the integration tests is to use [docker](https://docs.docker.com/install/).
+
+Build integration test image
+```
+docker build -t siridb/itest -f itest/Dockerfile .
+```
+
+Run integration tests
+```
+docker run siridb/itest:latest
+```
 
 ## Create or expand a database
 [SiriDB Admin](https://github.com/SiriDB/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/SiriDB/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/SiriDB/siridb-admin/releases/latest).
@@ -109,14 +140,3 @@ When not using one of the above, you can still communicate to SiriDB using [Siri
 
 ## Query language
 Documentation about the query language can be found at https://siridb.net/documentation.
-
-## Integration testing
-Build integration test image
-```
-docker build -t siridb/itest -f itest/Dockerfile .
-```
-
-Run integration tests
-```
-docker run siridb/itest:latest
-```
