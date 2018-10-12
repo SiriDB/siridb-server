@@ -170,7 +170,7 @@ static void SIRI_CFG_read_uint(
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
+                "Missing '%s' in '%s': %s. "
                 "Using default value: '%u'",
                 option_name,
                 siri.args->config,
@@ -218,7 +218,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser)
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
+                "Missing '%s' in '%s': %s. "
                 "Using default value: '%s'",
                 "ip_support",
                 siri.args->config,
@@ -386,7 +386,7 @@ static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser)
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
+                "Missing '%s' in '%s': %s. "
                 "Using default value: '%s'",
                 "pipe_client_name",
                 siri.args->config,
@@ -445,7 +445,7 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
+                "Missing '%s' in '%s': %s. "
                 "Using default value: '%s'",
                 "default_db_path",
                 siri.args->config,
@@ -607,7 +607,7 @@ static void SIRI_CFG_read_address_port(
     if (rc != CFGPARSER_SUCCESS)
     {
         log_critical(
-                "Error reading '%s' in '%s': %s.",
+                "Missing '%s' in '%s': %s.",
                 option_name,
                 siri.args->config,
                 cfgparser_errmsg(rc));
