@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+config_file=/etc/siridb/siridb.conf
+
+case "$1" in
+    purge)
+        [ -d "/var/lib/siridb" ] && rm -rf /var/lib/siridb
+        if which ucf >/dev/null 2>&1; then
+            ucf --purge $config_file
+        fi
+        if [ -x "`which ucfr 2>/dev/null`" ]; then
+	        ucfr --purge siridb-server $config_file
+        fi
+        for ext in .ucf-new .ucf-old .ucf-dist ""; do
+            rm -f "$config_file$ext"
+        done
+        ;;
+    remove)
+	    ;;
+esac
+
+#DEBHELPER#
+exit 0

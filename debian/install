@@ -1,0 +1,3 @@
+Release/siridb-server   usr/lib/siridb-server
+help                    usr/share/siridb-server
+siridb.conf             usr/share/siridb-server/conf_templates

@@ -1,0 +1,3 @@
+usr/lib/siridb-server/siridb-server   usr/bin/siridb-server
+usr/share/siridb-server/help          usr/lib/siridb-server/help
+usr/share/siridb-server/help          usr/share/doc/siridb-server/help

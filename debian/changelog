@@ -1,0 +1,38 @@
+siridb-server (2.0.30-alpha2) unstable; urgency=medium
+
+  * Test
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 12 Oct 2018 16:05:40 +0200
+
+siridb-server (2.0.29-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Paul Gevers <elbrus@debian.org>  Wed, 25 Jul 2018 21:57:12 +0200
+
+siridb-server (2.0.28-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Paul Gevers <elbrus@debian.org>  Mon, 02 Jul 2018 14:00:34 +0200
+
+siridb-server (2.0.27-1) unstable; urgency=medium
+
+  * New upstream release
+  * Update Maintainer and Vcs fields (Closes: #890700)
+
+ -- Paul Gevers <elbrus@debian.org>  Mon, 28 May 2018 10:22:52 +0200
+
+siridb-server (2.0.26-1) unstable; urgency=medium
+
+  * New upstream release
+  * Drop all patches
+  * Add man page
+
+ -- Paul Gevers <elbrus@debian.org>  Sat, 06 Jan 2018 07:54:21 +0100
+
+siridb-server (2.0.25-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #882678)
+
+ -- Paul Gevers <elbrus@debian.org>  Mon, 04 Dec 2017 21:40:02 +0100

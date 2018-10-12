@@ -1,0 +1,3 @@
+Test-Command: make --directory=Release test
+Features: test-name=siridb-unit-tests
+Depends: @, @builddeps@

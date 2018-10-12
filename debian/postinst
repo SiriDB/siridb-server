@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+ucf --debconf-ok /usr/share/siridb-server/conf_templates/siridb.conf /etc/siridb/siridb.conf
+ucfr siridb-server /etc/siridb/siridb.conf
+
+#DEBHELPER#
+exit 0
