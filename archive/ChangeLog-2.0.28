@@ -1,4 +1,0 @@
-  * Added filter options nan, inf and -inf for float series. (issue #97)
-  
-  * Handle invalid use of difference() and derivative() on log series. 
-    (issue #98) 

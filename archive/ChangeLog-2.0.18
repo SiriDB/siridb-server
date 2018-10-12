@@ -1,5 +1,0 @@
-  * Removed line `#include <linux/limits.h>` from `xpath`. (issue #67)
-  
-  * Write .reindex file when ading a new pool. (issue #69)
-  
-  * Update help files.

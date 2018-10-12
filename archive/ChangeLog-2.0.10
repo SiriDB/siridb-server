@@ -1,9 +1,0 @@
-  * Fixed using a buffer path larger or close to PATH_MAX. (issue #43)
-
-  * Fixed shard_get_size() problem with treading by replacing the function
-    call with a property. (issue #44)
-
-  * Fixed identifying a corrupt shard when an invalid header size is found
-    at the end of a shard while loading a database. (issue #45)
-    
-  * Re-use space in buffer when series are dropped. (issue #46)
