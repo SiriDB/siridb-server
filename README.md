@@ -56,6 +56,8 @@ make
 ```
 
 #### OSX
+>Make sure [libcleri](https://github.com/transceptor-technology/libcleri) is installed!
+
 Install the following requirements:
 ```
 brew install pcre2
