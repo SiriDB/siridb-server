@@ -6,7 +6,7 @@
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
-#define SIRIDB_VERSION_PATCH 30
+#define SIRIDB_VERSION_PATCH 31
 
 /*
  * Use SIRIDB_VERSION_PRE_RELEASE for alpha release versions.
@@ -15,7 +15,7 @@
  * Note that debian alpha packages should use versions like this:
  *   2.0.30-0alpha0
  */
-#define SIRIDB_VERSION_PRE_RELEASE ""
+#define SIRIDB_VERSION_PRE_RELEASE "-alpha-0"
 
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"

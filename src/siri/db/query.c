@@ -253,7 +253,7 @@ void siridb_query_forward(
 
     /* add the query to the packer */
     QUERY_to_packer(packer, query);
-    qp_add_int8(packer, SIRIDB_TIME_DEFAULT);  /* Only for version < 2.0.24 */
+    qp_add_int64(packer, SIRIDB_TIME_DEFAULT);  /* Only for version < 2.0.24 */
 
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, packer->len, 0, packer->buffer);

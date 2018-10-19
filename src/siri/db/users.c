@@ -306,7 +306,7 @@ int siridb_users_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_USERS_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRIDB_USERS_SCHEMA) ||
 
         /* we can and should skip this if we have no users to save */
         llist_walk(siridb->users, (llist_cb) USERS_save, fpacker) ||
@@ -331,7 +331,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     rc += qp_fadd_type(fpacker, QP_ARRAY3);
     rc += qp_fadd_string(fpacker, user->name);
     rc += qp_fadd_string(fpacker, user->password);
-    rc += qp_fadd_int32(fpacker, (int32_t) user->access_bit);
+    rc += qp_fadd_int64(fpacker, (int64_t) user->access_bit);
     return rc;
 }
 

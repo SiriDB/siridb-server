@@ -35,7 +35,6 @@
 #define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
 #define SIRIDB_SERIES_SCHEMA 1
-#define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
 /*
@@ -275,8 +274,8 @@ siridb_series_t * siridb_series_new(
                 siridb->store,
                 (const unsigned char *) series_name,
                 series->name_len + 1) ||
-        qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-        qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+        qp_fadd_int64(siridb->store, (int64_t) series->id) ||
+        qp_fadd_int64(siridb->store, (int64_t) series->tp) ||
         qp_flush(siridb->store))
     {
         ERR_FILE
@@ -1388,8 +1387,8 @@ static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
                     fpacker,
                     (unsigned char *) series->name,
                     series->name_len + 1) ||
-            qp_fadd_int32(fpacker, (int32_t) series->id) ||
-            qp_fadd_int8(fpacker, (int8_t) series->tp));
+            qp_fadd_int64(fpacker, (int64_t) series->id) ||
+            qp_fadd_int64(fpacker, (int64_t) series->tp));
 }
 
 /*
@@ -1417,7 +1416,7 @@ static int SERIES_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_SERIES_SCHEMA))
+        qp_fadd_int64(fpacker, SIRIDB_SERIES_SCHEMA))
     {
         ERR_FILE
     }

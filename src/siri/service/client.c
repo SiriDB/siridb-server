@@ -689,8 +689,8 @@ static void CLIENT_on_file_database(
     if (qp_add_type(packer, QP_ARRAY4) ||
         qp_add_raw(packer, (const unsigned char *) &adm_client->uuid, 16) ||
         qp_add_string(packer, siri.cfg->server_address) ||
-        qp_add_int32(packer, (int32_t) siri.cfg->listen_backend_port) ||
-        qp_add_int32(packer, (int32_t) adm_client->pool))
+        qp_add_int64(packer, (int64_t) siri.cfg->listen_backend_port) ||
+        qp_add_int64(packer, (int64_t) adm_client->pool))
     {
         qp_packer_free(packer);
         CLIENT_err(adm_client, "memory allocation error");
@@ -763,8 +763,8 @@ static void CLIENT_on_file_servers(
     rc += qp_fadd_type(fp, QP_ARRAY4);
     rc += qp_fadd_raw(fp, (const unsigned char *) &adm_client->uuid, 16);
     rc += qp_fadd_string(fp, siri.cfg->server_address);
-    rc += qp_fadd_int32(fp, (int32_t) siri.cfg->listen_backend_port);
-    rc += qp_fadd_int32(fp, (int32_t) adm_client->pool);
+    rc += qp_fadd_int64(fp, (int64_t) siri.cfg->listen_backend_port);
+    rc += qp_fadd_int64(fp, (int64_t) adm_client->pool);
     rc += fclose(fp);
 
     if (rc)

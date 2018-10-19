@@ -238,7 +238,7 @@ int siridb_groups_save(siridb_groups_t * groups)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_GROUPS_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRIDB_GROUPS_SCHEMA) ||
 
         /* we can and should skip this if we have no users to save */
         ct_values(groups->groups, (ct_val_cb) GROUPS_write, fpacker) ||

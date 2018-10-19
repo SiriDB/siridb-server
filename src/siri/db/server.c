@@ -689,17 +689,17 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_raw(packer, (const unsigned char *)
                         client->siridb->server->uuid, 16) ||
                 qp_add_string_term(packer, siridb->dbname) ||
-                qp_add_int16(packer, siridb->server->flags) ||
+                qp_add_int64(packer, siridb->server->flags) ||
                 qp_add_string_term(packer, SIRIDB_VERSION) ||
                 qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION) ||
-                qp_add_int8(packer, siri.cfg->ip_support) ||
+                qp_add_int64(packer, (int64_t) siri.cfg->ip_support) ||
                 qp_add_string_term(packer, uv_version_string()) ||
                 qp_add_string_term(packer, siridb->dbpath) ||
                 qp_add_string_term(packer, siridb->buffer->path) ||
                 qp_add_int64(packer, (int64_t) siridb->buffer->size) ||
-                qp_add_int32(packer, (int32_t) siri.startup_time) ||
+                qp_add_int64(packer, (int64_t) siri.startup_time) ||
                 qp_add_string_term(packer, siridb->server->address) ||
-                qp_add_int32(packer, (int32_t) siridb->server->port))
+                qp_add_int64(packer, (int64_t) siridb->server->port))
             {
                 qp_packer_free(packer);
             }

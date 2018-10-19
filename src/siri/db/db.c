@@ -542,10 +542,10 @@ int siridb_save(siridb_t * siridb)
     }
 
     return (qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
-            qp_fadd_int8(fpacker, SIRIDB_SCHEMA) ||
+            qp_fadd_int64(fpacker, SIRIDB_SCHEMA) ||
             qp_fadd_raw(fpacker, (const unsigned char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
-            qp_fadd_int8(fpacker, siridb->time->precision) ||
+            qp_fadd_int64(fpacker, siridb->time->precision) ||
             qp_fadd_int64(fpacker, siridb->buffer->size) ||
             qp_fadd_int64(fpacker, siridb->duration_num) ||
             qp_fadd_int64(fpacker, siridb->duration_log) ||

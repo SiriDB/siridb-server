@@ -611,10 +611,10 @@ static cproto_server_t SERVICE_on_new_database(
     uuid_generate(uuid);
 
     if (qp_fadd_type(fp, QP_ARRAY_OPEN) ||
-        qp_fadd_int8(fp, SIRIDB_SCHEMA) ||
+        qp_fadd_int64(fp, SIRIDB_SCHEMA) ||
         qp_fadd_raw(fp, (const unsigned char *) uuid, 16) ||
         qp_fadd_raw(fp, qp_dbname.via.raw, qp_dbname.len) ||
-        qp_fadd_int8(fp, time_precision) ||
+        qp_fadd_int64(fp, time_precision) ||
         qp_fadd_int64(fp, buffer_size) ||
         qp_fadd_int64(fp, duration_num) ||
         qp_fadd_int64(fp, duration_log) ||

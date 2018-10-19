@@ -355,7 +355,7 @@ int siri_service_account_save(siri_t * siri, char * err_msg)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRI_SERVICE_ACCOUNT_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRI_SERVICE_ACCOUNT_SCHEMA) ||
 
         /* we can and should skip this if we have no accounts to save */
         llist_walk(siri->accounts, (llist_cb) ACCOUNT_save, fpacker) ||

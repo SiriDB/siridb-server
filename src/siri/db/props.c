@@ -251,7 +251,7 @@ static void prop_active_handles(
         int map)
 {
     SIRIDB_PROP_MAP("active_handles", 14)
-    qp_add_int32(packer, (int32_t) siri.loop->active_handles);
+    qp_add_int64(packer, (int64_t) siri.loop->active_handles);
 }
 
 static void prop_active_tasks(
@@ -260,7 +260,7 @@ static void prop_active_tasks(
         int map)
 {
     SIRIDB_PROP_MAP("active_tasks", 12)
-    qp_add_int32(packer, (int32_t) siridb->tasks.active);
+    qp_add_int64(packer, (int64_t) siridb->tasks.active);
 }
 
 static void prop_buffer_path(
@@ -278,7 +278,7 @@ static void prop_buffer_size(
         int map)
 {
     SIRIDB_PROP_MAP("buffer_size", 11)
-    qp_add_int32(packer, (int32_t) siridb->buffer->size);
+    qp_add_int64(packer, (int64_t) siridb->buffer->size);
 }
 
 static void prop_dbname(
@@ -332,7 +332,7 @@ static void prop_fifo_files(
         int map)
 {
     SIRIDB_PROP_MAP("fifo_files", 10)
-    qp_add_int32(packer, (int32_t) siridb_fifo_size(siridb->fifo));
+    qp_add_int64(packer, (int64_t) siridb_fifo_size(siridb->fifo));
 }
 
 static void prop_idle_percentage(
@@ -341,7 +341,7 @@ static void prop_idle_percentage(
         int map)
 {
     SIRIDB_PROP_MAP("idle_percentage", 15)
-    qp_add_int8(packer, siridb_get_idle_percentage(siridb));
+    qp_add_int64(packer, siridb_get_idle_percentage(siridb));
 }
 
 static void prop_idle_time(
@@ -350,7 +350,7 @@ static void prop_idle_time(
         int map)
 {
     SIRIDB_PROP_MAP("idle_time", 9)
-    qp_add_int32(packer, (int32_t) siridb->tasks.idle_time);
+    qp_add_int64(packer, (int64_t) siridb->tasks.idle_time);
 }
 
 static void prop_ip_support(
@@ -395,7 +395,7 @@ static void prop_max_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("max_open_files", 14)
-    qp_add_int32(packer, (int32_t) siri.cfg->max_open_files);
+    qp_add_int64(packer, (int64_t) siri.cfg->max_open_files);
 }
 
 static void prop_mem_usage(
@@ -404,7 +404,7 @@ static void prop_mem_usage(
         int map)
 {
     SIRIDB_PROP_MAP("mem_usage", 9)
-    qp_add_int32(packer, (int32_t) (procinfo_total_physical_memory() / 1024));
+    qp_add_int64(packer, (int64_t) (procinfo_total_physical_memory() / 1024));
 }
 
 static void prop_open_files(
@@ -413,7 +413,7 @@ static void prop_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("open_files", 10)
-    qp_add_int32(packer, (int32_t) siridb_open_files(siridb));
+    qp_add_int64(packer, (int64_t) siridb_open_files(siridb));
 }
 
 static void prop_pool(
@@ -422,7 +422,7 @@ static void prop_pool(
         int map)
 {
     SIRIDB_PROP_MAP("pool", 4)
-    qp_add_int16(packer, (int16_t) siridb->server->pool);
+    qp_add_int64(packer, (int64_t) siridb->server->pool);
 }
 
 static void prop_received_points(
@@ -476,7 +476,7 @@ static void prop_startup_time(
         int map)
 {
     SIRIDB_PROP_MAP("startup_time", 12)
-    qp_add_int32(packer, (int32_t) siri.startup_time);
+    qp_add_int64(packer, (int64_t) siri.startup_time);
 }
 
 static void prop_status(
@@ -527,7 +527,7 @@ static void prop_uptime(
         int map)
 {
     SIRIDB_PROP_MAP("uptime", 6)
-    qp_add_int32(packer, siridb_get_uptime(siridb));
+    qp_add_int64(packer, siridb_get_uptime(siridb));
 }
 
 static void prop_uuid(

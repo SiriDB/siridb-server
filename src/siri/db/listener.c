@@ -2849,13 +2849,13 @@ static void exit_list_pools(uv_async_t * handle)
             switch(*((uint32_t *) q_list->props->data[prop]))
             {
             case CLERI_GID_K_POOL:
-                qp_add_int16(query->packer, wpool.pool);
+                qp_add_int64(query->packer, (int64_t) wpool.pool);
                 break;
             case CLERI_GID_K_SERVERS:
-                qp_add_int16(query->packer, wpool.servers);
+                qp_add_int64(query->packer, (int64_t) wpool.servers);
                 break;
             case CLERI_GID_K_SERIES:
-                qp_add_int64(query->packer, wpool.series);
+                qp_add_int64(query->packer, (int64_t) wpool.series);
                 break;
             }
         }
@@ -3094,19 +3094,19 @@ static void exit_list_shards(uv_async_t * handle)
                 switch(*((uint32_t *) q_list->props->data[prop]))
                 {
                 case CLERI_GID_K_SID:
-                    qp_add_int64(query->packer, vshard.shard->id);
+                    qp_add_int64(query->packer, (int64_t) vshard.shard->id);
                     break;
                 case CLERI_GID_K_POOL:
-                    qp_add_int16(query->packer, vshard.server->pool);
+                    qp_add_int64(query->packer, (int64_t) vshard.server->pool);
                     break;
                 case CLERI_GID_K_SIZE:
-                    qp_add_int64(query->packer, vshard.shard->len);
+                    qp_add_int64(query->packer, (int64_t) vshard.shard->len);
                     break;
                 case CLERI_GID_K_START:
-                    qp_add_int64(query->packer, vshard.start);
+                    qp_add_int64(query->packer, (int64_t) vshard.start);
                     break;
                 case CLERI_GID_K_END:
-                    qp_add_int64(query->packer, vshard.end);
+                    qp_add_int64(query->packer, (int64_t) vshard.end);
                     break;
                 case CLERI_GID_K_TYPE:
                     qp_add_string(
@@ -4506,19 +4506,19 @@ static void async_list_series(uv_async_t * handle)
                             series->name_len);
                     break;
                 case CLERI_GID_K_LENGTH:
-                    qp_add_int32(query->packer, series->length);
+                    qp_add_int64(query->packer, (int64_t) series->length);
                     break;
                 case CLERI_GID_K_TYPE:
                     qp_add_string(query->packer, series_type_map[series->tp]);
                     break;
                 case CLERI_GID_K_POOL:
-                    qp_add_int16(query->packer, series->pool);
+                    qp_add_int64(query->packer, (int64_t) series->pool);
                     break;
                 case CLERI_GID_K_START:
-                    qp_add_int64(query->packer, series->start);
+                    qp_add_int64(query->packer, (int64_t) series->start);
                     break;
                 case CLERI_GID_K_END:
-                    qp_add_int64(query->packer, series->end);
+                    qp_add_int64(query->packer, (int64_t) series->end);
                     break;
                 }
             }

@@ -263,8 +263,8 @@ int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
     }
 
     rc = -(qp_add_type(packer, QP_ARRAY_OPEN) ||
-            qp_add_int8(packer, points->tp) ||
-            qp_add_int32(packer, points->len) ||
+            qp_add_int64(packer, (int64_t) points->tp) ||
+            qp_add_int64(packer, (int64_t) points->len) ||
             qp_add_raw(packer, data, size) ||
             qp_add_type(packer, QP_ARRAY_CLOSE));
 
