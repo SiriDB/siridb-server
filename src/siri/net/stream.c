@@ -91,9 +91,9 @@ char * sirinet_stream_name(sirinet_stream_t * client)
     case STREAM_TCP_BACKEND:
     case STREAM_TCP_SERVER:
     case STREAM_TCP_MANAGE:
-        return sirinet_pipe_name((uv_pipe_t *) client->stream);
-    case STREAM_PIPE_CLIENT:
         return sirinet_tcp_name((uv_tcp_t *) client->stream);
+    case STREAM_PIPE_CLIENT:
+        return sirinet_pipe_name((uv_pipe_t *) client->stream);
     }
     return NULL;
 }
