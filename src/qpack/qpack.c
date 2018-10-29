@@ -169,14 +169,14 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
     }
     else
     {
-        unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
+        unpacker = malloc(sizeof(qp_unpacker_t));
         if (unpacker == NULL)
         {
             ERR_ALLOC
         }
         else
         {
-            unpacker->source = (unsigned char *) malloc(size);
+            unpacker->source = malloc(size);
             if (unpacker->source == NULL)
             {
                 ERR_ALLOC

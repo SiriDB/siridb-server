@@ -11,6 +11,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/misc.h>
+#include <siri/db/tee.h>
 #include <siri/err.h>
 #include <siri/net/promises.h>
 #include <siri/net/tcp.h>
@@ -696,6 +697,9 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
             break;
         case CLERI_GID_K_SYNC_PROGRESS:
             qp_add_string(query->packer, siridb_initsync_sync_progress(siridb));
+            break;
+        case CLERI_GID_K_TEE_PIPE_NAME:
+            qp_add_string(query->packer, tee_str(siridb->tee));
             break;
         case CLERI_GID_K_UPTIME:
             qp_add_int64(

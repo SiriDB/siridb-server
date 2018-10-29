@@ -48,7 +48,7 @@ void sirinet__stream_free(uv_stream_t * uvclient);
 
 struct sirinet_stream_s
 {
-    sirinet_stream_tp_t tp;
+    uint32_t tp;        /* maps to siridb_tee_t flags for cleanup */
     uint32_t ref;
     on_data_cb_t on_data;
     siridb_t * siridb;

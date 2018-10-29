@@ -59,6 +59,12 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     {
         siridb = (siridb_t *) siridb_node->data;
 
+        if (    siridb_tee_is_configured(siridb->tee) &&
+                !siridb_tee_is_connected(siridb->tee))
+        {
+            siridb_tee_connect(siridb->tee);
+        }
+
         server_node = siridb->servers->first;
         while (server_node != NULL)
         {

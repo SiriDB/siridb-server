@@ -32,7 +32,7 @@ char * sirinet_pipe_name(uv_pipe_t * client)
 }
 
 /*
- * Cleanup socket (pipe) file. (Unused)
+ * Cleanup socket (pipe) file. (UNUSED)
  */
 void sirinet_pipe_unlink(uv_pipe_t * client)
 {

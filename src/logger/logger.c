@@ -8,7 +8,7 @@
 #include <time.h>
 
 logger_t Logger = {
-        .level=10,
+        .level=2,
         .level_name=NULL,
         .ostream=NULL,
         .flags=0

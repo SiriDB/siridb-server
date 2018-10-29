@@ -135,7 +135,7 @@ sirinet_pkg_t * sirinet_pkg_err(
  */
 int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write_t * req = malloc(sizeof(uv_write_t));
 
     if (req == NULL)
     {
@@ -144,7 +144,7 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
         return -1;
     }
 
-    pkg_send_t * data = (pkg_send_t *) malloc(sizeof(pkg_send_t));
+    pkg_send_t * data = malloc(sizeof(pkg_send_t));
 
     if (data == NULL)
     {
@@ -168,7 +168,13 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
             (char *) pkg,
             sizeof(sirinet_pkg_t) + pkg->len);
 
-    uv_write(req, client->stream, &wrbuf, 1, PKG_write_cb);
+    if (uv_write(req, client->stream, &wrbuf, 1, PKG_write_cb))
+    {
+        sirinet_stream_decref(data->client);
+        free(pkg);
+        free(req);
+        return -1;
+    }
 
     return 0;
 }
@@ -180,7 +186,7 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
 {
     size_t size = sizeof(sirinet_pkg_t) + pkg->len;
-    sirinet_pkg_t * dup = (sirinet_pkg_t *) malloc(size);
+    sirinet_pkg_t * dup = malloc(size);
     if (dup == NULL)
     {
         ERR_ALLOC
