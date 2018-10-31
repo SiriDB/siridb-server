@@ -1060,6 +1060,11 @@ static int INSERT_init_local(
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
+    if (siridb_tee_is_connected(siridb->tee))
+    {
+        siridb_tee_write(siridb->tee, promise);
+    }
+
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
 

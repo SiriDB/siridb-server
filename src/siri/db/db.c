@@ -480,7 +480,11 @@ static int siridb__from_unpacker(
             (*siridb)->tee->pipe_name_ = strndup(
                 (char *) qp_obj.via.raw,
                 qp_obj.len);
-            READ_DB_EXIT_WITH_ERROR("Cannot allocate tee pipe name.")
+
+            if (!(*siridb)->tee->pipe_name_)
+            {
+                READ_DB_EXIT_WITH_ERROR("Cannot allocate tee pipe name.")
+            }
         }
         else if (qp_obj.tp != QP_NULL)
         {

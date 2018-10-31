@@ -1,6 +1,7 @@
 /*
  * xstr.c - Extra String functions used by SiriDB.
  */
+#include <assert.h>
 #include <ctype.h>
 #include <inttypes.h>
 #include <logger/logger.h>
@@ -275,42 +276,48 @@ size_t xstr_extract_string(char * dest, const char * source, size_t len)
 double xstr_to_double(const char * src, size_t len)
 {
     char * pt = (char *) src;
+    assert (len);
     double d = 0;
     double convert;
+    uint64_t r1 = 0;
 
     switch (*pt)
     {
     case '-':
+        assert (len > 1);
         convert = -1.0;
-        pt++;
+        ++pt;
+        --len;
         break;
     case '+':
-        pt++;
-        /* FALLTHRU */
-        /* no break */
+        assert (len > 1);
+        convert = 1.0;
+        ++pt;
+        --len;
+        break;
     default:
         convert = 1.0;
     }
 
-    uint64_t r1 = *pt - '0';
-
-    while (--len && isdigit(*(++pt)))
+    for (; len && isdigit(*pt); --len, ++pt)
     {
         r1 = 10 * r1 + *pt - '0';
     }
 
     d = (double) r1;
 
-    if (--len && *(pt++) == '.')
+    if (len && --len)
     {
-        uint64_t r2 = *pt - '0';
-        ssize_t i;
-        for (i = -1; --len && isdigit(*(++pt)); i--)
+        uint64_t r2;
+        double power;
+        ++pt;
+        r2 = *pt - '0';
+        for (power = -1.0f; --len && isdigit(*(++pt)); power--)
         {
-             r2 = 10 * r2 + *pt - '0';
+            r2 = 10 * r2 + *pt - '0';
         }
 
-        d += pow(10, i) * (double) r2;
+        d += pow(10.0f, power) * (double) r2;
     }
 
     return convert * d;

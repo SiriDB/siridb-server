@@ -12,9 +12,20 @@ int main()
         _assert (xstr_to_double("0.55", 3) == 0.5);
         _assert (xstr_to_double("123.456", 7) == 123.456);
         _assert (xstr_to_double("123", 3) == 123);
+        _assert (xstr_to_double("1234", 3) == 123);
         _assert (xstr_to_double("123.", 4) == 123);
+        _assert (xstr_to_double("123.", 3) == 123);
+        _assert (xstr_to_double("+1234", 4) == 123);
+        _assert (xstr_to_double("-1234", 4) == -123);
         _assert (xstr_to_double("123456.", 3) == 123);
-        _assert (xstr_to_double("-0.5", 3) == -0.5);
+        _assert (xstr_to_double("-0.5", 4) == -0.5);
+        _assert (xstr_to_double("-0.56", 4) == -0.5);
+        _assert (xstr_to_double("+0.5", 4) == 0.5);
+        _assert (xstr_to_double("+0.56", 4) == 0.5);
+        _assert (xstr_to_double("-.5", 3) == -0.5);
+        _assert (xstr_to_double("+.55", 3) == 0.5);
+        _assert (xstr_to_double(".55", 2) == 0.5);
+        _assert (xstr_to_double("-.55", 3) == -0.5);
     }
 
     return test_end();

@@ -18,7 +18,7 @@ int main()
 {
     test_start("grammar");
 
-    cleri_grammar_t * grammar = compile_grammar();
+    cleri_grammar_t * grammar = compile_siri_grammar_grammar();
 
     assert_invalid(grammar, "select * from");
     assert_invalid(grammar, "list");

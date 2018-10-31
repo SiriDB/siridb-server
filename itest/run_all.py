@@ -16,6 +16,7 @@ from test_log import TestLog
 from test_log import TestLog
 from test_pipe_support import TestPipeSupport
 from test_buffer import TestBuffer
+from test_tee import TestTee
 
 
 if __name__ == '__main__':
@@ -32,3 +33,4 @@ if __name__ == '__main__':
     run_test(TestLog())
     run_test(TestPipeSupport())
     run_test(TestBuffer())
+    run_test(TestTee())

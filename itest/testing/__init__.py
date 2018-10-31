@@ -16,6 +16,7 @@ from .testbase import default_test_setup
 from .testbase import TestBase
 from .series import Series
 from .pipe_client import PipeClient as SiriDBAsyncUnixConnection
+from .pipe_server import PipeServer as SiriDBAsyncUnixServer
 from .args import parse_args
 from .task import Task
 

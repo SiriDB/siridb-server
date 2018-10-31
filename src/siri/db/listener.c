@@ -4052,7 +4052,12 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
                 (cexpr_cb_t) siridb_server_cexpr_cb,
                 &wserver))
         {
-            siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+            (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
             q_alter->n++;
         }
 
@@ -4095,6 +4100,11 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
         if (server == siridb->server)
         {
             (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
 
             SIRIPARSER_ASYNC_NEXT_NODE
         }
