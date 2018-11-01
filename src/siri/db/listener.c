@@ -4249,7 +4249,7 @@ static void exit_show_stmt(uv_async_t * handle)
     /* set props.h (who_am_i) to current db_name */
     who_am_i = db_user->name;
 
-    if (children->node == NULL)
+    if (children == NULL || children->node == NULL)
     {
         /* show all properties */
         int i;
