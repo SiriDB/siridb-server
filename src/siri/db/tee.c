@@ -16,6 +16,7 @@ static char tee__buf[TEE__BUF_SZ];
 static void tee__runtime_init(uv_pipe_t * pipe);
 static void tee__write_cb(uv_write_t * req, int status);
 static void tee__on_connect(uv_connect_t * req, int status);
+static void tee__close_cb(uv_pipe_t * pipe);
 static void tee__alloc_buffer(
     uv_handle_t * handle,
     size_t suggsz,
@@ -63,8 +64,6 @@ int siridb_tee_connect(siridb_tee_t * tee)
     tee->flags |= SIRIDB_TEE_FLAG_INIT;
     tee->pipe.data = tee;
 
-    free(tee->err_msg_);
-
     uv_pipe_connect(req, &tee->pipe, tee->pipe_name_, tee__on_connect);
     return 0;
 }
@@ -72,6 +71,20 @@ int siridb_tee_connect(siridb_tee_t * tee)
 int siridb_tee_set_pipe_name(siridb_tee_t * tee, const char * pipe_name)
 {
     free(tee->pipe_name_);
+    free(tee->err_msg_);
+    tee->err_msg_ = NULL;
+
+    if (pipe_name == NULL)
+    {
+        tee->pipe_name_ = NULL;
+
+        if (tee->flags & SIRIDB_TEE_FLAG_CONNECTED)
+        {
+            uv_close((uv_handle_t *) &tee->pipe, (uv_close_cb) tee__close_cb);
+        }
+        return 0;
+    }
+
     tee->pipe_name_ = strdup(pipe_name);
     if (!tee->pipe_name_)
     {
@@ -138,6 +151,14 @@ static void tee__runtime_init(uv_pipe_t * pipe)
     }
 }
 
+static void tee__close_cb(uv_pipe_t * pipe)
+{
+    siridb_tee_t * tee = pipe->data;
+
+    tee->flags &= ~SIRIDB_TEE_FLAG_INIT;
+    tee->flags &= ~SIRIDB_TEE_FLAG_CONNECTED;
+}
+
 static void tee__write_cb(uv_write_t * req, int status)
 {
     sirinet_promise_t * promise = req->data;
@@ -158,6 +179,7 @@ static void tee__on_connect(uv_connect_t * req, int status)
         log_info("Connection created to pipe: '%s'", tee->pipe_name_);
         if (uv_read_start(req->handle, tee__alloc_buffer, tee__on_data))
         {
+            free(tee->err_msg_);
             if (asprintf(&tee->err_msg_,
                     "Cannot open pipe '%s' for reading",
                     tee->pipe_name_) >= 0)
@@ -170,6 +192,7 @@ static void tee__on_connect(uv_connect_t * req, int status)
         goto done;
     }
 
+    free(tee->err_msg_);
     if (asprintf(
             &tee->err_msg_,
             "Cannot connect to pipe '%s' (%s)",
@@ -180,7 +203,7 @@ static void tee__on_connect(uv_connect_t * req, int status)
     }
 
 fail:
-    uv_close((uv_handle_t *) req->handle, NULL);
+    uv_close((uv_handle_t *) req->handle, (uv_close_cb) tee__close_cb);
 done:
     free(req);
 }
@@ -201,8 +224,6 @@ static void tee__on_data(
     ssize_t nread,
     const uv_buf_t * buf __attribute__((unused)))
 {
-    siridb_tee_t * tee = client->data;
-
     if (nread < 0)
     {
         if (nread != UV_EOF)
@@ -212,9 +233,7 @@ static void tee__on_data(
                 uv_err_name(nread));
         }
         log_info("Disconnected from tee");
-        tee->flags &= ~SIRIDB_TEE_FLAG_INIT;
-        tee->flags &= ~SIRIDB_TEE_FLAG_CONNECTED;
-        uv_close((uv_handle_t *) client, NULL);
+        uv_close((uv_handle_t *) client, (uv_close_cb) tee__close_cb);
     }
 
     if (nread > 0)

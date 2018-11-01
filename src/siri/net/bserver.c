@@ -441,11 +441,14 @@ static void on_tee_pipe_name_update(
     SERVER_CHECK_AUTHENTICATED(client, server);
     siridb_t * siridb = client->siridb;
     sirinet_pkg_t * package;
-    char * pipe_name = strndup((const char *) pkg->data, pkg->len);
-    if (pipe_name != NULL)
-    {
-        (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
-    }
+
+    char * pipe_name = pkg->len
+            ? strndup((const char *) pkg->data, pkg->len)
+            : NULL;
+
+    (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+
+    free(pipe_name);
 
     package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_TEE_PIPE_NAME, NULL);
     if (package != NULL)

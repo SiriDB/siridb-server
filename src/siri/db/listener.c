@@ -4034,7 +4034,13 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
             query->nodes->node->children->next->next->node->children->node;
 
     char pipe_name[node->len - 1];
-    xstr_extract_string(pipe_name, node->str, node->len);
+    char * p_pipe_name = NULL;
+
+    if (node->cl_obj->gid == CLERI_GID_STRING)
+    {
+        xstr_extract_string(pipe_name, node->str, node->len);
+        p_pipe_name = pipe_name;
+    }
 
     if (q_alter->alter_tp == QUERY_ALTER_SERVERS)
     {
@@ -4052,7 +4058,7 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
                 (cexpr_cb_t) siridb_server_cexpr_cb,
                 &wserver))
         {
-            (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
             if (siridb_save(siridb))
             {
                 log_critical("Could not save database changes (database: '%s')",
@@ -4094,12 +4100,12 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
         QP_ADD_SUCCESS
         qp_add_fmt_safe(query->packer,
                     MSG_SUCCES_SET_TEE_PIPE_NAME,
-                    pipe_name,
+                    p_pipe_name ? p_pipe_name : "disabled",
                     server->name);
 
         if (server == siridb->server)
         {
-            (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
             if (siridb_save(siridb))
             {
                 log_critical("Could not save database changes (database: '%s')",
@@ -4115,9 +4121,9 @@ static void exit_set_tee_pipe_name(uv_async_t * handle)
             {
                 sirinet_pkg_t * pkg = sirinet_pkg_new(
                         0,
-                        strlen(pipe_name),
+                        p_pipe_name ? strlen(p_pipe_name) : 0,
                         BPROTO_TEE_PIPE_NAME_UPDATE,
-                        (unsigned char *) pipe_name);
+                        (unsigned char *) p_pipe_name);
                 if (pkg != NULL)
                 {
                     /* handle will be bound to a timer so we should increment */
