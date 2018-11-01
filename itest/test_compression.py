@@ -116,8 +116,6 @@ class TestCompression(TestBase):
         # Check the result after rebooting the server
         await self.assertSeries(self.client0, series)
 
-        return False
-
 
 if __name__ == '__main__':
     random.seed(1)

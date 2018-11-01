@@ -37,8 +37,8 @@ from testing import parse_args
 SYSLOG = '/home/joente/syslog.log'
 FMT = '%b %d %H:%M:%S'
 MTCH = re.compile(
-    '(\w\w\w\s[\d\s]\d\s\d\d:\d\d:'
-    '\d\d)\s(\w+)\s([\w\-\.\/@]+)(\[\d+\])?:\s(.*)')
+    r'(\w\w\w\s[\d\s]\d\s\d\d:\d\d:'
+    r'\d\d)\s(\w+)\s([\w\-\.\/@]+)(\[\d+\])?:\s(.*)')
 
 
 class TestSyslog(TestBase):
@@ -83,8 +83,6 @@ class TestSyslog(TestBase):
         await self.client0.query('select * from /.*vbox.*/ merge as "t"')
 
         self.client0.close()
-
-        return False
 
 
 if __name__ == '__main__':

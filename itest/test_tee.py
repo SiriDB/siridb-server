@@ -43,11 +43,11 @@ DATA = {
         [1447253244, 533], [1447253549, 538],
         [1447253849, 534], [1447254149, 532],
         [1447254449, 533], [1447254748, 537]],
-    # 'huge': [
-    #     [1471254705, 9223372036854775807],
-    #     [1471254706, 9223372036854775806],
-    #     [1471254707, 9223372036854775805],
-    #     [1471254708, 9223372036854775804]],
+    'huge': [
+        [1471254705, 9223372036854775807],
+        [1471254706, 9223372036854775806],
+        [1471254707, 9223372036854775805],
+        [1471254708, 9223372036854775804]],
     'equal ts': [
         [1471254705, 0], [1471254705, 1], [1471254705, 1],
         [1471254707, 0], [1471254707, 1], [1471254708, 0],
@@ -98,7 +98,6 @@ class TestTee(TestBase):
                 self._tee_data[k] = []
             self._tee_data[k].extend(v)
 
-
     @default_test_setup(2)
     async def run(self):
         self._tee_data = {}
@@ -116,7 +115,7 @@ class TestTee(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 56 point(s).'})
+            {'success_msg': 'Successfully inserted 60 point(s).'})
 
         self.assertAlmostEqual(
             await self.client0.query('select * from "series float"'),
@@ -151,13 +150,12 @@ class TestTee(TestBase):
 
         self.assertEqual(
             await self.client0.insert(DATA),
-            {'success_msg': 'Successfully inserted 56 point(s).'})
+            {'success_msg': 'Successfully inserted 60 point(s).'})
 
         self.assertEqual(DATA, self._tee_data)
 
         self.client0.close()
-
-        return False
+        self.client1.close()
 
 
 if __name__ == '__main__':
