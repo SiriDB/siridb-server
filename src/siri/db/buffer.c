@@ -192,7 +192,6 @@ int siridb_buffer_new_series(
  */
 int siridb_buffer_open(siridb_buffer_t * buffer)
 {
-    const int flags = POSIX_FADV_RANDOM | POSIX_FADV_DONTNEED;
     int rc;
     siridb_misc_get_fn(fn, buffer->path, SIRIDB_BUFFER_FN)
 
@@ -215,6 +214,7 @@ int siridb_buffer_open(siridb_buffer_t * buffer)
 #ifdef __APPLE__
     rc = 0;  /* no posix_fadvise on apple */
 #else
+    const int flags = POSIX_FADV_RANDOM | POSIX_FADV_DONTNEED;
     rc = posix_fadvise(buffer->fd, 0, 0, flags);
     if (rc)
     {
