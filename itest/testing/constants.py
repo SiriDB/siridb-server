@@ -1,3 +1,4 @@
+PYGRAMMAR_PATH = '../grammar/pygrammar/'
 TEST_DIR = './testdir'
 SIRIDBC = '../{BUILDTYPE}/siridb-server'
 SERVICE = '/usr/local/bin/siridb-admin'

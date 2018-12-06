@@ -1,2 +1,3 @@
-siridb-connector
 psutil
+pyleri
+siridb-connector
