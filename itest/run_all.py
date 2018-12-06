@@ -17,20 +17,22 @@ from test_log import TestLog
 from test_log import TestLog
 from test_pipe_support import TestPipeSupport
 from test_buffer import TestBuffer
+from test_grammar import TestGrammar
 
 
 if __name__ == '__main__':
     parse_args()
+    run_test(TestBuffer())
     run_test(TestCompression())
+    run_test(TestGrammar())
     run_test(TestGroup())
-    run_test(TestList())
     run_test(TestInsert())
+    run_test(TestList())
+    run_test(TestLog())
+    run_test(TestPipeSupport())
     run_test(TestPool())
     run_test(TestSelect())
     run_test(TestSelectNano())
     run_test(TestSeries())
     run_test(TestServer())
     run_test(TestUser())
-    run_test(TestLog())
-    run_test(TestPipeSupport())
-    run_test(TestBuffer())
