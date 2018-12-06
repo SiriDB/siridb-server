@@ -21,6 +21,7 @@ from testing import TestBase
 from testing import UserAuthError
 from testing import parse_args
 
+
 LENPOINTS = 70
 DATA = {
     'series-001 float': [
