@@ -109,8 +109,6 @@ class TestSeries(TestBase):
 
         self.client0.close()
 
-        # return False
-
 
 if __name__ == '__main__':
     parse_args()

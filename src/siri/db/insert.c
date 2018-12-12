@@ -284,16 +284,14 @@ int insert_init_backend_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         ERR_ALLOC
         return -1;
     }
 
-    siridb_insert_local_t * ilocal =
-            (siridb_insert_local_t *) malloc(sizeof(siridb_insert_local_t));
+    siridb_insert_local_t * ilocal = malloc(sizeof(siridb_insert_local_t));
     if (ilocal == NULL)
     {
         free(promise);
@@ -301,7 +299,7 @@ int insert_init_backend_local(
         return -1;
     }
 
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         free(promise);
@@ -346,6 +344,11 @@ int insert_init_backend_local(
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
+
+    if (siridb_tee_is_connected(siridb->tee))
+    {
+        siridb_tee_write(siridb->tee, promise);
+    }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
@@ -1056,6 +1059,11 @@ static int INSERT_init_local(
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
+
+    if (siridb_tee_is_connected(siridb->tee))
+    {
+        siridb_tee_write(siridb->tee, promise);
+    }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);

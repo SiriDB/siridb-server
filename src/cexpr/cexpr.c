@@ -570,8 +570,7 @@ static cexpr_t * CEXPR_new(void)
  */
 static cexpr_condition_t * CEXPR_condition_new(void)
 {
-    cexpr_condition_t * condition =
-            (cexpr_condition_t *) malloc(sizeof(cexpr_condition_t));
+    cexpr_condition_t * condition = malloc(sizeof(cexpr_condition_t));
 
     if (condition != NULL)
     {

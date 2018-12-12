@@ -85,7 +85,7 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
  */
 char * sirinet_stream_name(sirinet_stream_t * client)
 {
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
@@ -242,7 +242,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 {
     sirinet_stream_t * client = uvclient->data;
 
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
     case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */

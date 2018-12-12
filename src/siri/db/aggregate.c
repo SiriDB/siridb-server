@@ -339,7 +339,7 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 cleri_node_t * dlist = children->node->children->
                         node->children->next->next->node;
 
-                if (dlist->children->node != NULL)
+                if (dlist->children != NULL && dlist->children->node != NULL)
                 {
                     /* result is at least positive, checked earlier */
                     aggr->timespan =

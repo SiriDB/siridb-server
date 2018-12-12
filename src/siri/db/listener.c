@@ -154,8 +154,12 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Successfully dropped server '%s'."
 #define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
     "Successfully set log level to '%s' on %lu servers."
+#define MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI \
+    "Successfully set tee_pipe name on %lu servers."
 #define MSG_SUCCES_SET_LOG_LEVEL \
     "Successfully set log level to '%s' on '%s'."
+#define MSG_SUCCES_SET_TEE_PIPE_NAME \
+    "Successfully set tee pipe name to '%s' on '%s'."
 #define MSG_SUCCESS_SET_SELECT_POINTS_LIMIT \
     "Successfully changed select points limit from %" PRIu32 " to %" PRIu32 "."
 #define MSG_SUCCES_DROP_SERIES \
@@ -245,6 +249,7 @@ static void exit_set_list_limit(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_set_port(uv_async_t * handle);
 static void exit_set_select_points_limit(uv_async_t * handle);
+static void exit_set_tee_pipe_name(uv_async_t * handle);
 static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
@@ -477,6 +482,7 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     siridb_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
     siridb_listen_exit[CLERI_GID_SET_SELECT_POINTS_LIMIT] = exit_set_select_points_limit;
+    siridb_listen_exit[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
     siridb_listen_exit[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     siridb_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siridb_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
@@ -4016,6 +4022,141 @@ static void exit_set_select_points_limit(uv_async_t * handle)
     }
 }
 
+static void exit_set_tee_pipe_name(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+    siridb_t * siridb = query->client->siridb;
+
+    assert (query->data != NULL);
+
+    cleri_node_t * node =
+            query->nodes->node->children->next->next->node->children->node;
+
+    char pipe_name[node->len - 1];
+    char * p_pipe_name = NULL;
+
+    if (node->cl_obj->gid == CLERI_GID_STRING)
+    {
+        xstr_extract_string(pipe_name, node->str, node->len);
+        p_pipe_name = pipe_name;
+    }
+
+    if (q_alter->alter_tp == QUERY_ALTER_SERVERS)
+    {
+        /*
+         * alter_servers
+         */
+        cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+        siridb_server_walker_t wserver = {
+            .server=siridb->server,
+            .siridb=siridb
+        };
+
+        if (where_expr == NULL || cexpr_run(
+                where_expr,
+                (cexpr_cb_t) siridb_server_cexpr_cb,
+                &wserver))
+        {
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
+            q_alter->n++;
+        }
+
+        if (IS_MASTER)
+        {
+            /*
+             * This is a trick because we share with setting log level on
+             * multiple servers at once.
+             */
+            q_alter->n += LOGGER_NUM_LEVELS << 16;
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_SERVERS,
+                    (sirinet_promises_cb) on_alter_xxx_response,
+                    0);
+        }
+        else
+        {
+            qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
+            qp_add_int64(query->packer, q_alter->n);
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+    }
+    else
+    {
+        /*
+         * alter_server
+         *
+         * we can set the success message, we just ignore the message in case
+         * an error occurs.
+         */
+        siridb_server_t * server = q_alter->via.server;
+
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                    MSG_SUCCES_SET_TEE_PIPE_NAME,
+                    p_pipe_name ? p_pipe_name : "disabled",
+                    server->name);
+
+        if (server == siridb->server)
+        {
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
+
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+        else
+        {
+
+            if (siridb_server_is_online(server))
+            {
+                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                        0,
+                        p_pipe_name ? strlen(p_pipe_name) : 0,
+                        BPROTO_TEE_PIPE_NAME_UPDATE,
+                        (unsigned char *) p_pipe_name);
+                if (pkg != NULL)
+                {
+                    /* handle will be bound to a timer so we should increment */
+                    siri_async_incref(handle);
+                    if (siridb_server_send_pkg(
+                            server,
+                            pkg,
+                            0,
+                            (sirinet_promise_cb) on_ack_response,
+                            handle,
+                            0))
+                    {
+                        /*
+                         * signal is raised and 'on_ack_response' will not be
+                         * called
+                         */
+                        free(pkg);
+                        siri_async_decref(&handle);
+                    }
+                }
+            }
+            else
+            {
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Cannot set pipe name, '%s' is currently unavailable",
+                        server->name);
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            }
+        }
+    }
+}
+
 static void exit_set_timezone(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -4108,7 +4249,7 @@ static void exit_show_stmt(uv_async_t * handle)
     /* set props.h (who_am_i) to current db_name */
     who_am_i = db_user->name;
 
-    if (children->node == NULL)
+    if (children == NULL || children->node == NULL)
     {
         /* show all properties */
         int i;
@@ -4951,7 +5092,9 @@ static void on_ack_response(
             case BPROTO_ACK_DISABLE_BACKUP_MODE:
                 /* success message is already set */
                 break;
-
+            case BPROTO_ACK_TEE_PIPE_NAME:
+                /* success message is already set */
+                break;
             default:
                 status = PROMISE_PKG_TYPE_ERROR;
                 break;
@@ -5029,19 +5172,32 @@ static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle)
     }
     /*
      * Note: since this function has the sole purpose for alter servers
-     *       and setting log levels, we now simply ad the message here.
+     *       and setting log levels or pipe name, we now simply add the
+     *       message here.
      */
     QP_ADD_SUCCESS
 
-    log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-            logger_level_name(q_alter->n >> 16),
-            q_alter->n & 0xffff);
+    if ((q_alter->n >> 16) >= LOGGER_NUM_LEVELS)
+    {
+        log_info(MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI, q_alter->n & 0xffff);
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI,
+                q_alter->n & 0xffff);
+    }
+    else
+    {
+        log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+                logger_level_name(q_alter->n >> 16),
+                q_alter->n & 0xffff);
 
-    qp_add_fmt_safe(
-            query->packer,
-            MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-            logger_level_name(q_alter->n >> 16),
-            q_alter->n & 0xffff);
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+                logger_level_name(q_alter->n >> 16),
+                q_alter->n & 0xffff);
+    }
+
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

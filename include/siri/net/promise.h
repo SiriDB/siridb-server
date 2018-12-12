@@ -30,8 +30,8 @@ typedef void (* sirinet_promise_cb)(
 
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status);
 
-#define sirinet_promise_incref(promise) promise->ref++
-#define sirinet_promise_decref(promise) if (!--promise->ref) free(promise)
+#define sirinet_promise_incref(p__) (p__)->ref++
+#define sirinet_promise_decref(p__) if (!--(p__)->ref) free(p__)
 
 /* the callback will always be called and is responsible to free the promise */
 struct sirinet_promise_s

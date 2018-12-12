@@ -8,6 +8,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/fifo.h>
+#include <siri/db/tee.h>
 #include <siri/err.h>
 #include <siri/net/promise.h>
 #include <siri/net/stream.h>
@@ -479,8 +480,7 @@ static int SERVER_resolve_dns(
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICSERV;
 
-    uv_getaddrinfo_t * resolver =
-            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+    uv_getaddrinfo_t * resolver = malloc(sizeof(uv_getaddrinfo_t));
 
     if (resolver == NULL)
     {
@@ -519,7 +519,7 @@ static void SERVER_on_resolved(
         int status,
         struct addrinfo * res)
 {
-    siridb_server_t * server = (siridb_server_t *) resolver->data;
+    siridb_server_t * server = resolver->data;
 
     if (status < 0)
     {
@@ -1172,6 +1172,12 @@ int siridb_server_cexpr_cb(
         return cexpr_str_cmp(
                 cond->operator,
                 siridb_initsync_sync_progress(wserver->siridb),
+                cond->str);
+
+    case CLERI_GID_K_TEE_PIPE_NAME:
+        return cexpr_str_cmp(
+                cond->operator,
+                tee_str(wserver->siridb->tee),
                 cond->str);
     }
 

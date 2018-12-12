@@ -233,8 +233,6 @@ class TestLog(TestBase):
 
         await self.test_data()
 
-        # return False
-
     async def test_data(self):
         self.assertEqual(
             await self.client0.query('select * from "log"'),

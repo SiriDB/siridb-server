@@ -142,7 +142,7 @@ int siri_start(void)
     siridb_init_aggregates();
 
     /* load SiriDB grammar */
-    siri.grammar = compile_grammar();
+    siri.grammar = compile_siri_grammar_grammar();
 
     /* create store for SiriDB instances */
     siri.siridb_list = llist_new();
@@ -495,13 +495,16 @@ static void SIRI_walk_close_handlers(
 
     case UV_TCP:
     case UV_NAMED_PIPE:
-        if (handle->data == NULL)
         {
-            uv_close(handle, NULL);
-        }
-        else
-        {
-            sirinet_stream_decref((sirinet_stream_t *) handle->data);
+            sirinet_stream_t * stream = handle->data;
+            if (stream == NULL || (stream->tp & SIRIDB_TEE_FLAG))
+            {
+                uv_close(handle, NULL);
+            }
+            else
+            {
+                sirinet_stream_decref(stream);
+            }
         }
         break;
 

@@ -622,6 +622,7 @@ static cproto_server_t SERVICE_on_new_database(
         qp_fadd_double(fp, DEF_DROP_THRESHOLD) ||
         qp_fadd_int64(fp, DEF_SELECT_POINTS_LIMIT) ||
         qp_fadd_int64(fp, DEF_LIST_LIMIT) ||
+        qp_fadd_type(fp, QP_NULL) ||
         qp_fadd_type(fp, QP_ARRAY_CLOSE))
     {
         rc = -1;

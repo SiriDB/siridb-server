@@ -5,17 +5,17 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-07-05 16:20:26
+ * Created at: 2018-10-29 10:52:57
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 
 #include <cleri/cleri.h>
 
-cleri_grammar_t * compile_grammar(void);
+cleri_grammar_t * compile_siri_grammar_grammar(void);
 
 enum cleri_grammar_ids {
-    CLERI_NONE,   /* used for objects with no name  */
+    CLERI_NONE,   // used for objects with no name
     CLERI_GID_ACCESS_EXPR,
     CLERI_GID_ACCESS_KEYWORDS,
     CLERI_GID_AFTER_EXPR,
@@ -224,6 +224,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_SUM,
     CLERI_GID_K_SYMMETRIC_DIFFERENCE,
     CLERI_GID_K_SYNC_PROGRESS,
+    CLERI_GID_K_TEE_PIPE_NAME,
     CLERI_GID_K_TIMEIT,
     CLERI_GID_K_TIMEZONE,
     CLERI_GID_K_TIME_PRECISION,
@@ -288,6 +289,7 @@ enum cleri_grammar_ids {
     CLERI_GID_SET_PASSWORD,
     CLERI_GID_SET_PORT,
     CLERI_GID_SET_SELECT_POINTS_LIMIT,
+    CLERI_GID_SET_TEE_PIPE_NAME,
     CLERI_GID_SET_TIMEZONE,
     CLERI_GID_SHARD_COLUMNS,
     CLERI_GID_SHOW_STMT,
@@ -306,7 +308,7 @@ enum cleri_grammar_ids {
     CLERI_GID_WHERE_SHARD,
     CLERI_GID_WHERE_USER,
     CLERI_GID__BOOLEAN,
-    CLERI_END  /* can be used to get the enum length  */
+    CLERI_END // can be used to get the enum length
 };
 
 #endif /* CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_ */

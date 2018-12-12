@@ -10,6 +10,7 @@
 #include <siri/db/time.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/fifo.h>
+#include <siri/db/tee.h>
 #include <siri/net/tcp.h>
 #include <siri/siri.h>
 #include <siri/version.h>
@@ -139,6 +140,10 @@ static void prop_sync_progress(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_tee_pipe_name(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_timezone(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -231,6 +236,8 @@ void siridb_init_props(void)
             prop_status;
     siridb_props[CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET] =
             prop_sync_progress;
+    siridb_props[CLERI_GID_K_TEE_PIPE_NAME - KW_OFFSET] =
+            prop_tee_pipe_name;
     siridb_props[CLERI_GID_K_TIMEZONE - KW_OFFSET] =
             prop_timezone;
     siridb_props[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] =
@@ -497,6 +504,15 @@ static void prop_sync_progress(
 {
     SIRIDB_PROP_MAP("sync_progress", 13)
     qp_add_string(packer, siridb_initsync_sync_progress(siridb));
+}
+
+static void prop_tee_pipe_name(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("tee_pipe_name", 13)
+    qp_add_string(packer, tee_str(siridb->tee));
 }
 
 static void prop_timezone(

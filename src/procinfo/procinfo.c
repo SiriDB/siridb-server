@@ -140,7 +140,6 @@ long int procinfo_open_files(const char * path, int include_fd)
             if (    res == PROC_PIDFDVNODEPATHINFO_SIZE &&
                     strncmp(path, vnode_info.pvip.vip_path, len) == 0)
             {
-                vnode_info
                 count++;
             }
             else if (

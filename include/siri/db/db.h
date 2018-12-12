@@ -8,7 +8,7 @@ typedef struct siridb_s siridb_t;
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
-#define SIRIDB_SCHEMA 4
+#define SIRIDB_SCHEMA 5
 #define SIRIDB_FLAG_REINDEXING 1
 
 #define DEF_DROP_THRESHOLD 1.0              /* 100%         */
@@ -35,6 +35,8 @@ typedef struct siridb_s siridb_t;
 #include <siri/db/tasks.h>
 #include <siri/db/time.h>
 #include <siri/db/buffer.h>
+#include <siri/db/tee.h>
+
 
 int32_t siridb_get_uptime(siridb_t * siridb);
 int8_t siridb_get_idle_percentage(siridb_t * siridb);
@@ -91,6 +93,7 @@ struct siridb_s
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
     siridb_buffer_t * buffer;
+    siridb_tee_t * tee;
     siridb_tasks_t tasks;
 };
 
