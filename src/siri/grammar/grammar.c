@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2018-10-29 10:52:57
+ * Created at: 2019-01-02 15:54:36
  */
 
 #include "siri/grammar/grammar.h"
@@ -745,14 +745,21 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             )
         )
     );
-    cleri_t * series_sep = cleri_choice(
-        CLERI_GID_SERIES_SEP,
+    cleri_t * series_setopr = cleri_choice(
+        CLERI_GID_SERIES_SETOPR,
         CLERI_FIRST_MATCH,
         4,
         k_union,
         c_difference,
         k_intersection,
         k_symmetric_difference
+    );
+    cleri_t * series_parenthesis = cleri_sequence(
+        CLERI_GID_SERIES_PARENTHESIS,
+        3,
+        cleri_token(CLERI_NONE, "("),
+        CLERI_THIS,
+        cleri_token(CLERI_NONE, ")")
     );
     cleri_t * series_all = cleri_choice(
         CLERI_GID_SERIES_ALL,
@@ -772,15 +779,27 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         string
     );
     cleri_t * group_match = cleri_dup(CLERI_GID_GROUP_MATCH, r_grave_str);
-    cleri_t * series_match = cleri_list(CLERI_GID_SERIES_MATCH, cleri_choice(
-        CLERI_NONE,
-        CLERI_FIRST_MATCH,
-        4,
-        series_all,
-        series_name,
-        group_match,
-        series_re
-    ), series_sep, 1, 0, 0);
+    cleri_t * series_match = cleri_prio(
+        CLERI_GID_SERIES_MATCH,
+        3,
+        cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            4,
+            series_all,
+            series_name,
+            group_match,
+            series_re
+        ),
+        cleri_sequence(
+            CLERI_NONE,
+            3,
+            CLERI_THIS,
+            series_setopr,
+            CLERI_THIS
+        ),
+        series_parenthesis
+    );
     cleri_t * limit_expr = cleri_sequence(
         CLERI_GID_LIMIT_EXPR,
         2,

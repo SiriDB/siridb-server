@@ -407,12 +407,14 @@ class SiriGrammar(Grammar):
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
 
-    series_sep = Choice(
+    series_setopr = Choice(
         k_union,
         c_difference,
         k_intersection,
         k_symmetric_difference,
         most_greedy=False)
+
+    series_parenthesis = Sequence('(', THIS, ')')
 
     series_all = Choice(Token('*'), k_all, most_greedy=False)
     series_name = Repeat(string, 1, 1)
@@ -420,15 +422,17 @@ class SiriGrammar(Grammar):
     series_re = Repeat(r_regex, 1, 1)
     uuid = Choice(r_uuid_str, string, most_greedy=False)
     group_match = Repeat(r_grave_str, 1, 1)
-    series_match = List(
+    series_match = Prio(
         Choice(
             series_all,
             series_name,
             group_match,
             series_re,
             most_greedy=False),
-        series_sep,
-        1)
+        Sequence(THIS, series_setopr, THIS),
+        series_parenthesis
+    )
+
     limit_expr = Sequence(k_limit, int_expr)
 
     before_expr = Sequence(k_before, time_expr)

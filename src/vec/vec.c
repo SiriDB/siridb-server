@@ -32,6 +32,19 @@ vec_t * vec_new(size_t size)
     return vec;
 }
 
+void vec_destroy(vec_t * vec, vec_destroy_cb cb)
+{
+    if (vec != NULL && cb)
+    {
+        size_t i;
+        for (i = 0; i < vec->len; ++i)
+        {
+            cb(vec->data[i]);
+        }
+    }
+    free(vec);
+}
+
 /*
  * Returns NULL in case an error has occurred.
  */

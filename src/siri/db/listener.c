@@ -24,6 +24,7 @@
 #include <siri/db/users.h>
 #include <siri/db/listener.h>
 #include <siri/db/queries.h>
+#include <siri/db/sset.h>
 #include <siri/err.h>
 #include <siri/grammar/gramp.h>
 #include <siri/help/help.h>
@@ -201,8 +202,9 @@ static void enter_set_password(uv_async_t * handle);
 static void enter_series_all(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
+static void enter_series_parenthesis(uv_async_t * handle);
 static void enter_series_re(uv_async_t * handle);
-static void enter_series_sep(uv_async_t * handle);
+static void enter_series_setopr(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
 static void enter_where_xxx(uv_async_t * handle);
 static void enter_xxx_columns(uv_async_t * handle);
@@ -242,6 +244,7 @@ static void exit_revoke_user(uv_async_t * handle);
 static void exit_select_aggregate(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
 static void exit_series_match(uv_async_t * handle);
+static void exit_series_parenthesis(uv_async_t * handle);
 static void exit_set_address(uv_async_t * handle);
 static void exit_set_backup_mode(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
@@ -428,8 +431,9 @@ void siridb_init_listener(void)
     siridb_listen_enter[CLERI_GID_SERIES_ALL] = enter_series_all;
     siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siridb_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
+    siridb_listen_enter[CLERI_GID_SERIES_PARENTHESIS] = enter_series_parenthesis;
     siridb_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
-    siridb_listen_enter[CLERI_GID_SERIES_SEP] = enter_series_sep;
+    siridb_listen_enter[CLERI_GID_SERIES_SETOPR] = enter_series_setopr;
     siridb_listen_enter[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
     siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
@@ -475,6 +479,7 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
     siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siridb_listen_exit[CLERI_GID_SERIES_MATCH] = exit_series_match;
+    siridb_listen_exit[CLERI_GID_SERIES_PARENTHESIS] = exit_series_parenthesis;
     siridb_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
     siridb_listen_exit[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
     siridb_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
@@ -804,7 +809,7 @@ static void enter_group_match(uv_async_t * handle)
         size_t i;
 
         q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
-                q_wrapper->series_map : imap_new();
+                *q_wrapper->series_mapp : imap_new();
 
         if (q_wrapper->series_tmp == NULL)
         {
@@ -829,7 +834,7 @@ static void enter_group_match(uv_async_t * handle)
         if (q_wrapper->update_cb != NULL)
         {
             (*q_wrapper->update_cb)(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     q_wrapper->series_tmp,
                     (imap_free_cb) &siridb__series_decref);
         }
@@ -1203,12 +1208,12 @@ static void enter_series_name(uv_async_t * handle)
         if (q_wrapper->update_cb == &imap_intersection_ref)
         {
             imap_free(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     (imap_free_cb) &siridb__series_decref);
 
-            q_wrapper->series_map = imap_new();
+            *q_wrapper->series_mapp = imap_new();
 
-            if (q_wrapper->series_map == NULL)
+            if (*q_wrapper->series_mapp == NULL)
             {
                 MEM_ERR_RET
             }
@@ -1219,7 +1224,7 @@ static void enter_series_name(uv_async_t * handle)
         if (    q_wrapper->update_cb == NULL ||
                 q_wrapper->update_cb == &imap_union_ref)
         {
-            if (imap_set(q_wrapper->series_map, series->id, series) == 1)
+            if (imap_set(*q_wrapper->series_mapp, series->id, series) == 1)
             {
                 siridb_series_incref(series);
             }
@@ -1227,7 +1232,7 @@ static void enter_series_name(uv_async_t * handle)
         else if (q_wrapper->update_cb == &imap_difference_ref)
         {
             series = (siridb_series_t *) imap_pop(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     series->id);
             if (series != NULL)
             {
@@ -1237,7 +1242,7 @@ static void enter_series_name(uv_async_t * handle)
         else if (q_wrapper->update_cb == &imap_intersection_ref)
         {
             series = (siridb_series_t *) imap_get(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     series->id);
 
             if (series != NULL)
@@ -1246,12 +1251,12 @@ static void enter_series_name(uv_async_t * handle)
             }
 
             imap_free(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     (imap_free_cb) &siridb__series_decref);
 
-            q_wrapper->series_map = imap_new();
+            *q_wrapper->series_mapp = imap_new();
 
-            if (q_wrapper->series_map == NULL)
+            if (*q_wrapper->series_mapp == NULL)
             {
                 if (series != NULL)
                 {
@@ -1262,7 +1267,7 @@ static void enter_series_name(uv_async_t * handle)
 
             if (series != NULL)
             {
-                if (imap_set(q_wrapper->series_map, series->id, series) != 1)
+                if (imap_set(*q_wrapper->series_mapp, series->id, series) != 1)
                 {
                     siridb_series_decref(series);
                     MEM_ERR_RET
@@ -1271,11 +1276,11 @@ static void enter_series_name(uv_async_t * handle)
         }
         else if (q_wrapper->update_cb == &imap_symmetric_difference_ref)
         {
-            switch (imap_set(q_wrapper->series_map, series->id, series))
+            switch (imap_set(*q_wrapper->series_mapp, series->id, series))
             {
             case 0:
                 series = (siridb_series_t *) imap_pop(
-                        q_wrapper->series_map,
+                        *q_wrapper->series_mapp,
                         series->id);
                 siridb_series_decref(series);
                 break;
@@ -1301,13 +1306,27 @@ static void enter_series_name(uv_async_t * handle)
 static void enter_series_match(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+    query_wrapper_t * q_wrapper = query->data;
+    siridb_sset_t * sset;
 
-    if ((((query_wrapper_t *) query->data)->series_map = imap_new()) == NULL)
+    if ((q_wrapper->series_vec = vec_new(1)) == NULL ||
+        (sset = siridb_sset_new()) == NULL)
     {
         MEM_ERR_RET
     }
 
+    vec_append(q_wrapper->series_vec, sset);
+
+    q_wrapper->series_mapp = &sset->series_map;
+
     SIRIPARSER_NEXT_NODE
+}
+
+static void enter_series_parenthesis(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    SIRIPARSER_ASYNC_NEXT_NODE
 }
 
 static void enter_series_all(uv_async_t * handle)
@@ -1330,12 +1349,12 @@ static void enter_series_all(uv_async_t * handle)
             (   q_wrapper->update_cb == NULL ||
                 q_wrapper->update_cb == &imap_union_ref ||
                 q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
-                    siridb->series_map : q_wrapper->series_map);
+                    siridb->series_map : *q_wrapper->series_mapp);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
     q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
-            q_wrapper->series_map : imap_new();
+            *q_wrapper->series_mapp : imap_new();
 
     if (q_wrapper->vec == NULL || q_wrapper->series_tmp == NULL)
     {
@@ -1360,7 +1379,7 @@ static void enter_series_all(uv_async_t * handle)
     if (q_wrapper->update_cb != NULL)
     {
         (*q_wrapper->update_cb)(
-                q_wrapper->series_map,
+                *q_wrapper->series_mapp,
                 q_wrapper->series_tmp,
                 (imap_free_cb) &siridb__series_decref);
     }
@@ -1401,12 +1420,12 @@ static void enter_series_re(uv_async_t * handle)
                 (   q_wrapper->update_cb == NULL ||
                     q_wrapper->update_cb == &imap_union_ref ||
                     q_wrapper->update_cb == &imap_symmetric_difference_ref) ?
-                        siridb->series_map : q_wrapper->series_map);
+                        siridb->series_map : *q_wrapper->series_mapp);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
         q_wrapper->series_tmp = (q_wrapper->update_cb == NULL) ?
-                q_wrapper->series_map : imap_new();
+                *q_wrapper->series_mapp : imap_new();
 
         if (q_wrapper->vec == NULL || q_wrapper->series_tmp == NULL)
         {
@@ -1435,7 +1454,7 @@ static void enter_series_re(uv_async_t * handle)
     /* handle is handled or a signal is raised */
 }
 
-static void enter_series_sep(uv_async_t * handle)
+static void enter_series_setopr(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
     query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
@@ -1762,8 +1781,8 @@ static void exit_count_series(uv_async_t * handle)
 
     if (q_count->where_expr == NULL)
     {
-        q_count->n = (q_count->series_map == NULL) ?
-                siridb->series_map->len : q_count->series_map->len;
+        q_count->n = (q_count->series_mapp == NULL) ?
+                siridb->series_map->len : (*q_count->series_mapp)->len;
 
         if (IS_MASTER)
         {
@@ -1785,8 +1804,8 @@ static void exit_count_series(uv_async_t * handle)
         uv_mutex_lock(&siridb->series_mutex);
 
         q_count->vec = imap_2vec_ref(
-                (q_count->series_map == NULL) ?
-                        siridb->series_map : q_count->series_map);
+                (q_count->series_mapp == NULL) ?
+                        siridb->series_map : *q_count->series_mapp);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
@@ -1832,8 +1851,8 @@ static void exit_count_series_length(uv_async_t * handle)
 
         uv_mutex_lock(&siridb->series_mutex);
 
-        vec = imap_2vec((q_count->series_map == NULL) ?
-                siridb->series_map : q_count->series_map);
+        vec = imap_2vec((q_count->series_mapp == NULL) ?
+                siridb->series_map : *q_count->series_mapp);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
@@ -1872,8 +1891,8 @@ static void exit_count_series_length(uv_async_t * handle)
         uv_mutex_lock(&siridb->series_mutex);
 
         q_count->vec = imap_2vec_ref(
-                (q_count->series_map == NULL) ?
-                        siridb->series_map : q_count->series_map);
+                (q_count->series_mapp == NULL) ?
+                        siridb->series_map : *q_count->series_mapp);
 
         uv_mutex_unlock(&siridb->series_mutex);
 
@@ -2363,9 +2382,11 @@ static void exit_drop_series(uv_async_t * handle)
      */
     uv_mutex_lock(&siridb->series_mutex);
 
-    q_drop->vec = (q_drop->series_map == NULL) ?
-        imap_2vec_ref(siridb->series_map) :
-        imap_vec_pop(q_drop->series_map);
+    q_drop->vec = q_drop->series_tmp != NULL
+        ? imap_vec_pop(q_drop->series_tmp)
+        : q_drop->series_mapp != NULL
+        ? imap_vec_pop(*q_drop->series_mapp)
+        : imap_2vec_ref(siridb->series_map);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -2374,11 +2395,11 @@ static void exit_drop_series(uv_async_t * handle)
         MEM_ERR_RET
     }
 
-    if (q_drop->series_map != NULL)
+    if (q_drop->series_mapp != NULL)
     {
         /* now we can simply destroy the imap in case we had one */
-        imap_free(q_drop->series_map, NULL);
-        q_drop->series_map = NULL;
+        imap_free(*q_drop->series_mapp, NULL);
+        *q_drop->series_mapp = NULL;
     }
 
     /*
@@ -2389,9 +2410,11 @@ static void exit_drop_series(uv_async_t * handle)
     if (q_drop->where_expr != NULL)
     {
         /* create a new one */
-        q_drop->series_map = imap_new();
 
-        if (q_drop->series_map == NULL)
+        /* TODO: Re-write using tmp instead of map */
+        q_drop->series_tmp = imap_new();
+
+        if (q_drop->series_tmp == NULL)
         {
             MEM_ERR_RET
         }
@@ -2913,8 +2936,8 @@ static void exit_list_series(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->series_mutex);
 
-    q_list->vec = imap_2vec_ref((q_list->series_map == NULL) ?
-                    siridb->series_map : q_list->series_map);
+    q_list->vec = imap_2vec_ref((q_list->series_mapp == NULL) ?
+                    siridb->series_map : *q_list->series_mapp);
 
     uv_mutex_unlock(&siridb->series_mutex);
 
@@ -3290,6 +3313,13 @@ static void exit_series_match(uv_async_t * handle)
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
+static void exit_series_parenthesis(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
 static void exit_select_aggregate(uv_async_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
@@ -3298,7 +3328,7 @@ static void exit_select_aggregate(uv_async_t * handle)
     if (q_select->where_expr != NULL)
     {
         /* we transform the references from imap to vec */
-        q_select->vec = imap_vec_pop(q_select->series_map);
+        q_select->vec = imap_vec_pop(*q_select->series_mapp);
 
         if (q_select->vec == NULL)
         {
@@ -3306,12 +3336,13 @@ static void exit_select_aggregate(uv_async_t * handle)
         }
 
         /* now we can simply destroy the imap */
-        imap_free(q_select->series_map, NULL);
+        imap_free(*q_select->series_mapp, NULL);
+        *q_select->series_mapp = NULL;
 
         /* create a new one */
-        q_select->series_map = imap_new();
+        q_select->series_tmp = imap_new();
 
-        if (q_select->series_map == NULL)
+        if (q_select->series_tmp == NULL)
         {
             MEM_ERR_RET
         }
@@ -4555,7 +4586,7 @@ static void async_filter_series(uv_async_t * handle)
                 (cexpr_cb_t) siridb_series_cexpr_cb,
                 series))
         {
-            if (imap_add(q_wrapper->series_map, series->id, series))
+            if (imap_add(q_wrapper->series_tmp, series->id, series))
             {
                 log_critical("Cannot add filtered series to internal map.");
                 siridb_series_decref(series);
@@ -5050,7 +5081,7 @@ static void async_series_re(uv_async_t * handle)
         if (q_wrapper->update_cb != NULL)
         {
             (*q_wrapper->update_cb)(
-                    q_wrapper->series_map,
+                    *q_wrapper->series_mapp,
                     q_wrapper->series_tmp,
                     (imap_free_cb) &siridb__series_decref);
         }

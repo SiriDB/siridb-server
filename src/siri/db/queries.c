@@ -7,6 +7,7 @@
 #include <siri/db/query.h>
 #include <siri/db/shard.h>
 #include <siri/db/queries.h>
+#include <siri/db/sset.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -14,10 +15,11 @@
 
 #define QUERIES_NEW(q)              \
 q->flags = 0;                       \
-q->series_map = NULL;               \
+q->series_mapp = NULL;              \
 q->series_tmp = NULL;               \
-q->vec = NULL;                    \
-q->vec_index = 0;                 \
+q->series_vec = NULL;               \
+q->vec = NULL;                      \
+q->vec_index = 0;                   \
 q->pmap = NULL;                     \
 q->update_cb = NULL;                \
 q->where_expr = NULL;               \
@@ -26,27 +28,22 @@ q->match_data = NULL;
 
 
 #define QUERIES_FREE(q, handle)                                 \
-if (q->series_map != NULL)                                      \
-{                                                               \
-    imap_free(                                                  \
-            q->series_map,                                      \
-            (imap_free_cb) &siridb__series_decref);             \
-}                                                               \
+vec_destroy(q->series_vec, (vec_destroy_cb) siridb_sset_free);  \
 if (q->series_tmp != NULL)                                      \
 {                                                               \
     imap_free(                                                  \
             q->series_tmp,                                      \
             (imap_free_cb) &siridb__series_decref);             \
 }                                                               \
-if (q->vec != NULL)                                           \
+if (q->vec != NULL)                                             \
 {                                                               \
     siridb_series_t * series;                                   \
-    for (; q->vec_index < q->vec->len; q->vec_index++)    \
-    {                                                                   \
+    for (; q->vec_index < q->vec->len; q->vec_index++)          \
+    {                                                               \
         series = (siridb_series_t *) q->vec->data[q->vec_index];    \
-        siridb_series_decref(series);                                   \
-    }                                                                   \
-    vec_free(q->vec);                                       \
+        siridb_series_decref(series);                               \
+    }                                                               \
+    vec_free(q->vec);                                           \
 }                                                               \
 if (q->where_expr != NULL)                                      \
 {                                                               \
