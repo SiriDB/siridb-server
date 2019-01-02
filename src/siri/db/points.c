@@ -1482,7 +1482,6 @@ static void POINTS_merge_and_sort(vec_t * plist, siridb_points_t * points)
             }
         }
     }
-
     /* size should be exactly zero */
     assert (n == 0);
 
@@ -1503,7 +1502,11 @@ static void POINTS_merge_and_sort(vec_t * plist, siridb_points_t * points)
 
 static inline int POINTS_compare(const void * a, const void * b)
 {
-    return (((siridb_point_t *) a)->ts - ((siridb_point_t *) b)->ts);
+    return (((siridb_point_t *) a)->ts < ((siridb_point_t *) b)->ts)
+        ? -1
+        : (((siridb_point_t *) a)->ts > ((siridb_point_t *) b)->ts)
+        ? 1
+        : 0;
 }
 
 /*

@@ -8,6 +8,7 @@ from test_list import TestList
 from test_insert import TestInsert
 from test_pool import TestPool
 from test_select import TestSelect
+from test_select_ns import TestSelectNano
 from test_series import TestSeries
 from test_server import TestServer
 from test_user import TestUser
@@ -27,6 +28,7 @@ if __name__ == '__main__':
     run_test(TestInsert())
     run_test(TestPool())
     run_test(TestSelect())
+    run_test(TestSelectNano())
     run_test(TestSeries())
     run_test(TestServer())
     run_test(TestUser())
