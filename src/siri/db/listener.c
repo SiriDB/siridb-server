@@ -3649,7 +3649,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    double drop_threshold = xstr_to_double(node->str, node->len);
+    double drop_threshold = xstr_to_double(node->str);
 
     if (drop_threshold < 0.0 || drop_threshold > 1.0)
     {
@@ -4705,6 +4705,9 @@ static void async_no_points_aggregate(uv_async_t * handle)
     for (;  q_select->vec_index < q_select->vec->len;
             ++q_select->vec_index)
     {
+        const char * name;
+        size_t i;
+
         if (required_shard > MAX_BATCH_REQUIRE_SHARD)
         {
             async_more = 1;
@@ -4744,71 +4747,70 @@ static void async_no_points_aggregate(uv_async_t * handle)
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        if (points != NULL)
+        if (points == NULL)
         {
-            const char * name;
-            size_t i;
+            MEM_ERR_RET
+        }
 
-            for (i = 1; points->len && i < q_select->alist->len; i++)
+        for (i = 1; points->len && i < q_select->alist->len; i++)
+        {
+            aggr_points = siridb_aggregate_run(
+                    points,
+                    (siridb_aggr_t *) q_select->alist->data[i],
+                    query->err_msg);
+
+            if (aggr_points != points)
             {
-                aggr_points = siridb_aggregate_run(
-                        points,
-                        (siridb_aggr_t *) q_select->alist->data[i],
-                        query->err_msg);
-
-                if (aggr_points != points)
-                {
-                    siridb_points_free(points);
-                }
-
-                if (aggr_points == NULL)
-                {
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
-
-                points = aggr_points;
+                siridb_points_free(points);
             }
 
-            q_select->n += points->len;
-
-            if (q_select->merge_as == NULL)
+            if (aggr_points == NULL)
             {
-                name = siridb_presuf_name(
-                        q_select->presuf,
-                        series->name,
-                        series->name_len);
-
-                if (name == NULL || ct_add(q_select->result, name, points))
-                {
-                    sprintf(query->err_msg, "Error adding points to map.");
-                    siridb_points_free(points);
-                    log_critical("Critical error adding points");
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
             }
-            else
+
+            points = aggr_points;
+        }
+
+        q_select->n += points->len;
+
+        if (q_select->merge_as == NULL)
+        {
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    series->name,
+                    series->name_len);
+
+            if (name == NULL || ct_add(q_select->result, name, points))
             {
-                vec_t ** plist;
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
+        }
+        else
+        {
+            vec_t ** plist;
 
-                name = siridb_presuf_name(
-                        q_select->presuf,
-                        q_select->merge_as,
-                        strlen(q_select->merge_as));
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    q_select->merge_as,
+                    strlen(q_select->merge_as));
 
-                plist = (vec_t **) ct_getaddr(q_select->result, name);
+            plist = (vec_t **) ct_getaddr(q_select->result, name);
 
-                if (    name == NULL ||
-                        plist == NULL ||
-                        vec_append_safe(plist, points))
-                {
-                    sprintf(query->err_msg, "Error adding points to map.");
-                    siridb_points_free(points);
-                    log_critical("Critical error adding points");
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
+            if (    name == NULL ||
+                    plist == NULL ||
+                    vec_append_safe(plist, points))
+            {
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
             }
         }
     }

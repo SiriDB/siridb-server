@@ -42,8 +42,7 @@ uint16_t siridb_lookup_sn_raw(
  */
 siridb_lookup_t * siridb_lookup_new(uint_fast16_t num_pools)
 {
-    siridb_lookup_t * lookup =
-            (siridb_lookup_t *) calloc(1, sizeof(siridb_lookup_t));
+    siridb_lookup_t * lookup = calloc(1, sizeof(siridb_lookup_t));
 
     if (lookup == NULL)
     {

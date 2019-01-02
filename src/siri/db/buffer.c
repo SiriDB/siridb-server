@@ -179,7 +179,9 @@ int siridb_buffer_new_series(
     series->buffer = siridb_points_new(buffer->len, series->tp);
     if (series->buffer == NULL)
     {
-        return -1;  /* signal is raised */
+        /* TODO: maybe we can remove the ERR_ALLOC */
+        ERR_ALLOC
+        return -1;
     }
 
     return (buffer->empty->len) ?

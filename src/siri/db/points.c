@@ -64,29 +64,25 @@ void siridb_points_init(void)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 siridb_points_t * siridb_points_new(size_t size, points_tp tp)
 {
-    siridb_points_t * points =
-            (siridb_points_t *) malloc(sizeof(siridb_points_t));
+    siridb_points_t * points = malloc(sizeof(siridb_points_t));
     if (points == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
+
+    points->len = 0;
+    points->tp = tp;
+    points->data = malloc(sizeof(siridb_point_t) * size);
+    if (points->data == NULL)
     {
-        points->len = 0;
-        points->tp = tp;
-        points->data =
-                (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
-        if (points->data == NULL)
-        {
-            ERR_ALLOC
-            free(points);
-            points = NULL;
-        }
+        free(points);
+        return NULL;
     }
+
     return points;
 }
 
@@ -115,8 +111,7 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
     {
         return NULL;
     }
-    siridb_points_t * cpoints =
-            (siridb_points_t *) malloc(sizeof(siridb_points_t));
+    siridb_points_t * cpoints = malloc(sizeof(siridb_points_t));
     if (cpoints != NULL)
     {
         size_t sz = sizeof(siridb_point_t) * points->len;

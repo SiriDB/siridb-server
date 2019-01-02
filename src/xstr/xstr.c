@@ -10,17 +10,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 void xstr_lower_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
-        *sptr = tolower( (unsigned char) * sptr);
+   {
+       *sptr = tolower( (unsigned char) * sptr);
+   }
 }
 
 void xstr_upper_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
-        *sptr = toupper( (unsigned char) * sptr);
+   {
+       *sptr = toupper( (unsigned char) * sptr);
+   }
 }
 
 void xstr_replace_char(char * sptr, char orig, char repl)
@@ -273,54 +278,42 @@ size_t xstr_extract_string(char * dest, const char * source, size_t len)
  *      - string is allowed to have one dot (.) at most but not required
  *      - string can start with a plus (+) or minus (-) sign.
  */
-double xstr_to_double(const char * src, size_t len)
+double xstr_to_double(const char * str)
 {
-    char * pt = (char *) src;
-    assert (len);
-    double d = 0;
-    double convert;
-    uint64_t r1 = 0;
+    double d;
+    double negative = 0;
 
-    switch (*pt)
+    switch (*str)
     {
     case '-':
-        assert (len > 1);
-        convert = -1.0;
-        ++pt;
-        --len;
+        negative = -1.0;
+        ++str;
         break;
     case '+':
-        assert (len > 1);
-        convert = 1.0;
-        ++pt;
-        --len;
+        ++str;
         break;
-    default:
-        convert = 1.0;
     }
 
-    for (; len && isdigit(*pt); --len, ++pt)
+    if (*str == 'i')
+        return negative ? negative * INFINITY : INFINITY;
+
+    if (*str == 'n')
+        return NAN;
+
+    if (errno == ERANGE)
+        errno = 0;
+
+    d = strtod(str, NULL);
+
+    if (errno == ERANGE)
     {
-        r1 = 10 * r1 + *pt - '0';
+        assert (d == HUGE_VAL || d == -HUGE_VAL);
+
+        d = d == HUGE_VAL ? INFINITY : -INFINITY;
+        errno = 0;
     }
 
-    d = (double) r1;
-
-    if (len && --len)
-    {
-        uint64_t r2;
-        double power;
-        ++pt;
-        r2 = *pt - '0';
-        for (power = -1.0f; --len && isdigit(*(++pt)); power--)
-        {
-            r2 = 10 * r2 + *pt - '0';
-        }
-
-        d += pow(10.0f, power) * (double) r2;
-    }
-
-    return convert * d;
+    return negative ? negative * d : d;
 }
 
 /*

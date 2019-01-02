@@ -115,6 +115,8 @@ void siri_setup_logger(void)
             return;
         }
     }
+
+    assert (0);
     /* We should not get here since args should always
      * contain a valid log level
      */

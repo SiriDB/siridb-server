@@ -704,7 +704,8 @@ siridb_points_t * siridb_series_get_points(
 
     if (points == NULL)
     {
-        return NULL;  /* signal is raised */
+        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
+        return NULL;
     }
 
     for (i = 0; i < len; i++)
@@ -1080,7 +1081,9 @@ int siridb_series_optimize_shard(
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
     {
-        return -1;  /* signal is raised */
+        /* TODO: check if we can remove this ERR_ALLOC */
+        ERR_ALLOC
+        return -1;
     }
 
     for (i = start; i < end; i++)
