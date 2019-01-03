@@ -429,8 +429,8 @@ class SiriGrammar(Grammar):
             group_match,
             series_re,
             most_greedy=False),
+        series_parenthesis,
         Sequence(THIS, series_setopr, THIS),
-        series_parenthesis
     )
 
     limit_expr = Sequence(k_limit, int_expr)

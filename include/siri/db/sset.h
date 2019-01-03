@@ -8,7 +8,7 @@ typedef struct siridb_sset_s siridb_sset_t;
 
 #include <imap/imap.h>
 
-siridb_sset_t * siridb_sset_new(void);
+siridb_sset_t * siridb_sset_new(imap_t * series_map, imap_update_cb update_cb);
 void siridb_sset_free(siridb_sset_t * sset);
 
 struct siridb_sset_s

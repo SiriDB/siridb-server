@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2019-01-02 15:54:36
+ * Created at: 2019-01-03 10:42:54
  */
 
 #include "siri/grammar/grammar.h"
@@ -791,14 +791,14 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             group_match,
             series_re
         ),
+        series_parenthesis,
         cleri_sequence(
             CLERI_NONE,
             3,
             CLERI_THIS,
             series_setopr,
             CLERI_THIS
-        ),
-        series_parenthesis
+        )
     );
     cleri_t * limit_expr = cleri_sequence(
         CLERI_GID_LIMIT_EXPR,

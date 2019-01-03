@@ -7,21 +7,16 @@
 #include <stdlib.h>
 #include <siri/db/series.h>
 
-siridb_sset_t * siridb_sset_new(void)
+siridb_sset_t * siridb_sset_new(imap_t * series_map, imap_update_cb update_cb)
 {
     siridb_sset_t * sset = malloc(sizeof(siridb_sset_t));
     if (sset == NULL)
     {
         return NULL;
     }
-    sset->series_map = imap_new();
-    sset->update_cb = NULL;
 
-    if (sset->series_map == NULL)
-    {
-        siridb_sset_free(sset);
-        return NULL;
-    }
+    sset->series_map = series_map;
+    sset->update_cb = update_cb;
 
     return sset;
 }

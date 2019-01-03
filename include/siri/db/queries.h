@@ -42,10 +42,10 @@ typedef enum
 #define QUERY_DEF               \
 uint8_t tp;                     \
 uint8_t flags;                  \
-imap_t ** series_mapp;          \
+imap_t * series_map;            \
 imap_t * series_tmp;            \
 imap_t * pmap;                  \
-vec_t * series_vec;             \
+vec_t * sset_vec;               \
 vec_t * vec;                    \
 size_t vec_index;               \
 imap_update_cb update_cb;       \

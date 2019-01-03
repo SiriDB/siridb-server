@@ -15,9 +15,9 @@
 
 #define QUERIES_NEW(q)              \
 q->flags = 0;                       \
-q->series_mapp = NULL;              \
+q->series_map = NULL;               \
 q->series_tmp = NULL;               \
-q->series_vec = NULL;               \
+q->sset_vec = NULL;                 \
 q->vec = NULL;                      \
 q->vec_index = 0;                   \
 q->pmap = NULL;                     \
@@ -28,7 +28,13 @@ q->match_data = NULL;
 
 
 #define QUERIES_FREE(q, handle)                                 \
-vec_destroy(q->series_vec, (vec_destroy_cb) siridb_sset_free);  \
+vec_destroy(q->sset_vec, (vec_destroy_cb) siridb_sset_free);    \
+if (q->series_map != NULL)                                      \
+{                                                               \
+    imap_free(                                                  \
+            q->series_map,                                      \
+            (imap_free_cb) &siridb__series_decref);             \
+}                                                               \
 if (q->series_tmp != NULL)                                      \
 {                                                               \
     imap_free(                                                  \
