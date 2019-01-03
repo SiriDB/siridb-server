@@ -1183,6 +1183,7 @@ static void enter_series_name(uv_async_t * handle)
         if (pool == siridb->server->pool)
         {
             series = (siridb_series_t *) ct_get(siridb->series, series_name);
+#ifdef SERIESMUSTEXIST
             if (series == NULL)
             {
                 /* the series does not exist */
@@ -1193,6 +1194,7 @@ static void enter_series_name(uv_async_t * handle)
                 siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                 return;
             }
+#endif
         }
         else if (q_wrapper->pmap != NULL && imap_set(
                 q_wrapper->pmap,
