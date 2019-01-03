@@ -92,7 +92,10 @@ class TestParenth(TestBase):
                 LENPOINTS)})
 
         self.assertEqual(
-            await self.client0.query('list series all - ("series-001" | "series-002" | /windows.*/)'),
+            await self.client0.query('''
+                list series
+                    all - ("series-001" | "series-002" | /windows.*/)
+               '''),
             {
                 'columns': ['name'],
                 'series': [
@@ -102,6 +105,22 @@ class TestParenth(TestBase):
                     ['linux-002'],
                     ['linux-003'],
                     ['linux-004']]})
+
+        self.assertEqual(
+            await self.client0.query('list series all - ("series-001" | "series-002" | (/windows.*/ & /.*001/))'),
+            {
+                'columns': ['name'],
+                'series': [
+                    ['series-003'],
+                    ['series-004'],
+                    ['linux-001'],
+                    ['linux-002'],
+                    ['linux-003'],
+                    ['linux-004'],
+                    ['windows-002'],
+                    ['windows-003'],
+                    ['windows-004']]})
+
         self.assertEqual(
             await self.client0.query('list series ("series-001" | "series-002" | /windows.*/) - /.*003/'),
             {
@@ -113,16 +132,11 @@ class TestParenth(TestBase):
                     ['windows-002'],
                     ['windows-004']]})
 
-        # self.assertEqual(
-        #     await self.client0.query('list series (/.*001/ & "series-002" | /windows.*/) - /.*003/'),
-        #     {
-        #         'columns': ['name'],
-        #         'series': [
-        #             ['series-001'],
-        #             ['series-002'],
-        #             ['windows-001'],
-        #             ['windows-002'],
-        #             ['windows-004']]})
+        self.assertEqual(
+            await self.client0.query('list series (/.*001/ & /linux.*/) - /.*001/'),
+            {
+                'columns': ['name'],
+                'series': []})
 
         self.assertEqual(
             await self.client0.query(
