@@ -5,7 +5,6 @@ Author: Jeroen van der Heijden (Transceptor Technology)
 Date: 2016-10-10
 '''
 import sys
-sys.path.insert(0, '../../pyleri/')
 import os
 from grammar import siri_grammar
 from pyleri import Grammar
