@@ -66,8 +66,7 @@ static char reindex_progress[30];
  */
 siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
 {
-    siridb_reindex_t * reindex =
-            (siridb_reindex_t *) malloc(sizeof(siridb_reindex_t));
+    siridb_reindex_t * reindex = malloc(sizeof(siridb_reindex_t));
     if (reindex == NULL)
     {
         ERR_ALLOC
@@ -127,8 +126,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                     }
                     else if (reindex->size)
                     {
-                        reindex->next_series_id =
-                                (uint32_t *) malloc(sizeof(uint32_t));
+                        reindex->next_series_id = malloc(sizeof(uint32_t));
 
                         if (reindex->next_series_id == NULL)
                         {
@@ -147,8 +145,7 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
                         }
                         else
                         {
-                            reindex->timer =
-                                    (uv_timer_t *) malloc(sizeof(uv_timer_t));
+                            reindex->timer = malloc(sizeof(uv_timer_t));
                             if (reindex->timer == NULL)
                             {
                                 ERR_ALLOC

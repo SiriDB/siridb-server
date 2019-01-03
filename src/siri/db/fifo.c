@@ -26,7 +26,7 @@ static int FIFO_init(siridb_fifo_t * fifo);
  */
 siridb_fifo_t * siridb_fifo_new(siridb_t * siridb)
 {
-    siridb_fifo_t * fifo = (siridb_fifo_t *) malloc(sizeof(siridb_fifo_t));
+    siridb_fifo_t * fifo = malloc(sizeof(siridb_fifo_t));
 
     if (fifo == NULL)
     {

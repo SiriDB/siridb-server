@@ -1317,8 +1317,7 @@ static siridb_series_t * SERIES_new(
         const char * name)
 {
     uint32_t n;
-    siridb_series_t * series;
-    series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
+    siridb_series_t * series = malloc(sizeof(siridb_series_t));
     if (series == NULL)
     {
         ERR_ALLOC
@@ -1473,7 +1472,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
     else if (size)
     {
 
-        buffer = (char *) malloc(size);
+        buffer = malloc(size);
         if (buffer == NULL)
         {
             log_critical("Cannot allocate buffer for reading dropped series");

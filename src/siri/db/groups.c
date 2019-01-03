@@ -63,8 +63,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 {
     log_info("Loading groups");
 
-    siridb_groups_t * groups =
-            (siridb_groups_t *) malloc(sizeof(siridb_groups_t));
+    siridb_groups_t * groups = malloc(sizeof(siridb_groups_t));
     if (groups == NULL)
     {
         ERR_ALLOC

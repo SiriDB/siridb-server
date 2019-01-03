@@ -199,7 +199,7 @@ siridb_insert_t * siridb_insert_new(
         uint16_t pid,
         sirinet_stream_t * client)
 {
-    siridb_insert_t * insert = (siridb_insert_t *) malloc(
+    siridb_insert_t * insert = malloc(
             sizeof(siridb_insert_t) +
             siridb->pools->len * sizeof(qp_packer_t *));
 
@@ -258,7 +258,7 @@ siridb_insert_t * siridb_insert_new(
  */
 int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
 {
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         ERR_ALLOC
@@ -456,7 +456,7 @@ static void INSERT_local_free_cb(uv_async_t * handle)
 
     if (ilocal->forward != NULL)
     {
-        uv_async_t * fwd = (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * fwd = malloc(sizeof(uv_async_t));
         if (fwd == NULL || siri_err)
         {
             if (fwd == NULL)
@@ -1005,16 +1005,14 @@ static int INSERT_init_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         free(pkg);
         ERR_ALLOC
         return -1;
     }
-    siridb_insert_local_t * ilocal =
-            (siridb_insert_local_t *) malloc(sizeof(siridb_insert_local_t));
+    siridb_insert_local_t * ilocal = malloc(sizeof(siridb_insert_local_t));
     if (ilocal == NULL)
     {
         free(pkg);
@@ -1023,7 +1021,7 @@ static int INSERT_init_local(
         return -1;
     }
 
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         free(pkg);

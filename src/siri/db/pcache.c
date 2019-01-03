@@ -15,8 +15,7 @@
  */
 siridb_pcache_t * siridb_pcache_new(points_tp tp)
 {
-    siridb_pcache_t * pcache =
-            (siridb_pcache_t *) malloc(sizeof(siridb_pcache_t));
+    siridb_pcache_t * pcache = malloc(sizeof(siridb_pcache_t));
     if (pcache == NULL)
     {
         ERR_ALLOC
@@ -26,9 +25,7 @@ siridb_pcache_t * siridb_pcache_new(points_tp tp)
         pcache->size = PCACHE_DEFAULT_SIZE;
         pcache->len = 0;
         pcache->tp = tp;
-        pcache->data = (siridb_point_t *) malloc(
-                sizeof(siridb_point_t) * PCACHE_DEFAULT_SIZE);
-
+        pcache->data = malloc(sizeof(siridb_point_t) * PCACHE_DEFAULT_SIZE);
         if (pcache->data == NULL)
         {
             ERR_ALLOC
@@ -52,10 +49,9 @@ int siridb_pcache_add_point(
 {
     if (pcache->len == pcache->size)
     {
+        siridb_point_t * tmp;
         pcache->size *= 2;
-        siridb_point_t * tmp = (siridb_point_t *) realloc(
-                        pcache->data,
-                        sizeof(siridb_point_t) * pcache->size);
+        tmp = realloc(pcache->data, sizeof(siridb_point_t) * pcache->size);
         if (tmp == NULL)
         {
             log_error(

@@ -117,7 +117,7 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
         size_t sz = sizeof(siridb_point_t) * points->len;
         cpoints->len = points->len;
         cpoints->tp = points->tp;
-        cpoints->data = (siridb_point_t *) malloc(sz);
+        cpoints->data = malloc(sz);
         if (cpoints->data == NULL)
         {
             free(cpoints);
@@ -457,7 +457,7 @@ unsigned char * siridb_points_zip_int(
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
     *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
@@ -528,7 +528,7 @@ unsigned char * siridb_points_zip_string(
         *size = sizeof(uint64_t);
         return siridb_points_raw_string(points, start, end, cinfo, size);
     }
-    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    size_t * sizes = malloc(sizeof(size_t) * n);
     if (sizes == NULL)
     {
         return NULL;
@@ -578,8 +578,8 @@ unsigned char * siridb_points_zip_string(
     /* calculate time-stamps size */
     sz = 13 + shift + tinfo*(n - 2);
 
-    src = (uint8_t *) malloc(sz_src);
-    out = (uint8_t *) malloc(sz + sz_src + (is_ascii ? 0 : (n * 8)));
+    src = malloc(sz_src);
+    out = malloc(sz + sz_src + (is_ascii ? 0 : (n * 8)));
     if (src == NULL || out == NULL)
     {
         goto failed;
@@ -659,7 +659,7 @@ unsigned char * siridb_points_raw_string(
     *size = 0;
 
     uint_fast32_t n = end - start;
-    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    size_t * sizes = malloc(sizeof(size_t) * n);
     size_t * psz = sizes;
     unsigned char * pdata;
     unsigned char * cdata;
@@ -784,7 +784,7 @@ unsigned char * siridb_points_zip_double(
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
     *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
@@ -1177,7 +1177,7 @@ int siridb_points_unzip_string(
     memcpy(&point->ts, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    buf = (uint8_t *) malloc(src_sz);
+    buf = malloc(src_sz);
     if (buf == NULL)
     {
         return -1;
@@ -1276,7 +1276,7 @@ static unsigned char * POINTS_zip_raw(
     *size = n * 16;
     *cinfo = 0xffff;
 
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
