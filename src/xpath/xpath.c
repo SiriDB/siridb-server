@@ -58,7 +58,7 @@ ssize_t xpath_get_content(char ** buffer, const char * fn)
         (size = ftello(fp)) != -1 &&
         fseeko(fp, 0, SEEK_SET) == 0)
     {
-        *buffer = (char *) malloc(size);
+        *buffer = malloc(size);
         if (*buffer != NULL)
         {
             if (fread(*buffer, size, 1, fp) != 1)

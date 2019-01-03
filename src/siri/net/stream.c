@@ -111,7 +111,7 @@ void sirinet_stream_alloc_buffer(
     if (!client->len && client->size > RESET_BUF_SIZE)
     {
         free(client->buf);
-        client->buf = (char *) malloc(suggested_size);
+        client->buf = malloc(suggested_size);
         if (client->buf == NULL)
         {
             ERR_ALLOC

@@ -37,8 +37,7 @@ int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync)
 {
     assert (siri.loop != NULL);
 
-    siridb->replicate =
-            (siridb_replicate_t *) malloc(sizeof(siridb_replicate_t));
+    siridb->replicate = malloc(sizeof(siridb_replicate_t));
     if (siridb->replicate == NULL)
     {
         ERR_ALLOC
@@ -47,7 +46,7 @@ int siridb_replicate_init(siridb_t * siridb, siridb_initsync_t * initsync)
 
     siridb->replicate->initsync = initsync;
 
-    siridb->replicate->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
+    siridb->replicate->timer = malloc(sizeof(uv_timer_t));
     if (siridb->replicate->timer == NULL)
     {
         ERR_ALLOC

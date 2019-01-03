@@ -74,7 +74,7 @@ const char * siri_help_get(
                 size = ftello(fp);
                 fseeko(fp, 0, SEEK_SET);
 
-                *content = (char *) malloc (size + 1);
+                *content = malloc (size + 1);
 
                 if (*content == NULL)
                 {

@@ -141,7 +141,7 @@ int siri_service_account_new(
         return -1;
     }
 
-    account = (siri_service_account_t *) malloc(sizeof(siri_service_account_t));
+    account = malloc(sizeof(siri_service_account_t));
     if (account == NULL)
     {
         ACCOUNT_msg(err_msg, "memory allocation error");

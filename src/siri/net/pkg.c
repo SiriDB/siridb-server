@@ -28,8 +28,7 @@ sirinet_pkg_t * sirinet_pkg_new(
         uint8_t tp,
         const unsigned char * data)
 {
-    sirinet_pkg_t * pkg =
-            (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
+    sirinet_pkg_t * pkg = malloc(sizeof(sirinet_pkg_t) + len);
 
     if (pkg == NULL)
     {

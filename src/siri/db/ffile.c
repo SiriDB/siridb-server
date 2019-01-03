@@ -44,7 +44,7 @@ siridb_ffile_t * siridb_ffile_new(
         const char * path,
         sirinet_pkg_t * pkg)
 {
-    siridb_ffile_t * ffile = (siridb_ffile_t *) malloc(sizeof(siridb_ffile_t));
+    siridb_ffile_t * ffile = malloc(sizeof(siridb_ffile_t));
 
     if (ffile == NULL)
     {
@@ -210,7 +210,7 @@ sirinet_pkg_t * siridb_ffile_pop(siridb_ffile_t * ffile)
         log_critical("Seek error in '%s'", ffile->fn);
         return NULL;
     }
-    sirinet_pkg_t * pkg = (sirinet_pkg_t *) malloc(ffile->next_size);
+    sirinet_pkg_t * pkg = malloc(ffile->next_size);
 
     if (pkg == NULL)
     {

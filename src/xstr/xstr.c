@@ -342,7 +342,7 @@ uint64_t xstr_to_uint64(const char * src, size_t len)
 char * xstr_dup(const char * src, size_t * n)
 {
     *n = strlen(src);
-    char * nstr = (char *) malloc(*n + 1);
+    char * nstr = malloc(*n + 1);
     if (nstr)
     {
         memcpy(nstr, src, *n + 1);
