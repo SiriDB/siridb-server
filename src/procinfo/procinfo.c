@@ -114,7 +114,7 @@ long int procinfo_open_files(const char * path, int include_fd)
         return -1;
     }
 
-    struct proc_fdinfo * fd_info = (struct proc_fdinfo *) malloc(buffer_size);
+    struct proc_fdinfo * fd_info = malloc(buffer_size);
 
     if (fd_info == NULL)
     {

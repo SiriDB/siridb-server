@@ -389,7 +389,7 @@ static cexpr_t * CEXPR_walk_node(
             /* in case of a string, set the value and return */
             if (node->cl_obj->gid == CLERI_GID_STRING)
             {
-                (*condition)->str = (char *) malloc(node->len -1);
+                (*condition)->str = malloc(node->len -1);
                 if ((*condition)->str == NULL)
                 {
                     return NULL;
@@ -554,7 +554,7 @@ static cexpr_t * CEXPR_walk_node(
  */
 static cexpr_t * CEXPR_new(void)
 {
-    cexpr_t * cexpr = (cexpr_t *) malloc(sizeof(cexpr_t));
+    cexpr_t * cexpr = malloc(sizeof(cexpr_t));
     if (cexpr != NULL)
     {
         cexpr->operator = CEXPR_AND;

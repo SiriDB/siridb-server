@@ -140,7 +140,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
     int is_ts64;
     FILE * fp;
     off_t shard_sz;
-    siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+    siridb_shard_t * shard = malloc(sizeof(siridb_shard_t));
 
     if (shard == NULL)
     {
@@ -296,7 +296,7 @@ siridb_shard_t *  siridb_shard_create(
         uint8_t tp,
         siridb_shard_t * replacing)
 {
-    siridb_shard_t * shard = (siridb_shard_t *) malloc(sizeof(siridb_shard_t));
+    siridb_shard_t * shard = malloc(sizeof(siridb_shard_t));
     if (shard == NULL)
     {
         ERR_ALLOC
@@ -572,7 +572,7 @@ size_t siridb_shard_write_points(
     {
         size_t p = 0;
         size_t ts_sz = siridb->time->ts_sz;
-        cdata = (unsigned char *) malloc(dsize);
+        cdata = malloc(dsize);
         if (cdata == NULL)
         {
             ERR_ALLOC
@@ -629,7 +629,7 @@ int siridb_shard_get_points_num32(
         }
     }
 
-    temp = (uint32_t *) malloc(sizeof(uint32_t) * idx->len * 3);
+    temp = malloc(sizeof(uint32_t) * idx->len * 3);
     if (temp == NULL)
     {
         log_critical("Memory allocation error");
@@ -726,7 +726,7 @@ int siridb_shard_get_points_num64(
         }
     }
 
-    temp = (uint64_t *) malloc(sizeof(uint64_t) * idx->len * 2);
+    temp = malloc(sizeof(uint64_t) * idx->len * 2);
     if (temp == NULL)
     {
         log_critical("Memory allocation error");
@@ -822,7 +822,7 @@ int siridb_shard_get_points_num_compressed(
         }
     }
 
-    bits = (unsigned char *) malloc(size);
+    bits = malloc(size);
     if (bits == NULL)
     {
         log_critical("Memory allocation error");
@@ -906,7 +906,7 @@ int siridb_shard_get_points_log_compressed(
             return -1;
         }
     }
-    bits = (uint8_t *) malloc(size);
+    bits = malloc(size);
     if (bits == NULL)
     {
         free(bits);
@@ -976,8 +976,8 @@ int siridb_shard_get_points_log32(
         }
     }
 
-    tdata = (uint32_t *) malloc(sizeof(uint32_t) * idx->len);
-    cdata = (char *) malloc(dsize);
+    tdata = malloc(sizeof(uint32_t) * idx->len);
+    cdata = malloc(dsize);
     if (cdata == NULL || tdata == NULL)
     {
         free(tdata);
@@ -1093,8 +1093,8 @@ int siridb_shard_get_points_log64(
         }
     }
 
-    tdata = (uint64_t *) malloc(sizeof(uint64_t) * idx->len);
-    cdata = (char *) malloc(dsize);
+    tdata = malloc(sizeof(uint64_t) * idx->len);
+    cdata = malloc(dsize);
     if (cdata == NULL || tdata == NULL)
     {
         free(tdata);
@@ -1725,7 +1725,7 @@ static int SHARD_get_idx(
     }
 
     n = SIRIDB_SHARD_MAX_CHUNK_SZ / idx_sz;
-    data = (char *) malloc(n * idx_sz);
+    data = malloc(n * idx_sz);
 
     if (data == NULL)
     {

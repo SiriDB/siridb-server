@@ -58,8 +58,7 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool)
 {
-    siridb_server_t * server =
-            (siridb_server_t *) malloc(sizeof(siridb_server_t));
+    siridb_server_t * server = malloc(sizeof(siridb_server_t));
     if (server == NULL)
     {
         ERR_ALLOC
@@ -133,15 +132,14 @@ int siridb_server_send_pkg(
     assert (cb != NULL);
     int rc;
     uint8_t n = 0;
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         ERR_ALLOC
         return -1;
     }
 
-    promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
+    promise->timer = malloc(sizeof(uv_timer_t));
     if (promise->timer == NULL)
     {
         ERR_ALLOC
@@ -159,7 +157,7 @@ int siridb_server_send_pkg(
     promise->server = server;
     promise->data = data;
 
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write_t * req = malloc(sizeof(uv_write_t));
     if (req == NULL)
     {
         ERR_ALLOC
@@ -408,7 +406,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* IPv4 */
             struct sockaddr_in dest;
 
-            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            uv_connect_t * req = malloc(sizeof(uv_connect_t));
             if (req == NULL)
             {
                 ERR_ALLOC
@@ -430,7 +428,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* IPv6 */
             struct sockaddr_in6 dest6;
 
-            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            uv_connect_t * req = malloc(sizeof(uv_connect_t));
             if (req == NULL)
             {
                 ERR_ALLOC
@@ -555,7 +553,7 @@ static void SERVER_on_resolved(
                     addr, server->name);
 
         }
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             ERR_ALLOC

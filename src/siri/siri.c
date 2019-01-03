@@ -157,7 +157,7 @@ int siri_start(void)
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
     /* initialize the default event loop */
-    siri.loop = (uv_loop_t *) malloc(sizeof(uv_loop_t));
+    siri.loop = malloc(sizeof(uv_loop_t));
     if (siri.loop == NULL)
     {
         return -1;

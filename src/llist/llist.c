@@ -12,7 +12,7 @@ static llist_node_t * LLIST_node_new(void * data);
  */
 llist_t * llist_new(void)
 {
-    llist_t * llist = (llist_t *) malloc(sizeof(llist_t));
+    llist_t * llist = malloc(sizeof(llist_t));
     if (llist == NULL)
     {
         return NULL;
@@ -266,8 +266,7 @@ vec_t * llist2vec(llist_t * llist)
  */
 static llist_node_t * LLIST_node_new(void * data)
 {
-    llist_node_t * llist_node;
-    llist_node = (llist_node_t *) malloc(sizeof(llist_node_t));
+    llist_node_t * llist_node = malloc(sizeof(llist_node_t));
     if (llist_node == NULL)
     {
         return NULL;

@@ -720,7 +720,7 @@ void siridb__free(siridb_t * siridb)
  */
 static siridb_t * siridb__new(void)
 {
-    siridb_t * siridb = (siridb_t *) malloc(sizeof(siridb_t));
+    siridb_t * siridb = malloc(sizeof(siridb_t));
     if (siridb == NULL)
     {
         goto fail0;

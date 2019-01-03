@@ -114,7 +114,7 @@ int siri_service_client_request(
 
     uv_tcp_init(siri.loop, (uv_tcp_t *) siri.client->stream);
 
-    adm_client = (siri_service_client_t *) malloc(sizeof(siri_service_client_t));
+    adm_client = malloc(sizeof(siri_service_client_t));
     if (adm_client == NULL)
     {
         sirinet_stream_decref(siri.client);
@@ -159,7 +159,7 @@ int siri_service_client_request(
         /* IPv4 */
         struct sockaddr_in dest;
 
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             sirinet_stream_decref(siri.client);
@@ -183,7 +183,7 @@ int siri_service_client_request(
         /* IPv6 */
         struct sockaddr_in6 dest6;
 
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             sirinet_stream_decref(siri.client);
@@ -250,8 +250,7 @@ static int CLIENT_resolve_dns(
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICSERV;
 
-    uv_getaddrinfo_t * resolver =
-            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+    uv_getaddrinfo_t * resolver = malloc(sizeof(uv_getaddrinfo_t));
 
     if (resolver == NULL)
     {
@@ -306,7 +305,7 @@ static void CLIENT_on_resolved(
     }
     else
     {
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             CLIENT_err(adm_client, "memory allocation error");
@@ -376,7 +375,7 @@ static void CLIENT_send_pkg(
         siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write_t * req = malloc(sizeof(uv_write_t));
     if (req == NULL)
     {
         free(pkg);

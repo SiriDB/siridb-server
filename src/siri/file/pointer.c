@@ -11,7 +11,7 @@
  */
 siri_fp_t * siri_fp_new(void)
 {
-    siri_fp_t * fp = (siri_fp_t *) malloc(sizeof(siri_fp_t));
+    siri_fp_t * fp = malloc(sizeof(siri_fp_t));
     if (fp == NULL)
     {
         ERR_ALLOC

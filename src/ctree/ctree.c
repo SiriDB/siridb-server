@@ -46,7 +46,7 @@ static void CT_free(ct_node_t * node, ct_free_cb cb);
  */
 ct_t * ct_new(void)
 {
-    ct_t * ct = (ct_t *) malloc(sizeof(ct_t));
+    ct_t * ct = malloc(sizeof(ct_t));
     if (ct == NULL)
     {
         return NULL;
@@ -273,7 +273,7 @@ int ct_items(ct_t * ct, ct_item_cb cb, void * args)
     size_t len = 1;
     ct_node_t * nd;
     int rc = 0;
-    char * buffer = (char *) malloc(buffer_sz);
+    char * buffer = malloc(buffer_sz);
     uint_fast16_t i, end;
 
     if (buffer == NULL)
@@ -763,7 +763,7 @@ static void * CT_pop(ct_node_t * parent, ct_node_t ** nd, const char * key)
  */
 static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
 {
-    ct_node_t * node = (ct_node_t *) malloc(sizeof(ct_node_t));
+    ct_node_t * node = malloc(sizeof(ct_node_t));
     if (node == NULL)
     {
         return NULL;
@@ -776,7 +776,7 @@ static ct_node_t * CT_node_new(const char * key, size_t len, void * data)
     node->nodes = NULL;
     if (len)
     {
-        node->key = (char *) malloc(len);
+        node->key = malloc(len);
         if (node->key == NULL)
         {
             free(node);

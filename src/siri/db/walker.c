@@ -12,8 +12,7 @@ siridb_walker_t * siridb_walker_new(
         const uint64_t now,
         uint8_t * flags)
 {
-    siridb_walker_t * walker =
-            (siridb_walker_t *) malloc(sizeof(siridb_walker_t));
+    siridb_walker_t * walker = malloc(sizeof(siridb_walker_t));
     if (walker == NULL)
     {
         ERR_ALLOC
@@ -58,8 +57,7 @@ int siridb_walker_append(
         cleri_node_t * node,
         uv_async_cb cb)
 {
-    siridb_nodes_t * wnode =
-            (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
+    siridb_nodes_t * wnode = malloc(sizeof(siridb_nodes_t));
     if (wnode == NULL)
     {
         ERR_ALLOC
@@ -94,8 +92,7 @@ int siridb_walker_insert(
 {
     siridb_nodes_t * current = walker->exit_nodes;
 
-    walker->exit_nodes =
-            (siridb_nodes_t *) malloc(sizeof(siridb_nodes_t));
+    walker->exit_nodes = malloc(sizeof(siridb_nodes_t));
     if (walker->exit_nodes == NULL)
     {
         ERR_ALLOC

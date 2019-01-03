@@ -519,7 +519,7 @@ siridb_points_t * siridb_aggregate_run(
  */
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
 {
-    siridb_aggr_t * aggr = (siridb_aggr_t *) malloc(sizeof(siridb_aggr_t));
+    siridb_aggr_t * aggr = malloc(sizeof(siridb_aggr_t));
     if (aggr == NULL)
     {
         return NULL;
@@ -588,7 +588,7 @@ static int AGGREGATE_init_filter(
 
     case CLERI_GID_STRING:
         aggr->filter_tp = TP_STRING;
-        aggr->filter_via.raw = (unsigned char *) malloc(node->len - 1);
+        aggr->filter_via.raw = malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
             sprintf(err_msg, "Memory allocation error.");
