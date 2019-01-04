@@ -754,8 +754,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_intersection,
         k_symmetric_difference
     );
-    cleri_t * series_parenthesis = cleri_sequence(
-        CLERI_GID_SERIES_PARENTHESIS,
+    cleri_t * series_parentheses = cleri_sequence(
+        CLERI_GID_SERIES_PARENTHESES,
         3,
         cleri_token(CLERI_NONE, "("),
         CLERI_THIS,
@@ -791,7 +791,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             group_match,
             series_re
         ),
-        series_parenthesis,
+        series_parentheses,
         cleri_sequence(
             CLERI_NONE,
             3,

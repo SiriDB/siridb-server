@@ -202,7 +202,7 @@ static void enter_set_password(uv_async_t * handle);
 static void enter_series_all(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
-static void enter_series_parenthesis(uv_async_t * handle);
+static void enter_series_parentheses(uv_async_t * handle);
 static void enter_series_re(uv_async_t * handle);
 static void enter_series_setopr(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
@@ -244,7 +244,7 @@ static void exit_revoke_user(uv_async_t * handle);
 static void exit_select_aggregate(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
 static void exit_series_match(uv_async_t * handle);
-static void exit_series_parenthesis(uv_async_t * handle);
+static void exit_series_parentheses(uv_async_t * handle);
 static void exit_set_address(uv_async_t * handle);
 static void exit_set_backup_mode(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
@@ -431,7 +431,7 @@ void siridb_init_listener(void)
     siridb_listen_enter[CLERI_GID_SERIES_ALL] = enter_series_all;
     siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siridb_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
-    siridb_listen_enter[CLERI_GID_SERIES_PARENTHESIS] = enter_series_parenthesis;
+    siridb_listen_enter[CLERI_GID_SERIES_PARENTHESES] = enter_series_parentheses;
     siridb_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
     siridb_listen_enter[CLERI_GID_SERIES_SETOPR] = enter_series_setopr;
     siridb_listen_enter[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
@@ -479,7 +479,7 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
     siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siridb_listen_exit[CLERI_GID_SERIES_MATCH] = exit_series_match;
-    siridb_listen_exit[CLERI_GID_SERIES_PARENTHESIS] = exit_series_parenthesis;
+    siridb_listen_exit[CLERI_GID_SERIES_PARENTHESES] = exit_series_parentheses;
     siridb_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
     siridb_listen_exit[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
     siridb_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
@@ -1318,7 +1318,7 @@ static void enter_series_match(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
-static void enter_series_parenthesis(uv_async_t * handle)
+static void enter_series_parentheses(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
     query_wrapper_t * q_wrapper = query->data;
@@ -3336,7 +3336,7 @@ static void exit_series_match(uv_async_t * handle)
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
-static void exit_series_parenthesis(uv_async_t * handle)
+static void exit_series_parentheses(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
     query_wrapper_t * q_wrapper = query->data;

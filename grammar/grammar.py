@@ -414,7 +414,7 @@ class SiriGrammar(Grammar):
         k_symmetric_difference,
         most_greedy=False)
 
-    series_parenthesis = Sequence('(', THIS, ')')
+    series_parentheses = Sequence('(', THIS, ')')
 
     series_all = Choice(Token('*'), k_all, most_greedy=False)
     series_name = Repeat(string, 1, 1)
@@ -429,7 +429,7 @@ class SiriGrammar(Grammar):
             group_match,
             series_re,
             most_greedy=False),
-        series_parenthesis,
+        series_parentheses,
         Sequence(THIS, series_setopr, THIS),
     )
 
