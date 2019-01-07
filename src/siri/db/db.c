@@ -264,7 +264,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     uv_mutex_unlock(&siri.siridb_mutex);
 
     /* start groups update thread */
-    siridb_groups_start(siridb->groups);
+    siridb_groups_start(siridb);
 
     /* start tasks */
     siridb_tasks_init(&siridb->tasks);

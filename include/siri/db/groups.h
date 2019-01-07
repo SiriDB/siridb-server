@@ -41,7 +41,7 @@ typedef struct siridb_groups_s siridb_groups_t;
 #include <siri/net/pkg.h>
 
 siridb_groups_t * siridb_groups_new(siridb_t * siridb);
-void siridb_groups_start(siridb_groups_t * groups);
+void siridb_groups_start(siridb_t * siridb);
 int siridb_groups_save(siridb_groups_t * groups);
 ssize_t siridb_groups_get_file(char ** buffer, siridb_t * siridb);
 void siridb_groups_init_nseries(siridb_groups_t * groups);
@@ -72,6 +72,6 @@ struct siridb_groups_s
     vec_t * nseries;  /* list of series we need to assign to groups */
     vec_t * ngroups;  /* list of groups which need initialization */
     uv_mutex_t mutex;
-    uv_work_t work;
+    uv_thread_t thread;
 };
 #endif  /* SIRIDB_GROUPS_H_ */

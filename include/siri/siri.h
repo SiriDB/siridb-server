@@ -17,7 +17,7 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #define SIRI_MAX_SIZE_ERR_MSG 1024
-#define MAX_NUMBER_DB 4
+#define MAX_NUMBER_DB 1024
 
 typedef enum
 {
