@@ -48,6 +48,7 @@ static int siridb__from_unpacker(
 static siridb_t * siridb__from_dat(const char * dbpath);
 static int siridb__read_conf(siridb_t * siridb);
 static int siridb__lock(const char * dbpath, int lock_flags);
+static inline int siridb__cmp_db(siridb_t * siridb, qp_obj_t * dbname);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
     strcpy(err_msg, ERROR_MSG);             \
@@ -530,6 +531,34 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 }
 
 /*
+ * Get a siridb object by qpack name.
+ */
+siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname)
+{
+    assert (qp_dbname->tp == QP_RAW);
+
+    llist_node_t * node = siridb_list->first;
+    siridb_t * siridb;
+
+    while (node != NULL)
+    {
+        siridb = (siridb_t *) node->data;
+        if (qp_dbname->len == strlen(siridb->dbname) &&
+            strncmp(
+                siridb->dbname,
+                (const char *) qp_dbname->via.raw,
+                qp_dbname->len) == 0)
+        {
+            return siridb;
+        }
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+
+/*
  * Sometimes we need a callback function and cannot use a macro expansion.
  */
 void siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
@@ -706,14 +735,53 @@ void siridb__free(siridb_t * siridb)
         }
     }
 
-    free(siridb->dbpath);
-    free(siridb->dbname);
-    free(siridb->time);
-
     uv_mutex_destroy(&siridb->series_mutex);
     uv_mutex_destroy(&siridb->shards_mutex);
 
+    if (siridb->flags & SIRIDB_FLAG_DROPPED)
+    {
+        xpath_rmdir(siridb->dbpath);
+    }
+
+    free(siridb->dbpath);
+    free(siridb->dbname);
+    free(siridb->time);
     free(siridb);
+}
+
+void siridb_drop(siridb_t * siridb)
+{
+    if (siridb->flags & SIRIDB_FLAG_DROPPED)
+    {
+        return;
+    }
+
+    log_warning("dropping database '%s'", siridb->dbname);
+
+    siridb->flags |= SIRIDB_FLAG_DROPPED;
+
+    uv_mutex_lock(&siri.siridb_mutex);
+
+    (void *) llist_remove(siri.siridb_list, NULL, siridb);
+
+    uv_mutex_unlock(&siri.siridb_mutex);
+
+    if (siridb->replicate != NULL)
+    {
+        siridb_replicate_close(siridb->replicate);
+    }
+
+    if (siridb->reindex != NULL && siridb->reindex->timer != NULL)
+    {
+        siridb_reindex_close(siridb->reindex);
+    }
+
+    if (siridb->groups != NULL)
+    {
+        siridb_groups_destroy(siridb->groups);
+    }
+
+    siridb_decref(siridb);
 }
 
 /*
@@ -942,6 +1010,15 @@ static int siridb__lock(const char * dbpath, int lock_flags)
         break;
     }
     return 0;
+}
+
+static inline int siridb__cmp_db(siridb_t * siridb, qp_obj_t * dbname)
+{
+    size_t len = strlen(siridb->dbname);
+    return (
+            dbname->len == len &&
+            strncmp(siridb->dbname, (const char *) dbname->via.raw, len) == 0
+    );
 }
 
 

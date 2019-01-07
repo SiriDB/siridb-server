@@ -85,6 +85,7 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_ENABLE_BACKUP_MODE: return "BPROTO_ENABLE_BACKUP_MODE";
     case BPROTO_DISABLE_BACKUP_MODE: return "BPROTO_DISABLE_BACKUP_MODE";
     case BPROTO_TEE_PIPE_NAME_UPDATE: return "BPROTO_TEE_PIPE_NAME_UPDATE";
+    case BPROTO_DROP_DATABASE: return "BPROTO_DROP_DATABASE";
     default:
         sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
@@ -121,6 +122,7 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ACK_DISABLE_BACKUP_MODE: return "BPROTO_ACK_DISABLE_BACKUP_MODE";
     case BPROTO_RES_GROUPS: return "BPROTO_RES_GROUPS";
     case BPROTO_ACK_TEE_PIPE_NAME: return "BPROTO_ACK_TEE_PIPE_NAME";
+    case BPROTO_ACK_DROP_DATABASE: return "BPROTO_ACK_DROP_DATABASE";
     default:
         sprintf(protocol_str, "BPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
         return protocol_str;

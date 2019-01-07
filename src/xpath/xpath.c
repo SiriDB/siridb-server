@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <xpath/xpath.h>
 
 /*
@@ -103,4 +104,45 @@ int xpath_get_exec_path(char * path)
     *(++path_end) = '\0';
 
     return 0;
+}
+
+int xpath_rmdir(const char * path)
+{
+    DIR * d = opendir(path);
+    if (!d)
+        return -1;
+
+    size_t bufsz = 0, path_len = strlen(path);
+    const char * slash = (path[path_len - 1] == '/') ? "" : "/";
+    struct dirent * p;
+    char * buf = NULL;
+
+    while ((p = readdir(d)))
+    {
+        size_t len;
+
+        /* Skip the names "." and ".." as we don't want to recurse on them. */
+        if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
+            continue;
+
+        len = path_len + strlen(p->d_name) + 2;
+        if (len > bufsz)
+        {
+            bufsz = len;
+            char * tmp = realloc(buf, bufsz);
+            if (!tmp) goto stop;
+            buf = tmp;
+        }
+
+        snprintf(buf, len, "%s%s%s", path, slash, p->d_name);
+
+        if (xpath_is_dir(buf) ? xpath_rmdir(buf) : unlink(buf))
+            goto stop;
+    }
+
+stop:
+    free(buf);
+    closedir(d);
+
+    return rmdir(path);
 }

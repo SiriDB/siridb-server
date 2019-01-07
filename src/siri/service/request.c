@@ -3,21 +3,22 @@
  */
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include <siri/service/account.h>
-#include <siri/service/client.h>
-#include <stddef.h>
-#include <siri/service/request.h>
-#include <siri/siri.h>
+#include <lock/lock.h>
 #include <logger/logger.h>
 #include <pcre2.h>
-#include <lock/lock.h>
-#include <xmath/xmath.h>
+#include <siri/db/buffer.h>
+#include <siri/db/reindex.h>
+#include <siri/db/server.h>
+#include <siri/db/servers.h>
+#include <siri/service/account.h>
+#include <siri/service/client.h>
+#include <siri/service/request.h>
+#include <siri/siri.h>
+#include <siri/version.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include <siri/db/server.h>
-#include <siri/db/buffer.h>
-#include <siri/version.h>
-#include <siri/db/reindex.h>
+#include <xmath/xmath.h>
 
 #define DEFAULT_TIME_PRECISION 1
 #define DEFAULT_BUFFER_SIZE 1024
@@ -142,6 +143,9 @@ static cproto_server_t SERVICE_on_drop_account(
         qp_unpacker_t * qp_unpacker,
         qp_obj_t * qp_account,
         char * err_msg);
+static cproto_server_t SERVICE_on_drop_database(
+        qp_unpacker_t * qp_unpacker,
+        char * err_msg);
 static cproto_server_t SERVICE_on_new_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg);
@@ -170,6 +174,7 @@ static int SERVICE_find_database(siridb_t * siridb, qp_obj_t * dbname);
 static int SERVICE_list_accounts(
         siri_service_account_t * account,
         qp_packer_t * packer);
+static void SERVICE_on_drop_database_cb(vec_t *, void *);
 
 static size_t max_filename_sz;
 
@@ -263,6 +268,8 @@ cproto_server_t siri_service_request(
                 client,
                 SERVICE_NEW_REPLICA,
                 err_msg);
+    case SERVICE_DROP_DATABASE:
+        return SERVICE_on_drop_database(qp_unpacker, err_msg);
     case SERVICE_GET_VERSION:
         return SERVICE_on_get_version(qp_unpacker, packaddr, err_msg);
     case SERVICE_GET_ACCOUNTS:
@@ -436,6 +443,101 @@ static cproto_server_t SERVICE_on_drop_account(
             err_msg) ||
             siri_service_account_save(&siri, err_msg)) ?
                     CPROTO_ERR_SERVICE : CPROTO_ACK_SERVICE;
+}
+
+/*
+ * Returns CPROTO_ACK_SERVICE when successful.
+ * In case of an error CPROTO_ERR_SERVICE can be returned in which case err_msg
+ * is set, or CPROTO_ERR_SERVICE_INVALID_REQUEST is returned.
+ */
+static cproto_server_t SERVICE_on_drop_database(
+        qp_unpacker_t * qp_unpacker,
+        char * err_msg)
+{
+    _Bool ignore_offline;
+    siridb_t * siridb;
+    qp_obj_t qp_key, qp_target, qp_ignore_offline;
+    sirinet_pkg_t * pkg;
+    vec_t * servers;
+
+    qp_target.tp = QP_HOOK;
+    qp_ignore_offline.tp = QP_HOOK;
+
+    if (!qp_is_map(qp_next(qp_unpacker, NULL)))
+    {
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
+    }
+
+    while (qp_next(qp_unpacker, &qp_key) == QP_RAW)
+    {
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "database",
+                    qp_key.len) == 0 &&
+                qp_next(qp_unpacker, &qp_target) == QP_RAW)
+        {
+            continue;
+        }
+
+        if (    strncmp(
+                    (const char *) qp_key.via.raw,
+                    "ignore_offline",
+                    qp_key.len) == 0 &&
+                qp_is_bool(qp_next(qp_unpacker, &qp_ignore_offline)))
+        {
+            continue;
+        }
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
+    }
+
+    if (qp_target.tp == QP_HOOK)
+    {
+        return CPROTO_ERR_SERVICE_INVALID_REQUEST;
+    }
+
+    ignore_offline = (
+            qp_ignore_offline.tp != QP_HOOK &&
+            qp_ignore_offline.tp == QP_TRUE
+    );
+
+    siridb = siridb_get_by_qp(siri.siridb_list, &qp_target);
+    if (siridb == NULL)
+    {
+        sprintf(err_msg, "cannot find database '%.*s'",
+                (int) qp_target.len, (char *) qp_target.via.raw);
+        return CPROTO_ERR_SERVICE;
+    }
+
+    if (!ignore_offline && !siridb_servers_online(siridb))
+    {
+        sprintf(err_msg,
+                "at least one server is offline, "
+                "set `ignore_offline` to true if you want to "
+                "ignore offline servers");
+        return CPROTO_ERR_SERVICE;
+    }
+
+    pkg = sirinet_pkg_new(0, 0, BPROTO_DROP_DATABASE, NULL);
+    servers = siridb_servers_other2vec(siridb);
+    if (pkg == NULL || servers == NULL)
+    {
+        free(pkg);
+        vec_free(servers);
+        sprintf(err_msg, "memory allocation error");
+        return CPROTO_ERR_SERVICE;
+    }
+
+    siridb_servers_send_pkg(
+            servers,
+            pkg,
+            0,
+            SERVICE_on_drop_database_cb,
+            NULL);
+
+    siridb_drop(siridb);
+    vec_free(servers);
+
+    return CPROTO_ACK_SERVICE;
 }
 
 /*
@@ -987,4 +1089,26 @@ static int SERVICE_list_accounts(
         qp_packer_t * packer)
 {
     return qp_add_string(packer, account->account);
+}
+
+static void SERVICE_on_drop_database_cb(
+        vec_t * promises,
+        void * data __attribute__((unused)))
+{
+    log_debug("drop database has been send to all online servers");
+
+    if (promises != NULL)
+    {
+        size_t i;
+        sirinet_promise_t * promise;
+        for (i = 0; i < promises->len; i++)
+        {
+            promise = promises->data[i];
+            if (promise != NULL)
+            {
+                free(promise->data);
+                sirinet_promise_decref(promise);
+            }
+        }
+    }
 }

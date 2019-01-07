@@ -46,6 +46,7 @@ static void on_log_level_update(
 static void on_tee_pipe_name_update(
         sirinet_stream_t * client,
         sirinet_pkg_t * pkg);
+static void on_drop_database(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_repl_finished(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_query(
         sirinet_stream_t * client,
@@ -279,6 +280,9 @@ static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     case BPROTO_TEE_PIPE_NAME_UPDATE:
         on_tee_pipe_name_update(client, pkg);
         break;
+    case BPROTO_DROP_DATABASE:
+        on_drop_database(client, pkg);
+        break;
     }
 
 }
@@ -454,6 +458,22 @@ static void on_tee_pipe_name_update(
     if (package != NULL)
     {
         /* ignore result code, signal can be raised */
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_drop_database(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    siridb_t * siridb = client->siridb;
+    sirinet_pkg_t * package = NULL;
+
+    siridb_drop(siridb);
+
+    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_DROP_DATABASE, NULL);
+    if (package != NULL)
+    {
         sirinet_pkg_send(client, package);
     }
 }
