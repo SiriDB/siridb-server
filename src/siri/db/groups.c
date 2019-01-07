@@ -50,7 +50,6 @@ static void GROUPS_free(siridb_groups_t * groups);
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
 static int GROUPS_nseries(siridb_group_t * group, void * data);
 static void GROUPS_loop(void * arg);
-static void GROUPS_loop_finish(uv_work_t * work, int status);
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
 static void GROUPS_init_groups(siridb_t * siridb);
 static void GROUPS_init_series(siridb_t * siridb);
