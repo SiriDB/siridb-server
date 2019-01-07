@@ -687,6 +687,7 @@ void siridb__free(siridb_t * siridb)
 
     if (siridb->groups != NULL)
     {
+        uv_thread_join(&siridb->groups->thread);
         siridb_groups_decref(siridb->groups);
     }
 
