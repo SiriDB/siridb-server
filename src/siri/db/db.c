@@ -48,7 +48,6 @@ static int siridb__from_unpacker(
 static siridb_t * siridb__from_dat(const char * dbpath);
 static int siridb__read_conf(siridb_t * siridb);
 static int siridb__lock(const char * dbpath, int lock_flags);
-static inline int siridb__cmp_db(siridb_t * siridb, qp_obj_t * dbname);
 
 #define READ_DB_EXIT_WITH_ERROR(ERROR_MSG)  \
     strcpy(err_msg, ERROR_MSG);             \
@@ -1011,15 +1010,3 @@ static int siridb__lock(const char * dbpath, int lock_flags)
     }
     return 0;
 }
-
-static inline int siridb__cmp_db(siridb_t * siridb, qp_obj_t * dbname)
-{
-    size_t len = strlen(siridb->dbname);
-    return (
-            dbname->len == len &&
-            strncmp(siridb->dbname, (const char *) dbname->via.raw, len) == 0
-    );
-}
-
-
-
