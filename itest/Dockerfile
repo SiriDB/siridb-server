@@ -20,7 +20,7 @@ RUN apt-get update && \
         valgrind \
         libuv1 \
         libpcre2-8-0 && \
-    wget https://github.com/SiriDB/siridb-admin/releases/download/1.1.3/siridb-admin_1.1.3_linux_amd64.bin -O /usr/local/bin/siridb-admin && \
+    wget https://github.com/SiriDB/siridb-admin/releases/download/1.2.0/siridb-admin_1.2.0_linux_amd64.bin -O /usr/local/bin/siridb-admin && \
     chmod +x /usr/local/bin/siridb-admin
 COPY --from=builder ./Release/siridb-server /Release/siridb-server
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcleri* /usr/lib/x86_64-linux-gnu/
