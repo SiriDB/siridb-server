@@ -57,40 +57,25 @@ class SiriDB:
         if sleep:
             await asyncio.sleep(sleep)
 
-    async def add_database(
+    async def drop_db(
                 self,
                 server,
-                dbname='dbtest',
-                time_precision='s',
-                buffer_path='',
-                duration_log='1d',
-                duration_num='1w',
-                buffer_size=1024,
+                username='iris',
+                password='siri',
                 sleep=None):
-
-        logging.info('Create database {} on {}'.format(
-            dbname,
-            server.name))
 
         rc = os.system(
             '{service} '
             '-u sa -p siri -s {addr} '
-            'new-database '
+            'drop-database '
             '--db-name {dbname} '
-            '--time-precision {time_precision} '
-            '--duration-log {duration_log} '
-            '--duration-num {duration_num} '
-            '--buffer-size {buffer_size}'
-            '{verbose}'.format(
+            '--ignore-offline '
+            '--force{verbose}'.format(
                 service=SERVICE,
                 addr=server.addr,
-                dbname=dbname,
-                time_precision=time_precision,
-                duration_log=duration_log,
-                duration_num=duration_num,
-                buffer_size=buffer_size,
                 verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
-                else ' >/dev/null'))
+                else ' >/dev/null',
+                **vars(self)))
 
         assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
 

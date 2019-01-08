@@ -48,7 +48,7 @@ TIME_PRECISION = 'ns'
 class TestCreateDatabase(TestBase):
     title = 'Test create database'
 
-    @default_test_setup(1, time_precision=TIME_PRECISION)
+    @default_test_setup(2, time_precision=TIME_PRECISION)
     async def run(self):
         await self.client0.connect()
 
@@ -100,8 +100,23 @@ class TestCreateDatabase(TestBase):
                 [1471254705000000010, -2.7]
             ]})
 
-        self.client0.close()
+        await self.db.add_pool(self.server1)
+        await self.assertIsRunning(self.db, self.client0, timeout=20)
+        await asyncio.sleep(45)
 
+        await SiriDB(dbname="dbtest").drop_db(server=self.server1)
+
+        tasks = [
+            asyncio.ensure_future(
+                SiriDB(
+                    dbname="db_{}".format(i)).drop_db(
+                        server=self.server0
+                        ))
+            for i in range(10)]
+
+        await asyncio.gather(*tasks)
+
+        self.client0.close()
 
 if __name__ == '__main__':
     parse_args()
