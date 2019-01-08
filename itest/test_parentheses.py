@@ -79,9 +79,6 @@ TIME_PRECISION = 'ns'
 class TestParenth(TestBase):
     title = 'Test parentheses'
 
-    GEN_POINTS = functools.partial(
-        gen_points, n=1, time_precision=TIME_PRECISION)
-
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):
         await self.client0.connect()
