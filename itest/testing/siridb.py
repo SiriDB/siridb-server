@@ -57,6 +57,48 @@ class SiriDB:
         if sleep:
             await asyncio.sleep(sleep)
 
+    async def add_database(
+                self,
+                server,
+                dbname='dbtest',
+                time_precision='s',
+                buffer_path='',
+                duration_log='1d',
+                duration_num='1w',
+                buffer_size=1024,
+                sleep=None):
+
+        logging.info('Create database {} on {}'.format(
+            dbname,
+            server.name))
+
+        rc = os.system(
+            '{service} '
+            '-u sa -p siri -s {addr} '
+            'new-database '
+            '--db-name {dbname} '
+            '--time-precision {time_precision} '
+            '--duration-log {duration_log} '
+            '--duration-num {duration_num} '
+            '--buffer-size {buffer_size}'
+            '{verbose}'.format(
+                service=SERVICE,
+                addr=server.addr,
+                dbname=dbname,
+                time_precision=time_precision,
+                duration_log=duration_log,
+                duration_num=duration_num,
+                buffer_size=buffer_size,
+                verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
+                else ' >/dev/null'))
+
+        assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
+
+        self.servers.append(server)
+
+        if sleep:
+            await asyncio.sleep(sleep)
+
     async def add_replica(
                 self,
                 server,
