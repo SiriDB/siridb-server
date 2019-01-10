@@ -55,8 +55,7 @@ int siridb_median_find_n(
     {
         int64_t pivot, v;
 
-        int64_t * arr_l =
-                (int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
+        int64_t * arr_l = malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
@@ -111,8 +110,7 @@ int siridb_median_find_n(
     {
         double pivot, v;
 
-        double * arr_l =
-                (double *) malloc(sizeof(double) * 2 * (points->len - 1));
+        double * arr_l = malloc(sizeof(double) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
@@ -186,8 +184,7 @@ int siridb_median_real(
     {
         int64_t pivot, v, a, b;
 
-        int64_t * arr_l =
-                (int64_t *) malloc(sizeof(int64_t) * 2 * (points->len - 1));
+        int64_t * arr_l = malloc(sizeof(int64_t) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {
@@ -263,8 +260,7 @@ int siridb_median_real(
     {
         double pivot, v, a, b;
 
-        double * arr_l =
-                (double *) malloc(sizeof(double) * 2 * (points->len - 1));
+        double * arr_l = malloc(sizeof(double) * 2 * (points->len - 1));
 
         if (arr_l == NULL)
         {

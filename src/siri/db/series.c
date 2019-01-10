@@ -704,7 +704,8 @@ siridb_points_t * siridb_series_get_points(
 
     if (points == NULL)
     {
-        return NULL;  /* signal is raised */
+        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
+        return NULL;
     }
 
     for (i = 0; i < len; i++)
@@ -1080,7 +1081,9 @@ int siridb_series_optimize_shard(
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
     {
-        return -1;  /* signal is raised */
+        /* TODO: check if we can remove this ERR_ALLOC */
+        ERR_ALLOC
+        return -1;
     }
 
     for (i = start; i < end; i++)
@@ -1314,8 +1317,7 @@ static siridb_series_t * SERIES_new(
         const char * name)
 {
     uint32_t n;
-    siridb_series_t * series;
-    series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
+    siridb_series_t * series = malloc(sizeof(siridb_series_t));
     if (series == NULL)
     {
         ERR_ALLOC
@@ -1470,7 +1472,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
     else if (size)
     {
 
-        buffer = (char *) malloc(size);
+        buffer = malloc(size);
         if (buffer == NULL)
         {
             log_critical("Cannot allocate buffer for reading dropped series");

@@ -47,8 +47,7 @@ static char sync_progress[30];
  */
 siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
 {
-    siridb_initsync_t * initsync =
-            (siridb_initsync_t *) malloc(sizeof(siridb_initsync_t));
+    siridb_initsync_t * initsync = malloc(sizeof(siridb_initsync_t));
     if (initsync == NULL)
     {
         ERR_ALLOC
@@ -74,8 +73,7 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
             }
             else
             {
-                initsync->next_series_id =
-                        (uint32_t *) malloc(sizeof(uint32_t));
+                initsync->next_series_id = malloc(sizeof(uint32_t));
                 if (initsync->next_series_id == NULL)
                 {
                     ERR_ALLOC

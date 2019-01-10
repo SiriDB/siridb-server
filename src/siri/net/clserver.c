@@ -785,8 +785,8 @@ static void on_register_server(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     }
     else if (new_server != NULL)
     {
-        siridb_server_async_t * server_reg = (siridb_server_async_t *)
-                malloc(sizeof(siridb_server_async_t));
+        siridb_server_async_t * server_reg = malloc(
+                sizeof(siridb_server_async_t));
 
         if (server_reg == NULL)
         {

@@ -8,12 +8,14 @@
 
 typedef struct vec_s vec_t;
 typedef struct vec_object_s vec_object_t;
+typedef void (*vec_destroy_cb)(void *);
 
 #include <stdio.h>
 #include <stddef.h>
 #include <inttypes.h>
 
 vec_t * vec_new(size_t size);
+void vec_destroy(vec_t * vec, vec_destroy_cb cb);
 vec_t * vec_copy(vec_t * source);
 void vec_compact(vec_t ** vec);
 int vec_append_safe(vec_t ** vec, void * data);

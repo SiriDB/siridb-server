@@ -115,6 +115,8 @@ void siri_setup_logger(void)
             return;
         }
     }
+
+    assert (0);
     /* We should not get here since args should always
      * contain a valid log level
      */
@@ -142,7 +144,7 @@ int siri_start(void)
     siridb_init_aggregates();
 
     /* load SiriDB grammar */
-    siri.grammar = compile_grammar();
+    siri.grammar = compile_siri_grammar_grammar();
 
     /* create store for SiriDB instances */
     siri.siridb_list = llist_new();
@@ -155,7 +157,7 @@ int siri_start(void)
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
     /* initialize the default event loop */
-    siri.loop = (uv_loop_t *) malloc(sizeof(uv_loop_t));
+    siri.loop = malloc(sizeof(uv_loop_t));
     if (siri.loop == NULL)
     {
         return -1;
@@ -495,13 +497,16 @@ static void SIRI_walk_close_handlers(
 
     case UV_TCP:
     case UV_NAMED_PIPE:
-        if (handle->data == NULL)
         {
-            uv_close(handle, NULL);
-        }
-        else
-        {
-            sirinet_stream_decref((sirinet_stream_t *) handle->data);
+            sirinet_stream_t * stream = handle->data;
+            if (stream == NULL || (stream->tp & SIRIDB_TEE_FLAG))
+            {
+                uv_close(handle, NULL);
+            }
+            else
+            {
+                sirinet_stream_decref(stream);
+            }
         }
         break;
 

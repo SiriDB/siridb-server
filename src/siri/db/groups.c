@@ -49,8 +49,7 @@ static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
 static int GROUPS_nseries(siridb_group_t * group, void * data);
-static void GROUPS_loop(uv_work_t * work);
-static void GROUPS_loop_finish(uv_work_t * work, int status);
+static void GROUPS_loop(void * arg);
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
 static void GROUPS_init_groups(siridb_t * siridb);
 static void GROUPS_init_series(siridb_t * siridb);
@@ -63,8 +62,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 {
     log_info("Loading groups");
 
-    siridb_groups_t * groups =
-            (siridb_groups_t *) malloc(sizeof(siridb_groups_t));
+    siridb_groups_t * groups = malloc(sizeof(siridb_groups_t));
     if (groups == NULL)
     {
         ERR_ALLOC
@@ -77,7 +75,6 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
         groups->nseries = vec_new(VEC_DEFAULT_SIZE);
         groups->ngroups = vec_new(VEC_DEFAULT_SIZE);
         uv_mutex_init(&groups->mutex);
-        groups->work.data = (siridb_t *) siridb;
 
         if (!groups->groups || !groups->nseries || !groups->ngroups)
         {
@@ -109,13 +106,9 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 /*
  * Start group thread.
  */
-void siridb_groups_start(siridb_groups_t * groups)
+void siridb_groups_start(siridb_t * siridb)
 {
-    uv_queue_work(
-            siri.loop,
-            &groups->work,
-            GROUPS_loop,
-            GROUPS_loop_finish);
+    uv_thread_create(&siridb->groups->thread, GROUPS_loop, siridb);
 }
 
 /*
@@ -415,13 +408,12 @@ static int GROUPS_2vec(siridb_group_t * group, vec_t * groups_list)
 }
 
 
-
 /*
  * Group thread.
  */
-static void GROUPS_loop(uv_work_t * work)
+static void GROUPS_loop(void * arg)
 {
-    siridb_t * siridb = (siridb_t *) work->data;
+    siridb_t * siridb = arg;
     siridb_groups_t * groups = siridb->groups;
     uint64_t mod_test = 0;
 
@@ -465,18 +457,6 @@ static void GROUPS_loop(uv_work_t * work)
     }
 
     groups->status = GROUPS_CLOSED;
-}
-
-static void GROUPS_loop_finish(
-        uv_work_t * work,
-        int status __attribute__((unused)))
-{
-    /*
-     * Main Thread
-     */
-    siridb_t * siridb = (siridb_t *) work->data;
-
-    /* decrement groups reference counter */
     siridb_groups_decref(siridb->groups);
 }
 

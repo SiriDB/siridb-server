@@ -7,6 +7,7 @@
 #include <siri/db/query.h>
 #include <siri/db/shard.h>
 #include <siri/db/queries.h>
+#include <siri/db/sset.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -16,8 +17,9 @@
 q->flags = 0;                       \
 q->series_map = NULL;               \
 q->series_tmp = NULL;               \
-q->vec = NULL;                    \
-q->vec_index = 0;                 \
+q->sset_vec = NULL;                 \
+q->vec = NULL;                      \
+q->vec_index = 0;                   \
 q->pmap = NULL;                     \
 q->update_cb = NULL;                \
 q->where_expr = NULL;               \
@@ -26,6 +28,7 @@ q->match_data = NULL;
 
 
 #define QUERIES_FREE(q, handle)                                 \
+vec_destroy(q->sset_vec, (vec_destroy_cb) siridb_sset_free);    \
 if (q->series_map != NULL)                                      \
 {                                                               \
     imap_free(                                                  \
@@ -38,15 +41,15 @@ if (q->series_tmp != NULL)                                      \
             q->series_tmp,                                      \
             (imap_free_cb) &siridb__series_decref);             \
 }                                                               \
-if (q->vec != NULL)                                           \
+if (q->vec != NULL)                                             \
 {                                                               \
     siridb_series_t * series;                                   \
-    for (; q->vec_index < q->vec->len; q->vec_index++)    \
-    {                                                                   \
+    for (; q->vec_index < q->vec->len; q->vec_index++)          \
+    {                                                               \
         series = (siridb_series_t *) q->vec->data[q->vec_index];    \
-        siridb_series_decref(series);                                   \
-    }                                                                   \
-    vec_free(q->vec);                                       \
+        siridb_series_decref(series);                               \
+    }                                                               \
+    vec_free(q->vec);                                           \
 }                                                               \
 if (q->where_expr != NULL)                                      \
 {                                                               \
@@ -65,8 +68,7 @@ static void QUERIES_free_merge_result(vec_t * plist);
 
 query_select_t * query_select_new(void)
 {
-    query_select_t * q_select =
-            (query_select_t *) malloc(sizeof(query_select_t));
+    query_select_t * q_select = malloc(sizeof(query_select_t));
 
     if (q_select == NULL)
     {
@@ -97,8 +99,7 @@ query_select_t * query_select_new(void)
 
 query_alter_t * query_alter_new(void)
 {
-    query_alter_t * q_alter =
-            (query_alter_t *) malloc(sizeof(query_alter_t));
+    query_alter_t * q_alter = malloc(sizeof(query_alter_t));
 
     if (q_alter == NULL)
     {
@@ -117,8 +118,7 @@ query_alter_t * query_alter_new(void)
 
 query_count_t * query_count_new(void)
 {
-    query_count_t * q_count =
-            (query_count_t *) malloc(sizeof(query_count_t));
+    query_count_t * q_count = malloc(sizeof(query_count_t));
 
     if (q_count == NULL)
     {
@@ -135,8 +135,7 @@ query_count_t * query_count_new(void)
 
 query_drop_t * query_drop_new(void)
 {
-    query_drop_t * q_drop =
-            (query_drop_t *) malloc(sizeof(query_drop_t));
+    query_drop_t * q_drop = malloc(sizeof(query_drop_t));
 
     if (q_drop == NULL)
     {
@@ -155,8 +154,7 @@ query_drop_t * query_drop_new(void)
 
 query_list_t * query_list_new(void)
 {
-    query_list_t * q_list =
-            (query_list_t *) malloc(sizeof(query_list_t));
+    query_list_t * q_list = malloc(sizeof(query_list_t));
 
     if (q_list == NULL)
     {
@@ -174,8 +172,7 @@ query_list_t * query_list_new(void)
 
 void query_alter_free(uv_handle_t * handle)
 {
-    query_alter_t * q_alter =
-            (query_alter_t *) ((siridb_query_t *) handle->data)->data;
+    query_alter_t * q_alter = ((siridb_query_t *) handle->data)->data;
 
     switch (q_alter->alter_tp)
     {
@@ -201,23 +198,21 @@ void query_alter_free(uv_handle_t * handle)
 
 void query_count_free(uv_handle_t * handle)
 {
-    query_count_t * q_count =
-            (query_count_t *) ((siridb_query_t *) handle->data)->data;
+    query_count_t * q_count = ((siridb_query_t *) handle->data)->data;
 
     QUERIES_FREE(q_count, handle)
 }
 
 void query_drop_free(uv_handle_t * handle)
 {
-    query_drop_t * q_drop =
-            (query_drop_t *) ((siridb_query_t *) handle->data)->data;
+    query_drop_t * q_drop = ((siridb_query_t *) handle->data)->data;
 
     if (q_drop->shards_list != NULL)
     {
         siridb_shard_t * shard;
         while (q_drop->shards_list->len)
         {
-            shard = (siridb_shard_t *) vec_pop(q_drop->shards_list);
+            shard = vec_pop(q_drop->shards_list);
             siridb_shard_decref(shard);
         }
 
@@ -229,8 +224,7 @@ void query_drop_free(uv_handle_t * handle)
 
 void query_list_free(uv_handle_t * handle)
 {
-    query_list_t * q_list =
-            (query_list_t *) ((siridb_query_t *) handle->data)->data;
+    query_list_t * q_list = ((siridb_query_t *) handle->data)->data;
 
     if (q_list->props != NULL)
     {
@@ -242,8 +236,7 @@ void query_list_free(uv_handle_t * handle)
 
 void query_select_free(uv_handle_t * handle)
 {
-    query_select_t * q_select =
-            (query_select_t *) ((siridb_query_t *) handle->data)->data;
+    query_select_t * q_select = ((siridb_query_t *) handle->data)->data;
 
     siridb_presuf_free(q_select->presuf);
 

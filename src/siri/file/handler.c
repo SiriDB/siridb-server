@@ -8,7 +8,7 @@
 
 siri_fh_t * siri_fh_new(uint16_t size)
 {
-    siri_fh_t * fh = (siri_fh_t *) malloc(sizeof(siri_fh_t));
+    siri_fh_t * fh = malloc(sizeof(siri_fh_t));
     if (fh == NULL)
     {
         ERR_ALLOC
@@ -17,7 +17,7 @@ siri_fh_t * siri_fh_new(uint16_t size)
     {
         fh->size = size;
         fh->idx = 0;
-        fh->fpointers = (siri_fp_t **) calloc(size, sizeof(siri_fp_t *));
+        fh->fpointers = calloc(size, sizeof(siri_fp_t *));
         if (fh->fpointers == NULL)
         {
             ERR_ALLOC

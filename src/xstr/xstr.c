@@ -1,6 +1,7 @@
 /*
  * xstr.c - Extra String functions used by SiriDB.
  */
+#include <assert.h>
 #include <ctype.h>
 #include <inttypes.h>
 #include <logger/logger.h>
@@ -9,17 +10,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 void xstr_lower_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
-        *sptr = tolower( (unsigned char) * sptr);
+   {
+       *sptr = tolower( (unsigned char) * sptr);
+   }
 }
 
 void xstr_upper_case(char * sptr)
 {
    for (; *sptr != '\0'; sptr++)
-        *sptr = toupper( (unsigned char) * sptr);
+   {
+       *sptr = toupper( (unsigned char) * sptr);
+   }
 }
 
 void xstr_replace_char(char * sptr, char orig, char repl)
@@ -272,48 +278,42 @@ size_t xstr_extract_string(char * dest, const char * source, size_t len)
  *      - string is allowed to have one dot (.) at most but not required
  *      - string can start with a plus (+) or minus (-) sign.
  */
-double xstr_to_double(const char * src, size_t len)
+double xstr_to_double(const char * str)
 {
-    char * pt = (char *) src;
-    double d = 0;
-    double convert;
+    double d;
+    double negative = 0;
 
-    switch (*pt)
+    switch (*str)
     {
     case '-':
-        convert = -1.0;
-        pt++;
+        negative = -1.0;
+        ++str;
         break;
     case '+':
-        pt++;
-        /* FALLTHRU */
-        /* no break */
-    default:
-        convert = 1.0;
+        ++str;
+        break;
     }
 
-    uint64_t r1 = *pt - '0';
+    if (*str == 'i')
+        return negative ? negative * INFINITY : INFINITY;
 
-    while (--len && isdigit(*(++pt)))
+    if (*str == 'n')
+        return NAN;
+
+    if (errno == ERANGE)
+        errno = 0;
+
+    d = strtod(str, NULL);
+
+    if (errno == ERANGE)
     {
-        r1 = 10 * r1 + *pt - '0';
+        assert (d == HUGE_VAL || d == -HUGE_VAL);
+
+        d = d == HUGE_VAL ? INFINITY : -INFINITY;
+        errno = 0;
     }
 
-    d = (double) r1;
-
-    if (--len && *(pt++) == '.')
-    {
-        uint64_t r2 = *pt - '0';
-        ssize_t i;
-        for (i = -1; --len && isdigit(*(++pt)); i--)
-        {
-             r2 = 10 * r2 + *pt - '0';
-        }
-
-        d += pow(10, i) * (double) r2;
-    }
-
-    return convert * d;
+    return negative ? negative * d : d;
 }
 
 /*
@@ -342,7 +342,7 @@ uint64_t xstr_to_uint64(const char * src, size_t len)
 char * xstr_dup(const char * src, size_t * n)
 {
     *n = strlen(src);
-    char * nstr = (char *) malloc(*n + 1);
+    char * nstr = malloc(*n + 1);
     if (nstr)
     {
         memcpy(nstr, src, *n + 1);

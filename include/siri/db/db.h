@@ -8,8 +8,9 @@ typedef struct siridb_s siridb_t;
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
-#define SIRIDB_SCHEMA 4
+#define SIRIDB_SCHEMA 5
 #define SIRIDB_FLAG_REINDEXING 1
+#define SIRIDB_FLAG_DROPPED 2
 
 #define DEF_DROP_THRESHOLD 1.0              /* 100%         */
 #define DEF_SELECT_POINTS_LIMIT 1000000     /* one million  */
@@ -35,17 +36,21 @@ typedef struct siridb_s siridb_t;
 #include <siri/db/tasks.h>
 #include <siri/db/time.h>
 #include <siri/db/buffer.h>
+#include <siri/db/tee.h>
+
 
 int32_t siridb_get_uptime(siridb_t * siridb);
 int8_t siridb_get_idle_percentage(siridb_t * siridb);
 int siridb_is_db_path(const char * dbpath);
 siridb_t * siridb_new(const char * dbpath, int lock_flags);
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
+siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname);
 void siridb_decref_cb(siridb_t * siridb, void * args);
 ssize_t siridb_get_file(char ** buffer, siridb_t * siridb);
 int siridb_open_files(siridb_t * siridb);
 int siridb_save(siridb_t * siridb);
 void siridb__free(siridb_t * siridb);
+void siridb_drop(siridb_t * siridb);
 
 #define siridb_incref(siridb) siridb->ref++
 #define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
@@ -91,6 +96,7 @@ struct siridb_s
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
     siridb_buffer_t * buffer;
+    siridb_tee_t * tee;
     siridb_tasks_t tasks;
 };
 

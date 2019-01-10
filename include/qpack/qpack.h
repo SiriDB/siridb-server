@@ -160,6 +160,10 @@ static inline int qp_is_double(qp_types_t tp)
 {
     return tp == QP_DOUBLE;
 }
+static inline int qp_is_bool(qp_types_t tp)
+{
+    return tp == QP_TRUE || tp == QP_FALSE;
+}
 static inline int qp_is_raw_term(qp_obj_t * qp_obj)
 {
     return (qp_obj->tp == QP_RAW &&

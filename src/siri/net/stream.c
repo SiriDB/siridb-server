@@ -85,7 +85,7 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
  */
 char * sirinet_stream_name(sirinet_stream_t * client)
 {
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
@@ -111,7 +111,7 @@ void sirinet_stream_alloc_buffer(
     if (!client->len && client->size > RESET_BUF_SIZE)
     {
         free(client->buf);
-        client->buf = (char *) malloc(suggested_size);
+        client->buf = malloc(suggested_size);
         if (client->buf == NULL)
         {
             ERR_ALLOC
@@ -242,7 +242,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 {
     sirinet_stream_t * client = uvclient->data;
 
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
     case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */

@@ -24,6 +24,7 @@
 #include <siri/db/users.h>
 #include <siri/db/listener.h>
 #include <siri/db/queries.h>
+#include <siri/db/sset.h>
 #include <siri/err.h>
 #include <siri/grammar/gramp.h>
 #include <siri/help/help.h>
@@ -154,8 +155,12 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Successfully dropped server '%s'."
 #define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
     "Successfully set log level to '%s' on %lu servers."
+#define MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI \
+    "Successfully set tee_pipe name on %lu servers."
 #define MSG_SUCCES_SET_LOG_LEVEL \
     "Successfully set log level to '%s' on '%s'."
+#define MSG_SUCCES_SET_TEE_PIPE_NAME \
+    "Successfully set tee pipe name to '%s' on '%s'."
 #define MSG_SUCCESS_SET_SELECT_POINTS_LIMIT \
     "Successfully changed select points limit from %" PRIu32 " to %" PRIu32 "."
 #define MSG_SUCCES_DROP_SERIES \
@@ -197,8 +202,9 @@ static void enter_set_password(uv_async_t * handle);
 static void enter_series_all(uv_async_t * handle);
 static void enter_series_name(uv_async_t * handle);
 static void enter_series_match(uv_async_t * handle);
+static void enter_series_parentheses(uv_async_t * handle);
 static void enter_series_re(uv_async_t * handle);
-static void enter_series_sep(uv_async_t * handle);
+static void enter_series_setopr(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
 static void enter_where_xxx(uv_async_t * handle);
 static void enter_xxx_columns(uv_async_t * handle);
@@ -238,6 +244,7 @@ static void exit_revoke_user(uv_async_t * handle);
 static void exit_select_aggregate(uv_async_t * handle);
 static void exit_select_stmt(uv_async_t * handle);
 static void exit_series_match(uv_async_t * handle);
+static void exit_series_parentheses(uv_async_t * handle);
 static void exit_set_address(uv_async_t * handle);
 static void exit_set_backup_mode(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
@@ -245,6 +252,7 @@ static void exit_set_list_limit(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_set_port(uv_async_t * handle);
 static void exit_set_select_points_limit(uv_async_t * handle);
+static void exit_set_tee_pipe_name(uv_async_t * handle);
 static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
@@ -344,7 +352,7 @@ if (query->nodes == NULL)                                                   \
 else                                                                        \
 {                                                                           \
     uv_close((uv_handle_t *) handle, (uv_close_cb) free);                   \
-    handle = (uv_async_t *) malloc(sizeof(uv_async_t));                     \
+    handle = malloc(sizeof(uv_async_t));                                    \
     if (handle == NULL)                                                     \
     {                                                                       \
         ERR_ALLOC                                                           \
@@ -423,8 +431,9 @@ void siridb_init_listener(void)
     siridb_listen_enter[CLERI_GID_SERIES_ALL] = enter_series_all;
     siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
     siridb_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
+    siridb_listen_enter[CLERI_GID_SERIES_PARENTHESES] = enter_series_parentheses;
     siridb_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
-    siridb_listen_enter[CLERI_GID_SERIES_SEP] = enter_series_sep;
+    siridb_listen_enter[CLERI_GID_SERIES_SETOPR] = enter_series_setopr;
     siridb_listen_enter[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
     siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
     siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
@@ -470,6 +479,7 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
     siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
     siridb_listen_exit[CLERI_GID_SERIES_MATCH] = exit_series_match;
+    siridb_listen_exit[CLERI_GID_SERIES_PARENTHESES] = exit_series_parentheses;
     siridb_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
     siridb_listen_exit[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
     siridb_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
@@ -477,6 +487,7 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     siridb_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
     siridb_listen_exit[CLERI_GID_SET_SELECT_POINTS_LIMIT] = exit_set_select_points_limit;
+    siridb_listen_exit[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
     siridb_listen_exit[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     siridb_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     siridb_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
@@ -493,7 +504,7 @@ void siridb_init_listener(void)
 
 static void enter_access_expr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     /* bind ACCESS_EXPR children to query */
     query->data = query->nodes->node->children;
@@ -503,7 +514,7 @@ static void enter_access_expr(uv_async_t * handle)
 
 static void enter_alter_group(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_alter_t * q_alter = (query_alter_t *) query->data;
 
@@ -536,7 +547,7 @@ static void enter_alter_group(uv_async_t * handle)
 
 static void enter_alter_server(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_alter_t * q_alter = (query_alter_t *) query->data;
     siridb_server_t * server = siridb_server_from_node(
@@ -560,7 +571,7 @@ static void enter_alter_server(uv_async_t * handle)
 
 static void enter_alter_servers(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     ((query_alter_t *) query->data)->alter_tp = QUERY_ALTER_SERVERS;
 
     SIRIPARSER_NEXT_NODE
@@ -568,7 +579,7 @@ static void enter_alter_servers(uv_async_t * handle)
 
 static void enter_alter_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_ALTER)
 
@@ -596,7 +607,7 @@ static void enter_alter_stmt(uv_async_t * handle)
 
 static void enter_alter_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -629,7 +640,7 @@ static void enter_alter_user(uv_async_t * handle)
 
 static void enter_count_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_COUNT)
 
@@ -658,7 +669,7 @@ static void enter_count_stmt(uv_async_t * handle)
 
 static void enter_create_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_CREATE)
 
@@ -667,7 +678,7 @@ static void enter_create_stmt(uv_async_t * handle)
 
 static void enter_create_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     /* bind user object to data and set correct free call */
     query_alter_t * q_alter = query_alter_new();
@@ -694,7 +705,7 @@ static void enter_create_user(uv_async_t * handle)
 
 static void enter_drop_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * db_user = query->client->origin;
 
     assert (query->packer == NULL);
@@ -724,7 +735,7 @@ static void enter_drop_stmt(uv_async_t * handle)
 
 static void enter_grant_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_GRANT)
@@ -764,10 +775,10 @@ static void enter_grant_user(uv_async_t * handle)
 }
 static void enter_group_match(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     cleri_node_t * node = query->nodes->node;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    query_wrapper_t * q_wrapper = query->data;
 
     /* we must send this query to all pools */
     if (q_wrapper->pmap != NULL)
@@ -836,7 +847,7 @@ static void enter_group_match(uv_async_t * handle)
 
 static void enter_help(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     cleri_node_t * node = query->nodes->node;
 
@@ -856,7 +867,7 @@ static void enter_help(uv_async_t * handle)
 
 static void enter_limit_expr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
     int64_t limit = query->nodes->node->children->next->node->result;
@@ -881,7 +892,7 @@ static void enter_limit_expr(uv_async_t * handle)
 
 static void enter_list_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_LIST)
 
@@ -913,10 +924,10 @@ static void enter_list_stmt(uv_async_t * handle)
 
 static void enter_merge_as(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
-    q_select->merge_as = (char *) malloc(node->len - 1);
+    q_select->merge_as = malloc(node->len - 1);
 
     if (q_select->merge_as == NULL)
     {
@@ -944,7 +955,7 @@ static void enter_merge_as(uv_async_t * handle)
 
 static void enter_revoke_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_REVOKE)
@@ -988,7 +999,7 @@ static void enter_revoke_user(uv_async_t * handle)
 
 static void enter_select_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_select_t * q_select;
     cleri_children_t * child;
@@ -1046,7 +1057,7 @@ static void enter_select_stmt(uv_async_t * handle)
 
 static void enter_set_expression(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
     query_alter_t * q_alter = (query_alter_t *) query->data;
@@ -1068,7 +1079,7 @@ static void enter_set_expression(uv_async_t * handle)
 
 static void enter_set_ignore_threshold(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
     if (    query->nodes->node->children->next->next->node->children->node->
@@ -1082,7 +1093,7 @@ static void enter_set_ignore_threshold(uv_async_t * handle)
 
 static void enter_set_name(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     cleri_node_t * name_node =
                 query->nodes->node->children->next->next->node;
@@ -1127,7 +1138,7 @@ static void enter_set_name(uv_async_t * handle)
 
 static void enter_set_password(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_user_t * user = ((query_alter_t *) query->data)->via.user;
 
     cleri_node_t * pw_node =
@@ -1148,10 +1159,10 @@ static void enter_set_password(uv_async_t * handle)
 
 static void enter_series_name(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cleri_node_t * node = query->nodes->node;
     siridb_t * siridb = query->client->siridb;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    query_wrapper_t * q_wrapper = query->data;
     siridb_series_t * series = NULL;
     uint16_t pool;
     char series_name[node->len - 1];
@@ -1172,6 +1183,7 @@ static void enter_series_name(uv_async_t * handle)
         if (pool == siridb->server->pool)
         {
             series = (siridb_series_t *) ct_get(siridb->series, series_name);
+#ifdef SERIESMUSTEXIST
             if (series == NULL)
             {
                 /* the series does not exist */
@@ -1182,6 +1194,7 @@ static void enter_series_name(uv_async_t * handle)
                 siridb_query_send_error(handle, CPROTO_ERR_QUERY);
                 return;
             }
+#endif
         }
         else if (q_wrapper->pmap != NULL && imap_set(
                 q_wrapper->pmap,
@@ -1294,9 +1307,10 @@ static void enter_series_name(uv_async_t * handle)
 
 static void enter_series_match(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
 
-    if ((((query_wrapper_t *) query->data)->series_map = imap_new()) == NULL)
+    if ((q_wrapper->series_map = imap_new()) == NULL)
     {
         MEM_ERR_RET
     }
@@ -1304,12 +1318,52 @@ static void enter_series_match(uv_async_t * handle)
     SIRIPARSER_NEXT_NODE
 }
 
+static void enter_series_parentheses(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
+    siridb_sset_t * sset;
+
+    assert (q_wrapper->series_map != NULL);
+
+    if (q_wrapper->sset_vec == NULL)
+    {
+        if ((q_wrapper->sset_vec = vec_new(1)) == NULL)
+        {
+            MEM_ERR_RET
+        }
+    }
+
+    if (q_wrapper->update_cb != NULL)
+    {
+        sset = siridb_sset_new(q_wrapper->series_map, q_wrapper->update_cb);
+        if (sset == NULL ||
+            vec_append_safe(&q_wrapper->sset_vec, sset) ||
+            (q_wrapper->series_map = imap_new()) == NULL)
+        {
+            MEM_ERR_RET
+        }
+
+        q_wrapper->update_cb = NULL;
+    }
+    else
+    {
+        sset = siridb_sset_new(NULL, NULL);
+        if (sset == NULL || vec_append_safe(&q_wrapper->sset_vec, sset))
+        {
+            MEM_ERR_RET
+        }
+    }
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
 static void enter_series_all(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_series_t * series;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    query_wrapper_t * q_wrapper = query->data;
 
     /* we must send this query to all pools */
     if (q_wrapper->pmap != NULL)
@@ -1365,10 +1419,10 @@ static void enter_series_all(uv_async_t * handle)
 
 static void enter_series_re(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     cleri_node_t * node = query->nodes->node;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    query_wrapper_t * q_wrapper = query->data;
 
     /* we must send this query to all pools */
     if (q_wrapper->pmap != NULL)
@@ -1407,8 +1461,7 @@ static void enter_series_re(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        uv_async_t * next =
-                (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -1429,10 +1482,10 @@ static void enter_series_re(uv_async_t * handle)
     /* handle is handled or a signal is raised */
 }
 
-static void enter_series_sep(uv_async_t * handle)
+static void enter_series_setopr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
 
     switch (query->nodes->node->children->node->cl_obj->gid)
     {
@@ -1458,7 +1511,7 @@ static void enter_series_sep(uv_async_t * handle)
 
 static void enter_timeit_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query->timeit = qp_packer_new(512);
 
     if (query->timeit == NULL)
@@ -1474,7 +1527,7 @@ static void enter_timeit_stmt(uv_async_t * handle)
 
 static void enter_where_xxx(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cexpr_t * cexpr =
             cexpr_from_node(query->nodes->node->children->next->node);
 
@@ -1492,7 +1545,7 @@ static void enter_where_xxx(uv_async_t * handle)
 
 static void enter_xxx_columns(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cleri_children_t * columns = query->nodes->node->children;
     query_list_t * qlist = (query_list_t *) query->data;
 
@@ -1534,7 +1587,7 @@ static void enter_xxx_columns(uv_async_t * handle)
 
 static void exit_after_expr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     ((query_select_t *) query->data)->start_ts =
             (uint64_t *) &query->nodes->node->children->next->node->result;
 
@@ -1543,7 +1596,7 @@ static void exit_after_expr(uv_async_t * handle)
 
 static void exit_alter_group(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     if (siridb_groups_save(siridb->groups))
@@ -1572,7 +1625,7 @@ static void exit_alter_group(uv_async_t * handle)
 
 static void exit_alter_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     if (siridb_users_save(siridb))
@@ -1601,7 +1654,7 @@ static void exit_alter_user(uv_async_t * handle)
 
 static void exit_before_expr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     ((query_select_t *) query->data)->end_ts =
             (uint64_t *) &query->nodes->node->children->next->node->result;
@@ -1611,8 +1664,8 @@ static void exit_before_expr(uv_async_t * handle)
 
 static void exit_between_expr(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
 
     q_select->start_ts = (uint64_t *)
             &query->nodes->node->children->next->node->result;
@@ -1638,7 +1691,7 @@ static void exit_between_expr(uv_async_t * handle)
 
 static void exit_calc_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cleri_node_t * calc_node = query->nodes->node;
 
     assert (query->packer == NULL);
@@ -1668,7 +1721,7 @@ static void exit_calc_stmt(uv_async_t * handle)
 
 static void exit_count_groups(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
@@ -1701,7 +1754,7 @@ static void exit_count_groups(uv_async_t * handle)
 
 static void exit_count_pools(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
     siridb_pool_t * pool = siridb->pools->pool + siridb->server->pool;
@@ -1746,7 +1799,7 @@ static void exit_count_pools(uv_async_t * handle)
 
 static void exit_count_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
@@ -1789,8 +1842,7 @@ static void exit_count_series(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        uv_async_t * next =
-                (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = malloc(sizeof(uv_async_t));
         if (next == NULL)
         {
             MEM_ERR_RET
@@ -1810,7 +1862,7 @@ static void exit_count_series(uv_async_t * handle)
 
 static void exit_count_series_length(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
@@ -1876,7 +1928,7 @@ static void exit_count_series_length(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        next = malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -1897,7 +1949,7 @@ static void exit_count_series_length(uv_async_t * handle)
 
 static void exit_count_servers(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
     cexpr_t * where_expr = q_count->where_expr;
@@ -1953,7 +2005,7 @@ static void exit_count_servers(uv_async_t * handle)
 
 static void exit_count_servers_received(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
     cexpr_t * where_expr = q_count->where_expr;
@@ -1987,7 +2039,7 @@ static void exit_count_servers_received(uv_async_t * handle)
 
 static void exit_count_servers_selected(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
     cexpr_t * where_expr = q_count->where_expr;
@@ -2021,7 +2073,7 @@ static void exit_count_servers_selected(uv_async_t * handle)
 
 static void exit_count_shards(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
 
@@ -2092,7 +2144,7 @@ static void exit_count_shards(uv_async_t * handle)
 
 static void exit_count_shards_size(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_count_t * q_count = (query_count_t *) query->data;
     uint64_t duration;
@@ -2155,7 +2207,7 @@ static void exit_count_shards_size(uv_async_t * handle)
 
 static void exit_count_users(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     llist_node_t * node = siridb->users->first;
     cexpr_t * where_expr = ((query_count_t *) query->data)->where_expr;
@@ -2180,7 +2232,7 @@ static void exit_count_users(uv_async_t * handle)
 
 static void exit_create_group(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     cleri_node_t * name_nd =
             query->nodes->node->children->next->node;
@@ -2242,7 +2294,7 @@ static void exit_create_group(uv_async_t * handle)
 
 static void exit_create_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_user_t * user = ((query_alter_t *) query->data)->via.user;
     cleri_node_t * user_node =
@@ -2306,7 +2358,7 @@ static void exit_create_user(uv_async_t * handle)
 
 static void exit_drop_group(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -2345,7 +2397,7 @@ static void exit_drop_group(uv_async_t * handle)
 
 static void exit_drop_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
@@ -2390,7 +2442,7 @@ static void exit_drop_series(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -2434,7 +2486,7 @@ static void exit_drop_series(uv_async_t * handle)
 
             q_drop->n = q_drop->vec->len;
 
-            uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+            uv_async_t * next = malloc(sizeof(uv_async_t));
 
             if (next == NULL)
             {
@@ -2456,7 +2508,7 @@ static void exit_drop_series(uv_async_t * handle)
 
 static void exit_drop_server(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_server_t * server = siridb_server_from_node(
             siridb,
@@ -2525,7 +2577,7 @@ static void exit_drop_server(uv_async_t * handle)
 
 static void exit_drop_shards(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_drop_t * q_drop = (query_drop_t *) query->data;
 
@@ -2605,7 +2657,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
         q_drop->n = q_drop->shards_list->len;
 
-        next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        next = malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -2626,7 +2678,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
 static void exit_drop_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -2667,7 +2719,7 @@ static void exit_drop_user(uv_async_t * handle)
 
 static void exit_grant_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     if (siridb_users_save(siridb))
@@ -2710,7 +2762,7 @@ static void exit_grant_user(uv_async_t * handle)
 
 static void exit_help_xxx(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     if (query->data != NULL)
     {
@@ -2745,7 +2797,7 @@ static void exit_help_xxx(uv_async_t * handle)
 
 static void exit_list_groups(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_list_t * q_list = (query_list_t *) query->data;
 
@@ -2802,7 +2854,7 @@ static void exit_list_groups(uv_async_t * handle)
 
 static void exit_list_pools(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_list_t * q_list = (query_list_t *) query->data;
     siridb_pool_t * pool = siridb->pools->pool + siridb->server->pool;
@@ -2883,7 +2935,7 @@ static void exit_list_pools(uv_async_t * handle)
 
 static void exit_list_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
@@ -2917,7 +2969,7 @@ static void exit_list_series(uv_async_t * handle)
         MEM_ERR_RET;
     }
 
-    uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * next = malloc(sizeof(uv_async_t));
 
     if (next == NULL)
     {
@@ -2937,7 +2989,7 @@ static void exit_list_series(uv_async_t * handle)
 
 static void exit_list_servers(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     query_list_t * q_list = (query_list_t *) query->data;
@@ -3022,7 +3074,7 @@ static void exit_list_servers(uv_async_t * handle)
 
 static void exit_list_shards(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     query_list_t * q_list = (query_list_t *) query->data;
@@ -3157,7 +3209,7 @@ static void exit_list_shards(uv_async_t * handle)
 
 static void exit_list_users(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     llist_node_t * node = siridb->users->first;
@@ -3217,7 +3269,7 @@ static void exit_list_users(uv_async_t * handle)
 
 static void exit_revoke_user(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     if (siridb_users_save(siridb))
@@ -3260,8 +3312,8 @@ static void exit_revoke_user(uv_async_t * handle)
 
 static void exit_series_match(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
 
     if (q_wrapper->tp == QUERIES_SELECT)
     {
@@ -3284,10 +3336,40 @@ static void exit_series_match(uv_async_t * handle)
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
+static void exit_series_parentheses(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
+
+    assert (q_wrapper->sset_vec);
+    assert (q_wrapper->sset_vec->len);
+
+    siridb_sset_t * sset = vec_pop(q_wrapper->sset_vec);
+
+    if (sset->update_cb != NULL)
+    {
+        assert (sset->series_map != NULL);
+        (*sset->update_cb)(
+                sset->series_map,
+                q_wrapper->series_map,
+                (imap_free_cb) &siridb__series_decref);
+        q_wrapper->series_map = sset->series_map;
+    }
+    else
+    {
+        assert (sset->series_map == NULL);
+    }
+
+    /* simple free to prevent cleaning sset->series_map */
+    free (sset);
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
 static void exit_select_aggregate(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
 
     if (q_select->where_expr != NULL)
     {
@@ -3310,8 +3392,7 @@ static void exit_select_aggregate(uv_async_t * handle)
             MEM_ERR_RET
         }
 
-        uv_async_t * next =
-                (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * next = malloc(sizeof(uv_async_t));
 
         if (next == NULL)
         {
@@ -3385,8 +3466,7 @@ static void exit_select_aggregate(uv_async_t * handle)
                     MEM_ERR_RET
                 }
 
-                uv_async_t * next =
-                        (uv_async_t *) malloc(sizeof(uv_async_t));
+                uv_async_t * next = malloc(sizeof(uv_async_t));
 
                 if (next == NULL)
                 {
@@ -3416,8 +3496,8 @@ static void exit_select_aggregate(uv_async_t * handle)
 
 static void exit_select_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
 
     if (IS_MASTER)
     {
@@ -3434,13 +3514,13 @@ static void exit_select_stmt(uv_async_t * handle)
         }
         else
         {
-            uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
+            uv_work_t * work = malloc(sizeof(uv_work_t));
             if (work == NULL)
             {
                 MEM_ERR_RET
             }
 
-            uv_async_t * next = (uv_async_t *) malloc(sizeof(uv_async_t));
+            uv_async_t * next = malloc(sizeof(uv_async_t));
             if (next == NULL)
             {
                 free(work);
@@ -3493,7 +3573,7 @@ static void exit_select_stmt(uv_async_t * handle)
 
 static void exit_set_address(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
     siridb_t * siridb = query->client->siridb;
@@ -3537,7 +3617,7 @@ static void exit_set_address(uv_async_t * handle)
 
 static void exit_set_backup_mode(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     assert (query->data != NULL);
@@ -3636,14 +3716,14 @@ static void exit_set_backup_mode(uv_async_t * handle)
 
 static void exit_set_drop_threshold(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * node = query->nodes->node->children->next->next->node;
 
-    double drop_threshold = xstr_to_double(node->str, node->len);
+    double drop_threshold = xstr_to_double(node->str);
 
     if (drop_threshold < 0.0 || drop_threshold > 1.0)
     {
@@ -3697,7 +3777,7 @@ static void exit_set_drop_threshold(uv_async_t * handle)
 
 static void exit_set_list_limit(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -3760,7 +3840,7 @@ static void exit_set_list_limit(uv_async_t * handle)
 
 static void exit_set_log_level(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_alter_t * q_alter = (query_alter_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
@@ -3902,7 +3982,7 @@ static void exit_set_log_level(uv_async_t * handle)
 
 static void exit_set_port(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_server_t * server = ((query_alter_t *) query->data)->via.server;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
     siridb_t * siridb = query->client->siridb;
@@ -3955,7 +4035,7 @@ static void exit_set_port(uv_async_t * handle)
 
 static void exit_set_select_points_limit(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
@@ -4016,9 +4096,144 @@ static void exit_set_select_points_limit(uv_async_t * handle)
     }
 }
 
+static void exit_set_tee_pipe_name(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+    siridb_t * siridb = query->client->siridb;
+
+    assert (query->data != NULL);
+
+    cleri_node_t * node =
+            query->nodes->node->children->next->next->node->children->node;
+
+    char pipe_name[node->len - 1];
+    char * p_pipe_name = NULL;
+
+    if (node->cl_obj->gid == CLERI_GID_STRING)
+    {
+        xstr_extract_string(pipe_name, node->str, node->len);
+        p_pipe_name = pipe_name;
+    }
+
+    if (q_alter->alter_tp == QUERY_ALTER_SERVERS)
+    {
+        /*
+         * alter_servers
+         */
+        cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
+        siridb_server_walker_t wserver = {
+            .server=siridb->server,
+            .siridb=siridb
+        };
+
+        if (where_expr == NULL || cexpr_run(
+                where_expr,
+                (cexpr_cb_t) siridb_server_cexpr_cb,
+                &wserver))
+        {
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
+            q_alter->n++;
+        }
+
+        if (IS_MASTER)
+        {
+            /*
+             * This is a trick because we share with setting log level on
+             * multiple servers at once.
+             */
+            q_alter->n += LOGGER_NUM_LEVELS << 16;
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_SERVERS,
+                    (sirinet_promises_cb) on_alter_xxx_response,
+                    0);
+        }
+        else
+        {
+            qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
+            qp_add_int64(query->packer, q_alter->n);
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+    }
+    else
+    {
+        /*
+         * alter_server
+         *
+         * we can set the success message, we just ignore the message in case
+         * an error occurs.
+         */
+        siridb_server_t * server = q_alter->via.server;
+
+        QP_ADD_SUCCESS
+        qp_add_fmt_safe(query->packer,
+                    MSG_SUCCES_SET_TEE_PIPE_NAME,
+                    p_pipe_name ? p_pipe_name : "disabled",
+                    server->name);
+
+        if (server == siridb->server)
+        {
+            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
+            if (siridb_save(siridb))
+            {
+                log_critical("Could not save database changes (database: '%s')",
+                        siridb->dbname);
+            }
+
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+        else
+        {
+
+            if (siridb_server_is_online(server))
+            {
+                sirinet_pkg_t * pkg = sirinet_pkg_new(
+                        0,
+                        p_pipe_name ? strlen(p_pipe_name) : 0,
+                        BPROTO_TEE_PIPE_NAME_UPDATE,
+                        (unsigned char *) p_pipe_name);
+                if (pkg != NULL)
+                {
+                    /* handle will be bound to a timer so we should increment */
+                    siri_async_incref(handle);
+                    if (siridb_server_send_pkg(
+                            server,
+                            pkg,
+                            0,
+                            (sirinet_promise_cb) on_ack_response,
+                            handle,
+                            0))
+                    {
+                        /*
+                         * signal is raised and 'on_ack_response' will not be
+                         * called
+                         */
+                        free(pkg);
+                        siri_async_decref(&handle);
+                    }
+                }
+            }
+            else
+            {
+                snprintf(query->err_msg,
+                        SIRIDB_MAX_SIZE_ERR_MSG,
+                        "Cannot set pipe name, '%s' is currently unavailable",
+                        server->name);
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            }
+        }
+    }
+}
+
 static void exit_set_timezone(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cleri_node_t * node = query->nodes->node->children->next->next->node;
     siridb_t * siridb = query->client->siridb;
 
@@ -4083,7 +4298,7 @@ static void exit_set_timezone(uv_async_t * handle)
 
 static void exit_show_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_user_t * db_user = query->client->origin;
     SIRIPARSER_MASTER_CHECK_ACCESS(db_user, SIRIDB_ACCESS_SHOW)
@@ -4108,7 +4323,7 @@ static void exit_show_stmt(uv_async_t * handle)
     /* set props.h (who_am_i) to current db_name */
     who_am_i = db_user->name;
 
-    if (children->node == NULL)
+    if (children == NULL || children->node == NULL)
     {
         /* show all properties */
         int i;
@@ -4150,7 +4365,7 @@ static void exit_show_stmt(uv_async_t * handle)
 
 static void exit_timeit_stmt(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
 
     struct timespec end;
@@ -4194,7 +4409,7 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
 static void async_count_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_series_t * series;
     query_count_t * q_count = (query_count_t *) query->data;
     uint8_t async_more = 0;
@@ -4242,7 +4457,7 @@ static void async_count_series(uv_async_t * handle)
 
 static void async_count_series_length(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_series_t * series;
     query_count_t * q_count = (query_count_t *) query->data;
     uint8_t async_more = 0;
@@ -4295,7 +4510,7 @@ static void async_count_series_length(uv_async_t * handle)
 
 static void async_drop_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_drop_t * q_drop = (query_drop_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
@@ -4352,7 +4567,7 @@ static void async_drop_series(uv_async_t * handle)
 
 static void async_drop_shards(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_drop_t * q_drop = (query_drop_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
@@ -4388,8 +4603,8 @@ static void async_drop_shards(uv_async_t * handle)
 
 static void async_filter_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
     cexpr_t * where_expr = q_wrapper->where_expr;
     uint8_t async_more = 0;
     siridb_series_t * series;
@@ -4460,7 +4675,7 @@ static void async_filter_series(uv_async_t * handle)
 
 static void async_list_series(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
     vec_t * props = q_list->props;
     cexpr_t * where_expr = q_list->where_expr;
@@ -4552,8 +4767,8 @@ static void async_list_series(uv_async_t * handle)
 
 static void async_no_points_aggregate(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
     siridb_t * siridb = query->client->siridb;
     uint8_t async_more = 0;
     siridb_series_t * series;
@@ -4564,6 +4779,9 @@ static void async_no_points_aggregate(uv_async_t * handle)
     for (;  q_select->vec_index < q_select->vec->len;
             ++q_select->vec_index)
     {
+        const char * name;
+        size_t i;
+
         if (required_shard > MAX_BATCH_REQUIRE_SHARD)
         {
             async_more = 1;
@@ -4603,71 +4821,70 @@ static void async_no_points_aggregate(uv_async_t * handle)
 
         uv_mutex_unlock(&siridb->series_mutex);
 
-        if (points != NULL)
+        if (points == NULL)
         {
-            const char * name;
-            size_t i;
+            MEM_ERR_RET
+        }
 
-            for (i = 1; points->len && i < q_select->alist->len; i++)
+        for (i = 1; points->len && i < q_select->alist->len; i++)
+        {
+            aggr_points = siridb_aggregate_run(
+                    points,
+                    (siridb_aggr_t *) q_select->alist->data[i],
+                    query->err_msg);
+
+            if (aggr_points != points)
             {
-                aggr_points = siridb_aggregate_run(
-                        points,
-                        (siridb_aggr_t *) q_select->alist->data[i],
-                        query->err_msg);
-
-                if (aggr_points != points)
-                {
-                    siridb_points_free(points);
-                }
-
-                if (aggr_points == NULL)
-                {
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
-
-                points = aggr_points;
+                siridb_points_free(points);
             }
 
-            q_select->n += points->len;
-
-            if (q_select->merge_as == NULL)
+            if (aggr_points == NULL)
             {
-                name = siridb_presuf_name(
-                        q_select->presuf,
-                        series->name,
-                        series->name_len);
-
-                if (name == NULL || ct_add(q_select->result, name, points))
-                {
-                    sprintf(query->err_msg, "Error adding points to map.");
-                    siridb_points_free(points);
-                    log_critical("Critical error adding points");
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
             }
-            else
+
+            points = aggr_points;
+        }
+
+        q_select->n += points->len;
+
+        if (q_select->merge_as == NULL)
+        {
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    series->name,
+                    series->name_len);
+
+            if (name == NULL || ct_add(q_select->result, name, points))
             {
-                vec_t ** plist;
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
+            }
+        }
+        else
+        {
+            vec_t ** plist;
 
-                name = siridb_presuf_name(
-                        q_select->presuf,
-                        q_select->merge_as,
-                        strlen(q_select->merge_as));
+            name = siridb_presuf_name(
+                    q_select->presuf,
+                    q_select->merge_as,
+                    strlen(q_select->merge_as));
 
-                plist = (vec_t **) ct_getaddr(q_select->result, name);
+            plist = (vec_t **) ct_getaddr(q_select->result, name);
 
-                if (    name == NULL ||
-                        plist == NULL ||
-                        vec_append_safe(plist, points))
-                {
-                    sprintf(query->err_msg, "Error adding points to map.");
-                    siridb_points_free(points);
-                    log_critical("Critical error adding points");
-                    siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-                    return;
-                }
+            if (    name == NULL ||
+                    plist == NULL ||
+                    vec_append_safe(plist, points))
+            {
+                sprintf(query->err_msg, "Error adding points to map.");
+                siridb_points_free(points);
+                log_critical("Critical error adding points");
+                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+                return;
             }
         }
     }
@@ -4691,8 +4908,8 @@ static void async_no_points_aggregate(uv_async_t * handle)
 
 static void async_select_aggregate(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
     siridb_t * siridb = query->client->siridb;
     uint8_t async_more = 0;
     siridb_series_t * series;
@@ -4849,8 +5066,8 @@ static void async_select_aggregate(uv_async_t * handle)
 
 static void async_series_re(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_wrapper_t * q_wrapper = query->data;
     uint8_t async_more = 0;
     siridb_series_t * series;
     size_t index_end = q_wrapper->vec_index + MAX_ITERATE_COUNT;
@@ -4936,7 +5153,7 @@ static void on_ack_response(
 
     if (handle != NULL)
     {
-        siridb_query_t * query = (siridb_query_t *) handle->data;
+        siridb_query_t * query = handle->data;
 
         if (status == PROMISE_SUCCESS)
         {
@@ -4951,7 +5168,9 @@ static void on_ack_response(
             case BPROTO_ACK_DISABLE_BACKUP_MODE:
                 /* success message is already set */
                 break;
-
+            case BPROTO_ACK_TEE_PIPE_NAME:
+                /* success message is already set */
+                break;
             default:
                 status = PROMISE_PKG_TYPE_ERROR;
                 break;
@@ -4986,7 +5205,7 @@ static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -5029,19 +5248,32 @@ static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle)
     }
     /*
      * Note: since this function has the sole purpose for alter servers
-     *       and setting log levels, we now simply ad the message here.
+     *       and setting log levels or pipe name, we now simply add the
+     *       message here.
      */
     QP_ADD_SUCCESS
 
-    log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-            logger_level_name(q_alter->n >> 16),
-            q_alter->n & 0xffff);
+    if ((q_alter->n >> 16) >= LOGGER_NUM_LEVELS)
+    {
+        log_info(MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI, q_alter->n & 0xffff);
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI,
+                q_alter->n & 0xffff);
+    }
+    else
+    {
+        log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+                logger_level_name(q_alter->n >> 16),
+                q_alter->n & 0xffff);
 
-    qp_add_fmt_safe(
-            query->packer,
-            MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-            logger_level_name(q_alter->n >> 16),
-            q_alter->n & 0xffff);
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+                logger_level_name(q_alter->n >> 16),
+                q_alter->n & 0xffff);
+    }
+
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }
@@ -5056,7 +5288,7 @@ static void on_count_xxx_response(vec_t * promises, uv_async_t * handle)
     ON_PROMISES
 
     uint8_t error_tp = 0;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -5126,7 +5358,7 @@ static void on_drop_series_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -5182,7 +5414,7 @@ static void on_drop_shards_response(vec_t * promises, uv_async_t * handle)
 {
     ON_PROMISES
 
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
@@ -5241,7 +5473,7 @@ static void on_groups_response(vec_t * promises, uv_async_t * handle)
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     siridb_group_t * group;
     qp_obj_t qp_name;
@@ -5304,7 +5536,7 @@ static void on_list_xxx_response(vec_t * promises, uv_async_t * handle)
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
     size_t i;
 
@@ -5385,10 +5617,10 @@ static void on_select_response(vec_t * promises, uv_async_t * handle)
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     size_t err_count = 0;
-    query_select_t * q_select = (query_select_t *) query->data;
+    query_select_t * q_select = query->data;
     qp_obj_t qp_name;
     qp_obj_t qp_tp;
     qp_obj_t qp_len;
@@ -5512,13 +5744,13 @@ static void on_select_response(vec_t * promises, uv_async_t * handle)
     else
     {
         uv_async_t * next;
-        uv_work_t * work = (uv_work_t *) malloc(sizeof(uv_work_t));
+        uv_work_t * work = malloc(sizeof(uv_work_t));
         if (work == NULL)
         {
             MEM_ERR_RET
         }
 
-        next = (uv_async_t *) malloc(sizeof(uv_async_t));
+        next = malloc(sizeof(uv_async_t));
         if (next == NULL)
         {
             free(work);
@@ -5560,7 +5792,7 @@ static void on_update_xxx_response(vec_t * promises, uv_async_t * handle)
 
     sirinet_pkg_t * pkg;
     sirinet_promise_t * promise;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     size_t err_count = 0;
     size_t i;
 
@@ -5613,8 +5845,8 @@ static void on_update_xxx_response(vec_t * promises, uv_async_t * handle)
 static void master_select_work(uv_work_t * work)
 {
     uv_async_t * handle = (uv_async_t *) work->data;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
     siridb_t * siridb = query->client->siridb;
     siridb->selected_points += q_select->n;
     int rc = ct_items(
@@ -5654,7 +5886,7 @@ static void master_select_work_finish(uv_work_t * work, int status)
          */
 
         uv_async_t * handle = (uv_async_t *) work->data;
-        siridb_query_t * query = (siridb_query_t *) handle->data;
+        siridb_query_t * query = handle->data;
 
         if (query->flags & SIRIDB_QUERY_FLAG_ERR)
         {
@@ -5677,7 +5909,7 @@ static int items_select_master(
         siridb_points_t * points,
         uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     if (query->factor)
     {
@@ -5700,8 +5932,8 @@ static int items_select_master_merge(
         vec_t * plist,
         uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
-    query_select_t * q_select = (query_select_t *) query->data;
+    siridb_query_t * query = handle->data;
+    query_select_t * q_select = query->data;
     siridb_points_t * points;
 
     if (qp_add_raw(query->packer, (const unsigned char *) name, len))
@@ -5789,7 +6021,7 @@ static int items_select_other(
         siridb_points_t * points,
         uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     return -(qp_add_raw_term(
                 query->packer, (const unsigned char *) name, len) ||
@@ -5807,7 +6039,7 @@ static int items_select_other_merge(
         uv_async_t * handle)
 {
     size_t i;
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     int rc = qp_add_raw_term(
                 query->packer, (const unsigned char *) name, len) ||
             qp_add_type(query->packer, QP_ARRAY_OPEN);
@@ -5953,7 +6185,7 @@ static void on_select_unpack_merged_points(
 
 static int values_list_groups(siridb_group_t * group, uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
     cexpr_cb_t cb = (cexpr_cb_t) siridb_group_cexpr_cb;
     vec_t * props = ((query_list_t *) query->data)->props;
@@ -5981,7 +6213,7 @@ static int values_list_groups(siridb_group_t * group, uv_async_t * handle)
 
 static int values_count_groups(siridb_group_t * group, uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
 
     return cexpr_run(
             ((query_list_t *) query->data)->where_expr,
@@ -5991,7 +6223,7 @@ static int values_count_groups(siridb_group_t * group, uv_async_t * handle)
 
 static void finish_list_groups(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_list_t * q_list = (query_list_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
@@ -6024,7 +6256,7 @@ static void finish_list_groups(uv_async_t * handle)
 
 static void finish_count_groups(uv_async_t * handle)
 {
-    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_query_t * query = handle->data;
     query_count_t * q_count = (query_count_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 

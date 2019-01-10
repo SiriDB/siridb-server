@@ -169,14 +169,14 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
     }
     else
     {
-        unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
+        unpacker = malloc(sizeof(qp_unpacker_t));
         if (unpacker == NULL)
         {
             ERR_ALLOC
         }
         else
         {
-            unpacker->source = (unsigned char *) malloc(size);
+            unpacker->source = malloc(size);
             if (unpacker->source == NULL)
             {
                 ERR_ALLOC
@@ -214,14 +214,14 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)
 {
-    qp_packer_t * packer = (qp_packer_t *) malloc(sizeof(qp_packer_t));
+    qp_packer_t * packer = malloc(sizeof(qp_packer_t));
     if (packer != NULL)
     {
         packer->alloc_size = alloc_size;
         packer->buffer_size = packer->alloc_size;
         packer->len = 0;
 
-        packer->buffer = (unsigned char *) malloc(packer->buffer_size);
+        packer->buffer = malloc(packer->buffer_size);
         if (packer->buffer == NULL)
         {
             free(packer);

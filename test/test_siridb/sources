@@ -65,7 +65,9 @@
 ../src/siri/db/servers.c
 ../src/siri/db/shard.c
 ../src/siri/db/shards.c
+../src/siri/db/sset.c
 ../src/siri/db/tasks.c
+../src/siri/db/tee.c
 ../src/siri/db/time.c
 ../src/siri/db/user.c
 ../src/siri/db/users.c

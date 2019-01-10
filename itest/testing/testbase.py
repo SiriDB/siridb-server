@@ -28,7 +28,7 @@ def default_test_setup(nservers=1, **kwargs):
 
             close = await func(self)
 
-            if close or close is None or Server.TERMINAL is None:
+            if Server.TERMINAL is None or Server.HOLD_TERM is not True:
                 for server in self.servers:
                     result = await server.stop()
                     self.assertTrue(
@@ -53,7 +53,7 @@ class TestBase(unittest.TestCase):
             result = result['servers']
             try:
                 assert len(result) == len(self.db.servers), \
-                    'Server(s) are missing: {} (expexting: {})'.format(
+                    'Server(s) are missing: {} (expecting: {})'.format(
                         result, self.db.servers)
             except AssertionError as e:
                 if not timeout:

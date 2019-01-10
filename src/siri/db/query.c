@@ -58,13 +58,13 @@ void siridb_query_run(
         float factor,
         int flags)
 {
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         ERR_ALLOC
         return;
     }
-    siridb_query_t * query = (siridb_query_t *) malloc(sizeof(siridb_query_t));
+    siridb_query_t * query = malloc(sizeof(siridb_query_t));
     if (query == NULL)
     {
         ERR_ALLOC
@@ -602,7 +602,7 @@ static void QUERY_parse(uv_async_t * handle)
         return;
     }
 
-    uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * forward = malloc(sizeof(uv_async_t));
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
     forward->data = handle->data;
     uv_async_send(forward);

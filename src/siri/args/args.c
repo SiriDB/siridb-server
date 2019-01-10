@@ -14,7 +14,7 @@
 #ifndef NDEBUG
 #define DEFAULT_LOG_LEVEL "debug"
 #else
-#define DEFAULT_LOG_LEVEL "info"
+#define DEFAULT_LOG_LEVEL "warning"
 #endif
 
 static siri_args_t siri_args = {

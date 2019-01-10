@@ -207,6 +207,7 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         return NULL;
     }
 
+    /* Loop over all aggregations */
     while (1)
     {
         gid = children->node->children->node->cl_obj->gid;
@@ -339,7 +340,7 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 cleri_node_t * dlist = children->node->children->
                         node->children->next->next->node;
 
-                if (dlist->children->node != NULL)
+                if (dlist->children != NULL && dlist->children->node != NULL)
                 {
                     /* result is at least positive, checked earlier */
                     aggr->timespan =
@@ -477,8 +478,7 @@ int siridb_aggregate_can_skip(cleri_children_t * children)
 
 /*
  * Return a new allocated points object or the same object as source.
- * In case of an error NULL is returned and an error message is set or a
- * signal is raised.
+ * In case of an error NULL is returned and an error message is set.
  */
 siridb_points_t * siridb_aggregate_run(
         siridb_points_t * source,
@@ -519,7 +519,7 @@ siridb_points_t * siridb_aggregate_run(
  */
 static siridb_aggr_t * AGGREGATE_new(uint32_t gid)
 {
-    siridb_aggr_t * aggr = (siridb_aggr_t *) malloc(sizeof(siridb_aggr_t));
+    siridb_aggr_t * aggr = malloc(sizeof(siridb_aggr_t));
     if (aggr == NULL)
     {
         return NULL;
@@ -583,12 +583,12 @@ static int AGGREGATE_init_filter(
 
     case CLERI_GID_R_FLOAT:
         aggr->filter_tp = TP_DOUBLE;
-        aggr->filter_via.real = xstr_to_double(node->str, node->len);
+        aggr->filter_via.real = xstr_to_double(node->str);
         break;
 
     case CLERI_GID_STRING:
         aggr->filter_tp = TP_STRING;
-        aggr->filter_via.raw = (unsigned char *) malloc(node->len - 1);
+        aggr->filter_via.raw = malloc(node->len - 1);
         if (aggr->filter_via.raw == NULL)
         {
             sprintf(err_msg, "Memory allocation error.");
@@ -983,7 +983,7 @@ static siridb_points_t * AGGREGATE_to_one(
     if (points == NULL)
     {
         sprintf(err_msg, "Memory allocation error.");
-        return NULL;  /* signal is raised */
+        return NULL;
     }
 
     /* set time-stamp */
@@ -1059,7 +1059,7 @@ static siridb_points_t * AGGREGATE_group_by(
     if (points == NULL)
     {
         sprintf(err_msg, "Memory allocation error.");
-        return NULL;  /* signal is raised */
+        return NULL;
     }
 
     goup_ts = GROUP_TS(source->data);
@@ -1099,8 +1099,7 @@ static siridb_points_t * AGGREGATE_group_by(
     if (points->len < max_sz)
     {
         /* shrink points allocation */
-        point = (siridb_point_t *)
-                realloc(points->data, points->len * sizeof(siridb_point_t));
+        point = realloc(points->data, points->len * sizeof(siridb_point_t));
         if (point == NULL && points->len)
         {
             /* not critical */

@@ -141,7 +141,7 @@ cfgparser_t * cfgparser_new(void)
 {
     cfgparser_t * cfgparser;
 
-    cfgparser = (cfgparser_t *) malloc(sizeof(cfgparser_t));
+    cfgparser = malloc(sizeof(cfgparser_t));
     if (cfgparser != NULL)
     {
         cfgparser->sections = NULL;
@@ -172,8 +172,7 @@ cfgparser_section_t * cfgparser_section(
 
     if (current == NULL)
     {
-        cfgparser->sections =
-                (cfgparser_section_t *) malloc(sizeof(cfgparser_section_t));
+        cfgparser->sections = malloc(sizeof(cfgparser_section_t));
         if (cfgparser->sections == NULL)
         {
             ERR_ALLOC
@@ -201,8 +200,7 @@ cfgparser_section_t * cfgparser_section(
         }
         current = current->next;
     }
-    current->next =
-            (cfgparser_section_t *) malloc(sizeof(cfgparser_section_t));
+    current->next = malloc(sizeof(cfgparser_section_t));
     if (current->next == NULL)
     {
         ERR_ALLOC
@@ -234,8 +232,8 @@ cfgparser_option_t * cfgparser_string_option(
         const char * val,
         const char * def)
 {
-    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
-    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * val_u = malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = malloc(sizeof(cfgparser_via_t));
 
     if (val_u == NULL || def_u == NULL)
     {
@@ -278,8 +276,8 @@ cfgparser_option_t * cfgparser_integer_option(
         int32_t val,
         int32_t def)
 {
-    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
-    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * val_u = malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = malloc(sizeof(cfgparser_via_t));
     if (val_u == NULL || def_u == NULL)
     {
         ERR_ALLOC
@@ -309,8 +307,8 @@ cfgparser_option_t * cfgparser_real_option(
         double val,
         double def)
 {
-    cfgparser_via_t * val_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
-    cfgparser_via_t * def_u = (cfgparser_via_t *) malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * val_u = malloc(sizeof(cfgparser_via_t));
+    cfgparser_via_t * def_u = malloc(sizeof(cfgparser_via_t));
     if (val_u == NULL || def_u == NULL)
     {
         ERR_ALLOC
@@ -427,8 +425,7 @@ static cfgparser_option_t * cfgparser_new_option(
 
     if (current == NULL)
     {
-        section->options =
-                (cfgparser_option_t *) malloc(sizeof(cfgparser_option_t));
+        section->options = malloc(sizeof(cfgparser_option_t));
         if (section->options == NULL)
         {
             ERR_ALLOC
@@ -467,7 +464,7 @@ static cfgparser_option_t * cfgparser_new_option(
         current = current->next;
     }
 
-    prev->next = (cfgparser_option_t *) malloc(sizeof(cfgparser_option_t));
+    prev->next = malloc(sizeof(cfgparser_option_t));
     if (prev->next == NULL)
     {
         ERR_ALLOC

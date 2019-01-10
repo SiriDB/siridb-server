@@ -22,8 +22,8 @@
 
 int main(int argc, char * argv[])
 {
-    /* set local to LC_ALL */
-    (void) setlocale(LC_ALL, "");
+    /* set local to LC_ALL and C to force a period over comma for float */
+    (void) setlocale(LC_ALL, "C");
 
     /* initialize random */
     srand(time(NULL));

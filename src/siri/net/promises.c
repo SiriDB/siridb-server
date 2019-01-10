@@ -16,8 +16,7 @@ sirinet_promises_t * sirinet_promises_new(
         void * data,
         sirinet_pkg_t * pkg)
 {
-    sirinet_promises_t * promises =
-            (sirinet_promises_t *) malloc(sizeof(sirinet_promises_t));
+    sirinet_promises_t * promises = malloc(sizeof(sirinet_promises_t));
     if (promises == NULL)
     {
         ERR_ALLOC

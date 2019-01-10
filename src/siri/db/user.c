@@ -29,7 +29,7 @@
  */
 siridb_user_t * siridb_user_new(void)
 {
-    siridb_user_t * user = (siridb_user_t *) malloc(sizeof(siridb_user_t));
+    siridb_user_t * user = malloc(sizeof(siridb_user_t));
     if (user == NULL)
     {
         ERR_ALLOC
