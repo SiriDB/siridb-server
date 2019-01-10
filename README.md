@@ -95,7 +95,7 @@ apt-get install devscripts lintian help2man autopkgtest
 
 Create archive
 ```
-git archive -o ../siridb-server_2.0.30.orig.tar.gz master
+git archive -o ../siridb-server_2.0.31.orig.tar.gz master
 ```
 
 Run tests
