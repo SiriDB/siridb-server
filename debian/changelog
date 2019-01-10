@@ -1,3 +1,16 @@
+siridb-server (2.0.31-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added option for adding a data tee
+    - Added option to drop a database (#115)
+    - Remove limit of 4 database (#114)
+    - Do not return with an error if series do not exist (#112)
+    - Allow the use of parentheses in selecting series (#111)
+    - Fixed bug in merging series with high time precision (#108)
+    - Code forward compatible with upcoming cleri release
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 10 Jan 2019 11:35:12 +0100
+
 siridb-server (2.0.30-0~tt1) unstable; urgency=medium
 
   * New upstream release
