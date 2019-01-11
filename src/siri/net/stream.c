@@ -270,7 +270,12 @@ void sirinet__stream_free(uv_stream_t * uvclient)
     case STREAM_TCP_MANAGE:  /* a server manage connection  */
         siri_service_client_free((siri_service_client_t *) client->origin);
         siri.client = NULL;
+        assert (client->siridb == NULL);
         break;
+    }
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
     }
     free(client->buf);
     free(client);

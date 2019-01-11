@@ -94,8 +94,6 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool);
 
-
-
 void siridb_server_connect(siridb_t * siridb, siridb_server_t * server);
 int siridb_server_send_pkg(
         siridb_server_t * server,
