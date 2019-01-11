@@ -102,6 +102,7 @@ class TestCreateDatabase(TestBase):
 
         await self.db.add_pool(self.server1)
         await self.assertIsRunning(self.db, self.client0, timeout=20)
+
         await asyncio.sleep(45)
 
         await SiriDB(dbname="dbtest").drop_db(server=self.server1)
@@ -117,6 +118,7 @@ class TestCreateDatabase(TestBase):
         await asyncio.gather(*tasks)
 
         self.client0.close()
+
 
 if __name__ == '__main__':
     parse_args()

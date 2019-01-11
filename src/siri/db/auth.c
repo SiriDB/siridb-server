@@ -46,10 +46,20 @@ cproto_server_t siridb_auth_user_request(
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
 
-    client->siridb = siridb;
-    client->origin = user;
+    siridb_incref(siridb);
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
+    }
 
     siridb_user_incref(user);
+    if (client->origin)
+    {
+        siridb_user_decref(((siridb_user_t *) client->origin));
+    }
+
+    client->siridb = siridb;
+    client->origin = user;
 
     return CPROTO_RES_AUTH_SUCCESS;
 }
@@ -103,6 +113,12 @@ bproto_server_t siridb_auth_server_request(
          * server.
          */
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
+    }
+
+    siridb_incref(siridb);
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
     }
 
     client->siridb = siridb;

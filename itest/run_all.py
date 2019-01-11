@@ -19,6 +19,7 @@ from test_pipe_support import TestPipeSupport
 from test_buffer import TestBuffer
 from test_tee import TestTee
 from test_parentheses import TestParenth
+from test_create_database import TestCreateDatabase
 
 
 if __name__ == '__main__':
@@ -38,3 +39,4 @@ if __name__ == '__main__':
     run_test(TestBuffer())
     run_test(TestTee())
     run_test(TestParenth())
+    run_test(TestCreateDatabase())

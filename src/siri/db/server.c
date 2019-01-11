@@ -398,6 +398,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
         struct in6_addr sa6;
         server->client->origin = server;
         server->client->siridb = siridb;
+        siridb_incref(siridb);
         siridb_server_incref(server);
         uv_tcp_init(siri.loop, (uv_tcp_t *) server->client->stream);
 
