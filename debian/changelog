@@ -1,3 +1,10 @@
+siridb-server (2.0.32-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed drop database
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 11 Jan 2019 16:03:42 +0100
+
 siridb-server (2.0.31-0~tt1) unstable; urgency=medium
 
   * New upstream release
