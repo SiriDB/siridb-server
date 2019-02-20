@@ -50,10 +50,9 @@ static test_series_t series_e = {
 static imap_t * imap_dst;
 static imap_t * imap_tmp;
 
-static int test__imap_decref_cb(char * series)
+static void test__imap_decref_cb(char * series)
 {
     ((vec_object_t *) series)->ref--;
-    return 1;
 }
 
 static int test__imap_id_count_cb(

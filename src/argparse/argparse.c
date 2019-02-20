@@ -13,7 +13,7 @@
 
 #define HELP_WIDTH 80           /* try to fit help within this screen width */
 #define ARGPARSE_ERR_SIZE 1024  /* buffer size for building err msg */
-#define ARGPARSE_HELP_SIZE 255  /* buffer size for building help */
+#define ARGPARSE_HELP_SIZE 512  /* buffer size for building help */
 
 /* static function definitions */
 static void print_usage(argparse_parser_t * parser, const char * bname);
@@ -323,13 +323,16 @@ static void print_help(argparse_parser_t * parser, const char * bname)
             if (current->argument->shortcut)
             {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c,",
-                        current->argument->shortcut);
+                        " -%c, --%s",
+                        current->argument->shortcut,
+                        current->argument->name);
             }
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s",
-                    buffer,
-                    current->argument->name);
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                        " --%s",
+                        current->argument->name);
+            }
             break;
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
@@ -339,27 +342,35 @@ static void print_help(argparse_parser_t * parser, const char * bname)
             if (current->argument->shortcut)
             {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c %s,",
+                        " -%c, --%s %s",
                         current->argument->shortcut,
+                        current->argument->name,
                         uname);
             }
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s %s",
-                    buffer,
-                    current->argument->name,
-                    uname);
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                        " --%s %s",
+                        current->argument->name,
+                        uname);
+            }
             break;
         case ARGPARSE_STORE_STR_CHOICE:
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c {%s},",
+                        " -%c, --%s {%s},",
                         current->argument->shortcut,
+                        current->argument->name,
                         current->argument->choices);
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s {%s}",
-                    buffer,
+            }
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                    " --%s {%s}",
                     current->argument->name,
                     current->argument->choices);
+            }
             break;
         }
         line_size = strlen(buffer);

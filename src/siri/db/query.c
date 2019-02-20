@@ -199,6 +199,12 @@ void siridb_query_send_error(
         cproto_server_t err)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /* make sure the error message is null terminated in case the length has
+     * exceeded the max length.
+     */
+    query->err_msg[SIRIDB_MAX_SIZE_ERR_MSG-1] = '\0';
+
     sirinet_pkg_t * package = sirinet_pkg_err(
                 query->pid,
                 strlen(query->err_msg),

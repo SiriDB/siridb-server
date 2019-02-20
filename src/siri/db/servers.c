@@ -23,7 +23,7 @@
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 
-static void SERVERS_walk_free(siridb_server_t * server, void * args);
+static int SERVERS_walk_free(siridb_server_t * server, void * args);
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
 
 /*
@@ -786,11 +786,12 @@ int siridb_servers_save(siridb_t * siridb)
     return 0;
 }
 
-static void SERVERS_walk_free(
+static int SERVERS_walk_free(
         siridb_server_t * server,
         void * args __attribute__((unused)))
 {
     siridb_server_decref(server);
+    return 0;
 }
 
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)

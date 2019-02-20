@@ -42,16 +42,27 @@ const char * siri_help_get(
         {
             if (help_name[0] == '?')
             {
-                snprintf(
+                if (snprintf(
                         fn,
                         XPATH_MAX,
                         "%shelp/help%s.md",
                         path,
-                        help_name + 1);
+                        help_name + 1) >= XPATH_MAX)
+                {
+                    fn[XPATH_MAX-1] = '\0';
+                }
             }
             else
             {
-                snprintf(fn, XPATH_MAX, "%shelp/%s.md", path, help_name);
+                if (snprintf(
+                        fn,
+                        XPATH_MAX,
+                        "%shelp/%s.md",
+                        path,
+                        help_name) >= XPATH_MAX)
+                {
+                    fn[XPATH_MAX-1] = '\0';
+                }
             }
 
             log_debug("Reading help file: '%s'", fn);
@@ -60,11 +71,14 @@ const char * siri_help_get(
 
             if (fp == NULL)
             {
-                snprintf(
+                if (snprintf(
                         err_msg,
                         SIRIDB_MAX_SIZE_ERR_MSG,
                         "Cannot open help file: '%s'",
-                        fn);
+                        fn) >= SIRIDB_MAX_SIZE_ERR_MSG)
+                {
+                    err_msg[SIRIDB_MAX_SIZE_ERR_MSG-1] = '\0';
+                }
             }
             else
             {
@@ -78,20 +92,26 @@ const char * siri_help_get(
 
                 if (*content == NULL)
                 {
-                    snprintf(
+                    if (snprintf(
                             err_msg,
                             SIRIDB_MAX_SIZE_ERR_MSG,
                             "Memory allocation error while reading help "
                             "file: '%s'",
-                            fn);
+                            fn) >= SIRIDB_MAX_SIZE_ERR_MSG)
+                    {
+                        err_msg[SIRIDB_MAX_SIZE_ERR_MSG-1] = '\0';
+                    }
                 }
                 else if (fread(*content, 1, size, fp) != size)
                 {
-                    snprintf(
+                    if (snprintf(
                             err_msg,
                             SIRIDB_MAX_SIZE_ERR_MSG,
                             "Error while reading help file: '%s'",
-                            fn);
+                            fn) >= SIRIDB_MAX_SIZE_ERR_MSG)
+                    {
+                        err_msg[SIRIDB_MAX_SIZE_ERR_MSG-1] = '\0';
+                    }
                     free(*content);
                     *content = NULL;
                 }

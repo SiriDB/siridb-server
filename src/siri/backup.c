@@ -17,7 +17,7 @@ uv_timer_t backup;
 #define BACKUP_LOOP_TIMEOUT 3000
 
 static void BACKUP_cb(uv_timer_t * timer);
-static void BACKUP_walk(siridb_t * siridb, void * args);
+static int BACKUP_walk(siridb_t * siridb, void * args);
 
 int siri_backup_init(siri_t * siri)
 {
@@ -151,7 +151,7 @@ static void BACKUP_cb(uv_timer_t * timer)
     llist_walk((llist_t *) timer->data, (llist_cb) BACKUP_walk, NULL);
 }
 
-static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
+static int BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
 {
     if (    siridb->replicate != NULL &&
             siridb->replicate->status == REPLICATE_PAUSED &&
@@ -231,4 +231,6 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
 
         vec_free(shard_list);
     }
+
+    return 0;
 }

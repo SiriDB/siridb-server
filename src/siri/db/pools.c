@@ -12,8 +12,8 @@
 #include <string.h>
 #include <siri/err.h>
 
-static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
-static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
+static int POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
+static int POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
 /*
  * This function can raise an ALLOC signal.
@@ -306,19 +306,20 @@ void siridb_pools_send_pkg_2some(
 }
 
 
-static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
+static int POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
 {
     if (server->pool > *max_pool)
     {
         *max_pool = server->pool;
     }
+    return 0;
 }
 
 /*
  * Signal can be raised by this function when a fifo buffer for an optional
  * replica server can't be created.
  */
-static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
+static int POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 {
     siridb_pool_t * pool = siridb->pools->pool + server->pool;
 
@@ -351,4 +352,5 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     }
 
     siridb_pool_add_server(pool, server);
+    return 0;
 }

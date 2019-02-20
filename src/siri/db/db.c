@@ -560,9 +560,10 @@ siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname)
 /*
  * Sometimes we need a callback function and cannot use a macro expansion.
  */
-void siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
+int siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
 {
     siridb_decref(siridb);
+    return 0;
 }
 
 /*

@@ -933,7 +933,6 @@ void siridb__server_free(siridb_server_t * server)
      */
     if (server->promises != NULL)
     {
-        imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
         imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
     }
     free(server->name);
