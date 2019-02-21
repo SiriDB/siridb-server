@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ALLOWED_PKG_SIZE 20971520      /* 20 MB  */
+#define MAX_ALLOWED_PKG_SIZE 41943040      /* 40 MB  */
 
 #define QUIT_STREAM                     \
     free(client->buf);                  \

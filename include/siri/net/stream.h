@@ -4,7 +4,7 @@
 #ifndef SIRINET_STREAM_H_
 #define SIRINET_STREAM_H_
 
-#define RESET_BUF_SIZE 1048576  /*  1 MB        */
+#define RESET_BUF_SIZE 2097152  /*  2 MB  */
 
 typedef enum
 {
