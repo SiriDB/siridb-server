@@ -49,9 +49,8 @@ char * sirinet_tcp_name(uv_tcp_t * client)
                     &((struct sockaddr_in *) &name)->sin_addr,
                     addr,
                     sizeof(addr));
-            snprintf(
+            sprintf(
                     buffer,
-                    TCP_NAME_BUF_SZ,
                     "%s:%d",
                     addr,
                     ntohs(((struct sockaddr_in *) &name)->sin_port));
@@ -66,9 +65,8 @@ char * sirinet_tcp_name(uv_tcp_t * client)
                     &((struct sockaddr_in6 *) &name)->sin6_addr,
                     addr,
                     sizeof(addr));
-            snprintf(
+            sprintf(
                     buffer,
-                    TCP_NAME_BUF_SZ,
                     "[%s]:%d",
                     addr,
                     ntohs(((struct sockaddr_in6 *) &name)->sin6_port));

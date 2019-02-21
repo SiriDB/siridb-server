@@ -156,6 +156,7 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
         }
         if (rc)
         {
+            buffer[ARGPARSE_ERR_SIZE - 1] = '\0';
             print_error(parser, buffer, bname);
             quit(parser, EXIT_FAILURE);
         }
@@ -287,7 +288,7 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
             }
             break;
         }
-
+        buffer[ARGPARSE_HELP_SIZE - 1] = '\0';
         line_size += strlen(buffer);
         if (line_size > HELP_WIDTH)
         {
@@ -373,6 +374,7 @@ static void print_help(argparse_parser_t * parser, const char * bname)
             }
             break;
         }
+        buffer[ARGPARSE_HELP_SIZE - 1] = '\0';
         line_size = strlen(buffer);
         if (line_size > 24)
         {

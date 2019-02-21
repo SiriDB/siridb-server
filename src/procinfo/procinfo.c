@@ -175,7 +175,14 @@ long int procinfo_open_files(const char * path, int include_fd)
     {
         if (entry->d_type == DT_REG || entry->d_type == DT_LNK)
         {
-            snprintf(buffer, XPATH_MAX, "/proc/self/fd/%s", entry->d_name);
+            if (snprintf(
+                    buffer,
+                    XPATH_MAX,
+                    "/proc/self/fd/%s",
+                    entry->d_name) >= XPATH_MAX)
+            {
+                buffer[XPATH_MAX-1] = '\0';
+            }
             if (realpath(buffer, buf) == NULL)
             {
                 continue;

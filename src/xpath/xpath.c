@@ -134,7 +134,7 @@ int xpath_rmdir(const char * path)
             buf = tmp;
         }
 
-        snprintf(buf, len, "%s%s%s", path, slash, p->d_name);
+        sprintf(buf, "%s%s%s", path, slash, p->d_name);
 
         if (xpath_is_dir(buf) ? xpath_rmdir(buf) : unlink(buf))
             goto stop;

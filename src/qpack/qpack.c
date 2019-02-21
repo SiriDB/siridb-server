@@ -362,7 +362,10 @@ int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
     va_list args;
     char buffer[QPACK_MAX_FMT_SIZE];
     va_start(args, fmt);
-    vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args);
+    if (vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args) >= QPACK_MAX_FMT_SIZE)
+    {
+        buffer[QPACK_MAX_FMT_SIZE-1] = '\0';
+    }
     va_end(args);
     return qp_add_string(packer, buffer);
 }
