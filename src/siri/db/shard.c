@@ -1652,7 +1652,7 @@ static ssize_t SHARD_apply_idx(
                     shard->fn,
                     pos);
             shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
-            return -1;
+            return size;
         }
 
         /* this shard has remove series, make sure the flag is set */
@@ -1671,15 +1671,37 @@ static ssize_t SHARD_apply_idx(
     }
     else
     {
+        uint64_t start_ts = is_ts64 ? /* START_TS IN HEADER  */
+                (uint64_t) *((uint64_t *) (pt + 4)) :
+                (uint64_t) *((uint32_t *) (pt + 4));
+        uint64_t end_ts = is_ts64 ? /* END_TS IN HEADER  */
+                (uint64_t) *((uint64_t *) (pt + 12)) :
+                (uint64_t) *((uint32_t *) (pt + 8));
+        uint64_t start = shard->id - series->mask;
+        uint64_t end = start + ((shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
+                    siridb->duration_num : siridb->duration_log);
+
+        if (start_ts < start || end_ts >= end)
+        {
+            log_error(
+                    "Unexpected Time range for series ID %" PRIu32
+                    " is found in shard %" PRIu64 " (%s) at "
+                    "position %ld. This indicates that this shard is "
+                    "probably corrupt. The next optimize cycle will most "
+                    "likely fix this shard but you might loose some data.",
+                    series_id,
+                    shard->id,
+                    shard->fn,
+                    pos);
+            shard->flags |= SIRIDB_SHARD_IS_CORRUPT;
+            return size;
+        }
+
         if (siridb_series_add_idx(
                 series,
                 shard,
-                is_ts64 ? /* START_TS IN HEADER  */
-                        (uint64_t) *((uint64_t *) (pt + 4)) :
-                        (uint64_t) *((uint32_t *) (pt + 4)),
-                is_ts64 ? /* END_TS IN HEADER  */
-                        (uint64_t) *((uint64_t *) (pt + 12)) :
-                        (uint64_t) *((uint32_t *) (pt + 8)),
+                start_ts,
+                end_ts,
                 (uint32_t) pos,
                 len,
                 cinfo) == 0)

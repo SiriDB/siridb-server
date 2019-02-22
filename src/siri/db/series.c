@@ -1033,7 +1033,6 @@ int siridb_series_optimize_shard(
     uint16_t cinfo = 0;
     uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
                 siridb->duration_num : siridb->duration_log;
-
     max_ts = (shard->id + duration) - series->mask;
 
     rc = new_idx = end = i = size = start = 0;
@@ -1113,6 +1112,7 @@ int siridb_series_optimize_shard(
         {
             pend = size;
         }
+
         if ((pos = siridb_shard_write_points(
                 siridb,
                 series,
