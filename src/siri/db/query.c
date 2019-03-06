@@ -405,6 +405,26 @@ void siridb_query_timeit_from_unpacker(
     }
 }
 
+static void QUERY_unique(cleri_olist_t * olist)
+{
+    while (olist != NULL && olist->next != NULL)
+    {
+        cleri_olist_t * test = olist;
+        while (test->next != NULL)
+        {
+            if (olist->cl_obj == test->next->cl_obj)
+            {
+                cleri_olist_t * tmp = test->next->next;
+                free(test->next);
+                test->next = tmp;
+                continue;
+            }
+            test = test->next;
+        }
+        olist = olist->next;
+    }
+}
+
 static void QUERY_send_invalid_error(uv_async_t * handle)
 {
     size_t len;
@@ -418,6 +438,9 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             SIRIDB_MAX_SIZE_ERR_MSG,
             "Query error at position %zd. Expecting ",
             query->pr->pos);
+
+    /* required for libcleri versions prior to 0.10.1 */
+    QUERY_unique(query->pr->expecting->required);
 
     /* expand the error message with suggestions. we try to add nice names
      * for regular expressions etc.

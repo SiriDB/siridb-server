@@ -88,29 +88,38 @@ class TestParenth(TestBase):
             {'success_msg': 'Successfully inserted {} point(s).'.format(
                 LENPOINTS)})
 
-        self.assertEqual(
-            await self.client0.query('''
+        result = await self.client0.query('''
                 list series
                     all - ("series-001" | "series-002" | /windows.*/)
-               '''),
+               ''')
+        result['series'] = sorted(result['series'])
+
+        self.assertEqual(
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-003'],
                     ['series-004'],
                     ['linux-001'],
                     ['linux-002'],
                     ['linux-003'],
-                    ['linux-004']]})
+                    ['linux-004']
+                ])
+            }
+        )
 
-        self.assertEqual(
-            await self.client0.query('''
+        result = await self.client0.query('''
                 list series all - (
                     "series-001" | "series-002" | (/windows.*/ & /.*001/))
-                '''),
+                ''')
+        result['series'] = sorted(result['series'])
+
+        self.assertEqual(
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-003'],
                     ['series-004'],
                     ['linux-001'],
@@ -119,52 +128,72 @@ class TestParenth(TestBase):
                     ['linux-004'],
                     ['windows-002'],
                     ['windows-003'],
-                    ['windows-004']]})
-
-        self.assertEqual(
-            await self.client0.query('''
+                    ['windows-004']
+                ])
+            }
+        )
+        result = await self.client0.query('''
                 list series all - (
                     "series-001" | "series-002" | (/windows.*/ - /.*001/))
-                '''),
+                ''')
+        result['series'] = sorted(result['series'])
+
+        self.assertEqual(
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-003'],
                     ['series-004'],
                     ['linux-001'],
                     ['linux-002'],
                     ['linux-003'],
                     ['linux-004'],
-                    ['windows-001']]})
+                    ['windows-001']
+                ])
+            }
+        )
 
-        self.assertEqual(
-            await self.client0.query('''
+        result = await self.client0.query('''
                 list series (
                     "series-001" | "series-002" | /windows.*/) - /.*003/
-                '''),
+                ''')
+        result['series'] = sorted(result['series'])
+
+        self.assertEqual(
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-001'],
                     ['series-002'],
                     ['windows-001'],
                     ['windows-002'],
-                    ['windows-004']]})
+                    ['windows-004']
+                ])
+            }
+        )
+
+        result = await self.client0.query('''
+                list series all - (/series.*/ ^ /.*001/)
+                ''')
+        result['series'] = sorted(result['series'])
 
         self.assertEqual(
-            await self.client0.query('''
-                list series all - (/series.*/ ^ /.*001/)
-                '''),
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-001'],
                     ['linux-002'],
                     ['linux-003'],
                     ['linux-004'],
                     ['windows-002'],
                     ['windows-003'],
-                    ['windows-004']]})
+                    ['windows-004']
+                ])
+            }
+        )
 
         self.assertEqual(
             await self.client0.query('''
@@ -174,49 +203,73 @@ class TestParenth(TestBase):
                 'columns': ['name'],
                 'series': []})
 
-        self.assertEqual(
-            await self.client0.query('''
+        result = await self.client0.query('''
                 list series /.*001/ & (/series.*/ | /linux.*/)
-                '''),
-            {
-                'columns': ['name'],
-                'series': [
-                    ['series-001'],
-                    ['linux-001']]})
+                ''')
+        result['series'] = sorted(result['series'])
 
         self.assertEqual(
-            await self.client0.query('''
+            result,
+            {
+                'columns': ['name'],
+                'series': sorted([
+                    ['series-001'],
+                    ['linux-001']
+                ])
+            }
+        )
+
+        result = await self.client0.query('''
                 list series /.*001/ & ((((/series.*/ | /linux.*/))))
-                '''),
-            {
-                'columns': ['name'],
-                'series': [
-                    ['series-001'],
-                    ['linux-001']]})
+                ''')
+        result['series'] = sorted(result['series'])
 
         self.assertEqual(
-            await self.client0.query('''
+            result,
+            {
+                'columns': ['name'],
+                'series': sorted([
+                    ['series-001'],
+                    ['linux-001']
+                ])
+            }
+        )
+
+        result = await self.client0.query('''
                 list series (/.*001/ | /.*002/) & (/series.*/ | /linux.*/)
-                '''),
-            {
-                'columns': ['name'],
-                'series': [
-                    ['series-001'],
-                    ['series-002'],
-                    ['linux-001'],
-                    ['linux-002']]})
+                ''')
+        result['series'] = sorted(result['series'])
 
         self.assertEqual(
-            await self.client0.query('''
-                list series ((/.*001/ | /.*002/) & (/series.*/ | /linux.*/))
-                '''),
+            result,
             {
                 'columns': ['name'],
-                'series': [
+                'series': sorted([
                     ['series-001'],
                     ['series-002'],
                     ['linux-001'],
-                    ['linux-002']]})
+                    ['linux-002']
+                ])
+            }
+        )
+
+        result = await self.client0.query('''
+                list series ((/.*001/ | /.*002/) & (/series.*/ | /linux.*/))
+                ''')
+        result['series'] = sorted(result['series'])
+
+        self.assertEqual(
+            result,
+            {
+                'columns': ['name'],
+                'series': sorted([
+                    ['series-001'],
+                    ['series-002'],
+                    ['linux-001'],
+                    ['linux-002']
+                ])
+            }
+        )
 
         with self.assertRaisesRegex(
                 QueryError,

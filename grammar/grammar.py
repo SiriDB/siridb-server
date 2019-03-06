@@ -423,6 +423,12 @@ class SiriGrammar(Grammar):
     uuid = Choice(r_uuid_str, string, most_greedy=False)
     group_match = Repeat(r_grave_str, 1, 1)
     series_match = Prio(
+        List(Choice(
+            series_all,
+            series_name,
+            group_match,
+            series_re,
+            most_greedy=False), series_setopr, 1),
         Choice(
             series_all,
             series_name,

@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2019-01-03 10:42:54
+ * Created at: 2019-03-06 11:59:02
  */
 
 #include "siri/grammar/grammar.h"
@@ -781,7 +781,16 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * group_match = cleri_dup(CLERI_GID_GROUP_MATCH, r_grave_str);
     cleri_t * series_match = cleri_prio(
         CLERI_GID_SERIES_MATCH,
-        3,
+        4,
+        cleri_list(CLERI_NONE, cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            4,
+            series_all,
+            series_name,
+            group_match,
+            series_re
+        ), series_setopr, 1, 0, 0),
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
