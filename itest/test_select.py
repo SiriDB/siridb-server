@@ -218,7 +218,7 @@ class TestSelect(TestBase):
                 [1447257600, 4.666666666666667]]})
 
         self.assertEqual(
-            await self.client0.query('select * from {}'.format(
+            await self.client0.query('select * from ({}) - ("a", "b")'.format(
                 ','.join(['"aggr"'] * 600)
             )),
             {'aggr': DATA['aggr']}
