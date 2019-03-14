@@ -58,6 +58,11 @@ make test
 make
 ```
 
+Install
+```
+sudo make install
+```
+
 #### OSX
 >Make sure [libcleri](https://github.com/transceptor-technology/libcleri) is installed!
 
@@ -75,6 +80,11 @@ export LDFLAGS="-L/usr/local/lib"
 make clean
 make test
 make
+```
+
+Install
+```
+sudo make install
 ```
 
 #### Configuration

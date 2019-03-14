@@ -52,9 +52,11 @@ OS := $(shell uname)
 ifeq ($(OS),Darwin)
 CRYPT :=
 UUID :=
+INSTALL_PATH := /usr/local
 else
 CRYPT := -lcrypt
 UUID := -luuid
+INSTALL_PATH := /usr
 endif
 
 # Add inputs and outputs from these tool invocations to the build variables

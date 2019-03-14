@@ -1,0 +1,11 @@
+.PHONY: install
+install:
+	@mkdir -p /etc/siridb/
+	@mkdir -p /var/lib/siridb/
+	@cp -n ../siridb.conf /etc/siridb/siridb.conf
+	@cp siridb-server $(INSTALL_PATH)/bin/siridb-server
+
+
+.PHONY: uninstall
+uninstall:
+	@rm -f $(INSTALL_PATH)/bin/siridb-server
