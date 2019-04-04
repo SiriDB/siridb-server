@@ -1,3 +1,13 @@
+siridb-server (2.0.33-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed deep recursion in series selection (#118)
+    - Fixed a few gcc version 8 warnings (#117)
+    - Increased package size limit and warning
+    - Added check for unexpected time-stamps in shards at startup
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 04 Apr 2019 14:19:22 +0200
+
 siridb-server (2.0.32-0~tt1) unstable; urgency=medium
 
   * New upstream release
