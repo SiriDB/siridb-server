@@ -283,7 +283,7 @@ class TestParenth(TestBase):
                 'Memory allocation error or maximum recursion depth reached.'):
             await self.client0.query('''
                 list series /.*/ -
-                    {}/linux.*/{}'''.format('(' * 200, ')' * 200))
+                    {}/linux.*/{}'''.format('(' * 500, ')' * 500))
 
         await self.client0.query('alter database set list_limit 5000')
         with self.assertRaisesRegex(

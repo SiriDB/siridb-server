@@ -180,17 +180,13 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 
 /*
  * Returns a copy of package allocated using malloc().
- * In case of an error, NULL is returned and a signal is raised.
+ * In case of an error, NULL is returned.
  */
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
 {
     size_t size = sizeof(sirinet_pkg_t) + pkg->len;
     sirinet_pkg_t * dup = malloc(size);
-    if (dup == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
+    if (dup != NULL)
     {
         memcpy(dup, pkg, size);
     }

@@ -5,7 +5,7 @@ from .spinner import Spinner
 from .color import Color
 
 
-class Task():
+class Task:
     def __init__(self, title):
         self.running = True
         self.task = asyncio.ensure_future(self.process())

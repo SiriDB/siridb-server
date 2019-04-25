@@ -215,6 +215,7 @@ void siridb_pools_send_pkg(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_pool_t * pool;
         uint16_t pid;
 
@@ -227,13 +228,14 @@ void siridb_pools_send_pkg(
 
             pool = siridb->pools->pool + pid;
 
-            if (siridb_pool_send_pkg(
+            if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                siridb_pool_send_pkg(
                     pool,
-                    pkg,
+                    dup,
                     timeout,
                     (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG | flags))
+                    flags & ~FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to pool '%u' "
@@ -279,6 +281,7 @@ void siridb_pools_send_pkg_2some(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_pool_t * pool;
         size_t i;
 
@@ -286,13 +289,14 @@ void siridb_pools_send_pkg_2some(
         {
             pool = vec->data[i];
 
-            if (siridb_pool_send_pkg(
+            if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                siridb_pool_send_pkg(
                     pool,
-                    pkg,
+                    dup,
                     timeout,
                     (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG | flags))
+                    flags & ~FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to at least on pool "

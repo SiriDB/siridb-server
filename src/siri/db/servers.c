@@ -372,6 +372,7 @@ void siridb_servers_send_pkg(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_server_t * server;
         size_t i;
 
@@ -381,13 +382,14 @@ void siridb_servers_send_pkg(
 
             if (siridb_server_is_online(server))
             {
-                if (siridb_server_send_pkg(
+                if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                    siridb_server_send_pkg(
                         server,
-                        pkg,
+                        dup,
                         timeout,
                         (sirinet_promise_cb) sirinet_promises_on_response,
                         promises,
-                        FLAG_KEEP_PKG))
+                        0 /* flags */))
                 {
                     log_critical(
                             "Allocation error while trying to send a package "
