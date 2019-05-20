@@ -764,7 +764,7 @@ void siridb_drop(siridb_t * siridb)
 
     uv_mutex_lock(&siri.siridb_mutex);
 
-    (void *) llist_remove(siri.siridb_list, NULL, siridb);
+    llist_remove(siri.siridb_list, NULL, siridb);
 
     uv_mutex_unlock(&siri.siridb_mutex);
 
