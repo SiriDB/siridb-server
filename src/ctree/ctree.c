@@ -183,10 +183,17 @@ void * ct_getn(ct_t * ct, const char * key, size_t n)
 {
     size_t diff = 1;
     ct_node_t * nd;
-    uint8_t k = (uint8_t) *key;
-    uint8_t pos = k / BLOCKSZ;
+    uint8_t k, pos;
 
-    if (!n || pos < ct->offset || pos >= ct->offset + ct->n)
+    if (!n)
+    {
+        return NULL;
+    }
+
+    k = (uint8_t) *key;
+    pos = k / BLOCKSZ;
+
+    if (pos < ct->offset || pos >= ct->offset + ct->n)
     {
         return NULL;
     }
