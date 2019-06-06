@@ -412,8 +412,9 @@ static void SIRI_try_close(uv_timer_t * handle)
     }
     else
     {
-        log_info("SiriDB is closing but is waiting for %d task(s) to "
-                "finish...", num);
+        log_info(
+                "SiriDB is closing but is waiting for %d task(s) to finish...",
+                num);
     }
 }
 
@@ -423,13 +424,16 @@ static void SIRI_signal_handler(
 {
     if (signum == SIGPIPE)
     {
-        log_warning("Signal (%d) received, probably a connection was lost");
+        log_warning(
+                "Signal (%d) received, probably a connection was lost",
+                signum);
         return;
     }
 
     if (siri.status == SIRI_STATUS_CLOSING)
     {
-        log_error("Receive a second signal (%d), stop SiriDB immediately!",
+        log_error(
+                "Receive a second signal (%d), stop SiriDB immediately!",
                 signum);
         /* set siri_err, see ERR_CLOSE_TIMEOUT_REACHED for the reason why */
         siri_err = ERR_CLOSE_ENFORCED;
