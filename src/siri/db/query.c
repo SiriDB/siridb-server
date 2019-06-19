@@ -1014,7 +1014,7 @@ static int QUERY_rebuild(
             return 0;
         }
     /* FALLTHRU */
-    /* no break */
+    /* fall through */
     default:
         {
             int rc;

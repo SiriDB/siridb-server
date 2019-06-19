@@ -5865,7 +5865,7 @@ static void master_select_work(uv_work_t * work)
     case -1:
         sprintf(query->err_msg, "Memory allocation error.");
         /* FALLTHRU */
-        /* no break */
+        /* fall through */
     case 1:
         query->flags |= SIRIDB_QUERY_FLAG_ERR;
     }
