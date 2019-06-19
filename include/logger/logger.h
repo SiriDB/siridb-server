@@ -29,11 +29,11 @@ void logger_init(LOGGER_IO_FILE * ostream, int log_level);
 void logger_set_level(int log_level);
 const char * logger_level_name(int log_level);
 
-void log__debug(char * fmt, ...);
-void log__info(char * fmt, ...);
-void log__warning(char * fmt, ...);
-void log__error(char * fmt, ...);
-void log__critical(char * fmt, ...);
+void log__debug(const char * fmt, ...);
+void log__info(const char * fmt, ...);
+void log__warning(const char * fmt, ...);
+void log__error(const char * fmt, ...);
+void log__critical(const char * fmt, ...);
 
 extern logger_t Logger;
 

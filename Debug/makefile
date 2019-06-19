@@ -31,6 +31,7 @@ RM := rm -rf
 -include src/lock/subdir.mk
 -include src/llist/subdir.mk
 -include src/iso8601/subdir.mk
+-include src/lib/subdir.mk
 -include src/imap/subdir.mk
 -include src/expr/subdir.mk
 -include src/ctree/subdir.mk

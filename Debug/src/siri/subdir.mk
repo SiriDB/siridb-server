@@ -8,6 +8,7 @@ C_SRCS += \
 ../src/siri/backup.c \
 ../src/siri/buffersync.c \
 ../src/siri/err.c \
+../src/siri/health.c \
 ../src/siri/heartbeat.c \
 ../src/siri/optimize.c \
 ../src/siri/siri.c \
@@ -18,6 +19,7 @@ OBJS += \
 ./src/siri/backup.o \
 ./src/siri/buffersync.o \
 ./src/siri/err.o \
+./src/siri/health.o \
 ./src/siri/heartbeat.o \
 ./src/siri/optimize.o \
 ./src/siri/siri.o \
@@ -28,6 +30,7 @@ C_DEPS += \
 ./src/siri/backup.d \
 ./src/siri/buffersync.d \
 ./src/siri/err.d \
+./src/siri/health.d \
 ./src/siri/heartbeat.d \
 ./src/siri/optimize.d \
 ./src/siri/siri.d \

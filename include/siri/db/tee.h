@@ -25,6 +25,7 @@ void siridb_tee_write(siridb_tee_t * tee, sirinet_promise_t * promise);
 const char * tee_str(siridb_tee_t * tee);
 static inline _Bool siridb_tee_is_configured(siridb_tee_t * tee);
 static inline _Bool siridb_tee_is_connected(siridb_tee_t * tee);
+static inline _Bool siridb_tee_is_handle(uv_handle_t * handle);
 
 struct siridb_tee_s
 {
@@ -42,6 +43,14 @@ static inline _Bool siridb_tee_is_configured(siridb_tee_t * tee)
 static inline _Bool siridb_tee_is_connected(siridb_tee_t * tee)
 {
     return tee->flags & SIRIDB_TEE_FLAG_CONNECTED;
+}
+
+static inline _Bool siridb_tee_is_handle(uv_handle_t * handle)
+{
+    return
+        handle->type == UV_TCP &&
+        handle->data &&
+        (((siridb_tee_t *) handle->data)->flags & SIRIDB_TEE_FLAG);
 }
 
 #endif /* SIRIDB_TEE_H_ */

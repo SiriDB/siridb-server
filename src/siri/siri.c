@@ -17,27 +17,28 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
-#include <siri/service/account.h>
-#include <siri/service/request.h>
 #include <siri/async.h>
 #include <siri/buffersync.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/buffer.h>
 #include <siri/db/groups.h>
+#include <siri/db/listener.h>
 #include <siri/db/pools.h>
 #include <siri/db/props.h>
 #include <siri/db/series.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
-#include <siri/db/listener.h>
 #include <siri/err.h>
+#include <siri/health.h>
 #include <siri/help/help.h>
 #include <siri/net/bserver.h>
 #include <siri/net/clserver.h>
 #include <siri/net/pipe.h>
 #include <siri/net/stream.h>
+#include <siri/service/account.h>
+#include <siri/service/request.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stddef.h>
@@ -165,7 +166,8 @@ int siri_start(void)
     uv_loop_init(siri.loop);
 
     /* initialize the back-end-, client- server and load databases */
-    if (    (rc = siri_service_account_init(&siri)) ||
+    if (    (siri.cfg->http_status_port && (rc = siri_health_init())) ||
+            (rc = siri_service_account_init(&siri)) ||
             (rc = siri_service_request_init()) ||
             (rc = sirinet_bserver_init(&siri)) ||
             (rc = sirinet_clserver_init(&siri)) ||
@@ -502,14 +504,17 @@ static void SIRI_walk_close_handlers(
     case UV_TCP:
     case UV_NAMED_PIPE:
         {
-            sirinet_stream_t * stream = handle->data;
-            if (stream == NULL || (stream->tp & SIRIDB_TEE_FLAG))
+            if (handle->data == NULL || siridb_tee_is_handle(handle))
             {
                 uv_close(handle, NULL);
             }
+            else if (siri_health_is_handle(handle))
+            {
+                siri_health_close((siri_health_request_t *) handle->data);
+            }
             else
             {
-                sirinet_stream_decref(stream);
+                sirinet_stream_decref((sirinet_stream_t *) handle->data);
             }
         }
         break;

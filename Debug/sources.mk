@@ -21,6 +21,7 @@ src/ctree \
 src/expr \
 src/imap \
 src/iso8601 \
+src/lib \
 src/llist \
 src/lock \
 src/logger \
