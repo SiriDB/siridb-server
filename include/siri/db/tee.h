@@ -48,7 +48,7 @@ static inline _Bool siridb_tee_is_connected(siridb_tee_t * tee)
 static inline _Bool siridb_tee_is_handle(uv_handle_t * handle)
 {
     return
-        handle->type == UV_TCP &&
+        handle->type == UV_NAMED_PIPE &&
         handle->data &&
         (((siridb_tee_t *) handle->data)->flags & SIRIDB_TEE_FLAG);
 }

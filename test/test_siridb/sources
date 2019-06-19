@@ -13,6 +13,7 @@
 ../src/expr/expr.c
 ../src/timeit/timeit.c
 ../src/iso8601/iso8601.c
+../src/lib/http_parser.c
 ../src/lock/lock.c
 ../src/procinfo/procinfo.c
 ../src/siri/async.c
@@ -22,6 +23,7 @@
 ../src/siri/heartbeat.c
 ../src/siri/optimize.c
 ../src/siri/siri.c
+../src/siri/health.c
 ../src/siri/version.c
 ../src/siri/net/bserver.c
 ../src/siri/net/clserver.c
