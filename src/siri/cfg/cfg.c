@@ -113,6 +113,15 @@ void siri_cfg_init(siri_t * siri)
             &tmp);
     siri_cfg.heartbeat_interval = (uint16_t) tmp;
 
+    tmp = siri_cfg.http_status_port;
+    SIRI_CFG_read_uint(
+            cfgparser,
+            "http_status_port",
+            0,
+            65535,
+            &tmp);
+    siri_cfg.http_status_port = (uint16_t) tmp;
+
     SIRI_CFG_read_default_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
     SIRI_CFG_read_ip_support(cfgparser);

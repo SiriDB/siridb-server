@@ -52,6 +52,7 @@ class Server:
         self.pipe_name = \
             'siridb_client.sock' if not self.enable_pipe_support else \
             pipe_name
+        self.http_status_port = 8080 + n
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
         self.buffer_sync_interval = buffer_sync_interval
@@ -95,6 +96,7 @@ class Server:
         config.set('siridb', 'enable_shard_compression', int(self.compression))
         config.set('siridb', 'enable_pipe_support', self.enable_pipe_support)
         config.set('siridb', 'pipe_client_name',  self.pipe_name)
+        config.set('siridb', 'http_status_port',  self.http_status_port)
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
