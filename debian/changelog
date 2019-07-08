@@ -1,3 +1,11 @@
+siridb-server (2.0.34-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added readiness and liveness HTTP handler (#122)
+    - Fixed bug in sending packages to multiple SiriDB servers (#120) 
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 08 Jul 2019 14:18:56 +0200
+
 siridb-server (2.0.33-0~tt1) unstable; urgency=medium
 
   * New upstream release
