@@ -13,9 +13,9 @@
  * This should be an empty string when building a final release.
  * Examples: "-alpha-0" "-alpha-1", ""
  * Note that debian alpha packages should use versions like this:
- *   2.0.30-0alpha0
+ *   2.0.34-0alpha0
  */
-#define SIRIDB_VERSION_PRE_RELEASE "-alpha-1"
+#define SIRIDB_VERSION_PRE_RELEASE ""
 
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
