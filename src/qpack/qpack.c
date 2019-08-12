@@ -604,7 +604,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const unsigned char * raw, size_t len)
             return EOF;
         }
     }
-    return (fwrite(raw, len, 1, fpacker) == 1) ? 0 : EOF;
+    return (!len || (fwrite(raw, len, 1, fpacker) == 1)) ? 0 : EOF;
 }
 
 /*
