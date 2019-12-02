@@ -23,4 +23,14 @@
 #define HELP_OFFSET CLERI_GID_HELP_ACCESS
 #define HELP_COUNT CLERI_GID_HELP_TIMEZONES + 1 - HELP_OFFSET
 
+
+
+#if CLERI_VERSION_MINOR >= 12
+#define CLERI_NODE_DATA(__node) ((intptr_t)(__node)->data)
+#define CLERI_NODE_DATA_ADDR(__node) ((intptr_t *) &(__node)->data)
+#else
+#define CLERI_NODE_DATA(__node) ((intptr_t *)(__node)->result)
+#define CLERI_NODE_DATA_ADDR(__node) ((intptr_t *) &(__node)->result)
+#endif
+
 #endif  /* SIRI_GRAMP_H_ */

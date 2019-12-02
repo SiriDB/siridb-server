@@ -217,8 +217,8 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         case CLERI_GID_F_LIMIT:
             AGGR_NEW
             {
-                int64_t limit = children->node->children->node->
-                    children->next->next->node->result;
+                int64_t limit = CLERI_NODE_DATA(children->node->children->node->
+                    children->next->next->node);
 
                 if (limit <= 0)
                 {
@@ -344,7 +344,7 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 {
                     /* result is at least positive, checked earlier */
                     aggr->timespan =
-                            (double) dlist->children->node->result;
+                            (double) CLERI_NODE_DATA(dlist->children->node);
 
                     if (!aggr->timespan)
                     {
@@ -359,8 +359,8 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                     if (dlist->children->next != NULL)
                     {
                         /* result is always positive */
-                        aggr->group_by = dlist->children->next->next->
-                                node->result;
+                        aggr->group_by = CLERI_NODE_DATA(
+                                dlist->children->next->next->node);
 
                         if (!aggr->group_by)
                         {
@@ -400,9 +400,10 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                         next->next->next != NULL)
             {
                 /* result is always positive, checked earlier */
-                aggr->group_by = children->node->children->node->
+                aggr->group_by = CLERI_NODE_DATA(
+                        children->node->children->node->
                         children->next->next->node->children->
-                        node->result;
+                        node);
 
                 if (!aggr->group_by)
                 {

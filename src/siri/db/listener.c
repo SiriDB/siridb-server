@@ -870,7 +870,7 @@ static void enter_limit_expr(uv_async_t * handle)
     siridb_query_t * query = handle->data;
     siridb_t * siridb = query->client->siridb;
     query_list_t * qlist = (query_list_t *) query->data;
-    int64_t limit = query->nodes->node->children->next->node->result;
+    int64_t limit = CLERI_NODE_DATA(query->nodes->node->children->next->node);
 
     if (limit <= 0 || limit > siridb->list_limit)
     {
@@ -1589,7 +1589,8 @@ static void exit_after_expr(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
     ((query_select_t *) query->data)->start_ts =
-            (uint64_t *) &query->nodes->node->children->next->node->result;
+            (uint64_t *) CLERI_NODE_DATA_ADDR(
+                    query->nodes->node->children->next->node);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1657,7 +1658,8 @@ static void exit_before_expr(uv_async_t * handle)
     siridb_query_t * query = handle->data;
 
     ((query_select_t *) query->data)->end_ts =
-            (uint64_t *) &query->nodes->node->children->next->node->result;
+            (uint64_t *) CLERI_NODE_DATA_ADDR(
+                    query->nodes->node->children->next->node);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1667,11 +1669,11 @@ static void exit_between_expr(uv_async_t * handle)
     siridb_query_t * query = handle->data;
     query_select_t * q_select = query->data;
 
-    q_select->start_ts = (uint64_t *)
-            &query->nodes->node->children->next->node->result;
+    q_select->start_ts = (uint64_t *) CLERI_NODE_DATA_ADDR(
+            query->nodes->node->children->next->node);
 
-    q_select->end_ts = (uint64_t *)
-            &query->nodes->node->children->next->next->next->node->result;
+    q_select->end_ts = (uint64_t *) CLERI_NODE_DATA_ADDR(
+            query->nodes->node->children->next->next->next->node);
 
     if (*q_select->start_ts > *q_select->end_ts)
     {
@@ -1708,12 +1710,14 @@ static void exit_calc_stmt(uv_async_t * handle)
 
     if (!query->factor)
     {
-        qp_add_int64(query->packer, calc_node->result);
+        qp_add_int64(query->packer, CLERI_NODE_DATA(calc_node));
     }
     else
     {
         double factor = (double) query->factor;
-        qp_add_int64(query->packer, (int64_t) (calc_node->result * factor));
+        qp_add_int64(
+                query->packer,
+                (int64_t) ((CLERI_NODE_DATA(calc_node) * factor)));
     }
 
     SIRIPARSER_ASYNC_NEXT_NODE

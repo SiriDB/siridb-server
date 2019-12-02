@@ -19,6 +19,7 @@
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
 #include <siri/siri.h>
+#include <siri/grammar/gramp.h>
 #include <xstr/xstr.h>
 #include <string.h>
 #include <sys/time.h>
@@ -722,13 +723,13 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         buffer[EXPR_MAX_SIZE - size] = 0;
 
         /* evaluate the expression */
-        if ((rc = expr_parse(&node->result, buffer)))
+        if ((rc = expr_parse(CLERI_NODE_DATA_ADDR(node), buffer)))
         {
             return rc;
         }
 
         /* check if timestamp is valid */
-        if (!siridb_int64_valid_ts(walker->siridb->time, node->result))
+        if (!siridb_int64_valid_ts(walker->siridb->time, CLERI_NODE_DATA(node)))
         {
             return EXPR_TIME_OUT_OF_RANGE;
         }
@@ -750,7 +751,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         buffer[EXPR_MAX_SIZE - size] = 0;
 
         /* evaluate the expression */
-        if ((rc = expr_parse(&node->result, buffer)))
+        if ((rc = expr_parse(CLERI_NODE_DATA_ADDR(node), buffer)))
         {
             return rc;
         }
@@ -1004,7 +1005,7 @@ static int QUERY_rebuild(
                         buf + max_size - *size,
                         *size,
                         "%" PRId64 " ",
-                        node->result);
+                        CLERI_NODE_DATA(node));
                 if (n >= (ssize_t) *size)
                 {
                     return QUERY_TOO_LONG;

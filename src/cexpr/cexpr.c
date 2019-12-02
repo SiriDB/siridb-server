@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <math.h>
 #include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
 #include <logger/logger.h>
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
@@ -383,7 +384,7 @@ static cexpr_t * CEXPR_walk_node(
             /* this is an integer or time expression, we can set the result
              * and the condition.
              */
-            (*condition)->int64 = node->result;
+            (*condition)->int64 = CLERI_NODE_DATA(node);
             SET_CONDITION_AND_RETURN
         case CLERI_TP_CHOICE:
             /* in case of a string, set the value and return */
