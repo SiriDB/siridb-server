@@ -194,7 +194,7 @@ int siridb_users_add_user(
 }
 
 /*
- * Returns NULL when the user is not found of when the given password is
+ * Returns NULL when the user is not found or when the given password is
  * incorrect. When *password is NULL the password will NOT be checked and
  * the user will be returned when found.
  */
@@ -247,6 +247,28 @@ siridb_user_t * siridb_users_get_user(
     }
 #endif
     return NULL;
+}
+
+siridb_user_t * siridb_users_get_user_from_basic(
+        siridb_t * siridb,
+        const char * data,
+        size_t n)
+{
+    size_t size;
+    char * b64 = base64_decode(data, n, &size);
+
+    for (size_t nn = 0, end = size; n < end; ++nn)
+    {
+        if (b64[nn] == ':')
+        {
+            b64[nn] = '\0';
+
+            if (++nn > end)
+                return NULL;
+
+            return siridb_users_get_user(siridb, b64, b64 + nn);
+        }
+    }
 }
 
 /*

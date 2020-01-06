@@ -23,6 +23,10 @@ siridb_user_t * siridb_users_get_user(
         siridb_t * siridb,
         const char * username,
         const char * password);
+siridb_user_t * siridb_users_get_user_from_basic(
+        siridb_t * siridb,
+        const char * data,
+        size_t n);
 int siridb_users_save(siridb_t * siridb);
 ssize_t siridb_users_get_file(char ** buffer, siridb_t * siridb);
 

@@ -30,6 +30,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
+#include <siri/api.h>
 #include <siri/err.h>
 #include <siri/health.h>
 #include <siri/help/help.h>
@@ -167,6 +168,7 @@ int siri_start(void)
 
     /* initialize the back-end-, client- server and load databases */
     if (    (siri.cfg->http_status_port && (rc = siri_health_init())) ||
+            (siri.cfg->http_api_port && (rc = siri_api_init())) ||
             (rc = siri_service_account_init(&siri)) ||
             (rc = siri_service_request_init()) ||
             (rc = sirinet_bserver_init(&siri)) ||
@@ -511,6 +513,10 @@ static void SIRI_walk_close_handlers(
             else if (siri_health_is_handle(handle))
             {
                 siri_health_close((siri_health_request_t *) handle->data);
+            }
+            else if (siri_api_is_handle(handle))
+            {
+                siri_api_close((siri_api_request_t *) handle->data);
             }
             else
             {

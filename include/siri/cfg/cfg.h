@@ -27,7 +27,7 @@ struct siri_cfg_s
     uint16_t max_open_files;
 
     uint16_t http_status_port;
-    uint16_t pad0_;
+    uint16_t http_api_port;
     uint8_t pipe_support;
     uint8_t ip_support;
     uint8_t shard_compression;
