@@ -51,6 +51,7 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
 
     switch(tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
     case STREAM_TCP_SERVER:
@@ -87,6 +88,7 @@ char * sirinet_stream_name(sirinet_stream_t * client)
 {
     switch ((sirinet_stream_tp_t) client->tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
     case STREAM_TCP_SERVER:
@@ -244,6 +246,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 
     switch ((sirinet_stream_tp_t) client->tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */
         log_debug("client connection lost");

@@ -13,6 +13,7 @@ typedef enum
     STREAM_TCP_SERVER,
     STREAM_TCP_MANAGE,
     STREAM_PIPE_CLIENT,
+    STREAM_API_CLIENT,
 } sirinet_stream_tp_t;
 
 typedef struct sirinet_stream_s sirinet_stream_t;
@@ -42,9 +43,6 @@ void sirinet__stream_free(uv_stream_t * uvclient);
     if (!--(client)->ref) uv_close(                 \
         (uv_handle_t *) (client)->stream,           \
         (uv_close_cb) sirinet__stream_free)
-
-#define sirinet_stream_is_pipe(client)      \
-    ((client)->tp == STREAM_PIPE_CLIENT)
 
 struct sirinet_stream_s
 {

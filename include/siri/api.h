@@ -7,7 +7,6 @@
 #include <lib/http_parser.h>
 #include <uv.h>
 
-#define SIRIDB_API_FLAG 1<<29
 
 typedef enum
 {
@@ -38,17 +37,19 @@ static inline _Bool siri_api_is_handle(uv_handle_t * handle);
 
 struct siri_api_request_s
 {
-    uint32_t ref_;  /* maps to sirnet_stream_t for cleanup */
+    uint32_t tp;        /* maps to siridb_tee_t flags for cleanup */
+    uint32_t ref;
+    on_data_cb_t on_data;
+    siridb_t * siridb;
+    void * origin;      /* can be a user, server or NULL */
+    char * buf;
+    size_t len;
+    size_t size;
+    uv_stream_t * stream;
     siridb_api_flags_t flags;
     siridb_api_state_t state;
     siridb_api_content_t content_type;
-    size_t content_n;
-    uv_write_t req;
-    uv_stream_t uvstream;
     http_parser parser;
-    char * content;
-    siridb_t * siridb;
-    siridb_user_t * user;
 };
 
 static inline _Bool siri_api_is_handle(uv_handle_t * handle)
