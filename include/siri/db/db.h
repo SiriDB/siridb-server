@@ -44,6 +44,7 @@ int8_t siridb_get_idle_percentage(siridb_t * siridb);
 int siridb_is_db_path(const char * dbpath);
 siridb_t * siridb_new(const char * dbpath, int lock_flags);
 siridb_t * siridb_get(llist_t * siridb_list, const char * dbname);
+siridb_t * siridb_getn(llist_t * siridb_list, const char * dbname, size_t n);
 siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname);
 int siridb_decref_cb(siridb_t * siridb, void * args);
 ssize_t siridb_get_file(char ** buffer, siridb_t * siridb);

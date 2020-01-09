@@ -18,6 +18,7 @@
 #include <xpath/xpath.h>
 #include <owcrypt/owcrypt.h>
 #include <siri/db/access.h>
+#include <base64/base64.h>
 
 
 #ifndef __APPLE__
@@ -256,19 +257,26 @@ siridb_user_t * siridb_users_get_user_from_basic(
 {
     size_t size;
     char * b64 = base64_decode(data, n, &size);
+    siridb_user_t * user = NULL;
 
-    for (size_t nn = 0, end = size; n < end; ++nn)
+    for (size_t nn = 0, end = size; nn < end; ++nn)
     {
         if (b64[nn] == ':')
         {
             b64[nn] = '\0';
 
             if (++nn > end)
-                return NULL;
+                break;
 
-            return siridb_users_get_user(siridb, b64, b64 + nn);
+            LOGC("User: %s Pass: %s", b64, b64 + nn);
+
+            user = siridb_users_get_user(siridb, b64, b64 + nn);
+            break;
         }
     }
+
+    free(b64);
+    return user;
 }
 
 /*

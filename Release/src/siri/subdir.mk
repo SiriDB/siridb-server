@@ -1,5 +1,6 @@
 # Add inputs and outputs from these tool invocations to the build variables
 C_SRCS += \
+../src/siri/api.c \
 ../src/siri/async.c \
 ../src/siri/backup.c \
 ../src/siri/buffersync.c \
@@ -11,6 +12,7 @@ C_SRCS += \
 ../src/siri/version.c
 
 OBJS += \
+./src/siri/api.o \
 ./src/siri/async.o \
 ./src/siri/backup.o \
 ./src/siri/buffersync.o \
@@ -22,6 +24,7 @@ OBJS += \
 ./src/siri/version.o
 
 C_DEPS += \
+./src/siri/api.d \
 ./src/siri/async.d \
 ./src/siri/backup.d \
 ./src/siri/buffersync.d \

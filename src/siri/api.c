@@ -2,13 +2,20 @@
  * api.c
  */
 #include <siri/api.h>
+#include <assert.h>
 #include <siri/siri.h>
+#include <siri/db/users.h>
+#include <qpjson/qpjson.h>
+#include <siri/db/query.h>
 
 #define API__HEADER_MAX_SZ 256
 #define CONTENT_TYPE_JSON "application/json"
 
 static uv_tcp_t api__uv_server;
 static http_parser_settings api__settings;
+
+#define API__ICMP_WITH(__s, __n, __w) \
+    __n == strlen(__w) && strncasecmp(__s, __w, __n) == 0
 
 static const char api__content_type[2][20] = {
         "text/plain",
@@ -49,6 +56,24 @@ typedef enum
     E503_SERVICE_UNAVAILABLE
 } api__header_t;
 
+inline static int api__header(
+        char * ptr,
+        const api__header_t ht,
+        const siridb_api_content_t ct,
+        size_t content_length)
+{
+    int len = sprintf(
+        ptr,
+        "HTTP/1.1 %s\r\n" \
+        "Content-Type: %s\r\n" \
+        "Content-Length: %zu\r\n" \
+        "\r\n",
+        api__html_header[ht],
+        api__content_type[ct],
+        content_length);
+    return len;
+}
+
 static inline _Bool api__starts_with(
         const char ** str,
         size_t * strn,
@@ -56,15 +81,17 @@ static inline _Bool api__starts_with(
         size_t withn)
 {
     if (*strn < withn || strncasecmp(*str, with, withn))
+    {
         return false;
+    }
     *str += withn;
     *strn -= withn;
     return true;
 }
 
 static void api__alloc_cb(
-        uv_handle_t * UNUSED(handle),
-        size_t UNUSED(sugsz),
+        uv_handle_t * UNUSED_handle __attribute__((unused)),
+        size_t UNUSED_sugsz __attribute__((unused)),
         uv_buf_t * buf)
 {
     buf->base = malloc(HTTP_MAX_HEADER_SIZE);
@@ -79,7 +106,7 @@ static void api__data_cb(
     size_t parsed;
     siri_api_request_t * ar = uvstream->data;
 
-    if (ar->flags & SIRIDB_API_FLAG_IS_CLOSED)
+    if (!ar->ref)
         goto done;
 
     if (n < 0)
@@ -87,7 +114,6 @@ static void api__data_cb(
         if (n != UV_EOF)
             log_error(uv_strerror(n));
 
-        ar->flags |= SIRIDB_API_FLAG_IS_CLOSED;
         sirinet_stream_decref(ar);
         goto done;
     }
@@ -107,7 +133,6 @@ static void api__data_cb(
     else if (parsed != (size_t) n)
     {
         log_warning("error parsing HTTP API request");
-        ar->flags |= SIRIDB_API_FLAG_IS_CLOSED;
         sirinet_stream_decref(ar);
     }
 
@@ -123,8 +148,9 @@ static int api__headers_complete_cb(http_parser * parser)
 
     ar->buf = malloc(parser->content_length);
     if (ar->len)
+    {
         ar->len = parser->content_length;
-
+    }
     return 0;
 }
 
@@ -132,7 +158,14 @@ static int api__url_cb(http_parser * parser, const char * at, size_t n)
 {
     siri_api_request_t * ar = parser->data;
 
-
+    if (api__starts_with(&at, &n, "/query/", strlen("/query/")))
+    {
+        ar->siridb = siridb_getn(siri.siridb_list, at, n);
+        if (ar->siridb)
+        {
+            siridb_incref(ar->siridb);
+        }
+    }
 
     return 0;
 }
@@ -166,7 +199,8 @@ static void api__connection_cb(uv_stream_t * server, int status)
     }
 
     ar->tp = STREAM_API_CLIENT;
-    ar->on_data = NULL;
+    ar->ref = 1;
+    ar->on_state = NULL;
 
     (void) uv_tcp_init(siri.loop, (uv_tcp_t *) ar->stream);
 
@@ -177,7 +211,7 @@ static void api__connection_cb(uv_stream_t * server, int status)
     if (rc)
     {
         log_error("cannot accept HTTP API request: `%s`", uv_strerror(rc));
-        ti_api_close(ar);
+        sirinet_stream_decref(ar);
         return;
     }
 
@@ -187,78 +221,68 @@ static void api__connection_cb(uv_stream_t * server, int status)
     if (rc)
     {
         log_error("cannot read HTTP API request: `%s`", uv_strerror(rc));
-        ti_api_close(ar);
+        sirinet_stream_decref(ar);
         return;
     }
+}
+
+static int api__on_content_type(siri_api_request_t * ar, const char * at, size_t n)
+{
+    if (API__ICMP_WITH(at, n, CONTENT_TYPE_JSON))
+    {
+        ar->content_type = SIRIDB_API_CT_JSON;
+        return 0;
+    }
+
+    if (API__ICMP_WITH(at, n, "text/json"))
+    {
+        ar->content_type = SIRIDB_API_CT_JSON;
+        return 0;
+    }
+
+    /* invalid content type */
+    log_debug("unsupported content-type: %.*s", (int) n, at);
+    return 0;
+}
+
+static int api__on_authorization(siri_api_request_t * ar, const char * at, size_t n)
+{
+    if (api__starts_with(&at, &n, "token ", strlen("token ")))
+    {
+        log_debug("token authorization is not supported yet");
+    }
+
+    if (api__starts_with(&at, &n, "basic ", strlen("basic ")))
+    {
+        siridb_user_t * user;
+        user = siridb_users_get_user_from_basic(ar->siridb, at, n);
+
+        if (user)
+        {
+            siridb_user_incref(user);
+            ar->origin = user;
+        }
+        return 0;
+    }
+
+    log_debug("invalid authorization type: %.*s", (int) n, at);
+    return 0;
+}
+static int api__header_value_cb(http_parser * parser, const char * at, size_t n)
+{
+    siri_api_request_t * ar = parser->data;
+    return ar->on_state ? ar->on_state(ar, at, n) : 0;
 }
 
 static int api__header_field_cb(http_parser * parser, const char * at, size_t n)
 {
     siri_api_request_t * ar = parser->data;
 
-    if (API__ICMP_WITH(at, n, "content-type"))
-    {
-        ar->state = SIRIDB_API_STATE_CONTENT_TYPE;
-        return 0;
-    }
-
-    if (API__ICMP_WITH(at, n, "authorization"))
-    {
-        ar->state = SIRIDB_API_STATE_AUTHORIZATION;
-        return 0;
-    }
-
-    ar->state = SIRIDB_API_STATE_NONE;
-    return 0;
-}
-
-static int api__header_value_cb(http_parser * parser, const char * at, size_t n)
-{
-    siri_api_request_t * ar = parser->data;
-
-    switch (ar->state)
-    {
-    case SIRIDB_API_STATE_NONE:
-        break;
-
-    case SIRIDB_API_STATE_CONTENT_TYPE:
-        if (API__ICMP_WITH(at, n, CONTENT_TYPE_JSON))
-        {
-            ar->content_type = SIRIDB_API_CT_JSON;
-            break;
-        }
-        if (API__ICMP_WITH(at, n, "text/json"))
-        {
-            ar->content_type = SIRIDB_API_CT_JSON;
-            break;
-        }
-
-        /* invalid content type */
-        log_debug("unsupported content-type: %.*s", (int) n, at);
-        break;
-
-    case SIRIDB_API_STATE_AUTHORIZATION:
-        if (api__starts_with(&at, &n, "token ", strlen("token ")))
-        {
-            log_debug("token authorization is not supported yet");
-        }
-
-        if (api__starts_with(&at, &n, "basic ", strlen("basic ")))
-        {
-            siridb_user_t * user;
-            user = siridb_users_get_user_from_basic(ar->siridb, at, n);
-
-            if (user)
-            {
-                siridb_user_incref(user);
-                ar->origin = user;
-            }
-            break;
-        }
-
-        log_debug("invalid authorization type: %.*s", (int) n, at);
-        break;
-    }
+    ar->on_state = API__ICMP_WITH(at, n, "content-type")
+            ? api__on_content_type
+            : API__ICMP_WITH(at, n, "authorization")
+            ? api__on_authorization
+            : NULL;
     return 0;
 }
 
@@ -285,7 +309,6 @@ static void api__write_cb(uv_write_t * req, int status)
                 uv_strerror(status));
 
     sirinet_stream_decref((siri_api_request_t *) req->handle->data);
-    free(req);
 }
 
 static int api__plain_response(siri_api_request_t * ar, const api__header_t ht)
@@ -298,8 +321,6 @@ static int api__plain_response(siri_api_request_t * ar, const api__header_t ht)
     body_size = strlen(body);
     header_size = api__header(header, ht, SIRIDB_API_CT_TEXT, body_size);
 
-    uv_write_t * req = malloc(sizeof(uv_write_t));
-
     if (header_size > 0)
     {
         uv_buf_t uvbufs[2] = {
@@ -307,10 +328,23 @@ static int api__plain_response(siri_api_request_t * ar, const api__header_t ht)
                 uv_buf_init((char *) body, body_size),
         };
 
-        (void) uv_write(req, ar->stream, uvbufs, 2, api__write_cb);
+        (void) uv_write(&ar->req, ar->stream, uvbufs, 2, api__write_cb);
         return 0;
     }
     return -1;
+}
+
+static int api__query(siri_api_request_t * ar)
+{
+    const char q[100] = "select * from 'aggr'";
+
+    siridb_query_run(
+                    0,
+                    (sirinet_stream_t *) ar,
+                    q, strlen(q),
+                    0.0,
+                    SIRIDB_QUERY_FLAG_MASTER);
+    return 0;
 }
 
 static int api__message_complete_cb(http_parser * parser)
@@ -325,17 +359,11 @@ static int api__message_complete_cb(http_parser * parser)
 
     switch (ar->content_type)
     {
+    case SIRIDB_API_CT_TEXT:
+        /* Or, shall we allow text and return we some sort of CSV format? */
+        return api__plain_response(ar, E400_BAD_REQUEST);
     case SIRIDB_API_CT_JSON:
-    {
-        char * data;
-        size_t size;
-        if (qpjson_json_to_qp(ar->buf, ar->len, &data, &size))
-            return api__plain_response(ar, E400_BAD_REQUEST);
-
-        free(ar->buf);
-        ar->buf = data;
-        ar->len = size;
-    }
+        return api__query(ar);
     }
 
     return api__plain_response(ar, E500_INTERNAL_SERVER_ERROR);
@@ -350,6 +378,31 @@ static int api__chunk_header_cb(http_parser * parser)
 static int api__chunk_complete_cb(http_parser * parser)
 {
     LOGC("Chunk complete\n Content-Length: %zu", parser->content_length);
+    return 0;
+}
+
+static void api__write_free_cb(uv_write_t * req, int status)
+{
+    free(req->data);
+    api__write_cb(req, status);
+}
+
+static int api__close_resp(siri_api_request_t * ar, void * data, size_t size)
+{
+    char header[API__HEADER_MAX_SZ];
+    int header_size = 0;
+
+    header_size = api__header(header, E200_OK, ar->content_type, size);
+
+    uv_buf_t uvbufs[2] = {
+            uv_buf_init(header, (unsigned int) header_size),
+            uv_buf_init(data, size),
+    };
+
+    /* bind response to request to we can free in the callback */
+    ar->req.data = data;
+
+    uv_write(&ar->req, ar->stream, uvbufs, 2, api__write_free_cb);
     return 0;
 }
 
@@ -392,4 +445,37 @@ int siri_api_init(void)
 
     log_info("start listening for HTTP API requests on TCP port %u", port);
     return 0;
+}
+
+int siri_api_send(siri_api_request_t * ar, unsigned char * src, size_t n)
+{
+    unsigned char * data;
+    if (ar->content_type == SIRIDB_API_CT_JSON)
+    {
+        size_t tmp_sz;
+        yajl_gen_status stat = qpjson_qp_to_json(
+                src,
+                n,
+                &data,
+                &tmp_sz,
+                0);
+        if (stat)
+        {
+            // api__set_yajl_gen_status_error(&ar->e, stat);
+            // return ti_api_close_with_err(ar, &ar->e);
+            // TODO : return error
+            LOGC("HERE: %d", stat);
+        }
+        n = tmp_sz;
+    }
+    else
+    {
+        data = malloc(n);
+        if (data == NULL)
+        {
+            // TODO : return error
+        }
+        memcpy(data, src, n);
+    }
+    return api__close_resp(ar, data, n);
 }

@@ -17,7 +17,7 @@ enum
 
 
 yajl_gen_status qpjson_qp_to_json(
-        const void * src,
+        void * src,
         size_t src_n,
         unsigned char ** dst,
         size_t * dst_n,

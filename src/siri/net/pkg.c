@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/api.h>
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
 #include <stddef.h>
@@ -134,6 +135,13 @@ sirinet_pkg_t * sirinet_pkg_err(
  */
 int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
+    if (client->tp == STREAM_API_CLIENT)
+    {
+        siri_api_send((siri_api_request_t *) client, pkg->data, pkg->len);
+        free(pkg);
+        return 0;
+    }
+
     uv_write_t * req = malloc(sizeof(uv_write_t));
 
     if (req == NULL)

@@ -23,6 +23,7 @@
 
 static siri_cfg_t siri_cfg = {
         .http_status_port=0,    /* 0=disabled, 1-16535=enabled */
+        .http_api_port=9020,    /* 0=disabled, 1-16535=enabled */
         .listen_client_port=9000,
         .listen_backend_port=9010,
         .bind_client_addr=NULL,

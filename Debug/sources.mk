@@ -11,6 +11,7 @@ C_DEPS :=
 SUBDIRS := \
 . \
 src/argparse \
+src/base64 \
 src/cexpr \
 src/cfgparser \
 src/ctree \
@@ -24,6 +25,7 @@ src/logger \
 src/owcrypt \
 src/procinfo \
 src/qpack \
+src/qpjson \
 src/siri/service \
 src/siri/args \
 src/siri \

@@ -514,10 +514,6 @@ static void SIRI_walk_close_handlers(
             {
                 siri_health_close((siri_health_request_t *) handle->data);
             }
-            else if (siri_api_is_handle(handle))
-            {
-                siri_api_close((siri_api_request_t *) handle->data);
-            }
             else
             {
                 sirinet_stream_decref((sirinet_stream_t *) handle->data);

@@ -4,6 +4,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/base64/subdir.mk
 -include src/xpath/subdir.mk
 -include src/xmath/subdir.mk
 -include src/timeit/subdir.mk
@@ -20,6 +21,7 @@ RM := rm -rf
 -include src/siri/args/subdir.mk
 -include src/siri/subdir.mk
 -include src/qpack/subdir.mk
+-include src/qpjson/subdir.mk
 -include src/procinfo/subdir.mk
 -include src/owcrypt/subdir.mk
 -include src/motd/subdir.mk

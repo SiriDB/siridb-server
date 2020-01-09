@@ -140,6 +140,9 @@ void sirinet_stream_on_data(
     size_t total_sz;
     uint8_t check;
 
+    /* this functions should not be used for the API client */
+    assert (client->tp != STREAM_API_CLIENT);
+
     /*
      * client->on_data is NULL when 'sirinet_stream_decref' is called from
      * within this function. We should never call 'sirinet_stream_decref' twice

@@ -531,6 +531,28 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 }
 
 /*
+ * Get a siridb object by name.
+ */
+siridb_t * siridb_getn(llist_t * siridb_list, const char * dbname, size_t n)
+{
+    llist_node_t * node = siridb_list->first;
+    siridb_t * siridb;
+
+    while (node != NULL)
+    {
+        siridb = (siridb_t *) node->data;
+        if (n == strlen(siridb->dbname) &&
+            strncmp(siridb->dbname, dbname, n) == 0)
+        {
+            return siridb;
+        }
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+/*
  * Get a siridb object by qpack name.
  */
 siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname)
