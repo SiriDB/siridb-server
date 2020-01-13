@@ -255,11 +255,11 @@ siridb_user_t * siridb_users_get_user_from_basic(
         const char * data,
         size_t n)
 {
-    size_t size;
+    size_t size, nn, end;
     char * b64 = base64_decode(data, n, &size);
     siridb_user_t * user = NULL;
 
-    for (size_t nn = 0, end = size; nn < end; ++nn)
+    for (nn = 0, end = size; nn < end; ++nn)
     {
         if (b64[nn] == ':')
         {
