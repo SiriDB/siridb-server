@@ -26,6 +26,9 @@ typedef struct
 #define API__ICMP_WITH(__s, __n, __w) \
     (__n == strlen(__w) && strncasecmp(__s, __w, __n) == 0)
 
+#define API__CMP_WITH(__s, __n, __w) \
+    (__n == strlen(__w) && strncmp(__s, __w, __n) == 0)
+
 static const char api__content_type[3][20] = {
         "text/plain",
         "application/json",
@@ -204,6 +207,10 @@ static int api__url_cb(http_parser * parser, const char * at, size_t n)
     {
         ar->request_type = SIRI_API_RT_INSERT;
         api__get_siridb(ar, at, n);
+    }
+    else if (API__CMP_WITH(at, n, "/new-account"))
+    {
+        ar->request_type = SIRI_API_RT_INSERT;
     }
 
     return 0;

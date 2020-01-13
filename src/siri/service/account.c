@@ -207,7 +207,7 @@ int siri_service_account_check(
         return -1;
     }
 
-    password= strndup(
+    password = strndup(
             (const char *) qp_password->via.raw, qp_password->len);
 
     if (password == NULL)

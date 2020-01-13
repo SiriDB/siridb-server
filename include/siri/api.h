@@ -20,6 +20,7 @@ typedef enum
     SIRI_API_RT_NONE,
     SIRI_API_RT_QUERY,
     SIRI_API_RT_INSERT,
+    SIRI_APT_RT_SERVICE,
 } siri_api_req_t;
 
 typedef enum
@@ -60,6 +61,7 @@ struct siri_api_request_s
     uv_stream_t * stream;
     siri_api_content_t content_type;
     siri_api_req_t request_type;
+    service_request_t service_type;
     http_parser parser;
     uv_write_t req;
 };
