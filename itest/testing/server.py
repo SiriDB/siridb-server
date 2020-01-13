@@ -55,6 +55,7 @@ class Server:
         self.http_status_port = 8080 + n
         self.listen_client_port = 9000 + n
         self.listen_backend_port = 9010 + n
+        self.http_api_port = 9020 + n
         self.buffer_sync_interval = buffer_sync_interval
         self._server_address = self.SERVER_ADDRESS
         self.server_address = \
@@ -97,6 +98,7 @@ class Server:
         config.set('siridb', 'enable_pipe_support', self.enable_pipe_support)
         config.set('siridb', 'pipe_client_name',  self.pipe_name)
         config.set('siridb', 'http_status_port',  self.http_status_port)
+        config.set('siridb', 'http_api_port',  self.http_api_port)
 
         with open(self.cfgfile, 'w') as configfile:
             config.write(configfile)
