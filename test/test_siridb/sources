@@ -1,8 +1,10 @@
 ../src/vec/vec.c
+../src/base64/base64.c
 ../src/ctree/ctree.c
 ../src/xpath/xpath.c
 ../src/xmath/xmath.c
 ../src/qpack/qpack.c
+../src/qpjson/qpjson.c
 ../src/imap/imap.c
 ../src/llist/llist.c
 ../src/logger/logger.c
@@ -16,6 +18,7 @@
 ../src/lib/http_parser.c
 ../src/lock/lock.c
 ../src/procinfo/procinfo.c
+../src/siri/api.c
 ../src/siri/async.c
 ../src/siri/backup.c
 ../src/siri/buffersync.c
