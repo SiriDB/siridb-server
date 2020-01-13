@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <qpjson/qpjson.h>
 #include <qpack/qpack.h>
+#include <logger/logger.h>
 
 static yajl_gen_status qp__to_json(yajl_gen g, qp_unpacker_t * up, qp_obj_t * obj)
 {
@@ -113,7 +114,6 @@ static yajl_gen_status qp__to_json(yajl_gen g, qp_unpacker_t * up, qp_obj_t * ob
     return yajl_gen_in_error_state;
 }
 
-
 yajl_gen_status qpjson_qp_to_json(
         void * src,
         size_t src_n,
@@ -126,7 +126,13 @@ yajl_gen_status qpjson_qp_to_json(
     yajl_gen g;
     yajl_status stat;
 
-    assert (src_n);
+    if (src_n == 0)
+    {
+        *dst_n = 0;
+        *dst = NULL;
+        return yajl_gen_status_ok;
+    }
+
     qp_unpacker_init(&up, src, src_n);
 
     g = yajl_gen_alloc(NULL);
@@ -155,6 +161,91 @@ yajl_gen_status qpjson_qp_to_json(
     return stat;
 }
 
+static int reformat_null(void * ctx)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_null(pk);
+}
+
+static int reformat_boolean(void * ctx, int boolean)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == (boolean ? qp_add_true(pk) : qp_add_false(pk));
+}
+
+static int reformat_integer(void * ctx, long long i)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_int64(pk, i);
+}
+
+static int reformat_double(void * ctx, double d)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_double(pk, d);
+}
+
+static int reformat_string(void * ctx, const unsigned char * s, size_t n)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_raw(pk, s, n);
+}
+
+static int reformat_map_key(void * ctx, const unsigned char * s, size_t n)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_raw(pk, s, n);
+}
+
+static int reformat_start_map(void * ctx)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_type(pk, QP_MAP_OPEN);
+}
+
+
+static int reformat_end_map(void * ctx)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_type(pk, QP_MAP_CLOSE);
+}
+
+static int reformat_start_array(void * ctx)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_type(pk, QP_ARRAY_OPEN);
+}
+
+static int reformat_end_array(void * ctx)
+{
+    qp_packer_t * pk = (qp_packer_t *) ctx;
+    return 0 == qp_add_type(pk, QP_ARRAY_CLOSE);
+}
+
+static void take_buffer(
+        qp_packer_t * pk,
+        char ** dst,
+        size_t * dst_n)
+{
+    *dst = (char *) pk->buffer;
+    *dst_n = pk->len;
+    pk->buffer = NULL;
+    pk->buffer_size = 0;
+}
+
+static yajl_callbacks qpjson__callbacks = {
+    reformat_null,
+    reformat_boolean,
+    reformat_integer,
+    reformat_double,
+    NULL,
+    reformat_string,
+    reformat_start_map,
+    reformat_map_key,
+    reformat_end_map,
+    reformat_start_array,
+    reformat_end_array
+};
 
 yajl_status qpjson_json_to_qp(
         const void * src,
@@ -164,19 +255,24 @@ yajl_status qpjson_json_to_qp(
 {
     yajl_handle hand;
     yajl_status stat = yajl_status_error;
-    qp_packer_t * packer = qp_packer_new(src_n);
-    if (!packer)
+    qp_packer_t * pk = qp_packer_new(src_n);
+
+    if (pk == NULL)
         return stat;
 
-//    hand = yajl_alloc(&callbacks, NULL, c);
-//    if (!hand)
-//        goto fail1;
-//
-//    stat = yajl_parse(hand, src, src_n);
-//    if (stat == yajl_status_ok)
-//        take_buffer(&buffer, dst, dst_n);
-//    yajl_free(hand);
 
-    qp_packer_free(packer);
+    hand = yajl_alloc(&qpjson__callbacks, NULL, pk);
+    if (!hand)
+        goto fail1;
+
+    stat = yajl_parse(hand, src, src_n);
+
+    if (stat == yajl_status_ok)
+        take_buffer(pk, dst, dst_n);
+
+    yajl_free(hand);
+
+fail1:
+    qp_packer_free(pk);
     return stat;
 }

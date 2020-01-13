@@ -26,6 +26,13 @@
     "\r\n" \
     "NOT FOUND\n"
 
+#define MNA_RESPONSE \
+    "HTTP/1.1 405 Method Not Allowed\r\n" \
+    "Content-Type: text/plain\r\n" \
+    "Content-Length: 19\r\n" \
+    "\r\n" \
+    "METHOD NOT ALLOWED\n"
+
 #define SYNC_RESPONSE \
     "HTTP/1.1 200 OK\r\n" \
     "Content-Type: text/plain\r\n" \
@@ -51,6 +58,7 @@
 static uv_buf_t health__uv_ok_buf;
 static uv_buf_t health__uv_nok_buf;
 static uv_buf_t health__uv_nfound_buf;
+static uv_buf_t health__uv_mna_buf;
 static uv_buf_t health__uv_sync_buf;
 static uv_buf_t health__uv_reidx_buf;
 static uv_buf_t health__uv_bmode_buf;
@@ -203,7 +211,9 @@ static int health__message_complete_cb(http_parser * parser)
 {
     siri_health_request_t * web_request = parser->data;
 
-    if (!web_request->response)
+    if (parser->method != HTTP_GET)
+        web_request->response = &health__uv_mna_buf;
+    else if (!web_request->response)
         web_request->response = &health__uv_nfound_buf;
 
     (void) uv_write(
@@ -275,6 +285,8 @@ int siri_health_init(void)
             uv_buf_init(NOK_RESPONSE, strlen(NOK_RESPONSE));
     health__uv_nfound_buf =
             uv_buf_init(NFOUND_RESPONSE, strlen(NFOUND_RESPONSE));
+    health__uv_mna_buf =
+            uv_buf_init(MNA_RESPONSE, strlen(MNA_RESPONSE));
     health__uv_sync_buf =
             uv_buf_init(SYNC_RESPONSE, strlen(SYNC_RESPONSE));
     health__uv_reidx_buf =

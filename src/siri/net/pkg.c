@@ -7,6 +7,7 @@
 #include <siri/api.h>
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
+#include <siri/net/protocol.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -127,6 +128,41 @@ sirinet_pkg_t * sirinet_pkg_err(
     return pkg;
 }
 
+static siri_api_header_t pkg__tp_as_ht(uint8_t tp)
+{
+    switch (tp)
+    {
+    /* success */
+    case CPROTO_RES_QUERY:
+    case CPROTO_RES_INSERT:
+    case CPROTO_RES_AUTH_SUCCESS:
+    case CPROTO_RES_ACK:
+    case CPROTO_RES_FILE:
+    case CPROTO_ACK_SERVICE:
+    case CPROTO_ACK_SERVICE_DATA:
+        return E200_OK;
+
+    case CPROTO_ERR_QUERY:
+    case CPROTO_ERR_INSERT:
+    case CPROTO_ERR_SERVICE:
+    case CPROTO_ERR_SERVICE_INVALID_REQUEST:
+        return E400_BAD_REQUEST;
+
+    case CPROTO_ERR_SERVER:
+    case CPROTO_ERR_POOL:
+        return E503_SERVICE_UNAVAILABLE;
+
+    case CPROTO_ERR_USER_ACCESS:
+    case CPROTO_ERR_NOT_AUTHENTICATED:
+        return E403_FORBIDDEN;
+
+    case CPROTO_ERR_AUTH_UNKNOWN_DB:
+    case CPROTO_ERR_AUTH_CREDENTIALS:
+        return E401_UNAUTHORIZED;
+    }
+    return E500_INTERNAL_SERVER_ERROR;
+}
+
 /*
  * Returns 0 if successful or -1 when an error has occurred.
  * (signal is raised in case of an error)
@@ -137,7 +173,11 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     if (client->tp == STREAM_API_CLIENT)
     {
-        siri_api_send((siri_api_request_t *) client, pkg->data, pkg->len);
+        siri_api_send(
+                (siri_api_request_t *) client,
+                pkg__tp_as_ht(pkg->tp),
+                pkg->data,
+                pkg->len);
         free(pkg);
         return 0;
     }

@@ -133,7 +133,7 @@ void qp_print(unsigned char * pt, size_t len);
 
 /* Shortcut to print an unpacker object */
 #define qp_unpacker_print(unpacker) \
-    qp_print(unpacker->pt, unpacker->end - unpacker->pt)
+    qp_print((unpacker)->pt, (unpacker)->end - (unpacker)->pt)
 
 /* Test functions */
 static inline int qp_is_array(qp_types_t tp)

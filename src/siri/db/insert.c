@@ -1404,12 +1404,14 @@ static int INSERT_read_points(
 
     qp_add_type(packer, QP_ARRAY_OPEN);
 
-    if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2)
+    if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2 && tp != QP_ARRAY_OPEN)
     {
         return ERR_EXPECTING_AT_LEAST_ONE_POINT;
     }
 
-    for (; tp == QP_ARRAY2; (*count)++, tp = qp_next(unpacker, qp_obj))
+    for (;
+            tp == QP_ARRAY2 || tp == QP_ARRAY_OPEN;
+            (*count)++, tp = qp_next(unpacker, qp_obj))
     {
         qp_add_type(packer, QP_ARRAY2);
 
@@ -1446,6 +1448,9 @@ static int INSERT_read_points(
         default:
             return ERR_UNSUPPORTED_VALUE;
         }
+
+        if (tp == QP_ARRAY_OPEN && qp_next(unpacker, NULL) != QP_ARRAY_CLOSE)
+            break;
     }
 
     if (tp == QP_ARRAY_CLOSE)

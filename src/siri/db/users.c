@@ -268,8 +268,6 @@ siridb_user_t * siridb_users_get_user_from_basic(
             if (++nn > end)
                 break;
 
-            LOGC("User: %s Pass: %s", b64, b64 + nn);
-
             user = siridb_users_get_user(siridb, b64, b64 + nn);
             break;
         }
