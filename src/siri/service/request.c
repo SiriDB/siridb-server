@@ -246,13 +246,13 @@ cproto_server_t siri_service_request(
 {
     switch ((service_request_t) tp)
     {
-    case SERVICE_NEW_ACCOUNT_:
+    case SERVICE_NEW_ACCOUNT:
         return SERVICE_on_new_account(qp_unpacker, err_msg);
-    case SERVICE_CHANGE_PASSWORD_:
+    case SERVICE_CHANGE_PASSWORD:
         return SERVICE_on_change_password(qp_unpacker, err_msg);
-    case SERVICE_DROP_ACCOUNT_:
+    case SERVICE_DROP_ACCOUNT:
         return SERVICE_on_drop_account(qp_unpacker, qp_account, err_msg);
-    case SERVICE_NEW_DATABASE_:
+    case SERVICE_NEW_DATABASE:
         return SERVICE_on_new_database(qp_unpacker, err_msg);
     case SERVICE_NEW_POOL:
         return SERVICE_on_new_replica_or_pool(

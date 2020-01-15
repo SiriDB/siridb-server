@@ -210,9 +210,54 @@ static int api__url_cb(http_parser * parser, const char * at, size_t n)
     }
     else if (API__CMP_WITH(at, n, "/new-account"))
     {
-        ar->request_type = SIRI_API_RT_INSERT;
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_NEW_ACCOUNT;
     }
-
+    else if (API__CMP_WITH(at, n, "/change-password"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_CHANGE_PASSWORD;
+    }
+    else if (API__CMP_WITH(at, n, "/drop-account"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_DROP_ACCOUNT;
+    }
+    else if (API__CMP_WITH(at, n, "/new-database"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_NEW_DATABASE;
+    }
+    else if (API__CMP_WITH(at, n, "/new-pool"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_NEW_POOL;
+    }
+    else if (API__CMP_WITH(at, n, "/new-replica"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_NEW_REPLICA;
+    }
+    else if (API__CMP_WITH(at, n, "/drop-database"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_DROP_DATABASE;
+    }
+    else if (API__CMP_WITH(at, n, "/get-version"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_GET_VERSION;
+    }
+    else if (API__CMP_WITH(at, n, "/get-accounts"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_GET_ACCOUNTS;
+    }
+    else if (API__CMP_WITH(at, n, "/get-databases"))
+    {
+        ar->request_type = SIRI_APT_RT_SERVICE;
+        ar->service_type = SERVICE_GET_DATABASES;
+    }
     return 0;
 }
 
@@ -553,9 +598,12 @@ static int api__insert_from_qp(siri_api_request_t * ar)
     return 0;
 }
 
-static int api__insert_cb(siri_api_request_t * ar)
+static int api__insert_cb(http_parser * parser)
 {
-    assert (ar->request_type == SIRI_API_RT_INSERT);
+    siri_api_request_t * ar = parser->data;
+
+    if (parser->method != HTTP_POST)
+        return api__plain_response(ar, E405_METHOD_NOT_ALLOWED);
 
     if (!ar->siridb)
         return api__plain_response(ar, E404_NOT_FOUND);
@@ -597,10 +645,13 @@ static int api__insert_cb(siri_api_request_t * ar)
     return api__plain_response(ar, E415_UNSUPPORTED_MEDIA_TYPE);
 }
 
-static int api__query_cb(siri_api_request_t * ar)
+static int api__query_cb(http_parser * parser)
 {
     api__query_t q;
-    assert (ar->request_type == SIRI_API_RT_QUERY);
+    siri_api_request_t * ar = parser->data;
+
+    if (parser->method != HTTP_POST)
+        return api__plain_response(ar, E405_METHOD_NOT_ALLOWED);
 
     if (!ar->siridb)
         return api__plain_response(ar, E404_NOT_FOUND);
@@ -631,21 +682,49 @@ static int api__query_cb(siri_api_request_t * ar)
     return api__plain_response(ar, E415_UNSUPPORTED_MEDIA_TYPE);
 }
 
+static int api__service_cb(http_parser * parser)
+{
+    api__query_t q;
+    siri_api_request_t * ar = parser->data;
+
+    switch (ar->service_type)
+    {
+    case SERVICE_NEW_ACCOUNT:
+    case SERVICE_CHANGE_PASSWORD:
+    case SERVICE_DROP_ACCOUNT:
+    case SERVICE_NEW_DATABASE:
+    case SERVICE_NEW_POOL:
+    case SERVICE_NEW_REPLICA:
+    case SERVICE_DROP_DATABASE:
+        if (parser->method != HTTP_POST)
+            return api__plain_response(ar, E405_METHOD_NOT_ALLOWED);
+        break;
+
+    case SERVICE_GET_VERSION:
+    case SERVICE_GET_ACCOUNTS:
+    case SERVICE_GET_DATABASES:
+        if (parser->method != HTTP_GET)
+            return api__plain_response(ar, E405_METHOD_NOT_ALLOWED);
+        break;
+    }
+
+
+}
+
 static int api__message_complete_cb(http_parser * parser)
 {
     siri_api_request_t * ar = parser->data;
-
-    if (parser->method != HTTP_POST)
-        return api__plain_response(ar, E405_METHOD_NOT_ALLOWED);
 
     switch(ar->request_type)
     {
     case SIRI_API_RT_NONE:
         return api__plain_response(ar, E404_NOT_FOUND);
     case SIRI_API_RT_QUERY:
-        return api__query_cb(ar);
+        return api__query_cb(parser);
     case SIRI_API_RT_INSERT:
-        return api__insert_cb(ar);
+        return api__insert_cb(parser);
+    case SIRI_APT_RT_SERVICE:
+        return api__service_cb(parser);
     }
 
     return api__plain_response(ar, E500_INTERNAL_SERVER_ERROR);
