@@ -7,6 +7,7 @@ import random
 import time
 import math
 import re
+import qpack
 from testing import Client
 from testing import default_test_setup
 from testing import gen_data
@@ -120,6 +121,19 @@ class TestHTTPAPI(TestBase):
 
         self.assertEqual(x.status_code, 200)
         self.assertEqual(x.json(), data)
+
+        x = requests.post(
+            f'http://localhost:9020/query/dbtest',
+            data=qpack.packb({
+                'q': 'select sum(1579600000) from "data"',
+                't': 'ms'}),
+            headers={'Content-Type': 'application/qpack'},
+            auth=('iris', 'siri'))
+
+        self.assertEqual(x.status_code, 200)
+        self.assertEqual(
+            qpack.unpackb(x.content, decode='utf8'),
+            {'data': [[1579600000000, 30]]})
 
         x = requests.post(
             f'http://localhost:9021/new-account',
