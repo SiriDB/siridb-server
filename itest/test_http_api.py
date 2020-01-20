@@ -34,6 +34,21 @@ class TestHTTPAPI(TestBase):
     async def run(self):
         await self.client0.connect()
 
+        x = requests.get(
+            f'http://localhost:9020/get-version', auth=('sa', 'siri'))
+
+        self.assertEqual(x.status_code, 200)
+        v = x.json()
+        self.assertTrue(isinstance(v, list))
+        self.assertTrue(isinstance(v[0], str))
+
+        x = requests.post(
+            f'http://localhost:9020/insert/dbtest',
+            auth=('iris', 'siri'),
+            headers={'Content-Type': 'application/json'})
+
+        self.assertEqual(x.status_code, 400)
+
         series_float = gen_points(
             tp=float, n=10000, time_precision=TIME_PRECISION, ts_gap='5m')
 

@@ -168,11 +168,15 @@ static int api__headers_complete_cb(http_parser * parser)
 
     assert (!ar->buf);
 
-    ar->buf = malloc(parser->content_length);
-    if (ar->buf)
+    if (parser->content_length != ULLONG_MAX)
     {
-        ar->len = parser->content_length;
+        ar->buf = malloc(parser->content_length);
+        if (ar->buf)
+        {
+            ar->len = parser->content_length;
+        }
     }
+
     return 0;
 }
 
@@ -725,18 +729,22 @@ static int api__service_cb(http_parser * parser)
     switch (ar->content_type)
     {
     case SIRI_API_CT_TEXT:
-        return api__plain_response(ar, E415_UNSUPPORTED_MEDIA_TYPE);
-    case SIRI_API_CT_JSON:
-    {
-        char * dst;
-        size_t dst_n;
-        if (qpjson_json_to_qp(ar->buf, ar->len, &dst, &dst_n))
-            return api__plain_response(ar, E400_BAD_REQUEST);
-        free(ar->buf);
-        ar->buf = dst;
-        ar->len = dst_n;
+        if (ar->len)
+            return api__plain_response(ar, E415_UNSUPPORTED_MEDIA_TYPE);
+        ar->content_type = SIRI_API_CT_JSON;
         break;
-    }
+    case SIRI_API_CT_JSON:
+        if (ar->len)
+        {
+            char * dst;
+            size_t dst_n;
+            if (qpjson_json_to_qp(ar->buf, ar->len, &dst, &dst_n))
+                return api__plain_response(ar, E400_BAD_REQUEST);
+            free(ar->buf);
+            ar->buf = dst;
+            ar->len = dst_n;
+        }
+        break;
     case SIRI_API_CT_QPACK:
         break;
     }
