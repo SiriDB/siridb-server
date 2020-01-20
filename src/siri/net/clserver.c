@@ -847,7 +847,6 @@ static void on_req_service(sirinet_stream_t * client, sirinet_pkg_t * pkg)
             siri_service_request(
                     qp_request.via.int64,
                     &unpacker,
-                    &qp_username,
                     &packer,
                     pkg->pid,
                     client,

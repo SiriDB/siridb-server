@@ -10,6 +10,7 @@
 #include <qpjson/qpjson.h>
 #include <siri/db/query.h>
 #include <siri/db/insert.h>
+#include <siri/service/account.h>
 
 #define API__HEADER_MAX_SZ 256
 
@@ -347,6 +348,12 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
 
     if (api__istarts_with(&at, &n, "basic ", strlen("basic ")))
     {
+        if (ar->request_type == SIRI_APT_RT_SERVICE)
+        {
+            ar->service_authenticated = siri_service_account_check_basic(
+                    &siri, at, n);
+            return 0;
+        }
         siridb_user_t * user;
         user = ar->siridb
                 ? siridb_users_get_user_from_basic(ar->siridb, at, n)
@@ -684,10 +691,14 @@ static int api__query_cb(http_parser * parser)
 
 static int api__service_cb(http_parser * parser)
 {
-    api__query_t q;
+    qp_unpacker_t up;
+    cproto_server_t res;
     siri_api_request_t * ar = parser->data;
+    qp_packer_t * packer = NULL;
+    sirinet_pkg_t * package;
+    char err_msg[SIRI_MAX_SIZE_ERR_MSG];
 
-    switch (ar->service_type)
+    switch ((service_request_t) ar->service_type)
     {
     case SERVICE_NEW_ACCOUNT:
     case SERVICE_CHANGE_PASSWORD:
@@ -708,7 +719,56 @@ static int api__service_cb(http_parser * parser)
         break;
     }
 
+    if (!ar->service_authenticated)
+        return api__plain_response(ar, E401_UNAUTHORIZED);
 
+    switch (ar->content_type)
+    {
+    case SIRI_API_CT_TEXT:
+        return api__plain_response(ar, E415_UNSUPPORTED_MEDIA_TYPE);
+    case SIRI_API_CT_JSON:
+    {
+        char * dst;
+        size_t dst_n;
+        if (qpjson_json_to_qp(ar->buf, ar->len, &dst, &dst_n))
+            return api__plain_response(ar, E400_BAD_REQUEST);
+        free(ar->buf);
+        ar->buf = dst;
+        ar->len = dst_n;
+        break;
+    }
+    case SIRI_API_CT_QPACK:
+        break;
+    }
+
+    qp_unpacker_init(&up, (unsigned char *) ar->buf, ar->len);
+
+    res = siri_service_request(
+            ar->service_type,
+            &up,
+            &packer,
+            0,
+            (sirinet_stream_t *) ar,
+            err_msg);
+
+    if (res == CPROTO_DEFERRED)
+    {
+        sirinet_stream_incref(ar);
+    }
+
+    package =
+            (res == CPROTO_DEFERRED) ? NULL :
+            (res == CPROTO_ERR_SERVICE) ? sirinet_pkg_err(
+                    0,
+                    strlen(err_msg),
+                    res,
+                    err_msg) :
+            (res == CPROTO_ACK_SERVICE_DATA) ? sirinet_packer2pkg(
+                    packer,
+                    0,
+                    res) : sirinet_pkg_new(0, 0, res, NULL);
+
+    return package ? sirinet_pkg_send((sirinet_stream_t *) ar, package) : 0;
 }
 
 static int api__message_complete_cb(http_parser * parser)
@@ -728,18 +788,6 @@ static int api__message_complete_cb(http_parser * parser)
     }
 
     return api__plain_response(ar, E500_INTERNAL_SERVER_ERROR);
-}
-
-static int api__chunk_header_cb(http_parser * parser)
-{
-    LOGC("Chunk header\n Content-Length: %zu", parser->content_length);
-    return 0;
-}
-
-static int api__chunk_complete_cb(http_parser * parser)
-{
-    LOGC("Chunk complete\n Content-Length: %zu", parser->content_length);
-    return 0;
 }
 
 static void api__write_free_cb(uv_write_t * req, int status)
@@ -787,8 +835,6 @@ int siri_api_init(void)
     api__settings.on_header_value = api__header_value_cb;
     api__settings.on_message_complete = api__message_complete_cb;
     api__settings.on_body = api__body_cb;
-    api__settings.on_chunk_header = api__chunk_header_cb;
-    api__settings.on_chunk_complete = api__chunk_complete_cb;
     api__settings.on_headers_complete = api__headers_complete_cb;
 
     if (
@@ -869,6 +915,16 @@ int siri_api_send(
         size_t n)
 {
     unsigned char * data;
+    if (n == 0)
+    {
+        if (ht != E200_OK)
+        {
+            return api__plain_response(ar, ht);
+        }
+        src = (unsigned char *) "\x82OK";
+        n = 3;
+    }
+
     if (ar->content_type == SIRI_API_CT_JSON)
     {
         size_t tmp_sz;

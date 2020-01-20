@@ -7,6 +7,7 @@
 #include <lib/http_parser.h>
 #include <uv.h>
 #include <siri/db/db.h>
+#include <siri/service/request.h>
 
 typedef enum
 {
@@ -62,6 +63,7 @@ struct siri_api_request_s
     siri_api_content_t content_type;
     siri_api_req_t request_type;
     service_request_t service_type;
+    _Bool service_authenticated;
     http_parser parser;
     uv_write_t req;
 };

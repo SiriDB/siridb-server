@@ -26,7 +26,6 @@ void siri_service_request_destroy(void);
 cproto_server_t siri_service_request(
         int tp,
         qp_unpacker_t * qp_unpacker,
-        qp_obj_t * qp_account,
         qp_packer_t ** packaddr,
         uint16_t pid,
         sirinet_stream_t * client,

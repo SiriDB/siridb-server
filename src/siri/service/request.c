@@ -60,12 +60,12 @@
                 "invalid database name: '%.*s'",                            \
                 (int) qp_dbname.len,                                        \
                 qp_dbname.via.raw);                                         \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
     if (llist_get(                                                          \
             siri.siridb_list,                                               \
-            (llist_cb) SERVICE_find_database,                                 \
+            (llist_cb) SERVICE_find_database,                               \
             &qp_dbname) != NULL)                                            \
     {                                                                       \
         snprintf(                                                           \
@@ -74,7 +74,7 @@
                 "database name already exists: '%.*s'",                     \
                 (int) qp_dbname.len,                                        \
                 qp_dbname.via.raw);                                         \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
     dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;     \
@@ -92,7 +92,7 @@
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "database directory already exists: %s",                    \
                 dbpath);                                                    \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
     if (mkdir(dbpath, 0700) == -1)                                          \
@@ -102,7 +102,7 @@
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot create directory: %s",                              \
                 dbpath);                                                    \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
     char dbfn[dbpath_len + max_filename_sz];                                \
@@ -111,26 +111,26 @@
     fp = fopen(dbfn, "w");                                                  \
     if (fp == NULL)                                                         \
     {                                                                       \
-        siri_service_request_rollback(dbpath);                                \
+        siri_service_request_rollback(dbpath);                              \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot open file for writing: %s",                         \
                 dbfn);                                                      \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
     rc = fputs(DEFAULT_CONF, fp);                                           \
                                                                             \
     if (fclose(fp) || rc < 0)                                               \
     {                                                                       \
-        siri_service_request_rollback(dbpath);                                \
+        siri_service_request_rollback(dbpath);                              \
         snprintf(                                                           \
                 err_msg,                                                    \
                 SIRI_MAX_SIZE_ERR_MSG,                                      \
                 "cannot write file: %s",                                    \
                 dbfn);                                                      \
-        return CPROTO_ERR_SERVICE;                                            \
+        return CPROTO_ERR_SERVICE;                                          \
     }
 
 static cproto_server_t SERVICE_on_new_account(
@@ -141,7 +141,6 @@ static cproto_server_t SERVICE_on_change_password(
         char * err_msg);
 static cproto_server_t SERVICE_on_drop_account(
         qp_unpacker_t * qp_unpacker,
-        qp_obj_t * qp_account,
         char * err_msg);
 static cproto_server_t SERVICE_on_drop_database(
         qp_unpacker_t * qp_unpacker,
@@ -238,7 +237,6 @@ void siri_service_request_destroy(void)
 cproto_server_t siri_service_request(
         int tp,
         qp_unpacker_t * qp_unpacker,
-        qp_obj_t * qp_account,
         qp_packer_t ** packaddr,
         uint16_t pid,
         sirinet_stream_t * client,
@@ -251,7 +249,7 @@ cproto_server_t siri_service_request(
     case SERVICE_CHANGE_PASSWORD:
         return SERVICE_on_change_password(qp_unpacker, err_msg);
     case SERVICE_DROP_ACCOUNT:
-        return SERVICE_on_drop_account(qp_unpacker, qp_account, err_msg);
+        return SERVICE_on_drop_account(qp_unpacker, err_msg);
     case SERVICE_NEW_DATABASE:
         return SERVICE_on_new_database(qp_unpacker, err_msg);
     case SERVICE_NEW_POOL:
@@ -397,7 +395,6 @@ static cproto_server_t SERVICE_on_change_password(
  */
 static cproto_server_t SERVICE_on_drop_account(
         qp_unpacker_t * qp_unpacker,
-        qp_obj_t * qp_account,
         char * err_msg)
 {
     qp_obj_t qp_key, qp_target;
@@ -427,13 +424,11 @@ static cproto_server_t SERVICE_on_drop_account(
         return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
 
-    if (qp_target.len == qp_account->len &&
-        strncmp(
-            (const char *) qp_target.via.raw,
-            (const char *) qp_account->via.raw,
-            qp_target.len) == 0)
+    if (siri.accounts->len == 1)
     {
-        sprintf(err_msg, "cannot drop your own account");
+        sprintf(err_msg,
+                "at least one service account is required, "
+                "cannot drop the last service account");
         return CPROTO_ERR_SERVICE;
     }
 
@@ -511,9 +506,9 @@ static cproto_server_t SERVICE_on_drop_database(
     if (!ignore_offline && !siridb_servers_online(siridb))
     {
         sprintf(err_msg,
-                "at least one server is offline, "
+                "at least one server is off-line, "
                 "set `ignore_offline` to true if you want to "
-                "ignore offline servers");
+                "ignore off-line servers");
         return CPROTO_ERR_SERVICE;
     }
 
@@ -802,7 +797,7 @@ static cproto_server_t SERVICE_on_new_replica_or_pool(
     qp_username.tp = QP_HOOK;
     qp_password.tp = QP_HOOK;
 
-    if (!qp_is_map(qp_next(qp_unpacker, NULL)))
+    if (!qp_is_map(qp_next(qp_unpacker, &qp_key)))
     {
         return CPROTO_ERR_SERVICE_INVALID_REQUEST;
     }
