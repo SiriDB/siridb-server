@@ -1,2 +1,3 @@
 siridb-connector
 psutil
+requests
