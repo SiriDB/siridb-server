@@ -1080,12 +1080,12 @@ static void enter_set_expression(uv_async_t * handle)
 static void enter_set_ignore_threshold(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
-    query_drop_t * q_drop = (query_drop_t *) query->data;
+    query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
 
     if (    query->nodes->node->children->next->next->node->children->node->
             cl_obj->gid == CLERI_GID_K_TRUE)
     {
-        q_drop->flags |= QUERIES_IGNORE_DROP_THRESHOLD;
+        q_wrapper->flags |= QUERIES_IGNORE_DROP_THRESHOLD;
     }
 
     SIRIPARSER_NEXT_NODE

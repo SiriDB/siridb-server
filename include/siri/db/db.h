@@ -73,6 +73,10 @@ struct siridb_s
     struct timespec start_time;     /* to calculate up-time.                */
     uint64_t duration_num;          /* number duration in s, ms, us or ns   */
     uint64_t duration_log;          /* log duration in s, ms, us or ns      */
+    uint64_t expire_at_num;         /* UNIX time stamp in s, ms, us or ns   */
+    uint64_t expire_at_log;         /* UNIX time stamp in s, ms, us or ns   */
+    uint64_t expiration_num;        /* number duration in s, ms, us or ns   */
+    uint64_t expiration_log;        /* log duration in s, ms, us or ns      */
     char * dbname;
     char * dbpath;
     double drop_threshold;

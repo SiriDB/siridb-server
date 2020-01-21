@@ -111,14 +111,14 @@ class SiriGrammar(Grammar):
     k_max_open_files = Keyword('max_open_files')
     k_mean = Keyword('mean')
     k_median = Keyword('median')
-    k_median_low = Keyword('median_low')
     k_median_high = Keyword('median_high')
+    k_median_low = Keyword('median_low')
     k_mem_usage = Keyword('mem_usage')
     k_merge = Keyword('merge')
     k_min = Keyword('min')
     k_modify = Keyword('modify')
-    k_nan = Keyword('nan')
     k_name = Keyword('name')
+    k_nan = Keyword('nan')
     k_ninf = Sequence('-', k_inf)
     k_now = Keyword('now')
     k_number = Keyword('number')
@@ -143,9 +143,11 @@ class SiriGrammar(Grammar):
     k_server = Keyword('server')
     k_servers = Keyword('servers')
     k_set = Keyword('set')
-    k_sid = Keyword('sid')
+    k_expiration_log = Keyword('expiration_log')
+    k_expiration_num = Keyword('expiration_num')
     k_shards = Keyword('shards')
     k_show = Keyword('show')
+    k_sid = Keyword('sid')
     k_size = Keyword('size')
     k_start = Keyword('start')
     k_startup_time = Keyword('startup_time')
@@ -591,12 +593,26 @@ class SiriGrammar(Grammar):
     set_select_points_limit = Sequence(
         k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
+    set_expiration_num = Sequence(
+        k_set,
+        k_expiration_num,
+        Choice(
+            k_false,
+            time_expr,
+            most_greedy=False),
+        Optional(set_ignore_threshold))
+    set_expiration_log = Sequence(k_set, k_expiration_log, Choice(
+        k_false,
+        time_expr,
+        most_greedy=False))
 
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
         set_list_limit,
         set_select_points_limit,
         set_timezone,
+        set_expiration_num,
+        set_expiration_log,
         most_greedy=False))
 
     alter_group = Sequence(k_group, group_name, Choice(

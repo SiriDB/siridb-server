@@ -51,13 +51,26 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     llist_node_t * siridb_node;
     llist_node_t * server_node;
 
+    uint64_t now_ts;
+    struct timespec now;
+
     log_debug("Start heart-beat task");
+
+    clock_gettime(CLOCK_REALTIME, &now);
 
     siridb_node = siri.siridb_list->first;
 
     while (siridb_node != NULL)
     {
         siridb = (siridb_t *) siridb_node->data;
+
+        siridb->expire_at_num = siridb->expiration_num
+                ? siridb_time_now(siridb, now) - siridb->expiration_num
+                : 0;
+
+        siridb->expire_at_log = siridb->expiration_log
+                ? siridb_time_now(siridb, now) - siridb->expiration_log
+                : 0;
 
         if (    siridb_tee_is_configured(siridb->tee) &&
                 !siridb_tee_is_connected(siridb->tee))
