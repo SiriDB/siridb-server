@@ -64,11 +64,11 @@ static void HEARTBEAT_cb(uv_timer_t * handle __attribute__((unused)))
     {
         siridb = (siridb_t *) siridb_node->data;
 
-        siridb->expire_at_num = siridb->expiration_num
+        siridb->exp_at_num = siridb->expiration_num
                 ? siridb_time_now(siridb, now) - siridb->expiration_num
                 : 0;
 
-        siridb->expire_at_log = siridb->expiration_log
+        siridb->exp_at_log = siridb->expiration_log
                 ? siridb_time_now(siridb, now) - siridb->expiration_log
                 : 0;
 

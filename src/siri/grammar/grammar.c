@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2019-03-06 11:59:02
+ * Created at: 2020-01-21 16:05:35
  */
 
 #include "siri/grammar/grammar.h"
@@ -104,14 +104,14 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_max_open_files = cleri_keyword(CLERI_GID_K_MAX_OPEN_FILES, "max_open_files", CLERI_CASE_SENSITIVE);
     cleri_t * k_mean = cleri_keyword(CLERI_GID_K_MEAN, "mean", CLERI_CASE_SENSITIVE);
     cleri_t * k_median = cleri_keyword(CLERI_GID_K_MEDIAN, "median", CLERI_CASE_SENSITIVE);
-    cleri_t * k_median_low = cleri_keyword(CLERI_GID_K_MEDIAN_LOW, "median_low", CLERI_CASE_SENSITIVE);
     cleri_t * k_median_high = cleri_keyword(CLERI_GID_K_MEDIAN_HIGH, "median_high", CLERI_CASE_SENSITIVE);
+    cleri_t * k_median_low = cleri_keyword(CLERI_GID_K_MEDIAN_LOW, "median_low", CLERI_CASE_SENSITIVE);
     cleri_t * k_mem_usage = cleri_keyword(CLERI_GID_K_MEM_USAGE, "mem_usage", CLERI_CASE_SENSITIVE);
     cleri_t * k_merge = cleri_keyword(CLERI_GID_K_MERGE, "merge", CLERI_CASE_SENSITIVE);
     cleri_t * k_min = cleri_keyword(CLERI_GID_K_MIN, "min", CLERI_CASE_SENSITIVE);
     cleri_t * k_modify = cleri_keyword(CLERI_GID_K_MODIFY, "modify", CLERI_CASE_SENSITIVE);
-    cleri_t * k_nan = cleri_keyword(CLERI_GID_K_NAN, "nan", CLERI_CASE_SENSITIVE);
     cleri_t * k_name = cleri_keyword(CLERI_GID_K_NAME, "name", CLERI_CASE_SENSITIVE);
+    cleri_t * k_nan = cleri_keyword(CLERI_GID_K_NAN, "nan", CLERI_CASE_SENSITIVE);
     cleri_t * k_ninf = cleri_sequence(
         CLERI_GID_K_NINF,
         2,
@@ -141,9 +141,11 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_server = cleri_keyword(CLERI_GID_K_SERVER, "server", CLERI_CASE_SENSITIVE);
     cleri_t * k_servers = cleri_keyword(CLERI_GID_K_SERVERS, "servers", CLERI_CASE_SENSITIVE);
     cleri_t * k_set = cleri_keyword(CLERI_GID_K_SET, "set", CLERI_CASE_SENSITIVE);
-    cleri_t * k_sid = cleri_keyword(CLERI_GID_K_SID, "sid", CLERI_CASE_SENSITIVE);
+    cleri_t * k_expiration_log = cleri_keyword(CLERI_GID_K_EXPIRATION_LOG, "expiration_log", CLERI_CASE_SENSITIVE);
+    cleri_t * k_expiration_num = cleri_keyword(CLERI_GID_K_EXPIRATION_NUM, "expiration_num", CLERI_CASE_SENSITIVE);
     cleri_t * k_shards = cleri_keyword(CLERI_GID_K_SHARDS, "shards", CLERI_CASE_SENSITIVE);
     cleri_t * k_show = cleri_keyword(CLERI_GID_K_SHOW, "show", CLERI_CASE_SENSITIVE);
+    cleri_t * k_sid = cleri_keyword(CLERI_GID_K_SID, "sid", CLERI_CASE_SENSITIVE);
     cleri_t * k_size = cleri_keyword(CLERI_GID_K_SIZE, "size", CLERI_CASE_SENSITIVE);
     cleri_t * k_start = cleri_keyword(CLERI_GID_K_START, "start", CLERI_CASE_SENSITIVE);
     cleri_t * k_startup_time = cleri_keyword(CLERI_GID_K_STARTUP_TIME, "startup_time", CLERI_CASE_SENSITIVE);
@@ -1165,6 +1167,33 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_timezone,
         string
     );
+    cleri_t * set_expiration_num = cleri_sequence(
+        CLERI_GID_SET_EXPIRATION_NUM,
+        4,
+        k_set,
+        k_expiration_num,
+        cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            2,
+            k_false,
+            time_expr
+        ),
+        cleri_optional(CLERI_NONE, set_ignore_threshold)
+    );
+    cleri_t * set_expiration_log = cleri_sequence(
+        CLERI_GID_SET_EXPIRATION_LOG,
+        3,
+        k_set,
+        k_expiration_log,
+        cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            2,
+            k_false,
+            time_expr
+        )
+    );
     cleri_t * alter_database = cleri_sequence(
         CLERI_GID_ALTER_DATABASE,
         2,
@@ -1172,11 +1201,13 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            4,
+            6,
             set_drop_threshold,
             set_list_limit,
             set_select_points_limit,
-            set_timezone
+            set_timezone,
+            set_expiration_num,
+            set_expiration_log
         )
     );
     cleri_t * alter_group = cleri_sequence(

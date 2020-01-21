@@ -127,7 +127,7 @@ int siridb_shards_add_points(
     _Bool is_num = siridb_series_isnum(series);
     siridb_shard_t * shard;
     uint64_t duration = is_num ? siridb->duration_num : siridb->duration_log;
-    uint64_t expire = is_num ? siridb->expire_num : siridb->expire_log;
+    uint64_t expire_at = is_num ? siridb->exp_at_num : siridb->exp_at_log;
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
@@ -144,7 +144,7 @@ int siridb_shards_add_points(
                 end < points->len && points->data[end].ts < shard_end;
                 end++);
 
-        if (shard_end < expire)
+        if (shard_end < expire_at)
             continue;
 
         if ((shard = imap_get(siridb->shards, shard_id)) == NULL)
