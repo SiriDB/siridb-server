@@ -310,7 +310,8 @@ static int siridb__from_unpacker(
     if (    qp_schema.via.int64 == 1 ||
             qp_schema.via.int64 == 2 ||
             qp_schema.via.int64 == 3 ||
-            qp_schema.via.int64 == 4)
+            qp_schema.via.int64 == 4 ||
+            qp_schema.via.int64 == 5)
     {
         log_info(
                 "Found an old database schema (v%d), "
@@ -492,6 +493,24 @@ static int siridb__from_unpacker(
             READ_DB_EXIT_WITH_ERROR("Cannot read tee pipe name.")
         }
     }
+    if (qp_schema.via.int64 >= 6)
+    {
+        /* read select points limit */
+        if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 0)
+        {
+            READ_DB_EXIT_WITH_ERROR(
+                    "Cannot read shard (log) expiration time.")
+        }
+        (*siridb)->expiration_log = qp_obj.via.int64;
+
+        /* read list limit */
+        if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 0)
+        {
+            READ_DB_EXIT_WITH_ERROR(
+                    "Cannot read shard (number) expiration time.")
+        }
+        (*siridb)->expiration_num = qp_obj.via.int64;
+    }
     if ((*siridb)->tee->pipe_name_ == NULL)
     {
         log_debug(
@@ -651,6 +670,8 @@ int siridb_save(siridb_t * siridb)
             (siridb->tee->pipe_name_ == NULL
                 ? qp_fadd_type(fpacker, QP_NULL)
                 : qp_fadd_string(fpacker, siridb->tee->pipe_name_)) ||
+            qp_fadd_int64(fpacker, siridb->expiration_log) ||
+            qp_fadd_int64(fpacker, siridb->expiration_num) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 }
@@ -761,6 +782,7 @@ void siridb__free(siridb_t * siridb)
 
     uv_mutex_destroy(&siridb->series_mutex);
     uv_mutex_destroy(&siridb->shards_mutex);
+    uv_mutex_destroy(&siridb->values_mutex);
 
     if (siridb->flags & SIRIDB_FLAG_DROPPED)
     {
@@ -808,6 +830,25 @@ void siridb_drop(siridb_t * siridb)
     siridb_decref(siridb);
 }
 
+void siridb_update_shard_expiration(siridb_t * siridb)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+
+    uv_mutex_lock(&siridb->values_mutex);
+
+    siridb->exp_at_num = siridb->expiration_num
+            ? siridb_time_now(siridb, now) - siridb->expiration_num
+            : 0;
+
+    siridb->exp_at_log = siridb->expiration_log
+            ? siridb_time_now(siridb, now) - siridb->expiration_log
+            : 0;
+
+    uv_mutex_unlock(&siridb->values_mutex);
+}
+
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
@@ -843,6 +884,10 @@ static siridb_t * siridb__new(void)
     siridb->groups = NULL;
     siridb->dropped_fp = NULL;
     siridb->store = NULL;
+    siridb->exp_at_log = 0;
+    siridb->exp_at_num = 0;
+    siridb->expiration_log = 0;
+    siridb->expiration_num = 0;
 
     siridb->series = ct_new();
     if (siridb->series == NULL)
@@ -876,6 +921,7 @@ static siridb_t * siridb__new(void)
 
     uv_mutex_init(&siridb->series_mutex);
     uv_mutex_init(&siridb->shards_mutex);
+    uv_mutex_init(&siridb->values_mutex);
 
     return siridb;
 

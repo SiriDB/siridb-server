@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-01-21 16:05:35
+ * Created at: 2020-01-23 14:08:47
  */
 
 #include "siri/grammar/grammar.h"
@@ -1172,27 +1172,16 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         4,
         k_set,
         k_expiration_num,
-        cleri_choice(
-            CLERI_NONE,
-            CLERI_FIRST_MATCH,
-            2,
-            k_false,
-            time_expr
-        ),
+        time_expr,
         cleri_optional(CLERI_NONE, set_ignore_threshold)
     );
     cleri_t * set_expiration_log = cleri_sequence(
         CLERI_GID_SET_EXPIRATION_LOG,
-        3,
+        4,
         k_set,
         k_expiration_log,
-        cleri_choice(
-            CLERI_NONE,
-            CLERI_FIRST_MATCH,
-            2,
-            k_false,
-            time_expr
-        )
+        time_expr,
+        cleri_optional(CLERI_NONE, set_ignore_threshold)
     );
     cleri_t * alter_database = cleri_sequence(
         CLERI_GID_ALTER_DATABASE,
@@ -1566,7 +1555,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_list(CLERI_NONE, cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            35,
+            37,
             k_active_handles,
             k_active_tasks,
             k_buffer_path,
@@ -1577,6 +1566,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             k_duration_log,
             k_duration_num,
             k_fifo_files,
+            k_expiration_log,
+            k_expiration_num,
             k_idle_percentage,
             k_idle_time,
             k_ip_support,

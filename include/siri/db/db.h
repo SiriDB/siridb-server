@@ -8,7 +8,7 @@ typedef struct siridb_s siridb_t;
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
-#define SIRIDB_SCHEMA 5
+#define SIRIDB_SCHEMA 6
 #define SIRIDB_FLAG_REINDEXING 1
 #define SIRIDB_FLAG_DROPPED 2
 
@@ -52,6 +52,7 @@ int siridb_open_files(siridb_t * siridb);
 int siridb_save(siridb_t * siridb);
 void siridb__free(siridb_t * siridb);
 void siridb_drop(siridb_t * siridb);
+void siridb_update_shard_expiration(siridb_t * siridb);
 
 #define siridb_incref(siridb) siridb->ref++
 #define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
@@ -93,6 +94,7 @@ struct siridb_s
     imap_t * series_map;
     uv_mutex_t series_mutex;
     uv_mutex_t shards_mutex;
+    uv_mutex_t values_mutex;
     imap_t * shards;
     FILE * dropped_fp;
     qp_fpacker_t * store;

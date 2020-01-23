@@ -103,6 +103,12 @@ int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
     return -1;
 }
 
+void series_update_start_end(siridb_series_t * series)
+{
+    SERIES_update_start(series);
+    SERIES_update_end(series);
+}
+
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
  *

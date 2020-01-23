@@ -126,8 +126,14 @@ int siridb_shards_add_points(
 {
     _Bool is_num = siridb_series_isnum(series);
     siridb_shard_t * shard;
+
+    uv_mutex_lock(&siridb->values_mutex);
+
     uint64_t duration = is_num ? siridb->duration_num : siridb->duration_log;
     uint64_t expire_at = is_num ? siridb->exp_at_num : siridb->exp_at_log;
+
+    uv_mutex_unlock(&siridb->values_mutex);
+
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
     uint16_t chunk_sz;
@@ -145,7 +151,11 @@ int siridb_shards_add_points(
                 end++);
 
         if (shard_end < expire_at)
+        {
+            series->length -= end - start;
+            series_update_start_end(series);
             continue;
+        }
 
         if ((shard = imap_get(siridb->shards, shard_id)) == NULL)
         {
@@ -217,6 +227,48 @@ int siridb_shards_add_points(
         }
     }
     return siri_err;
+}
+
+double siridb_shards_count_percent(
+        siridb_t * siridb,
+        uint64_t end_ts,
+        uint8_t tp)
+{
+    double percent;
+    size_t i;
+    vec_t * shards_list;
+    size_t count = 0;
+    uint64_t duration = tp == SIRIDB_SHARD_TP_NUMBER
+            ? siridb->duration_num
+            : siridb->duration_log;
+
+    uv_mutex_lock(&siridb->shards_mutex);
+
+    shards_list = imap_2vec_ref(siridb->shards);
+
+    uv_mutex_unlock(&siridb->shards_mutex);
+
+    if (shards_list == NULL)
+        return 1.0;  /* error, return as if all were removed */
+
+    if (shards_list->len == 0)
+    {
+        vec_free(shards_list);
+        return 0.0;
+    }
+
+    for (i = 0; i < shards_list->len; i++)
+    {
+        siridb_shard_t * shard = (siridb_shard_t *) shards_list->data[i];
+        if (shard->tp != tp)
+            continue;
+
+        count += ((shard->id - shard->id % duration) + duration) < end_ts;
+    }
+
+    percent = count / shards_list->len;
+    vec_free(shards_list);
+    return percent;
 }
 
 /*

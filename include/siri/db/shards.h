@@ -24,5 +24,9 @@ int siridb_shards_add_points(
         siridb_t * siridb,
         siridb_series_t * series,
         siridb_points_t * points);
+double siridb_shards_count_percent(
+        siridb_t * siridb,
+        uint64_t end_ts,
+        uint8_t tp);
 
 #endif  /* SIRIDB_SHARDS_H_ */

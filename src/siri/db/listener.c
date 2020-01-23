@@ -20,6 +20,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/db/user.h>
 #include <siri/db/users.h>
 #include <siri/db/listener.h>
@@ -149,6 +150,8 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Successfully changed drop_threshold from %g to %g."
 #define MSG_SUCCESS_SET_LIST_LIMIT \
     "Successfully changed list limit from %" PRIu32 " to %" PRIu32 "."
+#define MSG_SUCCESS_SET_EXPIRATION \
+    "Successfully changed expiration from %" PRIu64 " to %" PRIu64 "."
 #define MSG_SUCCESS_SET_ADDR_PORT \
     "Successfully changed server address to '%s'."
 #define MSG_SUCCESS_DROP_SERVER \
@@ -248,6 +251,8 @@ static void exit_series_parentheses(uv_async_t * handle);
 static void exit_set_address(uv_async_t * handle);
 static void exit_set_backup_mode(uv_async_t * handle);
 static void exit_set_drop_threshold(uv_async_t * handle);
+static void exit_set_expiration_log(uv_async_t * handle);
+static void exit_set_expiration_num(uv_async_t * handle);
 static void exit_set_list_limit(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_set_port(uv_async_t * handle);
@@ -483,6 +488,8 @@ void siridb_init_listener(void)
     siridb_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
     siridb_listen_exit[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
     siridb_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
+    siridb_listen_exit[CLERI_GID_SET_EXPIRATION_LOG] = exit_set_expiration_log;
+    siridb_listen_exit[CLERI_GID_SET_EXPIRATION_NUM] = exit_set_expiration_num;
     siridb_listen_exit[CLERI_GID_SET_LIST_LIMIT] = exit_set_list_limit;
     siridb_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     siridb_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
@@ -3777,6 +3784,123 @@ static void exit_set_drop_threshold(uv_async_t * handle)
             }
         }
     }
+}
+
+static void exit_set_expiration_xxx(
+        uv_async_t * handle,
+        uint64_t * expirep,
+        uint8_t tp)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+
+    MASTER_CHECK_ACCESSIBLE(siridb)
+    MASTER_CHECK_VERSION(siridb, "2.0.35")
+
+    cleri_node_t * node = query->nodes->node->children->next->next->node;
+    uint64_t expiration = (uint64_t) CLERI_NODE_DATA(node);
+
+    if (IS_MASTER && expiration)
+    {
+        struct timespec now;
+        clock_gettime(CLOCK_REALTIME, &now);
+        now.tv_sec -= (3600*24);  /* remove one dat to be save */
+        uint64_t now_ts = siridb_time_now(siridb, now);
+
+        if (expiration >= now_ts)
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Shard expiration time should be a value greater "
+                    "than or equal to zero (0) and smaller "
+                    "than %"PRIu64" but got %" PRId64,
+                    now_ts, (int64_t) CLERI_NODE_DATA(node));
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+
+        query_wrapper_t * q_wrapper = (query_wrapper_t *) query->data;
+        double percent = siridb_shards_count_percent(
+                siridb,
+                now_ts - expiration,
+                tp);
+
+        if ((~q_wrapper->flags & QUERIES_IGNORE_DROP_THRESHOLD) &&
+            percent >= siridb->drop_threshold)
+        {
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "This query would drop %0.2f%% of the shards in pool %u. "
+                    "Add \'set ignore_threshold true\' to the query "
+                    "statement if you really want to do this.",
+                    percent * 100,
+                    siridb->server->pool);
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+    }
+
+    uint64_t old = *expirep;
+    *expirep = expiration;
+
+    siridb_update_shard_expiration(siridb);
+
+    if (siridb_save(siridb))
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Error while saving database changes!");
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        QP_ADD_SUCCESS
+
+        log_info(
+                MSG_SUCCESS_SET_EXPIRATION,
+                old,
+                *expirep);
+
+        qp_add_fmt_safe(query->packer,
+                MSG_SUCCESS_SET_EXPIRATION,
+                old,
+                *expirep);
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response,
+                    0);
+        }
+        else
+        {
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
+    }
+}
+static void exit_set_expiration_log(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+
+    exit_set_expiration_xxx(
+            handle,
+            &siridb->expiration_log,
+            SIRIDB_SHARD_TP_LOG);
+}
+
+
+static void exit_set_expiration_num(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+
+    exit_set_expiration_xxx(
+            handle,
+            &siridb->expiration_num,
+            SIRIDB_SHARD_TP_NUMBER);
 }
 
 static void exit_set_list_limit(uv_async_t * handle)

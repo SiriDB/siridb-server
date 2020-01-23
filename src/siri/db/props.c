@@ -64,6 +64,14 @@ static void prop_duration_num(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_expiration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_expiration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_fifo_files(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -200,6 +208,10 @@ void siridb_init_props(void)
             prop_duration_num;
     siridb_props[CLERI_GID_K_FIFO_FILES - KW_OFFSET] =
             prop_fifo_files;
+    siridb_props[CLERI_GID_K_EXPIRATION_LOG - KW_OFFSET] =
+            prop_expiration_log;
+    siridb_props[CLERI_GID_K_EXPIRATION_NUM - KW_OFFSET] =
+            prop_expiration_num;
     siridb_props[CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET] =
             prop_idle_percentage;
     siridb_props[CLERI_GID_K_IDLE_TIME - KW_OFFSET] =
@@ -340,6 +352,38 @@ static void prop_fifo_files(
 {
     SIRIDB_PROP_MAP("fifo_files", 10)
     qp_add_int64(packer, (int64_t) siridb_fifo_size(siridb->fifo));
+}
+
+static void prop_expiration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("expiration_log", 14)
+    if (siridb->expiration_log)
+    {
+        qp_add_int64(packer, (int64_t) siridb->expiration_log);
+    }
+    else
+    {
+        qp_add_null(packer);
+    }
+}
+
+static void prop_expiration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("expiration_num", 14)
+    if (siridb->expiration_num)
+    {
+        qp_add_int64(packer, (int64_t) siridb->expiration_num);
+    }
+    else
+    {
+        qp_add_null(packer);
+    }
 }
 
 static void prop_idle_percentage(

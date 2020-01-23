@@ -596,15 +596,13 @@ class SiriGrammar(Grammar):
     set_expiration_num = Sequence(
         k_set,
         k_expiration_num,
-        Choice(
-            k_false,
-            time_expr,
-            most_greedy=False),
+	time_expr,        
         Optional(set_ignore_threshold))
-    set_expiration_log = Sequence(k_set, k_expiration_log, Choice(
-        k_false,
-        time_expr,
-        most_greedy=False))
+    set_expiration_log = Sequence(
+        k_set,
+        k_expiration_log,
+	time_expr,        
+        Optional(set_ignore_threshold))
 
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
@@ -783,6 +781,8 @@ class SiriGrammar(Grammar):
         k_duration_log,
         k_duration_num,
         k_fifo_files,
+        k_expiration_log,
+        k_expiration_num,
         k_idle_percentage,
         k_idle_time,
         k_ip_support,

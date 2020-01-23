@@ -262,6 +262,10 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     siridb_shard_t * shard;
     uint8_t c = siri.cfg->shard_compression;
     size_t i;
+    uint64_t expi[2];
+    uint64_t dura[2];
+
+
 
     log_info("Start optimize task");
 
@@ -303,6 +307,15 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
+        uv_mutex_lock(&siridb->values_mutex);
+
+        dura[SIRIDB_SHARD_TP_NUMBER] = siridb->duration_num;
+        dura[SIRIDB_SHARD_TP_LOG] = siridb->duration_log;
+        expi[SIRIDB_SHARD_TP_NUMBER] = siridb->exp_at_num;
+        expi[SIRIDB_SHARD_TP_LOG] = siridb->exp_at_log;
+
+        uv_mutex_unlock(&siridb->values_mutex);
+
         if (slshards == NULL)
         {
             log_error("Error creating reference list for shards.");
@@ -316,7 +329,16 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         {
             shard = (siridb_shard_t *) slshards->data[j];
 
-            if (!siri_err &&
+            if ((shard->id - shard->id % dura[shard->tp]) + dura[shard->tp] <
+                    expi[shard->tp])
+            {
+                log_info(
+                        "Shard id %" PRIu64 " (%" PRIu8 ") is expired "
+                        "and will be dropped",
+                        shard->id, shard->flags);
+                siridb_shard_drop(shard, siridb);
+            }
+            else if (!siri_err &&
                 optimize.status != SIRI_OPTIMIZE_CANCELLED &&
                 ((shard->flags & SIRIDB_SHARD_NEED_OPTIMIZE) ||
                     ((!(shard->flags & SIRIDB_SHARD_IS_COMPRESSED)) == c)) &&

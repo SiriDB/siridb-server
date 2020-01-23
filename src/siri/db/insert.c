@@ -638,6 +638,14 @@ static int8_t INSERT_local_work(
             }
         }
 
+        if (series->length == 0)
+        {
+            if (siridb_series_drop(siridb, series))
+            {
+                siridb_series_flush_dropped(siridb);
+            }
+        }
+
         if (tp == QP_ARRAY_CLOSE)
         {
             qp_next(unpacker, qp_series_name);
@@ -851,6 +859,15 @@ static int INSERT_local_work_test(
             {
                 siridb_points_free((siridb_points_t *) *pcache);
                 *pcache = NULL;
+            }
+
+        }
+
+        if (series->length == 0)
+        {
+            if (siridb_series_drop(siridb, series))
+            {
+                siridb_series_flush_dropped(siridb);
             }
         }
 
