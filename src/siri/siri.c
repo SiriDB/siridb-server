@@ -216,6 +216,8 @@ int siri_start(void)
     /* start the event loop */
     uv_run(siri.loop, UV_RUN_DEFAULT);
 
+    LOGC("EXIT...");
+
     /* quit, don't forget to run siri_free() (should be done in main) */
     return 0;
 }
@@ -334,11 +336,8 @@ static void SIRI_destroy(void)
     /* stop the event loop */
     uv_stop(siri.loop);
 
-    LOGC("STOP");
-
     /* use one iteration to close all open handlers */
     SIRI_close_handlers();
-    LOGC("CLOSE");
 }
 
 static void SIRI_set_running_state(void)
@@ -496,6 +495,7 @@ static void SIRI_walk_close_handlers(
 {
     if (uv_is_closing(handle))
     {
+        LOGC("Handle is closing...");
         return;
     }
 
@@ -509,6 +509,7 @@ static void SIRI_walk_close_handlers(
     case UV_TCP:
     case UV_NAMED_PIPE:
         {
+            LOGC("Found SOCKET...");
             if (handle->data == NULL || siridb_tee_is_handle(handle))
             {
                 uv_close(handle, NULL);
