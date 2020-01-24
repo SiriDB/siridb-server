@@ -150,6 +150,7 @@ static void tee__runtime_init(uv_pipe_t * pipe)
     siridb_tee_t * tee = pipe->data;
 
     tee->flags &= ~SIRIDB_TEE_FLAG_INIT;
+    tee->flags &= ~SIRIDB_TEE_FLAG_CONNECTING;
     tee->flags &= ~SIRIDB_TEE_FLAG_CONNECTED;
 
      if (siridb_tee_connect(tee))

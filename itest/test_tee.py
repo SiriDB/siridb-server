@@ -108,6 +108,8 @@ class TestTee(TestBase):
 
         await self.client0.connect()
 
+        await asyncio.sleep(1)
+
         await self.client0.query(
             'alter servers set tee_pipe_name "{}"'.format(PIPE_NAME))
 
@@ -151,6 +153,8 @@ class TestTee(TestBase):
         self.assertEqual(
             await self.client0.insert(DATA),
             {'success_msg': 'Successfully inserted 60 point(s).'})
+
+        await asyncio.sleep(1)
 
         self.assertEqual(DATA, self._tee_data)
 
