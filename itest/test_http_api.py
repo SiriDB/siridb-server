@@ -141,7 +141,8 @@ class TestHTTPAPI(TestBase):
             auth=('sa', 'siri'))
 
         self.assertEqual(x.status_code, 400)
-        self.assertEqual(x.json(), {'error_msg':
+        self.assertEqual(x.json(), {
+            'error_msg':
                 'service account name should have at least 2 characters'})
 
         x = requests.post(
@@ -202,4 +203,3 @@ class TestHTTPAPI(TestBase):
 if __name__ == '__main__':
     parse_args()
     run_test(TestHTTPAPI())
-

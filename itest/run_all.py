@@ -6,6 +6,7 @@ from test_buffer import TestBuffer
 from test_cluster import TestCluster
 from test_compression import TestCompression
 from test_create_database import TestCreateDatabase
+from test_expiration import TestExpiration
 from test_group import TestGroup
 from test_http_api import TestHTTPAPI
 from test_insert import TestInsert
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     run_test(TestBuffer())
     run_test(TestCompression())
     run_test(TestCreateDatabase())
+    run_test(TestExpiration())
     run_test(TestGroup())
     run_test(TestHTTPAPI())
     run_test(TestInsert())

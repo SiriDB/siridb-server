@@ -234,39 +234,43 @@ double siridb_shards_count_percent(
         uint64_t end_ts,
         uint8_t tp)
 {
-    double percent;
     size_t i;
-    vec_t * shards_list;
+    double percent = 1.0;
+    vec_t * shards_list = NULL;
     size_t count = 0;
+    size_t total = 0;
     uint64_t duration = tp == SIRIDB_SHARD_TP_NUMBER
             ? siridb->duration_num
             : siridb->duration_log;
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2vec_ref(siridb->shards);
+    if (siridb->shards->len == 0)
+    {
+        percent = 0.0;
+    }
+    else
+    {
+        shards_list = imap_2vec_ref(siridb->shards);
+    }
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
     if (shards_list == NULL)
-        return 1.0;  /* error, return as if all were removed */
-
-    if (shards_list->len == 0)
-    {
-        vec_free(shards_list);
-        return 0.0;
-    }
+        return percent;
 
     for (i = 0; i < shards_list->len; i++)
     {
         siridb_shard_t * shard = (siridb_shard_t *) shards_list->data[i];
-        if (shard->tp != tp)
-            continue;
-
-        count += ((shard->id - shard->id % duration) + duration) < end_ts;
+        if (shard->tp == tp)
+        {
+            ++total;
+            count += ((shard->id - shard->id % duration) + duration) < end_ts;
+        }
+        siridb_shard_decref(shard);
     }
 
-    percent = count / shards_list->len;
+    percent = total ? (double) count / (double) total : 0.0;
     vec_free(shards_list);
     return percent;
 }

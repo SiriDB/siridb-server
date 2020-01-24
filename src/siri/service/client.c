@@ -630,7 +630,9 @@ static void CLIENT_on_file_database(
         qp_timezone,
         qp_drop_threshold,
         qp_points_limit,
-        qp_list_limit;
+        qp_list_limit,
+        qp_exp_log,
+        qp_exp_num;
     siridb_t * siridb;
     int rc;
     /* 13 = strlen("database.dat")+1  */
@@ -659,7 +661,11 @@ static void CLIENT_on_file_database(
     (void) qp_next(&unpacker, &qp_list_limit);
 
     /* this is the tee pipe name when schema is >= 5 */
-    (void) qp_next(&unpacker, NULL);
+    (void) qp_next(&unpacker, &qp_exp_log);
+    (void) qp_next(&unpacker, &qp_exp_num);
+
+    /* these are the expiration times when schema is >= 6 */
+
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {
@@ -684,6 +690,12 @@ static void CLIENT_on_file_database(
                     ? qp_list_limit.via.int64
                     : DEF_LIST_LIMIT) ||
             qp_fadd_type(fpacker, QP_NULL) ||
+            qp_fadd_int64(fpacker, qp_exp_log.tp == QP_INT64
+                    ? qp_exp_log.via.int64
+                    : 0) ||
+            qp_fadd_int64(fpacker, qp_exp_num.tp == QP_INT64
+                    ? qp_exp_num.via.int64
+                    : 0) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 
