@@ -334,8 +334,11 @@ static void SIRI_destroy(void)
     /* stop the event loop */
     uv_stop(siri.loop);
 
+    LOGC("STOP");
+
     /* use one iteration to close all open handlers */
     SIRI_close_handlers();
+    LOGC("CLOSE");
 }
 
 static void SIRI_set_running_state(void)
@@ -559,5 +562,5 @@ static void SIRI_close_handlers(void)
     uv_walk(siri.loop, SIRI_walk_close_handlers, NULL);
 
     /* run the loop once more so call-backs on uv_close() can run */
-    uv_run(siri.loop, UV_RUN_DEFAULT);
+    uv_run(siri.loop, UV_RUN_ONCE);
 }
