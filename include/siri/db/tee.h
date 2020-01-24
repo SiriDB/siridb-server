@@ -9,7 +9,8 @@ typedef struct siridb_tee_s siridb_tee_t;
 enum
 {
     SIRIDB_TEE_FLAG_INIT = 1<<0,
-    SIRIDB_TEE_FLAG_CONNECTED = 1<<1,
+    SIRIDB_TEE_FLAG_CONNECTING = 1<<1,
+    SIRIDB_TEE_FLAG_CONNECTED = 1<<2,
     SIRIDB_TEE_FLAG = 1<<31,
 };
 
