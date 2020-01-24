@@ -145,10 +145,10 @@ static void tee__runtime_init(uv_pipe_t * pipe)
     tee->flags &= ~SIRIDB_TEE_FLAG_INIT;
     tee->flags &= ~SIRIDB_TEE_FLAG_CONNECTED;
 
-    // if (siridb_tee_connect(tee))
-    // {
-    //     log_error("Could not connect to tee at runtime");
-    // }
+     if (siridb_tee_connect(tee))
+     {
+         log_error("Could not connect to tee at runtime");
+     }
 }
 
 static void tee__close_cb(uv_pipe_t * pipe)
