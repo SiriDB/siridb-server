@@ -563,5 +563,5 @@ static void SIRI_close_handlers(void)
     uv_walk(siri.loop, SIRI_walk_close_handlers, NULL);
 
     /* run the loop once more so call-backs on uv_close() can run */
-    uv_run(siri.loop, UV_RUN_ONCE);
+    uv_run(siri.loop, UV_RUN_NOWAIT);
 }

@@ -273,7 +273,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     /* init tee if configured */
     if (siridb_tee_is_configured(siridb->tee))
     {
-        siridb_tee_connect(siridb->tee);
+        // siridb_tee_connect(siridb->tee);
     }
 
     log_info("Finished loading database: '%s'", siridb->dbname);
