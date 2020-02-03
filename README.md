@@ -47,6 +47,7 @@ Install the following requirements: (Ubuntu 18.04)
 sudo apt install libcleri-dev
 sudo apt install libpcre2-dev
 sudo apt install libuv1-dev
+sudo apt install libyajl-dev
 sudo apt install uuid-dev
 ```
 
@@ -70,6 +71,7 @@ Install the following requirements:
 ```
 brew install pcre2
 brew install libuv
+brew install yajl
 brew install ossp-uuid
 ```
 Compile (replace Release with Debug for a debug build):
