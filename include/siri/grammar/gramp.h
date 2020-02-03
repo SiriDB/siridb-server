@@ -29,8 +29,8 @@
 #define CLERI_NODE_DATA(__node) ((intptr_t)(__node)->data)
 #define CLERI_NODE_DATA_ADDR(__node) ((intptr_t *) &(__node)->data)
 #else
-#define CLERI_NODE_DATA(__node) ((intptr_t)(__node)->result)
-#define CLERI_NODE_DATA_ADDR(__node) ((intptr_t *) &(__node)->result)
+#define CLERI_NODE_DATA(__node) (__node)->result
+#define CLERI_NODE_DATA_ADDR(__node) &(__node)->result
 #endif
 
 #endif  /* SIRI_GRAMP_H_ */
