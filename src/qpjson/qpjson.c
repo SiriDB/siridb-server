@@ -124,7 +124,7 @@ yajl_gen_status qpjson_qp_to_json(
     qp_unpacker_t up;
     qp_obj_t obj;
     yajl_gen g;
-    yajl_status stat;
+    yajl_gen_status stat;
 
     if (src_n == 0)
     {
