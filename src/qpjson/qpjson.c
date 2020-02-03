@@ -146,7 +146,7 @@ yajl_gen_status qpjson_qp_to_json(
 
     assert (obj.tp != QP_END);
 
-    if ((stat = qp__to_json(g, &up, &obj)) == yajl_status_ok)
+    if ((stat = qp__to_json(g, &up, &obj)) == yajl_gen_status_ok)
     {
         const unsigned char * tmp;
         yajl_gen_get_buf(g, &tmp, dst_n);
