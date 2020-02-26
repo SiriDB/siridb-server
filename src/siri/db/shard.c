@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <xstr/xstr.h>
 
-
 /* max read buffer size used for reading from index file */
 #define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
@@ -320,8 +319,8 @@ siridb_shard_t *  siridb_shard_create(
     FILE * fp;
     if (SHARD_init_fn(siridb, shard) < 0)
     {
-        ERR_ALLOC
         siridb_shard_decref(shard);
+        ERR_ALLOC
         return NULL;
     }
 
@@ -334,9 +333,11 @@ siridb_shard_t *  siridb_shard_create(
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot create shard file: '%s' (%s)",
+                shard->fn, strerror_si(errno, buf, sizeof(buf)));
         siridb_shard_decref(shard);
-        log_critical("Cannot create shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
@@ -356,18 +357,22 @@ siridb_shard_t *  siridb_shard_create(
             fputc(siridb->time->precision, fp) == EOF ||
             fputc(shard->flags, fp) == EOF)
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot write to shard file: '%s' (%s)",
+                shard->fn, strerror_si(errno, buf, sizeof(buf)));
         fclose(fp);
         siridb_shard_decref(shard);
-        log_critical("Cannot write to shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
     if (fclose(fp))
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot close shard file: '%s' (%s)",
+                shard->fn, strerror_si(errno, buf, sizeof(buf)));
         siridb_shard_decref(shard);
-        log_critical("Cannot close shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
@@ -486,8 +491,10 @@ size_t siridb_shard_write_points(
     {
         if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
         {
+            char buf[1024];
+            log_critical("Cannot open file '%s' (%s)",
+                    shard->fn, strerror_r(errno, buf, 1024));
             ERR_FILE
-            log_critical("Cannot open file '%s'", shard->fn);
             return 0;
         }
     }
@@ -593,8 +600,10 @@ size_t siridb_shard_write_points(
 
     if (rc != 1 || fflush(fp))
     {
+        char buf[1024];
+        log_critical("Cannot write points to file '%s' (%s)",
+                shard->fn, strerror_r(errno, buf, 1024));
         ERR_FILE
-        log_critical("Cannot write points to file '%s'", shard->fn);
         return 0;
     }
 
