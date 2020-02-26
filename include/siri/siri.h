@@ -20,10 +20,10 @@
 #define MAX_NUMBER_DB 1024
 
 #if defined(__GLIBC__)
-#define strerror_s(__err, __buf, __sz) \
+#define strerror_si(__err, __buf, __sz) \
     strerror_r(__err, __buf, __sz)
 #else
-#define strerror_s(__err, __buf, __sz) \
+#define strerror_si(__err, __buf, __sz) \
     (strerror_r(__err, __buf, __sz) == 0 ? __buf : "unexpected error")
 #endif
 
