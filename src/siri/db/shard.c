@@ -492,8 +492,10 @@ size_t siridb_shard_write_points(
     {
         if (siri_fopen(siri.fh, shard->fp, shard->fn, "r+"))
         {
+            char buf[1024];
+            log_critical("Cannot open file '%s' (%s)",
+                    shard->fn, strerror_r(errno, buf, 1024));
             ERR_FILE
-            log_critical("Cannot open file '%s'", shard->fn);
             return 0;
         }
     }
@@ -599,8 +601,10 @@ size_t siridb_shard_write_points(
 
     if (rc != 1 || fflush(fp))
     {
+        char buf[1024];
+        log_critical("Cannot write points to file '%s' (%s)",
+                shard->fn, strerror_r(errno, buf, 1024));
         ERR_FILE
-        log_critical("Cannot write points to file '%s'", shard->fn);
         return 0;
     }
 
