@@ -320,8 +320,8 @@ siridb_shard_t *  siridb_shard_create(
     FILE * fp;
     if (SHARD_init_fn(siridb, shard) < 0)
     {
-        ERR_ALLOC
         siridb_shard_decref(shard);
+        ERR_ALLOC
         return NULL;
     }
 
@@ -334,9 +334,11 @@ siridb_shard_t *  siridb_shard_create(
 
     if ((fp = fopen(shard->fn, "w")) == NULL)
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot create shard file: '%s' (%s)",
+                shard->fn, strerror_r(errno, buf, 1024));
         siridb_shard_decref(shard);
-        log_critical("Cannot create shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
@@ -356,18 +358,22 @@ siridb_shard_t *  siridb_shard_create(
             fputc(siridb->time->precision, fp) == EOF ||
             fputc(shard->flags, fp) == EOF)
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot write to shard file: '%s' (%s)",
+                shard->fn, strerror_r(errno, buf, 1024));
         fclose(fp);
         siridb_shard_decref(shard);
-        log_critical("Cannot write to shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
     if (fclose(fp))
     {
-        ERR_FILE
+        char buf[1024];
+        log_critical("Cannot close shard file: '%s' (%s)",
+                shard->fn, strerror_r(errno, buf, 1024));
         siridb_shard_decref(shard);
-        log_critical("Cannot close shard file: '%s'", shard->fn);
+        ERR_FILE
         return NULL;
     }
 
