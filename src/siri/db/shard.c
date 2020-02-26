@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <xstr/xstr.h>
 
-
 /* max read buffer size used for reading from index file */
 #define SIRIDB_SHARD_MAX_CHUNK_SZ 65536
 
@@ -336,7 +335,7 @@ siridb_shard_t *  siridb_shard_create(
     {
         char buf[1024];
         log_critical("Cannot create shard file: '%s' (%s)",
-                shard->fn, strerror_r(errno, buf, 1024));
+                shard->fn, strerror_s(errno, buf, sizeof(buf)));
         siridb_shard_decref(shard);
         ERR_FILE
         return NULL;
@@ -360,7 +359,7 @@ siridb_shard_t *  siridb_shard_create(
     {
         char buf[1024];
         log_critical("Cannot write to shard file: '%s' (%s)",
-                shard->fn, strerror_r(errno, buf, 1024));
+                shard->fn, strerror_s(errno, buf, sizeof(buf)));
         fclose(fp);
         siridb_shard_decref(shard);
         ERR_FILE
@@ -371,7 +370,7 @@ siridb_shard_t *  siridb_shard_create(
     {
         char buf[1024];
         log_critical("Cannot close shard file: '%s' (%s)",
-                shard->fn, strerror_r(errno, buf, 1024));
+                shard->fn, strerror_s(errno, buf, sizeof(buf)));
         siridb_shard_decref(shard);
         ERR_FILE
         return NULL;

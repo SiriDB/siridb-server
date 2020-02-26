@@ -19,6 +19,14 @@
 #define SIRI_MAX_SIZE_ERR_MSG 1024
 #define MAX_NUMBER_DB 1024
 
+#if defined(__GLIBC__)
+#define strerror_s(__err, __buf, __sz) \
+    strerror_r(__err, __buf, __sz)
+#else
+#define strerror_s(__err, __buf, __sz) \
+    (strerror_r(__err, __buf, __sz) == 0 ? __buf : "unexpected error")
+#endif
+
 typedef enum
 {
     SIRI_STATUS_LOADING,
