@@ -42,7 +42,18 @@ cproto_server_t siridb_auth_user_request(
             username,
             password)) == NULL)
     {
-        log_warning("User authentication request failed: invalid credentials");
+        if (strcmp(username, "sa") == 0)
+        {
+            log_warning(
+                    "User authentication request failed: "
+                    "invalid credentials for user `sa`, "
+                    "did you mean to use the default database user `iris`?");
+        }
+        else
+        {
+            log_warning(
+                    "User authentication request failed: invalid credentials");
+        }
         return CPROTO_ERR_AUTH_CREDENTIALS;
     }
 

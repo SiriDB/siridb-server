@@ -15,6 +15,7 @@
 #include <siri/help/help.h>
 #include <siri/siri.h>
 #include <siri/version.h>
+#include <siri/evars.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -55,6 +56,8 @@ int main(int argc, char * argv[])
 
     /* read siridb main application configuration */
     siri_cfg_init(&siri);
+
+    siri_evars_parse(&siri);
 
     /* start SiriDB. (this start the event loop etc.) */
     if (siri_start() && !siri_err)

@@ -85,6 +85,83 @@ failed:
 }
 
 
+int sirinet_extract_addr_port(
+        const char * s,
+        char * addr,
+        uint16_t * port)
+{
+    if (*option->val->string == '[')
+    {
+        /* an IPv6 address... */
+        for (port = address = option->val->string + 1; *port; port++)
+        {
+            if (*port == ']')
+            {
+                *port = 0;
+                port++;
+                break;
+            }
+        }
+    }
+    else
+    {
+        port = address = option->val->string;
+    }
+
+    for (; *port; port++)
+    {
+        if (*port == ':')
+        {
+            *port = 0;
+            port++;
+            break;
+        }
+    }
+
+    if (    !strlen(address) ||
+            strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
+            !xstr_is_int(port) ||
+            strcpy(address_pt, address) == NULL ||
+            xstr_replace_str(
+                    address_pt,
+                    "%HOSTNAME",
+                    hostname,
+                    SIRI_CFG_MAX_LEN_ADDRESS))
+    {
+        log_critical(
+                "Error reading '%s' in '%s': "
+                "error: got an unexpected value '%s:%s'.",
+                option_name,
+                siri.args->config,
+                address,
+                port);
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        test_port = atoi(port);
+
+        if (test_port < 1 || test_port > 65535)
+        {
+            log_critical(
+                    "Error reading '%s' in '%s': "
+                    "error: port should be between 1 and 65535, got '%d'.",
+                    option_name,
+                    siri.args->config,
+                    test_port);
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            *port_pt = (uint16_t) test_port;
+        }
+
+        log_debug("Read '%s' from config: %s:%d",
+                option_name,
+                address_pt,
+                *port_pt);
+    }
+}
 
 
 
