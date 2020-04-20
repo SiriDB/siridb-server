@@ -1,3 +1,11 @@
+siridb-server (2.0.35-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added shard expiration (#123)
+    - Added HTTP API (#124)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 24 Feb 2020 16:23:37 +0100
+
 siridb-server (2.0.34-0~tt1) unstable; urgency=medium
 
   * New upstream release
