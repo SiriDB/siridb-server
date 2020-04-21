@@ -506,7 +506,7 @@ static int api__query_from_qp(api__query_t * q, siri_api_request_t * ar)
 
     while (qp_next(&up, &obj) && !qp_is_close(obj.tp))
     {
-        if (!qp_is_raw(obj.tp) || obj.len != 1)
+        if (!qp_is_raw(obj.tp) || obj.len < 1)
         {
             return api__plain_response(ar, E400_BAD_REQUEST);
         }
