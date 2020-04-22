@@ -276,18 +276,14 @@ static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser)
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Missing '%s' in '%s' (%s). "
-                "Disable shard compression",
-                "enable_shard_compression",
+                "Missing 'enable_shard_compression' in '%s' (%s).",
                 siri.args->config,
                 cfgparser_errmsg(rc));
     }
     else if (option->tp != CFGPARSER_TP_INTEGER || option->val->integer > 1)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
-                "Disable shard compression",
-                "enable_shard_compression",
+                "Error reading 'enable_shard_compression' in '%s': %s.",
                 siri.args->config,
                 "error: expecting 0 or 1");
     }
@@ -309,18 +305,14 @@ static void SIRI_CFG_read_pipe_support(cfgparser_t * cfgparser)
     if (rc != CFGPARSER_SUCCESS)
     {
         log_warning(
-                "Missing '%s' in '%s' (%s). "
-                "Disable pipe support",
-                "enable_pipe_support",
+                "Missing 'enable_pipe_support' in '%s' (%s).",
                 siri.args->config,
                 cfgparser_errmsg(rc));
     }
     else if (option->tp != CFGPARSER_TP_INTEGER || option->val->integer > 1)
     {
         log_warning(
-                "Error reading '%s' in '%s': %s. "
-                "Disable pipe support",
-                "enable_pipe_support",
+                "Error reading 'enable_pipe_support' in '%s': %s.",
                 siri.args->config,
                 "error: expecting 0 or 1");
     }
