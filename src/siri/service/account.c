@@ -407,7 +407,14 @@ int siri_service_account_save(siri_t * siri, char * err_msg)
         /* close file pointer */
         qp_close(fpacker))
     {
-        ACCOUNT_msg(err_msg, "error saving service accounts");
+        if (err_msg)
+        {
+            ACCOUNT_msg(err_msg, "error saving service accounts");
+        }
+        else
+        {
+            log_error("error saving service accounts: `%s`", fn);
+        }
         return EOF;
     }
     return 0;

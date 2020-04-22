@@ -48,6 +48,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <xpath/xpath.h>
 
@@ -123,6 +124,130 @@ void siri_setup_logger(void)
      * contain a valid log level
      */
     logger_init(stdout, 0);
+}
+
+int make_database_directory(void)
+{
+    char tmppath[XPATH_MAX];
+    char * sysuser = getenv("USER");
+    char * homedir = getenv("HOME");
+    size_t len;
+
+    memset(tmppath, 0, XPATH_MAX);
+
+    if (*siri.cfg->default_db_path == '\0')
+    {
+        if (!homedir || !sysuser || strcmp(sysuser, "root") == 0)
+        {
+            strcpy(siri.cfg->default_db_path, "/var/lib/siridb/");
+        }
+        else
+        {
+            snprintf(siri.cfg->default_db_path, XPATH_MAX, "%s%s.siridb/",
+                    homedir,
+                    homedir[strlen(homedir)-1] == '/' ? "" : "/");
+        }
+    }
+
+    if (!xpath_is_dir(siri.cfg->default_db_path))
+    {
+        log_warning("Database directory not found, creating directory '%s'.",
+                siri.cfg->default_db_path);
+        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
+        {
+            log_error("Cannot create directory '%s'.",
+                    siri.cfg->default_db_path);
+            return -1;
+        }
+    }
+
+    if (realpath(siri.cfg->default_db_path, tmppath) == NULL)
+    {
+        log_warning(
+                "Could not resolve default database path: %s",
+                siri.cfg->default_db_path);
+    }
+    else
+    {
+        memcpy(siri.cfg->default_db_path, tmppath, sizeof(tmppath));
+    }
+
+    len = strlen(siri.cfg->default_db_path);
+
+    if (len >= XPATH_MAX - 2)
+    {
+        log_warning(
+                "Default database path exceeds %d characters, please "
+                "check your configuration file: %s",
+                XPATH_MAX - 3,
+                siri.args->config);
+        return -1;
+    }
+
+    /* add trailing slash (/) if its not already there */
+    if (siri.cfg->default_db_path[len - 1] != '/')
+    {
+        siri.cfg->default_db_path[len] = '/';
+        siri.cfg->default_db_path[len+1] = '\0';
+    }
+
+    return 0;
+}
+
+void set_max_open_files_limit(void)
+{
+    struct rlimit rlim;
+
+    if (siri.cfg->max_open_files < MIN_OPEN_FILES_LIMIT ||
+            siri.cfg->max_open_files > MAX_OPEN_FILES_LIMIT)
+    {
+        log_warning(
+                "Value max_open_files must be a value between %d and %d "
+                "but we found %d. Using default value instead: %d",
+                MIN_OPEN_FILES_LIMIT, MAX_OPEN_FILES_LIMIT,
+                siri.cfg->max_open_files, DEFAULT_OPEN_FILES_LIMIT);
+        siri.cfg->max_open_files = DEFAULT_OPEN_FILES_LIMIT;
+    }
+
+    getrlimit(RLIMIT_NOFILE, &rlim);
+
+    uint16_t min_limit = (uint16_t)
+            ((double) siri.cfg->max_open_files / RLIMIT_PERC_FOR_SHARDING) -1;
+
+    if (min_limit > (uint64_t) rlim.rlim_max)
+    {
+        siri.cfg->max_open_files =
+                (uint16_t) ((double) rlim.rlim_max * RLIMIT_PERC_FOR_SHARDING);
+        log_warning(
+                "We want to set a max-open-files value which "
+                "exceeds %d%% of the current hard limit.\n\nWe "
+                "will use %d as max_open_files for now.\n"
+                "Please increase the hard-limit using:\n"
+                "ulimit -Hn %d",
+                (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100),
+                siri.cfg->max_open_files,
+                min_limit);
+        min_limit = siri.cfg->max_open_files * 2;
+    }
+
+    if (min_limit > (uint64_t) rlim.rlim_cur)
+    {
+        rlim_t prev = rlim.rlim_cur;
+        log_info(
+                "Increasing soft-limit from %d to %d since we want "
+                "to use only %d%% from the soft-limit for shard files",
+                (uint64_t) rlim.rlim_cur,
+                min_limit,
+                (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100));
+        rlim.rlim_cur = min_limit;
+        if (setrlimit(RLIMIT_NOFILE, &rlim))
+        {
+            siri.cfg->max_open_files = (uint16_t) (prev / 2);
+            log_warning("Could not set the soft-limit to %d, "
+                    "changing max open files to: %u",
+                    min_limit, siri.cfg->max_open_files);
+        }
+    }
 }
 
 int siri_start(void)

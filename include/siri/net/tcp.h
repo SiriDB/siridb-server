@@ -17,5 +17,9 @@ enum
 int dns_req_family_map[3];
 const char * sirinet_tcp_ip_support_str(uint8_t ip_support);
 char * sirinet_tcp_name(uv_tcp_t * client);
+int sirinet_extract_addr_port(
+        char * s,
+        char * addr,
+        uint16_t * port);
 
 #endif  /* SIRINET_TCP_H_ */

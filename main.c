@@ -59,6 +59,13 @@ int main(int argc, char * argv[])
 
     siri_evars_parse(&siri);
 
+    if (make_database_directory())
+    {
+        exit(1);
+    }
+
+    set_max_open_files_limit();
+
     /* start SiriDB. (this start the event loop etc.) */
     if (siri_start() && !siri_err)
     {

@@ -54,6 +54,8 @@ extern siri_t siri;
 void siri_setup_logger(void);
 int siri_start(void);
 void siri_free(void);
+int make_database_directory(void);
+void set_max_open_files_limit(void);
 
 struct siri_s
 {

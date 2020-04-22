@@ -3,8 +3,12 @@
  */
 #include <siri/net/tcp.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <uv.h>
+#include <xstr/xstr.h>
+#include <siri/cfg/cfg.h>
+#include <logger/logger.h>
 
 #define TCP_NAME_BUF_SZ 54
 
@@ -84,83 +88,87 @@ failed:
     return NULL;
 }
 
-
 int sirinet_extract_addr_port(
-        const char * s,
+        char * s,
         char * addr,
-        uint16_t * port)
+        uint16_t * addrport)
 {
-    if (*option->val->string == '[')
+    int test_port;
+    char * strport;
+    char * address;
+    char hostname[SIRI_CFG_MAX_LEN_ADDRESS];
+    if (gethostname(hostname, SIRI_CFG_MAX_LEN_ADDRESS))
+    {
+        log_debug(
+                "Unable to read the systems host name. Since its only purpose "
+                "is to apply this in the configuration file this might not be "
+                "any problem. (using 'localhost' as fallback)");
+        strcpy(hostname, "localhost");
+    }
+
+
+    if (*s == '[')
     {
         /* an IPv6 address... */
-        for (port = address = option->val->string + 1; *port; port++)
+        for (strport = address = s + 1; *strport; strport++)
         {
-            if (*port == ']')
+            if (*strport == ']')
             {
-                *port = 0;
-                port++;
+                *strport = 0;
+                strport++;
                 break;
             }
         }
     }
     else
     {
-        port = address = option->val->string;
+        strport = address = s;
     }
 
-    for (; *port; port++)
+    for (; *strport; strport++)
     {
-        if (*port == ':')
+        if (*strport == ':')
         {
-            *port = 0;
-            port++;
+            *strport = 0;
+            strport++;
             break;
         }
     }
 
     if (    !strlen(address) ||
             strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
-            !xstr_is_int(port) ||
-            strcpy(address_pt, address) == NULL ||
+            !xstr_is_int(strport) ||
+            strcpy(addr, address) == NULL ||
             xstr_replace_str(
-                    address_pt,
+                    addr,
                     "%HOSTNAME",
                     hostname,
                     SIRI_CFG_MAX_LEN_ADDRESS))
     {
         log_critical(
-                "Error reading '%s' in '%s': "
                 "error: got an unexpected value '%s:%s'.",
-                option_name,
-                siri.args->config,
                 address,
-                port);
-        exit(EXIT_FAILURE);
+                strport);
+        return -1;
     }
-    else
+
+    test_port = atoi(strport);
+
+    if (test_port < 1 || test_port > 65535)
     {
-        test_port = atoi(port);
-
-        if (test_port < 1 || test_port > 65535)
-        {
-            log_critical(
-                    "Error reading '%s' in '%s': "
-                    "error: port should be between 1 and 65535, got '%d'.",
-                    option_name,
-                    siri.args->config,
-                    test_port);
-            exit(EXIT_FAILURE);
-        }
-        else
-        {
-            *port_pt = (uint16_t) test_port;
-        }
-
-        log_debug("Read '%s' from config: %s:%d",
-                option_name,
-                address_pt,
-                *port_pt);
+        log_critical(
+                "error: port should be between 1 and 65535, got '%d'.",
+                test_port);
+        return -1;
     }
+
+    *addrport = (uint16_t) test_port;
+
+    log_debug("Read '%s': %s:%d",
+            s,
+            addr,
+            *addrport);
+    return 0;
 }
 
 

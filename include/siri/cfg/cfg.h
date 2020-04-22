@@ -8,6 +8,13 @@ typedef struct siri_cfg_s siri_cfg_t;
 
 #define SIRI_CFG_MAX_LEN_ADDRESS 256
 
+/* do not use more than x percent for the max limit for open sharding files */
+#define RLIMIT_PERC_FOR_SHARDING 0.5
+
+#define MAX_OPEN_FILES_LIMIT 32768
+#define MIN_OPEN_FILES_LIMIT 3
+#define DEFAULT_OPEN_FILES_LIMIT MAX_OPEN_FILES_LIMIT
+
 #include <inttypes.h>
 #include <limits.h>
 #include <siri/siri.h>
