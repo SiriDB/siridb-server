@@ -16,6 +16,7 @@
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <siri/evars.h>
+#include <siri/net/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -65,6 +66,10 @@ int main(int argc, char * argv[])
     }
 
     set_max_open_files_limit();
+
+    log_debug("Shard compression: %s", siri.cfg->shard_compression ? "enabled" : "disabled");
+    log_debug("Pipe support: %s", siri.cfg->pipe_support ? "enabled" : "disabled");
+    log_debug("IP support: %s", sirinet_tcp_ip_support_str(siri.cfg->ip_support));
 
     /* start SiriDB. (this start the event loop etc.) */
     if (siri_start() && !siri_err)

@@ -69,7 +69,7 @@ void siri_cfg_init(siri_t * siri)
          * not what users want so lets quit.
          */
         log_debug(
-                "Not using configuration file '%s' (%s)\n",
+                "Not using configuration file '%s' (%s)",
                 siri->args->config,
                 cfgparser_errmsg(rc));
         cfgparser_free(cfgparser);
