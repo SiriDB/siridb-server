@@ -1,3 +1,12 @@
+siridb-server (2.0.36-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug in max open files setting (#125)
+    - Accept Grafana compatible API requests (#129)
+    - Added support for configuration using environment variable (#128)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 22 Apr 2020 11:18:32 +0200
+
 siridb-server (2.0.35-0~tt1) unstable; urgency=medium
 
   * New upstream release
