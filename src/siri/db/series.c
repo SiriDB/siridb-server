@@ -1602,16 +1602,31 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     /* save last object, should be QP_END */
     tp = qp_next(unpacker, NULL);
 
-    /* free unpacker */
-    qp_unpacker_ff_free(unpacker);
-
     if (tp != QP_END)
     {
+        double start = (double) (unpacker->end - unpacker->source);
+        double pos = (double) (unpacker->pt - unpacker->source);
+
+        if (pos / start < 0.8)
+        {
+            log_critical(
+                    "Cannot read at least 80 percent of '%s', "
+                    "do not continue as this leads to data loss",
+                    fn);
+            /* free unpacker */
+            qp_unpacker_ff_free(unpacker);
+            return -1;
+        }
+
         log_error(
                 "Expected end of file '%s'; "
                 "Create a backup and continue", fn);
+
         (void) SERIES_keep_corrupt_series(siridb);
     }
+
+    /* free unpacker */
+    qp_unpacker_ff_free(unpacker);
 
     /*
      * In case of a siri_err we should not         return -1;
