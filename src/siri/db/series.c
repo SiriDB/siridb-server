@@ -32,6 +32,7 @@
 #include <xpath/xpath.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
+#define SIRIDB_CORRUPT_FN "corrupt_series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
 #define SIRIDB_SERIES_SCHEMA 1
@@ -1514,6 +1515,25 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
     return rc;
 }
 
+static int SERIES_keep_corrupt_series(siridb_t * siridb)
+{
+    int rc;
+    siridb_misc_get_fn(series_fn, siridb->dbpath, SIRIDB_SERIES_FN)
+    siridb_misc_get_fn(corrupt_fn, siridb->dbpath, SIRIDB_CORRUPT_FN)
+
+    (void) unlink(corrupt_fn);
+    rc = rename(series_fn, corrupt_fn);
+    if (rc == 0)
+    {
+        log_warning("Keep previous '%s' as '%s'", series_fn, corrupt_fn);
+    }
+    else
+    {
+        log_error("Cannot rename '%s' to '%s'", series_fn, corrupt_fn);
+    }
+    return rc;
+}
+
 static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 {
     qp_unpacker_t * unpacker;
@@ -1587,12 +1607,15 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
 
     if (tp != QP_END)
     {
-        log_critical("Expected end of file '%s'", fn);
-        return -1;
+        log_error(
+                "Expected end of file '%s'; "
+                "Create a backup and continue", fn);
+        (void) SERIES_keep_corrupt_series(siridb);
     }
 
     /*
-     * In case of a siri_err we should not overwrite series because the
+     * In case of a siri_err we should not         return -1;
+     * overwrite series because the
      * file then might be incomplete.
      */
     if (siri_err || SERIES_save(siridb))
