@@ -69,7 +69,7 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
     }
     else
     {
-        groups->ref = 2;  /* for the main thread and for the groups thread  */
+        groups->ref = 1;
         groups->fn = NULL;
         groups->groups = ct_new();
         groups->nseries = vec_new(VEC_DEFAULT_SIZE);
@@ -329,6 +329,11 @@ int siridb_groups_drop_group(
     return 0;
 }
 
+void siridb_groups_incref(siridb_groups_t * groups)
+{
+    groups->ref++;
+}
+
 void siridb_groups_decref(siridb_groups_t * groups)
 {
     if (!--groups->ref)
@@ -417,6 +422,9 @@ static void GROUPS_loop(void * arg)
     siridb_groups_t * groups = siridb->groups;
     uint64_t mod_test = 0;
 
+    siridb_groups_incref(siridb->groups);
+    siridb_tags_incref(siridb->tags);
+
     while (groups->status != GROUPS_STOPPING)
     {
         sleep(GROUPS_LOOP_SLEEP);
@@ -445,6 +453,14 @@ static void GROUPS_loop(void * arg)
             {
                 GROUPS_cleanup(siridb->groups);
             }
+            if (siridb->tags->flags & TAGS_FLAG_DROPPED_SERIES)
+            {
+                siridb_tags_dropped_series(siridb->tags);
+            }
+            if (siridb->tags->flags & TAGS_FLAG_REQUIRE_SAVE)
+            {
+                siridb_tags_save(siridb->tags);
+            }
             break;
 
         case GROUPS_STOPPING:
@@ -457,6 +473,8 @@ static void GROUPS_loop(void * arg)
     }
 
     groups->status = GROUPS_CLOSED;
+
+    siridb_tags_decref(siridb->tags);
     siridb_groups_decref(siridb->groups);
 }
 

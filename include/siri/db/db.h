@@ -37,6 +37,7 @@ typedef struct siridb_s siridb_t;
 #include <siri/db/time.h>
 #include <siri/db/buffer.h>
 #include <siri/db/tee.h>
+#include <siri/db/tags.h>
 
 
 int32_t siridb_get_uptime(siridb_t * siridb);
@@ -102,6 +103,7 @@ struct siridb_s
     siridb_replicate_t * replicate;
     siridb_reindex_t * reindex;
     siridb_groups_t * groups;
+    siridb_tags_t * tags;
     siridb_buffer_t * buffer;
     siridb_tee_t * tee;
     siridb_tasks_t tasks;

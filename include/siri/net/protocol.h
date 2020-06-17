@@ -79,6 +79,7 @@ typedef enum
     BPROTO_DISABLE_BACKUP_MODE,         /* empty                            */
     BPROTO_TEE_PIPE_NAME_UPDATE,        /* tee pipe name                    */
     BPROTO_DROP_DATABASE,               /* empty                            */
+    BPROTO_REQ_TAGS,                    /* empty                            */
 } bproto_client_t;
 
 /*
@@ -128,6 +129,7 @@ typedef enum
     BPROTO_RES_GROUPS,                          /* [[name, series], ...]    */
     BPROTO_ACK_TEE_PIPE_NAME,                   /* empty                    */
     BPROTO_ACK_DROP_DATABASE,                   /* empty                    */
+    BPROTO_RES_TAGS,                             /*  [[name, series], ...]  */
 
 } bproto_server_t;
 
