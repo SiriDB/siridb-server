@@ -35,9 +35,8 @@ struct siridb_tag_s
 {
     uint16_t ref;
     uint16_t flags;
-    uint32_t id;
+    uint32_t n;
     char * name;
-    char * fn;
     imap_t * series;
 };
 

@@ -25,7 +25,6 @@ struct siridb_tags_s
 {
     uint16_t flags;
     uint16_t ref;
-    uint32_t next_id;
     char * path;
     ct_t * tags;
     vec_t * cleanup;
@@ -41,14 +40,13 @@ ct_t * siridb_tags_lookup(siridb_tags_t * tags);
 void siridb_tags_cleanup(uv_async_t * handle);
 void siridb_tags_dropped_series(siridb_tags_t * tags);
 void siridb_tags_save(siridb_tags_t * tags);
+void siridb_tags_init_nseries(siridb_tags_t * tags);
 
 
-static inline void siridb_tags_set_require_save(
-        siridb_tags_t * tags,
-        siridb_tag_t * tag)
-{
-    tags->flags |= TAGS_FLAG_REQUIRE_SAVE;
-    tag->flags |= TAG_FLAG_REQUIRE_SAVE;
-}
+#define siridb_tags_set_require_save(__tags, __tag) \
+do{                                                 \
+    (__tags)->flags |= TAGS_FLAG_REQUIRE_SAVE;      \
+    (__tag)->flags |= TAG_FLAG_REQUIRE_SAVE;        \
+}while(0)
 
 #endif  /* SIRIDB_TAGS_H_ */

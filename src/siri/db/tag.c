@@ -25,28 +25,15 @@
 /*
  * Returns tag when successful or NULL in case of an error.
  */
-siridb_tag_t * siridb_tag_new(uint32_t id, const char * tags_path)
+siridb_tag_t * siridb_tag_new(char * name)
 {
     siridb_tag_t * tag = (siridb_tag_t *) malloc(sizeof(siridb_tag_t));
     if (tag != NULL)
     {
         tag->ref = 1;
         tag->flags = 0;
-        tag->id = id;
-        tag->name = NULL;
-        ;
+        tag->name = name;
         tag->series = imap_new();
-
-        if (asprintf(
-                &tag->fn,
-                "%s%0*" PRIu32 ".tag",
-                tags_path,
-                TAGFN_NUMBERS,
-                id) < 0 || tag->series == NULL)
-        {
-            siridb__tag_free(tag);
-            tag = NULL;
-        }
     }
     return tag;
 }
@@ -74,7 +61,9 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 
             if (!qp_is_array(qp_next(unpacker, NULL)) ||
                 qp_next(unpacker, &qp_tn) != QP_RAW ||
-                (tag->name = strndup(qp_tn.via.raw, qp_tn.len)) == NULL)
+                (tag->name = strndup(
+                        (const char *) qp_tn.via.raw,
+                        qp_tn.len)) == NULL)
             {
                 /* or a memory allocation error, but the same result */
                 log_critical(
@@ -96,7 +85,7 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
 
                     if (series == NULL)
                     {
-                        siridb_tags_require_save(siridb->tags, tag);
+                        siridb_tags_set_require_save(siridb->tags, tag);
 
                         log_error(
                                 "cannot find series id %" PRId64

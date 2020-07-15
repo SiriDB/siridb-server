@@ -36,7 +36,8 @@ typedef enum
     QUERY_ALTER_GROUP,
     QUERY_ALTER_SERVER,
     QUERY_ALTER_SERVERS,
-    QUERY_ALTER_USER
+    QUERY_ALTER_USER,
+    QUERY_ALTER_SERIES
 } query_alter_tp;
 
 #define QUERY_DEF               \
