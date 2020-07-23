@@ -578,7 +578,7 @@ static void prop_time_precision(
     assert (siridb->time->precision >= SIRIDB_TIME_SECONDS &&
             siridb->time->precision <= SIRIDB_TIME_NANOSECONDS);
 
-    qp_add_string(packer, siridb_time_short_map[siridb->time->precision]);
+    qp_add_string(packer, siridb_time_short_map(siridb->time->precision));
 }
 
 static void prop_uptime(

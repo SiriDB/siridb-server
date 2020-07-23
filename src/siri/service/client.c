@@ -205,7 +205,7 @@ int siri_service_client_request(
     {
         if (CLIENT_resolve_dns(
                 adm_client,
-                dns_req_family_map[siri.cfg->ip_support],
+                dns_req_family_map(siri.cfg->ip_support),
                 err_msg))
         {
             sirinet_stream_decref(siri.client);

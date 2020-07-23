@@ -451,7 +451,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* Try DNS */
             if (SERVER_resolve_dns(
                     server,
-                    dns_req_family_map[siri.cfg->ip_support],
+                    dns_req_family_map(siri.cfg->ip_support),
                     SERVER_on_resolved))
             {
                 sirinet_stream_decref(server->client);
