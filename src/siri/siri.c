@@ -110,7 +110,7 @@ void siri_setup_logger(void)
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
-        strcpy(lname, LOGGER_LEVEL_NAMES[n]);
+        strcpy(lname, logger_level_name(n));
         xstr_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
