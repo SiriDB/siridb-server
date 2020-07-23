@@ -403,105 +403,105 @@ void siridb_init_listener(void)
 
     for (i = 0; i < CLERI_END; i++)
     {
-        siridb_listen_enter[i] = NULL;
-        siridb_listen_exit[i] = NULL;
+        SIRIDB_NODE_ENTER[i] = NULL;
+        SIRIDB_NODE_EXIT[i] = NULL;
     }
 
-    siridb_listen_enter[CLERI_GID_ACCESS_EXPR] = enter_access_expr;
-    siridb_listen_enter[CLERI_GID_ALTER_GROUP] = enter_alter_group;
-    siridb_listen_enter[CLERI_GID_ALTER_SERVER] = enter_alter_server;
-    siridb_listen_enter[CLERI_GID_ALTER_SERVERS] = enter_alter_servers;
-    siridb_listen_enter[CLERI_GID_ALTER_STMT] = enter_alter_stmt;
-    siridb_listen_enter[CLERI_GID_ALTER_USER] = enter_alter_user;
-    siridb_listen_enter[CLERI_GID_COUNT_STMT] = enter_count_stmt;
-    siridb_listen_enter[CLERI_GID_CREATE_STMT] = enter_create_stmt;
-    siridb_listen_enter[CLERI_GID_CREATE_USER] = enter_create_user;
-    siridb_listen_enter[CLERI_GID_DROP_STMT] = enter_drop_stmt;
-    siridb_listen_enter[CLERI_GID_GRANT_USER] = enter_grant_user;
-    siridb_listen_enter[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_GROUP_MATCH] = enter_group_match;
-    siridb_listen_enter[CLERI_GID_HELP_STMT] = enter_help;
-    siridb_listen_enter[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
-    siridb_listen_enter[CLERI_GID_LIST_STMT] = enter_list_stmt;
-    siridb_listen_enter[CLERI_GID_MERGE_AS] = enter_merge_as;
-    siridb_listen_enter[CLERI_GID_POOL_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_REVOKE_USER] = enter_revoke_user;
-    siridb_listen_enter[CLERI_GID_SELECT_STMT] = enter_select_stmt;
-    siridb_listen_enter[CLERI_GID_SET_EXPRESSION] = enter_set_expression;
-    siridb_listen_enter[CLERI_GID_SET_IGNORE_THRESHOLD] = enter_set_ignore_threshold;
-    siridb_listen_enter[CLERI_GID_SET_NAME] = enter_set_name;
-    siridb_listen_enter[CLERI_GID_SET_PASSWORD] = enter_set_password;
-    siridb_listen_enter[CLERI_GID_SERIES_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_SERVER_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_SERIES_ALL] = enter_series_all;
-    siridb_listen_enter[CLERI_GID_SERIES_NAME] = enter_series_name;
-    siridb_listen_enter[CLERI_GID_SERIES_MATCH] = enter_series_match;
-    siridb_listen_enter[CLERI_GID_SERIES_PARENTHESES] = enter_series_parentheses;
-    siridb_listen_enter[CLERI_GID_SERIES_RE] = enter_series_re;
-    siridb_listen_enter[CLERI_GID_SERIES_SETOPR] = enter_series_setopr;
-    siridb_listen_enter[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
-    siridb_listen_enter[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
-    siridb_listen_enter[CLERI_GID_WHERE_GROUP] = enter_where_xxx;
-    siridb_listen_enter[CLERI_GID_WHERE_POOL] = enter_where_xxx;
-    siridb_listen_enter[CLERI_GID_WHERE_SERIES] = enter_where_xxx;
-    siridb_listen_enter[CLERI_GID_WHERE_SERVER] = enter_where_xxx;
-    siridb_listen_enter[CLERI_GID_WHERE_SHARD] = enter_where_xxx;
-    siridb_listen_enter[CLERI_GID_WHERE_USER] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_ACCESS_EXPR] = enter_access_expr;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_GROUP] = enter_alter_group;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_SERVER] = enter_alter_server;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_SERVERS] = enter_alter_servers;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_STMT] = enter_alter_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_USER] = enter_alter_user;
+    SIRIDB_NODE_ENTER[CLERI_GID_COUNT_STMT] = enter_count_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_CREATE_STMT] = enter_create_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_CREATE_USER] = enter_create_user;
+    SIRIDB_NODE_ENTER[CLERI_GID_DROP_STMT] = enter_drop_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_GRANT_USER] = enter_grant_user;
+    SIRIDB_NODE_ENTER[CLERI_GID_GROUP_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_GROUP_MATCH] = enter_group_match;
+    SIRIDB_NODE_ENTER[CLERI_GID_HELP_STMT] = enter_help;
+    SIRIDB_NODE_ENTER[CLERI_GID_LIMIT_EXPR] = enter_limit_expr;
+    SIRIDB_NODE_ENTER[CLERI_GID_LIST_STMT] = enter_list_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_MERGE_AS] = enter_merge_as;
+    SIRIDB_NODE_ENTER[CLERI_GID_POOL_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_REVOKE_USER] = enter_revoke_user;
+    SIRIDB_NODE_ENTER[CLERI_GID_SELECT_STMT] = enter_select_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_SET_EXPRESSION] = enter_set_expression;
+    SIRIDB_NODE_ENTER[CLERI_GID_SET_IGNORE_THRESHOLD] = enter_set_ignore_threshold;
+    SIRIDB_NODE_ENTER[CLERI_GID_SET_NAME] = enter_set_name;
+    SIRIDB_NODE_ENTER[CLERI_GID_SET_PASSWORD] = enter_set_password;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERVER_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_ALL] = enter_series_all;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_NAME] = enter_series_name;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_MATCH] = enter_series_match;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_PARENTHESES] = enter_series_parentheses;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_RE] = enter_series_re;
+    SIRIDB_NODE_ENTER[CLERI_GID_SERIES_SETOPR] = enter_series_setopr;
+    SIRIDB_NODE_ENTER[CLERI_GID_SHARD_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_GROUP] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_POOL] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_SERIES] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_SERVER] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_SHARD] = enter_where_xxx;
+    SIRIDB_NODE_ENTER[CLERI_GID_WHERE_USER] = enter_where_xxx;
 
 
-    siridb_listen_exit[CLERI_GID_AFTER_EXPR] = exit_after_expr;
-    siridb_listen_exit[CLERI_GID_ALTER_GROUP] = exit_alter_group;
-    siridb_listen_exit[CLERI_GID_ALTER_USER] = exit_alter_user;
-    siridb_listen_exit[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
-    siridb_listen_exit[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
-    siridb_listen_exit[CLERI_GID_CALC_STMT] = exit_calc_stmt;
-    siridb_listen_exit[CLERI_GID_COUNT_GROUPS] = exit_count_groups;
-    siridb_listen_exit[CLERI_GID_COUNT_POOLS] = exit_count_pools;
-    siridb_listen_exit[CLERI_GID_COUNT_SERIES] = exit_count_series;
-    siridb_listen_exit[CLERI_GID_COUNT_SERIES_LENGTH] = exit_count_series_length;
-    siridb_listen_exit[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
-    siridb_listen_exit[CLERI_GID_COUNT_SERVERS_RECEIVED] = exit_count_servers_received;
-    siridb_listen_exit[CLERI_GID_COUNT_SERVERS_SELECTED] = exit_count_servers_selected;
-    siridb_listen_exit[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
-    siridb_listen_exit[CLERI_GID_COUNT_SHARDS_SIZE] = exit_count_shards_size;
-    siridb_listen_exit[CLERI_GID_COUNT_USERS] = exit_count_users;
-    siridb_listen_exit[CLERI_GID_CREATE_GROUP] = exit_create_group;
-    siridb_listen_exit[CLERI_GID_CREATE_USER] = exit_create_user;
-    siridb_listen_exit[CLERI_GID_DROP_GROUP] = exit_drop_group;
-    siridb_listen_exit[CLERI_GID_DROP_SERIES] = exit_drop_series;
-    siridb_listen_exit[CLERI_GID_DROP_SERVER] = exit_drop_server;
-    siridb_listen_exit[CLERI_GID_DROP_SHARDS] = exit_drop_shards;
-    siridb_listen_exit[CLERI_GID_DROP_USER] = exit_drop_user;
-    siridb_listen_exit[CLERI_GID_GRANT_USER] = exit_grant_user;
-    siridb_listen_exit[CLERI_GID_LIST_GROUPS] = exit_list_groups;
-    siridb_listen_exit[CLERI_GID_LIST_POOLS] = exit_list_pools;
-    siridb_listen_exit[CLERI_GID_LIST_SERIES] = exit_list_series;
-    siridb_listen_exit[CLERI_GID_LIST_SERVERS] = exit_list_servers;
-    siridb_listen_exit[CLERI_GID_LIST_SHARDS] = exit_list_shards;
-    siridb_listen_exit[CLERI_GID_LIST_USERS] = exit_list_users;
-    siridb_listen_exit[CLERI_GID_REVOKE_USER] = exit_revoke_user;
-    siridb_listen_exit[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
-    siridb_listen_exit[CLERI_GID_SELECT_STMT] = exit_select_stmt;
-    siridb_listen_exit[CLERI_GID_SERIES_MATCH] = exit_series_match;
-    siridb_listen_exit[CLERI_GID_SERIES_PARENTHESES] = exit_series_parentheses;
-    siridb_listen_exit[CLERI_GID_SET_ADDRESS] = exit_set_address;
-    siridb_listen_exit[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
-    siridb_listen_exit[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
-    siridb_listen_exit[CLERI_GID_SET_EXPIRATION_LOG] = exit_set_expiration_log;
-    siridb_listen_exit[CLERI_GID_SET_EXPIRATION_NUM] = exit_set_expiration_num;
-    siridb_listen_exit[CLERI_GID_SET_LIST_LIMIT] = exit_set_list_limit;
-    siridb_listen_exit[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
-    siridb_listen_exit[CLERI_GID_SET_PORT] = exit_set_port;
-    siridb_listen_exit[CLERI_GID_SET_SELECT_POINTS_LIMIT] = exit_set_select_points_limit;
-    siridb_listen_exit[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
-    siridb_listen_exit[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
-    siridb_listen_exit[CLERI_GID_SHOW_STMT] = exit_show_stmt;
-    siridb_listen_exit[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_AFTER_EXPR] = exit_after_expr;
+    SIRIDB_NODE_EXIT[CLERI_GID_ALTER_GROUP] = exit_alter_group;
+    SIRIDB_NODE_EXIT[CLERI_GID_ALTER_USER] = exit_alter_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
+    SIRIDB_NODE_EXIT[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
+    SIRIDB_NODE_EXIT[CLERI_GID_CALC_STMT] = exit_calc_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_GROUPS] = exit_count_groups;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_POOLS] = exit_count_pools;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERIES] = exit_count_series;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERIES_LENGTH] = exit_count_series_length;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS_RECEIVED] = exit_count_servers_received;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS_SELECTED] = exit_count_servers_selected;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SHARDS_SIZE] = exit_count_shards_size;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_USERS] = exit_count_users;
+    SIRIDB_NODE_EXIT[CLERI_GID_CREATE_GROUP] = exit_create_group;
+    SIRIDB_NODE_EXIT[CLERI_GID_CREATE_USER] = exit_create_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_GROUP] = exit_drop_group;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_SERIES] = exit_drop_series;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_SERVER] = exit_drop_server;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_SHARDS] = exit_drop_shards;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_USER] = exit_drop_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_GRANT_USER] = exit_grant_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_GROUPS] = exit_list_groups;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_POOLS] = exit_list_pools;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_SERIES] = exit_list_series;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_SERVERS] = exit_list_servers;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_SHARDS] = exit_list_shards;
+    SIRIDB_NODE_EXIT[CLERI_GID_LIST_USERS] = exit_list_users;
+    SIRIDB_NODE_EXIT[CLERI_GID_REVOKE_USER] = exit_revoke_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_SELECT_AGGREGATE] = exit_select_aggregate;
+    SIRIDB_NODE_EXIT[CLERI_GID_SELECT_STMT] = exit_select_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_SERIES_MATCH] = exit_series_match;
+    SIRIDB_NODE_EXIT[CLERI_GID_SERIES_PARENTHESES] = exit_series_parentheses;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_ADDRESS] = exit_set_address;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_BACKUP_MODE] = exit_set_backup_mode;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_DROP_THRESHOLD] = exit_set_drop_threshold;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_EXPIRATION_LOG] = exit_set_expiration_log;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_EXPIRATION_NUM] = exit_set_expiration_num;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_LIST_LIMIT] = exit_set_list_limit;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_PORT] = exit_set_port;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_SELECT_POINTS_LIMIT] = exit_set_select_points_limit;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
+    SIRIDB_NODE_EXIT[CLERI_GID_SHOW_STMT] = exit_show_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
 
     for (i = HELP_OFFSET; i < HELP_OFFSET + HELP_COUNT; i++)
     {
-        siridb_listen_exit[i] = exit_help_xxx;
+        SIRIDB_NODE_EXIT[i] = exit_help_xxx;
     }
 }
 
@@ -4449,7 +4449,7 @@ static void exit_show_stmt(uv_async_t * handle)
     qp_add_type(query->packer, QP_ARRAY_OPEN);
 
     /* set props.h (who_am_i) to current db_name */
-    who_am_i = db_user->name;
+    props_set_who_am_i(db_user->name);
 
     if (children == NULL || children->node == NULL)
     {
@@ -4458,7 +4458,7 @@ static void exit_show_stmt(uv_async_t * handle)
 
         for (i = 0; i < KW_COUNT; i++)
         {
-            if ((prop_cb = siridb_props[i]) == NULL)
+            if ((prop_cb = props_get_cb(i)) == NULL)
             {
                 continue;
             }
@@ -4471,8 +4471,8 @@ static void exit_show_stmt(uv_async_t * handle)
         while (1)
         {
             /* get the callback */
-            prop_cb = siridb_props[children->node->children->node->
-                                   cl_obj->gid - KW_OFFSET];
+            prop_cb = props_get_cb(children->node->children->node->
+                                   cl_obj->gid - KW_OFFSET);
             assert (prop_cb != NULL);  /* all props are implemented */
             prop_cb(siridb, query->packer, 1);
 
