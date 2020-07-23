@@ -697,6 +697,7 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         {
             return EXPR_MEM_ALLOC_ERR;
         }
+
         if (    (func = siridb_node_get_exit(gid)) != NULL &&
                 siridb_walker_insert(walker, node, func))
         {

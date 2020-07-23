@@ -37,6 +37,20 @@
 #include <sys/time.h>
 
 
+static uv_async_cb SIRIDB_NODE_ENTER[CLERI_END];
+static uv_async_cb SIRIDB_NODE_EXIT[CLERI_END];
+
+uv_async_cb siridb_node_get_enter(enum cleri_grammar_ids gid)
+{
+    return SIRIDB_NODE_ENTER[gid];
+}
+
+uv_async_cb siridb_node_get_exit(enum cleri_grammar_ids gid)
+{
+    return SIRIDB_NODE_EXIT[gid];
+}
+
+
 #define MAX_ITERATE_COUNT 10000       /* ten-thousand  */
 #define MAX_BATCH_REQUIRE_SHARD 100   /* after reading 100 shards, iterate  */
 

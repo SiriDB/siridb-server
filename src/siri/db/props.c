@@ -28,6 +28,30 @@ if (map)                                \
     qp_add_raw(packer, (const unsigned char *) "value", 5);     \
 }
 
+static siridb_props_cb SIRIDB_PROPS[KW_COUNT];
+
+siridb_props_cb props_get_cb(int i)
+{
+    return SIRIDB_PROPS[i];
+}
+
+static void props_set_cb(int i, siridb_props_cb cb)
+{
+    SIRIDB_PROPS[i] = cb;
+}
+
+static char * WHO_AM_I = NULL;
+
+void props_set_who_am_i(char * s)
+{
+    WHO_AM_I = s;
+}
+
+char * props_get_who_am_i(void)
+{
+    return WHO_AM_I;
+}
+
 static void prop_active_handles(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -183,83 +207,83 @@ void siridb_init_props(void)
 
     for (i = 0; i < KW_COUNT; i++)
     {
-        SIRIDB_PROPS[i] = NULL;
+        props_set_cb(i, NULL);
     }
 
-    SIRIDB_PROPS[CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET] =
-            prop_active_handles;
-    SIRIDB_PROPS[CLERI_GID_K_ACTIVE_TASKS - KW_OFFSET] =
-            prop_active_tasks;
-    SIRIDB_PROPS[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] =
-            prop_buffer_path;
-    SIRIDB_PROPS[CLERI_GID_K_BUFFER_SIZE - KW_OFFSET] =
-            prop_buffer_size;
-    SIRIDB_PROPS[CLERI_GID_K_DBNAME - KW_OFFSET] =
-            prop_dbname;
-    SIRIDB_PROPS[CLERI_GID_K_DBPATH - KW_OFFSET] =
-            prop_dbpath;
-    SIRIDB_PROPS[CLERI_GID_K_DROP_THRESHOLD - KW_OFFSET] =
-            prop_drop_threshold;
-    SIRIDB_PROPS[CLERI_GID_K_DURATION_LOG - KW_OFFSET] =
-            prop_duration_log;
-    SIRIDB_PROPS[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
-            prop_duration_num;
-    SIRIDB_PROPS[CLERI_GID_K_FIFO_FILES - KW_OFFSET] =
-            prop_fifo_files;
-    SIRIDB_PROPS[CLERI_GID_K_EXPIRATION_LOG - KW_OFFSET] =
-            prop_expiration_log;
-    SIRIDB_PROPS[CLERI_GID_K_EXPIRATION_NUM - KW_OFFSET] =
-            prop_expiration_num;
-    SIRIDB_PROPS[CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET] =
-            prop_idle_percentage;
-    SIRIDB_PROPS[CLERI_GID_K_IDLE_TIME - KW_OFFSET] =
-            prop_idle_time;
-    SIRIDB_PROPS[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
-            prop_ip_support;
-    SIRIDB_PROPS[CLERI_GID_K_LIBUV - KW_OFFSET] =
-            prop_libuv;
-    SIRIDB_PROPS[CLERI_GID_K_LIST_LIMIT - KW_OFFSET] =
-            prop_list_limit;
-    SIRIDB_PROPS[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =
-            prop_max_open_files;
-    SIRIDB_PROPS[CLERI_GID_K_MEM_USAGE - KW_OFFSET] =
-            prop_mem_usage;
-    SIRIDB_PROPS[CLERI_GID_K_LOG_LEVEL - KW_OFFSET] =
-            prop_log_level;
-    SIRIDB_PROPS[CLERI_GID_K_OPEN_FILES - KW_OFFSET] =
-            prop_open_files;
-    SIRIDB_PROPS[CLERI_GID_K_POOL - KW_OFFSET] =
-            prop_pool;
-    SIRIDB_PROPS[CLERI_GID_K_RECEIVED_POINTS - KW_OFFSET] =
-            prop_received_points;
-    SIRIDB_PROPS[CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET] =
-            prop_reindex_progress;
-    SIRIDB_PROPS[CLERI_GID_K_SELECTED_POINTS - KW_OFFSET] =
-            prop_selected_points;
-    SIRIDB_PROPS[CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET] =
-            prop_select_points_limit;
-    SIRIDB_PROPS[CLERI_GID_K_SERVER - KW_OFFSET] =
-            prop_server;
-    SIRIDB_PROPS[CLERI_GID_K_STARTUP_TIME - KW_OFFSET] =
-            prop_startup_time;
-    SIRIDB_PROPS[CLERI_GID_K_STATUS - KW_OFFSET] =
-            prop_status;
-    SIRIDB_PROPS[CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET] =
-            prop_sync_progress;
-    SIRIDB_PROPS[CLERI_GID_K_TEE_PIPE_NAME - KW_OFFSET] =
-            prop_tee_pipe_name;
-    SIRIDB_PROPS[CLERI_GID_K_TIMEZONE - KW_OFFSET] =
-            prop_timezone;
-    SIRIDB_PROPS[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] =
-            prop_time_precision;
-    SIRIDB_PROPS[CLERI_GID_K_UPTIME - KW_OFFSET] =
-            prop_uptime;
-    SIRIDB_PROPS[CLERI_GID_K_UUID - KW_OFFSET] =
-            prop_uuid;
-    SIRIDB_PROPS[CLERI_GID_K_VERSION - KW_OFFSET] =
-            prop_version;
-    SIRIDB_PROPS[CLERI_GID_K_WHO_AM_I - KW_OFFSET] =
-            prop_who_am_i;
+    props_set_cb(CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET,
+            prop_active_handles);
+    props_set_cb(CLERI_GID_K_ACTIVE_TASKS - KW_OFFSET,
+            prop_active_tasks);
+    props_set_cb(CLERI_GID_K_BUFFER_PATH - KW_OFFSET,
+            prop_buffer_path);
+    props_set_cb(CLERI_GID_K_BUFFER_SIZE - KW_OFFSET,
+            prop_buffer_size);
+    props_set_cb(CLERI_GID_K_DBNAME - KW_OFFSET,
+            prop_dbname);
+    props_set_cb(CLERI_GID_K_DBPATH - KW_OFFSET,
+            prop_dbpath);
+    props_set_cb(CLERI_GID_K_DROP_THRESHOLD - KW_OFFSET,
+            prop_drop_threshold);
+    props_set_cb(CLERI_GID_K_DURATION_LOG - KW_OFFSET,
+            prop_duration_log);
+    props_set_cb(CLERI_GID_K_DURATION_NUM - KW_OFFSET,
+            prop_duration_num);
+    props_set_cb(CLERI_GID_K_FIFO_FILES - KW_OFFSET,
+            prop_fifo_files);
+    props_set_cb(CLERI_GID_K_EXPIRATION_LOG - KW_OFFSET,
+            prop_expiration_log);
+    props_set_cb(CLERI_GID_K_EXPIRATION_NUM - KW_OFFSET,
+            prop_expiration_num);
+    props_set_cb(CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET,
+            prop_idle_percentage);
+    props_set_cb(CLERI_GID_K_IDLE_TIME - KW_OFFSET,
+            prop_idle_time);
+    props_set_cb(CLERI_GID_K_IP_SUPPORT - KW_OFFSET,
+            prop_ip_support);
+    props_set_cb(CLERI_GID_K_LIBUV - KW_OFFSET,
+            prop_libuv);
+    props_set_cb(CLERI_GID_K_LIST_LIMIT - KW_OFFSET,
+            prop_list_limit);
+    props_set_cb(CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET,
+            prop_max_open_files);
+    props_set_cb(CLERI_GID_K_MEM_USAGE - KW_OFFSET,
+            prop_mem_usage);
+    props_set_cb(CLERI_GID_K_LOG_LEVEL - KW_OFFSET,
+            prop_log_level);
+    props_set_cb(CLERI_GID_K_OPEN_FILES - KW_OFFSET,
+            prop_open_files);
+    props_set_cb(CLERI_GID_K_POOL - KW_OFFSET,
+            prop_pool);
+    props_set_cb(CLERI_GID_K_RECEIVED_POINTS - KW_OFFSET,
+            prop_received_points);
+    props_set_cb(CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET,
+            prop_reindex_progress);
+    props_set_cb(CLERI_GID_K_SELECTED_POINTS - KW_OFFSET,
+            prop_selected_points);
+    props_set_cb(CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET,
+            prop_select_points_limit);
+    props_set_cb(CLERI_GID_K_SERVER - KW_OFFSET,
+            prop_server);
+    props_set_cb(CLERI_GID_K_STARTUP_TIME - KW_OFFSET,
+            prop_startup_time);
+    props_set_cb(CLERI_GID_K_STATUS - KW_OFFSET,
+            prop_status);
+    props_set_cb(CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET,
+            prop_sync_progress);
+    props_set_cb(CLERI_GID_K_TEE_PIPE_NAME - KW_OFFSET,
+            prop_tee_pipe_name);
+    props_set_cb(CLERI_GID_K_TIMEZONE - KW_OFFSET,
+            prop_timezone);
+    props_set_cb(CLERI_GID_K_TIME_PRECISION - KW_OFFSET,
+            prop_time_precision);
+    props_set_cb(CLERI_GID_K_UPTIME - KW_OFFSET,
+            prop_uptime);
+    props_set_cb(CLERI_GID_K_UUID - KW_OFFSET,
+            prop_uuid);
+    props_set_cb(CLERI_GID_K_VERSION - KW_OFFSET,
+            prop_version);
+    props_set_cb(CLERI_GID_K_WHO_AM_I - KW_OFFSET,
+            prop_who_am_i);
 }
 
 static void prop_active_handles(
