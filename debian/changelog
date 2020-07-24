@@ -1,3 +1,11 @@
+siridb-server (2.0.37-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed reading `series.dat` after unclean shutdown (#130)
+    - Fixed `gcc-10` compile errors (#132)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 23 Jul 2020 14:38:50 +0200
+
 siridb-server (2.0.36-0~tt1) unstable; urgency=medium
 
   * New upstream release

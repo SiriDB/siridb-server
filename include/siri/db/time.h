@@ -21,7 +21,7 @@ typedef struct siridb_time_s siridb_time_t;
 #include <stddef.h>
 #include <time.h>
 
-const char * siridb_time_short_map[SIRIDB_TIME_END];
+static const char * SIRIDB_TIME_SHORT_MAP[SIRIDB_TIME_END] = {"s", "ms", "us", "ns"};
 siridb_time_t * siridb_time_new(siridb_timep_t precision);
 uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts);
 uint64_t siridb_time_now(siridb_t * siridb, struct timespec now);
@@ -38,6 +38,11 @@ static inline int siridb_int64_valid_ts(siridb_time_t * time, int64_t ts)
 {
     return (time->precision == SIRIDB_TIME_SECONDS) ?
          ts >= 0 && ts < 4294967296 : ts >= 0;
+}
+
+static inline const char * siridb_time_short_map(siridb_timep_t tp)
+{
+    return SIRIDB_TIME_SHORT_MAP[tp];
 }
 
 #endif  /* SIRIDB_TIME_H_ */

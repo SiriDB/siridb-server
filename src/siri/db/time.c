@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <xmath/xmath.h>
 
-const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.

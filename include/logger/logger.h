@@ -23,8 +23,6 @@ typedef struct _IO_FILE LOGGER_IO_FILE;
 
 typedef struct logger_s logger_t;
 
-const char * LOGGER_LEVEL_NAMES[LOGGER_NUM_LEVELS];
-
 void logger_init(LOGGER_IO_FILE * ostream, int log_level);
 void logger_set_level(int log_level);
 const char * logger_level_name(int log_level);

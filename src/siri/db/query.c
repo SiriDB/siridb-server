@@ -692,12 +692,13 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
      */
     if (gid != CLERI_NONE)
     {
-        if (    (func = siridb_listen_enter[gid]) != NULL &&
+        if (    (func = siridb_node_get_enter(gid)) != NULL &&
                 siridb_walker_append(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;
         }
-        if (    (func = siridb_listen_exit[gid]) != NULL &&
+
+        if (    (func = siridb_node_get_exit(gid)) != NULL &&
                 siridb_walker_insert(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;

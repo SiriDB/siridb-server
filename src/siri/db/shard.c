@@ -222,8 +222,8 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         log_critical(
                 "Time precision from shard (%s) is not the same as "
                 "database (%c). Skip loading '%c'",
-                siridb_time_short_map[time_precision],
-                siridb_time_short_map[siridb->time->precision],
+                siridb_time_short_map(time_precision),
+                siridb_time_short_map(siridb->time->precision),
                 shard->fn);
         siridb_shard_decref(shard);
         return -1;
