@@ -418,6 +418,10 @@ int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
     return qp_add_raw(packer,  (unsigned char *) str, strlen(str) + 1);
 }
+int qp_add_string_term_n(qp_packer_t * packer, const char * str, size_t n)
+{
+    return qp_add_raw(packer,  (unsigned char *) str, n + 1);
+}
 
 /*
  * Adds a raw string to the packer and appends a terminator (0) so the written

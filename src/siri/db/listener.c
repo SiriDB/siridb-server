@@ -2452,7 +2452,7 @@ static void exit_count_tags(uv_async_t * handle)
     }
     else
     {
-        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_GROUPS, NULL);
+        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_TAGS, NULL);
 
         if (pkg != NULL)
         {
@@ -3550,7 +3550,7 @@ static void exit_list_tags(uv_async_t * handle)
     }
     else
     {
-        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_GROUPS, NULL);
+        sirinet_pkg_t * pkg = sirinet_pkg_new(0, 0, BPROTO_REQ_TAGS, NULL);
 
         if (pkg != NULL)
         {
@@ -6059,7 +6059,7 @@ static void on_tags_response(vec_t * promises, uv_async_t * handle)
 
         pkg = (sirinet_pkg_t *) promise->data;
 
-        if (pkg != NULL && pkg->tp == BPROTO_RES_GROUPS)
+        if (pkg != NULL && pkg->tp == BPROTO_RES_TAGS)
         {
             qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 

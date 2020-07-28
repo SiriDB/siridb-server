@@ -111,6 +111,25 @@ int siridb_tags_drop_tag(
     return 0;
 }
 
+siridb_tag_t * siridb_tags_add_n(
+        siridb_tags_t * tags,
+        const char * name,
+        size_t name_len)
+{
+    siridb_tag_t * tag = siridb_tag_new(tags, tags->next_id++);
+
+    if (tag != NULL)
+    {
+        tag->name = strndup(name, name_len);
+        if (tag->name == NULL || ct_add(tags->tags, tag->name, tag))
+        {
+            siridb_tag_decref(tag);
+            tag = NULL;
+        }
+    }
+    return tag;
+}
+
 siridb_tag_t * siridb_tags_add(siridb_tags_t * tags, const char * name)
 {
     siridb_tag_t * tag = siridb_tag_new(tags, tags->next_id++);
@@ -170,6 +189,92 @@ void siridb_tags_save(siridb_tags_t * tags)
 void siridb_tags_init_nseries(siridb_tags_t * tags)
 {
     ct_values(tags->tags, (ct_val_cb) TAGS_nseries, NULL);
+}
+
+/*
+ * Main thread.
+ */
+static int TAGS_pkg(siridb_tag_t * tag, qp_packer_t * packer)
+{
+    int rc = 0;
+    rc += qp_add_type(packer, QP_ARRAY2);
+    rc += qp_add_string_term(packer, tag->name);
+    rc += qp_add_int64(packer, tag->series->len);
+    return rc;
+}
+
+/*
+ * Main thread.
+ *
+ * Returns NULL and raises a signal in case of an error.
+ */
+sirinet_pkg_t * siridb_tags_pkg(siridb_tags_t * tags, uint16_t pid)
+{
+    qp_packer_t * packer = sirinet_packer_new(8192);
+    int rc;
+
+    if (packer == NULL || qp_add_type(packer, QP_ARRAY_OPEN))
+    {
+        return NULL;  /* signal is raised */
+    }
+
+    rc = ct_values(tags->tags, (ct_val_cb) TAGS_pkg, packer);
+
+    if (rc)
+    {
+        /*  signal is raised when not 0 */
+        qp_packer_free(packer);
+        return NULL;
+    }
+
+    return sirinet_packer2pkg(packer, pid, BPROTO_RES_TAGS);
+}
+
+typedef struct
+{
+    qp_packer_t * packer;
+    uint64_t id;
+} TAGS_series_t;
+
+/*
+ * Main thread.
+ */
+static int TAGS_series_pkg(siridb_tag_t * tag, TAGS_series_t * w)
+{
+    return imap_get(tag->series, w->id)
+            ? qp_add_string(w->packer, tag->name) == 0
+            : 0;
+}
+
+/*
+ * Main thread.
+ *
+ * Returns NULL and raises a signal in case of an error.
+ */
+sirinet_pkg_t * siridb_tags_series(siridb_series_t * series)
+{
+    TAGS_series_t w = {
+            .packer = sirinet_packer_new(1024),
+            .id = series->id,
+    };
+
+    if (w.packer == NULL ||
+        qp_add_type(w.packer, QP_ARRAY_OPEN) ||
+        qp_add_string_term_n(w.packer, series->name, series->name_len))
+    {
+        return NULL;
+    }
+
+    if (ct_values(
+            series->siridb->tags->tags,
+            (ct_val_cb) TAGS_series_pkg,
+            &w) == 0)
+    {
+        free(w.packer);
+        return NULL;
+    }
+
+    return sirinet_packer2pkg(w.packer, 0, BPROTO_SERIES_TAGS);
 }
 
 /*

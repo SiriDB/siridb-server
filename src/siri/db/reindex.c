@@ -55,6 +55,10 @@ static void REINDEX_on_insert_response(
         sirinet_promise_t * promise,
         sirinet_pkg_t * pkg,
         int status);
+static void REINDEX_on_tag_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status);
 
 static char reindex_progress[30];
 
@@ -76,7 +80,8 @@ siridb_reindex_t * siridb_reindex_open(siridb_t * siridb, int create_new)
         reindex->fn = NULL;
         reindex->fp = NULL;
         reindex->next_series_id = NULL;
-        reindex->pkg = NULL;
+        reindex->pkg_points = NULL;
+        reindex->pkg_tags = NULL;
         reindex->timer = NULL;
         reindex->server = NULL;
         if (REINDEX_fn(siridb, reindex) < 0)
@@ -235,7 +240,8 @@ void siridb_reindex_free(siridb_reindex_t ** reindex)
     }
     free((*reindex)->fn);
     free((*reindex)->next_series_id);
-    free((*reindex)->pkg);
+    free((*reindex)->pkg_points);
+    free((*reindex)->pkg_tags);
     free(*reindex);
     *reindex = NULL;
 }
@@ -320,7 +326,7 @@ void siridb_reindex_start(uv_timer_t * timer)
 static void REINDEX_send(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
-    assert (siridb->reindex->pkg != NULL);
+    assert (siridb->reindex->pkg_points != NULL);
     /* actually 'available' is sufficient since the destination server has
      * never status 're-indexing' unless one day we support down-scaling.
      */
@@ -328,11 +334,21 @@ static void REINDEX_send(uv_timer_t * timer)
     {
         siridb_server_send_pkg(
                 siridb->reindex->server,
-                siridb->reindex->pkg,
+                siridb->reindex->pkg_points,
                 REINDEX_TIMEOUT,
                 (sirinet_promise_cb) REINDEX_on_insert_response,
                 siridb,
                 FLAG_KEEP_PKG);
+        if (siridb->reindex->pkg_tags)
+        {
+            siridb_server_send_pkg(
+                    siridb->reindex->server,
+                    siridb->reindex->pkg_tags,
+                    REINDEX_TIMEOUT,
+                    (sirinet_promise_cb) REINDEX_on_tag_response,
+                    NULL,
+                    FLAG_KEEP_PKG);
+        }
     }
     else
     {
@@ -358,8 +374,10 @@ static void REINDEX_send(uv_timer_t * timer)
 static int REINDEX_next_series_id(siridb_reindex_t * reindex)
 {
     /* free re-index package */
-    free(reindex->pkg);
-    reindex->pkg = NULL;
+    free(reindex->pkg_points);
+    free(reindex->pkg_tags);
+    reindex->pkg_points = NULL;
+    reindex->pkg_tags = NULL;
 
     int rc;
     reindex->size -= sizeof(uint32_t);
@@ -436,7 +454,8 @@ static void REINDEX_work(uv_timer_t * timer)
 
     assert (SIRI_OPTIMZE_IS_PAUSED);
     assert (reindex != NULL);
-    assert (siridb->reindex->pkg == NULL);
+    assert (siridb->reindex->pkg_points == NULL);
+    assert (siridb->reindex->pkg_tags == NULL);
 
     reindex->series = imap_get(siridb->series_map, *reindex->next_series_id);
 
@@ -487,10 +506,15 @@ static void REINDEX_work(uv_timer_t * timer)
 
                 if (siridb_points_pack(points, packer) == 0)
                 {
-                    reindex->pkg = sirinet_packer2pkg(
+                    reindex->pkg_points = sirinet_packer2pkg(
                             packer,
                             0,
                             BPROTO_INSERT_TESTED_SERVER);
+
+                    /* tag package may be NULL when no tag need to be
+                     * synchronized */
+                    reindex->pkg_tags = siridb_tags_series(reindex->series);
+
                     uv_timer_start(
                             reindex->timer,
                             REINDEX_send,
@@ -503,6 +527,8 @@ static void REINDEX_work(uv_timer_t * timer)
                 }
             }
             siridb_points_free(points);
+
+
         }
     }
 }
@@ -547,6 +573,7 @@ static void REINDEX_commit_series(siridb_t * siridb)
         siridb_series_flush_dropped(siridb);
     }
 }
+
 /*
  * Call-back function: sirinet_promise_cb
  */
@@ -602,6 +629,22 @@ static void REINDEX_on_insert_response(
     default:
         assert (0);
         break;
+    }
+
+    sirinet_promise_decref(promise);
+}
+
+/*
+ * Call-back function: sirinet_promise_cb
+ */
+static void REINDEX_on_tag_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        log_error("Error while sending tags (%d)", status);
     }
 
     sirinet_promise_decref(promise);

@@ -175,6 +175,7 @@ static inline int qp_is_raw_term(qp_obj_t * qp_obj)
 int qp_add_raw(qp_packer_t * packer, const unsigned char * raw, size_t len);
 int qp_add_string(qp_packer_t * packer, const char * str);
 int qp_add_string_term(qp_packer_t * packer, const char * str);
+int qp_add_string_term_n(qp_packer_t * packer, const char * str, size_t n);
 
 int qp_add_raw_term(qp_packer_t * packer, const unsigned char * raw, size_t len);
 int qp_add_double(qp_packer_t * packer, double real);
