@@ -193,7 +193,12 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 #define MSG_ERR_SERVER_ADDRESS \
     "Its only possible to change a servers address or port when the server " \
     "is not connected."
-
+#define MSG_SUCCESS_TAG \
+    "Successfully tagged %zu series."
+#define MSG_SUCCESS_UNTAG \
+    "Successfully unagged %zu series."
+#define MSG_SUCCESS_DROP_TAG \
+    "Successfully dropped tag '%s'."
 
 static void enter_access_expr(uv_async_t * handle);
 static void enter_alter_group(uv_async_t * handle);
@@ -225,6 +230,7 @@ static void enter_series_re(uv_async_t * handle);
 static void enter_series_setopr(uv_async_t * handle);
 static void enter_tag_series(uv_async_t * handle);
 static void enter_timeit_stmt(uv_async_t * handle);
+static void enter_untag_series(uv_async_t * handle);
 static void enter_where_xxx(uv_async_t * handle);
 static void enter_xxx_columns(uv_async_t * handle);
 
@@ -251,6 +257,7 @@ static void exit_drop_group(uv_async_t * handle);
 static void exit_drop_series(uv_async_t * handle);
 static void exit_drop_server(uv_async_t * handle);
 static void exit_drop_shards(uv_async_t * handle);
+static void exit_drop_tag(uv_async_t * handle);
 static void exit_drop_user(uv_async_t * handle);
 static void exit_grant_user(uv_async_t * handle);
 static void exit_help_xxx(uv_async_t * handle);
@@ -278,7 +285,9 @@ static void exit_set_select_points_limit(uv_async_t * handle);
 static void exit_set_tee_pipe_name(uv_async_t * handle);
 static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
+static void exit_tag_series(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
+static void exit_untag_series(uv_async_t * handle);
 
 /* async loop functions */
 static void async_count_series(uv_async_t * handle);
@@ -468,6 +477,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_ENTER[CLERI_GID_TAG_COLUMNS] = enter_xxx_columns;
     SIRIDB_NODE_ENTER[CLERI_GID_TAG_SERIES] = enter_tag_series;
     SIRIDB_NODE_ENTER[CLERI_GID_TIMEIT_STMT] = enter_timeit_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_UNTAG_SERIES] = enter_untag_series;
     SIRIDB_NODE_ENTER[CLERI_GID_USER_COLUMNS] = enter_xxx_columns;
     SIRIDB_NODE_ENTER[CLERI_GID_WHERE_GROUP] = enter_where_xxx;
     SIRIDB_NODE_ENTER[CLERI_GID_WHERE_POOL] = enter_where_xxx;
@@ -501,6 +511,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_SERIES] = exit_drop_series;
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_SERVER] = exit_drop_server;
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_SHARDS] = exit_drop_shards;
+    SIRIDB_NODE_EXIT[CLERI_GID_DROP_TAG] = exit_drop_tag;
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_USER] = exit_drop_user;
     SIRIDB_NODE_EXIT[CLERI_GID_GRANT_USER] = exit_grant_user;
     SIRIDB_NODE_EXIT[CLERI_GID_LIST_GROUPS] = exit_list_groups;
@@ -527,7 +538,9 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
     SIRIDB_NODE_EXIT[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     SIRIDB_NODE_EXIT[CLERI_GID_SHOW_STMT] = exit_show_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_TAG_SERIES] = exit_tag_series;
     SIRIDB_NODE_EXIT[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
+    SIRIDB_NODE_EXIT[CLERI_GID_UNTAG_SERIES] = exit_untag_series;
 
     for (i = HELP_OFFSET; i < HELP_OFFSET + HELP_COUNT; i++)
     {
@@ -1588,7 +1601,7 @@ static void enter_tag_series(uv_async_t * handle)
     q_alter->tp = QUERY_ALTER_SERIES;
 
     MASTER_CHECK_ACCESSIBLE(siridb)
-    MASTER_CHECK_VERSION(siridb, "2.0.19")
+    MASTER_CHECK_VERSION(siridb, "2.0.38")
 
     cleri_node_t * tag_node =
                     query->nodes->node->children->next->node;
@@ -1677,6 +1690,68 @@ static void enter_timeit_stmt(uv_async_t * handle)
     qp_add_type(query->timeit, QP_ARRAY_OPEN);
 
     SIRIPARSER_NEXT_NODE
+}
+
+static void enter_untag_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+    siridb_t * siridb = query->client->siridb;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+
+    q_alter->tp = QUERY_ALTER_SERIES;
+
+    MASTER_CHECK_ACCESSIBLE(siridb)
+    MASTER_CHECK_VERSION(siridb, "2.0.38")
+
+    cleri_node_t * tag_node =
+                    query->nodes->node->children->next->node;
+    siridb_tag_t * tag;
+
+    char name[tag_node->len - 1];
+    xstr_extract_string(name, tag_node->str, tag_node->len);
+
+    tag = ct_get(siridb->tags->tags, name);
+
+    if (tag == NULL)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot find tag: '%s'",
+                name);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+    uv_mutex_lock(&siridb->tags->mutex);
+
+    q_alter->n = q_alter->series_map->len;
+
+    imap_difference_ref(
+            tag->series,
+            q_alter->series_map,
+            (imap_free_cb) &siridb__series_decref);
+
+    siridb_tags_set_require_save(siridb->tags, tag);
+
+    uv_mutex_unlock(&siridb->tags->mutex);
+
+    q_alter->series_map = NULL;
+
+    QP_ADD_SUCCESS
+
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_tag_response,
+                0);
+    }
+    else
+    {
+        qp_add_int64(query->packer, q_alter->n);
+        SIRIPARSER_ASYNC_NEXT_NODE
+    }
 }
 
 static void enter_where_xxx(uv_async_t * handle)
@@ -2864,6 +2939,45 @@ static void exit_drop_shards(uv_async_t * handle)
         uv_async_send(next);
 
         uv_close((uv_handle_t *) handle, (uv_close_cb) free);
+    }
+}
+
+static void exit_drop_tag(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+
+    MASTER_CHECK_ACCESSIBLE(siridb)
+
+    cleri_node_t * tag_node =
+            query->nodes->node->children->next->node;
+
+    char name[tag_node->len - 1];
+
+    xstr_extract_string(name, tag_node->str, tag_node->len);
+
+    if (siridb_tags_drop_tag(siridb->tags, name, query->err_msg))
+    {
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        QP_ADD_SUCCESS
+        log_info(MSG_SUCCESS_DROP_TAG, name);
+        qp_add_fmt_safe(query->packer, MSG_SUCCESS_DROP_TAG, name);
+
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response,
+                    0);
+        }
+        else
+        {
+            SIRIPARSER_ASYNC_NEXT_NODE
+        }
     }
 }
 
@@ -4728,6 +4842,21 @@ static void exit_show_stmt(uv_async_t * handle)
     SIRIPARSER_ASYNC_NEXT_NODE
 }
 
+static void exit_tag_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    if (IS_MASTER)
+    {
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCESS_TAG,
+                ((query_alter_t *) query->data)->n);
+    }
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
 static void exit_timeit_stmt(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
@@ -4764,6 +4893,21 @@ static void exit_timeit_stmt(uv_async_t * handle)
 
     /* extend packer with timeit information */
     qp_packer_extend(query->packer, query->timeit);
+
+    SIRIPARSER_ASYNC_NEXT_NODE
+}
+
+static void exit_untag_series(uv_async_t * handle)
+{
+    siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    if (IS_MASTER)
+    {
+        qp_add_fmt_safe(
+                query->packer,
+                MSG_SUCCESS_UNTAG,
+                ((query_alter_t *) query->data)->n);
+    }
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

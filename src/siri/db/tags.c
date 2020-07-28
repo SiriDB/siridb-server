@@ -22,10 +22,9 @@
 
 static void TAGS_free(siridb_tags_t * tags);
 static int TAGS_load(siridb_t * siridb);
-static int TAGS_pkg(siridb_tag_t * tag, qp_packer_t * packer);
-static int TAGS_ctmap_update(siridb_tag_t * tag, ct_t * lookup);
-static int TAGS_to_vec_cb(siridb_tag_t * tag, vec_t * tags_list);
-static int TAGS_dropped_series(siridb_tags_t * tags, siridb_tag_t * tag);
+static int TAGS_dropped_series(
+        siridb_tag_t * tag,
+        void * data __attribute__((unused)));
 static int TAGS_nseries(
         siridb_tag_t * tag,
         void * data __attribute__((unused)));
@@ -43,8 +42,8 @@ int siridb_tags_init(siridb_t * siridb)
     }
     siridb->tags->flags = 0;
     siridb->tags->ref = 1;
+    siridb->tags->next_id = 0;
     siridb->tags->tags = ct_new();
-    siridb->tags->cleanup = vec_new(VEC_DEFAULT_SIZE);
 
     uv_mutex_init(&siridb->tags->mutex);
 
@@ -54,8 +53,7 @@ int siridb_tags_init(siridb_t * siridb)
             siridb->dbpath,
             SIRIDB_TAGS_PATH) < 0 ||
             siridb->tags->tags == NULL ||
-            siridb->tags->cleanup == NULL ||
-        TAGS_load(siridb))
+            TAGS_load(siridb))
     {
         TAGS_free(siridb->tags);
         siridb->tags = NULL;
@@ -78,9 +76,45 @@ void siridb_tags_decref(siridb_tags_t * tags)
     }
 }
 
+/*
+ * Main thread.
+ *
+ * Returns 0 if successful or -1 when the group is not found.
+ * (in case not found an error message is set)
+ *
+ * Note: when saving the groups to disk has failed, we log critical but
+ * the function still returns 0;
+ */
+int siridb_tags_drop_tag(
+        siridb_tags_t * tags,
+        const char * name,
+        char * err_msg)
+{
+    uv_mutex_lock(&tags->mutex);
+
+    siridb_tag_t * tag = (siridb_tag_t *) ct_pop(tags->tags, name);
+
+    uv_mutex_unlock(&tags->mutex);
+
+    if (tag == NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Tag '%s' does not exist.",
+                name);
+        return -1;
+    }
+
+    tag->flags |= TAG_FLAG_CLEANUP;
+    siridb_tag_decref(tag);
+
+    return 0;
+}
+
 siridb_tag_t * siridb_tags_add(siridb_tags_t * tags, const char * name)
 {
-    siridb_tag_t * tag = siridb_tag_new(name);
+    siridb_tag_t * tag = siridb_tag_new(tags, tags->next_id++);
+
     if (tag != NULL)
     {
         tag->name = strdup(name);
@@ -93,165 +127,41 @@ siridb_tag_t * siridb_tags_add(siridb_tags_t * tags, const char * name)
     return tag;
 }
 
-/*
- * Main thread.
- *
- * Returns NULL and raises a signal in case of an error.
- */
-sirinet_pkg_t * siridb_tags_pkg(siridb_tags_t * tags, uint16_t pid)
-{
-    qp_packer_t * packer = sirinet_packer_new(8192);
-    int rc;
-
-    if (packer == NULL || qp_add_type(packer, QP_ARRAY_OPEN))
-    {
-        return NULL;  /* signal is raised */
-    }
-
-    rc = ct_values(tags->tags, (ct_val_cb) TAGS_pkg, packer);
-
-    if (rc)
-    {
-        /*  signal is raised when not 0 */
-        qp_packer_free(packer);
-        return NULL;
-    }
-
-    return sirinet_packer2pkg(packer, pid, BPROTO_RES_TAGS);
-}
-
-/*
- * This function will set and unset the mutex lock.
- */
-void siridb_tags_cleanup(uv_async_t * handle)
-{
-    siridb_tags_t * tags = (siridb_tags_t *) handle->data;
-    siridb_tag_t * tag, * rmtag;
-
-    uv_mutex_lock(&tags->mutex);
-
-    while (tags->cleanup->len)
-    {
-        tag = (siridb_tag_t *) vec_pop(tags->cleanup);
-
-        if (!tag->series->len &&
-            (rmtag = (siridb_tag_t *) ct_pop(tags->tags, tag->name)) != NULL)
-        {
-#ifdef DEBUG
-            assert(rmtag == tag && (tag->flags & TAG_FLAG_CLEANUP));
-#endif
-            siridb_tag_decref(rmtag);
-        }
-    }
-
-    uv_mutex_unlock(&tags->mutex);
-
-    siridb_tags_decref(tags);
-
-    uv_close((uv_handle_t *) handle, (uv_close_cb) free);
-}
-
-ct_t * siridb_tags_lookup(siridb_tags_t * tags)
-{
-    ct_t * lookup = ct_new();
-    if (lookup != NULL)
-    {
-        ct_values(tags->tags, (ct_val_cb) &TAGS_ctmap_update, lookup);
-    }
-    return lookup;
-}
 
 /*
  * This function is called from the "Group" thread.
  */
 void siridb_tags_dropped_series(siridb_tags_t * tags)
 {
-    siridb_tag_t * tag;
-    vec_t * tags_list;
-
     uv_mutex_lock(&tags->mutex);
 
-    tags_list = vec_new(tags->tags->len);
+    ct_values(tags->tags, (ct_val_cb) TAGS_dropped_series, tags);
 
     tags->flags &= ~TAGS_FLAG_DROPPED_SERIES;
 
-    ct_values(tags->tags, (ct_val_cb) TAGS_to_vec_cb, tags_list);
-
     uv_mutex_unlock(&tags->mutex);
+}
 
-    while (tags_list->len)
-    {
-        tag = (siridb_tag_t *) vec_pop(tags_list);
+static int TAGS__save_cb(
+        siridb_tag_t * tag,
+        void * data __attribute__((unused)))
+{
+    siridb_tag_save(tag);
+    tag->flags &= ~ TAG_FLAG_REQUIRE_SAVE;
 
-        uv_mutex_lock(&tags->mutex);
-
-        TAGS_dropped_series(tags, tag);
-
-        siridb_tag_decref(tag);
-
-        uv_mutex_unlock(&tags->mutex);
-
-        usleep(10000);  // 10ms
-    }
-
-    vec_free(tags_list);
-
-    if (tags->cleanup->len)
-    {
-        uv_async_t * cleanup = (uv_async_t *) malloc(sizeof(uv_async_t));
-
-        if (cleanup == NULL)
-        {
-            log_critical("Allocation error while creating cleanup task");
-            return;
-        }
-        siridb_tags_incref(tags);
-
-        cleanup->data = (void *) tags;
-
-        uv_async_init(siri.loop,
-                cleanup,
-                (uv_async_cb) siridb_tags_cleanup);
-        uv_async_send(cleanup);
-    }
+    usleep(10000);  // 10ms
+    return 0;
 }
 
 void siridb_tags_save(siridb_tags_t * tags)
 {
-    siridb_tag_t * tag;
-    vec_t * tags_list;
-
     uv_mutex_lock(&tags->mutex);
 
-    tags_list = vec_new(tags->tags->len);
+    ct_values(tags->tags, (ct_val_cb) TAGS__save_cb, NULL);
 
     tags->flags &= ~TAGS_FLAG_REQUIRE_SAVE;
 
-    ct_values(tags->tags, (ct_val_cb) TAGS_to_vec_cb, tags_list);
-
     uv_mutex_unlock(&tags->mutex);
-
-    while (tags_list->len)
-    {
-        tag = (siridb_tag_t *) vec_pop(tags_list);
-
-        if (tag->flags & TAG_FLAG_REQUIRE_SAVE)
-        {
-            uv_mutex_lock(&tags->mutex);
-
-            siridb_tag_save(tag);
-
-            tag->flags &= ~ TAG_FLAG_REQUIRE_SAVE;
-
-            uv_mutex_unlock(&tags->mutex);
-        }
-
-        siridb_tag_decref(tag);
-
-        usleep(10000);  // 10ms
-    }
-
-    vec_free(tags_list);
 }
 
 /*
@@ -276,79 +186,32 @@ static int TAGS_nseries(
 /*
  * This function is called from the "Group" thread.
  */
-static int TAGS_to_vec_cb(siridb_tag_t * tag, vec_t * tags_list)
-{
-    siridb_tag_incref(tag);
-    vec_append(tags_list, tag);
-    return 0;
-}
-
-/*
- * This function is called from the "Group" thread.
- */
-static int TAGS_dropped_series(siridb_tags_t * tags, siridb_tag_t * tag)
+static int TAGS_dropped_series(
+        siridb_tag_t * tag,
+        void * data __attribute__((unused)))
 {
     vec_t * tag_series = imap_vec_pop(tag->series);
-    siridb_series_t * series, * s = NULL;
+    siridb_series_t * series;
 
     if (tag_series != NULL)
     {
         for (size_t i = 0; i < tag_series->len; i++)
         {
             series = (siridb_series_t *) tag_series->data[i];
-            if (series->flags & SIRIDB_SERIES_IS_DROPPED)
+            if ((series->flags & SIRIDB_SERIES_IS_DROPPED) &&
+                imap_pop(tag->series, series->id))
             {
-                s = (siridb_series_t *) imap_pop(tag->series, series->id);
-                assert (s != NULL);
-                siridb_series_decref(s);
+                siridb_series_decref(series);
+                siridb_tags_set_require_save(tag->tags, tag);
             }
         }
 
-        if (s == NULL)
-        {
-            /* unchanged, we can put the list back */
-            tag->series->vec = tag_series;
-        }
-        else
-        {
-            vec_free(tag_series);
-
-            if (!tag->series->len && (~tag->flags & TAG_FLAG_CLEANUP))
-            {
-                tag->flags |= TAG_FLAG_CLEANUP;
-                if (vec_append_safe(&tags->cleanup, tag))
-                {
-                    log_critical(
-                            "Unexpected error while appending tag to "
-                            "cleanup list");
-                }
-            }
-        }
+        vec_free(tag_series);
     }
 
-    return 0;
-}
+    usleep(10000);  // 10ms
 
-static int TAGS_ctmap_update(siridb_tag_t * tag, ct_t * lookup)
-{
-    if (tag->series->len)
-    {
-        volatile uintptr_t iptr = (uint32_t) tag->series->len;
-        return ct_add(lookup, tag->name, (uint32_t *) iptr);
-    }
     return 0;
-}
-
-/*
- * Main thread.
- */
-static int TAGS_pkg(siridb_tag_t * tag, qp_packer_t * packer)
-{
-    int rc = 0;
-    rc += qp_add_type(packer, QP_ARRAY2);
-    rc += qp_add_string_term(packer, tag->name);
-    rc += qp_add_int64(packer, (int64_t) tag->series->len);
-    return rc;
 }
 
 static int TAGS_load(siridb_t * siridb)
@@ -432,15 +295,7 @@ static int TAGS_load(siridb_t * siridb)
 
 static void TAGS_free(siridb_tags_t * tags)
 {
-#ifdef DEBUG
-    log_debug("Free tags");
-#endif
     free(tags->path);
-
-    if (tags->cleanup != NULL)
-    {
-        vec_free(tags->cleanup);
-    }
 
     uv_mutex_lock(&tags->mutex);
 

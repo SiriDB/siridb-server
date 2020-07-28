@@ -25,91 +25,121 @@
 /*
  * Returns tag when successful or NULL in case of an error.
  */
-siridb_tag_t * siridb_tag_new(char * name)
+siridb_tag_t * siridb_tag_new(siridb_tags_t * tags, uint64_t id)
 {
     siridb_tag_t * tag = (siridb_tag_t *) malloc(sizeof(siridb_tag_t));
     if (tag != NULL)
     {
         tag->ref = 1;
         tag->flags = 0;
-        tag->name = name;
+        tag->id = id;
+        tag->name = NULL;
+        tag->tags = tags;
         tag->series = imap_new();
     }
     return tag;
 }
 
+char * siridb_tag_fn(siridb_tag_t * tag)
+{
+    char * fn;
+    if (asprintf(&fn, "%s%09"PRIx64".tag", tag->tags->path, tag->id) < 0)
+    {
+        return NULL;
+    }
+    return fn;
+}
+
 /*
  * Returns tag when successful or NULL in case of an error.
  */
-siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
+siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * _fn)
 {
-    siridb_tag_t * tag = siridb_tag_new(
-            (uint32_t) atoll(fn),
-            siridb->tags->path);
-    if (tag != NULL)
+    char * fn;
+    qp_obj_t qp_tn;
+    qp_obj_t qp_series_id;
+    uint64_t series_id;
+    siridb_series_t * series;
+    qp_unpacker_t * unpacker;
+    siridb_tag_t * tag = siridb_tag_new(siridb->tags, (uint32_t) atoll(_fn));
+
+    if (tag == NULL)
     {
-        qp_unpacker_t * unpacker = qp_unpacker_ff(tag->fn);
-        if (unpacker == NULL)
+        log_critical("Memory allocation error");
+        return NULL;
+    }
+
+    fn = siridb_tag_fn(tag);
+    if (fn == NULL)
+    {
+        log_critical("Memory allocation error");
+        goto fail0;
+    }
+
+    unpacker = qp_unpacker_ff(fn);
+    if (unpacker == NULL)
+    {
+        log_critical("Cannot open tag file for reading: %s", fn);
+        goto fail1;
+    }
+
+
+    if (!qp_is_array(qp_next(unpacker, NULL)) ||
+        qp_next(unpacker, &qp_tn) != QP_RAW ||
+        (tag->name = strndup((const char *) qp_tn.via.raw, qp_tn.len)) == NULL)
+    {
+        /* or a memory allocation error, but the same result */
+        log_critical("Expected an array with a tag name in file: %s", fn);
+        goto fail2;
+    }
+
+
+    while (qp_next(unpacker, &qp_series_id) == QP_INT64)
+    {
+        series_id = (uint64_t) qp_series_id.via.int64;
+        series = imap_get(siridb->series_map, series_id);
+
+        if (series == NULL)
         {
-            log_critical("cannot open tag file for reading: %s", tag->fn);
-            siridb__tag_free(tag);
-            tag = NULL;
+            siridb_tags_set_require_save(siridb->tags, tag);
+
+            log_error(
+                    "Cannot find series id %" PRId64
+                    " which was tagged with '%s'",
+                    qp_series_id.via.int64,
+                    tag->name);
+        }
+        else if (imap_add(tag->series, series_id, series) == 0)
+        {
+            siridb_series_incref(series);
         }
         else
         {
-            qp_obj_t qp_tn;
-
-            if (!qp_is_array(qp_next(unpacker, NULL)) ||
-                qp_next(unpacker, &qp_tn) != QP_RAW ||
-                (tag->name = strndup(
-                        (const char *) qp_tn.via.raw,
-                        qp_tn.len)) == NULL)
-            {
-                /* or a memory allocation error, but the same result */
-                log_critical(
-                        "expected an array with a tag name in file: %s",
-                        tag->fn);
-                siridb__tag_free(tag);
-                tag = NULL;
-            }
-            else
-            {
-                qp_obj_t qp_series_id;
-                uint64_t series_id;
-                siridb_series_t * series;
-
-                while (qp_next(unpacker, &qp_series_id) == QP_INT64)
-                {
-                    series_id = (uint64_t) qp_series_id.via.int64;
-                    series = imap_get(siridb->series_map, series_id);
-
-                    if (series == NULL)
-                    {
-                        siridb_tags_set_require_save(siridb->tags, tag);
-
-                        log_error(
-                                "cannot find series id %" PRId64
-                                " which was tagged with '%s'",
-                                qp_series_id.via.int64,
-                                tag->name);
-                    }
-                    else if (imap_add(tag->series, series_id, series) == 0)
-                    {
-                        siridb_series_incref(series);
-                    }
-                    else
-                    {
-                        log_critical(
-                                "cannot add series '%s' to tag '%s'",
-                                series->name,
-                                tag->name);
-                    }
-                }
-            }
-            qp_unpacker_ff_free(unpacker);
+            log_error(
+                    "Cannot add series '%s' to tag '%s'",
+                    series->name,
+                    tag->name);
         }
     }
+
+    qp_unpacker_ff_free(unpacker);
+    free(fn);
     return tag;
+
+fail2:
+    qp_unpacker_ff_free(unpacker);
+fail1:
+    free(fn);
+fail0:
+    siridb__tag_free(tag);
+    return NULL;
+}
+
+
+
+static int tag__save_cb(siridb_series_t * series, qp_fpacker_t * fpacker)
+{
+    return qp_fadd_int64(fpacker, (int64_t) series->id);
 }
 
 /*
@@ -117,12 +147,19 @@ siridb_tag_t * siridb_tag_load(siridb_t * siridb, const char * fn)
  */
 int siridb_tag_save(siridb_tag_t * tag)
 {
+    int rc = -1;
     qp_fpacker_t * fpacker;
 
-    fpacker = qp_open(tag->fn, "w");
+    char * fn = siridb_tag_fn(tag);
+    if (fn == NULL)
+    {
+        return rc;
+    }
+
+    fpacker = qp_open(fn, "w");
     if (fpacker == NULL)
     {
-        return -1;
+        goto fail0;
     }
 
     if (/* open a new array */
@@ -131,29 +168,17 @@ int siridb_tag_save(siridb_tag_t * tag)
         /* write the tag name */
         qp_fadd_string(fpacker, tag->name))
     {
-        qp_close(fpacker);
-        return -1;
+        goto fail1;
     }
 
-    /* TODO: maybe replace with walk */
-    vec_t * series_list = imap_vec(tag->series);
+    rc = imap_walk(tag->series, (imap_cb) tag__save_cb, fpacker);
 
-    if (series_list != NULL)
-    {
-        siridb_series_t * series;
-        for (size_t i = 0; i < series_list->len; i++)
-        {
-            series = (siridb_series_t *) series_list->data[i];
-            qp_fadd_int64(fpacker, (int64_t) series->id);
-        }
-    }
+fail1:
+    rc = qp_close(fpacker) || rc;
 
-    if (qp_close(fpacker) || series_list == NULL)
-    {
-        return -1;
-    }
-
-    return 0;
+fail0:
+    free(fn);
+    return rc;
 }
 
 /*
@@ -176,7 +201,7 @@ void siridb_tag_prop(siridb_tag_t * tag, qp_packer_t * packer, int prop)
         qp_add_string(packer, tag->name);
         break;
     case CLERI_GID_K_SERIES:
-        qp_add_int64(packer, (int64_t) tag->id);
+        qp_add_int64(packer, (int64_t) tag->n);
         break;
     }
 }
@@ -188,7 +213,7 @@ int siridb_tag_cexpr_cb(siridb_tag_t * tag, cexpr_condition_t * cond)
     case CLERI_GID_K_NAME:
         return cexpr_str_cmp(cond->operator, tag->name, cond->str);
     case CLERI_GID_K_SERIES:
-        return cexpr_int_cmp(cond->operator, (int64_t) tag->id, cond->int64);
+        return cexpr_int_cmp(cond->operator, (int64_t) tag->n, cond->int64);
     }
 
     log_critical("Unknown group property received: %d", cond->prop);
@@ -218,17 +243,22 @@ void siridb__tag_free(siridb_tag_t * tag)
     log_debug("Free tag: '%s'", tag->name);
 #endif
 
-    if ((tag->flags & TAG_FLAG_CLEANUP) && unlink(tag->fn))
+    if ((tag->flags & TAG_FLAG_CLEANUP))
     {
-        log_critical("Cannot remove tag file: '%s'", tag->fn);
+        char * fn = siridb_tag_fn(tag);
+        if (!fn || unlink(fn))
+        {
+            log_critical("Cannot remove tag (file): '%s'", tag->name);
+        }
+        free(fn);
     }
     else if ((tag->flags & TAG_FLAG_REQUIRE_SAVE) && siridb_tag_save(tag))
     {
-        log_critical("Cannot save tag file: '%s'", tag->fn);
+        log_critical("Cannot save tag '%s'", tag->name);
     }
 
     free(tag->name);
-    free(tag->fn);
+
     if (tag->series != NULL)
     {
         imap_free(tag->series, (imap_free_cb) siridb__series_decref);

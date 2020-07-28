@@ -79,7 +79,6 @@ typedef enum
     BPROTO_DISABLE_BACKUP_MODE,         /* empty                            */
     BPROTO_TEE_PIPE_NAME_UPDATE,        /* tee pipe name                    */
     BPROTO_DROP_DATABASE,               /* empty                            */
-    BPROTO_REQ_TAGS,                    /* empty                            */
 } bproto_client_t;
 
 /*

@@ -25,19 +25,21 @@ struct siridb_tags_s
 {
     uint16_t flags;
     uint16_t ref;
+    uint32_t pad0;
+    uint64_t next_id;
     char * path;
     ct_t * tags;
-    vec_t * cleanup;
     uv_mutex_t mutex;
 };
 
 int siridb_tags_init(siridb_t * siridb);
 void siridb_tags_incref(siridb_tags_t * tags);
 void siridb_tags_decref(siridb_tags_t * tags);
+int siridb_tags_drop_tag(
+        siridb_tags_t * tags,
+        const char * name,
+        char * err_msg);
 siridb_tag_t * siridb_tags_add(siridb_tags_t * tags, const char * name);
-sirinet_pkg_t * siridb_tags_pkg(siridb_tags_t * tags, uint16_t pid);
-ct_t * siridb_tags_lookup(siridb_tags_t * tags);
-void siridb_tags_cleanup(uv_async_t * handle);
 void siridb_tags_dropped_series(siridb_tags_t * tags);
 void siridb_tags_save(siridb_tags_t * tags);
 void siridb_tags_init_nseries(siridb_tags_t * tags);

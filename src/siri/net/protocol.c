@@ -86,7 +86,6 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_DISABLE_BACKUP_MODE: return "BPROTO_DISABLE_BACKUP_MODE";
     case BPROTO_TEE_PIPE_NAME_UPDATE: return "BPROTO_TEE_PIPE_NAME_UPDATE";
     case BPROTO_DROP_DATABASE: return "BPROTO_DROP_DATABASE";
-    case BPROTO_REQ_TAGS: return "BPROTO_REQ_TAGS";
     default:
         sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
