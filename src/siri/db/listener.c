@@ -901,7 +901,7 @@ static void enter_group_tag_match(uv_async_t * handle)
 
             uv_mutex_unlock(&siridb->groups->mutex);
         }
-        else /* tag */
+        else if (tag)  /* check to prevent compile warning */
         {
             vec_t * tag_series;
 
