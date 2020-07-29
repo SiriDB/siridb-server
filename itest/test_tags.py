@@ -174,6 +174,20 @@ class TestTags(TestBase):
             alter series 'variance', 'pvariance' untag `OTHER`
         ''')
 
+        await self.client0.query('''
+            alter series `ALL` where type == float tag `F`
+        ''')
+
+        await self.client0.query('''
+            alter series `ALL` tag `I`
+        ''')
+
+        await asyncio.sleep(3.0)
+
+        await self.client0.query('''
+            alter series `ALL` where type != integer untag `I`
+        ''')
+
         await self.client1.connect()
         await self.client2.connect()
 
@@ -185,6 +199,8 @@ class TestTags(TestBase):
             self.assertEqual(tags, [
                 ["ALL", 13],
                 ["EMPTY", 0],
+                ["F", 5],
+                ["I", 7],
                 ["OTHER", 5],
                 ["SERIES", 4],
                 ["SERIES_FLOAT", 2],
@@ -207,6 +223,8 @@ class TestTags(TestBase):
             self.assertEqual(tags, [
                 ["ALL", 9],
                 ["EMPTY", 0],
+                ["F", 5],
+                ["I", 4],
                 ["OTHER", 4],
                 ["SERIES", 3],
                 ["SERIES_FLOAT", 2],
@@ -233,7 +251,10 @@ class TestTags(TestBase):
                 list tags name, series
             ''')
             tags = sorted(res['tags'])
-            self.assertEqual(tags, [])
+            self.assertEqual(tags, [
+                ["F", 5],
+                ["I", 4],
+            ])
 
         self.client2.close()
         self.client1.close()

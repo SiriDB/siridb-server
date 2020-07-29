@@ -952,8 +952,6 @@ static void on_empty_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     sirinet_pkg_t * package = NULL;
     siridb_t * siridb = client->siridb;
 
-    LOGC("on empty tags...");
-
     if (~siridb->server->flags & SERVER_FLAG_RUNNING)
     {
         log_error("Cannot tag series because of having status %d",
