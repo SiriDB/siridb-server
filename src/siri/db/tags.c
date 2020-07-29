@@ -336,7 +336,8 @@ static int TAGS_dropped_series(
 
     if (tag_series != NULL)
     {
-        for (size_t i = 0; i < tag_series->len; i++)
+        size_t i;
+        for (i = 0; i < tag_series->len; i++)
         {
             series = (siridb_series_t *) tag_series->data[i];
             if ((series->flags & SIRIDB_SERIES_IS_DROPPED) &&

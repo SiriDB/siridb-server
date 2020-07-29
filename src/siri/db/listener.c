@@ -913,7 +913,7 @@ static void enter_group_tag_match(uv_async_t * handle)
 
             if (tag_series != NULL)
             {
-                for (size_t i = 0; i < tag_series->len; i++)
+                for (i = 0; i < tag_series->len; i++)
                 {
                     series = (siridb_series_t *) tag_series->data[i];
                     siridb_series_incref(series);
@@ -6497,10 +6497,10 @@ static void on_tag_response(vec_t * promises, uv_async_t * handle)
     sirinet_promise_t * promise;
     qp_unpacker_t unpacker;
     qp_obj_t qp_tag;
-
+    size_t i;
     query_alter_t * q_tag = (query_alter_t *) query->data;
 
-    for (size_t i = 0; i < promises->len; i++)
+    for (i = 0; i < promises->len; i++)
     {
         promise = promises->data[i];
 
