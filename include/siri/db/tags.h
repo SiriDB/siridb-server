@@ -49,6 +49,7 @@ void siridb_tags_save(siridb_tags_t * tags);
 void siridb_tags_init_nseries(siridb_tags_t * tags);
 sirinet_pkg_t * siridb_tags_pkg(siridb_tags_t * tags, uint16_t pid);
 sirinet_pkg_t * siridb_tags_series(siridb_series_t * series);
+sirinet_pkg_t * siridb_tags_empty(siridb_tags_t * tags);
 
 
 #define siridb_tags_set_require_save(__tags, __tag) \

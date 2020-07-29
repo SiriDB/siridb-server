@@ -65,6 +65,7 @@ static void on_disable_backup_mode(
         sirinet_pkg_t * pkg);
 static void on_req_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_empty_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_storage server_addr;
@@ -290,6 +291,9 @@ static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
         break;
     case BPROTO_SERIES_TAGS:
         on_series_tags(client, pkg);
+        break;
+    case BPROTO_EMPTY_TAGS:
+        on_empty_tags(client, pkg);
         break;
     }
 
@@ -932,6 +936,75 @@ static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
                     "Illegal back-end tag series package "
                     "received, probably the series name was not "
                     "terminated?");
+        }
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_empty_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    sirinet_pkg_t * package = NULL;
+    siridb_t * siridb = client->siridb;
+
+    LOGC("on empty tags...");
+
+    if (~siridb->server->flags & SERVER_FLAG_RUNNING)
+    {
+        log_error("Cannot tag series because of having status %d",
+                siridb->server->flags);
+
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                BPROTO_ERR_DROP_SERIES,
+                NULL);
+    }
+    else
+    {
+        qp_unpacker_t unpacker;
+        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+        if (qp_is_array(qp_next(&unpacker, NULL)))
+        {
+            qp_obj_t qp_tag_name;
+
+            uv_mutex_lock(&siridb->tags->mutex);
+
+            while (qp_next(&unpacker, &qp_tag_name) == QP_RAW)
+            {
+                siridb_tag_t * tag = ct_getn(
+                        siridb->tags->tags,
+                        qp_tag_name.via.str,
+                        qp_tag_name.len);
+
+                if (tag == NULL)
+                {
+                    tag = siridb_tags_add_n(
+                            siridb->tags,
+                            qp_tag_name.via.str,
+                            qp_tag_name.len);
+
+                    siridb_tags_set_require_save(siridb->tags, tag);
+                }
+            }
+
+            uv_mutex_unlock(&siridb->tags->mutex);
+
+            package = sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    BPROTO_ACK_EMPTY_TAGS,
+                    NULL);
+        }
+        else
+        {
+            log_error("Illegal back-end empty tags package received");
         }
     }
 

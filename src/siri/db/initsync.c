@@ -224,6 +224,28 @@ void siridb_initsync_fopen(siridb_initsync_t * initsync, const char * opentype)
 }
 
 /*
+ * Call-back function: sirinet_promise_cb
+ */
+static void INITSYNC_on_empty_tags_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        log_error("Error while sending empty tags (%d)", status);
+    }
+    else if (sirinet_protocol_is_error(pkg->tp))
+    {
+        log_error(
+                "Error occurred while processing data on the new server: "
+                "(response type: %u)", pkg->tp);
+    }
+
+    sirinet_promise_decref(promise);
+}
+
+/*
  * Read the next series id and truncate the synchronization file to remove
  * the last synchronization id.
  *
@@ -271,6 +293,24 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
     }
     else
     {
+        sirinet_pkg_t * pkg;
+
+        /* send empty tags if required */
+        pkg = siridb_tags_empty(siridb->tags);
+        if (pkg)
+        {
+            if (siridb_server_send_pkg(
+                    siridb->replica,
+                    pkg,
+                    INITSYNC_TIMEOUT,
+                    (sirinet_promise_cb) INITSYNC_on_empty_tags_response,
+                    NULL,
+                    0))
+            {
+                free(pkg);
+            }
+        }
+
         log_info("Finished initial replica synchronization");
         INITSYNC_unlink(initsync);
         siridb_initsync_free(&siridb->replicate->initsync);

@@ -249,7 +249,7 @@ static int TAGS_series_pkg(siridb_tag_t * tag, TAGS_series_t * w)
 /*
  * Main thread.
  *
- * Returns NULL and raises a signal in case of an error.
+ * Returns NULL in case of an error or no tags.
  */
 sirinet_pkg_t * siridb_tags_series(siridb_series_t * series)
 {
@@ -275,6 +275,42 @@ sirinet_pkg_t * siridb_tags_series(siridb_series_t * series)
     }
 
     return sirinet_packer2pkg(w.packer, 0, BPROTO_SERIES_TAGS);
+}
+
+/*
+ * Main thread.
+ */
+static int TAGS_empty_tag_pkg(siridb_tag_t * tag, qp_packer_t * packer)
+{
+    return tag->series->len == 0
+            ? qp_add_string(packer, tag->name) == 0
+            : 0;
+}
+
+/*
+ * Main thread.
+ *
+ * Returns NULL in case of an error or no empty tags.
+ */
+sirinet_pkg_t * siridb_tags_empty(siridb_tags_t * tags)
+{
+    qp_packer_t * packer = sirinet_packer_new(1024);
+
+    if (packer == NULL || qp_add_type(packer, QP_ARRAY_OPEN))
+    {
+        return NULL;
+    }
+
+    if (ct_values(
+            tags->tags,
+            (ct_val_cb) TAGS_empty_tag_pkg,
+            packer) == 0)
+    {
+        free(packer);
+        return NULL;
+    }
+
+    return sirinet_packer2pkg(packer, 0, BPROTO_EMPTY_TAGS);
 }
 
 /*

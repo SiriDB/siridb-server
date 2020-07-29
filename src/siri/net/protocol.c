@@ -88,6 +88,7 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_DROP_DATABASE: return "BPROTO_DROP_DATABASE";
     case BPROTO_REQ_TAGS: return "BPROTO_REQ_TAGS";
     case BPROTO_SERIES_TAGS: return "BPROTO_SERIES_TAGS";
+    case BPROTO_EMPTY_TAGS: return "BPROTO_EMPTY_TAGS";
     default:
         sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
@@ -127,6 +128,7 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ACK_DROP_DATABASE: return "BPROTO_ACK_DROP_DATABASE";
     case BPROTO_RES_TAGS: return "BPROTO_RES_TAGS";
     case BPROTO_ACK_SERIES_TAGS: return "BPROTO_ACK_SERIES_TAGS";
+    case BPROTO_ACK_EMPTY_TAGS: return "BPROTO_ACK_EMPTY_TAGS";
     default:
         sprintf(protocol_str, "BPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
         return protocol_str;

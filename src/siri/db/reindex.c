@@ -401,6 +401,28 @@ static int REINDEX_next_series_id(siridb_reindex_t * reindex)
 }
 
 /*
+ * Call-back function: sirinet_promise_cb
+ */
+static void REINDEX_on_empty_tags_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        log_error("Error while sending empty tags (%d)", status);
+    }
+    else if (sirinet_protocol_is_error(pkg->tp))
+    {
+        log_error(
+                "Error occurred while processing data on the new server: "
+                "(response type: %u)", pkg->tp);
+    }
+
+    sirinet_promise_decref(promise);
+}
+
+/*
  * This function can raise a SIGNAL
  */
 static void REINDEX_next(siridb_t * siridb)
@@ -416,6 +438,25 @@ static void REINDEX_next(siridb_t * siridb)
         break;
 
     case NEXT_SERIES_END:
+    {
+        sirinet_pkg_t * pkg;
+
+        /* send empty tags if required */
+        pkg = siridb_tags_empty(siridb->tags);
+        if (pkg)
+        {
+            if (siridb_server_send_pkg(
+                    siridb->reindex->server,
+                    pkg,
+                    REINDEX_TIMEOUT,
+                    (sirinet_promise_cb) REINDEX_on_empty_tags_response,
+                    NULL,
+                    0))
+            {
+                free(pkg);
+            }
+        }
+
         /* update and send the flags */
         siridb->server->flags &= ~SERVER_FLAG_REINDEXING;
         siridb_servers_send_flags(siridb->servers);
@@ -431,7 +472,7 @@ static void REINDEX_next(siridb_t * siridb)
 
         siri_optimize_continue();
         break;
-
+    }
     case NEXT_SERIES_ERR:
         break; /* signal is raised */
     }

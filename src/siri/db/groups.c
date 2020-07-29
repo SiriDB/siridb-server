@@ -429,8 +429,14 @@ static void GROUPS_loop(void * arg)
     {
         sleep(GROUPS_LOOP_SLEEP);
 
-        if (siridb_is_reindexing(siridb) && (++mod_test % GROUPS_LOOP_DEEP))
+        if (groups->status == GROUPS_STOPPING)
+            break;
+
+        if ((siridb_is_reindexing(siridb) ||
+                siridb_server_self_synchronizing(siridb->server)) &&
+                (++mod_test % GROUPS_LOOP_DEEP))
         {
+            /* less frequently when re-indexing or synchronizing */
             continue;
         }
 

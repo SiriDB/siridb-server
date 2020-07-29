@@ -81,6 +81,7 @@ typedef enum
     BPROTO_DROP_DATABASE,               /* empty                            */
     BPROTO_REQ_TAGS,                    /* empty                            */
     BPROTO_SERIES_TAGS,                 /* [series name, tag name, ...]     */
+    BPROTO_EMPTY_TAGS,                  /* [tag name, tag name, ...]        */
 } bproto_client_t;
 
 /*
@@ -131,7 +132,8 @@ typedef enum
     BPROTO_ACK_TEE_PIPE_NAME,                   /* empty                    */
     BPROTO_ACK_DROP_DATABASE,                   /* empty                    */
     BPROTO_RES_TAGS,                            /* [[name, series], ...]    */
-    BPROTO_ACK_SERIES_TAGS                      /* empty                    */
+    BPROTO_ACK_SERIES_TAGS,                     /* empty                    */
+    BPROTO_ACK_EMPTY_TAGS,                      /* empty                    */
 } bproto_server_t;
 
 #define sirinet_protocol_is_error(tp) (tp >= 64 && tp < 192)

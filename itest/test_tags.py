@@ -113,6 +113,12 @@ class TestTags(TestBase):
         self.assertEqual(
             res, {"success_msg": "Successfully tagged 13 series."})
 
+        res = await self.client0.query('''
+            alter series /empty/ tag `EMPTY`
+        ''')
+        self.assertEqual(
+            res, {"success_msg": "Successfully tagged 0 series."})
+
         await asyncio.sleep(3.0)
 
         res = await self.client0.query('''
@@ -163,12 +169,6 @@ class TestTags(TestBase):
         ''')
         self.assertEqual(
             res, {"success_msg": "Successfully tagged 3 series."})
-
-        res = await self.client0.query('''
-            alter series /empty/ tag `EMPTY`
-        ''')
-        self.assertEqual(
-            res, {"success_msg": "Successfully tagged 0 series."})
 
         await self.client0.query('''
             alter series 'variance', 'pvariance' untag `OTHER`
