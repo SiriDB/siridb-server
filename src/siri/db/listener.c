@@ -845,7 +845,7 @@ static void enter_group_tag_match(uv_async_t * handle)
     cleri_node_t * node = query->nodes->node;
     query_wrapper_t * q_wrapper = query->data;
     siridb_group_t * group;
-    siridb_tag_t * tag;
+    siridb_tag_t * tag = NULL;
 
 
     /* we must send this query to all pools */
@@ -860,9 +860,7 @@ static void enter_group_tag_match(uv_async_t * handle)
     /* extract series name */
     xstr_extract_string(group_or_tag_name, node->str, node->len);
 
-    group = ct_get(siridb->groups->groups, group_or_tag_name);
-
-    if (group == NULL &&
+    if ((group = ct_get(siridb->groups->groups, group_or_tag_name)) == NULL &&
         (tag = ct_get(siridb->tags->tags, group_or_tag_name)) == NULL)
     {
         snprintf(query->err_msg,
