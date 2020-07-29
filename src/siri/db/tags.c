@@ -270,7 +270,7 @@ sirinet_pkg_t * siridb_tags_series(siridb_series_t * series)
             (ct_val_cb) TAGS_series_pkg,
             &w) == 0)
     {
-        free(w.packer);
+        qp_packer_free(w.packer);
         return NULL;
     }
 
@@ -306,7 +306,7 @@ sirinet_pkg_t * siridb_tags_empty(siridb_tags_t * tags)
             (ct_val_cb) TAGS_empty_tag_pkg,
             packer) == 0)
     {
-        free(packer);
+        qp_packer_free(packer);
         return NULL;
     }
 
