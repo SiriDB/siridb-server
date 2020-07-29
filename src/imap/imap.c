@@ -96,8 +96,6 @@ void imap_free(imap_t * imap, imap_free_cb cb)
     free(imap);
 }
 
-
-
 /*
  * Add data by id to the map.
  *
