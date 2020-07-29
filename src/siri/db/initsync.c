@@ -57,7 +57,8 @@ siridb_initsync_t * siridb_initsync_open(siridb_t * siridb, int create_new)
         initsync->fn = NULL;
         initsync->fp = NULL;
         initsync->next_series_id = NULL;
-        initsync->pkg = NULL;
+        initsync->pkg_points = NULL;
+        initsync->pkg_tags = NULL;
 
         if (INITSYNC_fn(siridb, initsync) < 0)
         {
@@ -161,7 +162,8 @@ void siridb_initsync_free(siridb_initsync_t ** initsync)
     }
     free((*initsync)->fn);
     free((*initsync)->next_series_id);
-    free((*initsync)->pkg);
+    free((*initsync)->pkg_points);
+    free((*initsync)->pkg_tags);
     free(*initsync);
     *initsync = NULL;
 }
@@ -174,7 +176,7 @@ void siridb_initsync_run(uv_timer_t * timer)
     siridb_t * siridb = (siridb_t *) timer->data;
     uv_timer_start(
             timer,
-            (siridb->replicate->initsync->pkg == NULL) ?
+            (siridb->replicate->initsync->pkg_points == NULL) ?
                     INITSYNC_work : INITSYNC_send,
             INITSYNC_SLEEP * siridb->tasks.active,
             0);
@@ -237,8 +239,10 @@ static void INITSYNC_next_series_id(siridb_t * siridb)
     siridb_initsync_t * initsync = siridb->replicate->initsync;
 
     /* free the current package (can be NULL already) */
-    free(initsync->pkg);
-    initsync->pkg = NULL;
+    free(initsync->pkg_points);
+    free(initsync->pkg_tags);
+    initsync->pkg_points = NULL;
+    initsync->pkg_tags = NULL;
 
     if (initsync->size >= SIZE2)
     {
@@ -303,7 +307,7 @@ static void INITSYNC_pause(siridb_replicate_t * replicate)
 static void INITSYNC_send(uv_timer_t * timer)
 {
     siridb_t * siridb = (siridb_t *) timer->data;
-    assert (siridb->replicate->initsync->pkg != NULL);
+    assert (siridb->replicate->initsync->pkg_points != NULL);
 
     if (siridb->replicate->status == REPLICATE_STOPPING)
     {
@@ -315,7 +319,7 @@ static void INITSYNC_send(uv_timer_t * timer)
         {
             siridb_server_send_pkg(
                     siridb->replica,
-                    siridb->replicate->initsync->pkg,
+                    siridb->replicate->initsync->pkg_points,
                     INITSYNC_TIMEOUT,
                     (sirinet_promise_cb) INITSYNC_on_insert_response,
                     siridb,
@@ -344,7 +348,8 @@ static void INITSYNC_work(uv_timer_t * timer)
             siridb->replicate->status == REPLICATE_STOPPING);
     assert (siridb->replicate->initsync != NULL);
     assert (siridb->replicate->initsync->fp != NULL);
-    assert (siridb->replicate->initsync->pkg == NULL);
+    assert (siridb->replicate->initsync->pkg_points == NULL);
+    assert (siridb->replicate->initsync->pkg_tags == NULL);
 
     if (siridb->insert_tasks)
     {
@@ -385,10 +390,12 @@ static void INITSYNC_work(uv_timer_t * timer)
                 {
                     series->flags &= ~SIRIDB_SERIES_INIT_REPL;
 
-                    initsync->pkg = sirinet_packer2pkg(
+                    initsync->pkg_points = sirinet_packer2pkg(
                             packer,
                             0,
                             BPROTO_INSERT_SERVER);
+
+                    initsync->pkg_tags = siridb_tags_series(series);
 
                     uv_timer_start(
                             siridb->replicate->timer,
@@ -409,6 +416,28 @@ static void INITSYNC_work(uv_timer_t * timer)
     {
         INITSYNC_next_series_id(siridb);
     }
+}
+
+/*
+ * Call-back function: sirinet_promise_cb
+ */
+static void INITSYNC_on_tag_response(
+        sirinet_promise_t * promise,
+        sirinet_pkg_t * pkg,
+        int status)
+{
+    if (status)
+    {
+        log_error("Error while sending tags (%d)", status);
+    }
+    else if (sirinet_protocol_is_error(pkg->tp))
+    {
+        log_error(
+                "Error occurred while processing data on the replica: "
+                "(response type: %u)", pkg->tp);
+    }
+
+    sirinet_promise_decref(promise);
 }
 
 /*
@@ -460,6 +489,16 @@ static void INITSYNC_on_insert_response(
                     "Error occurred while processing data on the replica: "
                     "(response type: %u)", pkg->tp);
             /* TODO: maybe write pkg to an error queue ? */
+        }
+        if (siridb->replicate->initsync->pkg_tags)
+        {
+            siridb_server_send_pkg(
+                    siridb->replica,
+                    siridb->replicate->initsync->pkg_tags,
+                    INITSYNC_TIMEOUT,
+                    (sirinet_promise_cb) INITSYNC_on_tag_response,
+                    NULL,
+                    FLAG_KEEP_PKG);
         }
         INITSYNC_next_series_id(siridb);
         break;

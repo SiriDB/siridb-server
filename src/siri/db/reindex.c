@@ -339,16 +339,6 @@ static void REINDEX_send(uv_timer_t * timer)
                 (sirinet_promise_cb) REINDEX_on_insert_response,
                 siridb,
                 FLAG_KEEP_PKG);
-        if (siridb->reindex->pkg_tags)
-        {
-            siridb_server_send_pkg(
-                    siridb->reindex->server,
-                    siridb->reindex->pkg_tags,
-                    REINDEX_TIMEOUT,
-                    (sirinet_promise_cb) REINDEX_on_tag_response,
-                    NULL,
-                    FLAG_KEEP_PKG);
-        }
     }
     else
     {
@@ -484,6 +474,10 @@ static void REINDEX_work(uv_timer_t * timer)
 
         if (points != NULL)  /* signal is raised in case NULL */
         {
+            /* tag package may be NULL when no tag need to be
+             * synchronized */
+            reindex->pkg_tags = siridb_tags_series(reindex->series);
+
             /*
              * Prepare drop, increasing the reference counter is not needed
              * since the series can only be decremented when dropped. since
@@ -511,10 +505,6 @@ static void REINDEX_work(uv_timer_t * timer)
                             0,
                             BPROTO_INSERT_TESTED_SERVER);
 
-                    /* tag package may be NULL when no tag need to be
-                     * synchronized */
-                    reindex->pkg_tags = siridb_tags_series(reindex->series);
-
                     uv_timer_start(
                             reindex->timer,
                             REINDEX_send,
@@ -527,8 +517,6 @@ static void REINDEX_work(uv_timer_t * timer)
                 }
             }
             siridb_points_free(points);
-
-
         }
     }
 }
@@ -565,6 +553,17 @@ static void REINDEX_commit_series(siridb_t * siridb)
             siridb_replicate_pkg(siridb, pkg);
             free(pkg);
         }
+    }
+
+    if (siridb->reindex->pkg_tags)
+    {
+        siridb_server_send_pkg(
+                siridb->reindex->server,
+                siridb->reindex->pkg_tags,
+                REINDEX_TIMEOUT,
+                (sirinet_promise_cb) REINDEX_on_tag_response,
+                NULL,
+                FLAG_KEEP_PKG);
     }
 
     /* commit the drop */
@@ -611,7 +610,7 @@ static void REINDEX_on_insert_response(
          * Commit with error since this package has result in an unknown
          * package type.
          */
-        log_error("Error occurred while sending series to the replica (%d)",
+        log_error("Error occurred while sending series to the new server (%d)",
                 status);
         REINDEX_commit_series(siridb);
         REINDEX_next(siridb);
@@ -620,7 +619,7 @@ static void REINDEX_on_insert_response(
         if (sirinet_protocol_is_error(pkg->tp))
         {
             log_error(
-                    "Error occurred while processing data on the replica: "
+                    "Error occurred while processing data on the new server: "
                     "(response type: %u)", pkg->tp);
         }
         REINDEX_commit_series(siridb);
@@ -645,6 +644,12 @@ static void REINDEX_on_tag_response(
     if (status)
     {
         log_error("Error while sending tags (%d)", status);
+    }
+    else if (sirinet_protocol_is_error(pkg->tp))
+    {
+        log_error(
+                "Error occurred while processing data on the new server: "
+                "(response type: %u)", pkg->tp);
     }
 
     sirinet_promise_decref(promise);

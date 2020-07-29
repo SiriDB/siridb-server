@@ -904,6 +904,8 @@ static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
                     {
                         ++series->ref;
                     }
+
+                    siridb_tags_set_require_save(siridb->tags, tag);
                 }
 
                 uv_mutex_unlock(&siridb->tags->mutex);

@@ -196,7 +196,7 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 #define MSG_SUCCESS_TAG \
     "Successfully tagged %zu series."
 #define MSG_SUCCESS_UNTAG \
-    "Successfully unagged %zu series."
+    "Successfully untagged %zu series."
 #define MSG_SUCCESS_DROP_TAG \
     "Successfully dropped tag '%s'."
 
