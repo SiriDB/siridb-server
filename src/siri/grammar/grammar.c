@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-01-23 14:08:47
+ * Created at: 2020-06-17 15:21:09
  */
 
 #include "siri/grammar/grammar.h"
@@ -162,6 +162,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_keyword(CLERI_NONE, "symmetric_difference", CLERI_CASE_SENSITIVE)
     );
     cleri_t * k_sync_progress = cleri_keyword(CLERI_GID_K_SYNC_PROGRESS, "sync_progress", CLERI_CASE_SENSITIVE);
+    cleri_t * k_tag = cleri_keyword(CLERI_GID_K_TAG, "tag", CLERI_CASE_SENSITIVE);
+    cleri_t * k_tags = cleri_keyword(CLERI_GID_K_TAGS, "tags", CLERI_CASE_SENSITIVE);
     cleri_t * k_tee_pipe_name = cleri_keyword(CLERI_GID_K_TEE_PIPE_NAME, "tee_pipe_name", CLERI_CASE_SENSITIVE);
     cleri_t * k_timeit = cleri_keyword(CLERI_GID_K_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
     cleri_t * k_timezone = cleri_keyword(CLERI_GID_K_TIMEZONE, "timezone", CLERI_CASE_SENSITIVE);
@@ -176,6 +178,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_tokens(CLERI_NONE, ", |"),
         cleri_keyword(CLERI_NONE, "union", CLERI_CASE_SENSITIVE)
     );
+    cleri_t * k_untag = cleri_keyword(CLERI_GID_K_UNTAG, "untag", CLERI_CASE_SENSITIVE);
     cleri_t * k_uptime = cleri_keyword(CLERI_GID_K_UPTIME, "uptime", CLERI_CASE_SENSITIVE);
     cleri_t * k_user = cleri_keyword(CLERI_GID_K_USER, "user", CLERI_CASE_SENSITIVE);
     cleri_t * k_users = cleri_keyword(CLERI_GID_K_USERS, "users", CLERI_CASE_SENSITIVE);
@@ -351,6 +354,13 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_name,
         k_access
     ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
+    cleri_t * tag_columns = cleri_list(CLERI_GID_TAG_COLUMNS, cleri_choice(
+        CLERI_NONE,
+        CLERI_FIRST_MATCH,
+        2,
+        k_name,
+        k_series
+    ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
     cleri_t * pool_props = cleri_choice(
         CLERI_GID_POOL_PROPS,
         CLERI_FIRST_MATCH,
@@ -389,6 +399,50 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
                 ),
                 str_operator,
                 string
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                cleri_token(CLERI_NONE, "("),
+                CLERI_THIS,
+                cleri_token(CLERI_NONE, ")")
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                CLERI_THIS,
+                k_and,
+                CLERI_THIS
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                CLERI_THIS,
+                k_or,
+                CLERI_THIS
+            )
+        )
+    );
+    cleri_t * where_tag = cleri_sequence(
+        CLERI_GID_WHERE_TAG,
+        2,
+        k_where,
+        cleri_prio(
+            CLERI_NONE,
+            5,
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_name,
+                str_operator,
+                string
+            ),
+            cleri_sequence(
+                CLERI_NONE,
+                3,
+                k_series,
+                int_operator,
+                int_expr
             ),
             cleri_sequence(
                 CLERI_NONE,
@@ -772,6 +826,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     );
     cleri_t * series_name = cleri_dup(CLERI_GID_SERIES_NAME, string);
     cleri_t * group_name = cleri_dup(CLERI_GID_GROUP_NAME, r_grave_str);
+    cleri_t * tag_name = cleri_dup(CLERI_GID_TAG_NAME, r_grave_str);
     cleri_t * series_re = cleri_dup(CLERI_GID_SERIES_RE, r_regex);
     cleri_t * uuid = cleri_choice(
         CLERI_GID_UUID,
@@ -780,7 +835,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         r_uuid_str,
         string
     );
-    cleri_t * group_match = cleri_dup(CLERI_GID_GROUP_MATCH, r_grave_str);
+    cleri_t * group_tag_match = cleri_dup(CLERI_GID_GROUP_TAG_MATCH, r_grave_str);
     cleri_t * series_match = cleri_prio(
         CLERI_GID_SERIES_MATCH,
         4,
@@ -790,7 +845,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             4,
             series_all,
             series_name,
-            group_match,
+            group_tag_match,
             series_re
         ), series_setopr, 1, 0, 0),
         cleri_choice(
@@ -799,7 +854,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             4,
             series_all,
             series_name,
-            group_match,
+            group_tag_match,
             series_re
         ),
         series_parentheses,
@@ -1167,6 +1222,18 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_timezone,
         string
     );
+    cleri_t * tag_series = cleri_sequence(
+        CLERI_GID_TAG_SERIES,
+        2,
+        k_tag,
+        tag_name
+    );
+    cleri_t * untag_series = cleri_sequence(
+        CLERI_GID_UNTAG_SERIES,
+        2,
+        k_untag,
+        tag_name
+    );
     cleri_t * set_expiration_num = cleri_sequence(
         CLERI_GID_SET_EXPIRATION_NUM,
         4,
@@ -1254,11 +1321,31 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             set_name
         )
     );
+    cleri_t * alter_series = cleri_sequence(
+        CLERI_GID_ALTER_SERIES,
+        4,
+        k_series,
+        series_match,
+        cleri_optional(CLERI_NONE, where_series),
+        cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            2,
+            tag_series,
+            untag_series
+        )
+    );
     cleri_t * count_groups = cleri_sequence(
         CLERI_GID_COUNT_GROUPS,
         2,
         k_groups,
         cleri_optional(CLERI_NONE, where_group)
+    );
+    cleri_t * count_tags = cleri_sequence(
+        CLERI_GID_COUNT_TAGS,
+        2,
+        k_tags,
+        cleri_optional(CLERI_NONE, where_tag)
     );
     cleri_t * count_pools = cleri_sequence(
         CLERI_GID_COUNT_POOLS,
@@ -1341,6 +1428,12 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_group,
         group_name
     );
+    cleri_t * drop_tag = cleri_sequence(
+        CLERI_GID_DROP_TAG,
+        2,
+        k_tag,
+        tag_name
+    );
     cleri_t * drop_series = cleri_sequence(
         CLERI_GID_DROP_SERIES,
         4,
@@ -1381,6 +1474,13 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_groups,
         cleri_optional(CLERI_NONE, group_columns),
         cleri_optional(CLERI_NONE, where_group)
+    );
+    cleri_t * list_tags = cleri_sequence(
+        CLERI_GID_LIST_TAGS,
+        3,
+        k_tags,
+        cleri_optional(CLERI_NONE, tag_columns),
+        cleri_optional(CLERI_NONE, where_tag)
     );
     cleri_t * list_pools = cleri_sequence(
         CLERI_GID_LIST_POOLS,
@@ -1431,7 +1531,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            5,
+            6,
+            alter_series,
             alter_user,
             alter_group,
             alter_server,
@@ -1447,7 +1548,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_MOST_GREEDY,
-            10,
+            11,
             count_groups,
             count_pools,
             count_series,
@@ -1457,6 +1558,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             count_shards,
             count_shards_size,
             count_users,
+            count_tags,
             count_series_length
         )
     );
@@ -1479,8 +1581,9 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            5,
+            6,
             drop_group,
+            drop_tag,
             drop_series,
             drop_shards,
             drop_server,
@@ -1507,8 +1610,9 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            6,
+            7,
             list_series,
+            list_tags,
             list_users,
             list_shards,
             list_groups,

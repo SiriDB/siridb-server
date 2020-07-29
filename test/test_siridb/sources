@@ -71,6 +71,8 @@
 ../src/siri/db/shard.c
 ../src/siri/db/shards.c
 ../src/siri/db/sset.c
+../src/siri/db/tag.c
+../src/siri/db/tags.c
 ../src/siri/db/tasks.c
 ../src/siri/db/tee.c
 ../src/siri/db/time.c

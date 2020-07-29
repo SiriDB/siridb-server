@@ -161,6 +161,8 @@ class SiriGrammar(Grammar):
         Keyword('symmetric_difference'),
         most_greedy=False)
     k_sync_progress = Keyword('sync_progress')
+    k_tag = Keyword('tag')
+    k_tags = Keyword('tags')
     k_tee_pipe_name = Keyword('tee_pipe_name')
     k_timeit = Keyword('timeit')
     k_timezone = Keyword('timezone')
@@ -172,6 +174,7 @@ class SiriGrammar(Grammar):
         Tokens(', |'),
         Keyword('union'),
         most_greedy=False)
+    k_untag = Keyword('untag')
     k_uptime = Keyword('uptime')
     k_user = Keyword('user')
     k_users = Keyword('users')
@@ -295,6 +298,11 @@ class SiriGrammar(Grammar):
         k_access,
         most_greedy=False), ',', 1)
 
+    tag_columns = List(Choice(
+        k_name,
+        k_series,
+        most_greedy=False), ',', 1)
+
     pool_props = Choice(
         k_pool,
         k_servers,
@@ -313,6 +321,14 @@ class SiriGrammar(Grammar):
             Choice(k_expression, k_name, most_greedy=False),
             str_operator,
             string),
+        Sequence('(', THIS, ')'),
+        Sequence(THIS, k_and, THIS),
+        Sequence(THIS, k_or, THIS)))
+
+    # where tag
+    where_tag = Sequence(k_where, Prio(
+        Sequence(k_name, str_operator, string),
+        Sequence(k_series, int_operator, int_expr),
         Sequence('(', THIS, ')'),
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
@@ -421,20 +437,21 @@ class SiriGrammar(Grammar):
     series_all = Choice(Token('*'), k_all, most_greedy=False)
     series_name = Repeat(string, 1, 1)
     group_name = Repeat(r_grave_str, 1, 1)
+    tag_name = Repeat(r_grave_str, 1, 1)
     series_re = Repeat(r_regex, 1, 1)
     uuid = Choice(r_uuid_str, string, most_greedy=False)
-    group_match = Repeat(r_grave_str, 1, 1)
+    group_tag_match = Repeat(r_grave_str, 1, 1)
     series_match = Prio(
         List(Choice(
             series_all,
             series_name,
-            group_match,
+            group_tag_match,
             series_re,
             most_greedy=False), series_setopr, 1),
         Choice(
             series_all,
             series_name,
-            group_match,
+            group_tag_match,
             series_re,
             most_greedy=False),
         series_parentheses,
@@ -593,15 +610,17 @@ class SiriGrammar(Grammar):
     set_select_points_limit = Sequence(
         k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
+    tag_series = Sequence(k_tag, tag_name)
+    untag_series = Sequence(k_untag, tag_name)
     set_expiration_num = Sequence(
         k_set,
         k_expiration_num,
-	time_expr,        
+	time_expr,
         Optional(set_ignore_threshold))
     set_expiration_log = Sequence(
         k_set,
         k_expiration_log,
-	time_expr,        
+	time_expr,
         Optional(set_ignore_threshold))
 
     alter_database = Sequence(k_database, Choice(
@@ -636,8 +655,16 @@ class SiriGrammar(Grammar):
         set_name,
         most_greedy=False))
 
+    alter_series = Sequence(
+        k_series,
+        series_match,
+        Optional(where_series),
+        Choice(tag_series, untag_series, most_greedy=False))
+
     count_groups = Sequence(
         k_groups, Optional(where_group))
+    count_tags = Sequence(
+        k_tags, Optional(where_tag))
     count_pools = Sequence(
         k_pools, Optional(where_pool))
     count_series = Sequence(
@@ -670,6 +697,8 @@ class SiriGrammar(Grammar):
         k_user, string, set_password)
 
     drop_group = Sequence(k_group, group_name)
+    drop_tag = Sequence(k_tag, tag_name)
+
     # Drop statement needs at least a series_math or where STMT or both
     drop_series = Sequence(
         k_series,
@@ -688,6 +717,8 @@ class SiriGrammar(Grammar):
 
     list_groups = Sequence(
         k_groups, Optional(group_columns), Optional(where_group))
+    list_tags = Sequence(
+        k_tags, Optional(tag_columns), Optional(where_tag))
     list_pools = Sequence(
         k_pools, Optional(pool_columns), Optional(where_pool))
     list_series = Sequence(
@@ -705,6 +736,7 @@ class SiriGrammar(Grammar):
     revoke_user = Sequence(k_user, string)
 
     alter_stmt = Sequence(k_alter, Choice(
+        alter_series,
         alter_user,
         alter_group,
         alter_server,
@@ -724,6 +756,7 @@ class SiriGrammar(Grammar):
         count_shards,
         count_shards_size,
         count_users,
+        count_tags,
         count_series_length,
         most_greedy=True))
 
@@ -733,6 +766,7 @@ class SiriGrammar(Grammar):
 
     drop_stmt = Sequence(k_drop, Choice(
         drop_group,
+        drop_tag,
         drop_series,
         drop_shards,
         drop_server,
@@ -745,6 +779,7 @@ class SiriGrammar(Grammar):
 
     list_stmt = Sequence(k_list, Choice(
         list_series,
+        list_tags,
         list_users,
         list_shards,
         list_groups,

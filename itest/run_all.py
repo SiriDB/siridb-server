@@ -20,6 +20,7 @@ from test_select import TestSelect
 from test_select_ns import TestSelectNano
 from test_series import TestSeries
 from test_server import TestServer
+from test_tags import TestTags
 from test_tee import TestTee
 from test_user import TestUser
 
@@ -42,5 +43,6 @@ if __name__ == '__main__':
     run_test(TestSelectNano())
     run_test(TestSeries())
     run_test(TestServer())
+    run_test(TestTags())
     run_test(TestTee())
     run_test(TestUser())

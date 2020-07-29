@@ -26,7 +26,8 @@ struct siridb_initsync_s
     int fd;
     long int size;
     uint32_t * next_series_id;
-    sirinet_pkg_t * pkg;
+    sirinet_pkg_t * pkg_points;
+    sirinet_pkg_t * pkg_tags;
 };
 
 #endif  /* SIRIDB_INITSYNC_H_ */

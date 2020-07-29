@@ -5,8 +5,12 @@
 #define SIRIDB_GROUP_H_
 
 #define PCRE2_CODE_UNIT_WIDTH 8
-#define GROUP_FLAG_INIT 1
-#define GROUP_FLAG_DROPPED 2
+
+enum
+{
+    GROUP_FLAG_INIT     = 1<<0,
+    GROUP_FLAG_DROPPED  = 1<<1,
+};
 
 typedef struct siridb_group_s siridb_group_t;
 
@@ -37,9 +41,9 @@ int siridb_group_is_remote_prop(uint32_t prop);
 void siridb__group_decref(siridb_group_t * group);
 void siridb__group_free(siridb_group_t * group);
 
-#define siridb_group_incref(group) group->ref++
+#define siridb_group_incref(group__) (group__)->ref++
 #define siridb_group_decref(group__) \
-        if (!--group__->ref) siridb__group_free(group__)
+        if (!--(group__)->ref) siridb__group_free(group__)
 
 struct siridb_group_s
 {

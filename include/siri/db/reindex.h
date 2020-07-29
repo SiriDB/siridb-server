@@ -42,7 +42,8 @@ struct siridb_reindex_s
     int fd;
     long int size;
     uint32_t * next_series_id;
-    sirinet_pkg_t * pkg;
+    sirinet_pkg_t * pkg_points;
+    sirinet_pkg_t * pkg_tags;
     siridb_series_t * series;
     siridb_server_t * server;
     uv_timer_t * timer;

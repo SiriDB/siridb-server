@@ -32,7 +32,10 @@ typedef enum
 
 typedef struct siridb_groups_s siridb_groups_t;
 
-#define GROUPS_FLAG_DROPPED_SERIES 1
+enum
+{
+    GROUPS_FLAG_DROPPED_SERIES  = 1<<0,
+};
 
 #include <ctree/ctree.h>
 #include <vec/vec.h>
@@ -51,6 +54,7 @@ int siridb_groups_drop_group(
         const char * name,
         char * err_msg);
 void siridb_groups_destroy(siridb_groups_t * groups);
+void siridb_groups_incref(siridb_groups_t * groups);
 void siridb_groups_decref(siridb_groups_t * groups);
 int siridb_groups_add_group(
         siridb_groups_t * groups,
