@@ -3187,8 +3187,8 @@ static void exit_list_groups(uv_async_t * handle)
     /* if not is_local check for 'remote' columns */
     if (!is_local)
     {
-        is_local = 1;
         size_t i;
+        is_local = 1;
         for (i = 0; i < q_list->props->len; i++)
         {
             if (siridb_group_is_remote_prop(
@@ -3599,8 +3599,8 @@ static void exit_list_tags(uv_async_t * handle)
     /* if not is_local check for 'remote' columns */
     if (!is_local)
     {
-        is_local = 1;
         size_t i;
+        is_local = 1;
         for (i = 0; i < q_list->props->len; i++)
         {
             if (siridb_tag_is_remote_prop(
