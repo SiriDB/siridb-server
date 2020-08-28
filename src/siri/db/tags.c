@@ -402,14 +402,6 @@ static int TAGS_load(siridb_t * siridb)
            break;
         }
 
-        if (!tag->series->len)
-        {
-            log_warning("Removing tag '%s' since it has no series", tag->name);
-            tag->flags |= TAG_FLAG_CLEANUP;
-            siridb_tag_decref(tag);
-            continue;
-        }
-
         if (ct_add(siridb->tags->tags, tag->name, tag))
         {
             log_error("Cannot add tag to collection");
@@ -422,7 +414,6 @@ static int TAGS_load(siridb_t * siridb)
         {
             siridb->tags->next_id = tag->id + 1;
         }
-
     }
 
     while (total--)
