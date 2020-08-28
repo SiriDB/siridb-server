@@ -394,6 +394,7 @@ void siridb_servers_send_pkg(
                     log_critical(
                             "Allocation error while trying to send a package "
                             "to '%s'", server->name);
+                    free(dup);
                     vec_append(promises->promises, NULL);
                 }
             }

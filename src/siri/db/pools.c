@@ -302,6 +302,7 @@ void siridb_pools_send_pkg_2some(
                 log_debug(
                         "Cannot send package to at least on pool "
                         "(no accessible server found)");
+                free(dup);
                 vec_append(promises->promises, NULL);
             }
         }
