@@ -1,3 +1,11 @@
+siridb-server (2.0.38-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added tag support (#74)
+    - Fixed cleanup duplicate package (#134)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 28 Aug 2020 11:12:24 +0200
+
 siridb-server (2.0.37-0~tt1) unstable; urgency=medium
 
   * New upstream release
