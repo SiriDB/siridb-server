@@ -11,6 +11,7 @@
 #define SIRI_GRAMP_H_
 
 #include <siri/grammar/grammar.h>
+#include <siri/inc.h>
 
 /* keywords */
 #define KW_OFFSET CLERI_GID_K_ACCESS
