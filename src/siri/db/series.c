@@ -1039,9 +1039,7 @@ int siridb_series_optimize_shard(
     siridb_points_t *__restrict points;
     int rc;
     uint16_t cinfo = 0;
-    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
-    max_ts = (shard->id + duration) - series->mask;
+    max_ts = (shard->id + shard->duration) - series->mask;
 
     rc = new_idx = end = i = size = start = 0;
 
@@ -1355,6 +1353,7 @@ static siridb_series_t * SERIES_new(
             series->idx_len = 0;
             series->idx = NULL;
             series->siridb = siridb;
+            series->interval = 0;
 
             /* get sum series name to calculate series mask (for sharding) */
             for (n = 0; *name; name++)

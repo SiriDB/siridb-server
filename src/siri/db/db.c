@@ -684,6 +684,7 @@ int siridb_save(siridb_t * siridb)
             qp_close(fpacker));
 }
 
+
 /*
  * Destroy SiriDB object.
  *
@@ -764,7 +765,7 @@ void siridb__free(siridb_t * siridb)
     /* free shards using imap walk an free the imap */
     if (siridb->shards != NULL)
     {
-        imap_free(siridb->shards, (imap_free_cb) &siridb__shard_decref);
+        imap_free(siridb->shards, (imap_free_cb) &siridb_shards_destroy_cb);
     }
 
     if (siridb->groups != NULL)

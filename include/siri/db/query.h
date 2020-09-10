@@ -82,7 +82,7 @@ struct siridb_query_s
     qp_packer_t * timeit;
     cleri_parse_t * pr;
     siridb_nodes_t * nodes;
-    struct timespec start;
+    struct timespec start;SIRIDB_IS64BIT
 };
 
 #endif  /* SIRIDB_QUERY_H_ */

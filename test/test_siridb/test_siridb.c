@@ -1,6 +1,7 @@
 #include "../test.h"
 #include <locale.h>
 #include <siri/db/series.h>
+#include <siri/db/shard.h>
 
 
 static int test_series_ensure_type(void)
@@ -106,6 +107,45 @@ static int test_series_ensure_type(void)
         _assert (qp_obj.tp == QP_RAW);
         _assert (strlen("-1") == qp_obj.len);
         _assert (strncmp("-1", qp_obj.via.str, qp_obj.len) == 0);
+    }
+
+    /* test interval */
+    {
+        uint64_t interval, duration, test, w, d, h;
+        siridb_t siridb;
+        siridb.duration_num = 1000 * 3600 * 24 * 8;
+        siridb.duration_log = 1000 * 3600 * 41;
+        siridb.time = malloc(sizeof(siridb_time_t));
+        siridb.time->factor = 1000;
+
+        for (w = 1; w < 8; ++w)
+        {
+            duration = 3600 * 24 * 7 * w * siridb.time->factor;
+            interval = siridb_shard_interval_from_duration(&siridb, duration);
+            test = siridb_shard_duration_from_interval(&siridb, interval);
+            printf("%lu: %lu (%lu) %lu\n", i, duration, interval, test);
+            _assert (duration == test);
+        }
+
+        for (d = 1; d < 8; ++d)
+        {
+            duration = 3600 * 24 * d * siridb.time->factor;
+            interval = siridb_shard_interval_from_duration(&siridb, duration);
+            test = siridb_shard_duration_from_interval(&siridb, interval);
+            printf("%lu: %lu (%lu) %lu\n", i, duration, interval, test);
+            _assert (duration == test);
+        }
+
+        for (h = 1; h < 25; ++d)
+        {
+            duration = 3600 * h * siridb.time->factor;
+            interval = siridb_shard_interval_from_duration(&siridb, duration);
+            test = siridb_shard_duration_from_interval(&siridb, interval);
+            printf("%lu: %lu (%lu) %lu\n", i, duration, interval, test);
+            _assert (duration == test);
+        }
+
+        free(siridb.time);
     }
     (void) setlocale(LC_ALL, NULL);
     return test_end();

@@ -65,11 +65,13 @@ struct siridb_series_s
     uint32_t length;
     uint32_t idx_len;
     long int bf_offset;
+    uint64_t interval;
     siridb_points_t * buffer;
     char * name;
     idx_t * idx;
     siridb_t * siridb;
 };
+
 #include <siri/db/shard.h>
 
 int siridb_series_load(siridb_t * siridb);

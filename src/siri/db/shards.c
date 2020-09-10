@@ -25,11 +25,68 @@
 #include <unistd.h>
 #include <siri/db/db.h>
 #include <xpath/xpath.h>
+#include <omap/omap.h>
 
-#define SIRIDB_MAX_SHARD_FN_LEN 23
+#define SIRIDB_SHARD_LEN 37
 
-static bool is_shard_fn(const char * fn, const char * ext);
-static bool is_temp_fn(const char * fn);
+
+static bool SHARDS_read_id_and_duration(
+        char * fn,
+        const char * ext,
+        uint64_t * shard_id,
+        uint64_t * duration)
+{
+    size_t n = strlen(fn);
+    char * tmp = NULL;
+
+    if (n != SIRIDB_SHARD_LEN)
+    {
+        return false;
+    }
+
+    *shard_id = strtoull(fn, &tmp, 16);
+    if (tmp == NULL)
+    {
+        return false;
+    }
+    fn = tmp;
+
+    if (*fn != '_')
+    {
+        return false;
+    }
+
+    *duration = strtoull(fn, &tmp, 16);
+    if (tmp == NULL)
+    {
+        return false;
+    }
+    fn = tmp;
+
+    return strcmp(fn, ext) == 0;
+}
+
+/*
+ * Returns true if fn is a temp shard or index filename, false if not.
+ */
+static bool SHARDS_is_temp_fn(char * fn)
+{
+    int i;
+    uint64_t shard_id, duration;
+    for (i = 0; i < 2; i++, fn++)
+    {
+        if (*fn != '_')
+        {
+            return false;
+        }
+    }
+
+    return (
+        SHARDS_read_id_and_duration(fn, ".sdb", &shard_id, &duration) ||
+        SHARDS_read_id_and_duration(fn, ".idx", &shard_id, &duration)
+    );
+}
+
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -41,6 +98,7 @@ int siridb_shards_load(siridb_t * siridb)
     struct dirent ** shard_list;
     char buffer[XPATH_MAX];
     int n, total, rc = 0;
+    uint64_t shard_id, duration;
 
     memset(&st, 0, sizeof(struct stat));
 
@@ -48,7 +106,7 @@ int siridb_shards_load(siridb_t * siridb)
 
     siridb_misc_get_fn(path, siridb->dbpath, SIRIDB_SHARDS_PATH);
 
-    if (strlen(path) >= XPATH_MAX - SIRIDB_MAX_SHARD_FN_LEN - 1)
+    if (strlen(path) >= XPATH_MAX - SIRIDB_SHARD_LEN - 1)
     {
         log_error("Shard path too long: '%s'", path);
         return -1;
@@ -77,7 +135,7 @@ int siridb_shards_load(siridb_t * siridb)
 
     for (n = 0; n < total; n++)
     {
-        if (is_temp_fn(shard_list[n]->d_name))
+        if (SHARDS_is_temp_fn(shard_list[n]->d_name))
         {
             snprintf(buffer, XPATH_MAX, "%s%s",
                    path, shard_list[n]->d_name);
@@ -92,13 +150,17 @@ int siridb_shards_load(siridb_t * siridb)
             }
         }
 
-        if (!is_shard_fn(shard_list[n]->d_name, ".sdb"))
+        if (!SHARDS_read_id_and_duration(
+                shard_list[n]->d_name,
+                ".sdb",
+                &shard_id,
+                &duration))
         {
             continue;
         }
 
         /* we are sure this fits since the filename is checked */
-        if (siridb_shard_load(siridb, (uint64_t) atoll(shard_list[n]->d_name)))
+        if (siridb_shard_load(siridb, shard_id, duration))
         {
            log_error("Error while loading shard: '%s'", shard_list[n]->d_name);
            rc = -1;
@@ -115,6 +177,11 @@ int siridb_shards_load(siridb_t * siridb)
     return rc;
 }
 
+void siridb_shards_destroy_cb(omap_t * shards)
+{
+    omap_destroy(shards, (omap_destroy_cb) &siridb__shard_decref);
+}
+
 /*
  * Returns siri_err which is 0 if successful or a negative integer in case
  * of an error. (a SIGNAL is also raised in case of an error)
@@ -126,6 +193,7 @@ int siridb_shards_add_points(
 {
     _Bool is_num = siridb_series_isnum(series);
     siridb_shard_t * shard;
+    omap_t * shards;
 
     uv_mutex_lock(&siridb->values_mutex);
 
@@ -133,6 +201,19 @@ int siridb_shards_add_points(
     uint64_t expire_at = is_num ? siridb->exp_at_num : siridb->exp_at_log;
 
     uv_mutex_unlock(&siridb->values_mutex);
+
+    if (series->interval == 0)
+    {
+        series->interval = siridb_points_get_interval(points);
+
+        if (series->interval == 0)
+        {
+            /* fall-back to default interval */
+            series->interval = siridb_shard_interval_from_duration(duration);
+        }
+    }
+
+    duration = siridb_shard_duration_from_interval(siridb, series->interval);
 
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;
@@ -157,10 +238,28 @@ int siridb_shards_add_points(
             continue;
         }
 
-        if ((shard = imap_get(siridb->shards, shard_id)) == NULL)
+        shard = NULL;
+        shards = imap_get(siridb->shards, shard_id);
+        if (shards != NULL)
+        {
+            shard = omap_get(shards, duration);
+            /* shard may be NULL if no shard according the duration is found */
+        }
+        else
+        {
+            shards = omap_create();
+            if (shards == NULL || imap_add(siridb->shards, shard_id, shards))
+            {
+                ERR_ALLOC
+                return -1;  /* might leak a few bytes */
+            }
+        }
+
+        if (shard == NULL)
         {
             shard = siridb_shard_create(
                     siridb,
+                    shards,
                     shard_id,
                     duration,
                     is_num ? SIRIDB_SHARD_TP_NUMBER : SIRIDB_SHARD_TP_LOG,
@@ -197,8 +296,8 @@ int siridb_shards_add_points(
                         &cinfo)) == 0)
                 {
                     log_critical(
-                            "Could not write points to shard id %" PRIu64,
-                            shard->id);
+                            "Could not write points to shard '%s'",
+                            shard->fn);
                 }
                 else
                 {
@@ -273,40 +372,4 @@ double siridb_shards_count_percent(
     percent = total ? (double) count / (double) total : 0.0;
     vec_free(shards_list);
     return percent;
-}
-
-/*
- * Returns true if fn is a shard filename, false if not.
- * Argument ext should be either ".sdb" or ".idx".
- */
-static bool is_shard_fn(const char * fn, const char * ext)
-{
-    if (!isdigit(*fn) || strlen(fn) > SIRIDB_MAX_SHARD_FN_LEN)
-    {
-        return false;
-    }
-
-    fn++;
-    while (*fn && isdigit(*fn))
-    {
-        fn++;
-    }
-
-    return (strcmp(fn, ext) == 0);
-}
-
-/*
- * Returns true if fn is a temp shard or index filename, false if not.
- */
-static bool is_temp_fn(const char * fn)
-{
-    int i;
-    for (i = 0; i < 2; i++, fn++)
-    {
-        if (*fn != '_')
-        {
-            return false;
-        }
-    }
-    return is_shard_fn(fn, ".sdb") || is_shard_fn(fn, ".idx");
 }
