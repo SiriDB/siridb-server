@@ -43,6 +43,25 @@ void llist_free_cb(llist_t * llist, llist_cb cb, void * args)
 }
 
 /*
+ * Destroys the linked list and calls a call-back function on each item.
+ * The result of the call back function will be ignored.
+ */
+void llist_destroy(llist_t * llist, llist_destroy_cb cb)
+{
+    llist_node_t * node = llist->first;
+    llist_node_t * next;
+
+    while (node != NULL)
+    {
+        cb(node->data);
+        next = node->next;
+        free(node);
+        node = next;
+    }
+    free(llist);
+}
+
+/*
  * Appends to the end of the list.
  *
  * Returns 0 if successful or -1 in case an error occurred.
