@@ -65,7 +65,6 @@ struct siridb_series_s
     uint32_t length;
     uint32_t idx_len;
     long int bf_offset;
-    uint64_t interval;
     siridb_points_t * buffer;
     char * name;
     idx_t * idx;
@@ -151,7 +150,5 @@ struct idx_s
     uint64_t start_ts;
     uint64_t end_ts;
 };
-
-
 
 #endif  /* SIRIDB_SERIES_H_ */

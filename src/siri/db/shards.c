@@ -17,6 +17,7 @@
 #include <logger/logger.h>
 #include <siri/db/shard.h>
 #include <siri/db/shards.h>
+#include <siri/db/series.inline.h>
 #include <siri/db/misc.h>
 #include <siri/siri.h>
 #include <stdbool.h>
@@ -156,6 +157,7 @@ int siridb_shards_load(siridb_t * siridb)
                 &shard_id,
                 &duration))
         {
+            /* TODO: migration code, for backwards compatibility */
             continue;
         }
 
@@ -194,26 +196,24 @@ int siridb_shards_add_points(
     _Bool is_num = siridb_series_isnum(series);
     siridb_shard_t * shard;
     omap_t * shards;
+    uint64_t duration = siridb_series_duration(series);
 
     uv_mutex_lock(&siridb->values_mutex);
 
-    uint64_t duration = is_num ? siridb->duration_num : siridb->duration_log;
     uint64_t expire_at = is_num ? siridb->exp_at_num : siridb->exp_at_log;
 
-    uv_mutex_unlock(&siridb->values_mutex);
-
-    if (series->interval == 0)
+    if (duration == 0)
     {
-        series->interval = siridb_points_get_interval(points);
+        uint64_t interval = siridb_points_get_interval(points);
 
-        if (series->interval == 0)
-        {
-            /* fall-back to default interval */
-            series->interval = siridb_shard_interval_from_duration(duration);
-        }
+        duration = interval
+            ? siridb_shard_duration_from_interval(siridb, interval)
+            : is_num
+            ? siridb->duration_num
+            : siridb->duration_log;
     }
 
-    duration = siridb_shard_duration_from_interval(siridb, series->interval);
+    uv_mutex_unlock(&siridb->values_mutex);
 
     uint64_t shard_start, shard_end, shard_id;
     uint_fast32_t start, end, num_chunks, pstart, pend;

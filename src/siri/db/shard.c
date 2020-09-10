@@ -1534,7 +1534,7 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
         else for (i = 0; i < vec->len; i++)
         {
             series = (siridb_series_t *) vec->data[i];
-            if (shard->id % siridb->duration_num == series->mask)
+            if (shard->id % shard->duration == series->mask)
             {
                 siridb_series_remove_shard(siridb, series, shard);
                 siridb_series_remove_shard(siridb, series, pop_shard);
@@ -1556,7 +1556,7 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
         else for (i = 0; i < vec->len; i++)
         {
             series = (siridb_series_t *) vec->data[i];
-            if (shard->id % siridb->duration_num == series->mask)
+            if (shard->id % shard->duration == series->mask)
             {
                 siridb_series_remove_shard(siridb, series, shard);
             }
@@ -1738,8 +1738,7 @@ static ssize_t SHARD_apply_idx(
                 (uint64_t) *((uint64_t *) (pt + 12)) :
                 (uint64_t) *((uint32_t *) (pt + 8));
         uint64_t start = shard->id - series->mask;
-        uint64_t end = start + ((shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                    siridb->duration_num : siridb->duration_log);
+        uint64_t end = start + shard->duration;
 
         if (start_ts < start || end_ts >= end)
         {

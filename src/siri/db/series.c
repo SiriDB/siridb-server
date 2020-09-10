@@ -586,8 +586,8 @@ void siridb_series_remove_shard(
 {
     idx_t *__restrict idx;
     uint_fast32_t i, offset;
-    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
+    uint64_t start = shard->id - series->mask;
+    uint64_t end = start + shard->duration;
 
     i = offset = 0;
 
@@ -633,8 +633,6 @@ void siridb_series_remove_shard(
             {
                 series->idx = idx;
             }
-            uint64_t start = shard->id - series->mask;
-            uint64_t end = start + duration;
             if (series->start >= start && series->start < end)
             {
                 SERIES_update_start(series);
@@ -1353,7 +1351,6 @@ static siridb_series_t * SERIES_new(
             series->idx_len = 0;
             series->idx = NULL;
             series->siridb = siridb;
-            series->interval = 0;
 
             /* get sum series name to calculate series mask (for sharding) */
             for (n = 0; *name; name++)
