@@ -36,10 +36,9 @@ uint64_t * omap_last_id(omap_t * omap);
 void * omap_rm(omap_t * omap, uint64_t id);
 static inline omap_iter_t omap_iter(omap_t * omap);
 static inline uint64_t omap_iter_id(omap_iter_t iter);
-#define omap_each(iter__, dt__, var__) \
-        dt__ * var__; \
-        iter__ && \
-        (var__ = (dt__ *) iter__->data_); \
+#define omap_loop(iter__, var__) \
+        ;iter__ && \
+        (var__ = iter__->data_); \
         iter__ = iter__->next_
 
 struct omap_s

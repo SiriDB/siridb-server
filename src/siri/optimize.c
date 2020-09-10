@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
 #include <vec/vec.h>
@@ -300,7 +301,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        slshards = imap_2vec_ref(siridb->shards);
+        slshards = siridb_shards_vec(siridb);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 

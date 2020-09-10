@@ -328,6 +328,43 @@ int siridb_shards_add_points(
     return siri_err;
 }
 
+static inline int SHARDS_count_cb(omap_t * omap, size_t * n)
+{
+    *n += omap->n;
+    return 0;
+}
+
+size_t siridb_shards_n(siridb_t * siridb)
+{
+    size_t n = 0;
+    imap_walk(siridb->shards, (imap_cb) SHARDS_count_cb, &n);
+    return n;
+}
+
+static inline int SHARDS_to_vec_cb(omap_t * omap, vec_t * v)
+{
+    omap_iter_t iter = omap_iter(omap);
+    siridb_shard_t * shard;
+    for (;iter && (shard = iter->data_); iter = iter->next_)
+    {
+        vec_append(v, shard);
+        ++shard->ref;
+    }
+    return 0;
+}
+
+vec_t * siridb_shards_vec(siridb_t * siridb)
+{
+    size_t n = siridb_shards_n(siridb);
+    vec_t * vec = vec_new(n);
+    if (vec == NULL)
+    {
+        return NULL;
+    }
+    imap_walk(siridb->shards, (imap_cb) SHARDS_to_vec_cb, &n);
+    return vec;
+}
+
 double siridb_shards_count_percent(
         siridb_t * siridb,
         uint64_t end_ts,

@@ -30,5 +30,7 @@ double siridb_shards_count_percent(
         siridb_t * siridb,
         uint64_t end_ts,
         uint8_t tp);
+size_t siridb_shards_n(siridb_t * siridb);
+vec_t * siridb_shards_vec(siridb_t * siridb);
 
 #endif  /* SIRIDB_SHARDS_H_ */

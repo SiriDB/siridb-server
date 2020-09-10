@@ -2972,7 +2972,7 @@ static void exit_drop_shards(uv_async_t * handle)
     }
 
     double percent = (double)
-            q_drop->shards_list->len / siridb->shards->len;
+            q_drop->shards_list->len / siridb_shards_n(siridb);
 
     if (IS_MASTER &&
         q_drop->shards_list->len &&
