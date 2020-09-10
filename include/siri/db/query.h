@@ -44,6 +44,11 @@ typedef struct siridb_query_s siridb_query_t;
 #include <siri/db/series.h>
 #include <siri/db/db.h>
 #include <siri/net/protocol.h>
+#include <siri/inc.h>
+
+#if SIRIDB_EXPR_ALLOC
+#include <llist/llist.h>
+#endif
 
 void siridb_query_run(
         uint16_t pid,
@@ -82,7 +87,10 @@ struct siridb_query_s
     qp_packer_t * timeit;
     cleri_parse_t * pr;
     siridb_nodes_t * nodes;
-    struct timespec start;SIRIDB_IS64BIT
+    struct timespec start;
+#if SIRIDB_EXPR_ALLOC
+    llist_t * expr_cache;
+#endif
 };
 
 #endif  /* SIRIDB_QUERY_H_ */

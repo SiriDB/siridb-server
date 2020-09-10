@@ -26,8 +26,13 @@
 
 
 #if CLERI_VERSION_MINOR >= 12
+#if SIRIDB_IS64BIT
 #define CLERI_NODE_DATA(__node) ((int64_t)(__node)->data)
 #define CLERI_NODE_DATA_ADDR(__node) ((int64_t *) &(__node)->data)
+#else
+#define CLERI_NODE_DATA(__node) *((int64_t *)(__node)->data)
+#define CLERI_NODE_DATA_ADDR(__node) ((int64_t *)(__node)->data)
+#endif
 #else
 #define CLERI_NODE_DATA(__node) (__node)->result
 #define CLERI_NODE_DATA_ADDR(__node) &(__node)->result
