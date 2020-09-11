@@ -105,6 +105,10 @@ int siridb_shard_get_points_log_compressed(
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
+int siridb_shard_migrate(
+        siridb_t * siridb,
+        uint64_t shard_id,
+        uint64_t * duration);
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);

@@ -30,6 +30,28 @@
 
 #define SIRIDB_SHARD_LEN 37
 
+static bool SHARDS_must_migrate_shard(
+        char * fn,
+        const char * ext,
+        uint64_t * shard_id)
+{
+    size_t n = strlen(fn);
+    char * tmp = NULL;
+
+    if (n < 6)
+    {
+        return false;
+    }
+
+    *shard_id = strtoull(fn, &tmp, 16);
+
+    if (tmp == NULL)
+    {
+        return false;
+    }
+
+    return strcmp(tmp, ext) == 0;
+}
 
 static bool SHARDS_read_id_and_duration(
         char * fn,
@@ -57,13 +79,14 @@ static bool SHARDS_read_id_and_duration(
         return false;
     }
 
+    ++fn;
+
     *duration = strtoull(fn, &tmp, 16);
     if (tmp == NULL)
     {
         return false;
     }
     fn = tmp;
-
     return strcmp(fn, ext) == 0;
 }
 
@@ -72,20 +95,20 @@ static bool SHARDS_read_id_and_duration(
  */
 static bool SHARDS_is_temp_fn(char * fn)
 {
-    int i;
-    uint64_t shard_id, duration;
-    for (i = 0; i < 2; i++, fn++)
-    {
-        if (*fn != '_')
-        {
-            return false;
-        }
-    }
+    size_t n = strlen(fn);
 
-    return (
-        SHARDS_read_id_and_duration(fn, ".sdb", &shard_id, &duration) ||
-        SHARDS_read_id_and_duration(fn, ".idx", &shard_id, &duration)
-    );
+    return (n > 8 &&
+            fn[0] == '_' &&
+            fn[1] == '_' &&
+            fn[n-4] == '.' && ((
+                fn[n-3] == 's' &&
+                fn[n-2] == 'd' &&
+                fn[n-1] == 'b'
+            ) || (
+                fn[n-3] == 'i' &&
+                fn[n-2] == 'd' &&
+                fn[n-1] == 'x'
+    )));
 }
 
 
@@ -136,10 +159,11 @@ int siridb_shards_load(siridb_t * siridb)
 
     for (n = 0; n < total; n++)
     {
-        if (SHARDS_is_temp_fn(shard_list[n]->d_name))
+        char * base_fn = shard_list[n]->d_name;
+
+        if (SHARDS_is_temp_fn(base_fn))
         {
-            snprintf(buffer, XPATH_MAX, "%s%s",
-                   path, shard_list[n]->d_name);
+            snprintf(buffer, XPATH_MAX, "%s%s", path, base_fn);
 
             log_warning("Removing temporary file: '%s'", buffer);
 
@@ -152,19 +176,34 @@ int siridb_shards_load(siridb_t * siridb)
         }
 
         if (!SHARDS_read_id_and_duration(
-                shard_list[n]->d_name,
+                base_fn,
                 ".sdb",
                 &shard_id,
                 &duration))
         {
-            /* TODO: migration code, for backwards compatibility */
-            continue;
+            if (SHARDS_must_migrate_shard(
+                    base_fn,
+                    ".sdb",
+                    &shard_id))
+            {
+                log_info("Migrate shard: '%s'", base_fn);
+                if (siridb_shard_migrate(siridb, shard_id, &duration))
+                {
+                    log_error("Error while migrating shard: '%s'", base_fn);
+                    rc = -1;
+                    break;
+                }
+            }
+            else
+            {
+                continue;
+            }
         }
 
         /* we are sure this fits since the filename is checked */
         if (siridb_shard_load(siridb, shard_id, duration))
         {
-           log_error("Error while loading shard: '%s'", shard_list[n]->d_name);
+           log_error("Error while loading shard: '%s'", base_fn);
            rc = -1;
            break;
         }
@@ -361,7 +400,7 @@ vec_t * siridb_shards_vec(siridb_t * siridb)
     {
         return NULL;
     }
-    imap_walk(siridb->shards, (imap_cb) SHARDS_to_vec_cb, &n);
+    (void) imap_walk(siridb->shards, (imap_cb) SHARDS_to_vec_cb, vec);
     return vec;
 }
 
@@ -381,19 +420,15 @@ double siridb_shards_count_percent(
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    if (siridb->shards->len == 0)
-    {
-        percent = 0.0;
-    }
-    else
-    {
-        shards_list = imap_2vec_ref(siridb->shards);
-    }
+    shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
-    if (shards_list == NULL)
-        return percent;
+    if (shards_list == NULL || shards_list->len == 0)
+    {
+        free(shards_list);
+        return 0.0;
+    }
 
     for (i = 0; i < shards_list->len; i++)
     {
@@ -407,6 +442,6 @@ double siridb_shards_count_percent(
     }
 
     percent = total ? (double) count / (double) total : 0.0;
-    vec_free(shards_list);
+    free(shards_list);
     return percent;
 }

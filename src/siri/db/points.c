@@ -1693,12 +1693,13 @@ uint64_t siridb_points_get_interval(siridb_points_t * points)
     uint64_t * arr;
     uint64_t x, a, b, c;
 
-    n = points->len - 1;
-    n = n > 63 ? 63 : n;
-    if (n < 7)
+    if (points->len < 8)
     {
         return 0;
     }
+
+    n = points->len - 1;
+    n = n > 63 ? 63 : n;
 
     arr = malloc(n * sizeof(uint64_t));
     if (arr == NULL)

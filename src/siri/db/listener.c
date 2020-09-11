@@ -2390,7 +2390,7 @@ static void exit_count_shards(uv_async_t * handle)
 
     if (q_count->where_expr == NULL)
     {
-        q_count->n = siridb->shards->len;
+        q_count->n = siridb_shards_n(siridb);
     }
     else
     {
@@ -2403,7 +2403,7 @@ static void exit_count_shards(uv_async_t * handle)
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        shards_list = imap_2vec_ref(siridb->shards);
+        shards_list = siridb_shards_vec(siridb);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2466,7 +2466,7 @@ static void exit_count_shards_size(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2vec_ref(siridb->shards);
+    shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2926,7 +2926,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    q_drop->shards_list = imap_2vec_ref(siridb->shards);
+    q_drop->shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -3468,7 +3468,7 @@ static void exit_list_shards(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2vec_ref(siridb->shards);
+    shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 

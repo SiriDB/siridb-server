@@ -173,6 +173,96 @@ uint64_t siridb_shard_interval_from_duration(uint64_t duration)
     return duration / OPTIMAL_POINTS_PER_SHARD;;
 }
 
+int siridb_shard_migrate(
+        siridb_t * siridb,
+        uint64_t shard_id,
+        uint64_t * duration)
+{
+    FILE * fp;
+    char * fn, * new_fn;
+    int rc;
+    size_t n;
+    uint8_t schema, tp;
+    rc = asprintf(
+            &fn,
+            "%s%s%" PRIu64 ".sdb",
+             siridb->dbpath,
+             SIRIDB_SHARDS_PATH,
+             shard_id);
+    if (rc < 0)
+    {
+        log_error("Cannot create shard filename");
+        return -1;
+    }
+
+    if ((fp = fopen(fn, "r")) == NULL)
+    {
+        log_error("Cannot open (old) shard file for reading: '%s'", fn);
+        return -1;
+    }
+
+    char header[HEADER_SIZE];
+
+    if (fread(&header, HEADER_SIZE, 1, fp) != 1)
+    {
+        /* cannot read header from shard file,
+         * close file decrement reference shard and return -1
+         */
+        fclose(fp);
+        log_critical("Missing header in (old) shard file: '%s'", fn);
+        return -1;
+    }
+
+    schema = (uint8_t) header[HEADER_SCHEMA];
+    if (schema > SIRIDB_SHARD_SHEMA)
+    {
+        fclose(fp);
+        log_critical(
+                "Shard file '%s' has schema '%u' which is not supported with "
+                "this version of SiriDB.", fn, schema);
+        return -1;
+    }
+
+    tp = (uint8_t) header[HEADER_TP];
+    fclose(fp);
+
+    *duration = tp == SIRIDB_SHARD_TP_NUMBER
+            ? siridb->duration_num
+            : siridb->duration_log;
+
+    rc = asprintf(
+            &new_fn,
+            "%s%s%016"PRIX64"_%016"PRIX64".sdb",
+            siridb->dbpath,
+            SIRIDB_SHARDS_PATH,
+            shard_id,
+            *duration);
+    if (rc < 0)
+    {
+        log_error("Cannot create new shard file name");
+        free(fn);
+        free(new_fn);
+        return -1;
+    }
+
+    (void) rename(fn, new_fn);
+
+    n = strlen(fn);
+    fn[n-3] = 'i';
+    fn[n-1] = 'x';
+
+    n = strlen(new_fn);
+    new_fn[n-3] = 'i';
+    new_fn[n-1] = 'x';
+
+    (void) rename(fn, new_fn);
+
+    free(fn);
+    free(new_fn);
+
+    return 0;
+}
+
 /*
  * Returns 0 if successful or -1 in case of an error.
  * When an error occurs, a SIGNAL can be raised in some cases but not for sure.
@@ -183,6 +273,7 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id, uint64_t duration)
     FILE * fp;
     off_t shard_sz;
     siridb_shard_t * shard = malloc(sizeof(siridb_shard_t));
+    omap_t * shards;
 
     if (shard == NULL)
     {
@@ -316,7 +407,18 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id, uint64_t duration)
         return -1;
     }
 
-    if (imap_set(siridb->shards, id, shard) == -1)
+    shards = imap_get(siridb->shards, id);
+    if (shards == NULL)
+    {
+        shards = omap_create();
+        if (shards == NULL || imap_set(siridb->shards, id, shards) == -1)
+        {
+            siridb_shard_decref(shard);
+            return -1;
+        }
+    }
+
+    if (omap_set(shards, duration, shard) == NULL)
     {
         siridb_shard_decref(shard);
         return -1;
@@ -1476,13 +1578,22 @@ void siridb__shard_decref(siridb_shard_t * shard)
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_series_t * series;
-    siridb_shard_t * pop_shard;
+    siridb_shard_t * pop_shard = NULL;
+    omap_t * shards;
     int optimizing = 0;
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
-    pop_shard = (siridb_shard_t *) imap_pop(siridb->shards, shard->id);
+    shards = imap_get(siridb->shards, shard->id);
+    if (shards)
+    {
+        pop_shard = omap_rm(shards, shard->duration);
+        if (shards->n == 0)
+        {
+            free(imap_pop(siridb->shards, shard->id));
+        }
+    }
 
     /*
      * When optimizing, 'pop_shard' is always the new shard and 'shard'
