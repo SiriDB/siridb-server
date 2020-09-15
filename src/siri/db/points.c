@@ -15,7 +15,7 @@
 #define POINTS_MAX_QSORT 250000
 #define RAW_VALUES_THRESHOLD 7
 #define DICT_SZ 0x3fff
-#define TOLERANCE_INTERVAL_DETECT 8
+#define TOLERANCE_INTERVAL_DETECT 10
 
 static unsigned char * POINTS_zip_raw(
         siridb_points_t * points,
