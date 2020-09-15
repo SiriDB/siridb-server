@@ -43,7 +43,7 @@ static bool SHARDS_must_migrate_shard(
         return false;
     }
 
-    *shard_id = strtoull(fn, &tmp, 16);
+    *shard_id = strtoull(fn, &tmp, 10);
 
     if (tmp == NULL)
     {
@@ -186,7 +186,7 @@ int siridb_shards_load(siridb_t * siridb)
                     ".sdb",
                     &shard_id))
             {
-                log_info("Migrate shard: '%s'", base_fn);
+                log_warning("Migrate shard: '%s'", base_fn);
                 if (siridb_shard_migrate(siridb, shard_id, &duration))
                 {
                     log_error("Error while migrating shard: '%s'", base_fn);
