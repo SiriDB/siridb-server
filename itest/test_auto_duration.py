@@ -22,10 +22,20 @@ from testing import UserAuthError
 from testing import parse_args
 
 
-class TestAutoDuration(TestBase):
-    title = 'Test select and aggregate functions'
+TIME_PRECISION = 's'
+factor = 1
 
-    @default_test_setup(2, compression=False, buffer_size=1024)
+
+class TestAutoDuration(TestBase):
+    title = 'Test auto duration'
+
+    @default_test_setup(
+        2,
+        compression=True,
+        buffer_size=1024,
+        time_precision=TIME_PRECISION,
+        auto_duration=True,
+        optimize_interval=20)
     async def run(self):
         await self.client0.connect()
 
@@ -42,7 +52,7 @@ class TestAutoDuration(TestBase):
             for nameval in [['int', 42], ['float', 3.14], ['str', 'hi']]:
                 name, val = nameval
                 series['{}-{}'.format(name, i)] = [
-                    [t + random.randint(-r, r), val]
+                    [(t + random.randint(-r, r)) * factor, val]
                     for t in range(start_ts, end_td, interval)
                 ]
 

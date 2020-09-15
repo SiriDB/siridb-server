@@ -558,7 +558,7 @@ int siridb_shard_cexpr_cb(
     case CLERI_GID_K_POOL:
         return cexpr_int_cmp(cond->operator, vshard->server->pool, cond->int64);
     case CLERI_GID_K_SIZE:
-        return cexpr_int_cmp(cond->operator, vshard->shard->size, cond->int64);
+        return cexpr_int_cmp(cond->operator, vshard->shard->len, cond->int64);
     case CLERI_GID_K_START:
         return cexpr_int_cmp(cond->operator, vshard->start, cond->int64);
     case CLERI_GID_K_END:

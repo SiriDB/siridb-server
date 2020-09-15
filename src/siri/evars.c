@@ -140,6 +140,9 @@ void siri_evars_parse(siri_t * siri)
     evars__bool(
             "SIRIDB_ENABLE_SHARD_COMPRESSION",
             &siri->cfg->shard_compression);
+    evars__bool(
+            "SIRIDB_ENABLE_SHARD_AUTO_DURATION",
+            &siri->cfg->shard_auto_duration);
     evars__to_strn(
             "SIRIDB_DEFAULT_DB_PATH",
             siri->cfg->default_db_path,

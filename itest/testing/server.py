@@ -43,11 +43,13 @@ class Server:
                  heartbeat_interval=30,
                  buffer_sync_interval=500,
                  compression=True,
+                 auto_duration=True,
                  pipe_name=None,
                  **unused):
         self.n = n
         self.test_title = title.lower().replace(' ', '_')
         self.compression = compression
+        self.auto_duration = auto_duration
         self.enable_pipe_support = int(bool(pipe_name))
         self.pipe_name = \
             'siridb_client.sock' if not self.enable_pipe_support else \
@@ -95,6 +97,9 @@ class Server:
         config.set('siridb', 'default_db_path', self.dbpath)
         config.set('siridb', 'max_open_files', MAX_OPEN_FILES)
         config.set('siridb', 'enable_shard_compression', int(self.compression))
+        config.set(
+            'siridb', 'enable_shard_auto_duration',
+            int(self.auto_duration))
         config.set('siridb', 'enable_pipe_support', self.enable_pipe_support)
         config.set('siridb', 'pipe_client_name',  self.pipe_name)
         config.set('siridb', 'http_status_port',  self.http_status_port)

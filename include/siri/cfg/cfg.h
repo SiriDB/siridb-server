@@ -38,7 +38,7 @@ struct siri_cfg_s
     uint8_t pipe_support;
     uint8_t ip_support;
     uint8_t shard_compression;
-    uint8_t pad1_;
+    uint8_t shard_auto_duration;
 
     char * bind_client_addr;
     char * bind_backend_addr;

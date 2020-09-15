@@ -243,7 +243,9 @@ int siridb_shards_add_points(
 
     if (duration == 0)
     {
-        uint64_t interval = siridb_points_get_interval(points);
+        uint64_t interval = siri.cfg->shard_auto_duration
+                ? siridb_points_get_interval(points)
+                : 0;
 
         duration = interval
             ? siridb_shard_duration_from_interval(siridb, interval)
