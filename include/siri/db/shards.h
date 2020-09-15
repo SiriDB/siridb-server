@@ -18,7 +18,9 @@
 #define SIRIDB_SHARDS_PATH "shards/"
 
 #include <siri/db/db.h>
+#include <omap/omap.h>
 
+void siridb_shards_destroy_cb(omap_t * shards);
 int siridb_shards_load(siridb_t * siridb);
 int siridb_shards_add_points(
         siridb_t * siridb,
@@ -28,5 +30,7 @@ double siridb_shards_count_percent(
         siridb_t * siridb,
         uint64_t end_ts,
         uint8_t tp);
+size_t siridb_shards_n(siridb_t * siridb);
+vec_t * siridb_shards_vec(siridb_t * siridb);
 
 #endif  /* SIRIDB_SHARDS_H_ */

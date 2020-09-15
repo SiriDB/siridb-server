@@ -8,6 +8,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
 #include <stddef.h>
@@ -206,7 +207,7 @@ static int BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
          * A lock is not needed since the optimize thread is paused and this
          * is running from the main thread.
          */
-        vec_t * shard_list = imap_2vec(siridb->shards);
+        vec_t * shard_list = siridb_shards_vec(siridb);
 
         if (shard_list == NULL)
         {
@@ -227,6 +228,7 @@ static int BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
             {
                 siri_fp_close(shard->replacing->fp);
             }
+            --shard->ref;  /* at least two references exist */
         }
 
         vec_free(shard_list);

@@ -15,6 +15,7 @@
 #define POINTS_MAX_QSORT 250000
 #define RAW_VALUES_THRESHOLD 7
 #define DICT_SZ 0x3fff
+#define TOLERANCE_INTERVAL_DETECT 10
 
 static unsigned char * POINTS_zip_raw(
         siridb_points_t * points,
@@ -1684,6 +1685,48 @@ static int POINTS_set_cinfo_size(uint16_t * cinfo, size_t * size)
         *cinfo = *size;
     }
     return 0;
+}
+
+uint64_t siridb_points_get_interval(siridb_points_t * points)
+{
+    size_t i, j, n;
+    uint64_t * arr;
+    uint64_t x, a, b, c;
+
+    if (points->len < 8)
+    {
+        return 0;
+    }
+
+    n = points->len - 1;
+    n = n > 63 ? 63 : n;
+
+    arr = malloc(n * sizeof(uint64_t));
+    if (arr == NULL)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < n; ++i)
+    {
+        x = points->data[i+1].ts - points->data[i].ts;
+        for (j = i; j > 0 && arr[j-1] > x; --j)
+        {
+            arr[j] = arr[j-1];
+        }
+        arr[j] = x;
+    }
+
+    a = n/4;
+    b = n/2;
+    c = arr[(b<<1)-a];
+    a = arr[a];
+    b = arr[b];
+    x = b / (100 / TOLERANCE_INTERVAL_DETECT);
+    x = (a+x < b || c-x > b) ? 0 : b;
+
+    free(arr);
+    return x;
 }
 
 inline static uint16_t POINTS_hash(uint32_t h)

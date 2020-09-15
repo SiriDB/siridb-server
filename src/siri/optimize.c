@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
 #include <vec/vec.h>
@@ -263,9 +264,6 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
     uint8_t c = siri.cfg->shard_compression;
     size_t i;
     uint64_t expi[2];
-    uint64_t dura[2];
-
-
 
     log_info("Start optimize task");
 
@@ -303,14 +301,12 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        slshards = imap_2vec_ref(siridb->shards);
+        slshards = siridb_shards_vec(siridb);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
         uv_mutex_lock(&siridb->values_mutex);
 
-        dura[SIRIDB_SHARD_TP_NUMBER] = siridb->duration_num;
-        dura[SIRIDB_SHARD_TP_LOG] = siridb->duration_log;
         expi[SIRIDB_SHARD_TP_NUMBER] = siridb->exp_at_num;
         expi[SIRIDB_SHARD_TP_LOG] = siridb->exp_at_log;
 
@@ -329,8 +325,7 @@ static void OPTIMIZE_work(uv_work_t * work  __attribute__((unused)))
         {
             shard = (siridb_shard_t *) slshards->data[j];
 
-            if ((shard->id - shard->id % dura[shard->tp]) + dura[shard->tp] <
-                    expi[shard->tp])
+            if ((shard->id - shard->id % shard->duration) + shard->duration < expi[shard->tp])
             {
                 log_info(
                         "Shard id %" PRIu64 " (%" PRIu8 ") is expired "

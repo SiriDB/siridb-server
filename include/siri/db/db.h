@@ -96,7 +96,7 @@ struct siridb_s
     uv_mutex_t series_mutex;
     uv_mutex_t shards_mutex;
     uv_mutex_t values_mutex;
-    imap_t * shards;
+    imap_t * shards;                /* contains lists with shards */
     FILE * dropped_fp;
     qp_fpacker_t * store;
     siridb_fifo_t * fifo;

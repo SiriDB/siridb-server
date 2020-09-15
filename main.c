@@ -68,6 +68,7 @@ int main(int argc, char * argv[])
     set_max_open_files_limit();
 
     log_debug("Shard compression: %s", siri.cfg->shard_compression ? "enabled" : "disabled");
+    log_debug("Shard auto duration: %s", siri.cfg->shard_auto_duration ? "enabled" : "disabled");
     log_debug("Pipe support: %s", siri.cfg->pipe_support ? "enabled" : "disabled");
     log_debug("IP support: %s", sirinet_tcp_ip_support_str(siri.cfg->ip_support));
 

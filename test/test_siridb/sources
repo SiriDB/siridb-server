@@ -6,6 +6,7 @@
 ../src/qpack/qpack.c
 ../src/qpjson/qpjson.c
 ../src/imap/imap.c
+../src/omap/omap.c
 ../src/llist/llist.c
 ../src/logger/logger.c
 ../src/xstr/xstr.c

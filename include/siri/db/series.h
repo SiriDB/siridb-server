@@ -70,6 +70,7 @@ struct siridb_series_s
     idx_t * idx;
     siridb_t * siridb;
 };
+
 #include <siri/db/shard.h>
 
 int siridb_series_load(siridb_t * siridb);
@@ -149,7 +150,5 @@ struct idx_s
     uint64_t start_ts;
     uint64_t end_ts;
 };
-
-
 
 #endif  /* SIRIDB_SERIES_H_ */

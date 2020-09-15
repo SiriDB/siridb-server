@@ -22,6 +22,7 @@ src/lib \
 src/llist \
 src/lock \
 src/logger \
+src/omap \
 src/owcrypt \
 src/procinfo \
 src/qpack \

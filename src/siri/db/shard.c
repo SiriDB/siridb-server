@@ -32,6 +32,9 @@
 /* shard schema (schemas below 20 are reserved for Python SiriDB) */
 #define SIRIDB_SHARD_SHEMA 21
 
+/* optimal points in a single shard */
+#define OPTIMAL_POINTS_PER_SHARD 2000
+
 /*
  * Header schema layout
  *
@@ -130,16 +133,147 @@ static size_t SHARD_write_header(
         FILE * fp);
 static int SHARD_remove(siridb_shard_t * shard);
 
+uint64_t siridb_shard_duration_from_interval(siridb_t * siridb, uint64_t interval)
+{
+    uint64_t x, n, week, day, hour;
+
+    n = interval * OPTIMAL_POINTS_PER_SHARD;
+
+    if (n == siridb->duration_num)
+    {
+        return siridb->duration_num;
+    }
+
+    if (n == siridb->duration_log)
+    {
+        return siridb->duration_log;
+    }
+
+    week = 3600*24*7*siridb->time->factor;
+    x = n / week;
+    if (x)
+    {
+        return (x + 1) * week;
+    }
+
+    day = 3600*24*siridb->time->factor;
+    x = n / day;
+    if (x)
+    {
+        return (x + 1) * day;
+    }
+
+    hour = 3600*siridb->time->factor;
+    x = n / hour;
+    return (x + 1) * hour;
+}
+
+uint64_t siridb_shard_interval_from_duration(uint64_t duration)
+{
+    return duration / OPTIMAL_POINTS_PER_SHARD;;
+}
+
+int siridb_shard_migrate(
+        siridb_t * siridb,
+        uint64_t shard_id,
+        uint64_t * duration)
+{
+    FILE * fp;
+    char * fn, * new_fn;
+    int rc;
+    size_t n;
+    uint8_t schema, tp;
+    rc = asprintf(
+            &fn,
+            "%s%s%" PRIu64 ".sdb",
+             siridb->dbpath,
+             SIRIDB_SHARDS_PATH,
+             shard_id);
+    if (rc < 0)
+    {
+        log_error("Cannot create shard filename");
+        return -1;
+    }
+
+    if ((fp = fopen(fn, "r")) == NULL)
+    {
+        log_error("Cannot open (old) shard file for reading: '%s'", fn);
+        return -1;
+    }
+
+    char header[HEADER_SIZE];
+
+    if (fread(&header, HEADER_SIZE, 1, fp) != 1)
+    {
+        /* cannot read header from shard file,
+         * close file decrement reference shard and return -1
+         */
+        fclose(fp);
+        log_critical("Missing header in (old) shard file: '%s'", fn);
+        return -1;
+    }
+
+    schema = (uint8_t) header[HEADER_SCHEMA];
+    if (schema > SIRIDB_SHARD_SHEMA)
+    {
+        fclose(fp);
+        log_critical(
+                "Shard file '%s' has schema '%u' which is not supported with "
+                "this version of SiriDB.", fn, schema);
+        return -1;
+    }
+
+    tp = (uint8_t) header[HEADER_TP];
+    fclose(fp);
+
+    *duration = tp == SIRIDB_SHARD_TP_NUMBER
+            ? siridb->duration_num
+            : siridb->duration_log;
+
+    rc = asprintf(
+            &new_fn,
+            "%s%s%016"PRIX64"_%016"PRIX64".sdb",
+            siridb->dbpath,
+            SIRIDB_SHARDS_PATH,
+            shard_id,
+            *duration);
+    if (rc < 0)
+    {
+        log_error("Cannot create new shard file name");
+        free(fn);
+        free(new_fn);
+        return -1;
+    }
+
+    (void) rename(fn, new_fn);
+
+    n = strlen(fn);
+    fn[n-3] = 'i';
+    fn[n-1] = 'x';
+
+    n = strlen(new_fn);
+    new_fn[n-3] = 'i';
+    new_fn[n-1] = 'x';
+
+    (void) rename(fn, new_fn);
+
+    free(fn);
+    free(new_fn);
+
+    return 0;
+}
+
 /*
  * Returns 0 if successful or -1 in case of an error.
  * When an error occurs, a SIGNAL can be raised in some cases but not for sure.
  */
-int siridb_shard_load(siridb_t * siridb, uint64_t id)
+int siridb_shard_load(siridb_t * siridb, uint64_t id, uint64_t duration)
 {
     int is_ts64;
     FILE * fp;
     off_t shard_sz;
     siridb_shard_t * shard = malloc(sizeof(siridb_shard_t));
+    omap_t * shards;
 
     if (shard == NULL)
     {
@@ -152,17 +286,19 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         free(shard);
         return -1;  /* signal is raised */
     }
+
     shard->id = id;
     shard->ref = 1;
     shard->len = HEADER_SIZE;
     shard->replacing = NULL;
+    shard->duration = duration;
+
     if (SHARD_init_fn(siridb, shard) < 0)
     {
         ERR_ALLOC
         siridb_shard_decref(shard);
         return -1;  /* signal is raised */
     }
-
 
     log_info("Loading shard %" PRIu64, id);
 
@@ -271,7 +407,18 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
         return -1;
     }
 
-    if (imap_set(siridb->shards, id, shard) == -1)
+    shards = imap_get(siridb->shards, id);
+    if (shards == NULL)
+    {
+        shards = omap_create();
+        if (shards == NULL || imap_set(siridb->shards, id, shards) == -1)
+        {
+            siridb_shard_decref(shard);
+            return -1;
+        }
+    }
+
+    if (omap_set(shards, duration, shard) == NULL)
     {
         siridb_shard_decref(shard);
         return -1;
@@ -290,12 +437,15 @@ int siridb_shard_load(siridb_t * siridb, uint64_t id)
  */
 siridb_shard_t *  siridb_shard_create(
         siridb_t * siridb,
+        omap_t * shards,
         uint64_t id,
         uint64_t duration,
         uint8_t tp,
         siridb_shard_t * replacing)
 {
     siridb_shard_t * shard = malloc(sizeof(siridb_shard_t));
+    FILE * fp;
+
     if (shard == NULL)
     {
         ERR_ALLOC
@@ -311,12 +461,12 @@ siridb_shard_t *  siridb_shard_create(
     shard->tp = tp;
     shard->replacing = replacing;
     shard->len = shard->size = HEADER_SIZE;
+    shard->duration = duration;
     shard->max_chunk_sz = (replacing == NULL) ?
             (tp == SIRIDB_SHARD_TP_NUMBER ?
                     DEFAULT_MAX_CHUNK_SZ_NUM : DEFAULT_MAX_CHUNK_SZ_LOG) :
                     replacing->max_chunk_sz;
 
-    FILE * fp;
     if (SHARD_init_fn(siridb, shard) < 0)
     {
         siridb_shard_decref(shard);
@@ -376,7 +526,7 @@ siridb_shard_t *  siridb_shard_create(
         return NULL;
     }
 
-    if (imap_set(siridb->shards, id, shard) == -1)
+    if (omap_set(shards, duration, shard) == NULL)
     {
         siridb_shard_decref(shard);
         ERR_ALLOC
@@ -408,7 +558,7 @@ int siridb_shard_cexpr_cb(
     case CLERI_GID_K_POOL:
         return cexpr_int_cmp(cond->operator, vshard->server->pool, cond->int64);
     case CLERI_GID_K_SIZE:
-        return cexpr_int_cmp(cond->operator, vshard->shard->size, cond->int64);
+        return cexpr_int_cmp(cond->operator, vshard->shard->len, cond->int64);
     case CLERI_GID_K_START:
         return cexpr_int_cmp(cond->operator, vshard->start, cond->int64);
     case CLERI_GID_K_END:
@@ -579,6 +729,7 @@ size_t siridb_shard_write_points(
     {
         size_t p = 0;
         size_t ts_sz = siridb->time->ts_sz;
+
         cdata = malloc(dsize);
         if (cdata == NULL)
         {
@@ -1201,8 +1352,6 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 {
     int rc = 0;
     siridb_shard_t * new_shard = NULL;
-    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-            siridb->duration_num : siridb->duration_log;
     siridb_series_t * series;
     size_t i;
 
@@ -1214,10 +1363,14 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
      */
     if (~shard->flags & SIRIDB_SHARD_IS_REMOVED)
     {
+        omap_t * shards = imap_get(siridb->shards, shard->id);
+        assert (shards);
+
         if ((new_shard = siridb_shard_create(
             siridb,
+            shards,
             shard->id,
-            duration,
+            shard->duration,
             shard->tp,
             shard)) == NULL)
         {
@@ -1289,7 +1442,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
 
         if (    !siri_err &&
                 siri.optimize->status != SIRI_OPTIMIZE_CANCELLED &&
-                shard->id % duration == series->mask &&
+                shard->id % shard->duration == series->mask &&
                 (~series->flags & SIRIDB_SERIES_IS_DROPPED) &&
                 (~new_shard->flags & SIRIDB_SHARD_IS_REMOVED))
         {
@@ -1425,13 +1578,22 @@ void siridb__shard_decref(siridb_shard_t * shard)
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
 {
     siridb_series_t * series;
-    siridb_shard_t * pop_shard;
+    siridb_shard_t * pop_shard = NULL;
+    omap_t * shards;
     int optimizing = 0;
 
     uv_mutex_lock(&siridb->series_mutex);
     uv_mutex_lock(&siridb->shards_mutex);
 
-    pop_shard = (siridb_shard_t *) imap_pop(siridb->shards, shard->id);
+    shards = imap_get(siridb->shards, shard->id);
+    if (shards)
+    {
+        pop_shard = omap_rm(shards, shard->duration);
+        if (shards->n == 0)
+        {
+            free(imap_pop(siridb->shards, shard->id));
+        }
+    }
 
     /*
      * When optimizing, 'pop_shard' is always the new shard and 'shard'
@@ -1483,7 +1645,7 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
         else for (i = 0; i < vec->len; i++)
         {
             series = (siridb_series_t *) vec->data[i];
-            if (shard->id % siridb->duration_num == series->mask)
+            if (shard->id % shard->duration == series->mask)
             {
                 siridb_series_remove_shard(siridb, series, shard);
                 siridb_series_remove_shard(siridb, series, pop_shard);
@@ -1505,7 +1667,7 @@ void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)
         else for (i = 0; i < vec->len; i++)
         {
             series = (siridb_series_t *) vec->data[i];
-            if (shard->id % siridb->duration_num == series->mask)
+            if (shard->id % shard->duration == series->mask)
             {
                 siridb_series_remove_shard(siridb, series, shard);
             }
@@ -1687,8 +1849,7 @@ static ssize_t SHARD_apply_idx(
                 (uint64_t) *((uint64_t *) (pt + 12)) :
                 (uint64_t) *((uint32_t *) (pt + 8));
         uint64_t start = shard->id - series->mask;
-        uint64_t end = start + ((shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                    siridb->duration_num : siridb->duration_log);
+        uint64_t end = start + shard->duration;
 
         if (start_ts < start || end_ts >= end)
         {
@@ -1874,12 +2035,12 @@ static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard)
 {
      return asprintf(
              &shard->fn,
-             "%s%s%s%" PRIu64 "%s",
+             "%s%s%s%016"PRIX64"_%016"PRIX64".sdb",
              siridb->dbpath,
              SIRIDB_SHARDS_PATH,
              (shard->replacing == NULL) ? "" : "__",
              shard->id,
-             ".sdb");
+             shard->duration);
 }
 
 /*

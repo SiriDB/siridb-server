@@ -190,7 +190,7 @@ class TestHTTPAPI(TestBase):
         self.assertEqual(x.json(), 'OK')
 
         self.db.servers.append(self.server2)
-        await self.assertIsRunning(self.db, self.client0, timeout=30)
+        await self.assertIsRunning(self.db, self.client0, timeout=50)
 
         x = requests.get(
             f'http://localhost:9022/get-databases', auth=auth)

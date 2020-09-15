@@ -2390,7 +2390,7 @@ static void exit_count_shards(uv_async_t * handle)
 
     if (q_count->where_expr == NULL)
     {
-        q_count->n = siridb->shards->len;
+        q_count->n = siridb_shards_n(siridb);
     }
     else
     {
@@ -2403,7 +2403,7 @@ static void exit_count_shards(uv_async_t * handle)
 
         uv_mutex_lock(&siridb->shards_mutex);
 
-        shards_list = imap_2vec_ref(siridb->shards);
+        shards_list = siridb_shards_vec(siridb);
 
         uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2417,8 +2417,7 @@ static void exit_count_shards(uv_async_t * handle)
             vshard.shard = (siridb_shard_t *) shards_list->data[i];
 
             /* set start and end properties */
-            duration = (vshard.shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                    siridb->duration_num : siridb->duration_log;
+            duration = vshard.shard->duration;
             vshard.start = vshard.shard->id - vshard.shard->id % duration;
             vshard.end = vshard.start + duration;
 
@@ -2467,7 +2466,7 @@ static void exit_count_shards_size(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2vec_ref(siridb->shards);
+    shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2481,8 +2480,8 @@ static void exit_count_shards_size(uv_async_t * handle)
         vshard.shard = (siridb_shard_t *) shards_list->data[i];
 
         /* set start and end properties */
-        duration = (vshard.shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
+        duration = vshard.shard->duration;
+
         vshard.start = vshard.shard->id - vshard.shard->id % duration;
         vshard.end = vshard.start + duration;
 
@@ -2927,7 +2926,7 @@ static void exit_drop_shards(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    q_drop->shards_list = imap_2vec_ref(siridb->shards);
+    q_drop->shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -2950,8 +2949,7 @@ static void exit_drop_shards(uv_async_t * handle)
             vshard.shard = (siridb_shard_t *) q_drop->shards_list->data[i];
 
             /* set start and end properties */
-            duration = (vshard.shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                    siridb->duration_num : siridb->duration_log;
+            duration = vshard.shard->duration;
 
             vshard.start = vshard.shard->id - vshard.shard->id % duration;
             vshard.end = vshard.start + duration;
@@ -2974,7 +2972,7 @@ static void exit_drop_shards(uv_async_t * handle)
     }
 
     double percent = (double)
-            q_drop->shards_list->len / siridb->shards->len;
+            q_drop->shards_list->len / siridb_shards_n(siridb);
 
     if (IS_MASTER &&
         q_drop->shards_list->len &&
@@ -3470,7 +3468,7 @@ static void exit_list_shards(uv_async_t * handle)
 
     uv_mutex_lock(&siridb->shards_mutex);
 
-    shards_list = imap_2vec_ref(siridb->shards);
+    shards_list = siridb_shards_vec(siridb);
 
     uv_mutex_unlock(&siridb->shards_mutex);
 
@@ -3510,8 +3508,8 @@ static void exit_list_shards(uv_async_t * handle)
         vshard.shard = (siridb_shard_t *) shards_list->data[i];
 
         /* set start and end properties */
-        duration = (vshard.shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
+        duration = vshard.shard->duration;
+
         vshard.start = vshard.shard->id - vshard.shard->id % duration;
         vshard.end = vshard.start + duration;
 
