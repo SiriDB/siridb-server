@@ -98,6 +98,7 @@ class SiriGrammar(Grammar):
         Token('&'),
         Keyword('intersection'),
         most_greedy=False)
+    k_interval = Keyword('interval')
     k_ip_support = Keyword('ip_support')
     k_last = Keyword('last')
     k_length = Keyword('length')
@@ -164,9 +165,10 @@ class SiriGrammar(Grammar):
     k_tag = Keyword('tag')
     k_tags = Keyword('tags')
     k_tee_pipe_name = Keyword('tee_pipe_name')
-    k_timeit = Keyword('timeit')
-    k_timezone = Keyword('timezone')
     k_time_precision = Keyword('time_precision')
+    k_timeit = Keyword('timeit')
+    k_timeval = Keyword('timeval')
+    k_timezone = Keyword('timezone')
     k_to = Keyword('to')
     k_true = Keyword('true')
     k_type = Keyword('type')
@@ -521,6 +523,12 @@ class SiriGrammar(Grammar):
     f_last = Sequence(
         k_last,
         '(', Optional(time_expr), ')')
+    f_timeval = Sequence(
+        k_timeval,
+        '(', ')')
+    f_interval = Sequence(
+        k_interval,
+        '(', ')')
 
     f_filter = Sequence(
         k_filter,
@@ -574,6 +582,8 @@ class SiriGrammar(Grammar):
         f_stddev,
         f_first,
         f_last,
+        f_timeval,
+        f_interval,
         f_difference,
         f_derivative,
         f_filter,
