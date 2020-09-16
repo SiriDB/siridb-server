@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-06-17 15:21:09
+ * Created at: 2020-09-15 15:01:47
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -60,6 +60,7 @@ enum cleri_grammar_ids {
     CLERI_GID_F_DIFFERENCE,
     CLERI_GID_F_FILTER,
     CLERI_GID_F_FIRST,
+    CLERI_GID_F_INTERVAL,
     CLERI_GID_F_LAST,
     CLERI_GID_F_LIMIT,
     CLERI_GID_F_MAX,
@@ -72,6 +73,7 @@ enum cleri_grammar_ids {
     CLERI_GID_F_PVARIANCE,
     CLERI_GID_F_STDDEV,
     CLERI_GID_F_SUM,
+    CLERI_GID_F_TIMEVAL,
     CLERI_GID_F_VARIANCE,
     CLERI_GID_GRANT_STMT,
     CLERI_GID_GRANT_USER,
@@ -171,6 +173,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_INSERT,
     CLERI_GID_K_INTEGER,
     CLERI_GID_K_INTERSECTION,
+    CLERI_GID_K_INTERVAL,
     CLERI_GID_K_IP_SUPPORT,
     CLERI_GID_K_LAST,
     CLERI_GID_K_LENGTH,
@@ -233,6 +236,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_TAGS,
     CLERI_GID_K_TEE_PIPE_NAME,
     CLERI_GID_K_TIMEIT,
+    CLERI_GID_K_TIMEVAL,
     CLERI_GID_K_TIMEZONE,
     CLERI_GID_K_TIME_PRECISION,
     CLERI_GID_K_TO,

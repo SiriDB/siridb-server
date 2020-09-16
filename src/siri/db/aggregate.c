@@ -61,6 +61,12 @@ static siridb_points_t * AGGREGATE_derivative(
 static siridb_points_t * AGGREGATE_difference(
         siridb_points_t * source,
         char * err_msg);
+static siridb_points_t * AGGREGATE_timeval(
+        siridb_points_t * source,
+        char * err_msg);
+static siridb_points_t * AGGREGATE_interval(
+        siridb_points_t * source,
+        char * err_msg);
 static siridb_points_t * AGGREGATE_filter(
         siridb_points_t * source,
         siridb_aggr_t * aggr,
@@ -290,6 +296,14 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                     aggr->gid = CLERI_GID_F_LAST;
                     break;
 
+                case CLERI_GID_K_TIMEVAL:
+                    aggr->gid = CLERI_GID_F_TIMEVAL;
+                    break;
+
+                case CLERI_GID_K_INTERVAL:
+                    aggr->gid = CLERI_GID_F_INTERVAL;
+                    break;
+
                 default:
                     assert (0);
                     break;
@@ -300,6 +314,17 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
             break;
 
+        case CLERI_GID_F_TIMEVAL:
+        case CLERI_GID_F_INTERVAL:
+            AGGR_NEW
+            {
+                aggr->timespan = 1;
+                aggr->group_by = 0;
+            }
+
+            VEC_APPEND
+
+            break;
         case CLERI_GID_F_FILTER:
             AGGR_NEW
             {
@@ -507,6 +532,12 @@ siridb_points_t * siridb_aggregate_run(
 
     case CLERI_GID_F_FILTER:
         return AGGREGATE_filter(source, aggr, err_msg);
+
+    case CLERI_GID_F_INTERVAL:
+        return AGGREGATE_interval(source, err_msg);
+
+    case CLERI_GID_F_TIMEVAL:
+        return AGGREGATE_timeval(source, err_msg);
 
     default:
         return AGGREGATE_to_one(source, aggr, err_msg);
@@ -797,6 +828,80 @@ static siridb_points_t * AGGREGATE_difference(
     return points;
 }
 
+static siridb_points_t * AGGREGATE_interval(
+        siridb_points_t * source,
+        char * err_msg)
+{
+    size_t len = source->len - 1;
+    siridb_points_t * points = siridb_points_new(len, TP_INT);
+
+    if (points == NULL)
+    {
+        sprintf(err_msg, "Memory allocation error.");
+    }
+    else
+    {
+        points->len = len;
+
+        if (len)
+        {
+            siridb_point_t * prev = source->data;
+            siridb_point_t * curr = prev + 1;
+            siridb_point_t * end = source->data + source->len;
+            siridb_point_t * dest = points->data;
+
+            for (; curr < end; ++prev, ++curr, ++dest)
+            {
+                uint64_t diff = curr->ts - prev->ts;
+                if (diff > LLONG_MAX)
+                {
+                    sprintf(err_msg,
+                        "Overflow detected while using difference().");
+                    siridb_points_free(points);
+                    return NULL;
+                }
+                dest->ts = curr->ts;
+                dest->val.int64 = (int64_t) diff;
+            }
+        }
+    }
+    return points;
+}
+
+static siridb_points_t * AGGREGATE_timeval(
+        siridb_points_t * source,
+        char * err_msg)
+{
+    siridb_points_t * points = siridb_points_new(source->len, TP_INT);
+
+    if (points == NULL)
+    {
+        sprintf(err_msg, "Memory allocation error.");
+    }
+    else
+    {
+        siridb_point_t * curr = source->data;
+        siridb_point_t * end = source->data + source->len;
+        siridb_point_t * dest = points->data;
+
+        points->len = source->len;
+
+        for (; curr < end; ++curr, ++dest)
+        {
+            if (curr->ts > LLONG_MAX)
+            {
+                sprintf(err_msg,
+                    "Overflow detected while using difference().");
+                siridb_points_free(points);
+                return NULL;
+            }
+            dest->ts = curr->ts;
+            dest->val.int64 = (int64_t) curr->ts;
+        }
+    }
+    return points;
+}
+
 static int AGGREGATE_regex_cmp(siridb_aggr_t * aggr, char * val)
 {
     int ret;
@@ -1040,6 +1145,8 @@ static siridb_points_t * AGGREGATE_group_by(
         points = siridb_points_new(max_sz, TP_DOUBLE);
         break;
     case CLERI_GID_F_COUNT:
+    case CLERI_GID_F_TIMEVAL:
+    case CLERI_GID_F_INTERVAL:
         points = siridb_points_new(max_sz, TP_INT);
         break;
     case CLERI_GID_F_MEDIAN_HIGH:

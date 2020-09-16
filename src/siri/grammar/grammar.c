@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-06-17 15:21:09
+ * Created at: 2020-09-15 15:01:47
  */
 
 #include "siri/grammar/grammar.h"
@@ -91,6 +91,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_token(CLERI_NONE, "&"),
         cleri_keyword(CLERI_NONE, "intersection", CLERI_CASE_SENSITIVE)
     );
+    cleri_t * k_interval = cleri_keyword(CLERI_GID_K_INTERVAL, "interval", CLERI_CASE_SENSITIVE);
     cleri_t * k_ip_support = cleri_keyword(CLERI_GID_K_IP_SUPPORT, "ip_support", CLERI_CASE_SENSITIVE);
     cleri_t * k_last = cleri_keyword(CLERI_GID_K_LAST, "last", CLERI_CASE_SENSITIVE);
     cleri_t * k_length = cleri_keyword(CLERI_GID_K_LENGTH, "length", CLERI_CASE_SENSITIVE);
@@ -165,9 +166,10 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_tag = cleri_keyword(CLERI_GID_K_TAG, "tag", CLERI_CASE_SENSITIVE);
     cleri_t * k_tags = cleri_keyword(CLERI_GID_K_TAGS, "tags", CLERI_CASE_SENSITIVE);
     cleri_t * k_tee_pipe_name = cleri_keyword(CLERI_GID_K_TEE_PIPE_NAME, "tee_pipe_name", CLERI_CASE_SENSITIVE);
-    cleri_t * k_timeit = cleri_keyword(CLERI_GID_K_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
-    cleri_t * k_timezone = cleri_keyword(CLERI_GID_K_TIMEZONE, "timezone", CLERI_CASE_SENSITIVE);
     cleri_t * k_time_precision = cleri_keyword(CLERI_GID_K_TIME_PRECISION, "time_precision", CLERI_CASE_SENSITIVE);
+    cleri_t * k_timeit = cleri_keyword(CLERI_GID_K_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
+    cleri_t * k_timeval = cleri_keyword(CLERI_GID_K_TIMEVAL, "timeval", CLERI_CASE_SENSITIVE);
+    cleri_t * k_timezone = cleri_keyword(CLERI_GID_K_TIMEZONE, "timezone", CLERI_CASE_SENSITIVE);
     cleri_t * k_to = cleri_keyword(CLERI_GID_K_TO, "to", CLERI_CASE_SENSITIVE);
     cleri_t * k_true = cleri_keyword(CLERI_GID_K_TRUE, "true", CLERI_CASE_SENSITIVE);
     cleri_t * k_type = cleri_keyword(CLERI_GID_K_TYPE, "type", CLERI_CASE_SENSITIVE);
@@ -1033,6 +1035,20 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_optional(CLERI_NONE, time_expr),
         cleri_token(CLERI_NONE, ")")
     );
+    cleri_t * f_timeval = cleri_sequence(
+        CLERI_GID_F_TIMEVAL,
+        3,
+        k_timeval,
+        cleri_token(CLERI_NONE, "("),
+        cleri_token(CLERI_NONE, ")")
+    );
+    cleri_t * f_interval = cleri_sequence(
+        CLERI_GID_F_INTERVAL,
+        3,
+        k_interval,
+        cleri_token(CLERI_NONE, "("),
+        cleri_token(CLERI_NONE, ")")
+    );
     cleri_t * f_filter = cleri_sequence(
         CLERI_GID_F_FILTER,
         5,
@@ -1083,7 +1099,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * aggregate_functions = cleri_list(CLERI_GID_AGGREGATE_FUNCTIONS, cleri_choice(
         CLERI_NONE,
         CLERI_FIRST_MATCH,
-        19,
+        21,
         f_all,
         f_limit,
         f_mean,
@@ -1099,6 +1115,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         f_stddev,
         f_first,
         f_last,
+        f_timeval,
+        f_interval,
         f_difference,
         f_derivative,
         f_filter,
