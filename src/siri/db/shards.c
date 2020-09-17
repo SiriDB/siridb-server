@@ -38,7 +38,7 @@ static bool SHARDS_must_migrate_shard(
     size_t n = strlen(fn);
     char * tmp = NULL;
 
-    if (n < 6)
+    if (n < 5)
     {
         return false;
     }
