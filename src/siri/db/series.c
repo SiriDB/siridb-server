@@ -83,7 +83,7 @@ const uint8_t SERIES_SFC =
  */
 int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
 {
-    switch (cond->prop)
+    switch ((enum cleri_grammar_ids) cond->prop)
     {
     case CLERI_GID_K_LENGTH:
         return cexpr_int_cmp(cond->operator, series->length, cond->int64);
@@ -93,14 +93,20 @@ int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
         return cexpr_int_cmp(cond->operator, series->end, cond->int64);
     case CLERI_GID_K_POOL:
         return cexpr_int_cmp(cond->operator, series->pool, cond->int64);
+    case CLERI_GID_K_SHARD_DURATION:
+        return cexpr_int_cmp(
+                cond->operator,
+                (series->idx ? series->idx->shard->duration : 0),
+                cond->int64);
     case CLERI_GID_K_TYPE:
         return cexpr_int_cmp(cond->operator, series->tp, cond->int64);
     case CLERI_GID_K_NAME:
         return cexpr_str_cmp(cond->operator, series->name, cond->str);
+    default:
+        /* we must NEVER get here */
+        log_critical("Unexpected series property received: %d", cond->prop);
+        assert (0);
     }
-    /* we must NEVER get here */
-    log_critical("Unexpected series property received: %d", cond->prop);
-    assert (0);
     return -1;
 }
 

@@ -5312,6 +5312,10 @@ static void async_list_series(uv_async_t * handle)
                 case CLERI_GID_K_POOL:
                     qp_add_int64(query->packer, (int64_t) series->pool);
                     break;
+                case CLERI_GID_K_SHARD_DURATION:
+                    qp_add_int64(query->packer, (int64_t) (series->idx
+                            ? series->idx->shard->duration : 0));
+                    break;
                 case CLERI_GID_K_START:
                     qp_add_int64(query->packer, (int64_t) series->start);
                     break;

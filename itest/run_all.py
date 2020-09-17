@@ -2,6 +2,7 @@
 from testing import run_test
 from testing import Server
 from testing import parse_args
+from test_auto_duration import TestAutoDuration
 from test_buffer import TestBuffer
 from test_cluster import TestCluster
 from test_compression import TestCompression
@@ -27,6 +28,7 @@ from test_user import TestUser
 
 if __name__ == '__main__':
     parse_args()
+    run_test(TestAutoDuration())
     run_test(TestBuffer())
     run_test(TestCompression())
     run_test(TestCreateDatabase())

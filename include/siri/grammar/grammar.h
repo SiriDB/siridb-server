@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-09-15 15:01:47
+ * Created at: 2020-09-17 11:38:57
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -220,6 +220,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_SERVERS,
     CLERI_GID_K_SET,
     CLERI_GID_K_SHARDS,
+    CLERI_GID_K_SHARD_DURATION,
     CLERI_GID_K_SHOW,
     CLERI_GID_K_SID,
     CLERI_GID_K_SIZE,

@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-09-15 15:01:47
+ * Created at: 2020-09-17 11:38:57
  */
 
 #include "siri/grammar/grammar.h"
@@ -58,6 +58,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_duration_num = cleri_keyword(CLERI_GID_K_DURATION_NUM, "duration_num", CLERI_CASE_SENSITIVE);
     cleri_t * k_end = cleri_keyword(CLERI_GID_K_END, "end", CLERI_CASE_SENSITIVE);
     cleri_t * k_error = cleri_keyword(CLERI_GID_K_ERROR, "error", CLERI_CASE_SENSITIVE);
+    cleri_t * k_expiration_log = cleri_keyword(CLERI_GID_K_EXPIRATION_LOG, "expiration_log", CLERI_CASE_SENSITIVE);
+    cleri_t * k_expiration_num = cleri_keyword(CLERI_GID_K_EXPIRATION_NUM, "expiration_num", CLERI_CASE_SENSITIVE);
     cleri_t * k_expression = cleri_keyword(CLERI_GID_K_EXPRESSION, "expression", CLERI_CASE_SENSITIVE);
     cleri_t * k_false = cleri_keyword(CLERI_GID_K_FALSE, "false", CLERI_CASE_SENSITIVE);
     cleri_t * k_fifo_files = cleri_keyword(CLERI_GID_K_FIFO_FILES, "fifo_files", CLERI_CASE_SENSITIVE);
@@ -142,8 +144,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_server = cleri_keyword(CLERI_GID_K_SERVER, "server", CLERI_CASE_SENSITIVE);
     cleri_t * k_servers = cleri_keyword(CLERI_GID_K_SERVERS, "servers", CLERI_CASE_SENSITIVE);
     cleri_t * k_set = cleri_keyword(CLERI_GID_K_SET, "set", CLERI_CASE_SENSITIVE);
-    cleri_t * k_expiration_log = cleri_keyword(CLERI_GID_K_EXPIRATION_LOG, "expiration_log", CLERI_CASE_SENSITIVE);
-    cleri_t * k_expiration_num = cleri_keyword(CLERI_GID_K_EXPIRATION_NUM, "expiration_num", CLERI_CASE_SENSITIVE);
+    cleri_t * k_shard_duration = cleri_keyword(CLERI_GID_K_SHARD_DURATION, "shard_duration", CLERI_CASE_SENSITIVE);
     cleri_t * k_shards = cleri_keyword(CLERI_GID_K_SHARDS, "shards", CLERI_CASE_SENSITIVE);
     cleri_t * k_show = cleri_keyword(CLERI_GID_K_SHOW, "show", CLERI_CASE_SENSITIVE);
     cleri_t * k_sid = cleri_keyword(CLERI_GID_K_SID, "sid", CLERI_CASE_SENSITIVE);
@@ -286,12 +287,13 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * series_columns = cleri_list(CLERI_GID_SERIES_COLUMNS, cleri_choice(
         CLERI_NONE,
         CLERI_FIRST_MATCH,
-        6,
+        7,
         k_name,
         k_type,
         k_length,
         k_start,
         k_end,
+        k_shard_duration,
         k_pool
     ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
     cleri_t * shard_columns = cleri_list(CLERI_GID_SHARD_COLUMNS, cleri_choice(
@@ -539,9 +541,10 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
                 cleri_choice(
                     CLERI_NONE,
                     CLERI_FIRST_MATCH,
-                    2,
+                    3,
                     k_start,
-                    k_end
+                    k_end,
+                    k_shard_duration
                 ),
                 int_operator,
                 time_expr

@@ -74,6 +74,8 @@ class SiriGrammar(Grammar):
     k_duration_num = Keyword('duration_num')
     k_end = Keyword('end')
     k_error = Keyword('error')
+    k_expiration_log = Keyword('expiration_log')
+    k_expiration_num = Keyword('expiration_num')
     k_expression = Keyword('expression')
     k_false = Keyword('false')
     k_fifo_files = Keyword('fifo_files')
@@ -144,8 +146,7 @@ class SiriGrammar(Grammar):
     k_server = Keyword('server')
     k_servers = Keyword('servers')
     k_set = Keyword('set')
-    k_expiration_log = Keyword('expiration_log')
-    k_expiration_num = Keyword('expiration_num')
+    k_shard_duration = Keyword('shard_duration')
     k_shards = Keyword('shards')
     k_show = Keyword('show')
     k_sid = Keyword('sid')
@@ -241,6 +242,7 @@ class SiriGrammar(Grammar):
         k_length,
         k_start,
         k_end,
+        k_shard_duration,
         k_pool,
         most_greedy=False), ',', 1)
 
@@ -350,7 +352,7 @@ class SiriGrammar(Grammar):
             int_expr),
         Sequence(k_name, str_operator, string),
         Sequence(
-            Choice(k_start, k_end, most_greedy=False),
+            Choice(k_start, k_end, k_shard_duration, most_greedy=False),
             int_operator,
             time_expr),
         Sequence(
