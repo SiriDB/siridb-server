@@ -1,3 +1,13 @@
+siridb-server (2.0.39-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added auto shard duration option (#141)
+    - Added `shard_duration` property on list series (#140)
+    - Added `timeval()` and `interval()` functions (#138)
+    - Fixed build error on 32 bit systems (#135)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 18 Sep 2020 15:50:10 +0200
+
 siridb-server (2.0.38-0~tt1) unstable; urgency=medium
 
   * New upstream release
