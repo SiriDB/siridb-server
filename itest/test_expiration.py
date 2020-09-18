@@ -106,7 +106,7 @@ class TestExpiration(TestBase):
         self.assertGreater(total, rest)
 
         await self.client0.query('alter database set expiration_num 3w')
-        await asyncio.sleep(40)  # wait for optimize to complete
+        await asyncio.sleep(50)  # wait for optimize to complete
 
         total = (await self.client0.query('count shards'))['shards']
         self.assertEqual(total, rest)
