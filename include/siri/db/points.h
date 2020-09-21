@@ -86,6 +86,7 @@ int siridb_points_unzip_string_raw(
         uint8_t * bits,
         uint16_t len);
 size_t siridb_points_get_size_zipped(uint16_t cinfo, uint16_t len);
+uint64_t siridb_points_get_interval(siridb_points_t * points);
 
 #define siridb_points_zip(p__, s__, e__, c__, z__) \
 ((p__)->tp == TP_INT) ? \

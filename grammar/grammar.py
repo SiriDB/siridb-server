@@ -74,6 +74,8 @@ class SiriGrammar(Grammar):
     k_duration_num = Keyword('duration_num')
     k_end = Keyword('end')
     k_error = Keyword('error')
+    k_expiration_log = Keyword('expiration_log')
+    k_expiration_num = Keyword('expiration_num')
     k_expression = Keyword('expression')
     k_false = Keyword('false')
     k_fifo_files = Keyword('fifo_files')
@@ -98,6 +100,7 @@ class SiriGrammar(Grammar):
         Token('&'),
         Keyword('intersection'),
         most_greedy=False)
+    k_interval = Keyword('interval')
     k_ip_support = Keyword('ip_support')
     k_last = Keyword('last')
     k_length = Keyword('length')
@@ -111,14 +114,14 @@ class SiriGrammar(Grammar):
     k_max_open_files = Keyword('max_open_files')
     k_mean = Keyword('mean')
     k_median = Keyword('median')
-    k_median_low = Keyword('median_low')
     k_median_high = Keyword('median_high')
+    k_median_low = Keyword('median_low')
     k_mem_usage = Keyword('mem_usage')
     k_merge = Keyword('merge')
     k_min = Keyword('min')
     k_modify = Keyword('modify')
-    k_nan = Keyword('nan')
     k_name = Keyword('name')
+    k_nan = Keyword('nan')
     k_ninf = Sequence('-', k_inf)
     k_now = Keyword('now')
     k_number = Keyword('number')
@@ -143,9 +146,10 @@ class SiriGrammar(Grammar):
     k_server = Keyword('server')
     k_servers = Keyword('servers')
     k_set = Keyword('set')
-    k_sid = Keyword('sid')
+    k_shard_duration = Keyword('shard_duration')
     k_shards = Keyword('shards')
     k_show = Keyword('show')
+    k_sid = Keyword('sid')
     k_size = Keyword('size')
     k_start = Keyword('start')
     k_startup_time = Keyword('startup_time')
@@ -159,9 +163,13 @@ class SiriGrammar(Grammar):
         Keyword('symmetric_difference'),
         most_greedy=False)
     k_sync_progress = Keyword('sync_progress')
-    k_timeit = Keyword('timeit')
-    k_timezone = Keyword('timezone')
+    k_tag = Keyword('tag')
+    k_tags = Keyword('tags')
+    k_tee_pipe_name = Keyword('tee_pipe_name')
     k_time_precision = Keyword('time_precision')
+    k_timeit = Keyword('timeit')
+    k_timeval = Keyword('timeval')
+    k_timezone = Keyword('timezone')
     k_to = Keyword('to')
     k_true = Keyword('true')
     k_type = Keyword('type')
@@ -169,6 +177,7 @@ class SiriGrammar(Grammar):
         Tokens(', |'),
         Keyword('union'),
         most_greedy=False)
+    k_untag = Keyword('untag')
     k_uptime = Keyword('uptime')
     k_user = Keyword('user')
     k_users = Keyword('users')
@@ -233,6 +242,7 @@ class SiriGrammar(Grammar):
         k_length,
         k_start,
         k_end,
+        k_shard_duration,
         k_pool,
         most_greedy=False), ',', 1)
 
@@ -277,6 +287,7 @@ class SiriGrammar(Grammar):
         k_reindex_progress,
         k_selected_points,
         k_sync_progress,
+        k_tee_pipe_name,
         k_uptime,
         most_greedy=False), ',', 1)
 
@@ -289,6 +300,11 @@ class SiriGrammar(Grammar):
     user_columns = List(Choice(
         k_name,
         k_access,
+        most_greedy=False), ',', 1)
+
+    tag_columns = List(Choice(
+        k_name,
+        k_series,
         most_greedy=False), ',', 1)
 
     pool_props = Choice(
@@ -313,6 +329,14 @@ class SiriGrammar(Grammar):
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
 
+    # where tag
+    where_tag = Sequence(k_where, Prio(
+        Sequence(k_name, str_operator, string),
+        Sequence(k_series, int_operator, int_expr),
+        Sequence('(', THIS, ')'),
+        Sequence(THIS, k_and, THIS),
+        Sequence(THIS, k_or, THIS)))
+
     # where pool
     where_pool = Sequence(k_where, Prio(
         Sequence(pool_props, int_operator, int_expr),
@@ -328,7 +352,7 @@ class SiriGrammar(Grammar):
             int_expr),
         Sequence(k_name, str_operator, string),
         Sequence(
-            Choice(k_start, k_end, most_greedy=False),
+            Choice(k_start, k_end, k_shard_duration, most_greedy=False),
             int_operator,
             time_expr),
         Sequence(
@@ -370,6 +394,7 @@ class SiriGrammar(Grammar):
             k_status,
             k_reindex_progress,
             k_sync_progress,
+            k_tee_pipe_name,
             most_greedy=False), str_operator, string),
         Sequence(k_online, bool_operator, _boolean),
         Sequence(k_log_level, int_operator, log_keywords),
@@ -404,28 +429,39 @@ class SiriGrammar(Grammar):
         Sequence(THIS, k_and, THIS),
         Sequence(THIS, k_or, THIS)))
 
-    series_sep = Choice(
+    series_setopr = Choice(
         k_union,
         c_difference,
         k_intersection,
         k_symmetric_difference,
         most_greedy=False)
 
+    series_parentheses = Sequence('(', THIS, ')')
+
     series_all = Choice(Token('*'), k_all, most_greedy=False)
     series_name = Repeat(string, 1, 1)
     group_name = Repeat(r_grave_str, 1, 1)
+    tag_name = Repeat(r_grave_str, 1, 1)
     series_re = Repeat(r_regex, 1, 1)
     uuid = Choice(r_uuid_str, string, most_greedy=False)
-    group_match = Repeat(r_grave_str, 1, 1)
-    series_match = List(
+    group_tag_match = Repeat(r_grave_str, 1, 1)
+    series_match = Prio(
+        List(Choice(
+            series_all,
+            series_name,
+            group_tag_match,
+            series_re,
+            most_greedy=False), series_setopr, 1),
         Choice(
             series_all,
             series_name,
-            group_match,
+            group_tag_match,
             series_re,
             most_greedy=False),
-        series_sep,
-        1)
+        series_parentheses,
+        Sequence(THIS, series_setopr, THIS),
+    )
+
     limit_expr = Sequence(k_limit, int_expr)
 
     before_expr = Sequence(k_before, time_expr)
@@ -489,6 +525,12 @@ class SiriGrammar(Grammar):
     f_last = Sequence(
         k_last,
         '(', Optional(time_expr), ')')
+    f_timeval = Sequence(
+        k_timeval,
+        '(', ')')
+    f_interval = Sequence(
+        k_interval,
+        '(', ')')
 
     f_filter = Sequence(
         k_filter,
@@ -542,6 +584,8 @@ class SiriGrammar(Grammar):
         f_stddev,
         f_first,
         f_last,
+        f_timeval,
+        f_interval,
         f_difference,
         f_derivative,
         f_filter,
@@ -562,6 +606,10 @@ class SiriGrammar(Grammar):
         Optional(Sequence(k_using, aggregate_functions)))
 
     set_address = Sequence(k_set, k_address, string)
+    set_tee_pipe_name = Sequence(k_set, k_tee_pipe_name, Choice(
+        k_false,
+        string,
+        most_greedy=False))
     set_backup_mode = Sequence(k_set, k_backup_mode, _boolean)
     set_drop_threshold = Sequence(k_set, k_drop_threshold, r_float)
     set_expression = Sequence(k_set, k_expression, r_regex)
@@ -574,12 +622,26 @@ class SiriGrammar(Grammar):
     set_select_points_limit = Sequence(
         k_set, k_select_points_limit, r_uinteger)
     set_timezone = Sequence(k_set, k_timezone, string)
+    tag_series = Sequence(k_tag, tag_name)
+    untag_series = Sequence(k_untag, tag_name)
+    set_expiration_num = Sequence(
+        k_set,
+        k_expiration_num,
+	time_expr,
+        Optional(set_ignore_threshold))
+    set_expiration_log = Sequence(
+        k_set,
+        k_expiration_log,
+	time_expr,
+        Optional(set_ignore_threshold))
 
     alter_database = Sequence(k_database, Choice(
         set_drop_threshold,
         set_list_limit,
         set_select_points_limit,
         set_timezone,
+        set_expiration_num,
+        set_expiration_log,
         most_greedy=False))
 
     alter_group = Sequence(k_group, group_name, Choice(
@@ -590,19 +652,31 @@ class SiriGrammar(Grammar):
     alter_server = Sequence(k_server, uuid, Choice(
         set_log_level,
         set_backup_mode,
+        set_tee_pipe_name,
         set_address,
         set_port,
         most_greedy=False))
 
-    alter_servers = Sequence(k_servers, Optional(where_server), set_log_level)
+    alter_servers = Sequence(k_servers, Optional(where_server), Choice(
+        set_log_level,
+        set_tee_pipe_name,
+        most_greedy=False))
 
     alter_user = Sequence(k_user, string, Choice(
         set_password,
         set_name,
         most_greedy=False))
 
+    alter_series = Sequence(
+        k_series,
+        series_match,
+        Optional(where_series),
+        Choice(tag_series, untag_series, most_greedy=False))
+
     count_groups = Sequence(
         k_groups, Optional(where_group))
+    count_tags = Sequence(
+        k_tags, Optional(where_tag))
     count_pools = Sequence(
         k_pools, Optional(where_pool))
     count_series = Sequence(
@@ -635,6 +709,8 @@ class SiriGrammar(Grammar):
         k_user, string, set_password)
 
     drop_group = Sequence(k_group, group_name)
+    drop_tag = Sequence(k_tag, tag_name)
+
     # Drop statement needs at least a series_math or where STMT or both
     drop_series = Sequence(
         k_series,
@@ -653,6 +729,8 @@ class SiriGrammar(Grammar):
 
     list_groups = Sequence(
         k_groups, Optional(group_columns), Optional(where_group))
+    list_tags = Sequence(
+        k_tags, Optional(tag_columns), Optional(where_tag))
     list_pools = Sequence(
         k_pools, Optional(pool_columns), Optional(where_pool))
     list_series = Sequence(
@@ -670,6 +748,7 @@ class SiriGrammar(Grammar):
     revoke_user = Sequence(k_user, string)
 
     alter_stmt = Sequence(k_alter, Choice(
+        alter_series,
         alter_user,
         alter_group,
         alter_server,
@@ -689,6 +768,7 @@ class SiriGrammar(Grammar):
         count_shards,
         count_shards_size,
         count_users,
+        count_tags,
         count_series_length,
         most_greedy=True))
 
@@ -698,6 +778,7 @@ class SiriGrammar(Grammar):
 
     drop_stmt = Sequence(k_drop, Choice(
         drop_group,
+        drop_tag,
         drop_series,
         drop_shards,
         drop_server,
@@ -710,6 +791,7 @@ class SiriGrammar(Grammar):
 
     list_stmt = Sequence(k_list, Choice(
         list_series,
+        list_tags,
         list_users,
         list_shards,
         list_groups,
@@ -746,6 +828,8 @@ class SiriGrammar(Grammar):
         k_duration_log,
         k_duration_num,
         k_fifo_files,
+        k_expiration_log,
+        k_expiration_num,
         k_idle_percentage,
         k_idle_time,
         k_ip_support,
@@ -764,6 +848,7 @@ class SiriGrammar(Grammar):
         k_startup_time,
         k_status,
         k_sync_progress,
+        k_tee_pipe_name,
         k_time_precision,
         k_timezone,
         k_uptime,

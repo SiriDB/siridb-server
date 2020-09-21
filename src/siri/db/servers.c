@@ -11,6 +11,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/misc.h>
+#include <siri/db/tee.h>
 #include <siri/err.h>
 #include <siri/net/promises.h>
 #include <siri/net/tcp.h>
@@ -22,7 +23,7 @@
 #define SIRIDB_SERVERS_FN "servers.dat"
 #define SIRIDB_SERVERS_SCHEMA 1
 
-static void SERVERS_walk_free(siridb_server_t * server, void * args);
+static int SERVERS_walk_free(siridb_server_t * server, void * args);
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker);
 
 /*
@@ -371,6 +372,7 @@ void siridb_servers_send_pkg(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_server_t * server;
         size_t i;
 
@@ -380,17 +382,19 @@ void siridb_servers_send_pkg(
 
             if (siridb_server_is_online(server))
             {
-                if (siridb_server_send_pkg(
+                if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                    siridb_server_send_pkg(
                         server,
-                        pkg,
+                        dup,
                         timeout,
                         (sirinet_promise_cb) sirinet_promises_on_response,
                         promises,
-                        FLAG_KEEP_PKG))
+                        0 /* flags */))
                 {
                     log_critical(
                             "Allocation error while trying to send a package "
                             "to '%s'", server->name);
+                    free(dup);
                     vec_append(promises->promises, NULL);
                 }
             }
@@ -606,13 +610,13 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
                             QP_TRUE : QP_FALSE);
             break;
         case CLERI_GID_K_POOL:
-            qp_add_int16(query->packer, server->pool);
+            qp_add_int64(query->packer, (int64_t) server->pool);
             break;
         case CLERI_GID_K_PORT:
-            qp_add_int32(query->packer, server->port);
+            qp_add_int64(query->packer, (int64_t) server->port);
             break;
         case CLERI_GID_K_STARTUP_TIME:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
                     (siridb->server == server) ?
                             siri.startup_time : server->startup_time);
@@ -645,45 +649,45 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
          * that specific server.
          */
         case CLERI_GID_K_ACTIVE_HANDLES:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) siri.loop->active_handles);
+                    (int64_t) siri.loop->active_handles);
             break;
         case CLERI_GID_K_ACTIVE_TASKS:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) siridb->tasks.active);
+                    (int64_t) siridb->tasks.active);
             break;
         case CLERI_GID_K_IDLE_PERCENTAGE:
-            qp_add_int8(
+            qp_add_int64(
                     query->packer,
                     siridb_get_idle_percentage(siridb));
             break;
         case CLERI_GID_K_IDLE_TIME:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) siridb->tasks.idle_time);
+                    (int64_t) siridb->tasks.idle_time);
             break;
         case CLERI_GID_K_LOG_LEVEL:
             qp_add_string(query->packer, Logger.level_name);
             break;
         case CLERI_GID_K_MAX_OPEN_FILES:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) siri.cfg->max_open_files);
+                    (int64_t) siri.cfg->max_open_files);
             break;
         case CLERI_GID_K_MEM_USAGE:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) (procinfo_total_physical_memory() / 1024));
+                    (int64_t) (procinfo_total_physical_memory() / 1024));
             break;
         case CLERI_GID_K_FIFO_FILES:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
-                    (int32_t) siridb_fifo_size(siridb->fifo));
+                    (int64_t) siridb_fifo_size(siridb->fifo));
             break;
         case CLERI_GID_K_OPEN_FILES:
-            qp_add_int32(query->packer, siridb_open_files(siridb));
+            qp_add_int64(query->packer, siridb_open_files(siridb));
             break;
         case CLERI_GID_K_RECEIVED_POINTS:
             qp_add_int64(query->packer, siridb->received_points);
@@ -697,8 +701,11 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
         case CLERI_GID_K_SYNC_PROGRESS:
             qp_add_string(query->packer, siridb_initsync_sync_progress(siridb));
             break;
+        case CLERI_GID_K_TEE_PIPE_NAME:
+            qp_add_string(query->packer, tee_str(siridb->tee));
+            break;
         case CLERI_GID_K_UPTIME:
-            qp_add_int32(
+            qp_add_int64(
                     query->packer,
                     siridb_get_uptime(siridb));
             break;
@@ -758,7 +765,7 @@ int siridb_servers_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_SERVERS_SCHEMA))
+        qp_fadd_int64(fpacker, SIRIDB_SERVERS_SCHEMA))
     {
         ERR_FILE
         qp_close(fpacker);
@@ -782,11 +789,12 @@ int siridb_servers_save(siridb_t * siridb)
     return 0;
 }
 
-static void SERVERS_walk_free(
+static int SERVERS_walk_free(
         siridb_server_t * server,
         void * args __attribute__((unused)))
 {
     siridb_server_decref(server);
+    return 0;
 }
 
 static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
@@ -795,8 +803,8 @@ static int SERVERS_walk_save(siridb_server_t * server, qp_fpacker_t * fpacker)
     rc += qp_fadd_type(fpacker, QP_ARRAY4);
     rc += qp_fadd_raw(fpacker, (unsigned char *) &server->uuid[0], 16);
     rc += qp_fadd_string(fpacker, server->address);
-    rc += qp_fadd_int32(fpacker, (int32_t) server->port);
-    rc += qp_fadd_int32(fpacker, (int32_t) server->pool);
+    rc += qp_fadd_int64(fpacker, (int64_t) server->port);
+    rc += qp_fadd_int64(fpacker, (int64_t) server->pool);
     return rc;
 }
 

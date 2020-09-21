@@ -1,6 +1,7 @@
 #include "../test.h"
 #include <locale.h>
 #include <siri/db/series.h>
+#include <siri/db/shard.h>
 
 
 static int test_series_ensure_type(void)
@@ -107,6 +108,7 @@ static int test_series_ensure_type(void)
         _assert (strlen("-1") == qp_obj.len);
         _assert (strncmp("-1", qp_obj.via.str, qp_obj.len) == 0);
     }
+
     (void) setlocale(LC_ALL, NULL);
     return test_end();
 };

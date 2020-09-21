@@ -23,10 +23,6 @@ cproto_server_t siridb_auth_user_request(
     siridb_t * siridb;
     siridb_user_t * user;
 
-    char dbname[qp_dbname->len + 1];
-    memcpy(dbname, qp_dbname->via.raw, qp_dbname->len);
-    dbname[qp_dbname->len] = 0;
-
     char username[qp_username->len + 1];
     memcpy(username, qp_username->via.raw, qp_username->len);
     username[qp_username->len] = 0;
@@ -35,7 +31,7 @@ cproto_server_t siridb_auth_user_request(
     memcpy(password, qp_password->via.raw, qp_password->len);
     password[qp_password->len] = 0;
 
-    if ((siridb = siridb_get(siri.siridb_list, dbname)) == NULL)
+    if ((siridb = siridb_get_by_qp(siri.siridb_list, qp_dbname)) == NULL)
     {
         log_warning("User authentication request failed: unknown database");
         return CPROTO_ERR_AUTH_UNKNOWN_DB;
@@ -46,14 +42,35 @@ cproto_server_t siridb_auth_user_request(
             username,
             password)) == NULL)
     {
-        log_warning("User authentication request failed: invalid credentials");
+        if (strcmp(username, "sa") == 0)
+        {
+            log_warning(
+                    "User authentication request failed: "
+                    "invalid credentials for user `sa`, "
+                    "did you mean to use the default database user `iris`?");
+        }
+        else
+        {
+            log_warning(
+                    "User authentication request failed: invalid credentials");
+        }
         return CPROTO_ERR_AUTH_CREDENTIALS;
+    }
+
+    siridb_incref(siridb);
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
+    }
+
+    siridb_user_incref(user);
+    if (client->origin)
+    {
+        siridb_user_decref(((siridb_user_t *) client->origin));
     }
 
     client->siridb = siridb;
     client->origin = user;
-
-    siridb_user_incref(user);
 
     return CPROTO_RES_AUTH_SUCCESS;
 }
@@ -107,6 +124,12 @@ bproto_server_t siridb_auth_server_request(
          * server.
          */
         return BPROTO_AUTH_ERR_UNKNOWN_UUID;
+    }
+
+    siridb_incref(siridb);
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
     }
 
     client->siridb = siridb;

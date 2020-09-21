@@ -18,6 +18,7 @@
 #include <xpath/xpath.h>
 #include <owcrypt/owcrypt.h>
 #include <siri/db/access.h>
+#include <base64/base64.h>
 
 
 #ifndef __APPLE__
@@ -194,7 +195,7 @@ int siridb_users_add_user(
 }
 
 /*
- * Returns NULL when the user is not found of when the given password is
+ * Returns NULL when the user is not found or when the given password is
  * incorrect. When *password is NULL the password will NOT be checked and
  * the user will be returned when found.
  */
@@ -247,6 +248,33 @@ siridb_user_t * siridb_users_get_user(
     }
 #endif
     return NULL;
+}
+
+siridb_user_t * siridb_users_get_user_from_basic(
+        siridb_t * siridb,
+        const char * data,
+        size_t n)
+{
+    size_t size, nn, end;
+    char * b64 = base64_decode(data, n, &size);
+    siridb_user_t * user = NULL;
+
+    for (nn = 0, end = size; nn < end; ++nn)
+    {
+        if (b64[nn] == ':')
+        {
+            b64[nn] = '\0';
+
+            if (++nn > end)
+                break;
+
+            user = siridb_users_get_user(siridb, b64, b64 + nn);
+            break;
+        }
+    }
+
+    free(b64);
+    return user;
 }
 
 /*
@@ -306,7 +334,7 @@ int siridb_users_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_USERS_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRIDB_USERS_SCHEMA) ||
 
         /* we can and should skip this if we have no users to save */
         llist_walk(siridb->users, (llist_cb) USERS_save, fpacker) ||
@@ -331,7 +359,7 @@ static int USERS_save(siridb_user_t * user, qp_fpacker_t * fpacker)
     rc += qp_fadd_type(fpacker, QP_ARRAY3);
     rc += qp_fadd_string(fpacker, user->name);
     rc += qp_fadd_string(fpacker, user->password);
-    rc += qp_fadd_int32(fpacker, (int32_t) user->access_bit);
+    rc += qp_fadd_int64(fpacker, (int64_t) user->access_bit);
     return rc;
 }
 

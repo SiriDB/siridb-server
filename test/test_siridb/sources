@@ -1,9 +1,12 @@
 ../src/vec/vec.c
+../src/base64/base64.c
 ../src/ctree/ctree.c
 ../src/xpath/xpath.c
 ../src/xmath/xmath.c
 ../src/qpack/qpack.c
+../src/qpjson/qpjson.c
 ../src/imap/imap.c
+../src/omap/omap.c
 ../src/llist/llist.c
 ../src/logger/logger.c
 ../src/xstr/xstr.c
@@ -13,8 +16,10 @@
 ../src/expr/expr.c
 ../src/timeit/timeit.c
 ../src/iso8601/iso8601.c
+../src/lib/http_parser.c
 ../src/lock/lock.c
 ../src/procinfo/procinfo.c
+../src/siri/api.c
 ../src/siri/async.c
 ../src/siri/backup.c
 ../src/siri/buffersync.c
@@ -22,6 +27,7 @@
 ../src/siri/heartbeat.c
 ../src/siri/optimize.c
 ../src/siri/siri.c
+../src/siri/health.c
 ../src/siri/version.c
 ../src/siri/net/bserver.c
 ../src/siri/net/clserver.c
@@ -65,7 +71,11 @@
 ../src/siri/db/servers.c
 ../src/siri/db/shard.c
 ../src/siri/db/shards.c
+../src/siri/db/sset.c
+../src/siri/db/tag.c
+../src/siri/db/tags.c
 ../src/siri/db/tasks.c
+../src/siri/db/tee.c
 ../src/siri/db/time.c
 ../src/siri/db/user.c
 ../src/siri/db/users.c

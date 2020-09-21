@@ -218,6 +218,13 @@ class TestSelect(TestBase):
                 [1447257600, 4.666666666666667]]})
 
         self.assertEqual(
+            await self.client0.query('select * from ({}) - ("a", "b")'.format(
+                ','.join(['"aggr"'] * 600)
+            )),
+            {'aggr': DATA['aggr']}
+        )
+
+        self.assertEqual(
             await self.client0.query('select difference(1h) from "aggr"'),
             {'aggr': [[1447250400, 1], [1447254000, -3], [1447257600, 5]]})
 
@@ -357,6 +364,53 @@ class TestSelect(TestBase):
             })
 
         self.assertEqual(
+            await self.client0.query('select timeval() from "aggr"'),
+            {'aggr': [
+                [1447249033, 1447249033],
+                [1447249337, 1447249337],
+                [1447249633, 1447249633],
+                [1447249937, 1447249937],
+                [1447250249, 1447250249],
+                [1447250549, 1447250549],
+                [1447250868, 1447250868],
+                [1447251168, 1447251168],
+                [1447251449, 1447251449],
+                [1447251749, 1447251749],
+                [1447252049, 1447252049],
+                [1447252349, 1447252349],
+                [1447252649, 1447252649],
+                [1447252968, 1447252968],
+                [1447253244, 1447253244],
+                [1447253549, 1447253549],
+                [1447253849, 1447253849],
+                [1447254149, 1447254149],
+                [1447254449, 1447254449],
+                [1447254748, 1447254748]]})
+
+        self.assertEqual(
+            await self.client0.query('select interval() from "aggr"'),
+            {'aggr': [
+                [1447249337, 304],
+                [1447249633, 296],
+                [1447249937, 304],
+                [1447250249, 312],
+                [1447250549, 300],
+                [1447250868, 319],
+                [1447251168, 300],
+                [1447251449, 281],
+                [1447251749, 300],
+                [1447252049, 300],
+                [1447252349, 300],
+                [1447252649, 300],
+                [1447252968, 319],
+                [1447253244, 276],
+                [1447253549, 305],
+                [1447253849, 300],
+                [1447254149, 300],
+                [1447254449, 300],
+                [1447254748, 299]]})
+
+        self.assertEqual(
             await self.client0.query('select difference() from "one"'),
             {'one': []})
 
@@ -372,44 +426,44 @@ class TestSelect(TestBase):
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use mean\(\) on string type\.'):
+                r'Cannot use mean\(\) on string type\.'):
             await self.client0.query('select mean(1w) from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Group by time must be an integer value larger than zero\.'):
+                r'Group by time must be an integer value larger than zero\.'):
             await self.client0.query('select mean(0) from "aggr"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Limit must be an integer value larger than zero\.'):
+                r'Limit must be an integer value larger than zero\.'):
             await self.client0.query('select limit(6 - 6, mean) from "aggr"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use a string filter on number type\.'):
+                r'Cannot use a string filter on number type\.'):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use difference\(\) on string type\.'):
+                r'Cannot use difference\(\) on string type\.'):
             await self.client0.query('select difference() from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use derivative\(\) on string type\.'):
+                r'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative(6, 3) from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use derivative\(\) on string type\.'):
+                r'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative() from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Overflow detected while using sum\(\)\.'):
+                r'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
 
         with self.assertRaisesRegex(
@@ -428,7 +482,9 @@ class TestSelect(TestBase):
                 QueryError,
                 'Memory allocation error or maximum recursion depth reached.'):
             await self.client0.query(
-                'select * from "aggr" where length > {}'.format('(' * 500))
+                'select * from {}"aggr"{}'.format(
+                    '(' * 501,
+                    ')' * 501))
 
         with self.assertRaisesRegex(
                     QueryError,
@@ -507,8 +563,6 @@ class TestSelect(TestBase):
             'alter database set select_points_limit 1000000')
 
         self.client0.close()
-
-        # return False
 
 
 if __name__ == '__main__':

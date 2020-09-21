@@ -57,6 +57,33 @@ class SiriDB:
         if sleep:
             await asyncio.sleep(sleep)
 
+    async def drop_db(
+                self,
+                server,
+                username='iris',
+                password='siri',
+                sleep=None):
+
+        rc = os.system(
+            '{service} '
+            '-u sa -p siri -s {addr} '
+            'drop-database '
+            '--db-name {dbname} '
+            '--ignore-offline '
+            '--force{verbose}'.format(
+                service=SERVICE,
+                addr=server.addr,
+                verbose=VERBOSE if self.LOG_LEVEL == 'DEBUG'
+                else ' >/dev/null',
+                **vars(self)))
+
+        assert rc == 0, 'Expected rc = 0 but got rc = {}'.format(rc)
+
+        self.servers.append(server)
+
+        if sleep:
+            await asyncio.sleep(sleep)
+
     async def add_replica(
                 self,
                 server,

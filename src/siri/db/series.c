@@ -32,10 +32,10 @@
 #include <xpath/xpath.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
+#define SIRIDB_CORRUPT_FN "corrupt_series.dat"
 #define SIRIDB_DROPPED_FN ".dropped"
 #define SIRIDB_MAX_SERIES_ID_FN ".max_series_id"
 #define SIRIDB_SERIES_SCHEMA 1
-#define BEND series->buffer->points->data[series->buffer->points->len - 1].ts
 #define DROPPED_DUMMY 1
 
 /*
@@ -83,7 +83,7 @@ const uint8_t SERIES_SFC =
  */
 int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
 {
-    switch (cond->prop)
+    switch ((enum cleri_grammar_ids) cond->prop)
     {
     case CLERI_GID_K_LENGTH:
         return cexpr_int_cmp(cond->operator, series->length, cond->int64);
@@ -93,15 +93,27 @@ int siridb_series_cexpr_cb(siridb_series_t * series, cexpr_condition_t * cond)
         return cexpr_int_cmp(cond->operator, series->end, cond->int64);
     case CLERI_GID_K_POOL:
         return cexpr_int_cmp(cond->operator, series->pool, cond->int64);
+    case CLERI_GID_K_SHARD_DURATION:
+        return cexpr_int_cmp(
+                cond->operator,
+                (series->idx ? series->idx->shard->duration : 0),
+                cond->int64);
     case CLERI_GID_K_TYPE:
         return cexpr_int_cmp(cond->operator, series->tp, cond->int64);
     case CLERI_GID_K_NAME:
         return cexpr_str_cmp(cond->operator, series->name, cond->str);
+    default:
+        /* we must NEVER get here */
+        log_critical("Unexpected series property received: %d", cond->prop);
+        assert (0);
     }
-    /* we must NEVER get here */
-    log_critical("Unexpected series property received: %d", cond->prop);
-    assert (0);
     return -1;
+}
+
+void series_update_start_end(siridb_series_t * series)
+{
+    SERIES_update_start(series);
+    SERIES_update_end(series);
 }
 
 /*
@@ -275,8 +287,8 @@ siridb_series_t * siridb_series_new(
                 siridb->store,
                 (const unsigned char *) series_name,
                 series->name_len + 1) ||
-        qp_fadd_int32(siridb->store, (int32_t) series->id) ||
-        qp_fadd_int8(siridb->store, (int8_t) series->tp) ||
+        qp_fadd_int64(siridb->store, (int64_t) series->id) ||
+        qp_fadd_int64(siridb->store, (int64_t) series->tp) ||
         qp_flush(siridb->store))
     {
         ERR_FILE
@@ -563,6 +575,7 @@ int siridb_series_flush_dropped(siridb_t * siridb)
     }
 
     siridb->groups->flags |= GROUPS_FLAG_DROPPED_SERIES;
+    siridb->tags->flags |= TAGS_FLAG_DROPPED_SERIES;
 
     return rc;
 }
@@ -579,8 +592,8 @@ void siridb_series_remove_shard(
 {
     idx_t *__restrict idx;
     uint_fast32_t i, offset;
-    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
+    uint64_t start = shard->id - series->mask;
+    uint64_t end = start + shard->duration;
 
     i = offset = 0;
 
@@ -626,8 +639,6 @@ void siridb_series_remove_shard(
             {
                 series->idx = idx;
             }
-            uint64_t start = shard->id - series->mask;
-            uint64_t end = start + duration;
             if (series->start >= start && series->start < end)
             {
                 SERIES_update_start(series);
@@ -705,7 +716,8 @@ siridb_points_t * siridb_series_get_points(
 
     if (points == NULL)
     {
-        return NULL;  /* signal is raised */
+        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
+        return NULL;
     }
 
     for (i = 0; i < len; i++)
@@ -1031,10 +1043,7 @@ int siridb_series_optimize_shard(
     siridb_points_t *__restrict points;
     int rc;
     uint16_t cinfo = 0;
-    uint64_t duration = (shard->tp == SIRIDB_SHARD_TP_NUMBER) ?
-                siridb->duration_num : siridb->duration_log;
-
-    max_ts = (shard->id + duration) - series->mask;
+    max_ts = (shard->id + shard->duration) - series->mask;
 
     rc = new_idx = end = i = size = start = 0;
 
@@ -1081,7 +1090,9 @@ int siridb_series_optimize_shard(
     points = siridb_points_new(size, series->tp);
     if (points == NULL)
     {
-        return -1;  /* signal is raised */
+        /* TODO: check if we can remove this ERR_ALLOC */
+        ERR_ALLOC
+        return -1;
     }
 
     for (i = start; i < end; i++)
@@ -1111,6 +1122,7 @@ int siridb_series_optimize_shard(
         {
             pend = size;
         }
+
         if ((pos = siridb_shard_write_points(
                 siridb,
                 series,
@@ -1315,8 +1327,7 @@ static siridb_series_t * SERIES_new(
         const char * name)
 {
     uint32_t n;
-    siridb_series_t * series;
-    series = (siridb_series_t *) malloc(sizeof(siridb_series_t));
+    siridb_series_t * series = malloc(sizeof(siridb_series_t));
     if (series == NULL)
     {
         ERR_ALLOC
@@ -1388,8 +1399,8 @@ static inline int SERIES_pack(siridb_series_t * series, qp_fpacker_t * fpacker)
                     fpacker,
                     (unsigned char *) series->name,
                     series->name_len + 1) ||
-            qp_fadd_int32(fpacker, (int32_t) series->id) ||
-            qp_fadd_int8(fpacker, (int8_t) series->tp));
+            qp_fadd_int64(fpacker, (int64_t) series->id) ||
+            qp_fadd_int64(fpacker, (int64_t) series->tp));
 }
 
 /*
@@ -1417,7 +1428,7 @@ static int SERIES_save(siridb_t * siridb)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_SERIES_SCHEMA))
+        qp_fadd_int64(fpacker, SIRIDB_SERIES_SCHEMA))
     {
         ERR_FILE
     }
@@ -1471,7 +1482,7 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
     else if (size)
     {
 
-        buffer = (char *) malloc(size);
+        buffer = malloc(size);
         if (buffer == NULL)
         {
             log_critical("Cannot allocate buffer for reading dropped series");
@@ -1504,6 +1515,25 @@ static int SERIES_read_dropped(siridb_t * siridb, imap_t * dropped)
 
     fclose(fp);
 
+    return rc;
+}
+
+static int SERIES_keep_corrupt_series(siridb_t * siridb)
+{
+    int rc;
+    siridb_misc_get_fn(series_fn, siridb->dbpath, SIRIDB_SERIES_FN)
+    siridb_misc_get_fn(corrupt_fn, siridb->dbpath, SIRIDB_CORRUPT_FN)
+
+    (void) unlink(corrupt_fn);
+    rc = rename(series_fn, corrupt_fn);
+    if (rc == 0)
+    {
+        log_warning("Keep previous '%s' as '%s'", series_fn, corrupt_fn);
+    }
+    else
+    {
+        log_error("Cannot rename '%s' to '%s'", series_fn, corrupt_fn);
+    }
     return rc;
 }
 
@@ -1575,17 +1605,35 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
     /* save last object, should be QP_END */
     tp = qp_next(unpacker, NULL);
 
+    if (tp != QP_END)
+    {
+        double start = (double) (unpacker->end - unpacker->source);
+        double pos = (double) (unpacker->pt - unpacker->source);
+
+        if (pos / start < 0.8)
+        {
+            log_critical(
+                    "Cannot read at least 80 percent of '%s', "
+                    "do not continue as this leads to data loss",
+                    fn);
+            /* free unpacker */
+            qp_unpacker_ff_free(unpacker);
+            return -1;
+        }
+
+        log_error(
+                "Expected end of file '%s'; "
+                "Create a backup and continue", fn);
+
+        (void) SERIES_keep_corrupt_series(siridb);
+    }
+
     /* free unpacker */
     qp_unpacker_ff_free(unpacker);
 
-    if (tp != QP_END)
-    {
-        log_critical("Expected end of file '%s'", fn);
-        return -1;
-    }
-
     /*
-     * In case of a siri_err we should not overwrite series because the
+     * In case of a siri_err we should not         return -1;
+     * overwrite series because the
      * file then might be incomplete.
      */
     if (siri_err || SERIES_save(siridb))

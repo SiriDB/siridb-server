@@ -35,7 +35,7 @@ int siridb_re_compile(
         options |= PCRE2_CASELESS;
         len--;
         /* FALLTHRU */
-        /* no break */
+        /* fall through */
     case '/':
         pattern[len] = '$';
         pattern[len + 1] = '\0';

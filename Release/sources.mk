@@ -1,7 +1,3 @@
-################################################################################
-# Automatically-generated file. Do not edit!
-################################################################################
-
 OBJ_SRCS :=
 ASM_SRCS :=
 C_SRCS :=
@@ -15,18 +11,22 @@ C_DEPS :=
 SUBDIRS := \
 . \
 src/argparse \
+src/base64 \
 src/cexpr \
 src/cfgparser \
 src/ctree \
 src/expr \
 src/imap \
 src/iso8601 \
+src/lib \
 src/llist \
 src/lock \
 src/logger \
+src/omap \
 src/owcrypt \
 src/procinfo \
 src/qpack \
+src/qpjson \
 src/siri/service \
 src/siri/args \
 src/siri \

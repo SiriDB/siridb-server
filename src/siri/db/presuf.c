@@ -67,8 +67,7 @@ siridb_presuf_t * siridb_presuf_add(
             switch (ps_children->node->cl_obj->gid)
             {
             case CLERI_GID_K_PREFIX:
-                nps->prefix =
-                        (char *) malloc(ps_children->next->node->len + 1);
+                nps->prefix = malloc(ps_children->next->node->len + 1);
                 if (nps->prefix != NULL)
                 {
                     /* not critical if suffix is still NULL */
@@ -79,8 +78,7 @@ siridb_presuf_t * siridb_presuf_add(
                 }
                 break;
             case CLERI_GID_K_SUFFIX:
-                nps->suffix =
-                        (char *) malloc(ps_children->next->node->len + 1);
+                nps->suffix = malloc(ps_children->next->node->len + 1);
                 if (nps->suffix != NULL)
                 {
                     /* not critical if suffix is still NULL */
@@ -153,8 +151,7 @@ const char * siridb_presuf_name(
  */
 siridb_presuf_t * PRESUF_add(siridb_presuf_t ** presuf)
 {
-    siridb_presuf_t * newps =
-            (siridb_presuf_t *) malloc(sizeof(siridb_presuf_t));
+    siridb_presuf_t * newps = malloc(sizeof(siridb_presuf_t));
     if (newps == NULL)
     {
         ERR_ALLOC

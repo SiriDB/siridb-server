@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <math.h>
 #include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
 #include <logger/logger.h>
 #include <siri/db/series.h>
 #include <siri/db/shard.h>
@@ -383,13 +384,13 @@ static cexpr_t * CEXPR_walk_node(
             /* this is an integer or time expression, we can set the result
              * and the condition.
              */
-            (*condition)->int64 = node->result;
+            (*condition)->int64 = CLERI_NODE_DATA(node);
             SET_CONDITION_AND_RETURN
         case CLERI_TP_CHOICE:
             /* in case of a string, set the value and return */
             if (node->cl_obj->gid == CLERI_GID_STRING)
             {
-                (*condition)->str = (char *) malloc(node->len -1);
+                (*condition)->str = malloc(node->len -1);
                 if ((*condition)->str == NULL)
                 {
                     return NULL;
@@ -554,7 +555,7 @@ static cexpr_t * CEXPR_walk_node(
  */
 static cexpr_t * CEXPR_new(void)
 {
-    cexpr_t * cexpr = (cexpr_t *) malloc(sizeof(cexpr_t));
+    cexpr_t * cexpr = malloc(sizeof(cexpr_t));
     if (cexpr != NULL)
     {
         cexpr->operator = CEXPR_AND;
@@ -570,8 +571,7 @@ static cexpr_t * CEXPR_new(void)
  */
 static cexpr_condition_t * CEXPR_condition_new(void)
 {
-    cexpr_condition_t * condition =
-            (cexpr_condition_t *) malloc(sizeof(cexpr_condition_t));
+    cexpr_condition_t * condition = malloc(sizeof(cexpr_condition_t));
 
     if (condition != NULL)
     {

@@ -10,6 +10,7 @@
 #include <siri/db/time.h>
 #include <siri/grammar/grammar.h>
 #include <siri/db/fifo.h>
+#include <siri/db/tee.h>
 #include <siri/net/tcp.h>
 #include <siri/siri.h>
 #include <siri/version.h>
@@ -25,6 +26,30 @@ if (map)                                \
     qp_add_raw(packer, (const unsigned char *) "name", 4);      \
     qp_add_raw(packer, (const unsigned char *) NAME, LEN);      \
     qp_add_raw(packer, (const unsigned char *) "value", 5);     \
+}
+
+static siridb_props_cb SIRIDB_PROPS[KW_COUNT];
+
+siridb_props_cb props_get_cb(int i)
+{
+    return SIRIDB_PROPS[i];
+}
+
+static void props_set_cb(int i, siridb_props_cb cb)
+{
+    SIRIDB_PROPS[i] = cb;
+}
+
+static char * WHO_AM_I = NULL;
+
+void props_set_who_am_i(char * s)
+{
+    WHO_AM_I = s;
+}
+
+char * props_get_who_am_i(void)
+{
+    return WHO_AM_I;
 }
 
 static void prop_active_handles(
@@ -60,6 +85,14 @@ static void prop_duration_log(
         qp_packer_t * packer,
         int map);
 static void prop_duration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_expiration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
+static void prop_expiration_num(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
@@ -139,6 +172,10 @@ static void prop_sync_progress(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
+static void prop_tee_pipe_name(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map);
 static void prop_timezone(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -164,85 +201,89 @@ static void prop_who_am_i(
         qp_packer_t * packer,
         int map);
 
-extern char * who_am_i;
-
 void siridb_init_props(void)
 {
     uint_fast16_t i;
 
     for (i = 0; i < KW_COUNT; i++)
     {
-        siridb_props[i] = NULL;
+        props_set_cb(i, NULL);
     }
 
-    siridb_props[CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET] =
-            prop_active_handles;
-    siridb_props[CLERI_GID_K_ACTIVE_TASKS - KW_OFFSET] =
-            prop_active_tasks;
-    siridb_props[CLERI_GID_K_BUFFER_PATH - KW_OFFSET] =
-            prop_buffer_path;
-    siridb_props[CLERI_GID_K_BUFFER_SIZE - KW_OFFSET] =
-            prop_buffer_size;
-    siridb_props[CLERI_GID_K_DBNAME - KW_OFFSET] =
-            prop_dbname;
-    siridb_props[CLERI_GID_K_DBPATH - KW_OFFSET] =
-            prop_dbpath;
-    siridb_props[CLERI_GID_K_DROP_THRESHOLD - KW_OFFSET] =
-            prop_drop_threshold;
-    siridb_props[CLERI_GID_K_DURATION_LOG - KW_OFFSET] =
-            prop_duration_log;
-    siridb_props[CLERI_GID_K_DURATION_NUM - KW_OFFSET] =
-            prop_duration_num;
-    siridb_props[CLERI_GID_K_FIFO_FILES - KW_OFFSET] =
-            prop_fifo_files;
-    siridb_props[CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET] =
-            prop_idle_percentage;
-    siridb_props[CLERI_GID_K_IDLE_TIME - KW_OFFSET] =
-            prop_idle_time;
-    siridb_props[CLERI_GID_K_IP_SUPPORT - KW_OFFSET] =
-            prop_ip_support;
-    siridb_props[CLERI_GID_K_LIBUV - KW_OFFSET] =
-            prop_libuv;
-    siridb_props[CLERI_GID_K_LIST_LIMIT - KW_OFFSET] =
-            prop_list_limit;
-    siridb_props[CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET] =
-            prop_max_open_files;
-    siridb_props[CLERI_GID_K_MEM_USAGE - KW_OFFSET] =
-            prop_mem_usage;
-    siridb_props[CLERI_GID_K_LOG_LEVEL - KW_OFFSET] =
-            prop_log_level;
-    siridb_props[CLERI_GID_K_OPEN_FILES - KW_OFFSET] =
-            prop_open_files;
-    siridb_props[CLERI_GID_K_POOL - KW_OFFSET] =
-            prop_pool;
-    siridb_props[CLERI_GID_K_RECEIVED_POINTS - KW_OFFSET] =
-            prop_received_points;
-    siridb_props[CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET] =
-            prop_reindex_progress;
-    siridb_props[CLERI_GID_K_SELECTED_POINTS - KW_OFFSET] =
-            prop_selected_points;
-    siridb_props[CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET] =
-            prop_select_points_limit;
-    siridb_props[CLERI_GID_K_SERVER - KW_OFFSET] =
-            prop_server;
-    siridb_props[CLERI_GID_K_STARTUP_TIME - KW_OFFSET] =
-            prop_startup_time;
-    siridb_props[CLERI_GID_K_STATUS - KW_OFFSET] =
-            prop_status;
-    siridb_props[CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET] =
-            prop_sync_progress;
-    siridb_props[CLERI_GID_K_TIMEZONE - KW_OFFSET] =
-            prop_timezone;
-    siridb_props[CLERI_GID_K_TIME_PRECISION - KW_OFFSET] =
-            prop_time_precision;
-    siridb_props[CLERI_GID_K_UPTIME - KW_OFFSET] =
-            prop_uptime;
-    siridb_props[CLERI_GID_K_UUID - KW_OFFSET] =
-            prop_uuid;
-    siridb_props[CLERI_GID_K_VERSION - KW_OFFSET] =
-            prop_version;
-    siridb_props[CLERI_GID_K_WHO_AM_I - KW_OFFSET] =
-            prop_who_am_i;
+    props_set_cb(CLERI_GID_K_ACTIVE_HANDLES - KW_OFFSET,
+            prop_active_handles);
+    props_set_cb(CLERI_GID_K_ACTIVE_TASKS - KW_OFFSET,
+            prop_active_tasks);
+    props_set_cb(CLERI_GID_K_BUFFER_PATH - KW_OFFSET,
+            prop_buffer_path);
+    props_set_cb(CLERI_GID_K_BUFFER_SIZE - KW_OFFSET,
+            prop_buffer_size);
+    props_set_cb(CLERI_GID_K_DBNAME - KW_OFFSET,
+            prop_dbname);
+    props_set_cb(CLERI_GID_K_DBPATH - KW_OFFSET,
+            prop_dbpath);
+    props_set_cb(CLERI_GID_K_DROP_THRESHOLD - KW_OFFSET,
+            prop_drop_threshold);
+    props_set_cb(CLERI_GID_K_DURATION_LOG - KW_OFFSET,
+            prop_duration_log);
+    props_set_cb(CLERI_GID_K_DURATION_NUM - KW_OFFSET,
+            prop_duration_num);
+    props_set_cb(CLERI_GID_K_FIFO_FILES - KW_OFFSET,
+            prop_fifo_files);
+    props_set_cb(CLERI_GID_K_EXPIRATION_LOG - KW_OFFSET,
+            prop_expiration_log);
+    props_set_cb(CLERI_GID_K_EXPIRATION_NUM - KW_OFFSET,
+            prop_expiration_num);
+    props_set_cb(CLERI_GID_K_IDLE_PERCENTAGE - KW_OFFSET,
+            prop_idle_percentage);
+    props_set_cb(CLERI_GID_K_IDLE_TIME - KW_OFFSET,
+            prop_idle_time);
+    props_set_cb(CLERI_GID_K_IP_SUPPORT - KW_OFFSET,
+            prop_ip_support);
+    props_set_cb(CLERI_GID_K_LIBUV - KW_OFFSET,
+            prop_libuv);
+    props_set_cb(CLERI_GID_K_LIST_LIMIT - KW_OFFSET,
+            prop_list_limit);
+    props_set_cb(CLERI_GID_K_MAX_OPEN_FILES - KW_OFFSET,
+            prop_max_open_files);
+    props_set_cb(CLERI_GID_K_MEM_USAGE - KW_OFFSET,
+            prop_mem_usage);
+    props_set_cb(CLERI_GID_K_LOG_LEVEL - KW_OFFSET,
+            prop_log_level);
+    props_set_cb(CLERI_GID_K_OPEN_FILES - KW_OFFSET,
+            prop_open_files);
+    props_set_cb(CLERI_GID_K_POOL - KW_OFFSET,
+            prop_pool);
+    props_set_cb(CLERI_GID_K_RECEIVED_POINTS - KW_OFFSET,
+            prop_received_points);
+    props_set_cb(CLERI_GID_K_REINDEX_PROGRESS - KW_OFFSET,
+            prop_reindex_progress);
+    props_set_cb(CLERI_GID_K_SELECTED_POINTS - KW_OFFSET,
+            prop_selected_points);
+    props_set_cb(CLERI_GID_K_SELECT_POINTS_LIMIT - KW_OFFSET,
+            prop_select_points_limit);
+    props_set_cb(CLERI_GID_K_SERVER - KW_OFFSET,
+            prop_server);
+    props_set_cb(CLERI_GID_K_STARTUP_TIME - KW_OFFSET,
+            prop_startup_time);
+    props_set_cb(CLERI_GID_K_STATUS - KW_OFFSET,
+            prop_status);
+    props_set_cb(CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET,
+            prop_sync_progress);
+    props_set_cb(CLERI_GID_K_TEE_PIPE_NAME - KW_OFFSET,
+            prop_tee_pipe_name);
+    props_set_cb(CLERI_GID_K_TIMEZONE - KW_OFFSET,
+            prop_timezone);
+    props_set_cb(CLERI_GID_K_TIME_PRECISION - KW_OFFSET,
+            prop_time_precision);
+    props_set_cb(CLERI_GID_K_UPTIME - KW_OFFSET,
+            prop_uptime);
+    props_set_cb(CLERI_GID_K_UUID - KW_OFFSET,
+            prop_uuid);
+    props_set_cb(CLERI_GID_K_VERSION - KW_OFFSET,
+            prop_version);
+    props_set_cb(CLERI_GID_K_WHO_AM_I - KW_OFFSET,
+            prop_who_am_i);
 }
 
 static void prop_active_handles(
@@ -251,7 +292,7 @@ static void prop_active_handles(
         int map)
 {
     SIRIDB_PROP_MAP("active_handles", 14)
-    qp_add_int32(packer, (int32_t) siri.loop->active_handles);
+    qp_add_int64(packer, (int64_t) siri.loop->active_handles);
 }
 
 static void prop_active_tasks(
@@ -260,7 +301,7 @@ static void prop_active_tasks(
         int map)
 {
     SIRIDB_PROP_MAP("active_tasks", 12)
-    qp_add_int32(packer, (int32_t) siridb->tasks.active);
+    qp_add_int64(packer, (int64_t) siridb->tasks.active);
 }
 
 static void prop_buffer_path(
@@ -278,7 +319,7 @@ static void prop_buffer_size(
         int map)
 {
     SIRIDB_PROP_MAP("buffer_size", 11)
-    qp_add_int32(packer, (int32_t) siridb->buffer->size);
+    qp_add_int64(packer, (int64_t) siridb->buffer->size);
 }
 
 static void prop_dbname(
@@ -332,7 +373,39 @@ static void prop_fifo_files(
         int map)
 {
     SIRIDB_PROP_MAP("fifo_files", 10)
-    qp_add_int32(packer, (int32_t) siridb_fifo_size(siridb->fifo));
+    qp_add_int64(packer, (int64_t) siridb_fifo_size(siridb->fifo));
+}
+
+static void prop_expiration_log(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("expiration_log", 14)
+    if (siridb->expiration_log)
+    {
+        qp_add_int64(packer, (int64_t) siridb->expiration_log);
+    }
+    else
+    {
+        qp_add_null(packer);
+    }
+}
+
+static void prop_expiration_num(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("expiration_num", 14)
+    if (siridb->expiration_num)
+    {
+        qp_add_int64(packer, (int64_t) siridb->expiration_num);
+    }
+    else
+    {
+        qp_add_null(packer);
+    }
 }
 
 static void prop_idle_percentage(
@@ -341,7 +414,7 @@ static void prop_idle_percentage(
         int map)
 {
     SIRIDB_PROP_MAP("idle_percentage", 15)
-    qp_add_int8(packer, siridb_get_idle_percentage(siridb));
+    qp_add_int64(packer, siridb_get_idle_percentage(siridb));
 }
 
 static void prop_idle_time(
@@ -350,7 +423,7 @@ static void prop_idle_time(
         int map)
 {
     SIRIDB_PROP_MAP("idle_time", 9)
-    qp_add_int32(packer, (int32_t) siridb->tasks.idle_time);
+    qp_add_int64(packer, (int64_t) siridb->tasks.idle_time);
 }
 
 static void prop_ip_support(
@@ -395,7 +468,7 @@ static void prop_max_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("max_open_files", 14)
-    qp_add_int32(packer, (int32_t) siri.cfg->max_open_files);
+    qp_add_int64(packer, (int64_t) siri.cfg->max_open_files);
 }
 
 static void prop_mem_usage(
@@ -404,7 +477,7 @@ static void prop_mem_usage(
         int map)
 {
     SIRIDB_PROP_MAP("mem_usage", 9)
-    qp_add_int32(packer, (int32_t) (procinfo_total_physical_memory() / 1024));
+    qp_add_int64(packer, (int64_t) (procinfo_total_physical_memory() / 1024));
 }
 
 static void prop_open_files(
@@ -413,7 +486,7 @@ static void prop_open_files(
         int map)
 {
     SIRIDB_PROP_MAP("open_files", 10)
-    qp_add_int32(packer, (int32_t) siridb_open_files(siridb));
+    qp_add_int64(packer, (int64_t) siridb_open_files(siridb));
 }
 
 static void prop_pool(
@@ -422,7 +495,7 @@ static void prop_pool(
         int map)
 {
     SIRIDB_PROP_MAP("pool", 4)
-    qp_add_int16(packer, (int16_t) siridb->server->pool);
+    qp_add_int64(packer, (int64_t) siridb->server->pool);
 }
 
 static void prop_received_points(
@@ -476,7 +549,7 @@ static void prop_startup_time(
         int map)
 {
     SIRIDB_PROP_MAP("startup_time", 12)
-    qp_add_int32(packer, (int32_t) siri.startup_time);
+    qp_add_int64(packer, (int64_t) siri.startup_time);
 }
 
 static void prop_status(
@@ -499,6 +572,15 @@ static void prop_sync_progress(
     qp_add_string(packer, siridb_initsync_sync_progress(siridb));
 }
 
+static void prop_tee_pipe_name(
+        siridb_t * siridb,
+        qp_packer_t * packer,
+        int map)
+{
+    SIRIDB_PROP_MAP("tee_pipe_name", 13)
+    qp_add_string(packer, tee_str(siridb->tee));
+}
+
 static void prop_timezone(
         siridb_t * siridb,
         qp_packer_t * packer,
@@ -518,7 +600,7 @@ static void prop_time_precision(
     assert (siridb->time->precision >= SIRIDB_TIME_SECONDS &&
             siridb->time->precision <= SIRIDB_TIME_NANOSECONDS);
 
-    qp_add_string(packer, siridb_time_short_map[siridb->time->precision]);
+    qp_add_string(packer, siridb_time_short_map(siridb->time->precision));
 }
 
 static void prop_uptime(
@@ -527,7 +609,7 @@ static void prop_uptime(
         int map)
 {
     SIRIDB_PROP_MAP("uptime", 6)
-    qp_add_int32(packer, siridb_get_uptime(siridb));
+    qp_add_int64(packer, siridb_get_uptime(siridb));
 }
 
 static void prop_uuid(
@@ -556,5 +638,5 @@ static void prop_who_am_i(
         int map)
 {
     SIRIDB_PROP_MAP("who_am_i", 8)
-    qp_add_string(packer, who_am_i);
+    qp_add_string(packer, props_get_who_am_i());
 }

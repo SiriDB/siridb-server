@@ -102,7 +102,7 @@ TIME_PRECISION = 'ns'
 
 
 class TestSelectNano(TestBase):
-    title = 'Test select and aggregate functions'
+    title = 'Test select and aggregate functions (ns)'
 
     GEN_POINTS = functools.partial(
         gen_points, n=1, time_precision=TIME_PRECISION)
@@ -458,44 +458,44 @@ class TestSelectNano(TestBase):
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use mean\(\) on string type\.'):
+                r'Cannot use mean\(\) on string type\.'):
             await self.client0.query('select mean(1w) from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Group by time must be an integer value larger than zero\.'):
+                r'Group by time must be an integer value larger than zero\.'):
             await self.client0.query('select mean(0) from "aggr"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Limit must be an integer value larger than zero\.'):
+                r'Limit must be an integer value larger than zero\.'):
             await self.client0.query('select limit(6 - 6, mean) from "aggr"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use a string filter on number type\.'):
+                r'Cannot use a string filter on number type\.'):
             await self.client0.query(
                 'select * from "aggr" '
                 'merge as "t" using filter("0")')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use difference\(\) on string type\.'):
+                r'Cannot use difference\(\) on string type\.'):
             await self.client0.query('select difference() from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use derivative\(\) on string type\.'):
+                r'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative(6, 3) from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Cannot use derivative\(\) on string type\.'):
+                r'Cannot use derivative\(\) on string type\.'):
             await self.client0.query('select derivative() from "log"')
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Overflow detected while using sum\(\)\.'):
+                r'Overflow detected while using sum\(\)\.'):
             await self.client0.query('select sum(now) from "huge"')
 
         with self.assertRaisesRegex(
@@ -514,7 +514,9 @@ class TestSelectNano(TestBase):
                 QueryError,
                 'Memory allocation error or maximum recursion depth reached.'):
             await self.client0.query(
-                'select * from "aggr" where length > {}'.format('(' * 500))
+                'select * from {}"aggr"{}'.format(
+                    '(' * 501,
+                    ')' * 501))
 
         with self.assertRaisesRegex(
                     QueryError,

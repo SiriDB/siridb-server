@@ -37,18 +37,22 @@ typedef struct siridb_shard_view_s siridb_shard_view_t;
 #include <siri/db/points.h>
 #include <siri/db/series.h>
 #include <siri/file/handler.h>
+#include <omap/omap.h>
 
 siridb_shard_t * siridb_shard_create(
         siridb_t * siridb,
+        omap_t * shards,
         uint64_t id,
         uint64_t duration,
         uint8_t tp,
         siridb_shard_t * replacing);
+uint64_t siridb_shard_duration_from_interval(siridb_t * siridb, uint64_t interval);
+uint64_t siridb_shard_interval_from_duration(uint64_t duration);
 int siridb_shard_cexpr_cb(
         siridb_shard_view_t * vshard,
         cexpr_condition_t * cond);
 int siridb_shard_status(char * str, siridb_shard_t * shard);
-int siridb_shard_load(siridb_t * siridb, uint64_t id);
+int siridb_shard_load(siridb_t * siridb, uint64_t id, uint64_t duration);
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb);
 size_t siridb_shard_write_points(
         siridb_t * siridb,
@@ -101,6 +105,10 @@ int siridb_shard_get_points_log_compressed(
         uint64_t * start_ts,
         uint64_t * end_ts,
         uint8_t has_overlap);
+int siridb_shard_migrate(
+        siridb_t * siridb,
+        uint64_t shard_id,
+        uint64_t * duration);
 int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb);
 void siridb__shard_free(siridb_shard_t * shard);
 void siridb__shard_decref(siridb_shard_t * shard);
@@ -113,13 +121,14 @@ struct siridb_shard_flags_repr_s
 
 struct siridb_shard_s
 {
-    uint32_t ref;   /* keep ref on top */
-    uint8_t tp; /* TP_NUMBER, TP_LOG */
+    uint32_t ref;       /* keep ref on top */
+    uint8_t tp;         /* TP_NUMBER, TP_LOG */
     uint8_t flags;
     uint16_t max_chunk_sz;
     uint64_t id;
-    size_t len;
-    size_t size;
+    size_t len;         /* size of the shard which is used */
+    size_t size;        /* size of shard on disk */
+    size_t duration;    /* based on the interval of series */
     siri_fp_t * fp;
     char * fn;
     siridb_shard_t * replacing;

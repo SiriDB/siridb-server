@@ -1,3 +1,84 @@
+siridb-server (2.0.39-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added auto shard duration option (#141)
+    - Added `shard_duration` property on list series (#140)
+    - Added `timeval()` and `interval()` functions (#138)
+    - Fixed build error on 32 bit systems (#135)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 18 Sep 2020 15:50:10 +0200
+
+siridb-server (2.0.38-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added tag support (#74)
+    - Fixed cleanup duplicate package (#134)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 28 Aug 2020 11:12:24 +0200
+
+siridb-server (2.0.37-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed reading `series.dat` after unclean shutdown (#130)
+    - Fixed `gcc-10` compile errors (#132)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 23 Jul 2020 14:38:50 +0200
+
+siridb-server (2.0.36-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug in max open files setting (#125)
+    - Accept Grafana compatible API requests (#129)
+    - Added support for configuration using environment variable (#128)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 22 Apr 2020 11:18:32 +0200
+
+siridb-server (2.0.35-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added shard expiration (#123)
+    - Added HTTP API (#124)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 24 Feb 2020 16:23:37 +0100
+
+siridb-server (2.0.34-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added readiness and liveness HTTP handler (#122)
+    - Fixed bug in sending packages to multiple SiriDB servers (#120) 
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 08 Jul 2019 14:18:56 +0200
+
+siridb-server (2.0.33-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed deep recursion in series selection (#118)
+    - Fixed a few gcc version 8 warnings (#117)
+    - Increased package size limit and warning
+    - Added check for unexpected time-stamps in shards at startup
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 04 Apr 2019 14:19:22 +0200
+
+siridb-server (2.0.32-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed drop database
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 11 Jan 2019 16:03:42 +0100
+
+siridb-server (2.0.31-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added option for adding a data tee
+    - Added option to drop a database (#115)
+    - Remove limit of 4 database (#114)
+    - Do not return with an error if series do not exist (#112)
+    - Allow the use of parentheses in selecting series (#111)
+    - Fixed bug in merging series with high time precision (#108)
+    - Code forward compatible with upcoming cleri release
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 10 Jan 2019 11:35:12 +0100
+
 siridb-server (2.0.30-0~tt1) unstable; urgency=medium
 
   * New upstream release

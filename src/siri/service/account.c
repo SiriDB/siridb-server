@@ -8,6 +8,7 @@
 #include <siri/siri.h>
 #include <stdarg.h>
 #include <logger/logger.h>
+#include <base64/base64.h>
 
 #define SIRI_SERVICE_ACCOUNT_SCHEMA 1
 #define FILENAME ".accounts.dat"
@@ -141,7 +142,7 @@ int siri_service_account_new(
         return -1;
     }
 
-    account = (siri_service_account_t *) malloc(sizeof(siri_service_account_t));
+    account = malloc(sizeof(siri_service_account_t));
     if (account == NULL)
     {
         ACCOUNT_msg(err_msg, "memory allocation error");
@@ -207,7 +208,7 @@ int siri_service_account_check(
         return -1;
     }
 
-    password= strndup(
+    password = strndup(
             (const char *) qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
@@ -263,7 +264,7 @@ int siri_service_account_change_password(
         return -1;
     }
 
-    password= strndup(
+    password = strndup(
             (const char *) qp_password->via.raw, qp_password->len);
 
     if (password == NULL)
@@ -292,6 +293,49 @@ int siri_service_account_change_password(
     account->password = password;
 
     return 0;
+}
+
+static int ACCOUNT_cmp_str(siri_service_account_t * account, char * str)
+{
+    return strcmp(account->account, str) == 0;
+}
+
+
+_Bool siri_service_account_check_basic(
+        siri_t * siri,
+        const char * data,
+        size_t n)
+{
+    siri_service_account_t * account;
+    size_t size, nn, end;
+    char * b64 = base64_decode(data, n, &size);
+    _Bool is_valid = false;
+    char pw[OWCRYPT_SZ];
+
+    for (nn = 0, end = size; nn < end; ++nn)
+    {
+        if (b64[nn] == ':')
+        {
+            b64[nn] = '\0';
+
+            if (++nn > end)
+                break;
+
+            account = (siri_service_account_t *) llist_get(
+                    siri->accounts,
+                    (llist_cb) ACCOUNT_cmp_str,
+                    b64);
+            if (account)
+            {
+                owcrypt(b64 + nn, account->password, pw);
+                is_valid = strcmp(pw, account->password) == 0;
+            }
+            break;
+        }
+    }
+
+    free(b64);
+    return is_valid;
 }
 
 /*
@@ -355,7 +399,7 @@ int siri_service_account_save(siri_t * siri, char * err_msg)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRI_SERVICE_ACCOUNT_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRI_SERVICE_ACCOUNT_SCHEMA) ||
 
         /* we can and should skip this if we have no accounts to save */
         llist_walk(siri->accounts, (llist_cb) ACCOUNT_save, fpacker) ||
@@ -363,7 +407,14 @@ int siri_service_account_save(siri_t * siri, char * err_msg)
         /* close file pointer */
         qp_close(fpacker))
     {
-        ACCOUNT_msg(err_msg, "error saving service accounts");
+        if (err_msg)
+        {
+            ACCOUNT_msg(err_msg, "error saving service accounts");
+        }
+        else
+        {
+            log_error("error saving service accounts: `%s`", fn);
+        }
         return EOF;
     }
     return 0;

@@ -47,6 +47,7 @@ Install the following requirements: (Ubuntu 18.04)
 sudo apt install libcleri-dev
 sudo apt install libpcre2-dev
 sudo apt install libuv1-dev
+sudo apt install libyajl-dev
 sudo apt install uuid-dev
 ```
 
@@ -58,6 +59,11 @@ make test
 make
 ```
 
+Install
+```
+sudo make install
+```
+
 #### OSX
 >Make sure [libcleri](https://github.com/transceptor-technology/libcleri) is installed!
 
@@ -65,6 +71,7 @@ Install the following requirements:
 ```
 brew install pcre2
 brew install libuv
+brew install yajl
 brew install ossp-uuid
 ```
 Compile (replace Release with Debug for a debug build):
@@ -75,6 +82,11 @@ export LDFLAGS="-L/usr/local/lib"
 make clean
 make test
 make
+```
+
+Install
+```
+sudo make install
 ```
 
 #### Configuration
@@ -95,7 +107,7 @@ apt-get install devscripts lintian help2man autopkgtest
 
 Create archive
 ```
-git archive -o ../siridb-server_2.0.30.orig.tar.gz master
+git archive -o ../siridb-server_2.0.31.orig.tar.gz master
 ```
 
 Run tests
@@ -122,7 +134,7 @@ docker run siridb/itest:latest
 ```
 
 ## Create or expand a database
-[SiriDB Admin](https://github.com/SiriDB/siridb-admin) is required for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/SiriDB/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/SiriDB/siridb-admin/releases/latest).
+[SiriDB Admin](https://github.com/SiriDB/siridb-admin) can be used for creating a new database or expanding an existing database with a new server. Documentation on how to install and use the admin tool can be found at the [siridb-admin](https://github.com/SiriDB/siridb-admin#readme) github project. Binaries are available for most platforms and can be downloaded from [here](https://github.com/SiriDB/siridb-admin/releases/latest). As an alternative it is possible to use a simple [HTTP API](https://docs.siridb.net/connect/http_api/) for creating or expanding a SiriDB database.
 
 ## Using SiriDB
 SiriDB has several tools available to connect to a SiriDB database.

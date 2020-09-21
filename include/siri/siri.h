@@ -17,7 +17,15 @@
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #define SIRI_MAX_SIZE_ERR_MSG 1024
-#define MAX_NUMBER_DB 4
+#define MAX_NUMBER_DB 1024
+
+#if defined(__GLIBC__)
+#define strerror_si(__err, __buf, __sz) \
+    strerror_r(__err, __buf, __sz)
+#else
+#define strerror_si(__err, __buf, __sz) \
+    (strerror_r(__err, __buf, __sz) == 0 ? __buf : "unexpected error")
+#endif
 
 typedef enum
 {
@@ -46,6 +54,8 @@ extern siri_t siri;
 void siri_setup_logger(void);
 int siri_start(void);
 void siri_free(void);
+int make_database_directory(void);
+void set_max_open_files_limit(void);
 
 struct siri_s
 {

@@ -107,9 +107,12 @@ class TestSeries(TestBase):
                 'select * from "string", "integer", "double"'),
             expected)
 
-        self.client0.close()
+        self.assertAlmostEqual(
+            await self.client0.query(
+                'select * from "x", "string", "integer", "double", "nexist"'),
+            expected)
 
-        # return False
+        self.client0.close()
 
 
 if __name__ == '__main__':

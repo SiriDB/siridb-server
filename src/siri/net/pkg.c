@@ -4,8 +4,10 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <siri/err.h>
+#include <siri/api.h>
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
+#include <siri/net/protocol.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +30,7 @@ sirinet_pkg_t * sirinet_pkg_new(
         uint8_t tp,
         const unsigned char * data)
 {
-    sirinet_pkg_t * pkg =
-            (sirinet_pkg_t *) malloc(sizeof(sirinet_pkg_t) + len);
+    sirinet_pkg_t * pkg = malloc(sizeof(sirinet_pkg_t) + len);
 
     if (pkg == NULL)
     {
@@ -127,6 +128,41 @@ sirinet_pkg_t * sirinet_pkg_err(
     return pkg;
 }
 
+static siri_api_header_t pkg__tp_as_ht(uint8_t tp)
+{
+    switch (tp)
+    {
+    /* success */
+    case CPROTO_RES_QUERY:
+    case CPROTO_RES_INSERT:
+    case CPROTO_RES_AUTH_SUCCESS:
+    case CPROTO_RES_ACK:
+    case CPROTO_RES_FILE:
+    case CPROTO_ACK_SERVICE:
+    case CPROTO_ACK_SERVICE_DATA:
+        return E200_OK;
+
+    case CPROTO_ERR_QUERY:
+    case CPROTO_ERR_INSERT:
+    case CPROTO_ERR_SERVICE:
+    case CPROTO_ERR_SERVICE_INVALID_REQUEST:
+        return E400_BAD_REQUEST;
+
+    case CPROTO_ERR_SERVER:
+    case CPROTO_ERR_POOL:
+        return E503_SERVICE_UNAVAILABLE;
+
+    case CPROTO_ERR_USER_ACCESS:
+    case CPROTO_ERR_NOT_AUTHENTICATED:
+        return E403_FORBIDDEN;
+
+    case CPROTO_ERR_AUTH_UNKNOWN_DB:
+    case CPROTO_ERR_AUTH_CREDENTIALS:
+        return E401_UNAUTHORIZED;
+    }
+    return E500_INTERNAL_SERVER_ERROR;
+}
+
 /*
  * Returns 0 if successful or -1 when an error has occurred.
  * (signal is raised in case of an error)
@@ -135,7 +171,18 @@ sirinet_pkg_t * sirinet_pkg_err(
  */
 int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    if (client->tp == STREAM_API_CLIENT)
+    {
+        siri_api_send(
+                (siri_api_request_t *) client,
+                pkg__tp_as_ht(pkg->tp),
+                pkg->data,
+                pkg->len);
+        free(pkg);
+        return 0;
+    }
+
+    uv_write_t * req = malloc(sizeof(uv_write_t));
 
     if (req == NULL)
     {
@@ -144,7 +191,7 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
         return -1;
     }
 
-    pkg_send_t * data = (pkg_send_t *) malloc(sizeof(pkg_send_t));
+    pkg_send_t * data = malloc(sizeof(pkg_send_t));
 
     if (data == NULL)
     {
@@ -168,24 +215,26 @@ int sirinet_pkg_send(sirinet_stream_t * client, sirinet_pkg_t * pkg)
             (char *) pkg,
             sizeof(sirinet_pkg_t) + pkg->len);
 
-    uv_write(req, client->stream, &wrbuf, 1, PKG_write_cb);
+    if (uv_write(req, client->stream, &wrbuf, 1, PKG_write_cb))
+    {
+        sirinet_stream_decref(data->client);
+        free(pkg);
+        free(req);
+        return -1;
+    }
 
     return 0;
 }
 
 /*
  * Returns a copy of package allocated using malloc().
- * In case of an error, NULL is returned and a signal is raised.
+ * In case of an error, NULL is returned.
  */
 sirinet_pkg_t * sirinet_pkg_dup(sirinet_pkg_t * pkg)
 {
     size_t size = sizeof(sirinet_pkg_t) + pkg->len;
-    sirinet_pkg_t * dup = (sirinet_pkg_t *) malloc(size);
-    if (dup == NULL)
-    {
-        ERR_ALLOC
-    }
-    else
+    sirinet_pkg_t * dup = malloc(size);
+    if (dup != NULL)
     {
         memcpy(dup, pkg, size);
     }

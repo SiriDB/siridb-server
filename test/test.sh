@@ -25,7 +25,7 @@ run () {
     OUT=$1.out
     rm "$OUT" 2> /dev/null
 
-    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -lm -lpcre2-8 -lcleri -luuid -luv $LCRYPT -o "$OUT"
+    gcc -I"../include" -O0 -g3 -Wall -Wextra -Winline -std=gnu99 $SOURCE $C_SRC -lm -lpcre2-8 -lcleri -luuid -luv -lyajl $LCRYPT -o "$OUT"
     if [[ "$NOMEMTEST" -ne "1" ]]; then
         valgrind --tool=memcheck --error-exitcode=1 --leak-check=full -q ./$OUT
     else

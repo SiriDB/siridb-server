@@ -199,7 +199,7 @@ siridb_insert_t * siridb_insert_new(
         uint16_t pid,
         sirinet_stream_t * client)
 {
-    siridb_insert_t * insert = (siridb_insert_t *) malloc(
+    siridb_insert_t * insert = malloc(
             sizeof(siridb_insert_t) +
             siridb->pools->len * sizeof(qp_packer_t *));
 
@@ -258,7 +258,7 @@ siridb_insert_t * siridb_insert_new(
  */
 int siridb_insert_points_to_pools(siridb_insert_t * insert, size_t npoints)
 {
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         ERR_ALLOC
@@ -284,16 +284,14 @@ int insert_init_backend_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         ERR_ALLOC
         return -1;
     }
 
-    siridb_insert_local_t * ilocal =
-            (siridb_insert_local_t *) malloc(sizeof(siridb_insert_local_t));
+    siridb_insert_local_t * ilocal = malloc(sizeof(siridb_insert_local_t));
     if (ilocal == NULL)
     {
         free(promise);
@@ -301,7 +299,7 @@ int insert_init_backend_local(
         return -1;
     }
 
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         free(promise);
@@ -346,6 +344,11 @@ int insert_init_backend_local(
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
+
+    if (siridb_tee_is_connected(siridb->tee))
+    {
+        siridb_tee_write(siridb->tee, promise);
+    }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
@@ -453,7 +456,7 @@ static void INSERT_local_free_cb(uv_async_t * handle)
 
     if (ilocal->forward != NULL)
     {
-        uv_async_t * fwd = (uv_async_t *) malloc(sizeof(uv_async_t));
+        uv_async_t * fwd = malloc(sizeof(uv_async_t));
         if (fwd == NULL || siri_err)
         {
             if (fwd == NULL)
@@ -632,6 +635,14 @@ static int8_t INSERT_local_work(
             {
                 siridb_points_free((siridb_points_t *) *pcache);
                 *pcache = NULL;
+            }
+        }
+
+        if (series->length == 0)
+        {
+            if (siridb_series_drop(siridb, series))
+            {
+                siridb_series_flush_dropped(siridb);
             }
         }
 
@@ -849,6 +860,15 @@ static int INSERT_local_work_test(
                 siridb_points_free((siridb_points_t *) *pcache);
                 *pcache = NULL;
             }
+
+        }
+
+        if (series->length == 0)
+        {
+            if (siridb_series_drop(siridb, series))
+            {
+                siridb_series_flush_dropped(siridb);
+            }
         }
 
         if (tp == QP_ARRAY_CLOSE)
@@ -1002,16 +1022,14 @@ static int INSERT_init_local(
         sirinet_pkg_t * pkg,
         uint8_t flags)
 {
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         free(pkg);
         ERR_ALLOC
         return -1;
     }
-    siridb_insert_local_t * ilocal =
-            (siridb_insert_local_t *) malloc(sizeof(siridb_insert_local_t));
+    siridb_insert_local_t * ilocal = malloc(sizeof(siridb_insert_local_t));
     if (ilocal == NULL)
     {
         free(pkg);
@@ -1020,7 +1038,7 @@ static int INSERT_init_local(
         return -1;
     }
 
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         free(pkg);
@@ -1056,6 +1074,11 @@ static int INSERT_init_local(
 
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
+
+    if (siridb_tee_is_connected(siridb->tee))
+    {
+        siridb_tee_write(siridb->tee, promise);
+    }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
     uv_async_send(handle);
@@ -1398,12 +1421,14 @@ static int INSERT_read_points(
 
     qp_add_type(packer, QP_ARRAY_OPEN);
 
-    if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2)
+    if ((tp = qp_next(unpacker, NULL)) != QP_ARRAY2 && tp != QP_ARRAY_OPEN)
     {
         return ERR_EXPECTING_AT_LEAST_ONE_POINT;
     }
 
-    for (; tp == QP_ARRAY2; (*count)++, tp = qp_next(unpacker, qp_obj))
+    for (;
+            tp == QP_ARRAY2 || tp == QP_ARRAY_OPEN;
+            (*count)++, tp = qp_next(unpacker, qp_obj))
     {
         qp_add_type(packer, QP_ARRAY2);
 
@@ -1440,6 +1465,9 @@ static int INSERT_read_points(
         default:
             return ERR_UNSUPPORTED_VALUE;
         }
+
+        if (tp == QP_ARRAY_OPEN && qp_next(unpacker, NULL) != QP_ARRAY_CLOSE)
+            break;
     }
 
     if (tp == QP_ARRAY_CLOSE)

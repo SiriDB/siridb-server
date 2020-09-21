@@ -25,7 +25,7 @@ siridb_group_t * siridb_group_new(
         size_t source_len,
         char * err_msg)
 {
-    siridb_group_t * group = (siridb_group_t *) malloc(sizeof(siridb_group_t));
+    siridb_group_t * group = malloc(sizeof(siridb_group_t));
     if (group == NULL)
     {
         ERR_ALLOC

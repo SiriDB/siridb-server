@@ -17,27 +17,29 @@
 #include <assert.h>
 #include <logger/logger.h>
 #include <qpack/qpack.h>
-#include <siri/service/account.h>
-#include <siri/service/request.h>
 #include <siri/async.h>
 #include <siri/buffersync.h>
 #include <siri/cfg/cfg.h>
 #include <siri/db/aggregate.h>
 #include <siri/db/buffer.h>
 #include <siri/db/groups.h>
+#include <siri/db/listener.h>
 #include <siri/db/pools.h>
 #include <siri/db/props.h>
 #include <siri/db/series.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/users.h>
-#include <siri/db/listener.h>
+#include <siri/api.h>
 #include <siri/err.h>
+#include <siri/health.h>
 #include <siri/help/help.h>
 #include <siri/net/bserver.h>
 #include <siri/net/clserver.h>
 #include <siri/net/pipe.h>
 #include <siri/net/stream.h>
+#include <siri/service/account.h>
+#include <siri/service/request.h>
 #include <siri/siri.h>
 #include <siri/version.h>
 #include <stddef.h>
@@ -46,6 +48,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <xpath/xpath.h>
 
@@ -107,7 +110,7 @@ void siri_setup_logger(void)
 
     for (n = 0; n < LOGGER_NUM_LEVELS; n++)
     {
-        strcpy(lname, LOGGER_LEVEL_NAMES[n]);
+        strcpy(lname, logger_level_name(n));
         xstr_lower_case(lname);
         if (strlen(lname) == len && strcmp(siri.args->log_level, lname) == 0)
         {
@@ -115,10 +118,136 @@ void siri_setup_logger(void)
             return;
         }
     }
+
+    assert (0);
     /* We should not get here since args should always
      * contain a valid log level
      */
     logger_init(stdout, 0);
+}
+
+int make_database_directory(void)
+{
+    char tmppath[XPATH_MAX];
+    char * sysuser = getenv("USER");
+    char * homedir = getenv("HOME");
+    size_t len;
+
+    memset(tmppath, 0, XPATH_MAX);
+
+    if (*siri.cfg->default_db_path == '\0')
+    {
+        if (!homedir || !sysuser || strcmp(sysuser, "root") == 0)
+        {
+            strcpy(siri.cfg->default_db_path, "/var/lib/siridb/");
+        }
+        else
+        {
+            snprintf(siri.cfg->default_db_path, XPATH_MAX, "%s%s.siridb/",
+                    homedir,
+                    homedir[strlen(homedir)-1] == '/' ? "" : "/");
+        }
+    }
+
+    if (!xpath_is_dir(siri.cfg->default_db_path))
+    {
+        log_warning("Database directory not found, creating directory '%s'.",
+                siri.cfg->default_db_path);
+        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
+        {
+            log_error("Cannot create directory '%s'.",
+                    siri.cfg->default_db_path);
+            return -1;
+        }
+    }
+
+    if (realpath(siri.cfg->default_db_path, tmppath) == NULL)
+    {
+        log_warning(
+                "Could not resolve default database path: %s",
+                siri.cfg->default_db_path);
+    }
+    else
+    {
+        memcpy(siri.cfg->default_db_path, tmppath, sizeof(tmppath));
+    }
+
+    len = strlen(siri.cfg->default_db_path);
+
+    if (len >= XPATH_MAX - 2)
+    {
+        log_warning(
+                "Default database path exceeds %d characters, please "
+                "check your configuration file: %s",
+                XPATH_MAX - 3,
+                siri.args->config);
+        return -1;
+    }
+
+    /* add trailing slash (/) if its not already there */
+    if (siri.cfg->default_db_path[len - 1] != '/')
+    {
+        siri.cfg->default_db_path[len] = '/';
+        siri.cfg->default_db_path[len+1] = '\0';
+    }
+
+    return 0;
+}
+
+void set_max_open_files_limit(void)
+{
+    struct rlimit rlim;
+
+    if (siri.cfg->max_open_files < MIN_OPEN_FILES_LIMIT ||
+            siri.cfg->max_open_files > MAX_OPEN_FILES_LIMIT)
+    {
+        log_warning(
+                "Value max_open_files must be a value between %d and %d "
+                "but we found %d. Using default value instead: %d",
+                MIN_OPEN_FILES_LIMIT, MAX_OPEN_FILES_LIMIT,
+                siri.cfg->max_open_files, DEFAULT_OPEN_FILES_LIMIT);
+        siri.cfg->max_open_files = DEFAULT_OPEN_FILES_LIMIT;
+    }
+
+    getrlimit(RLIMIT_NOFILE, &rlim);
+
+    uint16_t min_limit = (uint16_t)
+            ((double) siri.cfg->max_open_files / RLIMIT_PERC_FOR_SHARDING) -1;
+
+    if (min_limit > (uint64_t) rlim.rlim_max)
+    {
+        siri.cfg->max_open_files =
+                (uint16_t) ((double) rlim.rlim_max * RLIMIT_PERC_FOR_SHARDING);
+        log_warning(
+                "We want to set a max-open-files value which "
+                "exceeds %d%% of the current hard limit.\n\nWe "
+                "will use %d as max_open_files for now.\n"
+                "Please increase the hard-limit using:\n"
+                "ulimit -Hn %d",
+                (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100),
+                siri.cfg->max_open_files,
+                min_limit);
+        min_limit = siri.cfg->max_open_files * 2;
+    }
+
+    if (min_limit > (uint64_t) rlim.rlim_cur)
+    {
+        rlim_t prev = rlim.rlim_cur;
+        log_info(
+                "Increasing soft-limit from %d to %d since we want "
+                "to use only %d%% from the soft-limit for shard files",
+                (uint64_t) rlim.rlim_cur,
+                min_limit,
+                (uint8_t) (RLIMIT_PERC_FOR_SHARDING * 100));
+        rlim.rlim_cur = min_limit;
+        if (setrlimit(RLIMIT_NOFILE, &rlim))
+        {
+            siri.cfg->max_open_files = (uint16_t) (prev / 2);
+            log_warning("Could not set the soft-limit to %d, "
+                    "changing max open files to: %u",
+                    min_limit, siri.cfg->max_open_files);
+        }
+    }
 }
 
 int siri_start(void)
@@ -142,7 +271,7 @@ int siri_start(void)
     siridb_init_aggregates();
 
     /* load SiriDB grammar */
-    siri.grammar = compile_grammar();
+    siri.grammar = compile_siri_grammar_grammar();
 
     /* create store for SiriDB instances */
     siri.siridb_list = llist_new();
@@ -155,7 +284,7 @@ int siri_start(void)
     siri.fh = siri_fh_new(siri.cfg->max_open_files);
 
     /* initialize the default event loop */
-    siri.loop = (uv_loop_t *) malloc(sizeof(uv_loop_t));
+    siri.loop = malloc(sizeof(uv_loop_t));
     if (siri.loop == NULL)
     {
         return -1;
@@ -163,7 +292,9 @@ int siri_start(void)
     uv_loop_init(siri.loop);
 
     /* initialize the back-end-, client- server and load databases */
-    if (    (rc = siri_service_account_init(&siri)) ||
+    if (    (siri.cfg->http_status_port && (rc = siri_health_init())) ||
+            (siri.cfg->http_api_port && (rc = siri_api_init())) ||
+            (rc = siri_service_account_init(&siri)) ||
             (rc = siri_service_request_init()) ||
             (rc = sirinet_bserver_init(&siri)) ||
             (rc = sirinet_clserver_init(&siri)) ||
@@ -410,8 +541,9 @@ static void SIRI_try_close(uv_timer_t * handle)
     }
     else
     {
-        log_info("SiriDB is closing but is waiting for %d task(s) to "
-                "finish...", num);
+        log_info(
+                "SiriDB is closing but is waiting for %d task(s) to finish...",
+                num);
     }
 }
 
@@ -421,13 +553,16 @@ static void SIRI_signal_handler(
 {
     if (signum == SIGPIPE)
     {
-        log_warning("Signal (%d) received, probably a connection was lost");
+        log_warning(
+                "Signal (%d) received, probably a connection was lost",
+                signum);
         return;
     }
 
     if (siri.status == SIRI_STATUS_CLOSING)
     {
-        log_error("Receive a second signal (%d), stop SiriDB immediately!",
+        log_error(
+                "Receive a second signal (%d), stop SiriDB immediately!",
                 signum);
         /* set siri_err, see ERR_CLOSE_TIMEOUT_REACHED for the reason why */
         siri_err = ERR_CLOSE_ENFORCED;
@@ -495,13 +630,19 @@ static void SIRI_walk_close_handlers(
 
     case UV_TCP:
     case UV_NAMED_PIPE:
-        if (handle->data == NULL)
         {
-            uv_close(handle, NULL);
-        }
-        else
-        {
-            sirinet_stream_decref((sirinet_stream_t *) handle->data);
+            if (handle->data == NULL || siridb_tee_is_handle(handle))
+            {
+                uv_close(handle, NULL);
+            }
+            else if (siri_health_is_handle(handle))
+            {
+                siri_health_close((siri_health_request_t *) handle->data);
+            }
+            else
+            {
+                sirinet_stream_decref((sirinet_stream_t *) handle->data);
+            }
         }
         break;
 
@@ -543,5 +684,5 @@ static void SIRI_close_handlers(void)
     uv_walk(siri.loop, SIRI_walk_close_handlers, NULL);
 
     /* run the loop once more so call-backs on uv_close() can run */
-    uv_run(siri.loop, UV_RUN_DEFAULT);
+    uv_run(siri.loop, UV_RUN_NOWAIT);
 }

@@ -43,6 +43,10 @@ static void on_flags_update(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_log_level_update(
         sirinet_stream_t * client,
         sirinet_pkg_t * pkg);
+static void on_tee_pipe_name_update(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg);
+static void on_drop_database(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_repl_finished(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_query(
         sirinet_stream_t * client,
@@ -59,6 +63,9 @@ static void on_enable_backup_mode(
 static void on_disable_backup_mode(
         sirinet_stream_t * client,
         sirinet_pkg_t * pkg);
+static void on_req_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
+static void on_empty_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 
 static uv_loop_t * loop = NULL;
 static struct sockaddr_storage server_addr;
@@ -273,6 +280,21 @@ static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     case BPROTO_DISABLE_BACKUP_MODE:
         on_disable_backup_mode(client, pkg);
         break;
+    case BPROTO_TEE_PIPE_NAME_UPDATE:
+        on_tee_pipe_name_update(client, pkg);
+        break;
+    case BPROTO_DROP_DATABASE:
+        on_drop_database(client, pkg);
+        break;
+    case BPROTO_REQ_TAGS:
+        on_req_tags(client, pkg);
+        break;
+    case BPROTO_SERIES_TAGS:
+        on_series_tags(client, pkg);
+        break;
+    case BPROTO_EMPTY_TAGS:
+        on_empty_tags(client, pkg);
+        break;
     }
 
 }
@@ -425,6 +447,46 @@ static void on_log_level_update(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     else
     {
         log_error("Invalid back-end 'on_log_level_update' received.");
+    }
+}
+
+static void on_tee_pipe_name_update(
+        sirinet_stream_t * client,
+        sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server);
+    siridb_t * siridb = client->siridb;
+    sirinet_pkg_t * package;
+
+    char * pipe_name = pkg->len
+            ? strndup((const char *) pkg->data, pkg->len)
+            : NULL;
+
+    (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
+
+    free(pipe_name);
+
+    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_TEE_PIPE_NAME, NULL);
+    if (package != NULL)
+    {
+        /* ignore result code, signal can be raised */
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_drop_database(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    siridb_t * siridb = client->siridb;
+    sirinet_pkg_t * package = NULL;
+
+    siridb_drop(siridb);
+
+    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_DROP_DATABASE, NULL);
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
     }
 }
 
@@ -762,6 +824,186 @@ static void on_disable_backup_mode(sirinet_stream_t * client, sirinet_pkg_t * pk
                         BPROTO_ERR_DISABLE_BACKUP_MODE :
                         BPROTO_ACK_DISABLE_BACKUP_MODE,
                 NULL);
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_req_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    siridb_t * siridb = client->siridb;
+    sirinet_pkg_t * package = siridb_tags_pkg(siridb->tags, pkg->pid);
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    sirinet_pkg_t * package = NULL;
+    siridb_t * siridb = client->siridb;
+
+    if (~siridb->server->flags & SERVER_FLAG_RUNNING)
+    {
+        log_error("Cannot tag series because of having status %d",
+                siridb->server->flags);
+
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                BPROTO_ERR_DROP_SERIES,
+                NULL);
+    }
+    else
+    {
+        qp_obj_t qp_series_name;
+        qp_unpacker_t unpacker;
+        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+        if (qp_is_array(qp_next(&unpacker, NULL)) &&
+            qp_next(&unpacker, &qp_series_name) == QP_RAW &&
+            qp_is_raw_term(&qp_series_name))
+        {
+            siridb_series_t * series;
+
+            series = ct_get(
+                    siridb->series,
+                    (const char *) qp_series_name.via.raw);
+
+            if (series != NULL)
+            {
+                qp_obj_t qp_tag_name;
+
+                /* take a reference since this task might wait for a lock */
+
+                ++series->ref;
+
+                uv_mutex_lock(&siridb->tags->mutex);
+
+                while (qp_next(&unpacker, &qp_tag_name) == QP_RAW)
+                {
+                    siridb_tag_t * tag = ct_getn(
+                            siridb->tags->tags,
+                            qp_tag_name.via.str,
+                            qp_tag_name.len);
+
+                    if (tag == NULL)
+                    {
+                        tag = siridb_tags_add_n(
+                                siridb->tags,
+                                qp_tag_name.via.str,
+                                qp_tag_name.len);
+                    }
+
+                    if (tag && imap_add(tag->series, series->id, series) == 0)
+                    {
+                        ++series->ref;
+                    }
+
+                    siridb_tags_set_require_save(siridb->tags, tag);
+                }
+
+                uv_mutex_unlock(&siridb->tags->mutex);
+
+                siridb_series_decref(series);
+            }
+            else
+            {
+                log_warning(
+                        "Received a request to tag series '%s' but "
+                        "the series is not found (already dropped?)",
+                        qp_series_name.via.raw);
+            }
+
+            package = sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    BPROTO_ACK_SERIES_TAGS,
+                    NULL);
+        }
+        else
+        {
+            log_error(
+                    "Illegal back-end tag series package "
+                    "received, probably the series name was not "
+                    "terminated?");
+        }
+    }
+
+    if (package != NULL)
+    {
+        sirinet_pkg_send(client, package);
+    }
+}
+
+static void on_empty_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
+{
+    SERVER_CHECK_AUTHENTICATED(client, server)
+
+    sirinet_pkg_t * package = NULL;
+    siridb_t * siridb = client->siridb;
+
+    if (~siridb->server->flags & SERVER_FLAG_RUNNING)
+    {
+        log_error("Cannot tag series because of having status %d",
+                siridb->server->flags);
+
+        package = sirinet_pkg_new(
+                pkg->pid,
+                0,
+                BPROTO_ERR_DROP_SERIES,
+                NULL);
+    }
+    else
+    {
+        qp_unpacker_t unpacker;
+        qp_unpacker_init(&unpacker, pkg->data, pkg->len);
+
+        if (qp_is_array(qp_next(&unpacker, NULL)))
+        {
+            qp_obj_t qp_tag_name;
+
+            uv_mutex_lock(&siridb->tags->mutex);
+
+            while (qp_next(&unpacker, &qp_tag_name) == QP_RAW)
+            {
+                siridb_tag_t * tag = ct_getn(
+                        siridb->tags->tags,
+                        qp_tag_name.via.str,
+                        qp_tag_name.len);
+
+                if (tag == NULL)
+                {
+                    tag = siridb_tags_add_n(
+                            siridb->tags,
+                            qp_tag_name.via.str,
+                            qp_tag_name.len);
+
+                    siridb_tags_set_require_save(siridb->tags, tag);
+                }
+            }
+
+            uv_mutex_unlock(&siridb->tags->mutex);
+
+            package = sirinet_pkg_new(
+                    pkg->pid,
+                    0,
+                    BPROTO_ACK_EMPTY_TAGS,
+                    NULL);
+        }
+        else
+        {
+            log_error("Illegal back-end empty tags package received");
+        }
     }
 
     if (package != NULL)

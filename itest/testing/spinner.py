@@ -6,7 +6,7 @@ SPINNER3 = \
     ('◐', '◓', '◑', '◒')
 
 
-class Spinner():
+class Spinner:
 
     def __init__(self, charset=SPINNER3):
         self._idx = 0

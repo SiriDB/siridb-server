@@ -1,13 +1,10 @@
-################################################################################
-# Automatically-generated file. Do not edit!
-################################################################################
-
 -include ../makefile.init
 
 RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include src/base64/subdir.mk
 -include src/xpath/subdir.mk
 -include src/xmath/subdir.mk
 -include src/timeit/subdir.mk
@@ -24,6 +21,7 @@ RM := rm -rf
 -include src/siri/args/subdir.mk
 -include src/siri/subdir.mk
 -include src/qpack/subdir.mk
+-include src/qpjson/subdir.mk
 -include src/procinfo/subdir.mk
 -include src/owcrypt/subdir.mk
 -include src/motd/subdir.mk
@@ -31,7 +29,9 @@ RM := rm -rf
 -include src/lock/subdir.mk
 -include src/llist/subdir.mk
 -include src/iso8601/subdir.mk
+-include src/lib/subdir.mk
 -include src/imap/subdir.mk
+-include src/omap/subdir.mk
 -include src/expr/subdir.mk
 -include src/ctree/subdir.mk
 -include src/cfgparser/subdir.mk
@@ -52,9 +52,11 @@ OS := $(shell uname)
 ifeq ($(OS),Darwin)
 CRYPT :=
 UUID :=
+INSTALL_PATH := /usr/local
 else
 CRYPT := -lcrypt
 UUID := -luuid
+INSTALL_PATH := /usr
 endif
 
 # Add inputs and outputs from these tool invocations to the build variables

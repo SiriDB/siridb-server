@@ -1,3 +1,3 @@
-psutil
-pyleri
 siridb-connector
+psutil
+requests

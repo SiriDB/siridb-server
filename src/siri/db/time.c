@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include <xmath/xmath.h>
 
-const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
@@ -17,7 +16,7 @@ const char * siridb_time_short_map[] = {"s", "ms", "us", "ns"};
  */
 siridb_time_t * siridb_time_new(siridb_timep_t precision)
 {
-    siridb_time_t * time = (siridb_time_t *) malloc(sizeof(siridb_time_t));
+    siridb_time_t * time = malloc(sizeof(siridb_time_t));
     if (time == NULL)
     {
         ERR_ALLOC

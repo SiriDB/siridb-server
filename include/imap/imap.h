@@ -12,7 +12,7 @@ typedef struct imap_s imap_t;
 #include <vec/vec.h>
 
 typedef int (*imap_cb)(void * data, void * args);
-typedef int (*imap_free_cb)(void * data);
+typedef void (*imap_free_cb)(void * data);
 
 typedef void (*imap_update_cb)(
         imap_t * dest,

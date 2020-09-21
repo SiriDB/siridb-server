@@ -27,6 +27,10 @@ int siri_service_account_change_password(
         qp_obj_t * qp_account,
         qp_obj_t * qp_password,
         char * err_msg);
+_Bool siri_service_account_check_basic(
+        siri_t * siri,
+        const char * data,
+        size_t n);
 int siri_service_account_drop(
         siri_t * siri,
         qp_obj_t * qp_account,

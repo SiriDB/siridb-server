@@ -15,6 +15,7 @@
 #define POINTS_MAX_QSORT 250000
 #define RAW_VALUES_THRESHOLD 7
 #define DICT_SZ 0x3fff
+#define TOLERANCE_INTERVAL_DETECT 10
 
 static unsigned char * POINTS_zip_raw(
         siridb_points_t * points,
@@ -64,29 +65,25 @@ void siridb_points_init(void)
 }
 
 /*
- * Returns NULL and raises a SIGNAL in case an error has occurred.
+ * Returns NULL in case an error has occurred.
  */
 siridb_points_t * siridb_points_new(size_t size, points_tp tp)
 {
-    siridb_points_t * points =
-            (siridb_points_t *) malloc(sizeof(siridb_points_t));
+    siridb_points_t * points = malloc(sizeof(siridb_points_t));
     if (points == NULL)
     {
-        ERR_ALLOC
+        return NULL;
     }
-    else
+
+    points->len = 0;
+    points->tp = tp;
+    points->data = malloc(sizeof(siridb_point_t) * size);
+    if (points->data == NULL)
     {
-        points->len = 0;
-        points->tp = tp;
-        points->data =
-                (siridb_point_t *) malloc(sizeof(siridb_point_t) * size);
-        if (points->data == NULL)
-        {
-            ERR_ALLOC
-            free(points);
-            points = NULL;
-        }
+        free(points);
+        return NULL;
     }
+
     return points;
 }
 
@@ -115,14 +112,13 @@ siridb_points_t * siridb_points_copy(siridb_points_t * points)
     {
         return NULL;
     }
-    siridb_points_t * cpoints =
-            (siridb_points_t *) malloc(sizeof(siridb_points_t));
+    siridb_points_t * cpoints = malloc(sizeof(siridb_points_t));
     if (cpoints != NULL)
     {
         size_t sz = sizeof(siridb_point_t) * points->len;
         cpoints->len = points->len;
         cpoints->tp = points->tp;
-        cpoints->data = (siridb_point_t *) malloc(sz);
+        cpoints->data = malloc(sz);
         if (cpoints->data == NULL)
         {
             free(cpoints);
@@ -263,8 +259,8 @@ int siridb_points_raw_pack(siridb_points_t * points, qp_packer_t * packer)
     }
 
     rc = -(qp_add_type(packer, QP_ARRAY_OPEN) ||
-            qp_add_int8(packer, points->tp) ||
-            qp_add_int32(packer, points->len) ||
+            qp_add_int64(packer, (int64_t) points->tp) ||
+            qp_add_int64(packer, (int64_t) points->len) ||
             qp_add_raw(packer, data, size) ||
             qp_add_type(packer, QP_ARRAY_CLOSE));
 
@@ -462,7 +458,7 @@ unsigned char * siridb_points_zip_int(
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
     *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
@@ -533,7 +529,7 @@ unsigned char * siridb_points_zip_string(
         *size = sizeof(uint64_t);
         return siridb_points_raw_string(points, start, end, cinfo, size);
     }
-    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    size_t * sizes = malloc(sizeof(size_t) * n);
     if (sizes == NULL)
     {
         return NULL;
@@ -583,8 +579,8 @@ unsigned char * siridb_points_zip_string(
     /* calculate time-stamps size */
     sz = 13 + shift + tinfo*(n - 2);
 
-    src = (uint8_t *) malloc(sz_src);
-    out = (uint8_t *) malloc(sz + sz_src + (is_ascii ? 0 : (n * 8)));
+    src = malloc(sz_src);
+    out = malloc(sz + sz_src + (is_ascii ? 0 : (n * 8)));
     if (src == NULL || out == NULL)
     {
         goto failed;
@@ -664,7 +660,7 @@ unsigned char * siridb_points_raw_string(
     *size = 0;
 
     uint_fast32_t n = end - start;
-    size_t * sizes = (size_t *) malloc(sizeof(size_t) * n);
+    size_t * sizes = malloc(sizeof(size_t) * n);
     size_t * psz = sizes;
     unsigned char * pdata;
     unsigned char * cdata;
@@ -789,7 +785,7 @@ unsigned char * siridb_points_zip_double(
     *cinfo <<= 8;
     *cinfo |= tcount | (shift << 4);
     *size = 16 + shift - tcount + (tcount + vcount) * (end - start - 1);
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
@@ -1182,7 +1178,7 @@ int siridb_points_unzip_string(
     memcpy(&point->ts, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    buf = (uint8_t *) malloc(src_sz);
+    buf = malloc(src_sz);
     if (buf == NULL)
     {
         return -1;
@@ -1281,7 +1277,7 @@ static unsigned char * POINTS_zip_raw(
     *size = n * 16;
     *cinfo = 0xffff;
 
-    bits = (unsigned char *) malloc(*size);
+    bits = malloc(*size);
     if (bits == NULL)
     {
         return NULL;
@@ -1689,6 +1685,48 @@ static int POINTS_set_cinfo_size(uint16_t * cinfo, size_t * size)
         *cinfo = *size;
     }
     return 0;
+}
+
+uint64_t siridb_points_get_interval(siridb_points_t * points)
+{
+    size_t i, j, n;
+    uint64_t * arr;
+    uint64_t x, a, b, c;
+
+    if (points->len < 8)
+    {
+        return 0;
+    }
+
+    n = points->len - 1;
+    n = n > 63 ? 63 : n;
+
+    arr = malloc(n * sizeof(uint64_t));
+    if (arr == NULL)
+    {
+        return 0;
+    }
+
+    for (i = 0; i < n; ++i)
+    {
+        x = points->data[i+1].ts - points->data[i].ts;
+        for (j = i; j > 0 && arr[j-1] > x; --j)
+        {
+            arr[j] = arr[j-1];
+        }
+        arr[j] = x;
+    }
+
+    a = n/4;
+    b = n/2;
+    c = arr[(b<<1)-a];
+    a = arr[a];
+    b = arr[b];
+    x = b / (100 / TOLERANCE_INTERVAL_DETECT);
+    x = (a+x < b || c-x > b) ? 0 : b;
+
+    free(arr);
+    return x;
 }
 
 inline static uint16_t POINTS_hash(uint32_t h)

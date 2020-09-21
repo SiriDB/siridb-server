@@ -19,7 +19,7 @@ siridb_forward_t * siridb_forward_new(siridb_t * siridb)
 {
     uint16_t size = siridb->pools->len;
 
-    siridb_forward_t * forward = (siridb_forward_t *) malloc(
+    siridb_forward_t * forward = malloc(
             sizeof(siridb_forward_t) + size * sizeof(qp_packer_t *));
 
     if (forward == NULL)

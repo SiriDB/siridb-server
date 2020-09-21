@@ -169,14 +169,14 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
     }
     else
     {
-        unpacker = (qp_unpacker_t *) malloc(sizeof(qp_unpacker_t));
+        unpacker = malloc(sizeof(qp_unpacker_t));
         if (unpacker == NULL)
         {
             ERR_ALLOC
         }
         else
         {
-            unpacker->source = (unsigned char *) malloc(size);
+            unpacker->source = malloc(size);
             if (unpacker->source == NULL)
             {
                 ERR_ALLOC
@@ -214,14 +214,14 @@ qp_unpacker_t * qp_unpacker_ff(const char * fn)
  */
 qp_packer_t * qp_packer_new(size_t alloc_size)
 {
-    qp_packer_t * packer = (qp_packer_t *) malloc(sizeof(qp_packer_t));
+    qp_packer_t * packer = malloc(sizeof(qp_packer_t));
     if (packer != NULL)
     {
         packer->alloc_size = alloc_size;
         packer->buffer_size = packer->alloc_size;
         packer->len = 0;
 
-        packer->buffer = (unsigned char *) malloc(packer->buffer_size);
+        packer->buffer = malloc(packer->buffer_size);
         if (packer->buffer == NULL)
         {
             free(packer);
@@ -362,7 +362,10 @@ int qp_add_fmt(qp_packer_t * packer, const char * fmt, ...)
     va_list args;
     char buffer[QPACK_MAX_FMT_SIZE];
     va_start(args, fmt);
-    vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args);
+    if (vsnprintf(buffer, QPACK_MAX_FMT_SIZE, fmt, args) >= QPACK_MAX_FMT_SIZE)
+    {
+        buffer[QPACK_MAX_FMT_SIZE-1] = '\0';
+    }
     va_end(args);
     return qp_add_string(packer, buffer);
 }
@@ -415,6 +418,10 @@ int qp_add_string_term(qp_packer_t * packer, const char * str)
 {
     return qp_add_raw(packer,  (unsigned char *) str, strlen(str) + 1);
 }
+int qp_add_string_term_n(qp_packer_t * packer, const char * str, size_t n)
+{
+    return qp_add_raw(packer,  (unsigned char *) str, n + 1);
+}
 
 /*
  * Adds a raw string to the packer and appends a terminator (0) so the written
@@ -462,73 +469,12 @@ int qp_add_double(qp_packer_t * packer, double real)
     return 0;
 }
 
-#define QP_ADD_INT8(packer, integer) \
-{                                                               \
-    QP_RESIZE(2)                                                \
-    if (integer >= 0 && integer < 64)                           \
-    {                                                           \
-        packer->buffer[packer->len++] = integer;                \
-    }                                                           \
-    else if (integer >= -60 && integer < 0)                     \
-    {                                                           \
-        packer->buffer[packer->len++] = 63 - integer;           \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        packer->buffer[packer->len++] = QP_INT8;                \
-        packer->buffer[packer->len++] = integer;                \
-    }                                                           \
-    return 0;                                                   \
-}
-/*
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-int qp_add_int8(qp_packer_t * packer, int8_t integer)
-    QP_ADD_INT8(packer, integer)
 
-#define QP_ADD_INT16(packer, integer)                                   \
-{                                                                       \
-    QP_RESIZE(3)                                                        \
-    packer->buffer[packer->len++] = QP_INT16;                           \
-    memcpy(packer->buffer + packer->len, &integer, sizeof(int16_t));    \
-    packer->len += sizeof(int16_t);                                     \
-    return 0;                                                           \
-}
-/*
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-int qp_add_int16(qp_packer_t * packer, int16_t integer)
-{
-    int8_t i8;
-    if ((i8 = (int8_t) integer) == integer)
-        QP_ADD_INT8(packer, i8)
 
-    QP_ADD_INT16(packer, integer)
-}
 
-#define QP_ADD_INT32(packer, integer)                                   \
-{                                                                       \
-    QP_RESIZE(5)                                                        \
-    packer->buffer[packer->len++] = QP_INT32;                           \
-    memcpy(packer->buffer + packer->len, &integer, sizeof(int32_t));    \
-    packer->len += sizeof(int32_t);                                     \
-    return 0;                                                           \
-}
-/*
- * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
- */
-int qp_add_int32(qp_packer_t * packer, int32_t integer)
-{
-    int8_t i8;
-    if ((i8 = (int8_t) integer) == integer)
-        QP_ADD_INT8(packer, i8)
 
-    int16_t i16;
-    if ((i16 = (int16_t) integer) == integer)
-        QP_ADD_INT16(packer, i16)
 
-    QP_ADD_INT32(packer, integer)
-}
+
 
 /*
  * Returns 0 if successful; -1 and a SIGNAL is raised in case an error occurred.
@@ -537,15 +483,43 @@ int qp_add_int64(qp_packer_t * packer, int64_t integer)
 {
     int8_t i8;
     if ((i8 = (int8_t) integer) == integer)
-        QP_ADD_INT8(packer, i8)
+    {
+        QP_RESIZE(2)
+        if (i8 >= 0 && i8 < 64)
+        {
+            packer->buffer[packer->len++] = i8;
+        }
+        else if (i8 >= -60 && i8 < 0)
+        {
+            packer->buffer[packer->len++] = 63 - i8;
+        }
+        else
+        {
+            packer->buffer[packer->len++] = QP_INT8;
+            packer->buffer[packer->len++] = i8;
+        }
+        return 0;
+    }
 
     int16_t i16;
     if ((i16 = (int16_t) integer) == integer)
-        QP_ADD_INT16(packer, i16)
+    {
+        QP_RESIZE(3)
+        packer->buffer[packer->len++] = QP_INT16;
+        memcpy(packer->buffer + packer->len, &i16, sizeof(int16_t));
+        packer->len += sizeof(int16_t);
+        return 0;
+    }
 
     int32_t i32;
     if ((i32 = (int32_t) integer) == integer)
-        QP_ADD_INT32(packer, i32)
+    {
+        QP_RESIZE(5)
+        packer->buffer[packer->len++] = QP_INT32;
+        memcpy(packer->buffer + packer->len, &i32, sizeof(int32_t));
+        packer->len += sizeof(int32_t);
+        return 0;
+    }
 
 
     QP_RESIZE(9)
@@ -634,7 +608,7 @@ int qp_fadd_raw(qp_fpacker_t * fpacker, const unsigned char * raw, size_t len)
             return EOF;
         }
     }
-    return (fwrite(raw, len, 1, fpacker) == 1) ? 0 : EOF;
+    return (!len || (fwrite(raw, len, 1, fpacker) == 1)) ? 0 : EOF;
 }
 
 /*
@@ -645,65 +619,6 @@ int qp_fadd_string(qp_fpacker_t * fpacker, const char * str)
     return qp_fadd_raw(fpacker, (unsigned char *) str, strlen(str));
 }
 
-#define QP_FADD_INT8(fpacker, integer)                                      \
-{                                                                           \
-    if (integer >= 0 && integer < 64)                                       \
-    {                                                                       \
-        return (fputc(integer, fpacker) != EOF) ? 0 : EOF;                  \
-    }                                                                       \
-    if (integer >= -60 && integer < 0)                                      \
-    {                                                                       \
-        return (fputc(63 - integer, fpacker) != EOF) ? 0 : EOF;             \
-    }                                                                          \
-    return (fputc(QP_INT8, fpacker) != EOF && fputc(integer, fpacker) != EOF)  \
-            ? 0 : EOF;                                                         \
-}
-/*
- * Returns 0 if successful and EOF in case an error occurred.
- */
-int qp_fadd_int8(qp_fpacker_t * fpacker, int8_t integer)
-    QP_FADD_INT8(fpacker, integer)
-
-#define QP_FADD_INT16(fpacker, integer)                                     \
-{                                                                           \
-    return (fputc(QP_INT16, fpacker) != EOF &&                              \
-            fwrite(&integer, sizeof(int16_t), 1, fpacker) == 1) ? 0 : EOF;  \
-}
-
-/*
- * Returns 0 if successful and EOF in case an error occurred.
- */
-int qp_fadd_int16(qp_fpacker_t * fpacker, int16_t integer)
-{
-    int8_t i8;
-    if ((i8 = (int8_t) integer) == integer)
-        QP_FADD_INT8(fpacker, i8)
-
-    QP_FADD_INT16(fpacker, integer)
-}
-
-#define QP_FADD_INT32(fpacker, integer)                                     \
-{                                                                           \
-    return (fputc(QP_INT32, fpacker) != EOF &&                              \
-            fwrite(&integer, sizeof(int32_t), 1, fpacker) == 1) ? 0 : EOF;  \
-}
-
-/*
- * Returns 0 if successful and EOF in case an error occurred.
- */
-int qp_fadd_int32(qp_fpacker_t * fpacker, int32_t integer)
-{
-    int8_t i8;
-    if ((i8 = (int8_t) integer) == integer)
-        QP_FADD_INT8(fpacker, i8)
-
-    int16_t i16;
-    if ((i16 = (int16_t) integer) == integer)
-        QP_FADD_INT16(fpacker, i16)
-
-    QP_FADD_INT32(fpacker, integer)
-}
-
 /*
  * Returns 0 if successful and EOF in case an error occurred.
  */
@@ -711,15 +626,31 @@ int qp_fadd_int64(qp_fpacker_t * fpacker, int64_t integer)
 {
     int8_t i8;
     if ((i8 = (int8_t) integer) == integer)
-        QP_FADD_INT8(fpacker, i8)
-
+    {
+        if (i8 >= 0 && i8 < 64)
+        {
+            return (fputc(i8, fpacker) != EOF) ? 0 : EOF;
+        }
+        if (i8 >= -60 && i8 < 0)
+        {
+            return (fputc(63 - i8, fpacker) != EOF) ? 0 : EOF;
+        }
+        return (fputc(QP_INT8, fpacker) != EOF && fputc(i8, fpacker) != EOF)
+                ? 0 : EOF;
+    }
     int16_t i16;
     if ((i16 = (int16_t) integer) == integer)
-        QP_FADD_INT16(fpacker, i16)
+    {
+        return (fputc(QP_INT16, fpacker) != EOF &&
+                fwrite(&i16, sizeof(int16_t), 1, fpacker) == 1) ? 0 : EOF;
+    }
 
     int32_t i32;
     if ((i32 = (int32_t) integer) == integer)
-        QP_FADD_INT32(fpacker, i32)
+    {
+        return (fputc(QP_INT32, fpacker) != EOF &&
+                fwrite(&i32, sizeof(int32_t), 1, fpacker) == 1) ? 0 : EOF;
+    }
 
     return (fputc(QP_INT64, fpacker) != EOF &&
             fwrite(&integer, sizeof(int64_t), 1, fpacker) == 1) ? 0 : EOF;

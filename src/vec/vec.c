@@ -20,8 +20,7 @@ vec_t * vec_new(size_t size)
     /* sizeof(vec_t) is 16 bytes, only for len and size and data[] is
      * excluded.
      */
-    vec_t * vec = (vec_t *)
-            malloc(sizeof(vec_t) + sizeof(void *) * size);
+    vec_t * vec = malloc(sizeof(vec_t) + sizeof(void *) * size);
 
     if (vec == NULL)
     {
@@ -32,13 +31,26 @@ vec_t * vec_new(size_t size)
     return vec;
 }
 
+void vec_destroy(vec_t * vec, vec_destroy_cb cb)
+{
+    if (vec != NULL && cb)
+    {
+        size_t i;
+        for (i = 0; i < vec->len; ++i)
+        {
+            cb(vec->data[i]);
+        }
+    }
+    free(vec);
+}
+
 /*
  * Returns NULL in case an error has occurred.
  */
 vec_t * vec_copy(vec_t * source)
 {
     size_t size = sizeof(vec_t) + sizeof(void *) * source->size;
-    vec_t * vec = (vec_t *) malloc(size);
+    vec_t * vec = malloc(size);
     if (vec == NULL)
     {
         return NULL;
@@ -64,10 +76,7 @@ int vec_append_safe(vec_t ** vec, void * data)
                 (sz <= VEC_MAX_SZ) ?
                         sz * 2 : sz + VEC_MAX_SZ : VEC_DEFAULT_SIZE;
 
-        tmp = (vec_t *) realloc(
-                *vec,
-                sizeof(vec_t) + sizeof(void *) * (*vec)->size);
-
+        tmp = realloc(*vec, sizeof(vec_t) + sizeof(void *) * (*vec)->size);
         if (tmp == NULL)
         {
             /* an error has occurred */
@@ -99,9 +108,7 @@ void vec_compact(vec_t ** vec)
 
         (*vec)->size = (*vec)->len + VEC_DEFAULT_SIZE;
 
-        tmp = (vec_t *) realloc(
-                *vec,
-                sizeof(vec_t) + sizeof(void *) * (*vec)->size);
+        tmp = realloc(*vec, sizeof(vec_t) + sizeof(void *) * (*vec)->size);
 
         if (tmp == NULL)
         {

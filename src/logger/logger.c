@@ -8,7 +8,7 @@
 #include <time.h>
 
 logger_t Logger = {
-        .level=10,
+        .level=2,
         .level_name=NULL,
         .ostream=NULL,
         .flags=0
@@ -96,18 +96,18 @@ const char * logger_level_name(int log_level)
     return LOGGER_LEVEL_NAMES[log_level];
 }
 
-void log__debug(char * fmt, ...)
+void log__debug(const char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_DEBUG)
 
-void log__info(char * fmt, ...)
+void log__info(const char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_INFO)
 
-void log__warning(char * fmt, ...)
+void log__warning(const char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_WARNING)
 
-void log__error(char * fmt, ...)
+void log__error(const char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_ERROR)
 
-void log__critical(char * fmt, ...)
+void log__critical(const char * fmt, ...)
     LOGGER_LOG_STUFF(LOGGER_CRITICAL)
 

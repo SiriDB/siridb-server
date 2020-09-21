@@ -8,6 +8,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/fifo.h>
+#include <siri/db/tee.h>
 #include <siri/err.h>
 #include <siri/net/promise.h>
 #include <siri/net/stream.h>
@@ -57,8 +58,7 @@ siridb_server_t * siridb_server_new(
         uint16_t port,
         uint16_t pool)
 {
-    siridb_server_t * server =
-            (siridb_server_t *) malloc(sizeof(siridb_server_t));
+    siridb_server_t * server = malloc(sizeof(siridb_server_t));
     if (server == NULL)
     {
         ERR_ALLOC
@@ -132,15 +132,14 @@ int siridb_server_send_pkg(
     assert (cb != NULL);
     int rc;
     uint8_t n = 0;
-    sirinet_promise_t * promise =
-            (sirinet_promise_t *) malloc(sizeof(sirinet_promise_t));
+    sirinet_promise_t * promise = malloc(sizeof(sirinet_promise_t));
     if (promise == NULL)
     {
         ERR_ALLOC
         return -1;
     }
 
-    promise->timer = (uv_timer_t *) malloc(sizeof(uv_timer_t));
+    promise->timer = malloc(sizeof(uv_timer_t));
     if (promise->timer == NULL)
     {
         ERR_ALLOC
@@ -158,7 +157,7 @@ int siridb_server_send_pkg(
     promise->server = server;
     promise->data = data;
 
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write_t * req = malloc(sizeof(uv_write_t));
     if (req == NULL)
     {
         ERR_ALLOC
@@ -399,6 +398,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
         struct in6_addr sa6;
         server->client->origin = server;
         server->client->siridb = siridb;
+        siridb_incref(siridb);
         siridb_server_incref(server);
         uv_tcp_init(siri.loop, (uv_tcp_t *) server->client->stream);
 
@@ -407,7 +407,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* IPv4 */
             struct sockaddr_in dest;
 
-            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            uv_connect_t * req = malloc(sizeof(uv_connect_t));
             if (req == NULL)
             {
                 ERR_ALLOC
@@ -429,7 +429,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* IPv6 */
             struct sockaddr_in6 dest6;
 
-            uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+            uv_connect_t * req = malloc(sizeof(uv_connect_t));
             if (req == NULL)
             {
                 ERR_ALLOC
@@ -451,7 +451,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
             /* Try DNS */
             if (SERVER_resolve_dns(
                     server,
-                    dns_req_family_map[siri.cfg->ip_support],
+                    dns_req_family_map(siri.cfg->ip_support),
                     SERVER_on_resolved))
             {
                 sirinet_stream_decref(server->client);
@@ -479,8 +479,7 @@ static int SERVER_resolve_dns(
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICSERV;
 
-    uv_getaddrinfo_t * resolver =
-            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+    uv_getaddrinfo_t * resolver = malloc(sizeof(uv_getaddrinfo_t));
 
     if (resolver == NULL)
     {
@@ -519,7 +518,7 @@ static void SERVER_on_resolved(
         int status,
         struct addrinfo * res)
 {
-    siridb_server_t * server = (siridb_server_t *) resolver->data;
+    siridb_server_t * server = resolver->data;
 
     if (status < 0)
     {
@@ -555,7 +554,7 @@ static void SERVER_on_resolved(
                     addr, server->name);
 
         }
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             ERR_ALLOC
@@ -689,17 +688,17 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
                 qp_add_raw(packer, (const unsigned char *)
                         client->siridb->server->uuid, 16) ||
                 qp_add_string_term(packer, siridb->dbname) ||
-                qp_add_int16(packer, siridb->server->flags) ||
+                qp_add_int64(packer, siridb->server->flags) ||
                 qp_add_string_term(packer, SIRIDB_VERSION) ||
                 qp_add_string_term(packer, SIRIDB_MINIMAL_VERSION) ||
-                qp_add_int8(packer, siri.cfg->ip_support) ||
+                qp_add_int64(packer, (int64_t) siri.cfg->ip_support) ||
                 qp_add_string_term(packer, uv_version_string()) ||
                 qp_add_string_term(packer, siridb->dbpath) ||
                 qp_add_string_term(packer, siridb->buffer->path) ||
                 qp_add_int64(packer, (int64_t) siridb->buffer->size) ||
-                qp_add_int32(packer, (int32_t) siri.startup_time) ||
+                qp_add_int64(packer, (int64_t) siri.startup_time) ||
                 qp_add_string_term(packer, siridb->server->address) ||
-                qp_add_int32(packer, (int32_t) siridb->server->port))
+                qp_add_int64(packer, (int64_t) siridb->server->port))
             {
                 qp_packer_free(packer);
             }
@@ -874,7 +873,7 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
         pool->server[0] = pool->server[1];
         pool->server[0]->id = 0;
         /* FALLTHRU */
-        /* no break */
+        /* fall through */
     case 1:
         pool->server[1] = NULL;
         pool->len = 1;
@@ -934,7 +933,6 @@ void siridb__server_free(siridb_server_t * server)
      */
     if (server->promises != NULL)
     {
-        imap_walk(server->promises, (imap_cb) SERVER_cancel_promise, NULL);
         imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
     }
     free(server->name);
@@ -1172,6 +1170,12 @@ int siridb_server_cexpr_cb(
         return cexpr_str_cmp(
                 cond->operator,
                 siridb_initsync_sync_progress(wserver->siridb),
+                cond->str);
+
+    case CLERI_GID_K_TEE_PIPE_NAME:
+        return cexpr_str_cmp(
+                cond->operator,
+                tee_str(wserver->siridb->tee),
                 cond->str);
     }
 

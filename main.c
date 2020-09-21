@@ -15,6 +15,8 @@
 #include <siri/help/help.h>
 #include <siri/siri.h>
 #include <siri/version.h>
+#include <siri/evars.h>
+#include <siri/net/tcp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -22,8 +24,8 @@
 
 int main(int argc, char * argv[])
 {
-    /* set local to LC_ALL */
-    (void) setlocale(LC_ALL, "");
+    /* set local to LC_ALL and C to force a period over comma for float */
+    (void) setlocale(LC_ALL, "C");
 
     /* initialize random */
     srand(time(NULL));
@@ -55,6 +57,20 @@ int main(int argc, char * argv[])
 
     /* read siridb main application configuration */
     siri_cfg_init(&siri);
+
+    siri_evars_parse(&siri);
+
+    if (make_database_directory())
+    {
+        exit(1);
+    }
+
+    set_max_open_files_limit();
+
+    log_debug("Shard compression: %s", siri.cfg->shard_compression ? "enabled" : "disabled");
+    log_debug("Shard auto duration: %s", siri.cfg->shard_auto_duration ? "enabled" : "disabled");
+    log_debug("Pipe support: %s", siri.cfg->pipe_support ? "enabled" : "disabled");
+    log_debug("IP support: %s", sirinet_tcp_ip_support_str(siri.cfg->ip_support));
 
     /* start SiriDB. (this start the event loop etc.) */
     if (siri_start() && !siri_err)

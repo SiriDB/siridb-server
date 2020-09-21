@@ -11,6 +11,7 @@
 #define SIRI_GRAMP_H_
 
 #include <siri/grammar/grammar.h>
+#include <siri/inc.h>
 
 /* keywords */
 #define KW_OFFSET CLERI_GID_K_ACCESS
@@ -22,5 +23,20 @@
 /* help statements */
 #define HELP_OFFSET CLERI_GID_HELP_ACCESS
 #define HELP_COUNT CLERI_GID_HELP_TIMEZONES + 1 - HELP_OFFSET
+
+
+
+#if CLERI_VERSION_MINOR >= 12
+#if SIRIDB_IS64BIT
+#define CLERI_NODE_DATA(__node) ((int64_t)(__node)->data)
+#define CLERI_NODE_DATA_ADDR(__node) ((int64_t *) &(__node)->data)
+#else
+#define CLERI_NODE_DATA(__node) *((int64_t *)(__node)->data)
+#define CLERI_NODE_DATA_ADDR(__node) ((int64_t *)(__node)->data)
+#endif
+#else
+#define CLERI_NODE_DATA(__node) (__node)->result
+#define CLERI_NODE_DATA_ADDR(__node) &(__node)->result
+#endif
 
 #endif  /* SIRI_GRAMP_H_ */

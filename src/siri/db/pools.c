@@ -12,8 +12,8 @@
 #include <string.h>
 #include <siri/err.h>
 
-static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
-static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
+static int POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool);
+static int POOLS_arrange(siridb_server_t * server, siridb_t * siridb);
 
 /*
  * This function can raise an ALLOC signal.
@@ -215,6 +215,7 @@ void siridb_pools_send_pkg(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_pool_t * pool;
         uint16_t pid;
 
@@ -227,18 +228,20 @@ void siridb_pools_send_pkg(
 
             pool = siridb->pools->pool + pid;
 
-            if (siridb_pool_send_pkg(
+            if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                siridb_pool_send_pkg(
                     pool,
-                    pkg,
+                    dup,
                     timeout,
                     (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG | flags))
+                    flags & ~FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to pool '%u' "
                         "(no accessible server found)",
                         pid);
+                free(dup);
                 vec_append(promises->promises, NULL);
             }
         }
@@ -279,6 +282,7 @@ void siridb_pools_send_pkg_2some(
     }
     else
     {
+        sirinet_pkg_t * dup;
         siridb_pool_t * pool;
         size_t i;
 
@@ -286,17 +290,19 @@ void siridb_pools_send_pkg_2some(
         {
             pool = vec->data[i];
 
-            if (siridb_pool_send_pkg(
+            if ((dup = sirinet_pkg_dup(pkg)) == NULL ||
+                siridb_pool_send_pkg(
                     pool,
-                    pkg,
+                    dup,
                     timeout,
                     (sirinet_promise_cb) sirinet_promises_on_response,
                     promises,
-                    FLAG_KEEP_PKG | flags))
+                    flags & ~FLAG_KEEP_PKG))
             {
                 log_debug(
                         "Cannot send package to at least on pool "
                         "(no accessible server found)");
+                free(dup);
                 vec_append(promises->promises, NULL);
             }
         }
@@ -306,19 +312,20 @@ void siridb_pools_send_pkg_2some(
 }
 
 
-static void POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
+static int POOLS_max_pool(siridb_server_t * server, uint16_t * max_pool)
 {
     if (server->pool > *max_pool)
     {
         *max_pool = server->pool;
     }
+    return 0;
 }
 
 /*
  * Signal can be raised by this function when a fifo buffer for an optional
  * replica server can't be created.
  */
-static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
+static int POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
 {
     siridb_pool_t * pool = siridb->pools->pool + server->pool;
 
@@ -351,4 +358,5 @@ static void POOLS_arrange(siridb_server_t * server, siridb_t * siridb)
     }
 
     siridb_pool_add_server(pool, server);
+    return 0;
 }

@@ -12,7 +12,7 @@ static llist_node_t * LLIST_node_new(void * data);
  */
 llist_t * llist_new(void)
 {
-    llist_t * llist = (llist_t *) malloc(sizeof(llist_t));
+    llist_t * llist = malloc(sizeof(llist_t));
     if (llist == NULL)
     {
         return NULL;
@@ -35,6 +35,25 @@ void llist_free_cb(llist_t * llist, llist_cb cb, void * args)
     while (node != NULL)
     {
         cb(node->data, args);
+        next = node->next;
+        free(node);
+        node = next;
+    }
+    free(llist);
+}
+
+/*
+ * Destroys the linked list and calls a call-back function on each item.
+ * The result of the call back function will be ignored.
+ */
+void llist_destroy(llist_t * llist, llist_destroy_cb cb)
+{
+    llist_node_t * node = llist->first;
+    llist_node_t * next;
+
+    while (node != NULL)
+    {
+        cb(node->data);
         next = node->next;
         free(node);
         node = next;
@@ -266,8 +285,7 @@ vec_t * llist2vec(llist_t * llist)
  */
 static llist_node_t * LLIST_node_new(void * data)
 {
-    llist_node_t * llist_node;
-    llist_node = (llist_node_t *) malloc(sizeof(llist_node_t));
+    llist_node_t * llist_node = malloc(sizeof(llist_node_t));
     if (llist_node == NULL)
     {
         return NULL;

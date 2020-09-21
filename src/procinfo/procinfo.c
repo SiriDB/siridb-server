@@ -114,7 +114,7 @@ long int procinfo_open_files(const char * path, int include_fd)
         return -1;
     }
 
-    struct proc_fdinfo * fd_info = (struct proc_fdinfo *) malloc(buffer_size);
+    struct proc_fdinfo * fd_info = malloc(buffer_size);
 
     if (fd_info == NULL)
     {
@@ -140,7 +140,6 @@ long int procinfo_open_files(const char * path, int include_fd)
             if (    res == PROC_PIDFDVNODEPATHINFO_SIZE &&
                     strncmp(path, vnode_info.pvip.vip_path, len) == 0)
             {
-                vnode_info
                 count++;
             }
             else if (
@@ -176,7 +175,14 @@ long int procinfo_open_files(const char * path, int include_fd)
     {
         if (entry->d_type == DT_REG || entry->d_type == DT_LNK)
         {
-            snprintf(buffer, XPATH_MAX, "/proc/self/fd/%s", entry->d_name);
+            if (snprintf(
+                    buffer,
+                    XPATH_MAX,
+                    "/proc/self/fd/%s",
+                    entry->d_name) >= XPATH_MAX)
+            {
+                buffer[XPATH_MAX-1] = '\0';
+            }
             if (realpath(buffer, buf) == NULL)
             {
                 continue;

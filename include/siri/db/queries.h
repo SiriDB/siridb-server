@@ -36,7 +36,8 @@ typedef enum
     QUERY_ALTER_GROUP,
     QUERY_ALTER_SERVER,
     QUERY_ALTER_SERVERS,
-    QUERY_ALTER_USER
+    QUERY_ALTER_USER,
+    QUERY_ALTER_SERIES
 } query_alter_tp;
 
 #define QUERY_DEF               \
@@ -45,8 +46,9 @@ uint8_t flags;                  \
 imap_t * series_map;            \
 imap_t * series_tmp;            \
 imap_t * pmap;                  \
-vec_t * vec;                \
-size_t vec_index;             \
+vec_t * sset_vec;               \
+vec_t * vec;                    \
+size_t vec_index;               \
 imap_update_cb update_cb;       \
 cexpr_t * where_expr;           \
 pcre2_code * regex;             \

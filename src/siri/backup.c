@@ -8,6 +8,7 @@
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
 #include <siri/db/shard.h>
+#include <siri/db/shards.h>
 #include <siri/optimize.h>
 #include <siri/siri.h>
 #include <stddef.h>
@@ -17,7 +18,7 @@ uv_timer_t backup;
 #define BACKUP_LOOP_TIMEOUT 3000
 
 static void BACKUP_cb(uv_timer_t * timer);
-static void BACKUP_walk(siridb_t * siridb, void * args);
+static int BACKUP_walk(siridb_t * siridb, void * args);
 
 int siri_backup_init(siri_t * siri)
 {
@@ -151,7 +152,7 @@ static void BACKUP_cb(uv_timer_t * timer)
     llist_walk((llist_t *) timer->data, (llist_cb) BACKUP_walk, NULL);
 }
 
-static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
+static int BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
 {
     if (    siridb->replicate != NULL &&
             siridb->replicate->status == REPLICATE_PAUSED &&
@@ -206,7 +207,7 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
          * A lock is not needed since the optimize thread is paused and this
          * is running from the main thread.
          */
-        vec_t * shard_list = imap_2vec(siridb->shards);
+        vec_t * shard_list = siridb_shards_vec(siridb);
 
         if (shard_list == NULL)
         {
@@ -227,8 +228,11 @@ static void BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
             {
                 siri_fp_close(shard->replacing->fp);
             }
+            --shard->ref;  /* at least two references exist */
         }
 
         vec_free(shard_list);
     }
+
+    return 0;
 }

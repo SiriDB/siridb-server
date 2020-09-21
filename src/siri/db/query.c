@@ -19,10 +19,16 @@
 #include <siri/net/pkg.h>
 #include <siri/net/clserver.h>
 #include <siri/siri.h>
+#include <siri/grammar/gramp.h>
 #include <xstr/xstr.h>
 #include <string.h>
 #include <sys/time.h>
 #include <siri/err.h>
+
+#if SIRIDB_EXPR_ALLOC
+#include <llist/llist.h>
+#endif
+
 
 #define QUERY_TOO_LONG -1
 #define QUERY_MAX_LENGTH 8192
@@ -31,7 +37,12 @@
 
 static void QUERY_send_invalid_error(uv_async_t * handle);
 static void QUERY_parse(uv_async_t * handle);
-static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker);
+static int QUERY_walk(
+#if SIRIDB_EXPR_ALLOC
+        siridb_query_t * query,
+#endif
+        cleri_node_t * node,
+        siridb_walker_t * walker);
 static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query);
 static int QUERY_time_expr(
         cleri_node_t * node,
@@ -58,13 +69,13 @@ void siridb_query_run(
         float factor,
         int flags)
 {
-    uv_async_t * handle = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * handle = malloc(sizeof(uv_async_t));
     if (handle == NULL)
     {
         ERR_ALLOC
         return;
     }
-    siridb_query_t * query = (siridb_query_t *) malloc(sizeof(siridb_query_t));
+    siridb_query_t * query = malloc(sizeof(siridb_query_t));
     if (query == NULL)
     {
         ERR_ALLOC
@@ -80,6 +91,17 @@ void siridb_query_run(
         free(handle);
         return;
     }
+
+    #if SIRIDB_EXPR_ALLOC
+    if ((query->expr_cache = llist_new()) == NULL)
+    {
+        ERR_ALLOC
+        free(query->q);
+        free(query);
+        free(handle);
+        return;
+    }
+    #endif
 
     /*
      * Set start time.
@@ -159,6 +181,13 @@ void siridb_query_free(uv_handle_t * handle)
         cleri_parse_free(query->pr);
     }
 
+    #if SIRIDB_EXPR_ALLOC
+    if (query->expr_cache != NULL)
+    {
+        llist_destroy(query->expr_cache, (llist_destroy_cb) free);
+    }
+    #endif
+
     /* decrement client reference counter */
     sirinet_stream_decref(query->client);
 
@@ -199,6 +228,12 @@ void siridb_query_send_error(
         cproto_server_t err)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
+
+    /* make sure the error message is null terminated in case the length has
+     * exceeded the max length.
+     */
+    query->err_msg[SIRIDB_MAX_SIZE_ERR_MSG-1] = '\0';
+
     sirinet_pkg_t * package = sirinet_pkg_err(
                 query->pid,
                 strlen(query->err_msg),
@@ -253,7 +288,7 @@ void siridb_query_forward(
 
     /* add the query to the packer */
     QUERY_to_packer(packer, query);
-    qp_add_int8(packer, SIRIDB_TIME_DEFAULT);  /* Only for version < 2.0.24 */
+    qp_add_int64(packer, SIRIDB_TIME_DEFAULT);  /* Only for version < 2.0.24 */
 
 
     sirinet_pkg_t * pkg = sirinet_pkg_new(0, packer->len, 0, packer->buffer);
@@ -399,6 +434,26 @@ void siridb_query_timeit_from_unpacker(
     }
 }
 
+static void QUERY_unique(cleri_olist_t * olist)
+{
+    while (olist != NULL && olist->next != NULL)
+    {
+        cleri_olist_t * test = olist;
+        while (test->next != NULL)
+        {
+            if (olist->cl_obj == test->next->cl_obj)
+            {
+                cleri_olist_t * tmp = test->next->next;
+                free(test->next);
+                test->next = tmp;
+                continue;
+            }
+            test = test->next;
+        }
+        olist = olist->next;
+    }
+}
+
 static void QUERY_send_invalid_error(uv_async_t * handle)
 {
     size_t len;
@@ -412,6 +467,9 @@ static void QUERY_send_invalid_error(uv_async_t * handle)
             SIRIDB_MAX_SIZE_ERR_MSG,
             "Query error at position %zd. Expecting ",
             query->pr->pos);
+
+    /* required for libcleri versions prior to 0.10.1 */
+    QUERY_unique(query->pr->expecting->required);
 
     /* expand the error message with suggestions. we try to add nice names
      * for regular expressions etc.
@@ -559,6 +617,9 @@ static void QUERY_parse(uv_async_t * handle)
     }
 
     if ((rc = QUERY_walk(
+#if SIRIDB_EXPR_ALLOC
+            query,
+#endif
             query->pr->tree->children->node,
             walker)))
     {
@@ -602,7 +663,7 @@ static void QUERY_parse(uv_async_t * handle)
         return;
     }
 
-    uv_async_t * forward = (uv_async_t *) malloc(sizeof(uv_async_t));
+    uv_async_t * forward = malloc(sizeof(uv_async_t));
     uv_async_init(siri.loop, forward, (uv_async_cb) query->nodes->cb);
     forward->data = handle->data;
     uv_async_send(forward);
@@ -648,7 +709,12 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
     return 0;
 }
 
-static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
+static int QUERY_walk(
+#if SIRIDB_EXPR_ALLOC
+        siridb_query_t * query,
+#endif
+        cleri_node_t * node,
+        siridb_walker_t * walker)
 {
     int rc;
     uint32_t gid;
@@ -662,12 +728,13 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
      */
     if (gid != CLERI_NONE)
     {
-        if (    (func = siridb_listen_enter[gid]) != NULL &&
+        if (    (func = siridb_node_get_enter(gid)) != NULL &&
                 siridb_walker_append(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;
         }
-        if (    (func = siridb_listen_exit[gid]) != NULL &&
+
+        if (    (func = siridb_node_get_exit(gid)) != NULL &&
                 siridb_walker_insert(walker, node, func))
         {
             return EXPR_MEM_ALLOC_ERR;
@@ -692,14 +759,26 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         /* terminate buffer */
         buffer[EXPR_MAX_SIZE - size] = 0;
 
+        #if SIRIDB_EXPR_ALLOC
+        {
+            int64_t * itmp = malloc(sizeof(int64_t));
+            if (itmp == NULL || llist_append(query->expr_cache, itmp))
+            {
+                free(itmp);
+                return EXPR_MEM_ALLOC_ERR;
+            }
+            node->data = itmp;
+        }
+        #endif
+
         /* evaluate the expression */
-        if ((rc = expr_parse(&node->result, buffer)))
+        if ((rc = expr_parse(CLERI_NODE_DATA_ADDR(node), buffer)))
         {
             return rc;
         }
 
         /* check if timestamp is valid */
-        if (!siridb_int64_valid_ts(walker->siridb->time, node->result))
+        if (!siridb_int64_valid_ts(walker->siridb->time, CLERI_NODE_DATA(node)))
         {
             return EXPR_TIME_OUT_OF_RANGE;
         }
@@ -720,8 +799,20 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
         /* terminate buffer */
         buffer[EXPR_MAX_SIZE - size] = 0;
 
+        #if SIRIDB_EXPR_ALLOC
+        {
+            int64_t * itmp = malloc(sizeof(int64_t));
+            if (itmp == NULL || llist_append(query->expr_cache, itmp))
+            {
+                free(itmp);
+                return EXPR_MEM_ALLOC_ERR;
+            }
+            node->data = itmp;
+        }
+        #endif
+
         /* evaluate the expression */
-        if ((rc = expr_parse(&node->result, buffer)))
+        if ((rc = expr_parse(CLERI_NODE_DATA_ADDR(node), buffer)))
         {
             return rc;
         }
@@ -739,7 +830,12 @@ static int QUERY_walk(cleri_node_t * node, siridb_walker_t * walker)
             {
                 current = current->node->children;
             }
-            if ((rc = QUERY_walk(current->node, walker)))
+            if ((rc = QUERY_walk(
+#if SIRIDB_EXPR_ALLOC
+                    query,
+#endif
+                    current->node,
+                    walker)))
             {
                 return rc;
             }
@@ -975,7 +1071,7 @@ static int QUERY_rebuild(
                         buf + max_size - *size,
                         *size,
                         "%" PRId64 " ",
-                        node->result);
+                        CLERI_NODE_DATA(node));
                 if (n >= (ssize_t) *size)
                 {
                     return QUERY_TOO_LONG;
@@ -985,7 +1081,7 @@ static int QUERY_rebuild(
             return 0;
         }
     /* FALLTHRU */
-    /* no break */
+    /* fall through */
     default:
         {
             int rc;

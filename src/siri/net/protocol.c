@@ -84,6 +84,11 @@ const char * sirinet_bproto_client_str(bproto_client_t n)
     case BPROTO_REQ_GROUPS: return "BPROTO_REQ_GROUPS";
     case BPROTO_ENABLE_BACKUP_MODE: return "BPROTO_ENABLE_BACKUP_MODE";
     case BPROTO_DISABLE_BACKUP_MODE: return "BPROTO_DISABLE_BACKUP_MODE";
+    case BPROTO_TEE_PIPE_NAME_UPDATE: return "BPROTO_TEE_PIPE_NAME_UPDATE";
+    case BPROTO_DROP_DATABASE: return "BPROTO_DROP_DATABASE";
+    case BPROTO_REQ_TAGS: return "BPROTO_REQ_TAGS";
+    case BPROTO_SERIES_TAGS: return "BPROTO_SERIES_TAGS";
+    case BPROTO_EMPTY_TAGS: return "BPROTO_EMPTY_TAGS";
     default:
         sprintf(protocol_str, "BPROTO_CLIENT_TYPE_UNKNOWN (%d)", n);
         return protocol_str;
@@ -119,6 +124,11 @@ const char * sirinet_bproto_server_str(bproto_server_t n)
     case BPROTO_ACK_ENABLE_BACKUP_MODE: return "BPROTO_ACK_ENABLE_BACKUP_MODE";
     case BPROTO_ACK_DISABLE_BACKUP_MODE: return "BPROTO_ACK_DISABLE_BACKUP_MODE";
     case BPROTO_RES_GROUPS: return "BPROTO_RES_GROUPS";
+    case BPROTO_ACK_TEE_PIPE_NAME: return "BPROTO_ACK_TEE_PIPE_NAME";
+    case BPROTO_ACK_DROP_DATABASE: return "BPROTO_ACK_DROP_DATABASE";
+    case BPROTO_RES_TAGS: return "BPROTO_RES_TAGS";
+    case BPROTO_ACK_SERIES_TAGS: return "BPROTO_ACK_SERIES_TAGS";
+    case BPROTO_ACK_EMPTY_TAGS: return "BPROTO_ACK_EMPTY_TAGS";
     default:
         sprintf(protocol_str, "BPROTO_SERVER_TYPE_UNKNOWN (%d)", n);
         return protocol_str;

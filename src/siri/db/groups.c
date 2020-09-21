@@ -49,8 +49,7 @@ static int GROUPS_load(siridb_groups_t * groups);
 static void GROUPS_free(siridb_groups_t * groups);
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
 static int GROUPS_nseries(siridb_group_t * group, void * data);
-static void GROUPS_loop(uv_work_t * work);
-static void GROUPS_loop_finish(uv_work_t * work, int status);
+static void GROUPS_loop(void * arg);
 static int GROUPS_write(siridb_group_t * group, qp_fpacker_t * fpacker);
 static void GROUPS_init_groups(siridb_t * siridb);
 static void GROUPS_init_series(siridb_t * siridb);
@@ -63,21 +62,19 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 {
     log_info("Loading groups");
 
-    siridb_groups_t * groups =
-            (siridb_groups_t *) malloc(sizeof(siridb_groups_t));
+    siridb_groups_t * groups = malloc(sizeof(siridb_groups_t));
     if (groups == NULL)
     {
         ERR_ALLOC
     }
     else
     {
-        groups->ref = 2;  /* for the main thread and for the groups thread  */
+        groups->ref = 1;
         groups->fn = NULL;
         groups->groups = ct_new();
         groups->nseries = vec_new(VEC_DEFAULT_SIZE);
         groups->ngroups = vec_new(VEC_DEFAULT_SIZE);
         uv_mutex_init(&groups->mutex);
-        groups->work.data = (siridb_t *) siridb;
 
         if (!groups->groups || !groups->nseries || !groups->ngroups)
         {
@@ -109,13 +106,9 @@ siridb_groups_t * siridb_groups_new(siridb_t * siridb)
 /*
  * Start group thread.
  */
-void siridb_groups_start(siridb_groups_t * groups)
+void siridb_groups_start(siridb_t * siridb)
 {
-    uv_queue_work(
-            siri.loop,
-            &groups->work,
-            GROUPS_loop,
-            GROUPS_loop_finish);
+    uv_thread_create(&siridb->groups->thread, GROUPS_loop, siridb);
 }
 
 /*
@@ -238,7 +231,7 @@ int siridb_groups_save(siridb_groups_t * groups)
         qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
 
         /* write the current schema */
-        qp_fadd_int16(fpacker, SIRIDB_GROUPS_SCHEMA) ||
+        qp_fadd_int64(fpacker, SIRIDB_GROUPS_SCHEMA) ||
 
         /* we can and should skip this if we have no users to save */
         ct_values(groups->groups, (ct_val_cb) GROUPS_write, fpacker) ||
@@ -336,6 +329,11 @@ int siridb_groups_drop_group(
     return 0;
 }
 
+void siridb_groups_incref(siridb_groups_t * groups)
+{
+    groups->ref++;
+}
+
 void siridb_groups_decref(siridb_groups_t * groups)
 {
     if (!--groups->ref)
@@ -415,22 +413,30 @@ static int GROUPS_2vec(siridb_group_t * group, vec_t * groups_list)
 }
 
 
-
 /*
  * Group thread.
  */
-static void GROUPS_loop(uv_work_t * work)
+static void GROUPS_loop(void * arg)
 {
-    siridb_t * siridb = (siridb_t *) work->data;
+    siridb_t * siridb = arg;
     siridb_groups_t * groups = siridb->groups;
     uint64_t mod_test = 0;
+
+    siridb_groups_incref(siridb->groups);
+    siridb_tags_incref(siridb->tags);
 
     while (groups->status != GROUPS_STOPPING)
     {
         sleep(GROUPS_LOOP_SLEEP);
 
-        if (siridb_is_reindexing(siridb) && (++mod_test % GROUPS_LOOP_DEEP))
+        if (groups->status == GROUPS_STOPPING)
+            break;
+
+        if ((siridb_is_reindexing(siridb) ||
+                siridb_server_self_synchronizing(siridb->server)) &&
+                (++mod_test % GROUPS_LOOP_DEEP))
         {
+            /* less frequently when re-indexing or synchronizing */
             continue;
         }
 
@@ -453,6 +459,14 @@ static void GROUPS_loop(uv_work_t * work)
             {
                 GROUPS_cleanup(siridb->groups);
             }
+            if (siridb->tags->flags & TAGS_FLAG_DROPPED_SERIES)
+            {
+                siridb_tags_dropped_series(siridb->tags);
+            }
+            if (siridb->tags->flags & TAGS_FLAG_REQUIRE_SAVE)
+            {
+                siridb_tags_save(siridb->tags);
+            }
             break;
 
         case GROUPS_STOPPING:
@@ -465,18 +479,8 @@ static void GROUPS_loop(uv_work_t * work)
     }
 
     groups->status = GROUPS_CLOSED;
-}
 
-static void GROUPS_loop_finish(
-        uv_work_t * work,
-        int status __attribute__((unused)))
-{
-    /*
-     * Main Thread
-     */
-    siridb_t * siridb = (siridb_t *) work->data;
-
-    /* decrement groups reference counter */
+    siridb_tags_decref(siridb->tags);
     siridb_groups_decref(siridb->groups);
 }
 

@@ -114,7 +114,7 @@ int siri_service_client_request(
 
     uv_tcp_init(siri.loop, (uv_tcp_t *) siri.client->stream);
 
-    adm_client = (siri_service_client_t *) malloc(sizeof(siri_service_client_t));
+    adm_client = malloc(sizeof(siri_service_client_t));
     if (adm_client == NULL)
     {
         sirinet_stream_decref(siri.client);
@@ -159,7 +159,7 @@ int siri_service_client_request(
         /* IPv4 */
         struct sockaddr_in dest;
 
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             sirinet_stream_decref(siri.client);
@@ -183,7 +183,7 @@ int siri_service_client_request(
         /* IPv6 */
         struct sockaddr_in6 dest6;
 
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             sirinet_stream_decref(siri.client);
@@ -205,7 +205,7 @@ int siri_service_client_request(
     {
         if (CLIENT_resolve_dns(
                 adm_client,
-                dns_req_family_map[siri.cfg->ip_support],
+                dns_req_family_map(siri.cfg->ip_support),
                 err_msg))
         {
             sirinet_stream_decref(siri.client);
@@ -250,8 +250,7 @@ static int CLIENT_resolve_dns(
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags = AI_NUMERICSERV;
 
-    uv_getaddrinfo_t * resolver =
-            (uv_getaddrinfo_t *) malloc(sizeof(uv_getaddrinfo_t));
+    uv_getaddrinfo_t * resolver = malloc(sizeof(uv_getaddrinfo_t));
 
     if (resolver == NULL)
     {
@@ -306,7 +305,7 @@ static void CLIENT_on_resolved(
     }
     else
     {
-        uv_connect_t * req = (uv_connect_t *) malloc(sizeof(uv_connect_t));
+        uv_connect_t * req = malloc(sizeof(uv_connect_t));
         if (req == NULL)
         {
             CLIENT_err(adm_client, "memory allocation error");
@@ -376,7 +375,7 @@ static void CLIENT_send_pkg(
         siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
-    uv_write_t * req = (uv_write_t *) malloc(sizeof(uv_write_t));
+    uv_write_t * req = malloc(sizeof(uv_write_t));
     if (req == NULL)
     {
         free(pkg);
@@ -618,9 +617,22 @@ static void CLIENT_on_file_database(
         siri_service_client_t * adm_client,
         sirinet_pkg_t * pkg)
 {
-    FILE * fp;
+    qp_fpacker_t * fpacker;
     qp_unpacker_t unpacker;
-    qp_obj_t qp_uuid;
+    qp_obj_t
+        qp_uuid,
+        qp_schema,
+        qp_dbname,
+        qp_time_precision,
+        qp_buffer_size,
+        qp_duration_num,
+        qp_duration_log,
+        qp_timezone,
+        qp_drop_threshold,
+        qp_points_limit,
+        qp_list_limit,
+        qp_exp_log,
+        qp_exp_num;
     siridb_t * siridb;
     int rc;
     /* 13 = strlen("database.dat")+1  */
@@ -629,31 +641,65 @@ static void CLIENT_on_file_database(
 
     qp_unpacker_init(&unpacker, pkg->data, pkg->len);
 
-    if (qp_is_array(qp_next(&unpacker, NULL)) &&
-        /* schema check is not required at this moment but can be done here */
-        qp_next(&unpacker, NULL) == QP_INT64 &&
-        qp_next(&unpacker, &qp_uuid) == QP_RAW &&
-        qp_uuid.len == 16)
-    {
-        memcpy(unpacker.pt - 16, &adm_client->uuid, 16);
-    }
-    else
+    if (!qp_is_array(qp_next(&unpacker, NULL)) ||
+        qp_next(&unpacker, &qp_schema) != QP_INT64 ||
+        qp_next(&unpacker, &qp_uuid) != QP_RAW || qp_uuid.len != 16 ||
+        qp_next(&unpacker, &qp_dbname) != QP_RAW ||
+        qp_next(&unpacker, &qp_time_precision) != QP_INT64 ||
+        qp_next(&unpacker, &qp_buffer_size) != QP_INT64 ||
+        qp_next(&unpacker, &qp_duration_num) != QP_INT64 ||
+        qp_next(&unpacker, &qp_duration_log) != QP_INT64 ||
+        qp_next(&unpacker, &qp_timezone) != QP_RAW ||
+        qp_next(&unpacker, &qp_drop_threshold) != QP_DOUBLE)
     {
         CLIENT_err(adm_client, "invalid database file received");
         return;
     }
 
-    fp = fopen(fn, "w");
+    /* list and points limit require at least schema 1 */
+    (void) qp_next(&unpacker, &qp_points_limit);
+    (void) qp_next(&unpacker, &qp_list_limit);
 
-    if (fp == NULL)
+    /* this is the tee pipe name when schema is >= 5 */
+    (void) qp_next(&unpacker, &qp_exp_log);
+    (void) qp_next(&unpacker, &qp_exp_num);
+
+    /* these are the expiration times when schema is >= 6 */
+
+
+    if ((fpacker = qp_open(fn, "w")) == NULL)
     {
         CLIENT_err(adm_client, "cannot write or create file: %s", fn);
         return;
     }
 
-    rc = fwrite(pkg->data, pkg->len, 1, fp);
+    rc = (  qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
+            qp_fadd_int64(fpacker, SIRIDB_SCHEMA) ||
+            qp_fadd_raw(fpacker, (const unsigned char *) adm_client->uuid, 16) ||
+            qp_fadd_raw(fpacker, qp_dbname.via.raw, qp_dbname.len) ||
+            qp_fadd_int64(fpacker, qp_time_precision.via.int64) ||
+            qp_fadd_int64(fpacker, qp_buffer_size.via.int64) ||
+            qp_fadd_int64(fpacker, qp_duration_num.via.int64) ||
+            qp_fadd_int64(fpacker, qp_duration_log.via.int64) ||
+            qp_fadd_raw(fpacker, qp_timezone.via.raw, qp_timezone.len) ||
+            qp_fadd_double(fpacker, qp_drop_threshold.via.real) ||
+            qp_fadd_int64(fpacker, qp_points_limit.tp == QP_INT64
+                    ? qp_points_limit.via.int64
+                    : DEF_SELECT_POINTS_LIMIT) ||
+            qp_fadd_int64(fpacker, qp_list_limit.tp == QP_INT64
+                    ? qp_list_limit.via.int64
+                    : DEF_LIST_LIMIT) ||
+            qp_fadd_type(fpacker, QP_NULL) ||
+            qp_fadd_int64(fpacker, qp_exp_log.tp == QP_INT64
+                    ? qp_exp_log.via.int64
+                    : 0) ||
+            qp_fadd_int64(fpacker, qp_exp_num.tp == QP_INT64
+                    ? qp_exp_num.via.int64
+                    : 0) ||
+            qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
+            qp_close(fpacker));
 
-    if (fclose(fp) || rc != 1)
+    if (rc != 0)
     {
         CLIENT_err(adm_client, "cannot write or create file: %s", fn);
         return;
@@ -689,8 +735,8 @@ static void CLIENT_on_file_database(
     if (qp_add_type(packer, QP_ARRAY4) ||
         qp_add_raw(packer, (const unsigned char *) &adm_client->uuid, 16) ||
         qp_add_string(packer, siri.cfg->server_address) ||
-        qp_add_int32(packer, (int32_t) siri.cfg->listen_backend_port) ||
-        qp_add_int32(packer, (int32_t) adm_client->pool))
+        qp_add_int64(packer, (int64_t) siri.cfg->listen_backend_port) ||
+        qp_add_int64(packer, (int64_t) adm_client->pool))
     {
         qp_packer_free(packer);
         CLIENT_err(adm_client, "memory allocation error");
@@ -763,8 +809,8 @@ static void CLIENT_on_file_servers(
     rc += qp_fadd_type(fp, QP_ARRAY4);
     rc += qp_fadd_raw(fp, (const unsigned char *) &adm_client->uuid, 16);
     rc += qp_fadd_string(fp, siri.cfg->server_address);
-    rc += qp_fadd_int32(fp, (int32_t) siri.cfg->listen_backend_port);
-    rc += qp_fadd_int32(fp, (int32_t) adm_client->pool);
+    rc += qp_fadd_int64(fp, (int64_t) siri.cfg->listen_backend_port);
+    rc += qp_fadd_int64(fp, (int64_t) adm_client->pool);
     rc += fclose(fp);
 
     if (rc)

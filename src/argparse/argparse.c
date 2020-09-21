@@ -13,7 +13,7 @@
 
 #define HELP_WIDTH 80           /* try to fit help within this screen width */
 #define ARGPARSE_ERR_SIZE 1024  /* buffer size for building err msg */
-#define ARGPARSE_HELP_SIZE 255  /* buffer size for building help */
+#define ARGPARSE_HELP_SIZE 512  /* buffer size for building help */
 
 /* static function definitions */
 static void print_usage(argparse_parser_t * parser, const char * bname);
@@ -77,7 +77,9 @@ void argparse_add_argument(
     assert(current != NULL);
 
     while (current->next != NULL)
+    {
         current = current->next;
+    }
     current->next = malloc(sizeof(argparse_args_t));
     current->next->argument = argument;
     current->next->next = NULL;
@@ -97,16 +99,20 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
         {
         case ARGPARSE_ERR_MISSING_VALUE:
             if  (current->argument->shortcut)
+            {
                 snprintf(buffer,
                         ARGPARSE_ERR_SIZE,
                         "argument -%c/--%s: expected one argument",
                         current->argument->shortcut,
                         current->argument->name);
+            }
             else
+            {
                 snprintf(buffer,
                         ARGPARSE_ERR_SIZE,
                         "argument --%s: expected one argument",
                         current->argument->name);
+            }
             break;
         case ARGPARSE_ERR_UNRECOGNIZED_ARGUMENT:
             snprintf(buffer,
@@ -122,18 +128,22 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
             break;
         case ARGPARSE_ERR_INVALID_CHOICE:
             if  (current->argument->shortcut)
+            {
                 snprintf(buffer,
                         ARGPARSE_ERR_SIZE,
                         "argument -%c/--%s: invalid choice: '%s'",
                         current->argument->shortcut,
                         current->argument->name,
                         argv[argn]);
+            }
             else
+            {
                 snprintf(buffer,
                         ARGPARSE_ERR_SIZE,
                         "argument --%s: invalid choice: '%s'",
                         current->argument->name,
                         argv[argn]);
+            }
             break;
         case ARGPARSE_ERR_ARGUMENT_TOO_LONG:
             snprintf(buffer,
@@ -146,6 +156,7 @@ void argparse_parse(argparse_parser_t *parser, int argc, char *argv[])
         }
         if (rc)
         {
+            buffer[ARGPARSE_ERR_SIZE - 1] = '\0';
             print_error(parser, buffer, bname);
             quit(parser, EXIT_FAILURE);
         }
@@ -182,15 +193,19 @@ static void fill_defaults(argparse_parser_t * parser)
         case ARGPARSE_STORE_FALSE:
         case ARGPARSE_STORE_INT:
             if (current->argument->pt_value_int32_t == 0)
+            {
                 *current->argument->pt_value_int32_t =
                         current->argument->default_int32_t;
+            }
             continue;
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_STR_CHOICE:
             if (!strlen(current->argument->str_value))
+            {
                 strcpy(
                     current->argument->str_value,
                     current->argument->str_default);
+            }
             continue;
         }
     }
@@ -224,13 +239,17 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_TRUE:
         case ARGPARSE_STORE_FALSE:
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[-%c] ",
                         current->argument->shortcut);
+            }
             else
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[--%s] ",
                         current->argument->name);
+            }
             break;
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
@@ -238,30 +257,38 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
             xstr_replace_char(uname, '-', '_');
             xstr_upper_case(uname);
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[-%c %s] ",
                         current->argument->shortcut,
                         uname);
+            }
             else
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[--%s %s] ",
                         current->argument->name,
                         uname);
+            }
             break;
         case ARGPARSE_STORE_STR_CHOICE:
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[-%c {%s}] ",
                         current->argument->shortcut,
                         current->argument->choices);
+            }
             else
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
                         "[--%s {%s}] ",
                         current->argument->name,
                         current->argument->choices);
+            }
             break;
         }
-
+        buffer[ARGPARSE_HELP_SIZE - 1] = '\0';
         line_size += strlen(buffer);
         if (line_size > HELP_WIDTH)
         {
@@ -269,7 +296,9 @@ static void print_usage(argparse_parser_t * parser, const char * bname)
             line_size = ident + strlen(buffer);
         }
         else
+        {
             printf("%s", buffer);
+        }
     }
     printf("\n");
 }
@@ -293,13 +322,18 @@ static void print_help(argparse_parser_t * parser, const char * bname)
         case ARGPARSE_STORE_TRUE:
         case ARGPARSE_STORE_FALSE:
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c,",
-                        current->argument->shortcut);
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s",
-                    buffer,
-                    current->argument->name);
+                        " -%c, --%s",
+                        current->argument->shortcut,
+                        current->argument->name);
+            }
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                        " --%s",
+                        current->argument->name);
+            }
             break;
         case ARGPARSE_STORE_STRING:
         case ARGPARSE_STORE_INT:
@@ -307,34 +341,49 @@ static void print_help(argparse_parser_t * parser, const char * bname)
             xstr_replace_char(uname, '-', '_');
             xstr_upper_case(uname);
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c %s,",
+                        " -%c, --%s %s",
                         current->argument->shortcut,
+                        current->argument->name,
                         uname);
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s %s",
-                    buffer,
-                    current->argument->name,
-                    uname);
+            }
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                        " --%s %s",
+                        current->argument->name,
+                        uname);
+            }
             break;
         case ARGPARSE_STORE_STR_CHOICE:
             if (current->argument->shortcut)
+            {
                 snprintf(buffer, ARGPARSE_HELP_SIZE,
-                        " -%c {%s},",
+                        " -%c, --%s {%s},",
                         current->argument->shortcut,
+                        current->argument->name,
                         current->argument->choices);
-            snprintf(buffer, ARGPARSE_HELP_SIZE,
-                    "%s --%s {%s}",
-                    buffer,
+            }
+            else
+            {
+                snprintf(buffer, ARGPARSE_HELP_SIZE,
+                    " --%s {%s}",
                     current->argument->name,
                     current->argument->choices);
+            }
             break;
         }
+        buffer[ARGPARSE_HELP_SIZE - 1] = '\0';
         line_size = strlen(buffer);
         if (line_size > 24)
+        {
             printf("%s\n%*c", buffer, 24, ' ');
+        }
         else
+        {
             printf("%-*s", 24, buffer);
+        }
 
         printf("%s\n", current->argument->help);
     }
@@ -385,9 +434,13 @@ static int process_arg(
 
     /* check if we have exactly one match */
     if (num_matches == 0)
+    {
         return ARGPARSE_ERR_UNRECOGNIZED_ARGUMENT;
+    }
     if (num_matches > 1)
+    {
         return ARGPARSE_ERR_AMBIGUOUS_OPTION;
+    }
 
     /* store true/false are not expecting more, they can be handled here */
     if (    (*arg)->argument->action == ARGPARSE_STORE_TRUE ||
@@ -400,7 +453,9 @@ static int process_arg(
 
     /* we expect a value an this value should not start with - */
     if (++(*argn) == argc || *argv[*argn] == '-')
+    {
         return ARGPARSE_ERR_MISSING_VALUE;
+    }
 
     if (strlen(argv[*argn]) >= ARGPARSE_MAX_LEN_ARG)
     {
@@ -443,13 +498,17 @@ static bool match_choice(char * choices, char * choice)
     {
         /* quit if not enough left to match choice */
         if (len_rest < len_choice)
+        {
             return false;
+        }
 
         /* when we should check, perform the check */
         if (    check &&
                 strncmp(walk, choice, len_choice) == 0 &&
                 (len_rest == len_choice || walk[len_choice] == ','))
+        {
             return true;
+        }
 
         /* set check true again when a comma is found */
         check = *walk == ',';

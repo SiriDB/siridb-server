@@ -85,8 +85,9 @@ int8_t siridb_get_idle_percentage(siridb_t * siridb)
 int siridb_is_db_path(const char * dbpath)
 {
     char buffer[XPATH_MAX];
+    buffer[XPATH_MAX-1] = '\0';
     snprintf(buffer,
-            XPATH_MAX,
+            XPATH_MAX-1,
             "%sdatabase.conf",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -94,7 +95,7 @@ int siridb_is_db_path(const char * dbpath)
         return 0;  /* false */
     }
     snprintf(buffer,
-            XPATH_MAX,
+            XPATH_MAX-1,
             "%sdatabase.dat",
             dbpath);
     if (!xpath_file_exist(buffer))
@@ -216,6 +217,14 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
         return NULL;
     }
 
+    /* load tags */
+    if (siridb_tags_init(siridb))
+    {
+        log_error("Cannot read tags for database '%s'", siridb->dbname);
+        siridb_decref(siridb);
+        return NULL;
+    }
+
     /* update series props */
     log_info("Updating series properties");
 
@@ -264,10 +273,16 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     uv_mutex_unlock(&siri.siridb_mutex);
 
     /* start groups update thread */
-    siridb_groups_start(siridb->groups);
+    siridb_groups_start(siridb);
 
     /* start tasks */
     siridb_tasks_init(&siridb->tasks);
+
+    /* init tee if configured */
+    if (siridb_tee_is_configured(siridb->tee))
+    {
+         siridb_tee_connect(siridb->tee);
+    }
 
     log_info("Finished loading database: '%s'", siridb->dbname);
 
@@ -302,7 +317,9 @@ static int siridb__from_unpacker(
     /* check schema */
     if (    qp_schema.via.int64 == 1 ||
             qp_schema.via.int64 == 2 ||
-            qp_schema.via.int64 == 3)
+            qp_schema.via.int64 == 3 ||
+            qp_schema.via.int64 == 4 ||
+            qp_schema.via.int64 == 5)
     {
         log_info(
                 "Found an old database schema (v%d), "
@@ -463,6 +480,59 @@ static int siridb__from_unpacker(
         (*siridb)->list_limit = qp_obj.via.int64;
     }
 
+    /* for older schemas we keep the default tee_pipe_name=NULL */
+    if (qp_schema.via.int64 >= 5)
+    {
+        qp_next(unpacker, &qp_obj);
+
+        if (qp_obj.tp == QP_RAW)
+        {
+            (*siridb)->tee->pipe_name_ = strndup(
+                (char *) qp_obj.via.raw,
+                qp_obj.len);
+
+            if (!(*siridb)->tee->pipe_name_)
+            {
+                READ_DB_EXIT_WITH_ERROR("Cannot allocate tee pipe name.")
+            }
+        }
+        else if (qp_obj.tp != QP_NULL)
+        {
+            READ_DB_EXIT_WITH_ERROR("Cannot read tee pipe name.")
+        }
+    }
+    if (qp_schema.via.int64 >= 6)
+    {
+        /* read select points limit */
+        if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 0)
+        {
+            READ_DB_EXIT_WITH_ERROR(
+                    "Cannot read shard (log) expiration time.")
+        }
+        (*siridb)->expiration_log = qp_obj.via.int64;
+
+        /* read list limit */
+        if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 0)
+        {
+            READ_DB_EXIT_WITH_ERROR(
+                    "Cannot read shard (number) expiration time.")
+        }
+        (*siridb)->expiration_num = qp_obj.via.int64;
+    }
+    if ((*siridb)->tee->pipe_name_ == NULL)
+    {
+        log_debug(
+            "No tee pipe name configured for database: %s",
+            (*siridb)->dbname);
+    }
+    else
+    {
+        log_debug(
+            "Using tee pipe name '%s' for database: '%s'",
+            (*siridb)->tee->pipe_name_,
+            (*siridb)->dbname);
+    }
+
     return (qp_schema.via.int64 == SIRIDB_SCHEMA) ? 0 : qp_schema.via.int64;
 }
 
@@ -488,11 +558,62 @@ siridb_t * siridb_get(llist_t * siridb_list, const char * dbname)
 }
 
 /*
+ * Get a siridb object by name.
+ */
+siridb_t * siridb_getn(llist_t * siridb_list, const char * dbname, size_t n)
+{
+    llist_node_t * node = siridb_list->first;
+    siridb_t * siridb;
+
+    while (node != NULL)
+    {
+        siridb = (siridb_t *) node->data;
+        if (n == strlen(siridb->dbname) &&
+            strncmp(siridb->dbname, dbname, n) == 0)
+        {
+            return siridb;
+        }
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+/*
+ * Get a siridb object by qpack name.
+ */
+siridb_t * siridb_get_by_qp(llist_t * siridb_list, qp_obj_t * qp_dbname)
+{
+    assert (qp_dbname->tp == QP_RAW);
+
+    llist_node_t * node = siridb_list->first;
+    siridb_t * siridb;
+
+    while (node != NULL)
+    {
+        siridb = (siridb_t *) node->data;
+        if (qp_dbname->len == strlen(siridb->dbname) &&
+            strncmp(
+                siridb->dbname,
+                (const char *) qp_dbname->via.raw,
+                qp_dbname->len) == 0)
+        {
+            return siridb;
+        }
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+
+/*
  * Sometimes we need a callback function and cannot use a macro expansion.
  */
-void siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
+int siridb_decref_cb(siridb_t * siridb, void * args __attribute__((unused)))
 {
     siridb_decref(siridb);
+    return 0;
 }
 
 /*
@@ -529,8 +650,9 @@ int siridb_open_files(siridb_t * siridb)
 int siridb_save(siridb_t * siridb)
 {
     char buffer[XPATH_MAX];
+    buffer[XPATH_MAX-1] = '\0';
     snprintf(buffer,
-            XPATH_MAX,
+            XPATH_MAX-1,
             "%sdatabase.dat",
             siridb->dbpath);
 
@@ -542,10 +664,10 @@ int siridb_save(siridb_t * siridb)
     }
 
     return (qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
-            qp_fadd_int8(fpacker, SIRIDB_SCHEMA) ||
+            qp_fadd_int64(fpacker, SIRIDB_SCHEMA) ||
             qp_fadd_raw(fpacker, (const unsigned char *) siridb->uuid, 16) ||
             qp_fadd_string(fpacker, siridb->dbname) ||
-            qp_fadd_int8(fpacker, siridb->time->precision) ||
+            qp_fadd_int64(fpacker, siridb->time->precision) ||
             qp_fadd_int64(fpacker, siridb->buffer->size) ||
             qp_fadd_int64(fpacker, siridb->duration_num) ||
             qp_fadd_int64(fpacker, siridb->duration_log) ||
@@ -553,9 +675,15 @@ int siridb_save(siridb_t * siridb)
             qp_fadd_double(fpacker, siridb->drop_threshold) ||
             qp_fadd_int64(fpacker, siridb->select_points_limit) ||
             qp_fadd_int64(fpacker, siridb->list_limit) ||
+            (siridb->tee->pipe_name_ == NULL
+                ? qp_fadd_type(fpacker, QP_NULL)
+                : qp_fadd_string(fpacker, siridb->tee->pipe_name_)) ||
+            qp_fadd_int64(fpacker, siridb->expiration_log) ||
+            qp_fadd_int64(fpacker, siridb->expiration_num) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 }
+
 
 /*
  * Destroy SiriDB object.
@@ -637,13 +765,25 @@ void siridb__free(siridb_t * siridb)
     /* free shards using imap walk an free the imap */
     if (siridb->shards != NULL)
     {
-        imap_free(siridb->shards, (imap_free_cb) &siridb__shard_decref);
+        imap_free(siridb->shards, (imap_free_cb) &siridb_shards_destroy_cb);
     }
 
     if (siridb->groups != NULL)
     {
+        uv_thread_join(&siridb->groups->thread);
         siridb_groups_decref(siridb->groups);
     }
+
+    if (siridb->tags != NULL)
+    {
+         siridb_tags_decref(siridb->tags);
+    }
+
+    if (siridb->tee != NULL)
+    {
+        siridb_tee_free(siridb->tee);
+    }
+
 
     /* unlock the database in case no siri_err occurred */
     if (!siri_err)
@@ -655,107 +795,163 @@ void siridb__free(siridb_t * siridb)
         }
     }
 
+    uv_mutex_destroy(&siridb->series_mutex);
+    uv_mutex_destroy(&siridb->shards_mutex);
+    uv_mutex_destroy(&siridb->values_mutex);
+
+    if (siridb->flags & SIRIDB_FLAG_DROPPED)
+    {
+        xpath_rmdir(siridb->dbpath);
+    }
+
     free(siridb->dbpath);
     free(siridb->dbname);
     free(siridb->time);
-
-    uv_mutex_destroy(&siridb->series_mutex);
-    uv_mutex_destroy(&siridb->shards_mutex);
-
     free(siridb);
 }
+
+void siridb_drop(siridb_t * siridb)
+{
+    if (siridb->flags & SIRIDB_FLAG_DROPPED)
+    {
+        return;
+    }
+
+    log_warning("dropping database '%s'", siridb->dbname);
+
+    siridb->flags |= SIRIDB_FLAG_DROPPED;
+
+    uv_mutex_lock(&siri.siridb_mutex);
+
+    llist_remove(siri.siridb_list, NULL, siridb);
+
+    uv_mutex_unlock(&siri.siridb_mutex);
+
+    if (siridb->replicate != NULL)
+    {
+        siridb_replicate_close(siridb->replicate);
+    }
+
+    if (siridb->reindex != NULL && siridb->reindex->timer != NULL)
+    {
+        siridb_reindex_close(siridb->reindex);
+    }
+
+    if (siridb->groups != NULL)
+    {
+        siridb_groups_destroy(siridb->groups);
+    }
+
+    siridb_decref(siridb);
+}
+
+void siridb_update_shard_expiration(siridb_t * siridb)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+
+    uv_mutex_lock(&siridb->values_mutex);
+
+    siridb->exp_at_num = siridb->expiration_num
+            ? siridb_time_now(siridb, now) - siridb->expiration_num
+            : 0;
+
+    siridb->exp_at_log = siridb->expiration_log
+            ? siridb_time_now(siridb, now) - siridb->expiration_log
+            : 0;
+
+    uv_mutex_unlock(&siridb->values_mutex);
+}
+
 
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
 static siridb_t * siridb__new(void)
 {
-    siridb_t * siridb = (siridb_t *) malloc(sizeof(siridb_t));
+    siridb_t * siridb = malloc(sizeof(siridb_t));
     if (siridb == NULL)
     {
-        ERR_ALLOC
+        goto fail0;
     }
-    else
+
+    siridb->dbname = NULL;
+    siridb->dbpath = NULL;
+    siridb->ref = 1;
+    siridb->insert_tasks = 0;
+    siridb->flags = 0;
+    siridb->time = NULL;
+    siridb->users = NULL;
+    siridb->servers = NULL;
+    siridb->pools = NULL;
+    siridb->max_series_id = 0;
+    siridb->received_points = 0;
+    siridb->selected_points = 0;
+    siridb->drop_threshold = DEF_DROP_THRESHOLD;
+    siridb->select_points_limit = DEF_SELECT_POINTS_LIMIT;
+    siridb->list_limit = DEF_LIST_LIMIT;
+    siridb->tz = -1;
+    siridb->server = NULL;
+    siridb->replica = NULL;
+    siridb->fifo = NULL;
+    siridb->replicate = NULL;
+    siridb->reindex = NULL;
+    siridb->groups = NULL;
+    siridb->dropped_fp = NULL;
+    siridb->store = NULL;
+    siridb->exp_at_log = 0;
+    siridb->exp_at_num = 0;
+    siridb->expiration_log = 0;
+    siridb->expiration_num = 0;
+
+    siridb->series = ct_new();
+    if (siridb->series == NULL)
     {
-        siridb->series = ct_new();
-        if (siridb->series == NULL)
-        {
-            ERR_ALLOC
-            free(siridb);
-            siridb = NULL;
-        }
-        else
-        {
-            siridb->series_map = imap_new();
-            if (siridb->series_map == NULL)
-            {
-                ct_free(siridb->series, NULL);
-                free(siridb);
-                siridb = NULL;
-                ERR_ALLOC
-            }
-            else
-            {
-                siridb->shards = imap_new();
-                if (siridb->shards == NULL)
-                {
-                    imap_free(siridb->series_map, NULL);
-                    ct_free(siridb->series, NULL);
-                    free(siridb);
-                    siridb = NULL;
-                    ERR_ALLOC
-
-                }
-                else
-                {
-                    /* allocate a buffer */
-                    siridb->buffer = siridb_buffer_new();
-                    if (siridb->buffer == NULL)
-                    {
-                        imap_free(siridb->shards, NULL);
-                        imap_free(siridb->series_map, NULL);
-                        ct_free(siridb->series, NULL);
-                        free(siridb);
-                        siridb = NULL;
-                        ERR_ALLOC
-                    }
-                    else
-                    {
-                        siridb->dbname = NULL;
-                        siridb->dbpath = NULL;
-                        siridb->ref = 1;
-                        siridb->insert_tasks = 0;
-                        siridb->flags = 0;
-                        siridb->time = NULL;
-                        siridb->users = NULL;
-                        siridb->servers = NULL;
-                        siridb->pools = NULL;
-                        siridb->max_series_id = 0;
-                        siridb->received_points = 0;
-                        siridb->selected_points = 0;
-                        siridb->drop_threshold = DEF_DROP_THRESHOLD;
-                        siridb->select_points_limit = DEF_SELECT_POINTS_LIMIT;
-                        siridb->list_limit = DEF_LIST_LIMIT;
-                        siridb->tz = -1;
-                        siridb->server = NULL;
-                        siridb->replica = NULL;
-                        siridb->fifo = NULL;
-                        siridb->replicate = NULL;
-                        siridb->reindex = NULL;
-                        siridb->groups = NULL;
-
-                        /* make file pointers are NULL when file is closed */
-                        siridb->dropped_fp = NULL;
-                        siridb->store = NULL;
-
-                        uv_mutex_init(&siridb->series_mutex);
-                        uv_mutex_init(&siridb->shards_mutex);
-                    }
-                }
-            }
-        }
+        goto fail0;
     }
+
+    siridb->series_map = imap_new();
+    if (siridb->series_map == NULL)
+    {
+        goto fail1;
+    }
+    siridb->shards = imap_new();
+    if (siridb->shards == NULL)
+    {
+        goto fail2;
+    }
+    /* allocate a buffer */
+    siridb->buffer = siridb_buffer_new();
+    if (siridb->buffer == NULL)
+    {
+        goto fail3;
+    }
+
+    /* allocate tee */
+    siridb->tee = siridb_tee_new();
+    if (siridb->tee == NULL)
+    {
+        goto fail4;
+    }
+
+    uv_mutex_init(&siridb->series_mutex);
+    uv_mutex_init(&siridb->shards_mutex);
+    uv_mutex_init(&siridb->values_mutex);
+
     return siridb;
+
+fail4:
+    siridb_buffer_free(siridb->buffer);
+fail3:
+    imap_free(siridb->shards, NULL);
+fail2:
+    imap_free(siridb->series_map, NULL);
+fail1:
+    ct_free(siridb->series, NULL);
+fail0:
+    free(siridb);
+    ERR_ALLOC
+    return NULL;
 }
 
 static siridb_t * siridb__from_dat(const char * dbpath)
@@ -765,9 +961,9 @@ static siridb_t * siridb__from_dat(const char * dbpath)
     char err_msg[512];
     qp_unpacker_t * unpacker;
     char buffer[XPATH_MAX];
-
+    buffer[XPATH_MAX-1] = '\0';
     snprintf(buffer,
-                XPATH_MAX,
+                XPATH_MAX-1,
                 "%sdatabase.dat",
                 dbpath);
 
@@ -807,8 +1003,9 @@ static int siridb__read_conf(siridb_t * siridb)
     cfgparser_t * cfgparser;
     cfgparser_option_t * option = NULL;
     siridb_buffer_t * buffer = siridb->buffer;
+    buf[XPATH_MAX-1] = '\0';
     snprintf(buf,
-            XPATH_MAX,
+            XPATH_MAX-1,
             "%sdatabase.conf",
             siridb->dbpath);
 
@@ -900,6 +1097,3 @@ static int siridb__lock(const char * dbpath, int lock_flags)
     }
     return 0;
 }
-
-
-

@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ALLOWED_PKG_SIZE 20971520      /* 20 MB  */
+#define MAX_ALLOWED_PKG_SIZE 41943040      /* 40 MB  */
 
 #define QUIT_STREAM                     \
     free(client->buf);                  \
@@ -51,6 +51,7 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
 
     switch(tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
     case STREAM_TCP_SERVER:
@@ -85,15 +86,16 @@ sirinet_stream_t * sirinet_stream_new(sirinet_stream_tp_t tp, on_data_cb_t cb)
  */
 char * sirinet_stream_name(sirinet_stream_t * client)
 {
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_TCP_CLIENT:
     case STREAM_TCP_BACKEND:
     case STREAM_TCP_SERVER:
     case STREAM_TCP_MANAGE:
-        return sirinet_pipe_name((uv_pipe_t *) client->stream);
-    case STREAM_PIPE_CLIENT:
         return sirinet_tcp_name((uv_tcp_t *) client->stream);
+    case STREAM_PIPE_CLIENT:
+        return sirinet_pipe_name((uv_pipe_t *) client->stream);
     }
     return NULL;
 }
@@ -111,7 +113,7 @@ void sirinet_stream_alloc_buffer(
     if (!client->len && client->size > RESET_BUF_SIZE)
     {
         free(client->buf);
-        client->buf = (char *) malloc(suggested_size);
+        client->buf = malloc(suggested_size);
         if (client->buf == NULL)
         {
             ERR_ALLOC
@@ -137,6 +139,9 @@ void sirinet_stream_on_data(
     sirinet_pkg_t * pkg;
     size_t total_sz;
     uint8_t check;
+
+    /* this functions should not be used for the API client */
+    assert (client->tp != STREAM_API_CLIENT);
 
     /*
      * client->on_data is NULL when 'sirinet_stream_decref' is called from
@@ -242,10 +247,12 @@ void sirinet__stream_free(uv_stream_t * uvclient)
 {
     sirinet_stream_t * client = uvclient->data;
 
-    switch (client->tp)
+    switch ((sirinet_stream_tp_t) client->tp)
     {
+    case STREAM_API_CLIENT:
     case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */
+        log_debug("client connection lost");
         if (client->origin != NULL)
         {
             siridb_user_t * user = client->origin;
@@ -270,7 +277,12 @@ void sirinet__stream_free(uv_stream_t * uvclient)
     case STREAM_TCP_MANAGE:  /* a server manage connection  */
         siri_service_client_free((siri_service_client_t *) client->origin);
         siri.client = NULL;
+        assert (client->siridb == NULL);
         break;
+    }
+    if (client->siridb)
+    {
+        siridb_decref(client->siridb);
     }
     free(client->buf);
     free(client);

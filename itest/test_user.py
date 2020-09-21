@@ -185,8 +185,6 @@ class TestUser(TestBase):
         self.client1.close()
         self.client2.close()
 
-        # return False
-
 
 if __name__ == '__main__':
     parse_args()

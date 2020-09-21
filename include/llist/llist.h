@@ -11,9 +11,11 @@ typedef struct llist_node_s llist_node_t;
 #include <vec/vec.h>
 
 typedef int (*llist_cb)(void * data, void * args);
+typedef void (*llist_destroy_cb)(void * data);
 
 llist_t * llist_new(void);
 void llist_free_cb(llist_t * llist, llist_cb cb, void * args);
+void llist_destroy(llist_t * llist, llist_destroy_cb cb);
 int llist_append(llist_t * llist, void * data);
 int llist_walk(llist_t * llist, llist_cb cb, void * args);
 void llist_walkn(llist_t * llist, size_t * n, llist_cb cb, void * args);
