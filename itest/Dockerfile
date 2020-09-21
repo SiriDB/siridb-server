@@ -30,5 +30,4 @@ COPY ./itest/ /itest/
 WORKDIR /itest
 RUN pip install -r requirements.txt
 
-WORKDIR /itest
 CMD [ "python", "run_all.py", "-m", "-b=Release" ]
