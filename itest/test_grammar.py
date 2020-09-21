@@ -12,6 +12,7 @@ from testing import run_test
 from testing import Server
 from testing import SiriDB
 from testing import TestBase
+from testing import parse_args
 from testing.constants import PYGRAMMAR_PATH
 from querygenerator.querygenerator import QueryGenerator
 from querygenerator.k_map import k_map
@@ -206,8 +207,5 @@ class TestGrammar(TestBase):
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestGrammar())
