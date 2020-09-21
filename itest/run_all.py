@@ -4,15 +4,14 @@ from testing import Server
 from testing import parse_args
 from test_auto_duration import TestAutoDuration
 from test_buffer import TestBuffer
-from test_cluster import TestCluster
 from test_compression import TestCompression
 from test_create_database import TestCreateDatabase
 from test_expiration import TestExpiration
+from test_grammar import TestGrammar
 from test_group import TestGroup
 from test_http_api import TestHTTPAPI
 from test_insert import TestInsert
 from test_list import TestList
-from test_log import TestLog
 from test_log import TestLog
 from test_parentheses import TestParenth
 from test_pipe_support import TestPipeSupport
@@ -24,22 +23,16 @@ from test_server import TestServer
 from test_tags import TestTags
 from test_tee import TestTee
 from test_user import TestUser
-from test_compression import TestCompression
-from test_log import TestLog
-from test_log import TestLog
-from test_pipe_support import TestPipeSupport
-from test_buffer import TestBuffer
-from test_grammar import TestGrammar
 
 
 if __name__ == '__main__':
     parse_args()
     run_test(TestAutoDuration())
     run_test(TestBuffer())
-    run_test(TestGrammar())
     run_test(TestCompression())
     run_test(TestCreateDatabase())
     run_test(TestExpiration())
+    run_test(TestGrammar())
     run_test(TestGroup())
     run_test(TestHTTPAPI())
     run_test(TestInsert())
