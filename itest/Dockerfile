@@ -29,5 +29,4 @@ COPY --from=builder /usr/lib/x86_64-linux-gnu/libcleri* /usr/lib/x86_64-linux-gn
 COPY ./itest/ /itest/
 WORKDIR /itest
 RUN pip install -r requirements.txt
-
 CMD [ "python", "run_all.py", "-m", "-b=Release" ]
