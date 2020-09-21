@@ -28,10 +28,5 @@ COPY ./itest/ /itest/
 WORKDIR /itest
 RUN pip install -r requirements.txt
 
-#exported grammar is needed for TestGrammar
-COPY ./grammar/ /grammar/
-WORKDIR /grammar
-CMD [ "python", "export_grammar.py"]
-
 WORKDIR /itest
 CMD [ "python", "run_all.py", "-m", "-b=Release" ]
