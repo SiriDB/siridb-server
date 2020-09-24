@@ -1,6 +1,3 @@
-max_repeat_n_map = {}
-replace_map = {'r_singleq_str': ''}
-max_list_n_map = {'series_match': 2, 'aggregate_functions': 2}
 k_map = {
     'r_doubleq_str': {
         'k_as': '"MERGED"',
@@ -25,9 +22,13 @@ k_map = {
         'k_ip_support': '"ALL"',
         'k_libuv': '"1.8.0"',
         'k_server': '"SERVER"',
+	    'k_tee_pipe_name': '"PIPENAME"',
+        'k_shard_duration': 86400,
+        'k_expiration_num': 0,
+        'k_expiration_log': 0,
 
         'aggregate_functions': '"1970-1-1 1:00:10"',
-        'k_start': '"1970-1-1 1:00:00"',
+	    'k_start': '"1970-1-1 1:00:00"',
         'k_after': '"1970-1-1 1:00:00"',
         'k_between': '"1970-1-1 1:00:00"',
         'k_before': '"1970-1-1 1:01:00"',
@@ -59,6 +60,9 @@ k_map = {
         'k_before': 60,
         'k_and': 60,
         'k_end': 60,
+        'k_shard_duration': 86400,
+        'k_expiration_num': 0,
+        'k_expiration_log': 0,
     },
     'r_float': {
         'k_filter': 10.0,
@@ -70,13 +74,24 @@ k_map = {
         'k_between': '0d',
         'k_before': '1m',
         'k_and': '1m',
-        'k_end': '1m'},
+        'k_end': '1m',
+        'k_shard_duration': '1d',
+        'k_expiration_num': '0d',
+        'k_expiration_log': '0d',
+    },
     'r_uuid_str': {
         'r_uuid_str': '"UUID"'},
     'r_uinteger': {
     },
-    'r_grave_str': {'r_grave_str': '`000000`'},
+    'r_grave_str': {
+	    'group_name': '`GROUP`',
+        'tag_name': '`TAG`',
+        'group_tag_match': '`GROUP_OR_TAG`',
+    },
     'r_regex': {
         'r_regex': '/.*/'
+    },
+    'r_comment': {
+        'r_comment': '#',
     },
 }
