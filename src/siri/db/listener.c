@@ -6989,7 +6989,7 @@ static int values_list_tags(siridb_tag_t * tag, uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
     cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
-    cexpr_cb_t cb = (cexpr_cb_t) siridb_group_cexpr_cb;
+    cexpr_cb_t cb = (cexpr_cb_t) siridb_tag_cexpr_cb;
     vec_t * props = ((query_list_t *) query->data)->props;
 
     if (where_expr == NULL || cexpr_run(where_expr, cb, tag))
