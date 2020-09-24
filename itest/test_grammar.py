@@ -8,6 +8,7 @@ import os
 import sys
 from math import nan
 from testing import default_test_setup
+from testing import parse_args
 from testing import run_test
 from testing import Server
 from testing import SiriDB
@@ -77,9 +78,6 @@ class TestGrammar(TestBase):
     async def test_select_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'max_list_n_map': {
-                'series_match': 1,
-                'aggregate_functions': 1},
             'replace_map': {
                 'k_prefix': '',
                 'k_suffix': '',
@@ -119,7 +117,7 @@ class TestGrammar(TestBase):
     async def test_alter_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {'r_singleq_str': '', 'k_now': ''}})
         for q in qb.generate_queries('alter_stmt'):
             if 'set address' in q:
                 continue  # kan niet
@@ -127,6 +125,8 @@ class TestGrammar(TestBase):
                 continue  # kan niet
             if 'set timezone' in q:
                 continue  # zelfde as vorig waarde error
+            if 'set log_level' in q:
+                continue  # niet nodig maar wel handig om dit te skippen
             # if 'set name' in q:
             #     continue  # zelfde as vorig waarde error
             if 'group' in q and 'name' in q:
@@ -145,6 +145,8 @@ class TestGrammar(TestBase):
             'regex_map': k_map,
             'replace_map': {'r_singleq_str': ''}})
         for q in qb.generate_queries('list_stmt'):
+            if 'tags' in q:
+                continue  # TODO
             await self.client0.query(q)
 
     async def test_drop_stmt(self):
@@ -166,6 +168,44 @@ class TestGrammar(TestBase):
             'replace_map': {'r_singleq_str': ''}})
         for q in qb.generate_queries('show_stmt'):
             await self.client0.query(q)
+    
+    async def test_all_stmts(self):
+        qb = QueryGenerator(SiriGrammar, {
+            'regex_map': k_map,
+            'replace_map': {
+                'r_singleq_str': '', 
+                'r_comment': '',
+                'k_timeit': '',
+                'select_stmt': '',
+                'list_stmt': '',
+                'count_stmt': '',
+                
+                'alter_group': '',
+                #'drop_group': '',
+                'alter_server': '',
+                'drop_server': '',
+                'alter_user': '',
+                'drop_user': '',
+                
+                #'set_address': '',
+                #'set_port': '',
+                'set_timezone': '',
+                'set_log_level': '',  # niet nodig maar wel handig om dit te skippen
+                'set_expiration_num': '',
+                'set_expiration_log': '',
+
+                'k_prefix': '',
+                'k_suffix': '',
+                'k_filter': '',
+                #'k_where': '',
+                'after_expr': '',
+                'before_expr': '',
+                'between_expr': '',
+                'k_merge': '',
+        }})
+        for q in qb.generate_queries():
+            print(q)
+            await self.client0.query(q)
 
     @default_test_setup(1)
     async def run(self):
@@ -178,13 +218,15 @@ class TestGrammar(TestBase):
         series = gen_simple_data(20, 70)
 
         await self.client0.insert(series)
+        await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
         # await self.client0.query('create group `GROUP` for /.*/')
-
+        # await self.client0.query('create user "USER" set password "PASSWORD"')
+        
         await self.test_create_stmt()
 
         time.sleep(2)
 
-        await self.test_select_stmt()
+        # await self.test_select_stmt()
 
         await self.test_revoke_stmt()
 
@@ -202,12 +244,27 @@ class TestGrammar(TestBase):
 
         self.client0.close()
 
+        print('.')
         return False
+
+    # @default_test_setup(1)
+    # async def run(self):
+    #     await self.client0.connect()
+
+    #     # await self.db.add_pool(self.server1, sleep=2)
+
+    #     update_k_map_show(await self.client0.query('show'))
+
+    #     series = gen_simple_data(20, 70)
+
+    #     await self.client0.insert(series)
+    #     await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
+    #     #time.sleep(2)
+    #     await self.test_all_stmts()
+    #     self.client0.close()
+    #     return False
 
 
 if __name__ == '__main__':
-    SiriDB.LOG_LEVEL = 'CRITICAL'
-    Server.HOLD_TERM = True
-    Server.MEM_CHECK = True
-    Server.BUILDTYPE = 'Debug'
+    parse_args()
     run_test(TestGrammar())

@@ -34,7 +34,8 @@ class QueryGenerator(list):
                 break
 
             self.append(ename)
-            for q1 in getattr(self, '_on_'+e.__class__.__name__)(q, i):
+            func = getattr(self, '_on_'+e.__class__.__name__, lambda q, i: [])
+            for q1 in func(q, i):
                 for q2 in self._addq(q1):
                     yield q2
             self.pop()
@@ -53,16 +54,14 @@ class QueryGenerator(list):
             val = re_map.get(ename)
             if val is not None:
                 q[i] = val
+                yield q
                 break
-        else:
-            print('geen waarde gevonden voor:')
-            print(self[-1])
-            print(q[:i+1])
-            print(i, len(self), self)
-            print(self.regex_map)
-            assert 0
-
-        yield q
+        # else:
+        #     print('geen waarde gevonden voor:')
+        #     print(self[-1])
+        #     print(q[:i+1])
+        #     print(i, len(self), self)
+        #     print(self.regex_map)
 
     def _on_Token(self, q, i):
         q[i] = q[i]._token
@@ -137,73 +136,3 @@ class QueryGenerator(list):
 
             q[i] = e1
             yield q
-
-    def _on_This(self, q, i):
-        pass
-
-
-if __name__ == '__main__':
-    import sys
-    from k_map import k_map
-    sys.path.append('../../grammar/')
-    from pygrammar.grammar import SiriGrammar  # nopep8
-
-    qb = Querybouwer({
-        'regex_map': k_map,
-        'max_list_n_map': {
-            'series_match': 1,
-            'aggregate_functions': 1,
-            'select_aggregate': 1
-        },
-        'default_list_n': 2,
-        'replace_map': {
-            'k_prefix': '',
-            'k_suffix': '',
-            'k_where': '',
-            'after_expr': '',
-            'before_expr': '',
-            'between_expr': '',
-            'k_merge': '',
-            'r_singleq_str': '',
-
-            # 'f_median': '',
-            # 'f_median_low': '',
-            # 'f_median_high': '',
-            'k_now': '',
-            'r_float': '',
-            'r_time_str': '',
-            # 'r_grave_str': '',
-            # 'f_filter': '',
-            }
-        })
-
-    maps = {
-        'replace_map': {
-            'select_stmt': '',
-            # 'list_stmt': '',
-            # 'count_stmt': '',
-            # 'drop_stmt': '',
-            # 'alter_stmt': '',
-            # 'create_stmt': '',
-            # 'revoke_stmt': '',
-            # 'grant_stmt': '',
-            # 'show_stmt': '',
-            'calc_stmt': '',
-
-            # 'k_prefix': '',
-            # 'k_suffix': '',
-            # 'k_where': '',
-            # 'after_expr': '',
-            # 'before_expr': '',
-            # 'between_expr': '',
-            # 'k_merge': '',
-            # 'k_limit': '',
-            # 'k_timeit': '',
-            'r_comment': '',
-            'r_singleq_str': '',
-        }, 'regex_map': k_map,
-    }
-
-    qb = Querybouwer(SiriGrammar, maps)
-    for q in qb.generate_queries(base_ele):
-        print(q)

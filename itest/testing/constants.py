@@ -1,4 +1,5 @@
 TEST_DIR = './testdir'
+PYGRAMMAR_PATH = '../grammar'
 SIRIDBC = '../{BUILDTYPE}/siridb-server'
 SERVICE = '/usr/local/bin/siridb-admin'
 VALGRIND = 'valgrind' \
