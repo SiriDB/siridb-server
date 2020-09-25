@@ -428,18 +428,15 @@ static int TAGS_load(siridb_t * siridb)
 
 static void TAGS_free(siridb_tags_t * tags)
 {
-    free(tags->path);
-
     uv_mutex_lock(&tags->mutex);
 
     if (tags->tags != NULL)
     {
         ct_free(tags->tags, (ct_free_cb) siridb__tag_decref);
     }
-
     uv_mutex_unlock(&tags->mutex);
-
     uv_mutex_destroy(&tags->mutex);
 
+    free(tags->path);
     free(tags);
 }
