@@ -16,7 +16,7 @@ class QueryGenerator(list):
         try:
             ele = getattr(self.grammar, ename)
         except AttributeError:
-            print('{} element niet gevonden in tree'.format(ename))
+            print('{} element not found in tree'.format(ename))
         else:
             for q in self._addq([ele]):
                 yield ' '.join(map(str, q)).strip()
@@ -57,7 +57,7 @@ class QueryGenerator(list):
                 yield q
                 break
         # else:
-        #     print('geen waarde gevonden voor:')
+        #     print('no value found for:')
         #     print(self[-1])
         #     print(q[:i+1])
         #     print(i, len(self), self)

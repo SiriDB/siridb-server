@@ -120,17 +120,17 @@ class TestGrammar(TestBase):
             'replace_map': {'r_singleq_str': '', 'k_now': ''}})
         for q in qb.generate_queries('alter_stmt'):
             if 'set address' in q:
-                continue  # kan niet
+                continue  # not possible
             if 'set port' in q:
-                continue  # kan niet
+                continue  # not possible
             if 'set timezone' in q:
-                continue  # zelfde as vorig waarde error
+                continue  # same value error
             if 'set log_level' in q:
-                continue  # niet nodig maar wel handig om dit te skippen
+                continue  # not required, but skip to keep log level
             # if 'set name' in q:
-            #     continue  # zelfde as vorig waarde error
+            #     continue  # same value error
             if 'group' in q and 'name' in q:
-                continue  # zelfde as vorig waarde error
+                continue  # same value error
             await self.client0.query(q)
 
     async def test_count_stmt(self):
@@ -155,9 +155,9 @@ class TestGrammar(TestBase):
             'replace_map': {'r_singleq_str': ''}})
         for q in qb.generate_queries('drop_stmt'):
             if 'drop server' in q:
-                continue  # kan niet
+                continue  # not possible
             if 'drop user' in q:
-                continue  # user not exists err
+                continue  # user not exists error
             if 'drop series' in q:
                 continue  # and not 'where' in q: continue
             await self.client0.query(q)
@@ -168,29 +168,29 @@ class TestGrammar(TestBase):
             'replace_map': {'r_singleq_str': ''}})
         for q in qb.generate_queries('show_stmt'):
             await self.client0.query(q)
-    
+
     async def test_all_stmts(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
             'replace_map': {
-                'r_singleq_str': '', 
+                'r_singleq_str': '',
                 'r_comment': '',
                 'k_timeit': '',
                 'select_stmt': '',
                 'list_stmt': '',
                 'count_stmt': '',
-                
+
                 'alter_group': '',
                 #'drop_group': '',
                 'alter_server': '',
                 'drop_server': '',
                 'alter_user': '',
                 'drop_user': '',
-                
+
                 #'set_address': '',
                 #'set_port': '',
                 'set_timezone': '',
-                'set_log_level': '',  # niet nodig maar wel handig om dit te skippen
+                'set_log_level': '',  # not required, skip to keep log level
                 'set_expiration_num': '',
                 'set_expiration_log': '',
 
@@ -221,7 +221,7 @@ class TestGrammar(TestBase):
         await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
         # await self.client0.query('create group `GROUP` for /.*/')
         # await self.client0.query('create user "USER" set password "PASSWORD"')
-        
+
         await self.test_create_stmt()
 
         time.sleep(2)
