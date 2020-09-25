@@ -24,18 +24,11 @@ def gen_simple_data(m, n):
     series = {
         str(a).zfill(6): [[b*n+a, random.randint(0, 20)] for b in range(n)]
         for a in range(m)}
-    # series = {
-    #   str(a).zfill(6): [[b, nan if b > 15 else float(random.randint(0, 20))]
-    #   for b in range(n)] for a in range(m)}
     return series
 
 
 def update_k_map_show(show):
     kv = {a['name']: a['value'] for a in show['data']}
-    # for k, v in sorted(kv.items()):
-    #     print('k_'+k in k_map['r_doubleq_str'] or
-    #           'k_'+k in k_map['r_integer'] or
-    #           'k_'+k in k_map['r_float'], k, v)
     k_map['r_integer']['k_active_handles'] = kv['active_handles']
     k_map['r_doubleq_str']['k_buffer_path'] = '"'+kv['buffer_path']+'"'
     k_map['r_integer']['k_buffer_size'] = kv['buffer_size']
@@ -71,7 +64,9 @@ class TestGrammar(TestBase):
     async def test_create_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('create_stmt'):
             await self.client0.query(q)
 
@@ -79,97 +74,132 @@ class TestGrammar(TestBase):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
             'replace_map': {
-                'k_prefix': '',
-                'k_suffix': '',
-                'k_where': '',
-                'after_expr': '',
-                'before_expr': '',
-                'between_expr': '',
-                'k_merge': '',
                 'r_singleq_str': '',
+                'k_filter': '',  # skip because only number type series
+                'k_prefix': '',  # skip
+                'k_suffix': '',  # skip
+                'k_merge': '',  # skip
+                'k_where': '',  # skip
+                'after_expr': '',  # skip
+                'before_expr': '',  # skip
+                'between_expr': '',  # skip
                 }
             })
         for q in qb.generate_queries('select_stmt'):
-            if '/' in q:
-                # QueryError: Cannot use a string filter on number type.
-                continue
-            elif '~' in q:
-                # QueryError: Cannot use a string filter on number type.
-                continue
-            elif 'between now' in q:
-                continue
             await self.client0.query(q)
 
     async def test_revoke_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('revoke_stmt'):
             await self.client0.query(q)
 
     async def test_grant_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('grant_stmt'):
             await self.client0.query(q)
 
     async def test_alter_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': '', 'k_now': ''}})
+            'replace_map': {
+                'r_singleq_str': '', 
+                'k_now': '',  # not possible (set expiration num/log)
+                'set_address': '',  # not possible
+                'set_port': '',  # not possible
+                'set_timezone': '',  # same value error
+                'set_log_level': '',  # not required, but skip to keep log level
+            }})
         for q in qb.generate_queries('alter_stmt'):
-            if 'set address' in q:
-                continue  # not possible
-            if 'set port' in q:
-                continue  # not possible
-            if 'set timezone' in q:
-                continue  # same value error
-            if 'set log_level' in q:
-                continue  # not required, but skip to keep log level
-            # if 'set name' in q:
-            #     continue  # same value error
-            if 'group' in q and 'name' in q:
-                continue  # same value error
             await self.client0.query(q)
 
     async def test_count_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('count_stmt'):
             await self.client0.query(q)
 
     async def test_list_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('list_stmt'):
-            if 'tags' in q:
-                continue  # TODO
             await self.client0.query(q)
 
     async def test_drop_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': '',
+                'drop_server': '',   # not possible
+                'drop_user': '',  # user not exists error
+                'drop_series': '',  # not required, but need series for tests
+            }})
         for q in qb.generate_queries('drop_stmt'):
-            if 'drop server' in q:
-                continue  # not possible
-            if 'drop user' in q:
-                continue  # user not exists error
-            if 'drop series' in q:
-                continue  # and not 'where' in q: continue
             await self.client0.query(q)
 
     async def test_show_stmt(self):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
-            'replace_map': {'r_singleq_str': ''}})
+            'replace_map': {
+                'r_singleq_str': ''
+            }})
         for q in qb.generate_queries('show_stmt'):
             await self.client0.query(q)
 
-    async def test_all_stmts(self):
+    @default_test_setup(1)
+    async def run(self):
+        await self.client0.connect()
+
+        # await self.db.add_pool(self.server1, sleep=2)
+
+        update_k_map_show(await self.client0.query('show'))
+
+        series = gen_simple_data(20, 70)
+
+        await self.client0.insert(series)
+        await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
+        
+        await self.test_create_stmt()
+
+        time.sleep(2)
+
+        await self.test_select_stmt()
+
+        await self.test_revoke_stmt()
+
+        await self.test_grant_stmt()
+
+        await self.test_alter_stmt()
+
+        await self.test_count_stmt()
+
+        await self.test_list_stmt()
+
+        await self.test_drop_stmt()
+
+        await self.test_show_stmt()
+
+        self.client0.close()
+
+        print('.')
+        return False
+
+class TestGrammarStart(TestBase):
+
+    async def test_all_stmts(self, client):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
             'replace_map': {
@@ -204,7 +234,6 @@ class TestGrammar(TestBase):
                 'k_merge': '',
         }})
         for q in qb.generate_queries():
-            print(q)
             await self.client0.query(q)
 
     @default_test_setup(1)
@@ -219,50 +248,10 @@ class TestGrammar(TestBase):
 
         await self.client0.insert(series)
         await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
-        # await self.client0.query('create group `GROUP` for /.*/')
-        # await self.client0.query('create user "USER" set password "PASSWORD"')
-
-        await self.test_create_stmt()
-
-        time.sleep(2)
-
-        # await self.test_select_stmt()
-
-        await self.test_revoke_stmt()
-
-        await self.test_grant_stmt()
-
-        await self.test_alter_stmt()
-
-        await self.test_count_stmt()
-
-        await self.test_list_stmt()
-
-        await self.test_drop_stmt()
-
-        await self.test_show_stmt()
-
+        #time.sleep(2)
+        await self.test_all_stmts()
         self.client0.close()
-
-        print('.')
         return False
-
-    # @default_test_setup(1)
-    # async def run(self):
-    #     await self.client0.connect()
-
-    #     # await self.db.add_pool(self.server1, sleep=2)
-
-    #     update_k_map_show(await self.client0.query('show'))
-
-    #     series = gen_simple_data(20, 70)
-
-    #     await self.client0.insert(series)
-    #     await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
-    #     #time.sleep(2)
-    #     await self.test_all_stmts()
-    #     self.client0.close()
-    #     return False
 
 
 if __name__ == '__main__':
