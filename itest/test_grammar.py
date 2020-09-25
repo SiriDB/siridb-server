@@ -112,6 +112,7 @@ class TestGrammar(TestBase):
             'replace_map': {
                 'r_singleq_str': '', 
                 'k_now': '',  # not possible (set expiration num/log)
+                'set_name': '',  # skip
                 'set_address': '',  # not possible
                 'set_port': '',  # not possible
                 'set_timezone': '',  # same value error
@@ -144,9 +145,6 @@ class TestGrammar(TestBase):
             'replace_map': {
                 'r_singleq_str': '',
                 'drop_server': '',   # not possible
-                'drop_user': '',  # user not exists error
-                'drop_group': '',  # group not exists error
-                'drop_series': '',  # not required, but need series for tests
             }})
         for q in qb.generate_queries('drop_stmt'):
             await self.client0.query(q)
