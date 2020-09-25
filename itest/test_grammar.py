@@ -145,8 +145,6 @@ class TestGrammar(TestBase):
             'regex_map': k_map,
             'replace_map': {'r_singleq_str': ''}})
         for q in qb.generate_queries('list_stmt'):
-            if 'tags' in q:
-                continue  # TODO
             await self.client0.query(q)
 
     async def test_drop_stmt(self):
