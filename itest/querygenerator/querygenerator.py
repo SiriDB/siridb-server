@@ -49,19 +49,28 @@ class QueryGenerator(list):
         yield q
 
     def _on_Regex(self, q, i):
-        re_map = self.regex_map[self[-1]]
-        for ename in self[::-1]:
-            val = re_map.get(ename)
-            if val is not None:
-                q[i] = val
-                yield q
-                break
+        regex_ename = self[-1]
+        if regex_ename in self.regex_map:
+            re_map = self.regex_map[regex_ename]
+            for ename in self[::-1]:
+                val = re_map.get(ename)
+                if val is not None:
+                    q[i] = val
+                    yield q
+                    break
+        
+        # debug code
+        
+        #     else:
+        #         print('no value found for:')
+        #         print(ename)
+        #         print(q[:i+1])
+        #         print(i, len(self), self)
+        #         print(self.regex_map)
         # else:
-        #     print('no value found for:')
-        #     print(self[-1])
-        #     print(q[:i+1])
-        #     print(i, len(self), self)
-        #     print(self.regex_map)
+        #     print('unknown regex element')
+        #     print(ename)
+
 
     def _on_Token(self, q, i):
         q[i] = q[i]._token
@@ -87,19 +96,12 @@ class QueryGenerator(list):
         else:
             name = getattr(q[i], 'name', getattr(q[i]._element, 'name', None))
             n = self.max_list_n_map.get(name, self.default_list_n)
-            # print(n, getattr(q[i], 'name', None))
             if q[i]._max:
                 n = min(n, q[i]._max)
 
             eles = list(q[i]._elements)[:1] + \
                 [q[i]._delimiter, list(q[i]._elements)[0]]*(n-1)
-            # if getattr(q[i]._delimiter, '_token', None) == ',':
-            #    eles = list(q[i]._elements)[:1] + \
-            #    [q[i]._delimiter,
-            #    list(q[i]._elements)[0]]*(self.max_list_n_simple-1)
-            # else:
-            #    eles = list(q[i]._elements)[:1]+[q[i]._delimiter,
-            # list(q[i]._elements)[0]]*(self.max_list_n-1)
+
             q0 = q[:i]+eles+q[i+1:]
             yield q0
 
