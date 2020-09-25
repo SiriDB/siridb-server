@@ -21,6 +21,8 @@
 #include <siri/grammar/grammar.h>
 
 #define TAGFN_NUMBERS 9
+#define SIRIDB_MIN_TAG_LEN 1
+#define SIRIDB_MAX_TAG_LEN 255
 
 /*
  * Returns tag when successful or NULL in case of an error.
@@ -48,6 +50,25 @@ char * siridb_tag_fn(siridb_tag_t * tag)
         return NULL;
     }
     return fn;
+}
+
+int siridb_tag_check_name(const char * name, char * err_msg)
+{
+    if (strlen(name) < SIRIDB_MIN_TAG_LEN)
+    {
+        sprintf(err_msg, "Tag name should be at least %d characters.",
+                SIRIDB_MIN_TAG_LEN);
+        return 1;
+    }
+
+    if (strlen(name) > SIRIDB_MAX_TAG_LEN)
+    {
+        sprintf(err_msg, "Tag name should be at most %d characters.",
+                SIRIDB_MAX_TAG_LEN);
+        return 1;
+    }
+
+    return 0;
 }
 
 /*
@@ -219,6 +240,73 @@ int siridb_tag_cexpr_cb(siridb_tag_t * tag, cexpr_condition_t * cond)
     log_critical("Unknown group property received: %d", cond->prop);
     assert (0);
     return -1;
+}
+
+int siridb_tag_set_name(
+        siridb_t * siridb,
+        siridb_tag_t * tag,
+        const char * name,
+        char * err_msg)
+{
+    if (siridb_tag_check_name(name, err_msg) != 0)
+    {
+        return 1;
+    }
+
+    if (ct_get(siridb->tags->tags, name) != NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Tag '%s' already exists.",
+                name);
+        return 1;
+    }
+
+    if (siridb->groups && ct_get(siridb->groups->groups, name) != NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Group '%s' already exists.",
+                name);
+        return 1;
+    }
+
+    if (tag->name != NULL)
+    {
+        int rc;
+
+        /* group already exists */
+        uv_mutex_lock(&siridb->tags->mutex);
+
+        rc  = ( ct_pop(siridb->tags->tags, tag->name) == NULL ||
+                ct_add(siridb->tags->tags, name, tag));
+
+        uv_mutex_unlock(&siridb->tags->mutex);
+
+        if (rc)
+        {
+            ERR_C
+            snprintf(err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Critical error while replacing tag name '%s' with '%s' "
+                    "in tree.",
+                    tag->name,
+                    name);
+            return -1;
+        }
+    }
+
+    free(tag->name);
+    tag->name = strdup(name);
+
+    if (tag->name == NULL)
+    {
+        ERR_ALLOC
+        sprintf(err_msg, "Memory allocation error.");
+        return -1;
+    }
+
+    return 0;
 }
 
 /*

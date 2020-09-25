@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-09-17 11:38:57
+ * Created at: 2020-09-25 10:57:26
  */
 
 #include "siri/grammar/grammar.h"
@@ -1300,6 +1300,18 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             set_name
         )
     );
+    cleri_t * alter_tag = cleri_sequence(
+        CLERI_GID_ALTER_TAG,
+        3,
+        k_tag,
+        tag_name,
+        cleri_choice(
+            CLERI_NONE,
+            CLERI_FIRST_MATCH,
+            1,
+            set_name
+        )
+    );
     cleri_t * alter_server = cleri_sequence(
         CLERI_GID_ALTER_SERVER,
         3,
@@ -1552,10 +1564,11 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            6,
+            7,
             alter_series,
             alter_user,
             alter_group,
+            alter_tag,
             alter_server,
             alter_servers,
             alter_database

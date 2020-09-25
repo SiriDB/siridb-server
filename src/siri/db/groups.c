@@ -45,7 +45,7 @@
 #define GROUPS_RE_BATCH_SZ 1000
 #define CALC_BATCH_SIZE(sz) GROUPS_RE_BATCH_SZ /((sz / 5 ) + 1) + 1;
 
-static int GROUPS_load(siridb_groups_t * groups);
+static int GROUPS_load(siridb_t * siridb);
 static void GROUPS_free(siridb_groups_t * groups);
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
 static int GROUPS_nseries(siridb_group_t * group, void * data);
@@ -58,49 +58,50 @@ static void GROUPS_cleanup(siridb_groups_t * groups);
 /*
  * In case of an error the return value is NULL and a SIGNAL is raised.
  */
-siridb_groups_t * siridb_groups_new(siridb_t * siridb)
+int siridb_groups_init(siridb_t * siridb)
 {
     log_info("Loading groups");
 
-    siridb_groups_t * groups = malloc(sizeof(siridb_groups_t));
-    if (groups == NULL)
+    siridb->groups = malloc(sizeof(siridb_groups_t));
+    if (siridb->groups == NULL)
     {
         ERR_ALLOC
+        return -1;
     }
-    else
+
+    siridb->groups->ref = 1;
+    siridb->groups->fn = NULL;
+    siridb->groups->groups = ct_new();
+    siridb->groups->nseries = vec_new(VEC_DEFAULT_SIZE);
+    siridb->groups->ngroups = vec_new(VEC_DEFAULT_SIZE);
+
+    uv_mutex_init(&siridb->groups->mutex);
+
+    if (    !siridb->groups->groups ||
+            !siridb->groups->nseries ||
+            !siridb->groups->ngroups)
     {
-        groups->ref = 1;
-        groups->fn = NULL;
-        groups->groups = ct_new();
-        groups->nseries = vec_new(VEC_DEFAULT_SIZE);
-        groups->ngroups = vec_new(VEC_DEFAULT_SIZE);
-        uv_mutex_init(&groups->mutex);
-
-        if (!groups->groups || !groups->nseries || !groups->ngroups)
-        {
-            ERR_ALLOC
-            GROUPS_free(groups);
-            groups = NULL;
-        }
-        else if (asprintf(
-                    &groups->fn,
-                    "%s%s",
-                    siridb->dbpath,
-                    SIRIDB_GROUPS_FN) < 0 || GROUPS_load(groups))
-        {
-            ERR_ALLOC
-            GROUPS_free(groups);
-            groups = NULL;
-        }
-        else
-        {
-            groups->status = GROUPS_RUNNING;
-            groups->flags = 0;
-
-        }
+        ERR_ALLOC
+        GROUPS_free(siridb->groups);
+        siridb->groups = NULL;
+        return -1;
     }
 
-    return groups;
+    if (asprintf(
+                &siridb->groups->fn,
+                "%s%s",
+                siridb->dbpath,
+                SIRIDB_GROUPS_FN) < 0 || GROUPS_load(siridb))
+    {
+        ERR_ALLOC
+        GROUPS_free(siridb->groups);
+        siridb->groups = NULL;
+        return -1;
+    }
+
+    siridb->groups->status = GROUPS_RUNNING;
+    siridb->groups->flags = 0;
+    return 0;
 }
 
 /*
@@ -143,7 +144,7 @@ int siridb_groups_add_series(
  * (a signal might be raised)
  */
 int siridb_groups_add_group(
-        siridb_groups_t * groups,
+        siridb_t * siridb,
         const char * name,
         const char * source,
         size_t source_len,
@@ -161,15 +162,15 @@ int siridb_groups_add_group(
         return -1; /* err_msg is set and a SIGNAL is possibly raised */
     }
 
-    if (siridb_group_set_name(groups, group, name, err_msg))
+    if (siridb_group_set_name(siridb, group, name, err_msg))
     {
         siridb_group_decref(group);
         return -1;  /* err_msg is set and a SIGNAL is possibly raised */
     }
 
-    uv_mutex_lock(&groups->mutex);
+    uv_mutex_lock(&siridb->groups->mutex);
 
-    rc = ct_add(groups->groups, name, group);
+    rc = ct_add(siridb->groups->groups, name, group);
 
     switch (rc)
     {
@@ -187,7 +188,7 @@ int siridb_groups_add_group(
         break;
 
     case CT_OK:
-        if (vec_append_safe(&groups->ngroups, group))
+        if (vec_append_safe(&siridb->groups->ngroups, group))
         {
             siridb_group_decref(group);
             sprintf(err_msg, "Memory allocation error.");
@@ -204,7 +205,7 @@ int siridb_groups_add_group(
         break;
     }
 
-    uv_mutex_unlock(&groups->mutex);
+    uv_mutex_unlock(&siridb->groups->mutex);
 
     return rc;
 }
@@ -484,19 +485,19 @@ static void GROUPS_loop(void * arg)
     siridb_groups_decref(siridb->groups);
 }
 
-static int GROUPS_load(siridb_groups_t * groups)
+static int GROUPS_load(siridb_t * siridb)
 {
     int rc = 0;
 
-    if (!xpath_file_exist(groups->fn))
+    if (!xpath_file_exist(siridb->groups->fn))
     {
         /* no groups file, create a new one */
-        return siridb_groups_save(groups);
+        return siridb_groups_save(siridb->groups);
     }
 
     qp_unpacker_t * unpacker = siridb_misc_open_schema_file(
             SIRIDB_GROUPS_SCHEMA,
-            groups->fn);
+            siridb->groups->fn);
 
     if (unpacker == NULL)
     {
@@ -514,7 +515,7 @@ static int GROUPS_load(siridb_groups_t * groups)
                 qp_next(unpacker, &qp_source) == QP_RAW)
         {
             rc = siridb_groups_add_group(
-                    groups,
+                    siridb,
                     (const char *) qp_name.via.raw,
                     (const char *) qp_source.via.raw,
                     qp_source.len,

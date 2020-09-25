@@ -244,15 +244,31 @@ class TestTags(TestBase):
                 drop tag `{0}`
             '''.format(tag))
 
-        await asyncio.sleep(3.0)
+        await asyncio.sleep(1.5)
 
         for client in (self.client0, self.client1, self.client2):
-            res = await self.client0.query('''
+            res = await client.query('''
                 list tags name, series
             ''')
             tags = sorted(res['tags'])
             self.assertEqual(tags, [
                 ["F", 5],
+                ["I", 4],
+            ])
+
+        await self.client0.query('''
+            alter tag `F` set name 'Float'
+        ''')
+
+        await asyncio.sleep(1.5)
+
+        for client in (self.client0, self.client1, self.client2):
+            res = await client.query('''
+                list tags name, series
+            ''')
+            tags = sorted(res['tags'])
+            self.assertEqual(tags, [
+                ["Float", 5],
                 ["I", 4],
             ])
 

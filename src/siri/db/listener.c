@@ -161,6 +161,8 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Successfully dropped group '%s'."
 #define MSG_SUCCESS_ALTER_GROUP \
     "Successfully updated group '%s'."
+#define MSG_SUCCESS_ALTER_TAG \
+    "Successfully updated tag '%s'."
 #define MSG_SUCCESS_SET_DROP_THRESHOLD \
     "Successfully changed drop_threshold from %g to %g."
 #define MSG_SUCCESS_SET_LIST_LIMIT \
@@ -206,6 +208,7 @@ static void enter_alter_series(uv_async_t * handle);
 static void enter_alter_server(uv_async_t * handle);
 static void enter_alter_servers(uv_async_t * handle);
 static void enter_alter_stmt(uv_async_t * handle);
+static void enter_alter_tag(uv_async_t * handle);
 static void enter_alter_user(uv_async_t * handle);
 static void enter_count_stmt(uv_async_t * handle);
 static void enter_create_stmt(uv_async_t * handle);
@@ -237,6 +240,7 @@ static void enter_xxx_columns(uv_async_t * handle);
 
 static void exit_after_expr(uv_async_t * handle);
 static void exit_alter_group(uv_async_t * handle);
+static void exit_alter_tag(uv_async_t * handle);
 static void exit_alter_user(uv_async_t * handle);
 static void exit_before_expr(uv_async_t * handle);
 static void exit_between_expr(uv_async_t * handle);
@@ -448,6 +452,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_ENTER[CLERI_GID_ALTER_SERVER] = enter_alter_server;
     SIRIDB_NODE_ENTER[CLERI_GID_ALTER_SERVERS] = enter_alter_servers;
     SIRIDB_NODE_ENTER[CLERI_GID_ALTER_STMT] = enter_alter_stmt;
+    SIRIDB_NODE_ENTER[CLERI_GID_ALTER_TAG] = enter_alter_tag;
     SIRIDB_NODE_ENTER[CLERI_GID_ALTER_USER] = enter_alter_user;
     SIRIDB_NODE_ENTER[CLERI_GID_COUNT_STMT] = enter_count_stmt;
     SIRIDB_NODE_ENTER[CLERI_GID_CREATE_STMT] = enter_create_stmt;
@@ -492,6 +497,7 @@ void siridb_init_listener(void)
 
     SIRIDB_NODE_EXIT[CLERI_GID_AFTER_EXPR] = exit_after_expr;
     SIRIDB_NODE_EXIT[CLERI_GID_ALTER_GROUP] = exit_alter_group;
+    SIRIDB_NODE_EXIT[CLERI_GID_ALTER_TAG] = exit_alter_tag;
     SIRIDB_NODE_EXIT[CLERI_GID_ALTER_USER] = exit_alter_user;
     SIRIDB_NODE_EXIT[CLERI_GID_BEFORE_EXPR] = exit_before_expr;
     SIRIDB_NODE_EXIT[CLERI_GID_BETWEEN_EXPR] = exit_between_expr;
@@ -592,6 +598,38 @@ static void enter_alter_group(uv_async_t * handle)
         q_alter->alter_tp = QUERY_ALTER_GROUP;
         q_alter->via.group = group;
         siridb_group_incref(group);
+
+        SIRIPARSER_NEXT_NODE
+    }
+}
+
+static void enter_alter_tag(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+    query_alter_t * q_alter = (query_alter_t *) query->data;
+
+    MASTER_CHECK_ACCESSIBLE(siridb)
+
+    cleri_node_t * tag_node = query->nodes->node->children->next->node;
+    siridb_tag_t * tag;
+
+    char name[tag_node->len - 1];
+    xstr_extract_string(name, tag_node->str, tag_node->len);
+
+    if ((tag = ct_get(siridb->tags->tags, name)) == NULL)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Cannot find tag: '%s'",
+                name);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
+        q_alter->alter_tp = QUERY_ALTER_TAG;
+        q_alter->via.tag = tag;
+        siridb_tag_incref(tag);
 
         SIRIPARSER_NEXT_NODE
     }
@@ -970,7 +1008,7 @@ static void enter_limit_expr(uv_async_t * handle)
     if (limit <= 0 || limit > siridb->list_limit)
     {
         snprintf(query->err_msg, SIRIDB_MAX_SIZE_ERR_MSG,
-                "Limit must be a value between 0 and %" PRIu32
+                "Limit must be a value between 1 and %" PRIu32
                 " but received: %" PRId64
                 " (optionally the limit can be changed, "
                 "see 'help alter database')",
@@ -1212,8 +1250,19 @@ static void enter_set_name(uv_async_t * handle)
         break;
     case QUERY_ALTER_GROUP:
         if (siridb_group_set_name(
-                    siridb->groups,
+                    siridb,
                     q_alter->via.group,
+                    name,
+                    query->err_msg))
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+        break;
+    case QUERY_ALTER_TAG:
+        if (siridb_tag_set_name(
+                    siridb,
+                    q_alter->via.tag,
                     name,
                     query->err_msg))
         {
@@ -1670,6 +1719,12 @@ static void enter_tag_series(uv_async_t * handle)
             return;
         }
 
+        if (siridb_tag_check_name(name, query->err_msg) != 0)
+        {
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
+        }
+
         uv_mutex_lock(&siridb->tags->mutex);
 
         tag = siridb_tags_add(siridb->tags, name);
@@ -1914,6 +1969,33 @@ static void exit_alter_group(uv_async_t * handle)
     char * name = ((query_alter_t *) query->data)->via.group->name;
     log_info(MSG_SUCCESS_ALTER_GROUP, name);
     qp_add_fmt_safe(query->packer, MSG_SUCCESS_ALTER_GROUP, name);
+
+    if (IS_MASTER)
+    {
+        siridb_query_forward(
+                handle,
+                SIRIDB_QUERY_FWD_UPDATE,
+                (sirinet_promises_cb) on_update_xxx_response,
+                0);
+    }
+    else
+    {
+        SIRIPARSER_ASYNC_NEXT_NODE
+    }
+}
+
+static void exit_alter_tag(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    siridb_t * siridb = query->client->siridb;
+    siridb_tag_t * tag = ((query_alter_t *) query->data)->via.tag;
+
+    siridb_tags_set_require_save(siridb->tags, tag);
+
+    QP_ADD_SUCCESS
+
+    log_info(MSG_SUCCESS_ALTER_TAG, tag->name);
+    qp_add_fmt_safe(query->packer, MSG_SUCCESS_ALTER_TAG, tag->name);
 
     if (IS_MASTER)
     {
@@ -2587,7 +2669,7 @@ static void exit_create_group(uv_async_t * handle)
     xstr_extract_string(group_name, name_nd->str, name_nd->len);
 
     if (siridb_groups_add_group(
-            siridb->groups,
+            siridb,
             group_name,
             for_nd->str,
             for_nd->len,
