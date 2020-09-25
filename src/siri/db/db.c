@@ -695,7 +695,7 @@ void siridb__free(siridb_t * siridb)
     /* first we should close the buffer and all other open files */
     if (siridb->buffer != NULL)
     {
-        siridb_buffer_free(siridb->buffer);
+        siridb_buffer_close(siridb->buffer);
     }
 
     if (siridb->dropped_fp != NULL)
@@ -779,11 +779,15 @@ void siridb__free(siridb_t * siridb)
          siridb_tags_decref(siridb->tags);
     }
 
+    if (siridb->buffer != NULL)
+    {
+        siridb_buffer_free(siridb->buffer);
+    }
+
     if (siridb->tee != NULL)
     {
         siridb_tee_free(siridb->tee);
     }
-
 
     /* unlock the database in case no siri_err occurred */
     if (!siri_err)
