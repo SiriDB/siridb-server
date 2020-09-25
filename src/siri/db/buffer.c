@@ -73,6 +73,15 @@ void siridb_buffer_free(siridb_buffer_t * buffer)
     free(buffer);
 }
 
+void siridb_buffer_close(siridb_buffer_t * buffer)
+{
+    if (buffer->fp != NULL)
+    {
+        fclose(buffer->fp);
+        buffer->fp = NULL;
+    }
+}
+
 _Bool siridb_buffer_is_valid_size(ssize_t ssize)
 {
     return ssize >= 512 && (ssize % 512) == 0 && ssize <= MAX_BUFFER_SZ;

@@ -15,6 +15,7 @@ typedef struct siridb_buffer_s siridb_buffer_t;
 
 siridb_buffer_t * siridb_buffer_new(void);
 void siridb_buffer_free(siridb_buffer_t * buffer);
+void siridb_buffer_close(siridb_buffer_t * buffer);
 _Bool siridb_buffer_is_valid_size(ssize_t ssize);
 void siridb_buffer_set_path(siridb_buffer_t * buffer, const char * str);
 int siridb_buffer_new_series(
