@@ -145,6 +145,7 @@ class TestGrammar(TestBase):
                 'r_singleq_str': '',
                 'drop_server': '',   # not possible
                 'drop_user': '',  # user not exists error
+                'drop_group': '',  # group not exists error
                 'drop_series': '',  # not required, but need series for tests
             }})
         for q in qb.generate_queries('drop_stmt'):
@@ -176,6 +177,10 @@ class TestGrammar(TestBase):
 
         time.sleep(2)
 
+        await self.test_count_stmt()
+
+        await self.test_list_stmt()
+
         await self.test_select_stmt()
 
         await self.test_revoke_stmt()
@@ -184,17 +189,12 @@ class TestGrammar(TestBase):
 
         await self.test_alter_stmt()
 
-        await self.test_count_stmt()
-
-        await self.test_list_stmt()
-
         await self.test_drop_stmt()
 
         await self.test_show_stmt()
 
         self.client0.close()
 
-        print('.')
         return False
 
 class TestGrammarStart(TestBase):
