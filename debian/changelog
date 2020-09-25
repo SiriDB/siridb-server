@@ -1,3 +1,12 @@
+siridb-server (2.0.40-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Added `alter tag` syntax (#144)
+    - Fixed list tags error when conditions are used (#145)
+    - Fixed division by zero bug (#146)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 25 Sep 2020 16:35:28 +0200
+
 siridb-server (2.0.39-0~tt1) unstable; urgency=medium
 
   * New upstream release
