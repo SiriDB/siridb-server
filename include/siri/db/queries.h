@@ -11,9 +11,10 @@
 #include <cexpr/cexpr.h>
 #include <cleri/cleri.h>
 #include <ctree/ctree.h>
-#include <siri/db/presuf.h>
 #include <siri/db/group.h>
+#include <siri/db/presuf.h>
 #include <siri/db/series.h>
+#include <siri/db/tag.h>
 #include <siri/db/user.h>
 #include <pcre2.h>
 
@@ -34,6 +35,7 @@ typedef enum
     QUERY_ALTER_NONE,
     QUERY_ALTER_DATABASE,
     QUERY_ALTER_GROUP,
+    QUERY_ALTER_TAG,
     QUERY_ALTER_SERVER,
     QUERY_ALTER_SERVERS,
     QUERY_ALTER_USER,
@@ -88,6 +90,7 @@ struct query_wrapper_s
 union query_alter_u
 {
     siridb_group_t * group;
+    siridb_tag_t * tag;
     siridb_server_t * server;
     siridb_user_t * user;
     void * dummy;

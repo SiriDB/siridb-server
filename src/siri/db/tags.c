@@ -165,20 +165,23 @@ static int TAGS__save_cb(
         siridb_tag_t * tag,
         void * data __attribute__((unused)))
 {
-    siridb_tag_save(tag);
-    tag->flags &= ~ TAG_FLAG_REQUIRE_SAVE;
-
-    usleep(10000);  // 10ms
-    return 0;
+    if (siridb_tag_save(tag) == 0)
+    {
+        tag->flags &= ~ TAG_FLAG_REQUIRE_SAVE;
+        usleep(10000);  // 10ms
+        return 0;
+    }
+    return 1;
 }
 
 void siridb_tags_save(siridb_tags_t * tags)
 {
     uv_mutex_lock(&tags->mutex);
 
-    ct_values(tags->tags, (ct_val_cb) TAGS__save_cb, NULL);
-
-    tags->flags &= ~TAGS_FLAG_REQUIRE_SAVE;
+    if (ct_values(tags->tags, (ct_val_cb) TAGS__save_cb, NULL) == 0)
+    {
+        tags->flags &= ~TAGS_FLAG_REQUIRE_SAVE;
+    }
 
     uv_mutex_unlock(&tags->mutex);
 }
@@ -428,12 +431,18 @@ static int TAGS_load(siridb_t * siridb)
 
 static void TAGS_free(siridb_tags_t * tags)
 {
+    if (tags->flags & TAGS_FLAG_REQUIRE_SAVE)
+    {
+        siridb_tags_save(tags);
+    }
+
     uv_mutex_lock(&tags->mutex);
 
     if (tags->tags != NULL)
     {
         ct_free(tags->tags, (ct_free_cb) siridb__tag_decref);
     }
+
     uv_mutex_unlock(&tags->mutex);
     uv_mutex_destroy(&tags->mutex);
 

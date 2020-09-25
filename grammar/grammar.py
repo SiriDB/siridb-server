@@ -649,6 +649,10 @@ class SiriGrammar(Grammar):
         set_name,
         most_greedy=False))
 
+    alter_tag = Sequence(k_tag, tag_name, Choice(
+        set_name,
+        most_greedy=False))
+
     alter_server = Sequence(k_server, uuid, Choice(
         set_log_level,
         set_backup_mode,
@@ -751,6 +755,7 @@ class SiriGrammar(Grammar):
         alter_series,
         alter_user,
         alter_group,
+        alter_tag,
         alter_server,
         alter_servers,
         alter_database,

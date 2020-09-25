@@ -73,7 +73,7 @@ siridb_group_t * siridb_group_new(
  * (err_msg is set in case of all errors)
  */
 int siridb_group_set_name(
-        siridb_groups_t * groups,
+        siridb_t * siridb,
         siridb_group_t * group,
         const char * name,
         char * err_msg)
@@ -92,11 +92,20 @@ int siridb_group_set_name(
         return 1;
     }
 
-    if (ct_get(groups->groups, name) != NULL)
+    if (ct_get(siridb->groups->groups, name) != NULL)
     {
         snprintf(err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Group '%s' already exists.",
+                name);
+        return 1;
+    }
+
+    if (siridb->tags && ct_get(siridb->tags->tags, name) != NULL)
+    {
+        snprintf(err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Tag '%s' already exists.",
                 name);
         return 1;
     }
@@ -106,12 +115,12 @@ int siridb_group_set_name(
         int rc;
 
         /* group already exists */
-        uv_mutex_lock(&groups->mutex);
+        uv_mutex_lock(&siridb->groups->mutex);
 
-        rc  = ( ct_pop(groups->groups, group->name) == NULL ||
-                ct_add(groups->groups, name, group));
+        rc  = ( ct_pop(siridb->groups->groups, group->name) == NULL ||
+                ct_add(siridb->groups->groups, name, group));
 
-        uv_mutex_unlock(&groups->mutex);
+        uv_mutex_unlock(&siridb->groups->mutex);
 
         if (rc)
         {
