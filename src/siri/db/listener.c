@@ -2885,8 +2885,9 @@ static void exit_drop_series(uv_async_t * handle)
     }
     else
     {
-        double percent = (double)
-                q_drop->vec->len / siridb->series_map->len;
+        double percent = siridb->series_map->len
+                ? (double) q_drop->vec->len / siridb->series_map->len
+                : 0.0;
 
         if (IS_MASTER &&
             q_drop->vec->len &&
@@ -3053,8 +3054,10 @@ static void exit_drop_shards(uv_async_t * handle)
         q_drop->shards_list->len -= dropped;
     }
 
-    double percent = (double)
-            q_drop->shards_list->len / siridb_shards_n(siridb);
+    size_t n = siridb_shards_n(siridb);
+    double percent = n
+            ? (double) q_drop->shards_list->len / n
+            : 0.0;
 
     if (IS_MASTER &&
         q_drop->shards_list->len &&
