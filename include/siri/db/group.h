@@ -16,6 +16,7 @@ typedef struct siridb_group_s siridb_group_t;
 
 #include <vec/vec.h>
 #include <siri/db/series.h>
+#include <siri/db/db.h>
 #include <pcre2.h>
 
 siridb_group_t * siridb_group_new(
@@ -23,7 +24,7 @@ siridb_group_t * siridb_group_new(
         size_t source_len,
         char * err_msg);
 int siridb_group_set_name(
-        siridb_groups_t * groups,
+        siridb_t * siridb,
         siridb_group_t * group,
         const char * name,
         char * err_msg);

@@ -43,7 +43,7 @@ enum
 #include <siri/db/db.h>
 #include <siri/net/pkg.h>
 
-siridb_groups_t * siridb_groups_new(siridb_t * siridb);
+int siridb_groups_init(siridb_t * siridb);
 void siridb_groups_start(siridb_t * siridb);
 int siridb_groups_save(siridb_groups_t * groups);
 ssize_t siridb_groups_get_file(char ** buffer, siridb_t * siridb);
@@ -57,7 +57,7 @@ void siridb_groups_destroy(siridb_groups_t * groups);
 void siridb_groups_incref(siridb_groups_t * groups);
 void siridb_groups_decref(siridb_groups_t * groups);
 int siridb_groups_add_group(
-        siridb_groups_t * groups,
+        siridb_t * siridb,
         const char * name,
         const char * source,
         size_t source_len,

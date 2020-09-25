@@ -210,7 +210,7 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     }
 
     /* load groups */
-    if ((siridb->groups = siridb_groups_new(siridb)) == NULL)
+    if (siridb_groups_init(siridb))
     {
         log_error("Cannot read groups for database '%s'", siridb->dbname);
         siridb_decref(siridb);
@@ -901,7 +901,8 @@ static siridb_t * siridb__new(void)
     siridb->replicate = NULL;
     siridb->reindex = NULL;
     siridb->groups = NULL;
-    siridb->dropped_fp = NULL;
+    siridb->groups = NULL;
+    siridb->tags = NULL;
     siridb->store = NULL;
     siridb->exp_at_log = 0;
     siridb->exp_at_num = 0;

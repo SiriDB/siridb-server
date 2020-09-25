@@ -26,7 +26,12 @@ char * siridb_tag_fn(siridb_tag_t * tag);
 int siridb_tag_is_remote_prop(uint32_t prop);
 void siridb_tag_prop(siridb_tag_t * tag, qp_packer_t * packer, int prop);
 int siridb_tag_cexpr_cb(siridb_tag_t * tag, cexpr_condition_t * cond);
-
+int siridb_tag_check_name(const char * name, char * err_msg);
+int siridb_tag_set_name(
+        siridb_t * siridb,
+        siridb_tag_t * tag,
+        const char * name,
+        char * err_msg);
 
 #define siridb_tag_incref(tag__) (tag__)->ref++
 #define siridb_tag_decref(tag__) \
