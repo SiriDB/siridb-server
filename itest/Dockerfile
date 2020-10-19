@@ -27,6 +27,9 @@ RUN apt-get update && \
 COPY --from=builder ./Release/siridb-server /Release/siridb-server
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcleri* /usr/lib/x86_64-linux-gnu/
 COPY ./itest/ /itest/
+COPY ./help/ /help/
+COPY ./grammar/grammar.py /grammar/grammar.py
+COPY ./grammar/siridbhelp.py /grammar/siridbhelp.py
 WORKDIR /itest
 RUN pip install -r requirements.txt
 CMD [ "python", "run_all.py", "-m", "-b=Release" ]

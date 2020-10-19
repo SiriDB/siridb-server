@@ -171,17 +171,18 @@ void siridb_points_add_point(
         uint64_t * ts,
         qp_via_t * val)
 {
-    size_t i;
-    siridb_point_t * point;
+    siridb_point_t * first = points->data;
+    siridb_point_t * point = points->data + points->len;
+    siridb_point_t * prev = point - 1;
 
-    for (   i = points->len;
-            i-- > 0 && (points->data + i)->ts > *ts;
-            *(points->data + i + 1) = *(points->data + i));
+    while (prev >= first && prev->ts > *ts)
+    {
+        *point = *prev;
+        --point;
+        --prev;
+    }
 
-    points->len++;
-
-    point = points->data + i + 1;
-
+    ++points->len;
     point->ts = *ts;
     point->val = *val;
 }
