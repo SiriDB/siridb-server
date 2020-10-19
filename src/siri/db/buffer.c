@@ -341,6 +341,12 @@ int siridb_buffer_load(siridb_t * siridb)
             {
                 continue;
             }
+            else if (series->tp == TP_STRING)
+            {
+                log_error("Unexpected buffer found for string series '%s'",
+                        series->name);
+                continue;
+            }
 
             series->buffer = siridb_points_new(max_len, series->tp);
             if (series->buffer == NULL)

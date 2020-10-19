@@ -1590,12 +1590,44 @@ static int SERIES_load(siridb_t * siridb, imap_t * dropped)
                     series_tp,
                     siridb->server->pool,
                     (const char *) qp_series_name.via.raw);
+
             if (series != NULL)
             {
                 /* add series to c-tree */
-                if (ct_add(siridb->series, series->name, series) ||
-                    imap_add(siridb->series_map, series->id, series))
+                int rc = ct_add(siridb->series, series->name, series);
+
+                if (rc == CT_EXISTS)
                 {
+                    /* Duplicate series found */
+                    siridb_series_t * other = ct_get(
+                            siridb->series,
+                            series->name);
+
+                    log_error(
+                            "Series '%s' with ID %"PRIu32" has a duplicate "
+                            "ID %"PRIu32", "
+                            "(SiriDB will keep the highest ID)",
+                            series->name,
+                            series->id,
+                            other->id);
+
+                    if (other->id >= series->id)
+                    {
+                        siridb__series_free(series);
+                        continue;
+                    }
+
+                    (void) ct_pop(siridb->series, series->name);
+                    (void) imap_pop(siridb->series_map, other->id);
+
+                    siridb__series_free(other);
+
+                    rc = ct_add(siridb->series, series->name, series);
+                }
+
+                if(rc || imap_add(siridb->series_map, series->id, series))
+                {
+                    log_critical("series cannot be added");
                     return -1;
                 }
             }
