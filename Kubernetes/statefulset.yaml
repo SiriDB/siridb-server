@@ -1,43 +1,44 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: thingsdb
+  name: siridb
   labels:
-    app: thingsdb
+    app: siridb
 spec:
   selector:
     matchLabels:
-      app: thingsdb
-  serviceName: thingsdb
-  replicas: 2
+      app: siridb
+  serviceName: siridb
+  replicas: 12
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: Parallel
   template:
     metadata:
       labels:
-        app: thingsdb
+        app: siridb
     spec:
-      terminationGracePeriodSeconds: 90
+      terminationGracePeriodSeconds: 120
       dnsConfig:
         searches:
-        - thingsdb.default.svc.cluster.local
+        - siridb.default.svc.cluster.local
       containers:
-      - name: thingsdb
-        image: thingsdb/node:gcloud-v0.9.19
+      - name: siridb
+        image: siridb/siridb/siridb-server:2.0.40
         imagePullPolicy: Always
-        args: ["--deploy"]
         env:
         - name: SIRIDB_HTTP_STATUS_PORT
           value: "8080"
         - name: SIRIDB_HTTP_API_PORT
-          value: "80"
+          value: "9080"
         - name: SIRIDB_ENABLE_SHARD_COMPRESSION
+          value: "1"
+        - name: SIRIDB_ENABLE_SHARD_AUTO_DURATION
           value: "1"
         - name: SIRIDB_BUFFER_SYNC_INTERVAL
           value: "500"
         - name: SIRIDB_DEFAULT_DB_PATH
-          value: /mnt/thingsdb/
+          value: /mnt/siridb/
         - name: SIRIDB_BIND_SERVER_ADDRESS
           value: "0.0.0.0"
         - name: SIRIDB_BIND_CLIENT_ADDRESS
@@ -50,30 +51,30 @@ spec:
         - name: status
           containerPort: 8080
         - name: client
-          containerPort: 9200
+          containerPort: 9000
         - name: http
-          containerPort: 9210
-        - name: node
-          containerPort: 9220
+          containerPort: 9080
+        - name: server
+          containerPort: 9010
         volumeMounts:
         - name: data
           mountPath: /mnt/siridb/
         resources:
           requests:
-            memory: 100M
+            memory: 100M  # For example, 3Gi for large data sets
         livenessProbe:
           httpGet:
             path: /healthy
             port: 8080
-          periodSeconds: 10
-          timeoutSeconds: 5
+          periodSeconds: 20
+          timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
             port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 2
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 10
   volumeClaimTemplates:
   - metadata:
       name: data
@@ -81,4 +82,4 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 20Gi
+          storage: 200Mi  # For example, 300Gi for large data sets

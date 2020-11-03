@@ -134,7 +134,7 @@ int sirinet_extract_addr_port(
 
     if (!strlen(address) || strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS)
     {
-        log_critical("error: got an unexpected address value '%s'.", s);
+        log_error("error: got an unexpected address value '%s'.", s);
         return -1;
     }
 
@@ -144,7 +144,7 @@ int sirinet_extract_addr_port(
             hostname,
             SIRI_CFG_MAX_LEN_ADDRESS))
     {
-        log_critical("error: memory allocation while copying address");
+        log_critical("memory allocation while copying address");
         return -1;
     }
 
@@ -153,7 +153,7 @@ int sirinet_extract_addr_port(
         test_port = atoi(strport);
         if (test_port < 1 || test_port > 65535)
         {
-            log_critical(
+            log_error(
                     "error: port should be between 1 and 65535, got '%d'.",
                     test_port);
             return -1;
