@@ -132,34 +132,35 @@ int sirinet_extract_addr_port(
         }
     }
 
-    if (    !strlen(address) ||
-            strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS ||
-            !xstr_is_int(strport) ||
-            strcpy(addr, address) == NULL ||
-            xstr_replace_str(
-                    addr,
-                    "%HOSTNAME",
-                    hostname,
-                    SIRI_CFG_MAX_LEN_ADDRESS))
+    if (!strlen(address) || strlen(address) >= SIRI_CFG_MAX_LEN_ADDRESS)
     {
-        log_critical(
-                "error: got an unexpected value '%s:%s'.",
-                address,
-                strport);
+        log_critical("error: got an unexpected address value '%s'.", s);
         return -1;
     }
 
-    test_port = atoi(strport);
-
-    if (test_port < 1 || test_port > 65535)
+    if (strcpy(addr, address) == NULL || xstr_replace_str(
+            addr,
+            "%HOSTNAME",
+            hostname,
+            SIRI_CFG_MAX_LEN_ADDRESS))
     {
-        log_critical(
-                "error: port should be between 1 and 65535, got '%d'.",
-                test_port);
+        log_critical("error: memory allocation while copying address");
         return -1;
     }
 
-    *addrport = (uint16_t) test_port;
+    if (xstr_is_int(strport))
+    {
+        test_port = atoi(strport);
+        if (test_port < 1 || test_port > 65535)
+        {
+            log_critical(
+                    "error: port should be between 1 and 65535, got '%d'.",
+                    test_port);
+            return -1;
+        }
+
+        *addrport = (uint16_t) test_port;
+    }
 
     log_debug("Read '%s': %s:%d",
             s,
