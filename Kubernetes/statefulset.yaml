@@ -9,7 +9,7 @@ spec:
     matchLabels:
       app: siridb
   serviceName: siridb
-  replicas: 12
+  replicas: 2  # Multiple of 2, to create pools with two servers.
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: Parallel
@@ -24,7 +24,7 @@ spec:
         - siridb.default.svc.cluster.local
       containers:
       - name: siridb
-        image: siridb/siridb/siridb-server:2.0.40
+        image: siridb/siridb-server:2.0.40  # Pin to a specific version
         imagePullPolicy: Always
         env:
         - name: SIRIDB_HTTP_STATUS_PORT
