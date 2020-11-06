@@ -1,3 +1,12 @@
+siridb-server (2.0.41-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug in insert loop (#147)
+    - Fixed loading databases with duplicated series (#148)
+    - Allow server names without defining a port (#150)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 04 Nov 2020 13:15:29 +0100
+
 siridb-server (2.0.40-0~tt1) unstable; urgency=medium
 
   * New upstream release
