@@ -213,7 +213,7 @@ class TestTags(TestBase):
                 drop series '{0}'
             '''.format(series))
 
-        await asyncio.sleep(3.0)
+        await asyncio.sleep(6.0)  # groups and tags are updates each 3 seconds
 
         for client in (self.client0, self.client1, self.client2):
             res = await self.client0.query('''
