@@ -24,7 +24,7 @@ spec:
         - siridb.default.svc.cluster.local
       containers:
       - name: siridb
-        image: siridb/siridb-server:2.0.40  # Pin to a specific version
+        image: siridb/siridb-server:2.0.41  # Pin to a specific version
         imagePullPolicy: Always
         env:
         - name: SIRIDB_HTTP_STATUS_PORT
