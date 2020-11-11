@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: siridb
+  labels:
+    app: siridb
+spec:
+  selector:
+    matchLabels:
+      app: siridb
+  serviceName: siridb
+  replicas: 2  # Multiple of 2, to create pools with two servers.
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: Parallel
+  template:
+    metadata:
+      labels:
+        app: siridb
+    spec:
+      terminationGracePeriodSeconds: 120
+      dnsConfig:
+        searches:
+        - siridb.default.svc.cluster.local
+      containers:
+      - name: siridb
+        image: siridb/siridb-server:2.0.41  # Pin to a specific version
+        imagePullPolicy: Always
+        env:
+        - name: SIRIDB_HTTP_STATUS_PORT
+          value: "8080"
+        - name: SIRIDB_HTTP_API_PORT
+          value: "9080"
+        - name: SIRIDB_ENABLE_SHARD_COMPRESSION
+          value: "1"
+        - name: SIRIDB_ENABLE_SHARD_AUTO_DURATION
+          value: "1"
+        - name: SIRIDB_BUFFER_SYNC_INTERVAL
+          value: "500"
+        - name: SIRIDB_DEFAULT_DB_PATH
+          value: /mnt/siridb/
+        - name: SIRIDB_BIND_SERVER_ADDRESS
+          value: "0.0.0.0"
+        - name: SIRIDB_BIND_CLIENT_ADDRESS
+          value: "0.0.0.0"
+        - name: SIRIDB_SERVER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - name: status
+          containerPort: 8080
+        - name: client
+          containerPort: 9000
+        - name: http
+          containerPort: 9080
+        - name: server
+          containerPort: 9010
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/siridb/
+        resources:
+          requests:
+            memory: 100M  # For example, 3Gi for large data sets
+        livenessProbe:
+          httpGet:
+            path: /healthy
+            port: 8080
+          periodSeconds: 20
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 200Mi  # For example, 300Gi for large data sets
