@@ -22,6 +22,7 @@ static siri_args_t siri_args = {
         .config="",
         .log_level="",
         .log_colorized=0,
+        .managed=0,
 };
 
 void siri_args_parse(siri_t * siri, int argc, char *argv[])
@@ -56,6 +57,18 @@ void siri_args_parse(siri_t * siri, int argc, char *argv[])
             NULL                                        /* choices          */
     };
 
+    argparse_argument_t managed = {
+            "managed",
+            0,
+            "use this flag when deployed using a managed environment",
+            ARGPARSE_STORE_TRUE,
+            0,
+            &siri_args.managed,
+            NULL,
+            NULL,
+            NULL,
+    };
+
     argparse_argument_t log_level = {
             "log-level",                                /* name             */
             'l',                                        /* shortcut         */
@@ -84,6 +97,7 @@ void siri_args_parse(siri_t * siri, int argc, char *argv[])
     argparse_add_argument(&parser, &version);
     argparse_add_argument(&parser, &log_level);
     argparse_add_argument(&parser, &log_colorized);
+    argparse_add_argument(&parser, &managed);
 
     /* this will parse and free the parser from memory */
     argparse_parse(&parser, argc, argv);

@@ -18,6 +18,7 @@ struct siri_args_s
     /* true/false props */
     int32_t version;
     int32_t log_colorized;
+    int32_t managed;
 
     /* string props */
     char config[ARGPARSE_MAX_LEN_ARG];

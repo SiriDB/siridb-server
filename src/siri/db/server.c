@@ -87,6 +87,7 @@ siridb_server_t * siridb_server_new(
     server->pid = 0;
     server->version = NULL;
     server->ip_support = 255; /* unknown */
+    server->retry_attempts = 0;
     server->libuv = NULL;
     server->dbpath = NULL;
     server->buffer_path = NULL;
@@ -390,6 +391,7 @@ void siridb_server_connect(siridb_t * siridb, siridb_server_t * server)
     /* server->socket must be NULL at this point */
     assert (server->client == NULL);
 
+    ++server->retry_attempts;
     server->client = sirinet_stream_new(STREAM_TCP_SERVER, &SERVER_on_data);
 
     if (server->client != NULL)
@@ -669,6 +671,8 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
         log_debug(
                 "Connection created to back-end server: '%s', "
                 "sending authentication request", server->name);
+
+        server->retry_attempts = 0;  /* reset connection attempts */
 
         uv_read_start(
                 req->handle,

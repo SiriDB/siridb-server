@@ -157,21 +157,55 @@ static uv_buf_t * health__get_status_response(void)
 
 static uv_buf_t * health__get_ready_response(void)
 {
+    int status = 1;
     siridb_t * siridb;
-    uint8_t flags = SERVER_FLAG_RUNNING;
     llist_node_t * siridb_node;
 
     siridb_node = siri.siridb_list->first;
     while (siridb_node != NULL)
     {
         siridb = (siridb_t *) siridb_node->data;
-        flags |= siridb->server->flags;
+        if (siridb->server->flags != SERVER_FLAG_RUNNING)
+        {
+            status = 0;
+            break;
+        }
         siridb_node = siridb_node->next;
     }
 
-    return flags == SERVER_FLAG_RUNNING
-            ? &health__uv_ok_buf
-            : &health__uv_nok_buf;
+    if (status)
+    {
+        return &health__uv_ok_buf;
+    }
+
+    if (siri.args->managed)
+    {
+        /*
+         * If managed, return NOK only if the server is not RUNNING and the
+         * server is not SERVER_FLAG_REINDEXING and the server has either no
+         * replica, or the replica is (maybe) online
+         *
+         * In case the the replica is off-line we want to respond using `OK`
+         * since the an environment like Kubernetes can continue to start
+         * the next pod.
+         */
+        siridb_node = siri.siridb_list->first;
+        while (siridb_node != NULL)
+        {
+            siridb = (siridb_t *) siridb_node->data;
+            if (siridb->server->flags != SERVER_FLAG_RUNNING &&
+                (~siridb->server->flags & SERVER_FLAG_REINDEXING) && (
+                        siridb->replica == NULL ||
+                        siridb->replica->retry_attempts < 3))
+            {
+                return &health__uv_nok_buf;
+            }
+            siridb_node = siridb_node->next;
+        }
+        return &health__uv_ok_buf;
+    }
+
+    return &health__uv_nok_buf;
 }
 
 static int health__url_cb(http_parser * parser, const char * at, size_t length)

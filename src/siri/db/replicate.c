@@ -377,7 +377,7 @@ static void REPLICATE_on_repl_finished_response(
     }
     else if (pkg->tp == BPROTO_ACK_REPL_FINISHED)
     {
-        log_debug("Replication finished ACK received from '%s'",
+        log_info("Replication finished ACK received from '%s'",
                 promise->server->name);
     }
     else

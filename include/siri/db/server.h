@@ -154,7 +154,7 @@ struct siridb_server_s
     uint16_t pid;
     /* fixed server properties */
     uint8_t ip_support;
-    uint8_t pad0;
+    uint8_t retry_attempts;
     uint32_t startup_time;
     char * libuv;
     char * version;
