@@ -187,7 +187,7 @@ static uv_buf_t * health__get_ready_response(void)
          *
          * In case the the replica is off-line we want to respond using `OK`
          * since the an environment like Kubernetes can continue to start
-         * the next pod.
+         * the next pod. (see issue #153)
          */
         siridb_node = siri.siridb_list->first;
         while (siridb_node != NULL)
