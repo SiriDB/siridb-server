@@ -1,3 +1,10 @@
+siridb-server (2.0.42-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed handle ready status in Kubernetes statefulset (#153)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 12 Nov 2020 09:39:13 +0100
+
 siridb-server (2.0.41-0~tt1) unstable; urgency=medium
 
   * New upstream release
