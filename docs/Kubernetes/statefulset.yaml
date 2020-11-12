@@ -26,6 +26,7 @@ spec:
       - name: siridb
         image: siridb/siridb-server:2.0.42  # Pin to a specific version
         imagePullPolicy: Always
+        args: ["--managed"]  # Tells SiriDB it will be managed by Kubernetes
         env:
         - name: SIRIDB_HTTP_STATUS_PORT
           value: "8080"
