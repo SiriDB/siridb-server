@@ -144,9 +144,14 @@ void siri_evars_parse(siri_t * siri)
             "SIRIDB_ENABLE_SHARD_AUTO_DURATION",
             &siri->cfg->shard_auto_duration);
     evars__to_strn(
+            "SIRIDB_DB_PATH",
+            siri->cfg->db_path,
+            sizeof(siri->cfg->db_path));
+    /* Read old environment variable for backwards compatibility */
+    evars__to_strn(
             "SIRIDB_DEFAULT_DB_PATH",
-            siri->cfg->default_db_path,
-            sizeof(siri->cfg->default_db_path));
+            siri->cfg->db_path,
+            sizeof(siri->cfg->db_path));
     evars__u32_mm(
             "SIRIDB_BUFFER_SYNC_INTERVAL",
             &siri->cfg->buffer_sync_interval,

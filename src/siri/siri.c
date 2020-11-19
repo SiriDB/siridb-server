@@ -135,44 +135,44 @@ int make_database_directory(void)
 
     memset(tmppath, 0, XPATH_MAX);
 
-    if (*siri.cfg->default_db_path == '\0')
+    if (*siri.cfg->db_path == '\0')
     {
         if (!homedir || !sysuser || strcmp(sysuser, "root") == 0)
         {
-            strcpy(siri.cfg->default_db_path, "/var/lib/siridb/");
+            strcpy(siri.cfg->db_path, "/var/lib/siridb/");
         }
         else
         {
-            snprintf(siri.cfg->default_db_path, XPATH_MAX, "%s%s.siridb/",
+            snprintf(siri.cfg->db_path, XPATH_MAX, "%s%s.siridb/",
                     homedir,
                     homedir[strlen(homedir)-1] == '/' ? "" : "/");
         }
     }
 
-    if (!xpath_is_dir(siri.cfg->default_db_path))
+    if (!xpath_is_dir(siri.cfg->db_path))
     {
         log_warning("Database directory not found, creating directory '%s'.",
-                siri.cfg->default_db_path);
-        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
+                siri.cfg->db_path);
+        if (mkdir(siri.cfg->db_path, 0700) == -1)
         {
             log_error("Cannot create directory '%s'.",
-                    siri.cfg->default_db_path);
+                    siri.cfg->db_path);
             return -1;
         }
     }
 
-    if (realpath(siri.cfg->default_db_path, tmppath) == NULL)
+    if (realpath(siri.cfg->db_path, tmppath) == NULL)
     {
         log_warning(
                 "Could not resolve default database path: %s",
-                siri.cfg->default_db_path);
+                siri.cfg->db_path);
     }
     else
     {
-        memcpy(siri.cfg->default_db_path, tmppath, sizeof(tmppath));
+        memcpy(siri.cfg->db_path, tmppath, sizeof(tmppath));
     }
 
-    len = strlen(siri.cfg->default_db_path);
+    len = strlen(siri.cfg->db_path);
 
     if (len >= XPATH_MAX - 2)
     {
@@ -185,10 +185,10 @@ int make_database_directory(void)
     }
 
     /* add trailing slash (/) if its not already there */
-    if (siri.cfg->default_db_path[len - 1] != '/')
+    if (siri.cfg->db_path[len - 1] != '/')
     {
-        siri.cfg->default_db_path[len] = '/';
-        siri.cfg->default_db_path[len+1] = '\0';
+        siri.cfg->db_path[len] = '/';
+        siri.cfg->db_path[len+1] = '\0';
     }
 
     return 0;
@@ -385,22 +385,22 @@ static int SIRI_load_databases(void)
     struct dirent * dbpath;
     char * buffer;
 
-    if (!xpath_is_dir(siri.cfg->default_db_path))
+    if (!xpath_is_dir(siri.cfg->db_path))
     {
         log_warning("Database directory not found, creating directory '%s'.",
-                siri.cfg->default_db_path);
-        if (mkdir(siri.cfg->default_db_path, 0700) == -1)
+                siri.cfg->db_path);
+        if (mkdir(siri.cfg->db_path, 0700) == -1)
         {
             log_error("Cannot create directory '%s'.",
-                    siri.cfg->default_db_path);
+                    siri.cfg->db_path);
             return -1;
         }
     }
 
-    if ((db_container_path = opendir(siri.cfg->default_db_path)) == NULL)
+    if ((db_container_path = opendir(siri.cfg->db_path)) == NULL)
     {
         log_error("Cannot open database directory '%s'.",
-                siri.cfg->default_db_path);
+                siri.cfg->db_path);
         return -1;
     }
 
@@ -417,7 +417,7 @@ static int SIRI_load_databases(void)
         if (asprintf(
                 &buffer,
                 "%s%s/",
-                siri.cfg->default_db_path,
+                siri.cfg->db_path,
                 dbpath->d_name) < 0)
         {
             /* allocation error occurred */

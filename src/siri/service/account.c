@@ -36,7 +36,7 @@ int siri_service_account_init(siri_t * siri)
     int rc = 0;
 
     /* get service accounts file name */
-    char fn[strlen(siri->cfg->default_db_path) + strlen(FILENAME) + 1];
+    char fn[strlen(siri->cfg->db_path) + strlen(FILENAME) + 1];
 
     /* initialize linked list */
     siri->accounts = llist_new();
@@ -46,7 +46,7 @@ int siri_service_account_init(siri_t * siri)
     }
 
     /* make filename */
-    sprintf(fn, "%s%s", siri->cfg->default_db_path, FILENAME);
+    sprintf(fn, "%s%s", siri->cfg->db_path, FILENAME);
 
     if (!xpath_file_exist(fn))
     {
@@ -386,10 +386,10 @@ int siri_service_account_save(siri_t * siri, char * err_msg)
     qp_fpacker_t * fpacker;
 
     /* get service accounts file name */
-    char fn[strlen(siri->cfg->default_db_path) + strlen(FILENAME) + 1];
+    char fn[strlen(siri->cfg->db_path) + strlen(FILENAME) + 1];
 
     /* make filename */
-    sprintf(fn, "%s%s", siri->cfg->default_db_path, FILENAME);
+    sprintf(fn, "%s%s", siri->cfg->db_path, FILENAME);
 
     if (
         /* open a new account file */

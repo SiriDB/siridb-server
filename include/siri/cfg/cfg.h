@@ -43,7 +43,7 @@ struct siri_cfg_s
     char * bind_client_addr;
     char * bind_backend_addr;
     char server_address[SIRI_CFG_MAX_LEN_ADDRESS];
-    char default_db_path[XPATH_MAX];
+    char db_path[XPATH_MAX];
     char pipe_client_name[XPATH_MAX];
 };
 

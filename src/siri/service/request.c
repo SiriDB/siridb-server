@@ -77,11 +77,11 @@
         return CPROTO_ERR_SERVICE;                                          \
     }                                                                       \
                                                                             \
-    dbpath_len = strlen(siri.cfg->default_db_path) + qp_dbname.len + 2;     \
+    dbpath_len = strlen(siri.cfg->db_path) + qp_dbname.len + 2;     \
     char dbpath[dbpath_len];                                                \
     sprintf(dbpath,                                                         \
             "%s%.*s/",                                                      \
-            siri.cfg->default_db_path,                                      \
+            siri.cfg->db_path,                                      \
             (int) qp_dbname.len,                                            \
             qp_dbname.via.raw);                                             \
                                                                             \

@@ -28,7 +28,7 @@ static siri_cfg_t siri_cfg = {
         .shard_compression=0,
         .shard_auto_duration=0,
         .server_address="localhost",
-        .default_db_path="",
+        .db_path="",
         .pipe_support=0,
         .pipe_client_name="siridb_client.sock",
         .buffer_sync_interval=0,
@@ -50,7 +50,7 @@ static void SIRI_CFG_read_addr(
         const char * option_name,
         char ** dest);
 static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser);
-static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser);
+static void SIRI_CFG_read_db_path(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser);
@@ -128,7 +128,7 @@ void siri_cfg_init(siri_t * siri)
             &tmp);
     siri_cfg.http_api_port = (uint16_t) tmp;
 
-    SIRI_CFG_read_default_db_path(cfgparser);
+    SIRI_CFG_read_db_path(cfgparser);
     SIRI_CFG_read_max_open_files(cfgparser);
     SIRI_CFG_read_ip_support(cfgparser);
     SIRI_CFG_read_shard_compression(cfgparser);
@@ -449,7 +449,7 @@ static void SIRI_CFG_read_pipe_client_name(cfgparser_t * cfgparser)
     strcpy(siri_cfg.pipe_client_name, option->val->string);
 }
 
-static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
+static void SIRI_CFG_read_db_path(cfgparser_t * cfgparser)
 {
     cfgparser_option_t * option;
     cfgparser_return_t rc;
@@ -457,17 +457,27 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
                 &option,
                 cfgparser,
                 "siridb",
-                "default_db_path");
+                "db_path");
 
     if (rc != CFGPARSER_SUCCESS)
     {
-        return;
+        /* Fall-back using the old configuration name */
+        rc = cfgparser_get_option(
+                    &option,
+                    cfgparser,
+                    "siridb",
+                    "default_db_path");
+
+        if (rc != CFGPARSER_SUCCESS)
+        {
+            return;
+        }
     }
 
     if (option->tp != CFGPARSER_TP_STRING)
     {
         log_warning(
-                "Error reading 'default_db_path' in '%s': %s.",
+                "Error reading 'db_path' in '%s': %s.",
                 siri.args->config,
                 "error: expecting a string value");
         return;
@@ -476,13 +486,13 @@ static void SIRI_CFG_read_default_db_path(cfgparser_t * cfgparser)
     if (strlen(option->val->string) >= XPATH_MAX)
     {
         log_warning(
-                "Error reading 'default_db_path' in '%s': %s.",
+                "Error reading 'db_path' in '%s': %s.",
                 siri.args->config,
                 "error: path too long");
         return;
     }
 
-    strncpy(siri_cfg.default_db_path, option->val->string, XPATH_MAX);
+    strncpy(siri_cfg.db_path, option->val->string, XPATH_MAX);
 }
 
 static void SIRI_CFG_read_max_open_files(cfgparser_t * cfgparser)
