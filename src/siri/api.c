@@ -11,6 +11,7 @@
 #include <siri/db/query.h>
 #include <siri/db/insert.h>
 #include <siri/service/account.h>
+#include <siri/net/tcp.h>
 
 #define API__HEADER_MAX_SZ 256
 
@@ -836,7 +837,11 @@ int siri_api_init(void)
     if (port == 0)
         return 0;
 
-    (void) uv_ip6_addr("::", (int) port, (struct sockaddr_in6 *) &addr);
+    if (siri.cfg->ip_support == IP_SUPPORT_IPV4ONLY) {
+        (void) uv_ip4_addr("0.0.0.0", (int) port, (struct sockaddr_in *) &addr);
+    } else {
+        (void) uv_ip6_addr("::", (int) port, (struct sockaddr_in6 *) &addr);
+    }
 
     api__settings.on_url = api__url_cb;
     api__settings.on_header_field = api__header_field_cb;
@@ -850,7 +855,7 @@ int siri_api_init(void)
         (rc = uv_tcp_bind(
                 &api__uv_server,
                 (const struct sockaddr *) &addr,
-                0)) ||
+                (siri.cfg->ip_support == IP_SUPPORT_IPV6ONLY) ? UV_TCP_IPV6ONLY : 0)) ||
         (rc = uv_listen(
                 (uv_stream_t *) &api__uv_server,
                 128,
