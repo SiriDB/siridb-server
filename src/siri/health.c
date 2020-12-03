@@ -3,6 +3,7 @@
  */
 #include <siri/health.h>
 #include <siri/siri.h>
+#include <siri/net/tcp.h>
 #include <logger/logger.h>
 
 #define OK_RESPONSE \
@@ -311,7 +312,11 @@ int siri_health_init(void)
     struct sockaddr_storage addr = {0};
     uint16_t port = siri.cfg->http_status_port;
 
-    (void) uv_ip6_addr("::", (int) port, (struct sockaddr_in6 *) &addr);
+    if (siri.cfg->ip_support == IP_SUPPORT_IPV4ONLY) {
+        (void) uv_ip4_addr("0.0.0.0", (int) port, (struct sockaddr_in *) &addr);
+    } else {
+        (void) uv_ip6_addr("::", (int) port, (struct sockaddr_in6 *) &addr);
+    }
 
     health__uv_ok_buf =
             uv_buf_init(OK_RESPONSE, strlen(OK_RESPONSE));
@@ -336,7 +341,7 @@ int siri_health_init(void)
         (rc = uv_tcp_bind(
                 &health__uv_server,
                 (const struct sockaddr *) &addr,
-                0)) ||
+                (siri.cfg->ip_support == IP_SUPPORT_IPV6ONLY) ? UV_TCP_IPV6ONLY : 0)) ||
         (rc = uv_listen(
                 (uv_stream_t *) &health__uv_server,
                 128,
