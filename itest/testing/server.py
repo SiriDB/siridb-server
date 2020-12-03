@@ -31,7 +31,7 @@ class Server:
     MEM_CHECK = False
     BUILDTYPE = 'Release'
     SERVER_ADDRESS = '%HOSTNAME'
-    IP_SUPPORT = 'ALL'
+    IP_SUPPORT = 'ALL'  # ALL, IPV4ONLY
     TERMINAL = None  # one of [ 'XTERM', 'XFCE4_TERMINAL', None  ]
     BIND_CLIENT_ADDRESS = "::"
     BIND_SERVER_ADDRESS = "::"

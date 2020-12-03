@@ -837,9 +837,11 @@ int siri_api_init(void)
     if (port == 0)
         return 0;
 
-    if (siri.cfg->ip_support == IP_SUPPORT_IPV4ONLY) {
+    if (siri.cfg->ip_support == IP_SUPPORT_IPV4ONLY)
+    {
         (void) uv_ip4_addr("0.0.0.0", (int) port, (struct sockaddr_in *) &addr);
-    } else {
+    } else
+    {
         (void) uv_ip6_addr("::", (int) port, (struct sockaddr_in6 *) &addr);
     }
 
