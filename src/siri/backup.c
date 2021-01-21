@@ -228,7 +228,7 @@ static int BACKUP_walk(siridb_t * siridb, void * args __attribute__((unused)))
             {
                 siri_fp_close(shard->replacing->fp);
             }
-            --shard->ref;  /* at least two references exist */
+            siridb_shard_decref(shard);
         }
 
         vec_free(shard_list);

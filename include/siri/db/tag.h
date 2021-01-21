@@ -33,9 +33,9 @@ int siridb_tag_set_name(
         const char * name,
         char * err_msg);
 
-#define siridb_tag_incref(tag__) (tag__)->ref++
+#define siridb_tag_incref(tag__) __atomic_add_fetch(&(tag__)->ref, 1, __ATOMIC_SEQ_CST)
 #define siridb_tag_decref(tag__) \
-        if (!--(tag__)->ref) siridb__tag_free(tag__)
+        if (!__atomic_sub_fetch(&(tag__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__tag_free(tag__)
 
 struct siridb_tag_s
 {

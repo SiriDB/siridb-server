@@ -162,7 +162,7 @@ static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
 /*
  * Increment the shard reference counter.
  */
-#define siridb_shard_incref(shard) shard->ref++
+#define siridb_shard_incref(shard__) __atomic_add_fetch(&(shard__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Decrement the reference counter, when 0 the shard will be destroyed.
@@ -173,7 +173,7 @@ static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
  * A signal can be raised in case closing the shard file fails.
  */
 #define siridb_shard_decref(shard__)     \
-        if (!--shard__->ref) siridb__shard_free(shard__)
+        if (!__atomic_sub_fetch(&(shard__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__shard_free(shard__)
 
 
 #define siridb_shard_idx_file(Name__, Fn__)         \

@@ -27,7 +27,6 @@ typedef void (* sirinet_promise_cb)(
 #include <siri/net/pkg.h>
 
 
-
 const char * sirinet_promise_strstatus(sirinet_promise_status_t status);
 
 #define sirinet_promise_incref(p__) (p__)->ref++

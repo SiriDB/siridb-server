@@ -55,8 +55,9 @@ void siridb__free(siridb_t * siridb);
 void siridb_drop(siridb_t * siridb);
 void siridb_update_shard_expiration(siridb_t * siridb);
 
-#define siridb_incref(siridb) siridb->ref++
-#define siridb_decref(_siridb) if (!--_siridb->ref) siridb__free(_siridb)
+#define siridb_incref(siridb__) __atomic_add_fetch(&(siridb__)->ref, 1, __ATOMIC_SEQ_CST)
+#define siridb_decref(siridb__) \
+    if (!__atomic_sub_fetch(&(siridb__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__free(siridb__)
 #define siridb_is_reindexing(siridb) (siridb->flags & SIRIDB_FLAG_REINDEXING)
 
 struct siridb_s

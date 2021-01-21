@@ -774,10 +774,7 @@ siridb_points_t * siridb_series_get_points(
  */
 void siridb__series_decref(siridb_series_t * series)
 {
-    if (!--series->ref)
-    {
-        siridb__series_free(series);
-    }
+    siridb_series_decref(series);
 }
 
 siridb_points_t * siridb_series_get_first(

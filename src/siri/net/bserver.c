@@ -884,8 +884,7 @@ static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
                 qp_obj_t qp_tag_name;
 
                 /* take a reference since this task might wait for a lock */
-
-                ++series->ref;
+                siridb_series_incref(series);
 
                 uv_mutex_lock(&siridb->tags->mutex);
 

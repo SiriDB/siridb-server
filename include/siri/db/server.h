@@ -130,7 +130,7 @@ void siridb__server_free(siridb_server_t * server);
 #define siridb_server_update_flags(org, new) \
     org = new | (org & (SERVER_FLAG_AUTHENTICATED | SERVER_FLAG_QUEUE_FULL))
 
-#define siridb_server_incref(server) server->ref++
+#define siridb_server_incref(server__) __atomic_add_fetch(&(server__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Decrement server reference counter and free the server when zero is reached.
@@ -138,7 +138,7 @@ void siridb__server_free(siridb_server_t * server);
  * and each promise->cb() will be called.
  */
 #define siridb_server_decref(server__) \
-    if (!--server__->ref) siridb__server_free(server__)
+    if (!__atomic_sub_fetch(&(server__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__server_free(server__)
 
 struct siridb_server_s
 {

@@ -36,13 +36,13 @@ int siridb_user_cexpr_cb(siridb_user_t * user, cexpr_condition_t * cond);
 /*
  * Increment the user reference counter.
  */
-#define siridb_user_incref(user) user->ref++
+#define siridb_user_incref(user__) __atomic_add_fetch(&(user__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Decrement user reference counter and free the user when zero is reached.
  */
 #define siridb_user_decref(user__) \
-    if (!--user__->ref) siridb__user_free(user__)
+    if (!__atomic_sub_fetch(&(user__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__user_free(user__)
 
 struct siridb_user_s
 {
