@@ -1061,7 +1061,6 @@ int siridb_series_optimize_shard(
              * we have at least 2 references to the shard so we never
              * reach 0 here.  (this ref + optimize ref)
              */
-            assert(shard->replacing->ref >= 2);
             siridb_shard_decref(shard->replacing);
         }
         else if (idx->shard == shard && end)
