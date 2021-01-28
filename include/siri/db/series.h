@@ -128,14 +128,14 @@ void siridb_series_ensure_type(siridb_series_t * series, qp_obj_t * qp_obj);
 /*
  * Increment the series reference counter.
  */
-#define siridb_series_incref(series) series->ref++
+#define siridb_series_incref(series) __atomic_add_fetch(&(series)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Decrement reference counter for series and free the series when zero is
  * reached.
  */
 #define siridb_series_decref(series__) \
-        if (!--series__->ref) siridb__series_free(series__)
+        if (!__atomic_sub_fetch(&(series__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__series_free(series__)
 
 
 #define siridb_series_server_id(series) \
