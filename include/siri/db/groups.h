@@ -65,6 +65,7 @@ int siridb_groups_add_group(
 int siridb_groups_add_series(
         siridb_groups_t * groups,
         siridb_series_t * series);
+void siridb__groups_free(siridb_groups_t * groups);
 
 struct siridb_groups_s
 {
@@ -78,4 +79,10 @@ struct siridb_groups_s
     uv_mutex_t mutex;
     uv_thread_t thread;
 };
+
+#define siridb_groups_incref(groups__) __atomic_add_fetch(&(groups__)->ref, 1, __ATOMIC_SEQ_CST)
+#define siridb_groups_decref(groups__) \
+    if (!__atomic_sub_fetch(&(groups__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__groups_free(groups__)
+
+
 #endif  /* SIRIDB_GROUPS_H_ */

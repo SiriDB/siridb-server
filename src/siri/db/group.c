@@ -153,10 +153,7 @@ int siridb_group_set_name(
  */
 void siridb__group_decref(siridb_group_t * group)
 {
-    if (!--group->ref)
-    {
-        siridb__group_free(group);
-    }
+    siridb_group_decref(group);
 }
 
 /*

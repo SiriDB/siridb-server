@@ -36,12 +36,12 @@ void sirinet_stream_on_data(
         const uv_buf_t * buf);
 void sirinet__stream_free(uv_stream_t * uvclient);
 
-#define sirinet_stream_incref(client) \
-    (client)->ref++
+#define sirinet_stream_incref(client__) \
+    __atomic_add_fetch(&(client__)->ref, 1, __ATOMIC_SEQ_CST)
 
-#define sirinet_stream_decref(client)               \
-    if (!--(client)->ref) uv_close(                 \
-        (uv_handle_t *) (client)->stream,           \
+#define sirinet_stream_decref(client__)                                       \
+    if (!__atomic_sub_fetch(&(client__)->ref, 1, __ATOMIC_SEQ_CST)) uv_close( \
+        (uv_handle_t *) (client__)->stream,                                   \
         (uv_close_cb) sirinet__stream_free)
 
 struct sirinet_stream_s

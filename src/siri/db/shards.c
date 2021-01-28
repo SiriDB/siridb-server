@@ -389,7 +389,7 @@ static inline int SHARDS_to_vec_cb(omap_t * omap, vec_t * v)
     for (;iter && (shard = iter->data_); iter = iter->next_)
     {
         vec_append(v, shard);
-        ++shard->ref;
+        siridb_shard_incref(shard);
     }
     return 0;
 }

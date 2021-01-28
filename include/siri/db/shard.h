@@ -162,7 +162,7 @@ static inline siridb_shard_get_points_cb siridb_shard_get_points_callback(
 /*
  * Increment the shard reference counter.
  */
-#define siridb_shard_incref(shard) __atomic_add_fetch(&(shard)->ref, 1, __ATOMIC_SEQ_CST)
+#define siridb_shard_incref(shard__) __atomic_add_fetch(&(shard__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Decrement the reference counter, when 0 the shard will be destroyed.

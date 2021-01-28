@@ -1569,10 +1569,7 @@ int siridb_shard_optimize(siridb_shard_t * shard, siridb_t * siridb)
  */
 void siridb__shard_decref(siridb_shard_t * shard)
 {
-    if (!--shard->ref)
-    {
-        siridb__shard_free(shard);
-    }
+    siridb_shard_decref(shard);
 }
 
 void siridb_shard_drop(siridb_shard_t * shard, siridb_t * siridb)

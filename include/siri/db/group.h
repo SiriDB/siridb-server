@@ -42,9 +42,9 @@ int siridb_group_is_remote_prop(uint32_t prop);
 void siridb__group_decref(siridb_group_t * group);
 void siridb__group_free(siridb_group_t * group);
 
-#define siridb_group_incref(group__) (group__)->ref++
+#define siridb_group_incref(group__) __atomic_add_fetch(&(group__)->ref, 1, __ATOMIC_SEQ_CST)
 #define siridb_group_decref(group__) \
-        if (!--(group__)->ref) siridb__group_free(group__)
+        if (!__atomic_sub_fetch(&(group__)->ref, 1, __ATOMIC_SEQ_CST)) siridb__group_free(group__)
 
 struct siridb_group_s
 {

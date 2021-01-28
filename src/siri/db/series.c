@@ -774,10 +774,7 @@ siridb_points_t * siridb_series_get_points(
  */
 void siridb__series_decref(siridb_series_t * series)
 {
-    if (!--series->ref)
-    {
-        siridb__series_free(series);
-    }
+    siridb_series_decref(series);
 }
 
 siridb_points_t * siridb_series_get_first(
@@ -1064,7 +1061,6 @@ int siridb_series_optimize_shard(
              * we have at least 2 references to the shard so we never
              * reach 0 here.  (this ref + optimize ref)
              */
-            assert(shard->replacing->ref >= 2);
             siridb_shard_decref(shard->replacing);
         }
         else if (idx->shard == shard && end)

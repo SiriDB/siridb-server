@@ -314,10 +314,7 @@ int siridb_tag_set_name(
  */
 void siridb__tag_decref(siridb_tag_t * tag)
 {
-    if (!--tag->ref)
-    {
-        siridb__tag_free(tag);
-    }
+    siridb_tag_decref(tag);
 }
 
 /*

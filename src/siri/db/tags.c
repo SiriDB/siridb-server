@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <siri/siri.h>
 
-static void TAGS_free(siridb_tags_t * tags);
 static int TAGS_load(siridb_t * siridb);
 static int TAGS_dropped_series(
         siridb_tag_t * tag,
@@ -55,25 +54,12 @@ int siridb_tags_init(siridb_t * siridb)
             siridb->tags->tags == NULL ||
             TAGS_load(siridb))
     {
-        TAGS_free(siridb->tags);
+        siridb__tags_free(siridb->tags);
         siridb->tags = NULL;
         return -1;
     }
 
     return 0;
-}
-
-void siridb_tags_incref(siridb_tags_t * tags)
-{
-    tags->ref++;
-}
-
-void siridb_tags_decref(siridb_tags_t * tags)
-{
-    if (!--tags->ref)
-    {
-        TAGS_free(tags);
-    }
 }
 
 /*
@@ -429,7 +415,7 @@ static int TAGS_load(siridb_t * siridb)
     return rc;
 }
 
-static void TAGS_free(siridb_tags_t * tags)
+void siridb__tags_free(siridb_tags_t * tags)
 {
     if (tags->flags & TAGS_FLAG_REQUIRE_SAVE)
     {

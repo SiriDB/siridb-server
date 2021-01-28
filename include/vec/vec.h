@@ -24,7 +24,7 @@ int vec_append_safe(vec_t ** vec, void * data);
  * Expects the object to have a object->ref (uint_xxx_t) on top of the
  * objects definition.
  */
-#define vec_object_incref(object) __atomic_add_fetch(&((vec_object_t * ) (object))->ref, 1, __ATOMIC_SEQ_CST)
+#define vec_object_incref(object__) __atomic_add_fetch(&((vec_object_t * ) object__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Expects the object to have a object->ref (uint_xxx_t) on top of the
@@ -34,7 +34,7 @@ int vec_append_safe(vec_t ** vec, void * data);
  *          there are still references left on the object since an object
  *          probably needs specific cleanup tasks.
  */
-#define vec_object_decref(object) __atomic_sub_fetch(&((vec_object_t * ) (object))->ref, 1, __ATOMIC_SEQ_CST)
+#define vec_object_decref(object__) __atomic_sub_fetch(&((vec_object_t * ) object__)->ref, 1, __ATOMIC_SEQ_CST)
 
 /*
  * Append data to the list. This functions assumes the list can hold the new

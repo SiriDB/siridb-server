@@ -884,8 +884,7 @@ static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
                 qp_obj_t qp_tag_name;
 
                 /* take a reference since this task might wait for a lock */
-
-                ++series->ref;
+                siridb_series_incref(series);
 
                 uv_mutex_lock(&siridb->tags->mutex);
 
@@ -906,7 +905,7 @@ static void on_series_tags(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 
                     if (tag && imap_add(tag->series, series->id, series) == 0)
                     {
-                        ++series->ref;
+                        siridb_series_incref(series);
                     }
 
                     siridb_tags_set_require_save(siridb->tags, tag);

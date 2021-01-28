@@ -46,7 +46,6 @@
 #define CALC_BATCH_SIZE(sz) GROUPS_RE_BATCH_SZ /((sz / 5 ) + 1) + 1;
 
 static int GROUPS_load(siridb_t * siridb);
-static void GROUPS_free(siridb_groups_t * groups);
 static int GROUPS_pkg(siridb_group_t * group, qp_packer_t * packer);
 static int GROUPS_nseries(siridb_group_t * group, void * data);
 static void GROUPS_loop(void * arg);
@@ -82,7 +81,7 @@ int siridb_groups_init(siridb_t * siridb)
             !siridb->groups->ngroups)
     {
         ERR_ALLOC
-        GROUPS_free(siridb->groups);
+        siridb__groups_free(siridb->groups);
         siridb->groups = NULL;
         return -1;
     }
@@ -94,7 +93,7 @@ int siridb_groups_init(siridb_t * siridb)
                 SIRIDB_GROUPS_FN) < 0 || GROUPS_load(siridb))
     {
         ERR_ALLOC
-        GROUPS_free(siridb->groups);
+        siridb__groups_free(siridb->groups);
         siridb->groups = NULL;
         return -1;
     }
@@ -330,19 +329,6 @@ int siridb_groups_drop_group(
     return 0;
 }
 
-void siridb_groups_incref(siridb_groups_t * groups)
-{
-    groups->ref++;
-}
-
-void siridb_groups_decref(siridb_groups_t * groups)
-{
-    if (!--groups->ref)
-    {
-        GROUPS_free(groups);
-    }
-}
-
 /*
  * Main thread.
  */
@@ -366,7 +352,7 @@ static int GROUPS_nseries(
     return 0;
 }
 
-static void GROUPS_free(siridb_groups_t * groups)
+void siridb__groups_free(siridb_groups_t * groups)
 {
     size_t i;
     free(groups->fn);

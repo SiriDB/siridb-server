@@ -53,7 +53,7 @@ static void owcrypt1(
  *  #  Checking can be done like this:
  *  char[OWCRYPT_SZ] pw;
  *  owcrypt("pasword_to_check", encrypted, pw");
- *  if (strcmp(pw, encrypted) === 0) {
+ *  if (strcmp(pw, encrypted) == 0) {
  *      #  valid
  *  }
  *
