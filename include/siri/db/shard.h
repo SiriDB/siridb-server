@@ -128,7 +128,7 @@ struct siridb_shard_s
     uint64_t id;
     size_t len;         /* size of the shard which is used */
     size_t size;        /* size of shard on disk */
-    size_t duration;    /* based on the interval of series */
+    uint64_t duration;    /* based on the interval of series */
     siri_fp_t * fp;
     char * fn;
     siridb_shard_t * replacing;
