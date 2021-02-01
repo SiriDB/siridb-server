@@ -125,8 +125,6 @@ static void api__reset(siri_api_request_t * ar)
 {
     /* Reset buffer in case multiple HTTP requests are used */
     free (ar->buf);
-    ar->buf = NULL;
-    ar->len = 0;
 
     if (ar->siridb)
     {
@@ -139,6 +137,14 @@ static void api__reset(siri_api_request_t * ar)
         siridb_user_decref((siridb_user_t *) ar->origin);
         ar->origin = NULL;
     }
+
+    ar->buf = NULL;
+    ar->len = 0;
+    ar->size = 0;
+    ar->on_state = NULL;
+    ar->service_authenticated = 0;
+    ar->request_type = SIRI_API_RT_NONE;
+    ar->content_type = SIRI_API_CT_TEXT;
 }
 
 static void api__data_cb(
@@ -318,7 +324,6 @@ static void api__connection_cb(uv_stream_t * server, int status)
 
     ar->tp = STREAM_API_CLIENT;
     ar->ref = 1;
-    ar->on_state = NULL;
 
     (void) uv_tcp_init(siri.loop, (uv_tcp_t *) ar->stream);
 
