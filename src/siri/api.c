@@ -117,6 +117,7 @@ static void api__alloc_cb(
         size_t UNUSED_sugsz __attribute__((unused)),
         uv_buf_t * buf)
 {
+    LOGC("ALLOC_CB");
     buf->base = malloc(HTTP_MAX_HEADER_SIZE);
     buf->len = buf->base ? HTTP_MAX_HEADER_SIZE-1 : 0;
 }
@@ -126,6 +127,7 @@ static void api__data_cb(
         ssize_t n,
         const uv_buf_t * buf)
 {
+    LOGC("DATA_CB");
     size_t parsed;
     siri_api_request_t * ar = uvstream->data;
 
@@ -202,6 +204,7 @@ static void api__get_siridb(siri_api_request_t * ar, const char * at, size_t n)
 
 static int api__url_cb(http_parser * parser, const char * at, size_t n)
 {
+    LOGC("URL_CB");
     siri_api_request_t * ar = parser->data;
 
     if (api__starts_with(&at, &n, "/query/", strlen("/query/")))
@@ -269,6 +272,7 @@ static int api__url_cb(http_parser * parser, const char * at, size_t n)
 
 static void api__connection_cb(uv_stream_t * server, int status)
 {
+    LOGC("CONNECTION_CB");
     int rc;
     siri_api_request_t * ar;
 
@@ -377,12 +381,14 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
 }
 static int api__header_value_cb(http_parser * parser, const char * at, size_t n)
 {
+    LOGC("HEADER_VALUE_CB");
     siri_api_request_t * ar = parser->data;
     return ar->on_state ? ar->on_state(ar, at, n) : 0;
 }
 
 static int api__header_field_cb(http_parser * parser, const char * at, size_t n)
 {
+    LOGC("HEADER_FIELD_CB");
     siri_api_request_t * ar = parser->data;
 
     ar->on_state = API__ICMP_WITH(at, n, "content-type")
@@ -395,6 +401,7 @@ static int api__header_field_cb(http_parser * parser, const char * at, size_t n)
 
 static int api__body_cb(http_parser * parser, const char * at, size_t n)
 {
+    LOGC("BODY_CB");
     size_t offset;
     siri_api_request_t * ar = parser->data;
 
@@ -410,6 +417,7 @@ static int api__body_cb(http_parser * parser, const char * at, size_t n)
 
 static void api__write_cb(uv_write_t * req, int status)
 {
+    LOGC("WRITE_CB");
     if (status)
         log_error(
                 "error writing HTTP API response: `%s`",
@@ -659,6 +667,7 @@ static int api__insert_cb(http_parser * parser)
 
 static int api__query_cb(http_parser * parser)
 {
+    LOGC("QUERY_CB");
     api__query_t q;
     siri_api_request_t * ar = parser->data;
 
@@ -782,6 +791,7 @@ static int api__service_cb(http_parser * parser)
 
 static int api__message_complete_cb(http_parser * parser)
 {
+    LOGC("MESSAGE_COMPLETE_CB");
     siri_api_request_t * ar = parser->data;
 
     switch(ar->request_type)
@@ -801,6 +811,7 @@ static int api__message_complete_cb(http_parser * parser)
 
 static void api__write_free_cb(uv_write_t * req, int status)
 {
+    LOGC("FREE_WRITE_CB");
     free(req->data);
     api__write_cb(req, status);
 }
@@ -811,6 +822,7 @@ static int api__close_resp(
         void * data,
         size_t size)
 {
+    LOGC("CLOSE_RESPONSE_CB");
     char header[API__HEADER_MAX_SZ];
     int header_size = 0;
 
