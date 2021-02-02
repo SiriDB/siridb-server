@@ -402,6 +402,7 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
     log_debug("invalid authorization type: %.*s", (int) n, at);
     return 0;
 }
+
 static int api__header_value_cb(http_parser * parser, const char * at, size_t n)
 {
     siri_api_request_t * ar = parser->data;
@@ -437,12 +438,17 @@ static int api__body_cb(http_parser * parser, const char * at, size_t n)
 
 static void api__write_cb(uv_write_t * req, int status)
 {
+    siri_api_request_t * ar = req->handle->data;
+
     if (status)
         log_error(
                 "error writing HTTP API response: `%s`",
                 uv_strerror(status));
 
-    sirinet_stream_decref((siri_api_request_t *) req->handle->data);
+    /* Resume parsing */
+    http_parser_pause(&ar->parser, 0);
+
+    sirinet_stream_decref(ar);
 }
 
 static int api__plain_response(
@@ -813,6 +819,9 @@ static int api__message_complete_cb(http_parser * parser)
 
     ar->flags |= SIRI_API_FLAG_MESSAGE_COMPLETED;
 
+    /* Pause the HTTP parser */
+    http_parser_pause(&ar->parser, 1);
+
     switch(ar->request_type)
     {
     case SIRI_API_RT_NONE:
@@ -833,6 +842,8 @@ static void api__write_free_cb(uv_write_t * req, int status)
     free(req->data);
     api__write_cb(req, status);
 }
+
+
 
 static int api__close_resp(
         siri_api_request_t * ar,
