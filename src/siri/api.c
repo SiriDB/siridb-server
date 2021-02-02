@@ -142,7 +142,7 @@ static void api__reset(siri_api_request_t * ar)
     ar->len = 0;
     ar->size = 0;
     ar->on_state = NULL;
-    ar->flags = 0;
+    ar->service_authenticated = 0;
     ar->request_type = SIRI_API_RT_NONE;
     ar->content_type = SIRI_API_CT_TEXT;
 }
@@ -166,9 +166,6 @@ static void api__data_cb(
         sirinet_stream_decref(ar);
         goto done;
     }
-
-    if (ar->flags & SIRI_API_FLAG_MESSAGE_COMPLETED)
-        api__reset(ar);
 
     buf->base[HTTP_MAX_HEADER_SIZE-1] = '\0';
 
@@ -382,8 +379,8 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
     {
         if (ar->request_type == SIRI_APT_RT_SERVICE)
         {
-            if (siri_service_account_check_basic(&siri, at, n))
-                ar->flags |= SIRI_API_FLAG_SERVICE_AUTHENTICATED;
+            ar->service_authenticated = \
+                    siri_service_account_check_basic(&siri, at, n);
             return 0;
         }
         siridb_user_t * user;
@@ -444,6 +441,9 @@ static void api__write_cb(uv_write_t * req, int status)
         log_error(
                 "error writing HTTP API response: `%s`",
                 uv_strerror(status));
+
+    /* reset the API to support multiple request on the same connection */
+    api__reset(ar);
 
     /* Resume parsing */
     http_parser_pause(&ar->parser, 0);
@@ -757,7 +757,7 @@ static int api__service_cb(http_parser * parser)
         break;
     }
 
-    if (~ar->flags & SIRI_API_FLAG_SERVICE_AUTHENTICATED)
+    if (!ar->service_authenticated)
         return api__plain_response(ar, E401_UNAUTHORIZED);
 
     switch (ar->content_type)
@@ -817,9 +817,11 @@ static int api__message_complete_cb(http_parser * parser)
 {
     siri_api_request_t * ar = parser->data;
 
-    ar->flags |= SIRI_API_FLAG_MESSAGE_COMPLETED;
-
-    /* Pause the HTTP parser */
+    /* Pause the HTTP parser;
+     * This is required since SiriDB will handle queries and inserts
+     * asynchronously and SiriDB must be sure that the request does not
+     * change during this time. It is also important to write the responses
+     * in order and this solves both issues. */
     http_parser_pause(&ar->parser, 1);
 
     switch(ar->request_type)
@@ -842,8 +844,6 @@ static void api__write_free_cb(uv_write_t * req, int status)
     free(req->data);
     api__write_cb(req, status);
 }
-
-
 
 static int api__close_resp(
         siri_api_request_t * ar,
