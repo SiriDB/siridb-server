@@ -38,6 +38,12 @@ typedef enum
     E503_SERVICE_UNAVAILABLE
 } siri_api_header_t;
 
+typedef enum
+{
+    SIRI_API_FLAG_SERVICE_AUTHENTICATED     =1<<0,
+    SIRI_API_FLAG_MESSAGE_COMPLETED         =1<<1,
+} siri_api_flags_t;
+
 typedef struct siri_api_request_s siri_api_request_t;
 
 typedef int (*on_state_cb_t)(siri_api_request_t * ar, const char * at, size_t n);
@@ -63,7 +69,7 @@ struct siri_api_request_s
     siri_api_content_t content_type;
     siri_api_req_t request_type;
     service_request_t service_type;
-    _Bool service_authenticated;
+    siri_api_flags_t flags;
     http_parser parser;
     uv_write_t req;
 };

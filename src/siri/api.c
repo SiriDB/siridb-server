@@ -142,7 +142,7 @@ static void api__reset(siri_api_request_t * ar)
     ar->len = 0;
     ar->size = 0;
     ar->on_state = NULL;
-    ar->service_authenticated = 0;
+    ar->flags = 0;
     ar->request_type = SIRI_API_RT_NONE;
     ar->content_type = SIRI_API_CT_TEXT;
 }
@@ -167,7 +167,8 @@ static void api__data_cb(
         goto done;
     }
 
-    api__reset(ar);
+    if (ar->flags & SIRI_API_FLAG_MESSAGE_COMPLETED)
+        api__reset(ar);
 
     buf->base[HTTP_MAX_HEADER_SIZE-1] = '\0';
 
@@ -381,8 +382,8 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
     {
         if (ar->request_type == SIRI_APT_RT_SERVICE)
         {
-            ar->service_authenticated = siri_service_account_check_basic(
-                    &siri, at, n);
+            if (siri_service_account_check_basic(&siri, at, n))
+                ar->flags |= SIRI_API_FLAG_SERVICE_AUTHENTICATED;
             return 0;
         }
         siridb_user_t * user;
@@ -750,7 +751,7 @@ static int api__service_cb(http_parser * parser)
         break;
     }
 
-    if (!ar->service_authenticated)
+    if (~ar->flags & SIRI_API_FLAG_SERVICE_AUTHENTICATED)
         return api__plain_response(ar, E401_UNAUTHORIZED);
 
     switch (ar->content_type)
@@ -809,6 +810,8 @@ static int api__service_cb(http_parser * parser)
 static int api__message_complete_cb(http_parser * parser)
 {
     siri_api_request_t * ar = parser->data;
+
+    ar->flags |= SIRI_API_FLAG_MESSAGE_COMPLETED;
 
     switch(ar->request_type)
     {
