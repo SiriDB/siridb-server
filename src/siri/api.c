@@ -121,6 +121,32 @@ static void api__alloc_cb(
     buf->len = buf->base ? HTTP_MAX_HEADER_SIZE-1 : 0;
 }
 
+static void api__reset(siri_api_request_t * ar)
+{
+    /* Reset buffer in case multiple HTTP requests are used */
+    free (ar->buf);
+
+    if (ar->siridb)
+    {
+        siridb_decref(ar->siridb);
+        ar->siridb = NULL;
+    }
+
+    if (ar->origin)
+    {
+        siridb_user_decref((siridb_user_t *) ar->origin);
+        ar->origin = NULL;
+    }
+
+    ar->buf = NULL;
+    ar->len = 0;
+    ar->size = 0;
+    ar->on_state = NULL;
+    ar->service_authenticated = 0;
+    ar->request_type = SIRI_API_RT_NONE;
+    ar->content_type = SIRI_API_CT_TEXT;
+}
+
 static void api__data_cb(
         uv_stream_t * uvstream,
         ssize_t n,
@@ -192,7 +218,6 @@ static void api__get_siridb(siri_api_request_t * ar, const char * at, size_t n)
         --n;
         ++nn;
     }
-
     ar->siridb = siridb_getn(siri.siridb_list, at, nn);
     if (ar->siridb)
     {
@@ -297,7 +322,6 @@ static void api__connection_cb(uv_stream_t * server, int status)
 
     ar->tp = STREAM_API_CLIENT;
     ar->ref = 1;
-    ar->on_state = NULL;
 
     (void) uv_tcp_init(siri.loop, (uv_tcp_t *) ar->stream);
 
@@ -355,8 +379,8 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
     {
         if (ar->request_type == SIRI_APT_RT_SERVICE)
         {
-            ar->service_authenticated = siri_service_account_check_basic(
-                    &siri, at, n);
+            ar->service_authenticated = \
+                    siri_service_account_check_basic(&siri, at, n);
             return 0;
         }
         siridb_user_t * user;
@@ -375,6 +399,7 @@ static int api__on_authorization(siri_api_request_t * ar, const char * at, size_
     log_debug("invalid authorization type: %.*s", (int) n, at);
     return 0;
 }
+
 static int api__header_value_cb(http_parser * parser, const char * at, size_t n)
 {
     siri_api_request_t * ar = parser->data;
@@ -410,12 +435,20 @@ static int api__body_cb(http_parser * parser, const char * at, size_t n)
 
 static void api__write_cb(uv_write_t * req, int status)
 {
+    siri_api_request_t * ar = req->handle->data;
+
     if (status)
         log_error(
                 "error writing HTTP API response: `%s`",
                 uv_strerror(status));
 
-    sirinet_stream_decref((siri_api_request_t *) req->handle->data);
+    /* reset the API to support multiple request on the same connection */
+    api__reset(ar);
+
+    /* Resume parsing */
+    http_parser_pause(&ar->parser, 0);
+
+    sirinet_stream_decref(ar);
 }
 
 static int api__plain_response(
@@ -783,6 +816,13 @@ static int api__service_cb(http_parser * parser)
 static int api__message_complete_cb(http_parser * parser)
 {
     siri_api_request_t * ar = parser->data;
+
+    /* Pause the HTTP parser;
+     * This is required since SiriDB will handle queries and inserts
+     * asynchronously and SiriDB must be sure that the request does not
+     * change during this time. It is also important to write the responses
+     * in order and this solves both issues. */
+    http_parser_pause(&ar->parser, 1);
 
     switch(ar->request_type)
     {
