@@ -1,3 +1,14 @@
+siridb-server (2.0.43-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed HTTP pipeline issue (@srdgame, #161)
+    - Fixed possible memory corruption (@ubnt-michals, #158)
+    - Changed SIRIDB_DB_PATH configuration (#154)
+    - Fixed shard duration for ARM builds (@srdgame, #164)
+    - Use IPv4 for health and API when configured (@ubnt-michals, #155)
+
+ -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 04 Feb 2021 15:36:02 +0100
+
 siridb-server (2.0.42-0~tt1) unstable; urgency=medium
 
   * New upstream release
