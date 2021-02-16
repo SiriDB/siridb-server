@@ -51,7 +51,10 @@ void imap_symmetric_difference_ref(
 
 struct imap_node_s
 {
-    size_t size;
+    uint32_t size;
+    uint8_t key;
+    uint8_t pad8;
+    uint16_t pad16;
     void * data ;
     imap_node_t * nodes;
 };
