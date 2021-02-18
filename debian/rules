@@ -6,7 +6,7 @@ export DEB_BUILD_MAINT_OPTIONS=hardening=+all
 	dh $@
 
 override_dh_auto_build-arch:
-	$(MAKE) --directory=Release
+	dh_auto_build --sourcedirectory=Release
 	help2man -N -n"time series database server" Release/siridb-server > Release/siridb-server.1
 
 override_dh_auto_clean:

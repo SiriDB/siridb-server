@@ -1,0 +1,428 @@
+Index: siridb-server-2.0.42/Release/makefile
+===================================================================
+--- siridb-server-2.0.42.orig/Release/makefile	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/makefile	2021-02-09 13:54:43.760484998 +0100
+@@ -68,7 +68,7 @@
+ siridb-server: $(OBJS) $(USER_OBJS)
+ 	@echo 'Building target: $@'
+ 	@echo 'Invoking: GCC C Linker'
+-	gcc  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LDFLAGS) $(LIBS) $(CRYPT) $(UUID)
++	$(CC)  -o "siridb-server" $(OBJS) $(USER_OBJS) $(LDFLAGS) $(LIBS) $(CRYPT) $(UUID)
+ 	@echo 'Finished building target: $@'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/argparse/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/argparse/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/argparse/subdir.mk	2021-02-09 13:58:08.904950637 +0100
+@@ -13,7 +13,7 @@
+ src/argparse/%.o: ../src/argparse/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/base64/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/base64/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/base64/subdir.mk	2021-02-09 13:57:03.898070586 +0100
+@@ -13,7 +13,7 @@
+ src/base64/%.o: ../src/base64/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/cexpr/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/cexpr/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/cexpr/subdir.mk	2021-02-09 13:58:23.868692868 +0100
+@@ -13,7 +13,7 @@
+ src/cexpr/%.o: ../src/cexpr/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/cfgparser/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/cfgparser/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/cfgparser/subdir.mk	2021-02-09 13:55:08.376060777 +0100
+@@ -13,7 +13,7 @@
+ src/cfgparser/%.o: ../src/cfgparser/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/ctree/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/ctree/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/ctree/subdir.mk	2021-02-09 13:57:50.265271761 +0100
+@@ -13,7 +13,7 @@
+ src/ctree/%.o: ../src/ctree/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/expr/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/expr/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/expr/subdir.mk	2021-02-09 13:57:43.253392574 +0100
+@@ -13,7 +13,7 @@
+ src/expr/%.o: ../src/expr/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/imap/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/imap/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/imap/subdir.mk	2021-02-09 13:56:47.978344845 +0100
+@@ -13,7 +13,7 @@
+ src/imap/%.o: ../src/imap/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/iso8601/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/iso8601/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/iso8601/subdir.mk	2021-02-09 13:57:00.386131093 +0100
+@@ -13,7 +13,7 @@
+ src/iso8601/%.o: ../src/iso8601/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/lib/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/lib/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/lib/subdir.mk	2021-02-09 13:57:07.850002504 +0100
+@@ -13,7 +13,7 @@
+ src/lib/%.o: ../src/lib/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/llist/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/llist/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/llist/subdir.mk	2021-02-09 13:56:52.910259884 +0100
+@@ -13,7 +13,7 @@
+ src/llist/%.o: ../src/llist/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/lock/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/lock/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/lock/subdir.mk	2021-02-09 13:58:27.912623208 +0100
+@@ -13,7 +13,7 @@
+ src/lock/%.o: ../src/lock/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/logger/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/logger/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/logger/subdir.mk	2021-02-09 13:58:14.300857679 +0100
+@@ -13,7 +13,7 @@
+ src/logger/%.o: ../src/logger/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/omap/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/omap/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/omap/subdir.mk	2021-02-09 13:58:17.328805518 +0100
+@@ -13,7 +13,7 @@
+ src/omap/%.o: ../src/omap/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/owcrypt/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/owcrypt/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/owcrypt/subdir.mk	2021-02-09 13:57:53.637213672 +0100
+@@ -13,7 +13,7 @@
+ src/owcrypt/%.o: ../src/owcrypt/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/procinfo/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/procinfo/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/procinfo/subdir.mk	2021-02-09 13:58:12.096895648 +0100
+@@ -13,7 +13,7 @@
+ src/procinfo/%.o: ../src/procinfo/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/qpack/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/qpack/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/qpack/subdir.mk	2021-02-09 13:58:03.633041467 +0100
+@@ -13,7 +13,7 @@
+ src/qpack/%.o: ../src/qpack/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/qpjson/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/qpjson/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/qpjson/subdir.mk	2021-02-09 13:57:58.949122161 +0100
+@@ -13,7 +13,7 @@
+ src/qpjson/%.o: ../src/qpjson/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/args/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/args/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/args/subdir.mk	2021-02-09 13:57:27.857657811 +0100
+@@ -13,7 +13,7 @@
+ src/siri/args/%.o: ../src/siri/args/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/cfg/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/cfg/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/cfg/subdir.mk	2021-02-09 13:57:30.545611508 +0100
+@@ -13,7 +13,7 @@
+ src/siri/cfg/%.o: ../src/siri/cfg/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/db/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/db/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/db/subdir.mk	2021-02-09 13:57:21.893760558 +0100
+@@ -139,7 +139,7 @@
+ src/siri/db/%.o: ../src/siri/db/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/file/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/file/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/file/subdir.mk	2021-02-09 13:57:14.473888393 +0100
+@@ -16,7 +16,7 @@
+ src/siri/file/%.o: ../src/siri/file/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/grammar/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/grammar/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/grammar/subdir.mk	2021-02-09 13:57:17.189841601 +0100
+@@ -13,7 +13,7 @@
+ src/siri/grammar/%.o: ../src/siri/grammar/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/help/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/help/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/help/subdir.mk	2021-02-09 13:57:35.621524052 +0100
+@@ -13,7 +13,7 @@
+ src/siri/help/%.o: ../src/siri/help/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/net/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/net/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/net/subdir.mk	2021-02-09 13:57:10.705953306 +0100
+@@ -37,6 +37,6 @@
+ src/siri/net/%.o: ../src/siri/net/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+Index: siridb-server-2.0.42/Release/src/siri/service/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/service/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/service/subdir.mk	2021-02-09 13:57:25.065705912 +0100
+@@ -19,7 +19,7 @@
+ src/siri/args/%.o: ../src/siri/args/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/siri/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/siri/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/siri/subdir.mk	2021-02-09 13:57:39.401458935 +0100
+@@ -43,7 +43,7 @@
+ src/siri/%.o: ../src/siri/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/timeit/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/timeit/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/timeit/subdir.mk	2021-02-09 13:57:56.529163852 +0100
+@@ -13,7 +13,7 @@
+ src/timeit/%.o: ../src/timeit/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/vec/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/vec/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/vec/subdir.mk	2021-02-09 13:56:56.358200485 +0100
+@@ -13,7 +13,7 @@
+ src/vec/%.o: ../src/vec/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/xmath/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/xmath/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/xmath/subdir.mk	2021-02-09 13:57:46.601334889 +0100
+@@ -13,7 +13,7 @@
+ src/xmath/%.o: ../src/xmath/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/xpath/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/xpath/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/xpath/subdir.mk	2021-02-09 13:58:20.560749844 +0100
+@@ -13,7 +13,7 @@
+ src/xpath/%.o: ../src/xpath/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/src/xstr/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/src/xstr/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/src/xstr/subdir.mk	2021-02-09 13:58:06.368994331 +0100
+@@ -13,7 +13,7 @@
+ src/xstr/%.o: ../src/xstr/%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
+Index: siridb-server-2.0.42/Release/subdir.mk
+===================================================================
+--- siridb-server-2.0.42.orig/Release/subdir.mk	2020-11-12 09:47:15.000000000 +0100
++++ siridb-server-2.0.42/Release/subdir.mk	2021-02-09 13:58:30.316581802 +0100
+@@ -13,7 +13,7 @@
+ %.o: ../%.c
+ 	@echo 'Building file: $<'
+ 	@echo 'Invoking: GCC C Compiler'
+-	gcc -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
++	$(CC) -DNDEBUG -I../include -O3 -Wall -Wextra $(CPPFLAGS) $(CFLAGS) -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+ 	@echo 'Finished building: $<'
+ 	@echo ' '
+ 
