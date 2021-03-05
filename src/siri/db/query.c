@@ -896,7 +896,7 @@ static int QUERY_time_expr(
                     *size,
                     "%" PRIu64,
                         siridb_time_parse(node->str, node->len) *
-                        walker->siridb->time->factor);
+                        (uint64_t)walker->siridb->time->factor);
             if (n >= (ssize_t) *size)
             {
                 return EXPR_TOO_LONG;
@@ -930,7 +930,7 @@ static int QUERY_time_expr(
                     buf + EXPR_MAX_SIZE - *size,
                     *size,
                     "%" PRId64,
-                    ts * walker->siridb->time->factor);
+                    ts * (uint64_t)walker->siridb->time->factor);
 
             if (n >= (ssize_t) *size)
             {
