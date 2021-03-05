@@ -24,7 +24,7 @@ siridb_time_t * siridb_time_new(siridb_timep_t precision)
     else
     {
         time->precision = precision;
-        time->factor = xmath_ipow(1000, precision);
+        time->factor = (uint64_t) xmath_ipow(1000, precision);
         time->ts_sz = (precision == SIRIDB_TIME_SECONDS) ?
                 sizeof(uint32_t) : sizeof(uint64_t);
     }
@@ -53,7 +53,7 @@ uint64_t siridb_time_parse(const char * str, size_t len)
     return 0;
 }
 
-uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts)
+uint64_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts)
 {
     return ts / siridb->time->factor;
 }
