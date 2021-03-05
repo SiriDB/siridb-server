@@ -23,14 +23,14 @@ typedef struct siridb_time_s siridb_time_t;
 
 static const char * SIRIDB_TIME_SHORT_MAP[SIRIDB_TIME_END] = {"s", "ms", "us", "ns"};
 siridb_time_t * siridb_time_new(siridb_timep_t precision);
-uint32_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts);
+uint64_t siridb_time_in_seconds(siridb_t * siridb, int64_t ts);
 uint64_t siridb_time_now(siridb_t * siridb, struct timespec now);
 uint64_t siridb_time_parse(const char * str, size_t len);
 
 struct siridb_time_s
 {
     siridb_timep_t precision;
-    uint32_t factor;
+    uint64_t factor;
     size_t ts_sz;
 };
 
