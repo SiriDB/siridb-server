@@ -111,6 +111,26 @@ static bool SHARDS_is_temp_fn(char * fn)
     )));
 }
 
+static bool SHARDS_remove_shard_file(const char * path, const char * fn)
+{
+    siridb_misc_get_fn(shard_path, path, fn);
+    if (unlink(shard_path))
+    {
+        log_error("Error while removing shard file: '%s'", shard_path);
+        return false;
+    }
+
+    siridb_shard_idx_file(index_path, shard_path);
+    if (xpath_file_exist(index_path) && unlink(index_path))
+    {
+        log_error("Error while removing index file: '%s'", index_path);
+        return false;
+    }
+
+    log_warning("Shard file '%s' removed", fn);
+    return true;
+}
+
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -123,6 +143,7 @@ int siridb_shards_load(siridb_t * siridb)
     char buffer[XPATH_MAX];
     int n, total, rc = 0;
     uint64_t shard_id, duration;
+    bool ignore_broken_data = siri.cfg->ignore_broken_data;
 
     memset(&st, 0, sizeof(struct stat));
 
@@ -190,8 +211,13 @@ int siridb_shards_load(siridb_t * siridb)
                 if (siridb_shard_migrate(siridb, shard_id, &duration))
                 {
                     log_error("Error while migrating shard: '%s'", base_fn);
-                    rc = -1;
-                    break;
+                    if (!ignore_broken_data || !SHARDS_remove_shard_file(path, base_fn))
+                    {
+                        rc = -1;
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
             }
             else
@@ -204,8 +230,13 @@ int siridb_shards_load(siridb_t * siridb)
         if (siridb_shard_load(siridb, shard_id, duration))
         {
            log_error("Error while loading shard: '%s'", base_fn);
-           rc = -1;
-           break;
+            if (!ignore_broken_data || !SHARDS_remove_shard_file(path, base_fn))
+            {
+                rc = -1;
+                break;
+            } else {
+                continue;
+            }
         }
     }
 
