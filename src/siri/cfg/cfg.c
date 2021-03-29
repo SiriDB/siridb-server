@@ -32,6 +32,7 @@ static siri_cfg_t siri_cfg = {
         .pipe_support=0,
         .pipe_client_name="siridb_client.sock",
         .buffer_sync_interval=0,
+        .ignore_broken_data=0
 };
 
 static void SIRI_CFG_read_uint(
@@ -56,6 +57,7 @@ static void SIRI_CFG_read_ip_support(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_shard_compression(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_shard_auto_duration(cfgparser_t * cfgparser);
 static void SIRI_CFG_read_pipe_support(cfgparser_t * cfgparser);
+static void SIRI_CFG_ignore_broken_data(cfgparser_t * cfgparser);
 
 void siri_cfg_init(siri_t * siri)
 {
@@ -159,6 +161,8 @@ void siri_cfg_init(siri_t * siri)
             300000,
             &tmp);
     siri_cfg.buffer_sync_interval = (uint32_t) tmp;
+
+    SIRI_CFG_ignore_broken_data(cfgparser);
 
     cfgparser_free(cfgparser);
 }
@@ -351,6 +355,32 @@ static void SIRI_CFG_read_pipe_support(cfgparser_t * cfgparser)
     else if (option->val->integer == 1)
     {
         siri_cfg.pipe_support = 1;
+    }
+}
+
+static void SIRI_CFG_ignore_broken_data(cfgparser_t * cfgparser)
+{
+    cfgparser_option_t * option;
+    cfgparser_return_t rc;
+    rc = cfgparser_get_option(
+        &option,
+        cfgparser,
+        "siridb",
+        "ignore_broken_data");
+    if (rc != CFGPARSER_SUCCESS)
+    {
+        return; // optional config option
+    }
+    else if (option->tp != CFGPARSER_TP_INTEGER || option->val->integer > 1)
+    {
+        log_warning(
+            "Error reading 'ignore_broken_data' in '%s': %s.",
+            siri.args->config,
+            "error: expecting 0 or 1");
+    }
+    else if (option->val->integer == 1)
+    {
+        siri_cfg.ignore_broken_data = 1;
     }
 }
 

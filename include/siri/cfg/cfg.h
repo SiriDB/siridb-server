@@ -45,6 +45,8 @@ struct siri_cfg_s
     char server_address[SIRI_CFG_MAX_LEN_ADDRESS];
     char db_path[XPATH_MAX];
     char pipe_client_name[XPATH_MAX];
+
+    uint8_t ignore_broken_data;
 };
 
 #endif  /* SIRI_CFG_H_ */

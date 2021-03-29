@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <xpath/xpath.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #define SIRIDB_BUFFER_FN "buffer.dat"
 
@@ -255,9 +256,10 @@ int siridb_buffer_load(siridb_t * siridb)
     char * buf, * pt;
     long int offset = 0;
     siridb_series_t * series;
-    _Bool log_migrate = 1;
+    bool log_migrate = true;
     uint32_t buf_start, series_id;
     uint64_t * ts;
+    uint8_t ignore_broken_data = siri.cfg->ignore_broken_data;
 
     log_info("Loading and cleanup buffer");
 
@@ -287,11 +289,23 @@ int siridb_buffer_load(siridb_t * siridb)
 
     if (xpath_file_exist(fn_temp))
     {
-        free(buf);
-        log_error(
+        if (ignore_broken_data)
+        {
+            log_error("Temporary buffer file found: '%s'. Removing...", fn_temp);
+            if (unlink(fn_temp))
+            {
+                free(buf);
+                log_error("Failed to remove temporary buffer: %s", fn_temp);
+                return -1;
+            }
+        } else
+        {
+            free(buf);
+            log_error(
                 "Temporary buffer file found: '%s'. "
                 "Check if something went wrong or remove this file", fn_temp);
-        return -1;
+            return -1;
+        }
     }
 
     if ((fp = fopen(fn, "r")) == NULL)
@@ -326,7 +340,7 @@ int siridb_buffer_load(siridb_t * siridb)
                 if (log_migrate)
                 {
                     log_warning("Buffer will be migrated");
-                    log_migrate = 0;
+                    log_migrate = false;
                 }
                 buffer__migrate_to_new(pt, cur_size);
             }
