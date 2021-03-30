@@ -1,10 +1,11 @@
 /*
  * api.c
  */
-#include <string.h>
-#include <siri/api.h>
 #include <assert.h>
 #include <math.h>
+#include <siri/api.h>
+#include <stdbool.h>
+#include <string.h>
 #include <siri/siri.h>
 #include <siri/db/users.h>
 #include <qpjson/qpjson.h>
@@ -82,7 +83,7 @@ inline static int api__header(
     return len;
 }
 
-static inline _Bool api__istarts_with(
+static inline bool api__istarts_with(
         const char ** str,
         size_t * strn,
         const char * with,
@@ -97,7 +98,7 @@ static inline _Bool api__istarts_with(
     return true;
 }
 
-static inline _Bool api__starts_with(
+static inline bool api__starts_with(
         const char ** str,
         size_t * strn,
         const char * with,

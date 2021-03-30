@@ -10,13 +10,14 @@ typedef struct siridb_buffer_s siridb_buffer_t;
 #include <siri/db/series.h>
 #include <siri/db/points.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define MAX_BUFFER_SZ 1048576
 
 siridb_buffer_t * siridb_buffer_new(void);
 void siridb_buffer_free(siridb_buffer_t * buffer);
 void siridb_buffer_close(siridb_buffer_t * buffer);
-_Bool siridb_buffer_is_valid_size(ssize_t ssize);
+bool siridb_buffer_is_valid_size(ssize_t ssize);
 void siridb_buffer_set_path(siridb_buffer_t * buffer, const char * str);
 int siridb_buffer_new_series(
         siridb_buffer_t * buffer,

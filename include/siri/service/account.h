@@ -8,6 +8,7 @@ typedef struct siri_service_account_s siri_service_account_t;
 
 #include <qpack/qpack.h>
 #include <siri/siri.h>
+#include <stdbool.h>
 
 int siri_service_account_init(siri_t * siri);
 void siri_service_account_destroy(siri_t * siri);
@@ -27,7 +28,7 @@ int siri_service_account_change_password(
         qp_obj_t * qp_account,
         qp_obj_t * qp_password,
         char * err_msg);
-_Bool siri_service_account_check_basic(
+bool siri_service_account_check_basic(
         siri_t * siri,
         const char * data,
         size_t n);

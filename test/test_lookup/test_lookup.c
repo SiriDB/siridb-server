@@ -1,6 +1,7 @@
 
 #include "../test.h"
 #include <siri/db/lookup.h>
+#include <stdbool.h>
 
 
 /* to at least 42 pools we devide series within 20% off from ideal */
@@ -48,7 +49,7 @@ int main()
             for (n = 0; n < SIRIDB_LOOKUP_SZ; ++n)
             {
                 /* check for SIRIDB_SERIES_IS_SERVER_ONE flag */
-                if ((_Bool) ((n / 11) % 2))
+                if ((bool) ((n / 11) % 2))
                 {
                     countersa[(*lookup)[n]]++;
                 }

@@ -15,6 +15,7 @@
 #include <siri/service/request.h>
 #include <siri/siri.h>
 #include <siri/version.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
@@ -449,7 +450,7 @@ static cproto_server_t SERVICE_on_drop_database(
         qp_unpacker_t * qp_unpacker,
         char * err_msg)
 {
-    _Bool ignore_offline;
+    bool ignore_offline;
     siridb_t * siridb;
     qp_obj_t qp_key, qp_target, qp_ignore_offline;
     sirinet_pkg_t * pkg;

@@ -215,7 +215,9 @@ int siridb_shards_load(siridb_t * siridb)
                     {
                         rc = -1;
                         break;
-                    } else {
+                    }
+                    else
+                    {
                         continue;
                     }
                 }
@@ -234,7 +236,9 @@ int siridb_shards_load(siridb_t * siridb)
             {
                 rc = -1;
                 break;
-            } else {
+            }
+            else
+            {
                 continue;
             }
         }
@@ -263,7 +267,7 @@ int siridb_shards_add_points(
         siridb_series_t * series,
         siridb_points_t * points)
 {
-    _Bool is_num = siridb_series_isnum(series);
+    bool is_num = siridb_series_isnum(series);
     siridb_shard_t * shard;
     omap_t * shards;
     uint64_t duration = siridb_series_duration(series);

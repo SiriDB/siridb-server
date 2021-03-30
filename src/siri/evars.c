@@ -1,7 +1,7 @@
 /*
  * siri/evars.c
  */
-
+#include <stdbool.h>
 #include <siri/evars.h>
 #include <siri/net/tcp.h>
 
@@ -11,7 +11,7 @@ static void evars__bool(const char * evar, uint8_t * b)
     if (!u8str)
         return;
 
-    *b = (_Bool) strtoul(u8str, NULL, 10);
+    *b = (bool) strtoul(u8str, NULL, 10);
 }
 
 static void evars__u16(const char * evar, uint16_t * u16)

@@ -24,9 +24,9 @@ int siridb_tee_connect(siridb_tee_t * tee);
 int siridb_tee_set_pipe_name(siridb_tee_t * tee, const char * pipe_name);
 void siridb_tee_write(siridb_tee_t * tee, sirinet_promise_t * promise);
 const char * tee_str(siridb_tee_t * tee);
-static inline _Bool siridb_tee_is_configured(siridb_tee_t * tee);
-static inline _Bool siridb_tee_is_connected(siridb_tee_t * tee);
-static inline _Bool siridb_tee_is_handle(uv_handle_t * handle);
+static inline bool siridb_tee_is_configured(siridb_tee_t * tee);
+static inline bool siridb_tee_is_connected(siridb_tee_t * tee);
+static inline bool siridb_tee_is_handle(uv_handle_t * handle);
 
 struct siridb_tee_s
 {
@@ -36,17 +36,17 @@ struct siridb_tee_s
     uv_pipe_t pipe;
 };
 
-static inline _Bool siridb_tee_is_configured(siridb_tee_t * tee)
+static inline bool siridb_tee_is_configured(siridb_tee_t * tee)
 {
     return tee->pipe_name_ != NULL;
 };
 
-static inline _Bool siridb_tee_is_connected(siridb_tee_t * tee)
+static inline bool siridb_tee_is_connected(siridb_tee_t * tee)
 {
     return tee->flags & SIRIDB_TEE_FLAG_CONNECTED;
 }
 
-static inline _Bool siridb_tee_is_handle(uv_handle_t * handle)
+static inline bool siridb_tee_is_handle(uv_handle_t * handle)
 {
     return
         handle->type == UV_NAMED_PIPE &&

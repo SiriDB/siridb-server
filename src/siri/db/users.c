@@ -237,7 +237,7 @@ siridb_user_t * siridb_users_get_user(
     else if (user->password[0] == '$')
     {
         /* this will migrate as soon as a user logs in */
-        _Bool is_valid;
+        bool is_valid;
         fallback_data.initialized = 0;
         fallback_pw = crypt_r(password, user->password, &fallback_data);
         is_valid = strcmp(fallback_pw, user->password) == 0;

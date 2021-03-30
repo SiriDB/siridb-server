@@ -83,7 +83,7 @@ void siridb_buffer_close(siridb_buffer_t * buffer)
     }
 }
 
-_Bool siridb_buffer_is_valid_size(ssize_t ssize)
+bool siridb_buffer_is_valid_size(ssize_t ssize)
 {
     return ssize >= 512 && (ssize % 512) == 0 && ssize <= MAX_BUFFER_SZ;
 }

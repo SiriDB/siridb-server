@@ -301,7 +301,7 @@ static int ACCOUNT_cmp_str(siri_service_account_t * account, char * str)
 }
 
 
-_Bool siri_service_account_check_basic(
+bool siri_service_account_check_basic(
         siri_t * siri,
         const char * data,
         size_t n)
@@ -309,7 +309,7 @@ _Bool siri_service_account_check_basic(
     siri_service_account_t * account;
     size_t size, nn, end;
     char * b64 = base64_decode(data, n, &size);
-    _Bool is_valid = false;
+    bool is_valid = false;
     char pw[OWCRYPT_SZ];
 
     for (nn = 0, end = size; nn < end; ++nn)

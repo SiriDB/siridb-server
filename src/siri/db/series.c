@@ -16,9 +16,11 @@
  *          since they only run when no other references to the object exist.
  */
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <logger/logger.h>
 #include <siri/db/buffer.h>
 #include <siri/db/db.h>
@@ -28,7 +30,6 @@
 #include <siri/db/shards.h>
 #include <siri/err.h>
 #include <siri/siri.h>
-#include <string.h>
 #include <xpath/xpath.h>
 
 #define SIRIDB_SERIES_FN "series.dat"
@@ -1364,7 +1365,7 @@ static siridb_series_t * SERIES_new(
                     (uint16_t) ((n / 11) % siridb->shard_mask_log) + 600 :
                     (uint16_t) ((n / 11) % siridb->shard_mask_num);
 
-            if ((_Bool) ((n / 11) % 2))
+            if ((bool) ((n / 11) % 2))
             {
                 series->flags |= SIRIDB_SERIES_IS_SERVER_ONE;
             }
