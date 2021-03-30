@@ -1,4 +1,4 @@
-siridb-connector==2.0.5
+siridb-connector
 psutil
 requests
 pyleri

@@ -143,6 +143,9 @@ void siri_evars_parse(siri_t * siri)
     evars__bool(
             "SIRIDB_ENABLE_SHARD_AUTO_DURATION",
             &siri->cfg->shard_auto_duration);
+    evars__bool(
+            "SIRIDB_IGNORE_BROKEN_DATA",
+            &siri->cfg->ignore_broken_data);
     evars__to_strn(
             "SIRIDB_DB_PATH",
             siri->cfg->db_path,
