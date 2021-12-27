@@ -15,7 +15,8 @@
 #include <siri/siri.h>
 #include <stddef.h>
 
-#define REPLICATE_SLEEP 10          /* 10 milliseconds * active tasks   */
+/* Changed in v2.0.45: from 10 -> 5 milliseconds to prioritize replication */
+#define REPLICATE_SLEEP 5           /* 5 milliseconds * active tasks    */
 #define REPLICATE_TIMEOUT 300000    /* 5 minutes                        */
 
 static void REPLICATE_work(uv_timer_t * handle);

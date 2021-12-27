@@ -8,6 +8,7 @@
 #include <siri/db/median.h>
 #include <siri/db/variance.h>
 #include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
 #include <siri/db/re.h>
 #include <vec/vec.h>
 #include <stddef.h>
@@ -216,15 +217,16 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
     /* Loop over all aggregations */
     while (1)
     {
-        gid = children->node->children->node->cl_obj->gid;
+        gid = cleri_gn(cleri_gn(children)->children)->cl_obj->gid;
 
         switch (gid)
         {
         case CLERI_GID_F_LIMIT:
             AGGR_NEW
             {
-                int64_t limit = CLERI_NODE_DATA(children->node->children->node->
-                    children->next->next->node);
+                int64_t limit = CLERI_NODE_DATA(
+                        cleri_gn(cleri_gn(cleri_gn(children)
+                        ->children)->children->next->next));
 
                 if (limit <= 0)
                 {
@@ -238,9 +240,9 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
                 aggr->limit = limit;
 
-                gid = children->node->children->node->children->next->
-                        next->next->next->node->children->node->
-                        cl_obj->gid;
+                gid = cleri_gn(cleri_gn(cleri_gn(
+                        cleri_gn(children)->children)->children->next->
+                        next->next->next)->children)->cl_obj->gid;
 
                 switch (gid)
                 {
@@ -329,23 +331,21 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
             AGGR_NEW
             {
                 cleri_node_t * onode;
-                if (    children->node->children->node->children->
+                if (    cleri_gn(cleri_gn(children)->children)->children->
                         next->next->next->next == NULL)
                 {
                     aggr->filter_opr = CEXPR_EQ;
-                    onode = children->node->children->node->
-                            children->next->next->node->
-                            children->node;
+                    onode = cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
+                            ->children)->children->next->next)->children);
                 }
                 else
                 {
                     aggr->filter_opr = cexpr_operator_fn(
-                            children->node->children->node->
-                            children->next->next->node->
-                            children->node);
-                    onode = children->node->children->node->
-                            children->next->next->next->node->
-                            children->node;
+                            cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
+                            ->children)->children->next->next)->children));
+                    onode = cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
+                            ->children)->children->next->next->next)->
+                            children);
                 }
                 if (AGGREGATE_init_filter(aggr, onode, err_msg))
                 {
@@ -362,14 +362,14 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         case CLERI_GID_F_DERIVATIVE:
             AGGR_NEW
             {
-                cleri_node_t * dlist = children->node->children->
-                        node->children->next->next->node;
+                cleri_node_t * dlist = cleri_gn(cleri_gn(cleri_gn(children)
+                        ->children)->children->next->next);
 
-                if (dlist->children != NULL && dlist->children->node != NULL)
+                if (dlist->children != NULL && cleri_gn(dlist->children) != NULL)
                 {
                     /* result is at least positive, checked earlier */
                     aggr->timespan =
-                            (double) CLERI_NODE_DATA(dlist->children->node);
+                            (double) CLERI_NODE_DATA(cleri_gn(dlist->children));
 
                     if (!aggr->timespan)
                     {
@@ -385,7 +385,7 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                     {
                         /* result is always positive */
                         aggr->group_by = CLERI_NODE_DATA(
-                                dlist->children->next->next->node);
+                                cleri_gn(dlist->children->next->next));
 
                         if (!aggr->group_by)
                         {
@@ -421,14 +421,13 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         case CLERI_GID_F_FIRST:
         case CLERI_GID_F_LAST:
             AGGR_NEW
-            if (children->node->children->node->children->
-                        next->next->next != NULL)
+            if (cleri_gn(cleri_gn(children)->children)
+                    ->children->next->next->next != NULL)
             {
                 /* result is always positive, checked earlier */
                 aggr->group_by = CLERI_NODE_DATA(
-                        children->node->children->node->
-                        children->next->next->node->children->
-                        node);
+                        cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
+                        ->children)->children->next->next)->children));
 
                 if (!aggr->group_by)
                 {
@@ -487,8 +486,8 @@ void siridb_aggregate_list_free(vec_t * alist)
  */
 int siridb_aggregate_can_skip(cleri_children_t * children)
 {
-    cleri_node_t * nd = \
-            children->node->children->node->children->node->children->node;
+    cleri_node_t * nd = cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
+            ->children)->children)->children);
 
     switch (nd->cl_obj->gid)
     {

@@ -2,6 +2,7 @@
  * access.c - Access constants and functions.
  */
 #include <siri/db/access.h>
+#include <siri/grammar/gramp.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -54,8 +55,8 @@ uint32_t siridb_access_from_children(cleri_children_t * children)
     while (children != NULL)
     {
         access_bit |= siridb_access_from_strn(
-                children->node->str,
-                children->node->len);
+                cleri_gn(children)->str,
+                cleri_gn(children)->len);
         if (children->next == NULL)
             break;
         children = children->next->next;

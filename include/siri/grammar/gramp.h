@@ -24,9 +24,17 @@
 #define HELP_OFFSET CLERI_GID_HELP_ACCESS
 #define HELP_COUNT CLERI_GID_HELP_TIMEZONES + 1 - HELP_OFFSET
 
+#if CLERI_VERSION_MAJOR >= 1
+typedef struct cleri_node_s cleri_children_t;
+#define cleri_gn(__child) (__child)
+
+#else
+#define cleri_gn(__child) (__child)->node
+#endif
 
 
-#if CLERI_VERSION_MINOR >= 12
+
+#if CLERI_VERSION_MAJOR >= 1 || CLERI_VERSION_MINOR >= 12
 #if SIRIDB_IS64BIT
 #define CLERI_NODE_DATA(__node) ((int64_t)(__node)->data)
 #define CLERI_NODE_DATA_ADDR(__node) ((int64_t *) &(__node)->data)

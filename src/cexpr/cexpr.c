@@ -532,10 +532,10 @@ static cexpr_t * CEXPR_walk_node(
 
     cleri_children_t * current = node->children;
 
-    while (current != NULL && current->node != NULL)
+    while (current != NULL && cleri_gn(current) != NULL)
     {
         cexpr = CEXPR_walk_node(
-                current->node,
+                cleri_gn(current),
                 cexpr,
                 list,
                 condition,

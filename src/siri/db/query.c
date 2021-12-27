@@ -620,7 +620,7 @@ static void QUERY_parse(uv_async_t * handle)
 #if SIRIDB_EXPR_ALLOC
             query,
 #endif
-            query->pr->tree->children->node,
+            cleri_gn(query->pr->tree->children),
             walker)))
     {
         switch (rc)
@@ -682,7 +682,7 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
 
         rc = QUERY_rebuild(
                 siridb,
-                query->pr->tree->children->node,
+                cleri_gn(query->pr->tree->children),
                 buffer,
                 &size,
                 packer->alloc_size);
@@ -748,7 +748,7 @@ static int QUERY_walk(
 
         /* we can have nested integer and time expressions */
         if ((rc = QUERY_time_expr(
-                node->children->node,
+                cleri_gn(node->children),
                 walker,
                 buffer,
                 &size)))
@@ -789,7 +789,7 @@ static int QUERY_walk(
         size_t size = EXPR_MAX_SIZE;
 
         if ((rc = QUERY_int_expr(
-                node->children->node,
+                cleri_gn(node->children),
                 buffer,
                 &size)))
         {
@@ -820,21 +820,21 @@ static int QUERY_walk(
     else
     {
         current = node->children;
-        while (current != NULL && current->node != NULL)
+        while (current != NULL && cleri_gn(current) != NULL)
         {
             /*
              * We should not simple walk because THIS has no
              * cl_obj->cl_obj and THIS is save to skip.
              */
-            while (current->node->cl_obj->tp == CLERI_TP_THIS)
+            while (cleri_gn(current)->cl_obj->tp == CLERI_TP_THIS)
             {
-                current = current->node->children;
+                current = cleri_gn(current)->children;
             }
             if ((rc = QUERY_walk(
 #if SIRIDB_EXPR_ALLOC
                     query,
 #endif
-                    current->node,
+                    cleri_gn(current),
                     walker)))
             {
                 return rc;
@@ -948,10 +948,10 @@ static int QUERY_time_expr(
             cleri_children_t * current;
 
             current = node->children;
-            while (current != NULL && current->node != NULL)
+            while (current != NULL && cleri_gn(current) != NULL)
             {
                 if ((rc = QUERY_time_expr(
-                        current->node,
+                        cleri_gn(current),
                         walker,
                         buf,
                         size)))
@@ -992,10 +992,10 @@ static int QUERY_int_expr(cleri_node_t * node, char * buf, size_t * size)
             cleri_children_t * current;
 
             current = node->children;
-            while (current != NULL && current->node != NULL)
+            while (current != NULL && cleri_gn(current) != NULL)
             {
                 if ((rc = QUERY_int_expr(
-                        current->node,
+                        cleri_gn(current),
                         buf,
                         size)))
                 {
@@ -1042,7 +1042,7 @@ static int QUERY_rebuild(
             {
                 siridb_server_t * server = siridb_server_from_node(
                         siridb,
-                        node->children->node,
+                        cleri_gn(node->children),
                         NULL);
                 if (server != NULL)
                 {
@@ -1088,11 +1088,11 @@ static int QUERY_rebuild(
             cleri_children_t * current;
 
             current = node->children;
-            while (current != NULL && current->node != NULL)
+            while (current != NULL && cleri_gn(current) != NULL)
             {
                 if ((rc = QUERY_rebuild(
                         siridb,
-                        current->node,
+                        cleri_gn(current),
                         buf,
                         size,
                         max_size)))

@@ -44,6 +44,7 @@
 typedef struct siridb_access_repr_s siridb_access_repr_t;
 
 #include <cleri/cleri.h>
+#include <siri/grammar/gramp.h>
 
 uint32_t siridb_access_from_strn(const char * str, size_t n);
 

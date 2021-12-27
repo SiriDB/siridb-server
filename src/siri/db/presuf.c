@@ -6,6 +6,7 @@
 #include <siri/db/presuf.h>
 #include <siri/err.h>
 #include <siri/grammar/grammar.h>
+#include <siri/grammar/gramp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xstr/xstr.h>
@@ -63,29 +64,29 @@ siridb_presuf_t * siridb_presuf_add(
     {
         while (children != NULL)
         {
-            ps_children = children->node->children->node->children;
-            switch (ps_children->node->cl_obj->gid)
+            ps_children = cleri_gn(cleri_gn(children)->children)->children;
+            switch (cleri_gn(ps_children)->cl_obj->gid)
             {
             case CLERI_GID_K_PREFIX:
-                nps->prefix = malloc(ps_children->next->node->len + 1);
+                nps->prefix = malloc(cleri_gn(ps_children->next)->len + 1);
                 if (nps->prefix != NULL)
                 {
                     /* not critical if suffix is still NULL */
                     nps->len += xstr_extract_string(
                             nps->prefix,
-                            ps_children->next->node->str,
-                            ps_children->next->node->len);
+                            cleri_gn(ps_children->next)->str,
+                            cleri_gn(ps_children->next)->len);
                 }
                 break;
             case CLERI_GID_K_SUFFIX:
-                nps->suffix = malloc(ps_children->next->node->len + 1);
+                nps->suffix = malloc(cleri_gn(ps_children->next)->len + 1);
                 if (nps->suffix != NULL)
                 {
                     /* not critical if suffix is still NULL */
                     nps->len += xstr_extract_string(
                             nps->suffix,
-                            ps_children->next->node->str,
-                            ps_children->next->node->len);
+                            cleri_gn(ps_children->next)->str,
+                            cleri_gn(ps_children->next)->len);
                 }
                 break;
             default:
