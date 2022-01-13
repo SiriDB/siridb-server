@@ -1,3 +1,11 @@
+siridb-server (2.0.45-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Compatibility with libcleri v1.x
+    - Prioritize replication
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 13 Jan 2022 11:37:26 +0100
+
 siridb-server (2.0.44-0~tt1) unstable; urgency=medium
 
   * New upstream release
