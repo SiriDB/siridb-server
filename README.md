@@ -1,3 +1,6 @@
+[![CI](https://github.com/SiriDB/siridb-server/workflows/CI/badge.svg)](https://github.com/SiriDB/siridb-server/actions)
+[![Release Version](https://img.shields.io/github/release/SiriDB/siridb-server)](https://github.com/SiriDB/siridb-server/releases)
+
 SiriDB Server
 =============
 SiriDB is a highly-scalable, robust and super fast time series database.
