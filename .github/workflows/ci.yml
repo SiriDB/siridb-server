@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install libcleri
+        run: |
+          git clone https://github.com/transceptor-technology/libcleri.git
+          cd ./libcleri/Release/
+          make
+          sudo make install
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y libuv1-dev libpcre2-dev libyajl-dev valgrind
+      - name: Run tests
+        run: |
+          cd ./Release/
+          make test
+      - name: Compile code
+        run: |
+          cd ./Release/
+          CFLAGS="-Werror -Winline -std=gnu89" make
