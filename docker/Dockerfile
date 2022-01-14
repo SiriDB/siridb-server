@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM amd64/alpine:3.13
 RUN apk update && \
     apk upgrade && \
     apk add gcc make libuv-dev musl-dev pcre2-dev yajl-dev util-linux-dev linux-headers git && \

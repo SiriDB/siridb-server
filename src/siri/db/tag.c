@@ -2,8 +2,8 @@
  * tag.c - Tag.
  *
  * author       : Jeroen van der Heijden
- * email        : jeroen@transceptor.technology
- * copyright    : 2017, Transceptor Technology
+ * email        : jeroen@cesbit.com
+ * copyright    : 2022, Cesbit
  *
  * changes
  *  - initial version, 16-06-2017

@@ -22,6 +22,15 @@ spec:
       dnsConfig:
         searches:
         - siridb.default.svc.cluster.local
+      tolerations:  # wait 4 hour as synchronizing might take some time
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 14400
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 14400
       containers:
       - name: siridb
         image: siridb/siridb-server:2.0.42  # Pin to a specific version
@@ -67,13 +76,14 @@ spec:
           httpGet:
             path: /healthy
             port: 8080
+          initialDelaySeconds: 1800
           periodSeconds: 20
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
             port: 8080
-          initialDelaySeconds: 15
+          initialDelaySeconds: 20
           periodSeconds: 20
           timeoutSeconds: 10
   volumeClaimTemplates:
