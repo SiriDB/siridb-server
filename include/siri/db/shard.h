@@ -47,7 +47,6 @@ siridb_shard_t * siridb_shard_create(
         uint8_t tp,
         siridb_shard_t * replacing);
 uint64_t siridb_shard_duration_from_interval(siridb_t * siridb, uint64_t interval);
-uint64_t siridb_shard_interval_from_duration(uint64_t duration);
 int siridb_shard_cexpr_cb(
         siridb_shard_view_t * vshard,
         cexpr_condition_t * cond);

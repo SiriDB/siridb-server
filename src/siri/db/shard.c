@@ -87,7 +87,7 @@
  *
  * Max 65535 since uint16_t is used to store this value
  */
-#define DEFAULT_MAX_CHUNK_SZ_NUM 800
+#define DEFAULT_MAX_CHUNK_SZ_NUM 1200
 #define DEFAULT_MAX_CHUNK_SZ_LOG 128
 
 static const siridb_shard_flags_repr_t flags_map[SHARD_STATUS_SIZE] = {
@@ -166,11 +166,6 @@ uint64_t siridb_shard_duration_from_interval(siridb_t * siridb, uint64_t interva
     hour = 3600*siridb->time->factor;
     x = n / hour;
     return (x + 1) * hour;
-}
-
-uint64_t siridb_shard_interval_from_duration(uint64_t duration)
-{
-    return duration / OPTIMAL_POINTS_PER_SHARD;;
 }
 
 int siridb_shard_migrate(
