@@ -1,4 +1,4 @@
 version=4
 opts="filenamemangle=s%(?:.*?)?v?(\d[\d.]*)\.tar\.gz%siridb-server-$1.tar.gz%" \
-  https://github.com/transceptor-technology/siridb-server/releases \
+  https://github.com/cesbit/siridb-server/releases \
  (?:.*?/)?v?(\d[\d.]*)\.tar\.gz

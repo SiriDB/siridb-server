@@ -34,14 +34,14 @@ apt install libexpat1 libuv1 libpcre2-8-0 libcleri0
 ```
 
 >Library `libcleri0` is available from Ubuntu 18.04, for older versions a deb package can be found here:
->https://github.com/transceptor-technology/libcleri/releases/latest
+>https://github.com/cesbit/libcleri/releases/latest
 
 The .deb package installs a configuration file at `/etc/siridb/siridb.conf`. You might want to view or change this file before starting SiriDB.
 
 ### Compile from source
 >From version 2.0.19 libcleri is not included as part of this source anymore
 >and needs to be installed separately. libcleri can be found here:
->[https://github.com/transceptor-technology/libcleri](https://github.com/transceptor-technology/libcleri)
+>[https://github.com/cesbit/libcleri](https://github.com/cesbit/libcleri)
 >or can be installed using `apt`.
 
 #### Linux
@@ -68,7 +68,7 @@ sudo make install
 ```
 
 #### OSX
->Make sure [libcleri](https://github.com/transceptor-technology/libcleri) is installed!
+>Make sure [libcleri](https://github.com/cesbit/libcleri) is installed!
 
 Install the following requirements:
 ```

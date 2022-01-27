@@ -13,7 +13,7 @@ siridb-server (2.0.44-0~tt1) unstable; urgency=medium
     - Added ignore_broken_data option (@ubnt-michals, #172)
     - Fixed siridb_time_now for arm32 builds (@srdgame, #169)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Tue, 06 Apr 2021 11:39:12 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Tue, 06 Apr 2021 11:39:12 +0200
 
 siridb-server (2.0.43-0~tt1.1) UNRELEASED; urgency=medium
 
@@ -33,14 +33,14 @@ siridb-server (2.0.43-0~tt1) unstable; urgency=medium
     - Fixed shard duration for ARM builds (@srdgame, #164)
     - Use IPv4 for health and API when configured (@ubnt-michals, #155)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 04 Feb 2021 15:36:02 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 04 Feb 2021 15:36:02 +0100
 
 siridb-server (2.0.42-0~tt1) unstable; urgency=medium
 
   * New upstream release
     - Fixed handle ready status in Kubernetes statefulset (#153)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 12 Nov 2020 09:39:13 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 12 Nov 2020 09:39:13 +0100
 
 siridb-server (2.0.41-0~tt1) unstable; urgency=medium
 
@@ -49,7 +49,7 @@ siridb-server (2.0.41-0~tt1) unstable; urgency=medium
     - Fixed loading databases with duplicated series (#148)
     - Allow server names without defining a port (#150)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 04 Nov 2020 13:15:29 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Wed, 04 Nov 2020 13:15:29 +0100
 
 siridb-server (2.0.40-0~tt1) unstable; urgency=medium
 
@@ -58,7 +58,7 @@ siridb-server (2.0.40-0~tt1) unstable; urgency=medium
     - Fixed list tags error when conditions are used (#145)
     - Fixed division by zero bug (#146)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 25 Sep 2020 16:35:28 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 25 Sep 2020 16:35:28 +0200
 
 siridb-server (2.0.39-0~tt1) unstable; urgency=medium
 
@@ -68,7 +68,7 @@ siridb-server (2.0.39-0~tt1) unstable; urgency=medium
     - Added `timeval()` and `interval()` functions (#138)
     - Fixed build error on 32 bit systems (#135)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 18 Sep 2020 15:50:10 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 18 Sep 2020 15:50:10 +0200
 
 siridb-server (2.0.38-0~tt1) unstable; urgency=medium
 
@@ -76,7 +76,7 @@ siridb-server (2.0.38-0~tt1) unstable; urgency=medium
     - Added tag support (#74)
     - Fixed cleanup duplicate package (#134)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 28 Aug 2020 11:12:24 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 28 Aug 2020 11:12:24 +0200
 
 siridb-server (2.0.37-0~tt1) unstable; urgency=medium
 
@@ -84,7 +84,7 @@ siridb-server (2.0.37-0~tt1) unstable; urgency=medium
     - Fixed reading `series.dat` after unclean shutdown (#130)
     - Fixed `gcc-10` compile errors (#132)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 23 Jul 2020 14:38:50 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 23 Jul 2020 14:38:50 +0200
 
 siridb-server (2.0.36-0~tt1) unstable; urgency=medium
 
@@ -93,7 +93,7 @@ siridb-server (2.0.36-0~tt1) unstable; urgency=medium
     - Accept Grafana compatible API requests (#129)
     - Added support for configuration using environment variable (#128)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Wed, 22 Apr 2020 11:18:32 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Wed, 22 Apr 2020 11:18:32 +0200
 
 siridb-server (2.0.35-0~tt1) unstable; urgency=medium
 
@@ -101,15 +101,15 @@ siridb-server (2.0.35-0~tt1) unstable; urgency=medium
     - Added shard expiration (#123)
     - Added HTTP API (#124)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 24 Feb 2020 16:23:37 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Mon, 24 Feb 2020 16:23:37 +0100
 
 siridb-server (2.0.34-0~tt1) unstable; urgency=medium
 
   * New upstream release
     - Added readiness and liveness HTTP handler (#122)
-    - Fixed bug in sending packages to multiple SiriDB servers (#120) 
+    - Fixed bug in sending packages to multiple SiriDB servers (#120)
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Mon, 08 Jul 2019 14:18:56 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Mon, 08 Jul 2019 14:18:56 +0200
 
 siridb-server (2.0.33-0~tt1) unstable; urgency=medium
 
@@ -119,14 +119,14 @@ siridb-server (2.0.33-0~tt1) unstable; urgency=medium
     - Increased package size limit and warning
     - Added check for unexpected time-stamps in shards at startup
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 04 Apr 2019 14:19:22 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 04 Apr 2019 14:19:22 +0200
 
 siridb-server (2.0.32-0~tt1) unstable; urgency=medium
 
   * New upstream release
     - Fixed drop database
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 11 Jan 2019 16:03:42 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 11 Jan 2019 16:03:42 +0100
 
 siridb-server (2.0.31-0~tt1) unstable; urgency=medium
 
@@ -139,7 +139,7 @@ siridb-server (2.0.31-0~tt1) unstable; urgency=medium
     - Fixed bug in merging series with high time precision (#108)
     - Code forward compatible with upcoming cleri release
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Thu, 10 Jan 2019 11:35:12 +0100
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 10 Jan 2019 11:35:12 +0100
 
 siridb-server (2.0.30-0~tt1) unstable; urgency=medium
 
@@ -154,7 +154,7 @@ siridb-server (2.0.30-0~tt1) unstable; urgency=medium
       configuration file
     - Added conversion of invalid value types
 
- -- Jeroen van der Heijden <jeroen@transceptor.technology>  Fri, 12 Oct 2018 19:44:24 +0200
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 12 Oct 2018 19:44:24 +0200
 
 siridb-server (2.0.29-1) unstable; urgency=medium
 

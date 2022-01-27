@@ -3,7 +3,7 @@ Section: database
 Priority: optional
 Maintainer: SiriDB Maintainers <team+debian-siridb-packaging-team@tracker.debian.org>
 Uploaders:
- Jeroen van der Heijden <jeroen@transceptor.technology>,
+ Jeroen van der Heijden <jeroen@cesbit.com>,
  Paul Gevers <elbrus@debian.org>,
 Rules-Requires-Root: no
 Build-Depends:

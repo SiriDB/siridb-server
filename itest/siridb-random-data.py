@@ -18,7 +18,7 @@ from siridb.connector import SiriDBClient
 __version_info__ = (0, 0, 5)
 __version__ = '.'.join(map(str, __version_info__))
 __maintainer__ = 'Jeroen van der Heijden'
-__email__ = 'jeroen@transceptor.technology'
+__email__ = 'jeroen@cesbit.com'
 
 
 # Logging definitions
@@ -455,7 +455,7 @@ if __name__ == '__main__':
         sys.exit('''
 SiriDB Data Generator Script {version}
 Maintainer: {maintainer} <{email}>
-Home-page: https://github.com/transceptor-technology/siridb-email-check
+Home-page: https://github.com/cesbit/siridb-email-check
         '''.strip().format(version=__version__,
                            maintainer=__maintainer__,
                            email=__email__))

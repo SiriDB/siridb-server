@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''Export python grammar to C grammar files
 
-Author: Jeroen van der Heijden (Transceptor Technology)
+Author: Jeroen van der Heijden (Cesbit)
 Date: 2016-10-10
 '''
 import sys

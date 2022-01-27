@@ -2,7 +2,7 @@
 
 Build help structure for SiriDB grammar.
 
-:copyright: 2016, Jeroen van der Heijden (Transceptor Technology)
+:copyright: 2016, Jeroen van der Heijden (Cesbit)
 '''
 
 import os
