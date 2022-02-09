@@ -80,7 +80,7 @@ typedef struct siridb_server_async_s siridb_server_async_t;
 #include <uuid/uuid.h>
 #include <stdint.h>
 #include <siri/db/db.h>
-#include <imap/imap.h>
+#include <omap/omap.h>
 #include <cexpr/cexpr.h>
 #include <uv.h>
 #include <siri/net/promise.h>
@@ -149,7 +149,7 @@ struct siridb_server_s
     uint8_t id; /* set when added to a pool to either 0 or 1 */
     char * name; /* this is a format for address:port but we use it a lot */
     char * address;
-    imap_t * promises;
+    omap_t * promises;
     sirinet_stream_t * client;
     uint16_t pid;
     /* fixed server properties */

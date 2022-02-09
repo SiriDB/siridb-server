@@ -174,15 +174,15 @@ int siridb_server_send_pkg(
          * might still be in use and we should try another pid.
          */
         promise->pid = server->pid++;
-        rc = imap_add(server->promises, promise->pid, promise);
+        rc = omap_add(server->promises, promise->pid, promise);
 
-        if (rc == 0)
+        if (rc == OMAP_SUCCESS)
         {
             SERVER_upd_flag_queue_full(server);
             break;
         }
 
-        if (rc == -1)
+        if (rc == OMAP_ERR_ALLOC)
         {
             /* memory allocation error */
             free(promise->timer);
@@ -192,7 +192,7 @@ int siridb_server_send_pkg(
             return -1;
         }
 
-        /* rc == -2, pid in use, try next pid */
+        /* rc == OMAP_ERR_EXIST, pid in use, try next pid */
     }
 
     if (!n)
@@ -281,7 +281,7 @@ siridb_server_t * siridb_server_register(
 
         if (server != NULL)
         {
-            if (    (server->promises = imap_new()) == NULL ||
+            if (    (server->promises = omap_create()) == NULL ||
                     siridb_servers_register(siridb, server))
             {
                 siridb__server_free(server);
@@ -580,7 +580,7 @@ static void SERVER_on_resolved(
  */
 static void SERVER_upd_flag_queue_full(siridb_server_t * server)
 {
-    if (server->promises->len >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
+    if (server->promises->n >= SIRIDB_SERVER_PROMISES_QUEUE_SIZE)
     {
         server->flags |= SERVER_FLAG_QUEUE_FULL;
     }
@@ -605,7 +605,7 @@ static void SERVER_write_cb(uv_write_t * req, int status)
             promise->pid,
             uv_strerror(status));
 
-        if (imap_pop(promise->server->promises, promise->pid) == NULL)
+        if (omap_rm(promise->server->promises, promise->pid) == NULL)
         {
             log_critical(
                     "Got a socket error but the promise is not found. "
@@ -634,7 +634,7 @@ static void SERVER_timeout_pkg(uv_timer_t * handle)
 {
     sirinet_promise_t * promise = handle->data;
 
-    if (imap_pop(promise->server->promises, promise->pid) == NULL)
+    if (omap_rm(promise->server->promises, promise->pid) == NULL)
     {
         log_critical(
                 "Timeout task is called on package (PID %" PRIu16
@@ -741,7 +741,7 @@ static void SERVER_on_connect(uv_connect_t * req, int status)
 static void SERVER_on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
     siridb_server_t * server = client->origin;
-    sirinet_promise_t * promise = imap_pop(server->promises, pkg->pid);
+    sirinet_promise_t * promise = omap_rm(server->promises, pkg->pid);
 
     log_debug(
             "Response received (pid: %" PRIu16
@@ -937,7 +937,7 @@ void siridb__server_free(siridb_server_t * server)
      */
     if (server->promises != NULL)
     {
-        imap_free(server->promises, (imap_free_cb) SERVER_cancel_promise);
+        omap_destroy(server->promises, (omap_destroy_cb) SERVER_cancel_promise);
     }
     free(server->name);
     free(server->address);
