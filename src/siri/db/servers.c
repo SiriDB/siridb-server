@@ -136,7 +136,7 @@ int siridb_servers_load(siridb_t * siridb)
             else
             {
                 /* if this is not me, create promises */
-                server->promises = imap_new();
+                server->promises = omap_create();
                 if (server->promises == NULL)
                 {
                     log_critical("Memory allocation error");
