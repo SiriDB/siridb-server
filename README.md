@@ -11,6 +11,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [Compile from source](#compile-from-source)
       * [Linux](#linux)
       * [OSX](#osx)
+      * [Docker](#docker)
       * [Configuration](#configuration)
     * [Build Debian package](#build-debian-package)
     * [Run integration tests](#run-integration-tests)
