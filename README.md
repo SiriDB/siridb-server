@@ -92,6 +92,18 @@ Install
 sudo make install
 ```
 
+#### Docker
+
+```bash
+docker run \
+    -d \
+    -p 9000:9000 \
+    -p 9080:9080 \
+    -p 8080:8080 \
+    -v ~/siridb-data:/var/lib/siridb \
+    ghcr.io/siridb/siridb-server:latest    
+```
+
 #### Configuration
 SiriDB requires a configuration file to run. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument.
 
