@@ -105,11 +105,8 @@ docker run \
 ```
 
 #### Configuration
-SiriDB requires a configuration file to run. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument.
+SiriDB accepts a configuration file or environment variable as configuration. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument or use environment variable.
 
-```
-$ siridb-server -c /my/path/siridb.conf
-```
 An example configuration file can be found here:
 [https://github.com/SiriDB/siridb-server/blob/master/siridb.conf](https://github.com/SiriDB/siridb-server/blob/master/siridb.conf)
 
