@@ -1,3 +1,11 @@
+siridb-server (2.0.46-0~tt1) unstable; urgency=medium
+
+  * New upstream release
+    - Switch to omap for storing promises (#175)
+    - Increased chunk size for numeric shards
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Thu, 17 Feb 2022 14:21:58 +0100
+
 siridb-server (2.0.45-0~tt1) unstable; urgency=medium
 
   * New upstream release
