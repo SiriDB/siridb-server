@@ -11,6 +11,7 @@ SiriDB is a highly-scalable, robust and super fast time series database.
     * [Compile from source](#compile-from-source)
       * [Linux](#linux)
       * [OSX](#osx)
+      * [Docker](#docker)
       * [Configuration](#configuration)
     * [Build Debian package](#build-debian-package)
     * [Run integration tests](#run-integration-tests)
@@ -92,12 +93,21 @@ Install
 sudo make install
 ```
 
-#### Configuration
-SiriDB requires a configuration file to run. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument.
+#### Docker
 
+```bash
+docker run \
+    -d \
+    -p 9000:9000 \
+    -p 9080:9080 \
+    -p 8080:8080 \
+    -v ~/siridb-data:/var/lib/siridb \
+    ghcr.io/siridb/siridb-server:latest    
 ```
-$ siridb-server -c /my/path/siridb.conf
-```
+
+#### Configuration
+SiriDB accepts a configuration file or environment variable as configuration. By default SiriDB will search for the configuration file in `/etc/siridb/siridb.conf` but alternatively you can specify a custom path by using the `-c/--config` argument or use environment variable.
+
 An example configuration file can be found here:
 [https://github.com/SiriDB/siridb-server/blob/master/siridb.conf](https://github.com/SiriDB/siridb-server/blob/master/siridb.conf)
 
