@@ -593,7 +593,7 @@ static void QUERY_parse(uv_async_t * handle)
             &query->flags);
 
     if (    walker == NULL ||
-            (query->pr = cleri_parse(siri.grammar, query->q)) == NULL)
+            (query->pr = cleri_parse_m(siri.grammar, query->q)) == NULL)
     {
         if (walker != NULL)
         {

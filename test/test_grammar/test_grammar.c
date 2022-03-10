@@ -7,7 +7,7 @@
 
 static int _is_valid(cleri_grammar_t * grammar, char * query)
 {
-    cleri_parse_t * pr = cleri_parse(grammar, query);
+    cleri_parse_t * pr = cleri_parse_m(grammar, query);
     _assert (pr);
     int is_valid = pr->is_valid;
     cleri_parse_free(pr);

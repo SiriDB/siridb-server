@@ -32,7 +32,11 @@ typedef struct cleri_node_s cleri_children_t;
 #define cleri_gn(__child) (__child)->node
 #endif
 
-
+#if CLERI_VERSION_MAJOR >= 1 || CLERI_VERSION_MINOR >= 11
+#define cleri_parse_m(__g, __q) cleri_parse2(__g, __q, 0)
+#else
+#define cleri_parse_m(__g, __q) cleri_parse(__g, __q)
+#endif
 
 #if CLERI_VERSION_MAJOR >= 1 || CLERI_VERSION_MINOR >= 12
 #if SIRIDB_IS64BIT
