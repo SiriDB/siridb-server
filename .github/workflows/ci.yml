@@ -20,6 +20,7 @@ jobs:
           sudo make install
       - name: Install dependencies
         run: |
+          sudo apt-get update -y
           sudo apt-get install -y libuv1-dev libpcre2-dev libyajl-dev valgrind
       - name: Run tests
         run: |
