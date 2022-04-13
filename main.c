@@ -32,20 +32,6 @@ int main(int argc, char * argv[])
     /* set local to LC_ALL and C to force a period over comma for float */
     (void) setlocale(LC_ALL, "C");
 
-    /* initialize random */
-    seed = 0;
-    fd = open("/dev/urandom", O_RDONLY);
-
-    if ( fd == -1 ) {
-        log_info("Could not open /dev/urandom");
-        return 1;
-    }
-
-    read(fd, &seed, sizeof(int));
-    close(fd);
-
-    srand(seed);
-
     /* set threadpool size to 8 (default=4) */
     putenv("UV_THREADPOOL_SIZE=8");
 
@@ -58,6 +44,18 @@ int main(int argc, char * argv[])
 
     /* setup logger, this must be done before logging the first line */
     siri_setup_logger();
+
+    /* initialize random */
+    seed = 0;
+    fd = open("/dev/urandom", O_RDONLY);
+    if (fd == -1 || read(fd, &seed, sizeof(int)) == -1)
+    {
+        log_error("Could not open /dev/urandom");
+        return 1;
+    }
+
+    (void) close(fd);
+    srand(seed);
 
     /* initialize points dictionary */
     siridb_points_init();
