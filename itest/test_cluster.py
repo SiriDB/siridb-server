@@ -99,25 +99,25 @@ class TestCluster(TestBase):
     async def run(self):
         await self.client0.connect()
 
-        await self.client0.insert(DATA)
+        # await self.client0.insert(DATA)
 
-        await self.client0.query('''
-            alter series /series.*/ tag `SERIES`
-        ''')
+        # await self.client0.query('''
+        #     alter series /series.*/ tag `SERIES`
+        # ''')
 
-        await asyncio.sleep(3.0)
+        # await asyncio.sleep(3.0)
 
-        await self.client0.query('''
-            alter series /.*/ - `SERIES` tag `OTHER`
-        ''')
+        # await self.client0.query('''
+        #     alter series /.*/ - `SERIES` tag `OTHER`
+        # ''')
 
-        await self.db.add_pool(self.server1)
-        await self.assertIsRunning(self.db, self.client0, timeout=30)
+        # await self.db.add_replica(self.server1, 0)
+        # await self.assertIsRunning(self.db, self.client0, timeout=30)
 
-        await asyncio.sleep(35)
+        # await asyncio.sleep(35)
 
-        await self.db.add_replica(self.server2, 0)
-        await self.assertIsRunning(self.db, self.client0, timeout=30)
+        # await self.db.add_replica(self.server2, 0)
+        # await self.assertIsRunning(self.db, self.client0, timeout=30)
 
         # await asyncio.sleep(45)
 

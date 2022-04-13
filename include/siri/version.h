@@ -15,7 +15,7 @@
  * Note that debian alpha packages should use versions like this:
  *   2.0.34-0alpha0
  */
-#define SIRIDB_VERSION_PRE_RELEASE "-alpha-0"
+#define SIRIDB_VERSION_PRE_RELEASE "-alpha-1"
 
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
