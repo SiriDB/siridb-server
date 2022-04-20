@@ -345,7 +345,7 @@ int insert_init_backend_local(
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
-    if (siridb_tee_is_connected(siridb->tee))
+    if (siridb_tee_is_configured(siridb->tee))
     {
         siridb_tee_write(siridb->tee, promise);
     }
@@ -1075,7 +1075,7 @@ static int INSERT_init_local(
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
-    if (siridb_tee_is_connected(siridb->tee))
+    if (siridb_tee_is_configured(siridb->tee))
     {
         siridb_tee_write(siridb->tee, promise);
     }

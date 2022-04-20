@@ -278,12 +278,6 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     /* start tasks */
     siridb_tasks_init(&siridb->tasks);
 
-    /* init tee if configured */
-    if (siridb_tee_is_configured(siridb->tee))
-    {
-         siridb_tee_connect(siridb->tee);
-    }
-
     log_info("Finished loading database: '%s'", siridb->dbname);
 
     return siridb;
@@ -319,7 +313,8 @@ static int siridb__from_unpacker(
             qp_schema.via.int64 == 2 ||
             qp_schema.via.int64 == 3 ||
             qp_schema.via.int64 == 4 ||
-            qp_schema.via.int64 == 5)
+            qp_schema.via.int64 == 5 ||
+            qp_schema.via.int64 == 6)
     {
         log_info(
                 "Found an old database schema (v%d), "
@@ -481,31 +476,18 @@ static int siridb__from_unpacker(
     }
 
     /* for older schemas we keep the default tee_pipe_name=NULL */
-    if (qp_schema.via.int64 >= 5)
+    if (qp_schema.via.int64 >= 5 && qp_schema.via.int64 <=6)
     {
+        LOGC("HERE");
         qp_next(unpacker, &qp_obj);
-
-        if (qp_obj.tp == QP_RAW)
-        {
-            (*siridb)->tee->pipe_name_ = strndup(
-                (char *) qp_obj.via.raw,
-                qp_obj.len);
-
-            if (!(*siridb)->tee->pipe_name_)
-            {
-                READ_DB_EXIT_WITH_ERROR("Cannot allocate tee pipe name.")
-            }
-        }
-        else if (qp_obj.tp != QP_NULL)
-        {
-            READ_DB_EXIT_WITH_ERROR("Cannot read tee pipe name.")
-        }
+        /* Skip the tee pipe name */
     }
     if (qp_schema.via.int64 >= 6)
     {
         /* read select points limit */
         if (qp_next(unpacker, &qp_obj) != QP_INT64 || qp_obj.via.int64 < 0)
         {
+
             READ_DB_EXIT_WITH_ERROR(
                     "Cannot read shard (log) expiration time.")
         }
@@ -519,17 +501,48 @@ static int siridb__from_unpacker(
         }
         (*siridb)->expiration_num = qp_obj.via.int64;
     }
-    if ((*siridb)->tee->pipe_name_ == NULL)
+    if (qp_schema.via.int64 >= 7)
+    {
+        qp_next(unpacker, &qp_obj);
+
+        if (qp_obj.tp == QP_RAW)
+        {
+            (*siridb)->tee->address = strndup(
+                (char *) qp_obj.via.raw,
+                qp_obj.len);
+
+            if (!(*siridb)->tee->address)
+            {
+                READ_DB_EXIT_WITH_ERROR("Cannot allocate tee address.")
+            }
+        }
+        else if (qp_obj.tp != QP_NULL)
+        {
+            READ_DB_EXIT_WITH_ERROR("Cannot read tee address.")
+        }
+
+        if (qp_next(unpacker, &qp_obj) != QP_INT64 ||
+            qp_obj.via.int64 < 0 ||
+            qp_obj.via.int64 > 65535)
+        {
+            READ_DB_EXIT_WITH_ERROR("Cannot read tee port.")
+        }
+
+        (*siridb)->tee->port = qp_obj.via.int64;
+    }
+
+    if ((*siridb)->tee->address == NULL)
     {
         log_debug(
-            "No tee pipe name configured for database: %s",
+            "No tee configured for database: %s",
             (*siridb)->dbname);
     }
     else
     {
         log_debug(
-            "Using tee pipe name '%s' for database: '%s'",
-            (*siridb)->tee->pipe_name_,
+            "Using tee '%s:%u' for database: '%s'",
+            (*siridb)->tee->address,
+            (*siridb)->tee->port,
             (*siridb)->dbname);
     }
 
@@ -675,11 +688,12 @@ int siridb_save(siridb_t * siridb)
             qp_fadd_double(fpacker, siridb->drop_threshold) ||
             qp_fadd_int64(fpacker, siridb->select_points_limit) ||
             qp_fadd_int64(fpacker, siridb->list_limit) ||
-            (siridb->tee->pipe_name_ == NULL
-                ? qp_fadd_type(fpacker, QP_NULL)
-                : qp_fadd_string(fpacker, siridb->tee->pipe_name_)) ||
             qp_fadd_int64(fpacker, siridb->expiration_log) ||
             qp_fadd_int64(fpacker, siridb->expiration_num) ||
+            (siridb->tee->address == NULL
+                ? qp_fadd_type(fpacker, QP_NULL)
+                : qp_fadd_string(fpacker, siridb->tee->address)) ||
+            qp_fadd_int64(fpacker, siridb->tee->port) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 }
@@ -888,6 +902,7 @@ static siridb_t * siridb__new(void)
     siridb->users = NULL;
     siridb->servers = NULL;
     siridb->pools = NULL;
+    siridb->dropped_fp = NULL;
     siridb->max_series_id = 0;
     siridb->received_points = 0;
     siridb->selected_points = 0;

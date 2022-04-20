@@ -43,9 +43,6 @@ static void on_flags_update(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_log_level_update(
         sirinet_stream_t * client,
         sirinet_pkg_t * pkg);
-static void on_tee_pipe_name_update(
-        sirinet_stream_t * client,
-        sirinet_pkg_t * pkg);
 static void on_drop_database(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_repl_finished(sirinet_stream_t * client, sirinet_pkg_t * pkg);
 static void on_query(
@@ -280,8 +277,8 @@ static void on_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     case BPROTO_DISABLE_BACKUP_MODE:
         on_disable_backup_mode(client, pkg);
         break;
-    case BPROTO_TEE_PIPE_NAME_UPDATE:
-        on_tee_pipe_name_update(client, pkg);
+    case _BPROTO_TEE_PIPE_NAME_UPDATE:
+        log_warning("BPROTO_TEE_PIPE_NAME_UPDATE is deprecated");
         break;
     case BPROTO_DROP_DATABASE:
         on_drop_database(client, pkg);
@@ -447,30 +444,6 @@ static void on_log_level_update(sirinet_stream_t * client, sirinet_pkg_t * pkg)
     else
     {
         log_error("Invalid back-end 'on_log_level_update' received.");
-    }
-}
-
-static void on_tee_pipe_name_update(
-        sirinet_stream_t * client,
-        sirinet_pkg_t * pkg)
-{
-    SERVER_CHECK_AUTHENTICATED(client, server);
-    siridb_t * siridb = client->siridb;
-    sirinet_pkg_t * package;
-
-    char * pipe_name = pkg->len
-            ? strndup((const char *) pkg->data, pkg->len)
-            : NULL;
-
-    (void) siridb_tee_set_pipe_name(siridb->tee, pipe_name);
-
-    free(pipe_name);
-
-    package = sirinet_pkg_new(pkg->pid, 0, BPROTO_ACK_TEE_PIPE_NAME, NULL);
-    if (package != NULL)
-    {
-        /* ignore result code, signal can be raised */
-        sirinet_pkg_send(client, package);
     }
 }
 

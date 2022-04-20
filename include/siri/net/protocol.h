@@ -77,7 +77,7 @@ typedef enum
     BPROTO_REQ_GROUPS,                  /* empty                            */
     BPROTO_ENABLE_BACKUP_MODE,          /* empty                            */
     BPROTO_DISABLE_BACKUP_MODE,         /* empty                            */
-    BPROTO_TEE_PIPE_NAME_UPDATE,        /* tee pipe name                    */
+    _BPROTO_TEE_PIPE_NAME_UPDATE,       /* deprecated                       */
     BPROTO_DROP_DATABASE,               /* empty                            */
     BPROTO_REQ_TAGS,                    /* empty                            */
     BPROTO_SERIES_TAGS,                 /* [series name, tag name, ...]     */

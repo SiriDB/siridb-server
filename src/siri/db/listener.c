@@ -33,6 +33,7 @@
 #include <siri/net/promises.h>
 #include <siri/net/protocol.h>
 #include <siri/net/clserver.h>
+#include <siri/net/tcp.h>
 #include <siri/siri.h>
 #include <xstr/xstr.h>
 #include <sys/time.h>
@@ -175,12 +176,12 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
     "Successfully dropped server '%s'."
 #define MSG_SUCCES_SET_LOG_LEVEL_MULTI \
     "Successfully set log level to '%s' on %lu servers."
-#define MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI \
-    "Successfully set tee_pipe name on %lu servers."
+#define MSG_SUCCES_SET_TEE_DISABLED \
+    "Successfully disabled tee."
+#define MSG_SUCCES_SET_TEE_ENABLED \
+    "Successfully configures tee to %s."
 #define MSG_SUCCES_SET_LOG_LEVEL \
     "Successfully set log level to '%s' on '%s'."
-#define MSG_SUCCES_SET_TEE_PIPE_NAME \
-    "Successfully set tee pipe name to '%s' on '%s'."
 #define MSG_SUCCESS_SET_SELECT_POINTS_LIMIT \
     "Successfully changed select points limit from %" PRIu32 " to %" PRIu32 "."
 #define MSG_SUCCES_DROP_SERIES \
@@ -287,7 +288,7 @@ static void exit_set_list_limit(uv_async_t * handle);
 static void exit_set_log_level(uv_async_t * handle);
 static void exit_set_port(uv_async_t * handle);
 static void exit_set_select_points_limit(uv_async_t * handle);
-static void exit_set_tee_pipe_name(uv_async_t * handle);
+static void exit_set_tee(uv_async_t * handle);
 static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_tag_series(uv_async_t * handle);
@@ -543,7 +544,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_SET_LOG_LEVEL] = exit_set_log_level;
     SIRIDB_NODE_EXIT[CLERI_GID_SET_PORT] = exit_set_port;
     SIRIDB_NODE_EXIT[CLERI_GID_SET_SELECT_POINTS_LIMIT] = exit_set_select_points_limit;
-    SIRIDB_NODE_EXIT[CLERI_GID_SET_TEE_PIPE_NAME] = exit_set_tee_pipe_name;
+    SIRIDB_NODE_EXIT[CLERI_GID_SET_TEE] = exit_set_tee;
     SIRIDB_NODE_EXIT[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     SIRIDB_NODE_EXIT[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     SIRIDB_NODE_EXIT[CLERI_GID_TAG_SERIES] = exit_tag_series;
@@ -4737,137 +4738,93 @@ static void exit_set_select_points_limit(uv_async_t * handle)
     }
 }
 
-static void exit_set_tee_pipe_name(uv_async_t * handle)
+static void exit_set_tee(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
-    query_alter_t * q_alter = (query_alter_t *) query->data;
     siridb_t * siridb = query->client->siridb;
 
-    assert (query->data != NULL);
+    MASTER_CHECK_ACCESSIBLE(siridb)
 
     cleri_node_t * node = cleri_gn(cleri_gn(
             query->nodes->node->children->next->next)->children);
 
-    char pipe_name[node->len - 1];
-    char * p_pipe_name = NULL;
+    char tee_addr_port[node->len - 1];
+    char tee_address[SIRI_CFG_MAX_LEN_ADDRESS];
+    uint16_t tee_port = SIRIDB_TEE_DEFAULT_TCP_PORT;
+
 
     if (node->cl_obj->gid == CLERI_GID_STRING)
     {
-        xstr_extract_string(pipe_name, node->str, node->len);
-        p_pipe_name = pipe_name;
-    }
+        xstr_extract_string(tee_addr_port, node->str, node->len);
 
-    if (q_alter->alter_tp == QUERY_ALTER_SERVERS)
-    {
-        /*
-         * alter_servers
-         */
-        cexpr_t * where_expr = ((query_list_t *) query->data)->where_expr;
-        siridb_server_walker_t wserver = {
-            .server=siridb->server,
-            .siridb=siridb
-        };
-
-        if (where_expr == NULL || cexpr_run(
-                where_expr,
-                (cexpr_cb_t) siridb_server_cexpr_cb,
-                &wserver))
+        if (tee_addr_port[0] == 0)
         {
-            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
-            if (siridb_save(siridb))
-            {
-                log_critical("Could not save database changes (database: '%s')",
-                        siridb->dbname);
-            }
-            q_alter->n++;
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Tee address must not be empty");
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
         }
 
-        if (IS_MASTER)
+        if (sirinet_extract_addr_port(tee_addr_port, tee_address, &tee_port))
         {
-            /*
-             * This is a trick because we share with setting log level on
-             * multiple servers at once.
-             */
-            q_alter->n += LOGGER_NUM_LEVELS << 16;
-            siridb_query_forward(
-                    handle,
-                    SIRIDB_QUERY_FWD_SERVERS,
-                    (sirinet_promises_cb) on_alter_xxx_response,
-                    0);
+            snprintf(query->err_msg,
+                    SIRIDB_MAX_SIZE_ERR_MSG,
+                    "Invalid tee address; expecting ADDRESS[:PORT]");
+            siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+            return;
         }
-        else
+
+        if (siridb_tee_set_address_port(siridb->tee, tee_address, tee_port))
         {
-            qp_add_raw(query->packer, (const unsigned char *) "servers", 7);
-            qp_add_int64(query->packer, q_alter->n);
-            SIRIPARSER_ASYNC_NEXT_NODE
+            log_error("Failed to set tee address");  /* continue on error..*/
         }
     }
     else
     {
-        /*
-         * alter_server
-         *
-         * we can set the success message, we just ignore the message in case
-         * an error occurs.
-         */
-        siridb_server_t * server = q_alter->via.server;
+        /* disable the tee */
+        (void) siridb_tee_set_address_port(siridb->tee, NULL, 0);
+    }
 
+    if (siridb_save(siridb))
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Error while saving database changes!");
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+    }
+    else
+    {
         QP_ADD_SUCCESS
-        qp_add_fmt_safe(query->packer,
-                    MSG_SUCCES_SET_TEE_PIPE_NAME,
-                    p_pipe_name ? p_pipe_name : "disabled",
-                    server->name);
 
-        if (server == siridb->server)
+        if (siridb->tee->address)
         {
-            (void) siridb_tee_set_pipe_name(siridb->tee, p_pipe_name);
-            if (siridb_save(siridb))
-            {
-                log_critical("Could not save database changes (database: '%s')",
-                        siridb->dbname);
-            }
-
-            SIRIPARSER_ASYNC_NEXT_NODE
+            log_info(
+                    MSG_SUCCES_SET_TEE_ENABLED,
+                    siridb->tee->address,
+                    siridb->tee->port);
+            qp_add_fmt_safe(query->packer,
+                    MSG_SUCCES_SET_TEE_ENABLED,
+                    siridb->tee->address,
+                    siridb->tee->port);
         }
         else
         {
+            log_info(MSG_SUCCES_SET_TEE_DISABLED);
+            qp_add_string(query->packer, MSG_SUCCES_SET_TEE_DISABLED);
+        }
 
-            if (siridb_server_is_online(server))
-            {
-                sirinet_pkg_t * pkg = sirinet_pkg_new(
-                        0,
-                        p_pipe_name ? strlen(p_pipe_name) : 0,
-                        BPROTO_TEE_PIPE_NAME_UPDATE,
-                        (unsigned char *) p_pipe_name);
-                if (pkg != NULL)
-                {
-                    /* handle will be bound to a timer so we should increment */
-                    siri_async_incref(handle);
-                    if (siridb_server_send_pkg(
-                            server,
-                            pkg,
-                            0,
-                            (sirinet_promise_cb) on_ack_response,
-                            handle,
-                            0))
-                    {
-                        /*
-                         * signal is raised and 'on_ack_response' will not be
-                         * called
-                         */
-                        free(pkg);
-                        siri_async_decref(&handle);
-                    }
-                }
-            }
-            else
-            {
-                snprintf(query->err_msg,
-                        SIRIDB_MAX_SIZE_ERR_MSG,
-                        "Cannot set pipe name, '%s' is currently unavailable",
-                        server->name);
-                siridb_query_send_error(handle, CPROTO_ERR_QUERY);
-            }
+        if (IS_MASTER)
+        {
+            siridb_query_forward(
+                    handle,
+                    SIRIDB_QUERY_FWD_UPDATE,
+                    (sirinet_promises_cb) on_update_xxx_response,
+                    0);
+        }
+        else
+        {
+            SIRIPARSER_ASYNC_NEXT_NODE
         }
     }
 }
@@ -5928,27 +5885,15 @@ static void on_alter_xxx_response(vec_t * promises, uv_async_t * handle)
      */
     QP_ADD_SUCCESS
 
-    if ((q_alter->n >> 16) >= LOGGER_NUM_LEVELS)
-    {
-        log_info(MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI, q_alter->n & 0xffff);
-        qp_add_fmt_safe(
-                query->packer,
-                MSG_SUCCES_SET_TEE_PIPE_NAME_MULTI,
-                q_alter->n & 0xffff);
-    }
-    else
-    {
-        log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-                logger_level_name(q_alter->n >> 16),
-                q_alter->n & 0xffff);
+    log_info(MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+            logger_level_name(q_alter->n >> 16),
+            q_alter->n & 0xffff);
 
-        qp_add_fmt_safe(
-                query->packer,
-                MSG_SUCCES_SET_LOG_LEVEL_MULTI,
-                logger_level_name(q_alter->n >> 16),
-                q_alter->n & 0xffff);
-    }
-
+    qp_add_fmt_safe(
+            query->packer,
+            MSG_SUCCES_SET_LOG_LEVEL_MULTI,
+            logger_level_name(q_alter->n >> 16),
+            q_alter->n & 0xffff);
 
     SIRIPARSER_ASYNC_NEXT_NODE
 }

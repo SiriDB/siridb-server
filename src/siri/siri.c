@@ -631,9 +631,14 @@ static void SIRI_walk_close_handlers(
     case UV_TCP:
     case UV_NAMED_PIPE:
         {
-            if (handle->data == NULL || siridb_tee_is_handle(handle))
+            if (handle->data == NULL)
             {
                 uv_close(handle, NULL);
+            }
+            else if (siridb_tee_is_handle(handle))
+            {
+                // TODO: close tee handle
+                assert (0);
             }
             else if (siri_health_is_handle(handle))
             {
