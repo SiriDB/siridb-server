@@ -24,14 +24,15 @@ enum siridb_tee_e_t
 
 #include <uv.h>
 #include <stdbool.h>
-#include <siri/net/promise.h>
+#include <siri/net/pkg.h>
 
 siridb_tee_t * siridb_tee_new(void);
+void siridb_tee_close(siridb_tee_t * tee);
 int siridb_tee_set_address_port(
         siridb_tee_t * tee,
         const char * address,
         uint16_t port);
-void siridb_tee_write(siridb_tee_t * tee, sirinet_promise_t * promise);
+void siridb_tee_write(siridb_tee_t * tee, sirinet_pkg_t * pkg);
 void siridb_tee_free(siridb_tee_t * tee);
 const char * siridb_tee_str(siridb_tee_t * tee);
 
@@ -46,7 +47,6 @@ struct siridb_tee_s
     char * address;
     uv_tcp_t * tcp;
     uv_mutex_t lock_;
-    sirinet_promise_t * promise_;
 };
 
 

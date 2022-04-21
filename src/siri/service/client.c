@@ -717,8 +717,6 @@ static void CLIENT_on_file_database(
         return;
     }
 
-    LOGC("HERE");
-
     rc = (  qp_fadd_type(fpacker, QP_ARRAY_OPEN) ||
             qp_fadd_int64(fpacker, SIRIDB_SCHEMA) ||
             qp_fadd_raw(fpacker, (const unsigned char *) adm_client->uuid, 16) ||

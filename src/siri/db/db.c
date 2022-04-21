@@ -478,7 +478,6 @@ static int siridb__from_unpacker(
     /* for older schemas we keep the default tee_pipe_name=NULL */
     if (qp_schema.via.int64 >= 5 && qp_schema.via.int64 <=6)
     {
-        LOGC("HERE");
         qp_next(unpacker, &qp_obj);
         /* Skip the tee pipe name */
     }

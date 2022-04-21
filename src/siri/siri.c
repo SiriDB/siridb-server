@@ -29,6 +29,7 @@
 #include <siri/db/series.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/tee.h>
 #include <siri/db/users.h>
 #include <siri/api.h>
 #include <siri/err.h>
@@ -637,8 +638,7 @@ static void SIRI_walk_close_handlers(
             }
             else if (siridb_tee_is_handle(handle))
             {
-                // TODO: close tee handle
-                assert (0);
+                siridb_tee_close((siridb_tee_t *) handle->data);
             }
             else if (siri_health_is_handle(handle))
             {
