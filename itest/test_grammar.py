@@ -116,7 +116,7 @@ class TestGrammar(TestBase):
                 'set_address': '',  # not possible
                 'set_port': '',  # not possible
                 'set_timezone': '',  # same value error
-                'set_log_level': '',  # not required, but skip to keep log level
+                'set_log_level': '',  # not required, but skip to keep loglevel
             }})
         for q in qb.generate_queries('alter_stmt'):
             await self.client0.query(q)
@@ -210,14 +210,14 @@ class TestGrammarStart(TestBase):
                 'count_stmt': '',
 
                 'alter_group': '',
-                #'drop_group': '',
+                # 'drop_group': '',
                 'alter_server': '',
                 'drop_server': '',
                 'alter_user': '',
                 'drop_user': '',
 
-                #'set_address': '',
-                #'set_port': '',
+                # 'set_address': '',
+                # 'set_port': '',
                 'set_timezone': '',
                 'set_log_level': '',  # not required, skip to keep log level
                 'set_expiration_num': '',
@@ -226,12 +226,13 @@ class TestGrammarStart(TestBase):
                 'k_prefix': '',
                 'k_suffix': '',
                 'k_filter': '',
-                #'k_where': '',
+                # 'k_where': '',
                 'after_expr': '',
                 'before_expr': '',
                 'between_expr': '',
                 'k_merge': '',
-        }})
+            }
+        })
         for q in qb.generate_queries():
             await self.client0.query(q)
 
@@ -247,7 +248,7 @@ class TestGrammarStart(TestBase):
 
         await self.client0.insert(series)
         await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
-        #time.sleep(2)
+        # time.sleep(2)
         await self.test_all_stmts()
         self.client0.close()
         return False
