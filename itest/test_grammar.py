@@ -110,7 +110,7 @@ class TestGrammar(TestBase):
         qb = QueryGenerator(SiriGrammar, {
             'regex_map': k_map,
             'replace_map': {
-                'r_singleq_str': '', 
+                'r_singleq_str': '',
                 'k_now': '',  # not possible (set expiration num/log)
                 'set_name': '',  # skip
                 'set_address': '',  # not possible
@@ -170,7 +170,7 @@ class TestGrammar(TestBase):
 
         await self.client0.insert(series)
         await self.client0.query('create group `GROUP_OR_TAG` for /00000.*/')
-        
+
         await self.test_create_stmt()
 
         time.sleep(2)
@@ -194,6 +194,7 @@ class TestGrammar(TestBase):
         self.client0.close()
 
         return False
+
 
 class TestGrammarStart(TestBase):
 
