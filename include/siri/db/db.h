@@ -8,7 +8,7 @@ typedef struct siridb_s siridb_t;
 
 #define SIRIDB_MAX_SIZE_ERR_MSG 1024
 #define SIRIDB_MAX_DBNAME_LEN 256  /*    255 + NULL     */
-#define SIRIDB_SCHEMA 6
+#define SIRIDB_SCHEMA 7
 #define SIRIDB_FLAG_REINDEXING 1
 #define SIRIDB_FLAG_DROPPED 2
 

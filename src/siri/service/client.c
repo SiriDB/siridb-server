@@ -620,6 +620,7 @@ static void CLIENT_on_file_database(
     qp_fpacker_t * fpacker;
     qp_unpacker_t unpacker;
     qp_obj_t
+        qp_obj,
         qp_uuid,
         qp_schema,
         qp_dbname,
@@ -632,7 +633,9 @@ static void CLIENT_on_file_database(
         qp_points_limit,
         qp_list_limit,
         qp_exp_log,
-        qp_exp_num;
+        qp_exp_num,
+        qp_tee_address,
+        qp_tee_port;
     siridb_t * siridb;
     int rc;
     /* 13 = strlen("database.dat")+1  */
@@ -656,16 +659,57 @@ static void CLIENT_on_file_database(
         return;
     }
 
-    /* list and points limit require at least schema 1 */
-    (void) qp_next(&unpacker, &qp_points_limit);
-    (void) qp_next(&unpacker, &qp_list_limit);
+    if (qp_schema.via.int64 >= 2)
+    {
+        if (qp_next(&unpacker, &qp_points_limit) != QP_INT64||
+            qp_next(&unpacker, &qp_list_limit) != QP_INT64)
+        {
+            CLIENT_err(adm_client, "invalid database file received");
+            return;
+        }
+    }
+    else
+    {
+        qp_points_limit.via.int64 = DEF_SELECT_POINTS_LIMIT;
+        qp_list_limit.via.int64 = DEF_LIST_LIMIT;
+    }
 
-    /* this is the tee pipe name when schema is >= 5 */
-    (void) qp_next(&unpacker, &qp_exp_log);
-    (void) qp_next(&unpacker, &qp_exp_num);
+    if (qp_schema.via.int64 >= 5 && qp_schema.via.int64 <=6)
+    {
+        qp_next(&unpacker, &qp_obj);
+        /* Skip the tee pipe name */
+    }
 
-    /* these are the expiration times when schema is >= 6 */
+    if (qp_schema.via.int64 >= 6)
+    {
+        if (qp_next(&unpacker, &qp_exp_log) != QP_INT64||
+            qp_next(&unpacker, &qp_exp_num) != QP_INT64)
+        {
+            CLIENT_err(adm_client, "invalid database file received");
+            return;
+        }
+    }
+    else
+    {
+        qp_exp_log.via.int64 = 0;
+        qp_exp_num.via.int64 = 0;
+    }
 
+    if (qp_schema.via.int64 >= 7)
+    {
+
+        if (qp_next(&unpacker, &qp_tee_address) == QP_ERR ||
+            qp_next(&unpacker, &qp_tee_port) != QP_INT64)
+        {
+            CLIENT_err(adm_client, "invalid database file received");
+            return;
+        }
+    }
+    else
+    {
+        qp_tee_address.tp = QP_NULL;
+        qp_tee_port.via.int64 = SIRIDB_TEE_DEFAULT_TCP_PORT;
+    }
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
     {
@@ -683,19 +727,17 @@ static void CLIENT_on_file_database(
             qp_fadd_int64(fpacker, qp_duration_log.via.int64) ||
             qp_fadd_raw(fpacker, qp_timezone.via.raw, qp_timezone.len) ||
             qp_fadd_double(fpacker, qp_drop_threshold.via.real) ||
-            qp_fadd_int64(fpacker, qp_points_limit.tp == QP_INT64
-                    ? qp_points_limit.via.int64
-                    : DEF_SELECT_POINTS_LIMIT) ||
-            qp_fadd_int64(fpacker, qp_list_limit.tp == QP_INT64
-                    ? qp_list_limit.via.int64
-                    : DEF_LIST_LIMIT) ||
-            qp_fadd_type(fpacker, QP_NULL) ||
-            qp_fadd_int64(fpacker, qp_exp_log.tp == QP_INT64
-                    ? qp_exp_log.via.int64
-                    : 0) ||
-            qp_fadd_int64(fpacker, qp_exp_num.tp == QP_INT64
-                    ? qp_exp_num.via.int64
-                    : 0) ||
+            qp_fadd_int64(fpacker, qp_points_limit.via.int64) ||
+            qp_fadd_int64(fpacker, qp_list_limit.via.int64) ||
+            qp_fadd_int64(fpacker, qp_exp_log.via.int64) ||
+            qp_fadd_int64(fpacker, qp_exp_num.via.int64) ||
+            (qp_tee_address.tp == QP_RAW
+                    ? qp_fadd_raw(
+                            fpacker,
+                            qp_tee_address.via.raw,
+                            qp_tee_address.len)
+                    : qp_fadd_type(fpacker, QP_NULL)) ||
+            qp_fadd_int64(fpacker, qp_tee_port.via.int64) ||
             qp_fadd_type(fpacker, QP_ARRAY_CLOSE) ||
             qp_close(fpacker));
 

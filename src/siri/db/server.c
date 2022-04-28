@@ -1175,12 +1175,6 @@ int siridb_server_cexpr_cb(
                 cond->operator,
                 siridb_initsync_sync_progress(wserver->siridb),
                 cond->str);
-
-    case CLERI_GID_K_TEE_PIPE_NAME:
-        return cexpr_str_cmp(
-                cond->operator,
-                tee_str(wserver->siridb->tee),
-                cond->str);
     }
 
     log_critical("Unexpected server property received: %d", cond->prop);

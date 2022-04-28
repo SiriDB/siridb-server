@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2020-09-25 10:57:26
+ * Created at: 2022-04-15 12:10:03
  */
 
 #include "siri/grammar/grammar.h"
@@ -166,7 +166,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_sync_progress = cleri_keyword(CLERI_GID_K_SYNC_PROGRESS, "sync_progress", CLERI_CASE_SENSITIVE);
     cleri_t * k_tag = cleri_keyword(CLERI_GID_K_TAG, "tag", CLERI_CASE_SENSITIVE);
     cleri_t * k_tags = cleri_keyword(CLERI_GID_K_TAGS, "tags", CLERI_CASE_SENSITIVE);
-    cleri_t * k_tee_pipe_name = cleri_keyword(CLERI_GID_K_TEE_PIPE_NAME, "tee_pipe_name", CLERI_CASE_SENSITIVE);
+    cleri_t * k_tee = cleri_keyword(CLERI_GID_K_TEE, "tee", CLERI_CASE_SENSITIVE);
     cleri_t * k_time_precision = cleri_keyword(CLERI_GID_K_TIME_PRECISION, "time_precision", CLERI_CASE_SENSITIVE);
     cleri_t * k_timeit = cleri_keyword(CLERI_GID_K_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
     cleri_t * k_timeval = cleri_keyword(CLERI_GID_K_TIMEVAL, "timeval", CLERI_CASE_SENSITIVE);
@@ -312,7 +312,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * server_columns = cleri_list(CLERI_GID_SERVER_COLUMNS, cleri_choice(
         CLERI_NONE,
         CLERI_FIRST_MATCH,
-        29,
+        28,
         k_address,
         k_buffer_path,
         k_buffer_size,
@@ -340,7 +340,6 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_reindex_progress,
         k_selected_points,
         k_sync_progress,
-        k_tee_pipe_name,
         k_uptime
     ), cleri_token(CLERI_NONE, ","), 1, 0, 0);
     cleri_t * group_columns = cleri_list(CLERI_GID_GROUP_COLUMNS, cleri_choice(
@@ -625,7 +624,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
                 cleri_choice(
                     CLERI_NONE,
                     CLERI_FIRST_MATCH,
-                    12,
+                    11,
                     k_address,
                     k_buffer_path,
                     k_dbpath,
@@ -636,8 +635,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
                     k_version,
                     k_status,
                     k_reindex_progress,
-                    k_sync_progress,
-                    k_tee_pipe_name
+                    k_sync_progress
                 ),
                 str_operator,
                 string
@@ -1153,11 +1151,11 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         k_address,
         string
     );
-    cleri_t * set_tee_pipe_name = cleri_sequence(
-        CLERI_GID_SET_TEE_PIPE_NAME,
+    cleri_t * set_tee = cleri_sequence(
+        CLERI_GID_SET_TEE,
         3,
         k_set,
-        k_tee_pipe_name,
+        k_tee,
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
@@ -1278,13 +1276,14 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            6,
+            7,
             set_drop_threshold,
             set_list_limit,
             set_select_points_limit,
             set_timezone,
             set_expiration_num,
-            set_expiration_log
+            set_expiration_log,
+            set_tee
         )
     );
     cleri_t * alter_group = cleri_sequence(
@@ -1320,10 +1319,9 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            5,
+            4,
             set_log_level,
             set_backup_mode,
-            set_tee_pipe_name,
             set_address,
             set_port
         )
@@ -1336,9 +1334,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            2,
-            set_log_level,
-            set_tee_pipe_name
+            1,
+            set_log_level
         )
     );
     cleri_t * alter_user = cleri_sequence(
@@ -1724,7 +1721,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
             k_startup_time,
             k_status,
             k_sync_progress,
-            k_tee_pipe_name,
+            k_tee,
             k_time_precision,
             k_timezone,
             k_uptime,

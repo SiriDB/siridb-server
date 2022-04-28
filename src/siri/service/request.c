@@ -10,6 +10,7 @@
 #include <siri/db/reindex.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/tee.h>
 #include <siri/service/account.h>
 #include <siri/service/client.h>
 #include <siri/service/request.h>
@@ -720,9 +721,10 @@ static cproto_server_t SERVICE_on_new_database(
         qp_fadd_double(fp, DEF_DROP_THRESHOLD) ||
         qp_fadd_int64(fp, DEF_SELECT_POINTS_LIMIT) ||
         qp_fadd_int64(fp, DEF_LIST_LIMIT) ||
+        qp_fadd_int64(fp, 0) ||
+        qp_fadd_int64(fp, 0) ||
         qp_fadd_type(fp, QP_NULL) ||
-        qp_fadd_int64(fp, 0) ||
-        qp_fadd_int64(fp, 0) ||
+        qp_fadd_int64(fp, SIRIDB_TEE_DEFAULT_TCP_PORT) ||
         qp_fadd_type(fp, QP_ARRAY_CLOSE))
     {
         rc = -1;

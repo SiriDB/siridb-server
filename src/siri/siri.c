@@ -29,6 +29,7 @@
 #include <siri/db/series.h>
 #include <siri/db/server.h>
 #include <siri/db/servers.h>
+#include <siri/db/tee.h>
 #include <siri/db/users.h>
 #include <siri/api.h>
 #include <siri/err.h>
@@ -631,9 +632,13 @@ static void SIRI_walk_close_handlers(
     case UV_TCP:
     case UV_NAMED_PIPE:
         {
-            if (handle->data == NULL || siridb_tee_is_handle(handle))
+            if (handle->data == NULL)
             {
                 uv_close(handle, NULL);
+            }
+            else if (siridb_tee_is_handle(handle))
+            {
+                siridb_tee_close((siridb_tee_t *) handle->data);
             }
             else if (siri_health_is_handle(handle))
             {

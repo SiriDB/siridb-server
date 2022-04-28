@@ -345,9 +345,9 @@ int insert_init_backend_local(
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
-    if (siridb_tee_is_connected(siridb->tee))
+    if (siridb_tee_is_configured(siridb->tee) && (flags & INSERT_FLAG_POOL))
     {
-        siridb_tee_write(siridb->tee, promise);
+        siridb_tee_write(siridb->tee, pkg);
     }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);
@@ -1075,9 +1075,9 @@ static int INSERT_init_local(
     siridb_tasks_inc(siridb->tasks);
     siridb->insert_tasks++;
 
-    if (siridb_tee_is_connected(siridb->tee))
+    if (siridb_tee_is_configured(siridb->tee))
     {
-        siridb_tee_write(siridb->tee, promise);
+        siridb_tee_write(siridb->tee, pkg);
     }
 
     uv_async_init(siri.loop, handle, INSERT_local_task);

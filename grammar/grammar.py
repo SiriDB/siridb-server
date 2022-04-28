@@ -165,7 +165,7 @@ class SiriGrammar(Grammar):
     k_sync_progress = Keyword('sync_progress')
     k_tag = Keyword('tag')
     k_tags = Keyword('tags')
-    k_tee_pipe_name = Keyword('tee_pipe_name')
+    k_tee = Keyword('tee')
     k_time_precision = Keyword('time_precision')
     k_timeit = Keyword('timeit')
     k_timeval = Keyword('timeval')
@@ -287,7 +287,6 @@ class SiriGrammar(Grammar):
         k_reindex_progress,
         k_selected_points,
         k_sync_progress,
-        k_tee_pipe_name,
         k_uptime,
         most_greedy=False), ',', 1)
 
@@ -394,7 +393,6 @@ class SiriGrammar(Grammar):
             k_status,
             k_reindex_progress,
             k_sync_progress,
-            k_tee_pipe_name,
             most_greedy=False), str_operator, string),
         Sequence(k_online, bool_operator, _boolean),
         Sequence(k_log_level, int_operator, log_keywords),
@@ -606,7 +604,7 @@ class SiriGrammar(Grammar):
         Optional(Sequence(k_using, aggregate_functions)))
 
     set_address = Sequence(k_set, k_address, string)
-    set_tee_pipe_name = Sequence(k_set, k_tee_pipe_name, Choice(
+    set_tee = Sequence(k_set, k_tee, Choice(
         k_false,
         string,
         most_greedy=False))
@@ -642,6 +640,7 @@ class SiriGrammar(Grammar):
         set_timezone,
         set_expiration_num,
         set_expiration_log,
+        set_tee,
         most_greedy=False))
 
     alter_group = Sequence(k_group, group_name, Choice(
@@ -656,14 +655,12 @@ class SiriGrammar(Grammar):
     alter_server = Sequence(k_server, uuid, Choice(
         set_log_level,
         set_backup_mode,
-        set_tee_pipe_name,
         set_address,
         set_port,
         most_greedy=False))
 
     alter_servers = Sequence(k_servers, Optional(where_server), Choice(
         set_log_level,
-        set_tee_pipe_name,
         most_greedy=False))
 
     alter_user = Sequence(k_user, string, Choice(
@@ -853,7 +850,7 @@ class SiriGrammar(Grammar):
         k_startup_time,
         k_status,
         k_sync_progress,
-        k_tee_pipe_name,
+        k_tee,
         k_time_precision,
         k_timezone,
         k_uptime,

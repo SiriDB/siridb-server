@@ -172,7 +172,7 @@ static void prop_sync_progress(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
-static void prop_tee_pipe_name(
+static void prop_tee(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map);
@@ -270,8 +270,8 @@ void siridb_init_props(void)
             prop_status);
     props_set_cb(CLERI_GID_K_SYNC_PROGRESS - KW_OFFSET,
             prop_sync_progress);
-    props_set_cb(CLERI_GID_K_TEE_PIPE_NAME - KW_OFFSET,
-            prop_tee_pipe_name);
+    props_set_cb(CLERI_GID_K_TEE - KW_OFFSET,
+            prop_tee);
     props_set_cb(CLERI_GID_K_TIMEZONE - KW_OFFSET,
             prop_timezone);
     props_set_cb(CLERI_GID_K_TIME_PRECISION - KW_OFFSET,
@@ -572,13 +572,13 @@ static void prop_sync_progress(
     qp_add_string(packer, siridb_initsync_sync_progress(siridb));
 }
 
-static void prop_tee_pipe_name(
+static void prop_tee(
         siridb_t * siridb,
         qp_packer_t * packer,
         int map)
 {
-    SIRIDB_PROP_MAP("tee_pipe_name", 13)
-    qp_add_string(packer, tee_str(siridb->tee));
+    SIRIDB_PROP_MAP("tee", 3)
+    qp_add_string(packer, siridb_tee_str(siridb->tee));
 }
 
 static void prop_timezone(
