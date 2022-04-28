@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import struct
 import argparse
 import asyncio
 import qpack
@@ -12,7 +13,9 @@ class TeeServerProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         print('Data received: {}'.format(len(data)))
-        self.transport.write(b'test')
+        header = struct.unpack_from('<LHBB', data)
+        print(header)
+        # self.transport.write(b'test')
 
 
 async def main(args):
@@ -20,7 +23,7 @@ async def main(args):
 
     server = await loop.create_server(
         lambda: TeeServerProtocol(),
-        '127.0.0.1',
+        '0.0.0.0',
         args.port)
 
     async with server:
@@ -28,13 +31,9 @@ async def main(args):
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
-
     parser.add_argument("-p", "--port", type=int, default=9104)
-
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
-
     loop.run_until_complete(main(args))

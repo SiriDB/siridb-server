@@ -12,6 +12,8 @@
 
 #define TEE__BUF_SZ 512
 static char tee__buf[TEE__BUF_SZ];
+static char tee__address[SIRI_CFG_MAX_LEN_ADDRESS+7];
+
 
 static void tee__alloc_buffer(
     uv_handle_t * handle __attribute__((unused)),
@@ -48,8 +50,9 @@ static void tee__on_data(
     {
         if (nread != UV_EOF)
         {
-            log_error("Read error on tee '%s': '%s'",
+            log_error("Read error on tee '%s:%u': '%s'",
                 tee->address,
+                tee->port,
                 uv_err_name(nread));
         }
 
@@ -60,9 +63,10 @@ static void tee__on_data(
         return;
     }
 
-    log_debug("Got %zd bytes on tee `%s` which will be ignored",
+    log_debug("Got %zd bytes on tee `%s:%u` which will be ignored",
             nread,
-            tee->address);
+            tee->address,
+            tee->port);
 }
 
 static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
@@ -126,8 +130,9 @@ static void tee__on_connect(uv_connect_t * req, int status)
     /* failed */
     tee->err_code = SIRIDB_TEE_E_CONNECT;
     log_warning(
-            "Cannot connect to tee '%s' (%s)",
+            "Cannot connect to tee '%s:%u' (%s)",
             tee->address,
+            tee->port,
             uv_strerror(status));
 
 fail:
@@ -319,7 +324,8 @@ const char * siridb_tee_str(siridb_tee_t * tee)
     }
     if (tee->address)
     {
-        return tee->address;
+        (void) sprintf(tee__address, "%s:%u", tee->address, tee->port);
+        return tee__address;
     }
     return "disabled";
 }
