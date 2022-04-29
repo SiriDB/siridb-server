@@ -1,3 +1,11 @@
+siridb-server (2.0.47-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed initializing `random` (Thanks to Jayakrishna Menon)
+    - Changed Tee from Unix to TCP socket (#179)
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 29 Apr 2022 08:17:01 +0200
+
 siridb-server (2.0.46-0~tt1) unstable; urgency=medium
 
   * New upstream release
