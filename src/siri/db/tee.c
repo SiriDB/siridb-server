@@ -211,7 +211,7 @@ final:
     uv_freeaddrinfo(res);
 }
 
-static void tee__resolve_dns(siridb_tee_t * tee, int ai_family)
+static int tee__resolve_dns(siridb_tee_t * tee, int ai_family)
 {
     int result;
     struct addrinfo hints;
@@ -225,7 +225,7 @@ static void tee__resolve_dns(siridb_tee_t * tee, int ai_family)
 
     if (resolver == NULL)
     {
-        return;
+        return -1;
     }
 
     resolver->data = tee;
@@ -245,6 +245,8 @@ static void tee__resolve_dns(siridb_tee_t * tee, int ai_family)
         log_error("getaddrinfo call error %s", uv_err_name(result));
         free(resolver);
     }
+
+    return result;
 }
 
 void tee__connect(siridb_tee_t * tee)
@@ -271,7 +273,10 @@ void tee__connect(siridb_tee_t * tee)
     }
 
     /* Try DNS */
-    tee__resolve_dns(tee, dns_req_family_map(siri.cfg->ip_support));
+    if (tee__resolve_dns(tee, dns_req_family_map(siri.cfg->ip_support)))
+    {
+        uv_mutex_unlock(&tee->lock_);
+    }
 }
 
 siridb_tee_t * siridb_tee_new(void)
