@@ -148,7 +148,11 @@ void tee__make_connection(siridb_tee_t * tee, const struct sockaddr * dest)
     uv_tcp_t * tcp = malloc(sizeof(uv_tcp_t));
     if (tcp == NULL || req == NULL)
     {
-        goto fail0;
+        tee->err_code = SIRIDB_TEE_E_ALLOC;
+        free(req);
+        free(tcp);
+        uv_mutex_unlock(&tee->lock_);
+        return;
     }
     tcp->data = tee;
 
@@ -156,13 +160,6 @@ void tee__make_connection(siridb_tee_t * tee, const struct sockaddr * dest)
 
     (void) uv_tcp_init(siri.loop, tcp);
     (void) uv_tcp_connect(req, tcp, dest, tee__on_connect);
-
-    return;
-
-fail0:
-    free(req);
-    free(tcp);
-    uv_mutex_unlock(&tee->lock_);
 }
 
 static void tee__on_resolved(
