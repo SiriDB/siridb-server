@@ -248,13 +248,13 @@ static void exit_between_expr(uv_async_t * handle);
 static void exit_calc_stmt(uv_async_t * handle);
 static void exit_count_groups(uv_async_t * handle);
 static void exit_count_pools(uv_async_t * handle);
-static void exit_count_series(uv_async_t * handle);
 static void exit_count_series_length(uv_async_t * handle);
-static void exit_count_servers(uv_async_t * handle);
+static void exit_count_series(uv_async_t * handle);
 static void exit_count_servers_received(uv_async_t * handle);
 static void exit_count_servers_selected(uv_async_t * handle);
-static void exit_count_shards(uv_async_t * handle);
+static void exit_count_servers(uv_async_t * handle);
 static void exit_count_shards_size(uv_async_t * handle);
+static void exit_count_shards(uv_async_t * handle);
 static void exit_count_tags(uv_async_t * handle);
 static void exit_count_users(uv_async_t * handle);
 static void exit_create_group(uv_async_t * handle);
@@ -266,6 +266,7 @@ static void exit_drop_shards(uv_async_t * handle);
 static void exit_drop_tag(uv_async_t * handle);
 static void exit_drop_user(uv_async_t * handle);
 static void exit_grant_user(uv_async_t * handle);
+static void exit_head_expr(uv_async_t * handle);
 static void exit_help_xxx(uv_async_t * handle);
 static void exit_list_groups(uv_async_t * handle);
 static void exit_list_pools(uv_async_t * handle);
@@ -292,6 +293,7 @@ static void exit_set_tee(uv_async_t * handle);
 static void exit_set_timezone(uv_async_t * handle);
 static void exit_show_stmt(uv_async_t * handle);
 static void exit_tag_series(uv_async_t * handle);
+static void exit_tail_expr(uv_async_t * handle);
 static void exit_timeit_stmt(uv_async_t * handle);
 static void exit_untag_series(uv_async_t * handle);
 
@@ -505,13 +507,13 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_CALC_STMT] = exit_calc_stmt;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_GROUPS] = exit_count_groups;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_POOLS] = exit_count_pools;
-    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERIES] = exit_count_series;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERIES_LENGTH] = exit_count_series_length;
-    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERIES] = exit_count_series;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS_RECEIVED] = exit_count_servers_received;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS_SELECTED] = exit_count_servers_selected;
-    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SERVERS] = exit_count_servers;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SHARDS_SIZE] = exit_count_shards_size;
+    SIRIDB_NODE_EXIT[CLERI_GID_COUNT_SHARDS] = exit_count_shards;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_TAGS] = exit_count_tags;
     SIRIDB_NODE_EXIT[CLERI_GID_COUNT_USERS] = exit_count_users;
     SIRIDB_NODE_EXIT[CLERI_GID_CREATE_GROUP] = exit_create_group;
@@ -523,6 +525,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_TAG] = exit_drop_tag;
     SIRIDB_NODE_EXIT[CLERI_GID_DROP_USER] = exit_drop_user;
     SIRIDB_NODE_EXIT[CLERI_GID_GRANT_USER] = exit_grant_user;
+    SIRIDB_NODE_EXIT[CLERI_GID_HEAD_EXPR] = exit_head_expr;
     SIRIDB_NODE_EXIT[CLERI_GID_LIST_GROUPS] = exit_list_groups;
     SIRIDB_NODE_EXIT[CLERI_GID_LIST_POOLS] = exit_list_pools;
     SIRIDB_NODE_EXIT[CLERI_GID_LIST_SERIES] = exit_list_series;
@@ -548,6 +551,7 @@ void siridb_init_listener(void)
     SIRIDB_NODE_EXIT[CLERI_GID_SET_TIMEZONE] = exit_set_timezone;
     SIRIDB_NODE_EXIT[CLERI_GID_SHOW_STMT] = exit_show_stmt;
     SIRIDB_NODE_EXIT[CLERI_GID_TAG_SERIES] = exit_tag_series;
+    SIRIDB_NODE_EXIT[CLERI_GID_TAIL_EXPR] = exit_tail_expr;
     SIRIDB_NODE_EXIT[CLERI_GID_TIMEIT_STMT] = exit_timeit_stmt;
     SIRIDB_NODE_EXIT[CLERI_GID_UNTAG_SERIES] = exit_untag_series;
 
@@ -1954,6 +1958,53 @@ static void exit_after_expr(uv_async_t * handle)
     ((query_select_t *) query->data)->start_ts =
             (uint64_t *) CLERI_NODE_DATA_ADDR(
                     cleri_gn(query->nodes->node->children->next));
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_head_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    ssize_t head = *((ssize_t *) CLERI_NODE_DATA_ADDR(
+                cleri_gn(query->nodes->node->children->next)));
+
+
+    if (head <= 0 || head > MAX_HEADTAIL)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Head must be a value between 1 and %ld, got %zd",
+                MAX_HEADTAIL, head);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+    ((query_select_t *) query->data)->headtail = head;
+
+    LOGC("Head: %zd", ((query_select_t *) query->data)->headtail);
+
+    SIRIPARSER_NEXT_NODE
+}
+
+static void exit_tail_expr(uv_async_t * handle)
+{
+    siridb_query_t * query = handle->data;
+    ssize_t tail = *((ssize_t *) CLERI_NODE_DATA_ADDR(
+                cleri_gn(query->nodes->node->children->next)));
+
+    if (tail < 1 || tail > MAX_HEADTAIL)
+    {
+        snprintf(query->err_msg,
+                SIRIDB_MAX_SIZE_ERR_MSG,
+                "Tail must be a value between 1 and %ld, got %zd",
+                MAX_HEADTAIL, tail);
+        siridb_query_send_error(handle, CPROTO_ERR_QUERY);
+        return;
+    }
+
+    ((query_select_t *) query->data)->headtail = -tail;
+
+    LOGC("Tail: %zd", ((query_select_t *) query->data)->headtail);
 
     SIRIPARSER_NEXT_NODE
 }
@@ -5592,11 +5643,21 @@ static void async_select_aggregate(uv_async_t * handle)
     {
         uv_mutex_lock(&siridb->series_mutex);
 
-        points = (series->flags & SIRIDB_SERIES_IS_DROPPED) ?
-                NULL : siridb_series_get_points(
+        points = (series->flags & SIRIDB_SERIES_IS_DROPPED)
+               ? NULL
+               : q_select->headtail == 0
+               ? siridb_series_get_points(
                         series,
                         q_select->start_ts,
-                        q_select->end_ts);
+                        q_select->end_ts)
+               : q_select->headtail < 0
+               ? siridb_series_get_points_tail(
+                       series,
+                       -q_select->headtail)
+               : siridb_series_get_points_head(
+                      series,
+                      q_select->headtail);
+
         uv_mutex_unlock(&siridb->series_mutex);
 
         /* when having a cache and points, add a copy of points to the cache */

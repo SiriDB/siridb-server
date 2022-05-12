@@ -56,9 +56,9 @@ class SiriGrammar(Grammar):
     k_as = Keyword('as')
     k_backup_mode = Keyword('backup_mode')
     k_before = Keyword('before')
-    k_buffer_size = Keyword('buffer_size')
-    k_buffer_path = Keyword('buffer_path')
     k_between = Keyword('between')
+    k_buffer_path = Keyword('buffer_path')
+    k_buffer_size = Keyword('buffer_size')
     k_count = Keyword('count')
     k_create = Keyword('create')
     k_critical = Keyword('critical')
@@ -88,6 +88,7 @@ class SiriGrammar(Grammar):
     k_grant = Keyword('grant')
     k_group = Keyword('group')
     k_groups = Keyword('groups')
+    k_head = Keyword('head')
     k_help = Choice(Keyword('help'), Token('?'))
     k_idle_percentage = Keyword('idle_percentage')
     k_idle_time = Keyword('idle_time')
@@ -165,6 +166,7 @@ class SiriGrammar(Grammar):
     k_sync_progress = Keyword('sync_progress')
     k_tag = Keyword('tag')
     k_tags = Keyword('tags')
+    k_tail = Keyword('tail')
     k_tee = Keyword('tee')
     k_time_precision = Keyword('time_precision')
     k_timeit = Keyword('timeit')
@@ -465,6 +467,8 @@ class SiriGrammar(Grammar):
     before_expr = Sequence(k_before, time_expr)
     after_expr = Sequence(k_after, time_expr)
     between_expr = Sequence(k_between, time_expr, k_and, time_expr)
+    head_expr = Sequence(k_head, int_expr)
+    tail_expr = Sequence(k_tail, int_expr)
     access_expr = List(access_keywords, ',', 1)
 
     prefix_expr = Sequence(k_prefix, string)
@@ -816,6 +820,8 @@ class SiriGrammar(Grammar):
             after_expr,
             between_expr,
             before_expr,
+            tail_expr,
+            head_expr,
             most_greedy=False)),
         Optional(merge_as))
 

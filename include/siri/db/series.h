@@ -100,6 +100,12 @@ siridb_points_t * siridb_series_get_points(
         siridb_series_t *__restrict series,
         uint64_t *__restrict start_ts,
         uint64_t *__restrict end_ts);
+siridb_points_t * siridb_series_get_points_tail(
+        siridb_series_t *__restrict series,
+        size_t tail);
+siridb_points_t * siridb_series_get_points_head(
+        siridb_series_t *__restrict series,
+        size_t head);
 void siridb_series_remove_shard(
         siridb_t *__restrict siridb,
         siridb_series_t *__restrict series,

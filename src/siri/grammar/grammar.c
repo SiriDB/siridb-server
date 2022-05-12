@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2022-04-15 12:10:03
+ * Created at: 2022-05-05 15:08:05
  */
 
 #include "siri/grammar/grammar.h"
@@ -40,9 +40,9 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_as = cleri_keyword(CLERI_GID_K_AS, "as", CLERI_CASE_SENSITIVE);
     cleri_t * k_backup_mode = cleri_keyword(CLERI_GID_K_BACKUP_MODE, "backup_mode", CLERI_CASE_SENSITIVE);
     cleri_t * k_before = cleri_keyword(CLERI_GID_K_BEFORE, "before", CLERI_CASE_SENSITIVE);
-    cleri_t * k_buffer_size = cleri_keyword(CLERI_GID_K_BUFFER_SIZE, "buffer_size", CLERI_CASE_SENSITIVE);
-    cleri_t * k_buffer_path = cleri_keyword(CLERI_GID_K_BUFFER_PATH, "buffer_path", CLERI_CASE_SENSITIVE);
     cleri_t * k_between = cleri_keyword(CLERI_GID_K_BETWEEN, "between", CLERI_CASE_SENSITIVE);
+    cleri_t * k_buffer_path = cleri_keyword(CLERI_GID_K_BUFFER_PATH, "buffer_path", CLERI_CASE_SENSITIVE);
+    cleri_t * k_buffer_size = cleri_keyword(CLERI_GID_K_BUFFER_SIZE, "buffer_size", CLERI_CASE_SENSITIVE);
     cleri_t * k_count = cleri_keyword(CLERI_GID_K_COUNT, "count", CLERI_CASE_SENSITIVE);
     cleri_t * k_create = cleri_keyword(CLERI_GID_K_CREATE, "create", CLERI_CASE_SENSITIVE);
     cleri_t * k_critical = cleri_keyword(CLERI_GID_K_CRITICAL, "critical", CLERI_CASE_SENSITIVE);
@@ -72,6 +72,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_grant = cleri_keyword(CLERI_GID_K_GRANT, "grant", CLERI_CASE_SENSITIVE);
     cleri_t * k_group = cleri_keyword(CLERI_GID_K_GROUP, "group", CLERI_CASE_SENSITIVE);
     cleri_t * k_groups = cleri_keyword(CLERI_GID_K_GROUPS, "groups", CLERI_CASE_SENSITIVE);
+    cleri_t * k_head = cleri_keyword(CLERI_GID_K_HEAD, "head", CLERI_CASE_SENSITIVE);
     cleri_t * k_help = cleri_choice(
         CLERI_GID_K_HELP,
         CLERI_MOST_GREEDY,
@@ -166,6 +167,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * k_sync_progress = cleri_keyword(CLERI_GID_K_SYNC_PROGRESS, "sync_progress", CLERI_CASE_SENSITIVE);
     cleri_t * k_tag = cleri_keyword(CLERI_GID_K_TAG, "tag", CLERI_CASE_SENSITIVE);
     cleri_t * k_tags = cleri_keyword(CLERI_GID_K_TAGS, "tags", CLERI_CASE_SENSITIVE);
+    cleri_t * k_tail = cleri_keyword(CLERI_GID_K_TAIL, "tail", CLERI_CASE_SENSITIVE);
     cleri_t * k_tee = cleri_keyword(CLERI_GID_K_TEE, "tee", CLERI_CASE_SENSITIVE);
     cleri_t * k_time_precision = cleri_keyword(CLERI_GID_K_TIME_PRECISION, "time_precision", CLERI_CASE_SENSITIVE);
     cleri_t * k_timeit = cleri_keyword(CLERI_GID_K_TIMEIT, "timeit", CLERI_CASE_SENSITIVE);
@@ -894,6 +896,18 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         time_expr,
         k_and,
         time_expr
+    );
+    cleri_t * head_expr = cleri_sequence(
+        CLERI_GID_HEAD_EXPR,
+        2,
+        k_head,
+        int_expr
+    );
+    cleri_t * tail_expr = cleri_sequence(
+        CLERI_GID_TAIL_EXPR,
+        2,
+        k_tail,
+        int_expr
     );
     cleri_t * access_expr = cleri_list(CLERI_GID_ACCESS_EXPR, access_keywords, cleri_token(CLERI_NONE, ","), 1, 0, 0);
     cleri_t * prefix_expr = cleri_sequence(
@@ -1676,10 +1690,12 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_optional(CLERI_NONE, cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            3,
+            5,
             after_expr,
             between_expr,
-            before_expr
+            before_expr,
+            tail_expr,
+            head_expr
         )),
         cleri_optional(CLERI_NONE, merge_as)
     );

@@ -68,7 +68,7 @@ static void QUERIES_free_merge_result(vec_t * plist);
 
 query_select_t * query_select_new(void)
 {
-    query_select_t * q_select = malloc(sizeof(query_select_t));
+    query_select_t * q_select = calloc(1, sizeof(query_select_t));
 
     if (q_select == NULL)
     {
@@ -77,15 +77,7 @@ query_select_t * query_select_new(void)
     QUERIES_NEW(q_select)
 
     q_select->tp = QUERIES_SELECT;
-    q_select->start_ts = NULL;
-    q_select->end_ts = NULL;
-    q_select->presuf = NULL;
-    q_select->merge_as = NULL;
-    q_select->n = 0;
     q_select->nselects = 1;  /* we have at least one select function  */
-    q_select->points_map = NULL;
-    q_select->alist = NULL;
-    q_select->mlist = NULL;
     q_select->result = ct_new();
 
     if (q_select->result == NULL)

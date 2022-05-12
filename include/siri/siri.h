@@ -18,6 +18,7 @@
 
 #define SIRI_MAX_SIZE_ERR_MSG 1024
 #define MAX_NUMBER_DB 1024
+#define MAX_HEADTAIL 1000000L
 
 #if defined(__GLIBC__)
 #define strerror_si(__err, __buf, __sz) \
