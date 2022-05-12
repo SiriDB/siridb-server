@@ -129,6 +129,7 @@ struct query_select_s
     QUERY_DEF
     size_t n;
     size_t nselects;
+    ssize_t headtail;       /* negative is tail, positive is head */
     uint64_t * start_ts;    /* will NOT be freed        */
     uint64_t * end_ts;      /* will NOT be freed        */
     siridb_presuf_t * presuf;

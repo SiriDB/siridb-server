@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2022-04-15 12:10:03
+ * Created at: 2022-05-05 15:08:05
  */
 #ifndef CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
 #define CLERI_EXPORT_SIRI_GRAMMAR_GRAMMAR_H_
@@ -81,6 +81,7 @@ enum cleri_grammar_ids {
     CLERI_GID_GROUP_COLUMNS,
     CLERI_GID_GROUP_NAME,
     CLERI_GID_GROUP_TAG_MATCH,
+    CLERI_GID_HEAD_EXPR,
     CLERI_GID_HELP_ACCESS,
     CLERI_GID_HELP_ALTER,
     CLERI_GID_HELP_ALTER_DATABASE,
@@ -165,6 +166,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_GRANT,
     CLERI_GID_K_GROUP,
     CLERI_GID_K_GROUPS,
+    CLERI_GID_K_HEAD,
     CLERI_GID_K_HELP,
     CLERI_GID_K_IDLE_PERCENTAGE,
     CLERI_GID_K_IDLE_TIME,
@@ -236,6 +238,7 @@ enum cleri_grammar_ids {
     CLERI_GID_K_SYNC_PROGRESS,
     CLERI_GID_K_TAG,
     CLERI_GID_K_TAGS,
+    CLERI_GID_K_TAIL,
     CLERI_GID_K_TEE,
     CLERI_GID_K_TIMEIT,
     CLERI_GID_K_TIMEVAL,
@@ -318,6 +321,7 @@ enum cleri_grammar_ids {
     CLERI_GID_TAG_COLUMNS,
     CLERI_GID_TAG_NAME,
     CLERI_GID_TAG_SERIES,
+    CLERI_GID_TAIL_EXPR,
     CLERI_GID_TIMEIT_STMT,
     CLERI_GID_TIME_EXPR,
     CLERI_GID_UNTAG_SERIES,

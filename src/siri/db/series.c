@@ -683,6 +683,226 @@ void siridb_series_update_props(siridb_t * siridb, siridb_series_t * series)
     }
 }
 
+static inline idx_t * series__last_idx(siridb_series_t *__restrict series)
+{
+    size_t i = series->idx_len - 1;
+    idx_t * idx =  series->idx + i;
+    idx_t * last = idx;
+
+    for (; i && last->shard == (--idx)->shard; --i)
+    {
+        if (idx->end_ts > last->end_ts)
+        {
+            last = idx;
+        }
+    }
+    return last;
+}
+
+siridb_points_t * siridb_series_get_points_tail(
+        siridb_series_t *__restrict series,
+        size_t tail)
+{
+    idx_t * idx;
+    siridb_points_t * points;
+    siridb_point_t * point;
+    size_t n = 0, ibuf = 0, iidx = series->idx_len, size = 0;
+    uint64_t buf_start_ts = 0;
+
+    if (series->buffer)
+    {
+        /* We only have a buffer */
+        point = series->buffer->data;
+        size = ibuf = series->buffer->len;
+
+        if (tail < ibuf)
+        {
+            point += ibuf-tail;
+            size = ibuf = tail;
+        }
+
+        if (ibuf)
+        {
+            buf_start_ts = series->buffer->data->ts;
+        }
+    }
+
+    if (iidx == 0)
+    {
+        /* no shards, just use the buffer */
+        goto done;
+    }
+
+    idx = series->idx + series->idx_len - 1;
+
+    if (series->flags & SIRIDB_SERIES_HAS_OVERLAP)
+    {
+        if (series__last_idx(series)->end_ts <= buf_start_ts)
+        {
+            /* buffer is in line */
+            n = size;
+        }
+
+        while (n < tail && iidx)
+        {
+            siridb_shard_t * shard = idx->shard;
+            int overlap = shard->flags & SIRIDB_SHARD_HAS_OVERLAP;
+
+            /* if the shard is without overlaps, we can quite the loop
+             * once we have enough points; otherwise we read the whole shard
+             * even if too much points */
+
+            do
+            {
+                n += idx->len;
+                size += idx->len;
+                --idx;
+                --iidx;
+            }
+            while ((overlap || n < tail) && iidx && idx->shard == shard);
+        }
+    }
+    else
+    {
+        /* no overlap in this series */
+
+        if (idx->end_ts <= buf_start_ts)
+        {
+            /* buffer is in line */
+            n = size;
+        }
+
+        while (n < tail && iidx)
+        {
+            n += idx->len;
+            size += idx->len;
+            --idx;
+            --iidx;
+        }
+    }
+
+done:
+    points = siridb_points_new(size, series->tp);
+
+    if (points == NULL)
+    {
+        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
+        return NULL;
+    }
+
+    for (; iidx < series->idx_len; ++iidx)
+    {
+        idx = series->idx + iidx;
+
+        (void) siridb_shard_get_points_callback(idx->shard->flags, series)(
+                points,
+                idx,
+                NULL,
+                NULL,
+                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        /* errors can be ignored here */
+    }
+
+    /* add buffer points */
+    for (; ibuf; ++point, --ibuf)
+    {
+        siridb_points_add_point(points, &point->ts, &point->val);
+    }
+
+    siridb_points_tail(points, tail);
+    return points;
+}
+
+siridb_points_t * siridb_series_get_points_head(
+        siridb_series_t *__restrict series,
+        size_t head)
+{
+    idx_t * idx;
+    siridb_points_t * points;
+    siridb_point_t * point;
+    size_t n = 0, ibuf = 0, iidx = series->idx_len, size = 0;
+    int btest = series->flags & SIRIDB_SERIES_HAS_OVERLAP;
+
+    idx = series->idx;
+
+    while (n < head && iidx)
+    {
+        siridb_shard_t * shard = idx->shard;
+        int overlap = btest && (shard->flags & SIRIDB_SHARD_HAS_OVERLAP);
+
+        /* if the shard is without overlaps, we can quite the loop
+         * once we have enough points; otherwise we read the whole shard
+         * even if too much points */
+        do
+        {
+            n += idx->len;
+            size += idx->len;
+            ++idx;
+            --iidx;
+        }
+        while ((overlap || n < head) && iidx && idx->shard == shard);
+    }
+
+    /* get the number of index we need to load */
+    iidx = series->idx_len - iidx;
+
+    if (series->buffer && series->buffer->len)
+    {
+        /* We only have a buffer */
+        point = series->buffer->data;
+        btest = iidx && (series->idx + (iidx - 1))->end_ts <= point->ts;
+
+        if (btest && n < head)
+        {
+            ibuf = head - n;
+            if (ibuf > series->buffer->len)
+            {
+                ibuf = series->buffer->len;
+            }
+        }
+        else if (!btest)
+        {
+            ibuf = series->buffer->len;
+            if (ibuf > head)
+            {
+                ibuf = head;
+            }
+        }
+        size += ibuf;
+    }
+
+    points = siridb_points_new(size, series->tp);
+
+    if (points == NULL)
+    {
+        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
+        return NULL;
+    }
+
+    idx = series->idx;
+
+    for (; iidx; --iidx, ++idx)
+    {
+        (void) siridb_shard_get_points_callback(idx->shard->flags, series)(
+                points,
+                idx,
+                NULL,
+                NULL,
+                series->flags & SIRIDB_SERIES_HAS_OVERLAP);
+        /* errors can be ignored here */
+    }
+
+    /* add buffer points */
+    for (; ibuf; ++point, --ibuf)
+    {
+        siridb_points_add_point(points, &point->ts, &point->val);
+    }
+
+    siridb_points_head(points, head);
+    return points;
+}
+
+
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */
@@ -846,6 +1066,7 @@ siridb_points_t * siridb_series_get_last(
     siridb_points_t * buf = series->buffer;
     siridb_points_t * points;
     siridb_point_t * point;
+    idx_t * last;
 
     if (buf != NULL &&
         buf->len &&
@@ -870,19 +1091,7 @@ siridb_points_t * siridb_series_get_last(
     assert (series->idx_len);
 
     /* if not in the buffer, then if must be in a shard */
-
-    size_t i = series->idx_len - 1;
-    idx_t * idx = series->idx + i;
-    idx_t * last = idx;
-
-    for (; i && last->shard == (--idx)->shard; --i)
-    {
-        if (idx->end_ts > last->end_ts)
-        {
-            last = idx;
-        }
-    }
-
+    last = series__last_idx(series);
     points = siridb_points_new(last->len, series->tp);
     if (points == NULL)
     {
