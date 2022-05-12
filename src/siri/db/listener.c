@@ -1981,8 +1981,6 @@ static void exit_head_expr(uv_async_t * handle)
 
     ((query_select_t *) query->data)->headtail = head;
 
-    LOGC("Head: %zd", ((query_select_t *) query->data)->headtail);
-
     SIRIPARSER_NEXT_NODE
 }
 
@@ -2003,8 +2001,6 @@ static void exit_tail_expr(uv_async_t * handle)
     }
 
     ((query_select_t *) query->data)->headtail = -tail;
-
-    LOGC("Tail: %zd", ((query_select_t *) query->data)->headtail);
 
     SIRIPARSER_NEXT_NODE
 }

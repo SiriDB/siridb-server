@@ -6,7 +6,7 @@
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
-#define SIRIDB_VERSION_PATCH 47
+#define SIRIDB_VERSION_PATCH 48
 
 /*
  * Use SIRIDB_VERSION_PRE_RELEASE for alpha release versions.
@@ -20,7 +20,7 @@
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
 #else
-#define SIRIDB_VERSION_BUILD_RELEASE ""
+#define SIRIDB_VERSION_BUILD_RELEASE "-alpha-0"
 #endif
 
 #define SIRIDB_STRINGIFY(num) #num
