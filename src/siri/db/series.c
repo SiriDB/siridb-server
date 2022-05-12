@@ -786,7 +786,6 @@ done:
 
     if (points == NULL)
     {
-        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
         return NULL;
     }
 
@@ -875,7 +874,6 @@ siridb_points_t * siridb_series_get_points_head(
 
     if (points == NULL)
     {
-        ERR_ALLOC  /* TODO: maybe remove ERR_ALLOC */
         return NULL;
     }
 
