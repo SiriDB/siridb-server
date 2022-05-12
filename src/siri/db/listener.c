@@ -1965,21 +1965,21 @@ static void exit_after_expr(uv_async_t * handle)
 static void exit_head_expr(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
-    ssize_t head = *((ssize_t *) CLERI_NODE_DATA_ADDR(
-                cleri_gn(query->nodes->node->children->next)));
+    ssize_t * head = (ssize_t *) CLERI_NODE_DATA_ADDR(
+                cleri_gn(query->nodes->node->children->next));
 
 
-    if (head <= 0 || head > MAX_HEADTAIL)
+    if (*head <= 0 || *head > MAX_HEADTAIL)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Head must be a value between 1 and %ld, got %zd",
-                MAX_HEADTAIL, head);
+                MAX_HEADTAIL, *head);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }
 
-    ((query_select_t *) query->data)->headtail = head;
+    ((query_select_t *) query->data)->headtail = *head;
 
     SIRIPARSER_NEXT_NODE
 }
@@ -1987,20 +1987,20 @@ static void exit_head_expr(uv_async_t * handle)
 static void exit_tail_expr(uv_async_t * handle)
 {
     siridb_query_t * query = handle->data;
-    ssize_t tail = *((ssize_t *) CLERI_NODE_DATA_ADDR(
-                cleri_gn(query->nodes->node->children->next)));
+    ssize_t * tail = (ssize_t *) CLERI_NODE_DATA_ADDR(
+                cleri_gn(query->nodes->node->children->next));
 
-    if (tail < 1 || tail > MAX_HEADTAIL)
+    if (*tail < 1 || *tail > MAX_HEADTAIL)
     {
         snprintf(query->err_msg,
                 SIRIDB_MAX_SIZE_ERR_MSG,
                 "Tail must be a value between 1 and %ld, got %zd",
-                MAX_HEADTAIL, tail);
+                MAX_HEADTAIL, *tail);
         siridb_query_send_error(handle, CPROTO_ERR_QUERY);
         return;
     }
 
-    ((query_select_t *) query->data)->headtail = -tail;
+    ((query_select_t *) query->data)->headtail = -(*tail);
 
     SIRIPARSER_NEXT_NODE
 }
