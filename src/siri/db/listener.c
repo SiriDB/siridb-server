@@ -179,7 +179,7 @@ if (IS_MASTER && siridb_is_reindexing(siridb))                              \
 #define MSG_SUCCES_SET_TEE_DISABLED \
     "Successfully disabled tee."
 #define MSG_SUCCES_SET_TEE_ENABLED \
-    "Successfully configures tee to %s."
+    "Successfully configured tee to %s."
 #define MSG_SUCCES_SET_LOG_LEVEL \
     "Successfully set log level to '%s' on '%s'."
 #define MSG_SUCCESS_SET_SELECT_POINTS_LIMIT \
