@@ -900,7 +900,6 @@ siridb_points_t * siridb_series_get_points_head(
     return points;
 }
 
-
 /*
  * Returns NULL and raises a SIGNAL in case an error has occurred.
  */

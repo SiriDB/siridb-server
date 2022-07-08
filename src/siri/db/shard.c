@@ -457,10 +457,33 @@ siridb_shard_t *  siridb_shard_create(
     shard->replacing = replacing;
     shard->len = shard->size = HEADER_SIZE;
     shard->duration = duration;
-    shard->max_chunk_sz = (replacing == NULL) ?
-            (tp == SIRIDB_SHARD_TP_NUMBER ?
-                    DEFAULT_MAX_CHUNK_SZ_NUM : DEFAULT_MAX_CHUNK_SZ_LOG) :
-                    replacing->max_chunk_sz;
+    if (replacing == NULL)
+    {
+        shard->max_chunk_sz = (tp == SIRIDB_SHARD_TP_NUMBER)
+                ? DEFAULT_MAX_CHUNK_SZ_NUM
+                : DEFAULT_MAX_CHUNK_SZ_LOG;
+    }
+    else
+    {
+        shard->max_chunk_sz = replacing->max_chunk_sz;
+        if (tp == SIRIDB_SHARD_TP_NUMBER && shard->max_chunk_sz < 4000)
+        {
+            uint64_t now_ts;
+            struct timespec now;
+            clock_gettime(CLOCK_REALTIME, &now);
+            now_ts = siridb_time_now(siridb, now);
+
+            if (now_ts > id && (now_ts - id) > (duration * 3))
+            {
+                /* for numbers, we grow the max_chunk_size on each optimize;
+                 * as soon as the shard is older than 3 times the duration */
+                shard->max_chunk_sz *= 2;
+                log_debug(
+                        "Grow chunk size for shard id %" PRIu64 " to %u",
+                        id, shard->max_chunk_sz);
+            }
+        }
+    }
 
     if (SHARD_init_fn(siridb, shard) < 0)
     {

@@ -252,7 +252,7 @@ void sirinet__stream_free(uv_stream_t * uvclient)
     case STREAM_API_CLIENT:
     case STREAM_PIPE_CLIENT:
     case STREAM_TCP_CLIENT:  /* listens to client connections  */
-        log_debug("client connection lost");
+        log_debug("Client connection lost");
         if (client->origin != NULL)
         {
             siridb_user_t * user = client->origin;

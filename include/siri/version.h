@@ -20,7 +20,7 @@
 #ifndef NDEBUG
 #define SIRIDB_VERSION_BUILD_RELEASE "+debug"
 #else
-#define SIRIDB_VERSION_BUILD_RELEASE "-alpha-0"
+#define SIRIDB_VERSION_BUILD_RELEASE "-alpha-1"
 #endif
 
 #define SIRIDB_STRINGIFY(num) #num
