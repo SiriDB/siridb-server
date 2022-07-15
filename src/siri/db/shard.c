@@ -466,18 +466,20 @@ siridb_shard_t *  siridb_shard_create(
     else
     {
         shard->max_chunk_sz = replacing->max_chunk_sz;
-        if (tp == SIRIDB_SHARD_TP_NUMBER && shard->max_chunk_sz < 4000)
+        if (tp == SIRIDB_SHARD_TP_NUMBER && shard->max_chunk_sz < 2000)
         {
             uint64_t now_ts;
             struct timespec now;
             clock_gettime(CLOCK_REALTIME, &now);
             now_ts = siridb_time_now(siridb, now);
 
-            if (now_ts > id && (now_ts - id) > (duration * 3))
+            if (now_ts > id && (now_ts - id) > (duration * 4))
             {
                 /* for numbers, we grow the max_chunk_size on each optimize;
-                 * as soon as the shard is older than 3 times the duration */
-                shard->max_chunk_sz *= 2;
+                 * as soon as the shard is older than 4 times the duration;
+                 * usually this happens only once, as afterwards, the max
+                 * chunk-size exceeds 2000 points; */
+                shard->max_chunk_sz <<= 2;  /* 1200 * 4 = 4800 */
                 log_debug(
                         "Grow chunk size for shard id %" PRIu64 " to %u",
                         id, shard->max_chunk_sz);

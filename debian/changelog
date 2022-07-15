@@ -1,3 +1,11 @@
+siridb-server (2.0.48-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Implement smaller indexes for old data
+    - Added `head` and `tail` syntax queries (#180)
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Fri, 15 Jul 2022 07:55:12 +0200
+
 siridb-server (2.0.47-0~cb1) unstable; urgency=medium
 
   * New upstream release
