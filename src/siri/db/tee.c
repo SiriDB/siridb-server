@@ -11,155 +11,44 @@
 #include <logger/logger.h>
 
 #define TEE__BUF_SZ 512
-static char tee__buf[TEE__BUF_SZ];
 static char tee__address[SIRI_CFG_MAX_LEN_ADDRESS+7];
 
 
-static void tee__alloc_buffer(
-    uv_handle_t * handle __attribute__((unused)),
-    size_t suggsz __attribute__((unused)),
-    uv_buf_t * buf)
-{
-    buf->base = tee__buf;
-    buf->len = TEE__BUF_SZ;
-}
-
-static void tee__write_cb(uv_write_t * req, int status)
-{
-    sirinet_pkg_t * pkg = req->data;
-    if (status)
-    {
-        log_error("Socket (tee) write error: %s", uv_strerror(status));
-    }
-    free(pkg);
-    free(req);
-}
-
-static void tee__on_data(
-    uv_tcp_t * tcp,
-    ssize_t nread,
-    const uv_buf_t * buf __attribute__((unused)))
-{
-    siridb_tee_t * tee = tcp->data;
-    if (!tee)
-    {
-        return;
-    }
-
-    if (nread < 0)
-    {
-        if (nread != UV_EOF)
-        {
-            log_error("Read error on tee '%s:%u': '%s'",
-                tee->address,
-                tee->port,
-                uv_err_name(nread));
-        }
-
-        log_info("Disconnected from tee `%s`", tee->address);
-
-        uv_close((uv_handle_t *) tcp, (uv_close_cb) free);
-        tee->tcp = NULL;
-        return;
-    }
-
-    log_debug("Got %zd bytes on tee `%s:%u` which will be ignored",
-            nread,
-            tee->address,
-            tee->port);
-}
-
 static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
 {
-    uv_write_t * req;
+    int rc;
     uv_buf_t buf;
 
-    pkg = sirinet_pkg_dup(pkg);
-    if (!pkg)
-    {
-        log_error("Failed to create duplicate for tee");
-        return;
-    }
-
-    req = malloc(sizeof(uv_write_t));
     buf = uv_buf_init((char *) pkg, sizeof(sirinet_pkg_t) + pkg->len);
-
-    if (req)
+    rc = uv_udp_try_send(tee->udp, &buf, 1, NULL);
+    if (rc != 0)
     {
-        int rc;
-        req->data = pkg;
-        rc = uv_write(req, (uv_stream_t *) tee->tcp, &buf, 1, tee__write_cb);
-        if (rc == 0)
-        {
-            return;  /* success */
-        }
-        free(req);
+        log_error("Cannot write to tee");
     }
-    free(pkg);
-    log_error("Cannot write to tee");
-    return;
-}
-
-static void tee__on_connect(uv_connect_t * req, int status)
-{
-    uv_tcp_t * tcp = (uv_tcp_t *) req->handle;
-    siridb_tee_t * tee = tcp->data;
-
-    if (status == 0)
-    {
-        if (uv_read_start(
-                req->handle,
-                tee__alloc_buffer,
-                (uv_read_cb) tee__on_data))
-        {
-            /* Failed to start reading the tee connection */
-            tee->err_code = SIRIDB_TEE_E_READ;
-            log_error(
-                    "Failed to open tee `%s:%u` for reading",
-                    tee->address, tee->port);
-            goto fail;
-        }
-
-        /* success */
-        tee->tcp = tcp;
-        log_info(
-                "Connection created to tee: '%s:%u'", tee->address, tee->port);
-        goto done;
-    }
-
-    /* failed */
-    tee->err_code = SIRIDB_TEE_E_CONNECT;
-    log_warning(
-            "Cannot connect to tee '%s:%u' (%s)",
-            tee->address,
-            tee->port,
-            uv_strerror(status));
-
-fail:
-    uv_close((uv_handle_t *) tcp, (uv_close_cb) free);
-done:
-    free(req);
-    uv_mutex_unlock(&tee->lock_);
 }
 
 void tee__make_connection(siridb_tee_t * tee, const struct sockaddr * dest)
 {
-    uv_connect_t * req = malloc(sizeof(uv_connect_t));
-    uv_tcp_t * tcp = malloc(sizeof(uv_tcp_t));
-    if (tcp == NULL || req == NULL)
+    uv_udp_t * udp = malloc(sizeof(uv_udp_t));
+    if (udp == NULL)
     {
-        tee->err_code = SIRIDB_TEE_E_ALLOC;
-        free(req);
-        free(tcp);
+        free(udp);
         uv_mutex_unlock(&tee->lock_);
         return;
     }
-    tcp->data = tee;
+    udp->data = tee;
 
     log_debug("Trying to connect to tee '%s:%u'...", tee->address, tee->port);
 
-    (void) uv_tcp_init(siri.loop, tcp);
-    (void) uv_tcp_connect(req, tcp, dest, tee__on_connect);
+    if (uv_udp_init(siri.loop, udp) || uv_udp_connect(udp, dest))
+    {
+        free(udp);
+        uv_mutex_unlock(&tee->lock_);
+        return;
+    }
+
+    tee->udp = udp;
+    uv_mutex_unlock(&tee->lock_);
 }
 
 static void tee__on_resolved(
@@ -284,9 +173,8 @@ siridb_tee_t * siridb_tee_new(void)
         return NULL;
     }
     tee->address = NULL;
-    tee->tcp = NULL;
+    tee->udp = NULL;
     tee->flags = SIRIDB_TEE_FLAG;
-    tee->err_code = 0;
     uv_mutex_init(&tee->lock_);
     return tee;
 }
@@ -294,10 +182,10 @@ siridb_tee_t * siridb_tee_new(void)
 void siridb_tee_close(siridb_tee_t * tee)
 {
     uv_mutex_lock(&tee->lock_);
-    if (tee->tcp && !uv_is_closing((uv_handle_t *) tee->tcp))
+    if (tee->udp && !uv_is_closing((uv_handle_t *) tee->udp))
     {
-        uv_close((uv_handle_t *) tee->tcp, (uv_close_cb) free);
-        tee->tcp = NULL;
+        uv_close((uv_handle_t *) tee->udp, (uv_close_cb) free);
+        tee->udp = NULL;
     }
     uv_mutex_unlock(&tee->lock_);
 }
@@ -305,7 +193,7 @@ void siridb_tee_close(siridb_tee_t * tee)
 void siridb_tee_free(siridb_tee_t * tee)
 {
     /* must be closed before free can be used */
-    assert (tee->tcp == NULL);
+    assert (tee->udp == NULL);
 
     uv_mutex_destroy(&tee->lock_);
     free(tee->address);
@@ -314,19 +202,15 @@ void siridb_tee_free(siridb_tee_t * tee)
 
 const char * siridb_tee_str(siridb_tee_t * tee)
 {
-    if (tee->err_code)
-    {
-        switch((enum siridb_tee_e_t) tee->err_code)
-        {
-        case SIRIDB_TEE_E_OK:       return "OK";
-        case SIRIDB_TEE_E_ALLOC:    return "memory allocation error";
-        case SIRIDB_TEE_E_READ:     return "failed to open socket for reading";
-        case SIRIDB_TEE_E_CONNECT:  return "failed to make connection";
-        }
-    }
     if (tee->address)
     {
-        (void) sprintf(tee__address, "%s:%u", tee->address, tee->port);
+        const char * const connected = "%s:%u (connected)";
+        const char * const disconnected = "%s:%u (disconnected)";
+
+        (void) sprintf(
+                tee__address,
+                tee->udp ? connected : disconnected,
+                tee->address, tee->port);
         return tee__address;
     }
     return "disabled";
@@ -335,7 +219,7 @@ const char * siridb_tee_str(siridb_tee_t * tee)
 void siridb_tee_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
 {
     assert (tee->address);
-    if (tee->tcp)
+    if (tee->udp)
     {
         tee__do_write(tee, pkg);
     }
@@ -361,14 +245,13 @@ int siridb_tee_set_address_port(
 
     free(tee->address);
 
-    tee->err_code = SIRIDB_TEE_E_OK;
     tee->address = address ? strdup(address) : NULL;
     tee->port = port;
 
-    if (tee->tcp && !uv_is_closing((uv_handle_t *) tee->tcp))
+    if (tee->udp && !uv_is_closing((uv_handle_t *) tee->udp))
     {
-        uv_close((uv_handle_t *) tee->tcp, (uv_close_cb) free);
-        tee->tcp = NULL;
+        uv_close((uv_handle_t *) tee->udp, (uv_close_cb) free);
+        tee->udp = NULL;
     }
 
     uv_mutex_unlock(&tee->lock_);

@@ -13,14 +13,6 @@ enum
     SIRIDB_TEE_FLAG = 1<<31,
 };
 
-enum siridb_tee_e_t
-{
-    SIRIDB_TEE_E_OK=0,
-    SIRIDB_TEE_E_ALLOC,
-    SIRIDB_TEE_E_READ,
-    SIRIDB_TEE_E_CONNECT,
-};
-
 
 #include <uv.h>
 #include <stdbool.h>
@@ -43,9 +35,9 @@ struct siridb_tee_s
 {
     uint32_t flags;  /* maps to sirnet_stream_t tp for cleanup */
     uint16_t port;
-    uint16_t err_code;
+    uint16_t _pad0;
     char * address;
-    uv_tcp_t * tcp;
+    uv_udp_t * udp;
     uv_mutex_t lock_;
 };
 
