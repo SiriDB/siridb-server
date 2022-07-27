@@ -11,7 +11,7 @@ class TeeServerProtocol(asyncio.Protocol):
         print('Connection from {}'.format(peername))
         self.transport = transport
 
-    def data_received(self, data):
+    def datagram_received(self, data):
         print('Data received: {}'.format(len(data)))
         header = struct.unpack_from('<LHBB', data)
         print(header)
@@ -21,13 +21,9 @@ class TeeServerProtocol(asyncio.Protocol):
 async def main(args):
     loop = asyncio.get_running_loop()
 
-    server = await loop.create_server(
+    server = await loop.create_datagram_endpoint(
         lambda: TeeServerProtocol(),
-        '0.0.0.0',
-        args.port)
-
-    async with server:
-        await server.serve_forever()
+        ('0.0.0.0', args.port))
 
 
 if __name__ == '__main__':
@@ -37,3 +33,4 @@ if __name__ == '__main__':
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(args))
+    loop.run_forever()

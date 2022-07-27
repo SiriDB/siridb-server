@@ -8,12 +8,6 @@ typedef struct siridb_tee_s siridb_tee_t;
 
 #define SIRIDB_TEE_DEFAULT_TCP_PORT 9104
 
-enum
-{
-    SIRIDB_TEE_FLAG = 1<<31,
-};
-
-
 #include <uv.h>
 #include <stdbool.h>
 #include <siri/net/pkg.h>
@@ -33,9 +27,9 @@ typedef void (*siridb_tee_cb)(uv_handle_t *);
 
 struct siridb_tee_s
 {
-    uint32_t flags;  /* maps to sirnet_stream_t tp for cleanup */
+    uint32_t _pad0;
     uint16_t port;
-    uint16_t _pad0;
+    uint16_t _pad1;
     char * address;
     uv_udp_t * udp;
     uv_mutex_t lock_;
@@ -46,13 +40,5 @@ static inline bool siridb_tee_is_configured(siridb_tee_t * tee)
 {
     return tee->address != NULL;
 };
-
-static inline bool siridb_tee_is_handle(uv_handle_t * handle)
-{
-    return
-        handle->type == UV_TCP &&
-        handle->data &&
-        (((siridb_tee_t *) handle->data)->flags & SIRIDB_TEE_FLAG);
-}
 
 #endif /* SIRIDB_TEE_H_ */

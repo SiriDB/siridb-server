@@ -23,7 +23,7 @@ static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
     rc = uv_udp_try_send(tee->udp, &buf, 1, NULL);
     if (rc != 0)
     {
-        log_error("Cannot write to tee");
+        log_error("Cannot write to tee (%s)", uv_strerror(rc));
     }
 }
 
@@ -174,7 +174,6 @@ siridb_tee_t * siridb_tee_new(void)
     }
     tee->address = NULL;
     tee->udp = NULL;
-    tee->flags = SIRIDB_TEE_FLAG;
     uv_mutex_init(&tee->lock_);
     return tee;
 }

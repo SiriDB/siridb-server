@@ -629,16 +629,16 @@ static void SIRI_walk_close_handlers(
         uv_close(handle, NULL);
         break;
 
+    case UV_UDP:
+        siridb_tee_close((siridb_tee_t *) handle->data);
+        break;
+
     case UV_TCP:
     case UV_NAMED_PIPE:
         {
             if (handle->data == NULL)
             {
                 uv_close(handle, NULL);
-            }
-            else if (siridb_tee_is_handle(handle))
-            {
-                siridb_tee_close((siridb_tee_t *) handle->data);
             }
             else if (siri_health_is_handle(handle))
             {
