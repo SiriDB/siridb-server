@@ -156,7 +156,10 @@ void siridb_query_free(uv_handle_t * handle)
     siridb_t * siridb = query->client->siridb;
 
     /* decrement active tasks */
-    siridb_tasks_dec(siridb->tasks);
+    if (siridb != NULL)
+    {
+        siridb_tasks_dec(siridb->tasks);
+    }
 
     /* free query */
     free(query->q);
