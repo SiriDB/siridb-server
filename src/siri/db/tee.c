@@ -21,7 +21,7 @@ static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
 
     buf = uv_buf_init((char *) pkg, sizeof(sirinet_pkg_t) + pkg->len);
     rc = uv_udp_try_send(tee->udp, &buf, 1, NULL);
-    if (rc != 0)
+    if (rc <= 0)
     {
         log_error("Cannot write to tee (%s)", uv_strerror(rc));
     }
