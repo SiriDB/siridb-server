@@ -112,10 +112,12 @@ void siridb_query_run(
     /* bind pid, client and flags so we can send back the result */
     query->pid = pid;
 
-    /* increment client reference counter */
+    /* increment client and siridb reference counters */
     sirinet_stream_incref(client);
+    siridb_incref(client->siridb);
 
     query->client = client;
+    query->siridb = client->siridb;
     query->flags = flags;
 
     /* bind time precision factor */
@@ -153,10 +155,11 @@ void siridb_query_run(
 void siridb_query_free(uv_handle_t * handle)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = query->client->siridb;
+    siridb_t * siridb = query->siridb;
 
-    /* decrement active tasks */
+    /* decrement active tasks and siridb */
     siridb_tasks_dec(siridb->tasks);
+    siridb_decref(siridb);
 
     /* free query */
     free(query->q);
@@ -265,7 +268,7 @@ void siridb_query_forward(
         int flags)
 {
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = query->client->siridb;
+    siridb_t * siridb = query->siridb;
 
     /*
      * the size is important here, we will use the alloc_size to guess the
@@ -563,7 +566,7 @@ static void QUERY_send_no_query(uv_async_t * handle)
     query->packer = sirinet_packer_new(512);
     qp_add_type(query->packer, QP_MAP1);
 
-    siridb_t * siridb = query->client->siridb;
+    siridb_t * siridb = query->siridb;
 
     qp_add_raw(query->packer, (const unsigned char *) "calc", 4);
     uint64_t ts = siridb_time_now(siridb, query->start);
@@ -585,7 +588,7 @@ static void QUERY_parse(uv_async_t * handle)
 {
     int rc;
     siridb_query_t * query = (siridb_query_t *) handle->data;
-    siridb_t * siridb = query->client->siridb;
+    siridb_t * siridb = query->siridb;
 
     siridb_walker_t * walker = siridb_walker_new(
             siridb,
@@ -678,7 +681,7 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
         /* reserve 200 extra chars */
         char buffer[packer->alloc_size];
         size_t size = packer->alloc_size;
-        siridb_t * siridb = query->client->siridb;
+        siridb_t * siridb = query->siridb;
 
         rc = QUERY_rebuild(
                 siridb,

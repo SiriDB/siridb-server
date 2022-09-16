@@ -538,7 +538,7 @@ int siridb_servers_list(siridb_server_t * server, uv_async_t * handle)
     siridb_query_t * query = handle->data;
     query_list_t * qlist = query->data;
     vec_t * props = qlist->props;
-    siridb_t * siridb = query->client->siridb;
+    siridb_t * siridb = query->siridb;
     cexpr_t * where_expr = qlist->where_expr;
     size_t i;
 
