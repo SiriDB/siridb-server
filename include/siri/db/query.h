@@ -81,6 +81,7 @@ struct siridb_query_s
     float factor;
     void * data;
     sirinet_stream_t * client;
+    siridb_t * siridb;
     char * q;
     char err_msg[SIRIDB_MAX_SIZE_ERR_MSG];
     qp_packer_t * packer;
