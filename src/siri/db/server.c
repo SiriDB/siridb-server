@@ -82,7 +82,7 @@ siridb_server_t * siridb_server_new(
     server->port = port;
     server->pool = pool;
     server->flags = 0;
-    server->id = 255;
+    server->id = 0; /* set to either 0 or 1 when added to a pool */
     server->ref = 0;
     server->pid = 0;
     server->version = NULL;
@@ -886,6 +886,9 @@ int siridb_server_drop(siridb_t * siridb, siridb_server_t * server)
         assert (0);
         break;
     }
+
+    /* re-set "tee" Id */
+    siridb_tee_set_id(siridb);
 
     if (server == siridb->replica)
     {

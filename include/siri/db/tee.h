@@ -27,7 +27,8 @@ typedef void (*siridb_tee_cb)(uv_handle_t *);
 
 struct siridb_tee_s
 {
-    uint32_t _pad0;
+    uint16_t id;
+    uint16_t pkg_id;
     uint16_t port;
     uint16_t _pad1;
     char * address;
@@ -40,5 +41,11 @@ static inline bool siridb_tee_is_configured(siridb_tee_t * tee)
 {
     return tee->address != NULL;
 };
+
+#define siridb_tee_set_id(__siridb) \
+    do { \
+        (__siridb)->tee->id = \
+        (__siridb)->server->pool*2 + (__siridb)->server->id; \
+    } while(0)
 
 #endif /* SIRIDB_TEE_H_ */

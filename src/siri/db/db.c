@@ -250,6 +250,9 @@ siridb_t * siridb_new(const char * dbpath, int lock_flags)
     log_info("Initialize pools");
     siridb_pools_init(siridb);
 
+    /* set "tee" Id */
+    siridb_tee_set_id(siridb);
+
     if (!siri_err)
     {
         siridb->reindex = siridb_reindex_open(siridb, 0);

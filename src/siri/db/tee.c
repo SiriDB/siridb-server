@@ -10,21 +10,58 @@
 #include <siri/net/tcp.h>
 #include <logger/logger.h>
 
-#define TEE__BUF_SZ 512
+/*
+ * The maximum safe UDP payload is 508 bytes. We use 8 bytes for the UDP header
+ * thus leaving 500 bytes for data.
+ */
+#define TEE__MAX_UDP_PAYLOAD 500
 static char tee__address[SIRI_CFG_MAX_LEN_ADDRESS+7];
 
+
+typedef struct {
+    uint16_t pkg_id;
+    uint16_t id;
+    uint16_t seq_sz;
+    uint16_t seq_id;
+} tee__header_t;
 
 static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
 {
     int rc;
-    uv_buf_t buf;
+    char * data = (char *) pkg;
+    uv_buf_t buf[2];
+    uint32_t size = sizeof(sirinet_pkg_t) + pkg->len;
+    tee__header_t header = {
+            .pkg_id=tee->pkg_id,
+            .id=tee->id,
+            .seq_sz=((size-1)/TEE__MAX_UDP_PAYLOAD)+1,
+            .seq_id=0,
+    };
 
-    buf = uv_buf_init((char *) pkg, sizeof(sirinet_pkg_t) + pkg->len);
-    rc = uv_udp_try_send(tee->udp, &buf, 1, NULL);
-    if (rc <= 0)
+    /* increment package id */
+    tee->pkg_id++;
+
+    do
     {
-        log_error("Cannot write to tee (%s)", uv_strerror(rc));
+        uint32_t to_send = \
+                size > TEE__MAX_UDP_PAYLOAD ? TEE__MAX_UDP_PAYLOAD : size;
+        assert (header.seq_id < header.seq_sz);
+
+        buf[0] = uv_buf_init((char *) &header, sizeof(tee__header_t));
+        buf[1] = uv_buf_init(data, to_send);
+        rc = uv_udp_try_send(tee->udp, buf, 2, NULL);
+
+        if (rc <= 0)
+        {
+            log_error("Cannot write to tee (%s)", uv_strerror(rc));
+            break;
+        }
+
+        header.seq_id++;
+        data += to_send;
+        size -= to_send;
     }
+    while (size);
 }
 
 void tee__make_connection(siridb_tee_t * tee, const struct sockaddr * dest)
@@ -174,6 +211,8 @@ siridb_tee_t * siridb_tee_new(void)
     }
     tee->address = NULL;
     tee->udp = NULL;
+    tee->id = 0;  /* later set using siridb_tee_set_id */
+    tee->pkg_id = 0;
     uv_mutex_init(&tee->lock_);
     return tee;
 }

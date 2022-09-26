@@ -11,10 +11,14 @@ class TeeServerProtocol(asyncio.Protocol):
         print('Connection from {}'.format(peername))
         self.transport = transport
 
-    def datagram_received(self, data):
-        print('Data received: {}'.format(len(data)))
-        header = struct.unpack_from('<LHBB', data)
+    def datagram_received(self, data, addr):
+        print('Data received: {}; From addr: {}'.format(len(data), addr))
+        header = struct.unpack_from('<LHH', data)
+        pid, seq_sz, seq_id = header
         print(header)
+        header = struct.unpack_from('<LHH', data, offset=8)
+        pid, seq_sz, seq_id = header
+
         # self.transport.write(b'test')
 
 
