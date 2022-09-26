@@ -62,9 +62,9 @@ struct siridb_insert_s
     uint8_t ref;
     uint8_t flags;
     uint16_t pid;
+    uint16_t packer_size; /* number of packers (one for each pool) */
     sirinet_stream_t * client;
     size_t npoints;        /* number of points */
-    uint16_t packer_size; /* number of packers (one for each pool) */
     qp_packer_t * packer[];
 };
 
