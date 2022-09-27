@@ -6,7 +6,7 @@
 
 typedef struct siridb_tee_s siridb_tee_t;
 
-#define SIRIDB_TEE_DEFAULT_TCP_PORT 9104
+#define SIRIDB_TEE_DEFAULT_UDP_PORT 9104
 
 #include <uv.h>
 #include <stdbool.h>

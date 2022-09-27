@@ -724,7 +724,7 @@ static cproto_server_t SERVICE_on_new_database(
         qp_fadd_int64(fp, 0) ||
         qp_fadd_int64(fp, 0) ||
         qp_fadd_type(fp, QP_NULL) ||
-        qp_fadd_int64(fp, SIRIDB_TEE_DEFAULT_TCP_PORT) ||
+        qp_fadd_int64(fp, SIRIDB_TEE_DEFAULT_UDP_PORT) ||
         qp_fadd_type(fp, QP_ARRAY_CLOSE))
     {
         rc = -1;

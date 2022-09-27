@@ -4797,7 +4797,7 @@ static void exit_set_tee(uv_async_t * handle)
 
     char tee_addr_port[node->len - 1];
     char tee_address[SIRI_CFG_MAX_LEN_ADDRESS];
-    uint16_t tee_port = SIRIDB_TEE_DEFAULT_TCP_PORT;
+    uint16_t tee_port = SIRIDB_TEE_DEFAULT_UDP_PORT;
 
 
     if (node->cl_obj->gid == CLERI_GID_STRING)
@@ -4817,7 +4817,7 @@ static void exit_set_tee(uv_async_t * handle)
         {
             snprintf(query->err_msg,
                     SIRIDB_MAX_SIZE_ERR_MSG,
-                    "Invalid tee address; expecting ADDRESS[:PORT]");
+                    "Invalid tee address; expecting ADDRESS[:UDP_PORT]");
             siridb_query_send_error(handle, CPROTO_ERR_QUERY);
             return;
         }

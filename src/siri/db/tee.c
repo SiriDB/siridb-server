@@ -30,7 +30,7 @@ static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
     int rc;
     char * data = (char *) pkg;
     uv_buf_t buf[2];
-    uint32_t size = sizeof(sirinet_pkg_t) + pkg->len;
+    uint32_t size = pkg->len;
     tee__header_t header = {
             .pkg_id=tee->pkg_id,
             .id=tee->id,
@@ -40,6 +40,7 @@ static void tee__do_write(siridb_tee_t * tee, sirinet_pkg_t * pkg)
 
     /* increment package id */
     tee->pkg_id++;
+    data += sizeof(sirinet_pkg_t);
 
     do
     {

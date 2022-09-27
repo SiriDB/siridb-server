@@ -708,7 +708,7 @@ static void CLIENT_on_file_database(
     else
     {
         qp_tee_address.tp = QP_NULL;
-        qp_tee_port.via.int64 = SIRIDB_TEE_DEFAULT_TCP_PORT;
+        qp_tee_port.via.int64 = SIRIDB_TEE_DEFAULT_UDP_PORT;
     }
 
     if ((fpacker = qp_open(fn, "w")) == NULL)
