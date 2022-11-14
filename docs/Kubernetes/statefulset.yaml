@@ -93,4 +93,4 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 200Mi  # For example, 300Gi for large data sets
+          storage: 300Gi  # For example, 300Gi for large data sets
