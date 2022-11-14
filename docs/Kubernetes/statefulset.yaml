@@ -33,7 +33,7 @@ spec:
         tolerationSeconds: 14400
       containers:
       - name: siridb
-        image: siridb/siridb-server:2.0.42  # Pin to a specific version
+        image: siridb/siridb-server:2.0.49  # Pin to a specific version
         imagePullPolicy: Always
         args: ["--managed"]  # Tells SiriDB it will be managed by Kubernetes
         env:
