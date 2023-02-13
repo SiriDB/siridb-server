@@ -346,7 +346,7 @@ For information on how to change the time zone see `help alter database`
 - Europe/Istanbul
 - Europe/Jersey
 - Europe/Kaliningrad
-- Europe/Kiev
+- Europe/Kyiv
 - Europe/Lisbon
 - Europe/Ljubljana
 - Europe/London
