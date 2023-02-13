@@ -354,7 +354,7 @@ static const char * tz_common[] = {
         "TZ=:Europe/Istanbul",
         "TZ=:Europe/Jersey",
         "TZ=:Europe/Kaliningrad",
-        "TZ=:Europe/Kiev",
+        "TZ=:Europe/Kiev",  /* obsolete, correct spelling is Europe/Kyiv */
         "TZ=:Europe/Lisbon",
         "TZ=:Europe/Ljubljana",
         "TZ=:Europe/London",
@@ -448,10 +448,11 @@ static const char * tz_common[] = {
         "TZ=:US/Hawaii",
         "TZ=:US/Mountain",
         "TZ=:US/Pacific",
-        "TZ=:UTC"
+        "TZ=:UTC",
+        "TZ=:Europe/Kyiv"
 };
 
-#define TZ_LEN 433
+#define TZ_LEN 434
 #define TZ_UTC 432
 
 /* Use this offset because names start with TZ=: */
