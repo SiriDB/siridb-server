@@ -358,8 +358,8 @@ void siri_free(void)
         }
     }
 
-    /* first free the File Handler. (this will close all open shard files) */
-    siri_fh_free(siri.fh);
+    /* first close the File Handler. (this will close all open shard files) */
+    siri_fh_close(siri.fh);
 
     /* this will free each SiriDB database and the list */
     llist_free_cb(siri.siridb_list, (llist_cb) siridb_decref_cb, NULL);
@@ -375,6 +375,9 @@ void siri_free(void)
 
     /* free config */
     siri_cfg_destroy(&siri);
+
+    /* free the file handler */
+    siri_fh_free(siri.fh);
 
     /* free event loop */
     free(siri.loop);

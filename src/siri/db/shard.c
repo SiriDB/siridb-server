@@ -1717,7 +1717,11 @@ void siridb__shard_free(siridb_shard_t * shard)
     }
 
     /* this will close the file, even when other references exist */
+    uv_mutex_lock(&siri.fh->lock_);
+
     siri_fp_decref(shard->fp);
+
+    uv_mutex_unlock(&siri.fh->lock_);
 
     free(shard->fn);
     free(shard);

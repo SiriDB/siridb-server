@@ -8,8 +8,10 @@ typedef struct siri_fh_s siri_fh_t;
 
 #include <inttypes.h>
 #include <siri/file/pointer.h>
+#include <uv.h>
 
 siri_fh_t * siri_fh_new(uint16_t size);
+void siri_fh_close(siri_fh_t * fh);
 void siri_fh_free(siri_fh_t * fh);
 int siri_fopen(
         siri_fh_t * fh,
@@ -22,6 +24,7 @@ struct siri_fh_s
     uint16_t size;
     uint16_t idx;
     siri_fp_t ** fpointers;
+    uv_mutex_t lock_;
 };
 
 #endif  /* SIRI_FH_H_ */

@@ -24,15 +24,16 @@ siri_fh_t * siri_fh_new(uint16_t size)
             free(fh);
             fh = NULL;
         }
+        uv_mutex_init(&fh->lock_);
     }
     return fh;
 }
 
 /*
- * Destroy file handler. (closes all open files in the file handler)
+ * Close file handler. (closes all open files in the file handler)
  * In case closing an open file fails, a SIGNAL will be raised.
  */
-void siri_fh_free(siri_fh_t * fh)
+void siri_fh_close(siri_fh_t * fh)
 {
     siri_fp_t ** fp;
     uint16_t i;
@@ -52,9 +53,19 @@ void siri_fh_free(siri_fh_t * fh)
         }
         siri_fp_decref(*fp);
     }
+}
+
+/*
+ * Destroy file handler. (closes all open files in the file handler)
+ * In case closing an open file fails, a SIGNAL will be raised.
+ */
+void siri_fh_free(siri_fh_t * fh)
+{
     free(fh->fpointers);
+    uv_mutex_destroy(&fh->lock_);
     free(fh);
 }
+
 
 /*
  * Returns 0 if successful or -1 in case of an error.
@@ -65,7 +76,9 @@ int siri_fopen(
         const char * fn,
         const char * modes)
 {
-    siri_fp_t ** dest = fh->fpointers + fh->idx;
+    siri_fp_t ** dest;
+    uv_mutex_lock(&fh->lock_);
+    dest = fh->fpointers + fh->idx;
 
     /* close and possible free file pointer at next position */
     if (*dest != NULL)
@@ -82,12 +95,13 @@ int siri_fopen(
     if ((fp->fp = fopen(fn, modes)) == NULL)
     {
         log_critical("Cannot open file: '%s' using mode '%s'", fn, modes);
+        uv_mutex_unlock(&fh->lock_);
         return -1;
     }
 
     /* set file handler pointer to next position */
     fh->idx = (fh->idx + 1) % fh->size;
-
+    uv_mutex_unlock(&fh->lock_);
     return 0;
 }
 
