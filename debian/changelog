@@ -1,3 +1,10 @@
+siridb-server (2.0.50-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed potential bug while removing data
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Tue, 21 Mar 2023 11:22:27 +0100
+
 siridb-server (2.0.49-0~cb1) unstable; urgency=medium
 
   * New upstream release
