@@ -229,15 +229,10 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
                 siridb_aggregate_list_free(vec);
                 return NULL;
             }
-            if (cleri_gn(cleri_gn(children)->children)
-                    ->children->next->next->next != NULL)
-            {
                 /* group_by is always > 0 */
-                aggr->offset = CLERI_NODE_DATA(
-                        cleri_gn(cleri_gn(cleri_gn(cleri_gn(children)
-                        ->children)->children->next->next)->children)
-                       ) % aggr->group_by;
-            }
+            aggr->offset = CLERI_NODE_DATA(
+                    cleri_gn(cleri_gn(cleri_gn(children)
+                    ->children)->children->next->next)) % aggr->group_by;
             break;
         case CLERI_GID_F_LIMIT:
             AGGR_NEW

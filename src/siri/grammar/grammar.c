@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2023-10-24 14:29:56
+ * Created at: 2023-10-24 15:46:26
  */
 
 #include "siri/grammar/grammar.h"
@@ -1056,7 +1056,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         4,
         k_offset,
         cleri_token(CLERI_NONE, "("),
-        cleri_optional(CLERI_NONE, time_expr),
+        time_expr,
         cleri_token(CLERI_NONE, ")")
     );
     cleri_t * f_timeval = cleri_sequence(
@@ -1103,8 +1103,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            14,
-            k_offset,
+            13,
             k_mean,
             k_median,
             k_median_high,

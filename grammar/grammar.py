@@ -530,7 +530,7 @@ class SiriGrammar(Grammar):
         '(', Optional(time_expr), ')')
     f_offset = Sequence(
         k_offset,
-        '(', Optional(time_expr), ')')
+        '(', time_expr, ')')
     f_timeval = Sequence(
         k_timeval,
         '(', ')')
