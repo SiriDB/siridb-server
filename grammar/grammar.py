@@ -126,6 +126,7 @@ class SiriGrammar(Grammar):
     k_ninf = Sequence('-', k_inf)
     k_now = Keyword('now')
     k_number = Keyword('number')
+    k_offset = Keyword('offset')
     k_online = Keyword('online')
     k_open_files = Keyword('open_files')
     k_or = Keyword('or')
@@ -527,6 +528,9 @@ class SiriGrammar(Grammar):
     f_last = Sequence(
         k_last,
         '(', Optional(time_expr), ')')
+    f_offset = Sequence(
+        k_offset,
+        '(', Optional(time_expr), ')')
     f_timeval = Sequence(
         k_timeval,
         '(', ')')
@@ -572,6 +576,7 @@ class SiriGrammar(Grammar):
 
     aggregate_functions = List(Choice(
         f_all,
+        f_offset,
         f_limit,
         f_mean,
         f_sum,

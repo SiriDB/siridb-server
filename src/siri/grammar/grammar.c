@@ -5,7 +5,7 @@
  * should be used with the libcleri module.
  *
  * Source class: SiriGrammar
- * Created at: 2022-05-05 15:08:05
+ * Created at: 2023-10-24 14:29:56
  */
 
 #include "siri/grammar/grammar.h"
@@ -124,6 +124,7 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     );
     cleri_t * k_now = cleri_keyword(CLERI_GID_K_NOW, "now", CLERI_CASE_SENSITIVE);
     cleri_t * k_number = cleri_keyword(CLERI_GID_K_NUMBER, "number", CLERI_CASE_SENSITIVE);
+    cleri_t * k_offset = cleri_keyword(CLERI_GID_K_OFFSET, "offset", CLERI_CASE_SENSITIVE);
     cleri_t * k_online = cleri_keyword(CLERI_GID_K_ONLINE, "online", CLERI_CASE_SENSITIVE);
     cleri_t * k_open_files = cleri_keyword(CLERI_GID_K_OPEN_FILES, "open_files", CLERI_CASE_SENSITIVE);
     cleri_t * k_or = cleri_keyword(CLERI_GID_K_OR, "or", CLERI_CASE_SENSITIVE);
@@ -1050,6 +1051,14 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_optional(CLERI_NONE, time_expr),
         cleri_token(CLERI_NONE, ")")
     );
+    cleri_t * f_offset = cleri_sequence(
+        CLERI_GID_F_OFFSET,
+        4,
+        k_offset,
+        cleri_token(CLERI_NONE, "("),
+        cleri_optional(CLERI_NONE, time_expr),
+        cleri_token(CLERI_NONE, ")")
+    );
     cleri_t * f_timeval = cleri_sequence(
         CLERI_GID_F_TIMEVAL,
         3,
@@ -1094,7 +1103,8 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
         cleri_choice(
             CLERI_NONE,
             CLERI_FIRST_MATCH,
-            13,
+            14,
+            k_offset,
             k_mean,
             k_median,
             k_median_high,
@@ -1114,8 +1124,9 @@ cleri_grammar_t * compile_siri_grammar_grammar(void)
     cleri_t * aggregate_functions = cleri_list(CLERI_GID_AGGREGATE_FUNCTIONS, cleri_choice(
         CLERI_NONE,
         CLERI_FIRST_MATCH,
-        21,
+        22,
         f_all,
+        f_offset,
         f_limit,
         f_mean,
         f_sum,
