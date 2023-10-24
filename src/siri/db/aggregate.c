@@ -206,7 +206,7 @@ void siridb_init_aggregates(void)
 vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 {
     uint32_t gid;
-    siridb_aggr_t * aggr;
+    siridb_aggr_t * aggr = NULL;
     vec_t * vec = vec_new(VEC_DEFAULT_SIZE);
     if (vec == NULL)
     {
@@ -221,6 +221,19 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
 
         switch (gid)
         {
+        case CLERI_GID_F_OFFSET:
+            if (aggr == NULL || aggr->group_by == 0)
+            {
+                sprintf(err_msg,
+                        "Offset must be used after an aggregation method.");
+                siridb_aggregate_list_free(vec);
+                return NULL;
+            }
+                /* group_by is always > 0 */
+            aggr->offset = CLERI_NODE_DATA(
+                    cleri_gn(cleri_gn(cleri_gn(children)
+                    ->children)->children->next->next)) % aggr->group_by;
+            break;
         case CLERI_GID_F_LIMIT:
             AGGR_NEW
             {
@@ -319,11 +332,6 @@ vec_t * siridb_aggregate_list(cleri_children_t * children, char * err_msg)
         case CLERI_GID_F_TIMEVAL:
         case CLERI_GID_F_INTERVAL:
             AGGR_NEW
-            {
-                aggr->timespan = 1;
-                aggr->group_by = 0;
-            }
-
             VEC_APPEND
 
             break;
