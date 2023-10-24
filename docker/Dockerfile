@@ -11,7 +11,7 @@ RUN apk update && \
     make clean && \
     make
 
-FROM alpine:latest
+FROM amd64/alpine:3.12.4
 RUN apk update && \
     apk add pcre2 libuv libuuid yajl && \
     mkdir -p /etc/siridb && \
