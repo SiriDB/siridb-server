@@ -1118,7 +1118,6 @@ static int POINTS_unpack_string(
         {
             /* literal */
             size_t len = (is_ascii) ? 0 : POINTS_dec_len(&pt);
-
             do
             {
                 *buf = *pt;
@@ -1228,12 +1227,6 @@ int siridb_points_unzip_string(
     memcpy(&point->ts, pt, sizeof(uint64_t));
     pt += sizeof(uint64_t);
 
-    buf = malloc(src_sz);
-    if (buf == NULL)
-    {
-        return -1;
-    }
-
     for (mask = 0; tshift-- > tcount; ++pt)
     {
         mask |= ((uint64_t) *pt) << (tshift * 8);
@@ -1264,6 +1257,12 @@ int siridb_points_unzip_string(
     }
 
     n -= i;
+
+    buf = malloc(src_sz + n);
+    if (buf == NULL)
+    {
+        return -1;
+    }
 
     if (POINTS_unpack_string(
             points->data + points->len, n, i, bits + offset, buf))
