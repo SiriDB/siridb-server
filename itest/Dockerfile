@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 as builder
+FROM ubuntu:18.04 AS builder
 RUN apt-get update && \
     apt-get install -y \
         libcleri-dev \

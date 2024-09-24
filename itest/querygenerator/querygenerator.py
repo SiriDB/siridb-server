@@ -58,9 +58,8 @@ class QueryGenerator(list):
                     q[i] = val
                     yield q
                     break
-        
+
         # debug code
-        
         #     else:
         #         print('no value found for:')
         #         print(ename)
@@ -70,7 +69,6 @@ class QueryGenerator(list):
         # else:
         #     print('unknown regex element')
         #     print(ename)
-
 
     def _on_Token(self, q, i):
         q[i] = q[i]._token

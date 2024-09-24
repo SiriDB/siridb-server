@@ -21,6 +21,15 @@ from testing import parse_args
 
 
 DATA = {
+    'empty': [
+        [1471254710, ''],
+        [1471254712, ''],
+        [1471254714, ''],
+        [1471254715, ''],
+        [1471254716, ''],
+        [1471254718, ''],
+        [1471254720, '']
+    ],
     'log': [
         [1471254710, 'log line one'],
         [1471254712, 'log line two'],
@@ -234,6 +243,10 @@ class TestLog(TestBase):
         await self.test_data()
 
     async def test_data(self):
+        self.assertEqual(
+            await self.client0.query('select * from "empty"'),
+            {'empty': DATA['empty']})
+
         self.assertEqual(
             await self.client0.query('select * from "log"'),
             {'log': DATA['log']})

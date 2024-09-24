@@ -31,7 +31,7 @@ class SiriGrammar(Grammar):
     RE_KEYWORDS = re.compile('[a-z_]+')
 
     # Regular expressions
-    r_float = Regex('[-+]?[0-9]*\.?[0-9]+')
+    r_float = Regex(r'[-+]?[0-9]*\.?[0-9]+')
     r_integer = Regex('[-+]?[0-9]+')
     r_uinteger = Regex('[0-9]+')
     r_time_str = Regex('[0-9]+[smhdw]')
@@ -39,7 +39,7 @@ class SiriGrammar(Grammar):
     r_doubleq_str = Regex('(?:"(?:[^"]*)")+')
     r_grave_str = Regex('(?:`(?:[^`]*)`)+')
     r_uuid_str = Regex(
-        '[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}')
+        r'[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}')
     # we only allow an optional 'i' for case-insensitive regex
     r_regex = Regex('(/[^/\\\\]*(?:\\\\.[^/\\\\]*)*/i?)')
     r_comment = Regex('#.*')

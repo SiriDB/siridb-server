@@ -1,3 +1,10 @@
+siridb-server (2.0.52-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed potential bug with empty log log lines in series.
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Mon, 23 Sep 2024 16:57:00 +0200
+
 siridb-server (2.0.50-0~cb1) unstable; urgency=medium
 
   * New upstream release

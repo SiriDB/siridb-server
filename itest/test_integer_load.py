@@ -38,14 +38,14 @@ class TestIntegerLoad(TestBase):
 
     async def select(self, client, series, n):
         series = {s.name: s for s in series}
-        chars=string.ascii_letters + string.digits
+        chars = string.ascii_letters + string.digits
         for _ in range(n):
             regex = ''.join(random.choice(chars) for _ in range(3))
-            res = await client.query(f'select max() prefix "max-", min() prefix "min-", mean() prefix "mean-" from /.*{regex}.*/i')
-            if res:
-                print(res)
-            # for s, p in res.items():
-            #     self.assertEqual(sorted(series[s].points), p)
+            res = await client.query(
+                f'select max() prefix "max-", min() prefix "min-", '
+                f'mean() prefix "mean-" from /.*{regex}.*/i')
+            for s, p in res.items():
+                self.assertEqual(sorted(series[s].points), p)
             await asyncio.sleep(0.2)
 
     async def insert(self, client, series, n):

@@ -273,8 +273,8 @@ class TestParenth(TestBase):
 
         with self.assertRaisesRegex(
                 QueryError,
-                'Query error at position 29. Expecting \*, all, '
-                'single_quote_str, double_quote_str or \('):
+                r'Query error at position 29. Expecting \*, all, '
+                r'single_quote_str, double_quote_str or \('):
             await self.client0.query(
                 'list series /.*/ - {}{}'.format('(' * 10, ')' * 10))
 
