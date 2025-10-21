@@ -31,7 +31,6 @@
 
 
 #define QUERY_TOO_LONG -1
-#define QUERY_MAX_LENGTH 8192
 #define QUERY_EXTRA_ALLOC_SIZE 200
 #define SIRIDB_FWD_SERVERS_TIMEOUT 5000  /* 5 seconds  */
 
@@ -679,11 +678,11 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
     if (query->flags & SIRIDB_QUERY_FLAG_REBUILD)
     {
         /* reserve 200 extra chars */
-        char buffer[packer->alloc_size];
+        char * buffer = malloc(packer->alloc_size);
         size_t size = packer->alloc_size;
         siridb_t * siridb = query->siridb;
 
-        rc = QUERY_rebuild(
+        rc = (buffer == NULL) ? -1 : QUERY_rebuild(
                 siridb,
                 cleri_gn(query->pr->tree->children),
                 buffer,
@@ -704,6 +703,7 @@ static int QUERY_to_packer(qp_packer_t * packer, siridb_query_t * query)
                     (const unsigned char *) buffer,
                     packer->alloc_size - size);
         }
+        free(buffer);
     }
     else
     {

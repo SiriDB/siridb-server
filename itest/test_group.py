@@ -170,6 +170,10 @@ class TestGroup(TestBase):
             await self.client0.query('count groups where series > 2'),
             {'groups': 2})
 
+        self.assertEqual(
+            await self.client0.query('select * from * before now'),
+            DATA)
+
         self.client0.close()
         self.client1.close()
 
