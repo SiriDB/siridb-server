@@ -488,7 +488,7 @@ Home-page: https://github.com/cesbit/siridb-email-check
             [s.strip() for s in server.split(':')]
             for server in args.servers.split(',')])
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     loop.run_until_complete(dump_data(siri, args))
 
     total_time = time.time() - start_time
