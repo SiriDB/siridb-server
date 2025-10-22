@@ -27,7 +27,7 @@ class TestCompression(TestBase):
     title = 'Test compression'
 
     GEN_POINTS = functools.partial(
-        gen_points, n=100, time_precision=TIME_PRECISION)
+        gen_points, time_precision=TIME_PRECISION)
 
     async def _test_series(self, client):
 

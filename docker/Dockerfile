@@ -1,4 +1,4 @@
-FROM amd64/alpine:3.13
+FROM amd64/alpine
 RUN apk update && \
     apk upgrade && \
     apk add gcc make libuv-dev musl-dev pcre2-dev yajl-dev util-linux-dev linux-headers git && \
@@ -11,7 +11,7 @@ RUN apk update && \
     make clean && \
     make
 
-FROM amd64/alpine:3.12.4
+FROM amd64/alpine
 RUN apk update && \
     apk add pcre2 libuv libuuid yajl && \
     mkdir -p /etc/siridb && \

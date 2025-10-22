@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
       - name: Install libcleri
         run: |
           git clone https://github.com/cesbit/libcleri.git
@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y libuv1-dev libpcre2-dev libyajl-dev valgrind
+          sudo apt-get install -y uuid-dev libuv1-dev libpcre2-dev libyajl-dev valgrind
       - name: Run tests
         run: |
           cd ./Release/
