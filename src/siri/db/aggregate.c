@@ -1039,17 +1039,25 @@ static siridb_points_t * AGGREGATE_filter(
 
         if (source->len > points->len)
         {
-            dpt = (siridb_point_t *) realloc(
-                    points->data,
-                    points->len * sizeof(siridb_point_t));
-            if (dpt == NULL && points->len)
+            if (points->len == 0)
             {
-                /* not critical */
-                log_error("Error while re-allocating memory for points");
+                free(points->data);
+                points->data = NULL;
             }
             else
             {
-                points->data = dpt;
+                dpt = (siridb_point_t *) realloc(
+                        points->data,
+                        points->len * sizeof(siridb_point_t));
+                if (dpt == NULL)
+                {
+                    /* not critical */
+                    log_error("Error while re-allocating memory for points");
+                }
+                else
+                {
+                    points->data = dpt;
+                }
             }
         }
     }
@@ -1214,15 +1222,23 @@ static siridb_points_t * AGGREGATE_group_by(
     if (points->len < max_sz)
     {
         /* shrink points allocation */
-        point = realloc(points->data, points->len * sizeof(siridb_point_t));
-        if (point == NULL && points->len)
+        if (points->len == 0)
         {
-            /* not critical */
-            log_error("Re-allocation points failed.");
+            free(points->data);
+            points->data = NULL;
         }
         else
         {
-            points->data = point;
+            point = realloc(points->data, points->len * sizeof(siridb_point_t));
+            if (point == NULL)
+            {
+                /* not critical */
+                log_error("Re-allocation points failed.");
+            }
+            else
+            {
+                points->data = point;
+            }
         }
     }
     /* else { assert (points->len == max_sz); } */

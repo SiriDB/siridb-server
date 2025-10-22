@@ -628,17 +628,26 @@ void siridb_series_remove_shard(
         else
         {
             series->idx_len -= offset;
-            idx = (idx_t *) realloc(
-                        series->idx,
-                        series->idx_len * sizeof(idx_t));
-            if (idx == NULL && series->idx_len)
+            if (series->idx_len == 0)
             {
-                log_error("Re-allocation failed while removing series from "
-                        "shard index");
+                free(series->idx);
+                series->idx = NULL;
             }
             else
             {
-                series->idx = idx;
+                idx = (idx_t *) realloc(
+                            series->idx,
+                            series->idx_len * sizeof(idx_t));
+                if (idx == NULL)
+                {
+                    log_error(
+                        "Re-allocation failed while removing series from "
+                        "shard index");
+                }
+                else
+                {
+                    series->idx = idx;
+                }
             }
             if (series->start >= start && series->start < end)
             {
@@ -1403,19 +1412,27 @@ int siridb_series_optimize_shard(
         }
 
         /* shrink memory to the new size */
-        idx = (idx_t *) realloc(
-                series->idx,
-                series->idx_len * sizeof(idx_t));
-        if (idx == NULL && series->idx_len)
+        if (series->idx_len == 0)
         {
-            /* this is not critical since the original allocated block still
-             * works.
-             */
-            log_error("Shrinking memory for one series has failed!");
+            free(series->idx);
+            series->idx = NULL;
         }
         else
         {
-            series->idx = idx;
+            idx = (idx_t *) realloc(
+                    series->idx,
+                    series->idx_len * sizeof(idx_t));
+            if (idx == NULL)
+            {
+                /* this is not critical since the original allocated block still
+                * works.
+                */
+                log_error("Shrinking memory for one series has failed!");
+            }
+            else
+            {
+                series->idx = idx;
+            }
         }
     }
     else

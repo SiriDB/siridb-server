@@ -92,9 +92,17 @@ siridb_points_t * siridb_points_new(size_t size, points_tp tp)
  */
 int siridb_points_resize(siridb_points_t * points, size_t n)
 {
+    siridb_point_t * tmp;
     assert( points->len <= n );
-    siridb_point_t * tmp = realloc(points->data, sizeof(siridb_point_t) * n);
-    if (tmp == NULL && n)
+    if (n == 0)
+    {
+        free(points->data);
+        points->data = NULL;
+        return 0;
+    }
+
+    tmp = realloc(points->data, sizeof(siridb_point_t) * n);
+    if (tmp == NULL)
     {
         return -1;
     }
