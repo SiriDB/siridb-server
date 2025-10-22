@@ -1,3 +1,12 @@
+siridb-server (2.0.53-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug with rollback after failed HTTP request for a new database
+    - Use heap instead of stack for translating a forward query
+    - Update testing files
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Wed, 22 Oct 2025 10:04:00 +0200
+
 siridb-server (2.0.52-0~cb1) unstable; urgency=medium
 
   * New upstream release
