@@ -825,32 +825,23 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
         ct_nodes_t * tmp;
         uint8_t diff = node->offset - pos;
         uint8_t oldn = node->n;
-        node->n += diff;
-        if (node->n == 0)
+        node->n += diff;  /* alway > 0 as diff > 0 */
+        tmp = (ct_nodes_t *) realloc(
+                node->nodes,
+                node->n * sizeof(ct_nodes_t));
+        if (tmp == NULL)
         {
-            free(node->nodes);
-            node->nodes = NULL;
-            node->offset = pos;
+            node->n -= diff;
+            rc = -1;
         }
         else
         {
-            tmp = (ct_nodes_t *) realloc(
+            node->nodes = tmp;
+            node->offset = pos;
+            memmove(node->nodes + diff,
                     node->nodes,
-                    node->n * sizeof(ct_nodes_t));
-            if (tmp == NULL)
-            {
-                node->n -= diff;
-                rc = -1;
-            }
-            else
-            {
-                node->nodes = tmp;
-                node->offset = pos;
-                memmove(node->nodes + diff,
-                        node->nodes,
-                        oldn * sizeof(ct_nodes_t));
-                memset(node->nodes, 0, diff * sizeof(ct_nodes_t));
-            }
+                    oldn * sizeof(ct_nodes_t));
+            memset(node->nodes, 0, diff * sizeof(ct_nodes_t));
         }
     }
     else if (pos >= node->offset + node->n)
@@ -858,7 +849,7 @@ static int CT_node_resize(ct_node_t * node, uint8_t pos)
         ct_nodes_t * tmp;
         uint8_t diff = pos - node->offset - node->n + 1;
         uint8_t oldn = node->n;
-        node->n += diff;  /* assert node->n > 0 */
+        node->n += diff;  /* alway > 0 as diff > 0 */
         tmp = (ct_nodes_t *) realloc(
                 node->nodes,
                 node->n * sizeof(ct_nodes_t));
