@@ -1,11 +1,9 @@
 #!/usr/bin/python3
-import os
 import sys
 import argparse
 import asyncio
 import time
 import logging
-import string
 import random
 import datetime
 import math
@@ -86,7 +84,7 @@ class Series:
         }[self.kind]
         self.lts = self._timestamp
 
-        factor = 10**r.randint(int(self.kind == int), 9)
+        factor = 10**r.randint(int(self.kind is int), 9)
         self.random_range = (
             int(r.random() * -factor),
             int(r.random() * factor) + 1)
@@ -96,13 +94,13 @@ class Series:
         self.likely_equal = r.choice([0.01, 0.1, 0.2, 0.5, 0.99])
         self.likely_change_sign = r.choice([0.0, 0.1, 0.25, 0.5, 0.9])
 
-        self.as_int = wrong_type and self.kind == float and r.random() > 0.9
+        self.as_int = wrong_type and self.kind is float and r.random() > 0.9
         self.likely_inf = r.random() * 0.2 \
-            if self.kind == float and r.random() > 0.95 else False
+            if self.kind is float and r.random() > 0.95 else False
         self.likely_nan = r.random() * 0.2 \
-            if self.kind == float and r.random() > 0.95 else False
+            if self.kind is float and r.random() > 0.95 else False
 
-        self.gen_float = wrong_type and self.kind == int and r.random() > 0.97
+        self.gen_float = wrong_type and self.kind is int and r.random() > 0.97
 
         self.name = self._gen_name()
         Series._series.append(self)

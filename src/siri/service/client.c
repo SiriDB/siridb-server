@@ -334,12 +334,10 @@ static void CLIENT_err(
         ...)
 {
     char err_msg[SIRI_MAX_SIZE_ERR_MSG];
-
     va_list args;
     va_start(args, fmt);
     vsnprintf(err_msg, SIRI_MAX_SIZE_ERR_MSG, fmt, args);
     va_end(args);
-
     sirinet_pkg_t * package = sirinet_pkg_err(
             adm_client->pid,
             strlen(err_msg),
@@ -359,7 +357,6 @@ static void CLIENT_err(
     }
 
     sirinet_stream_decref(siri.client);
-
     uv_close((uv_handle_t *) &siri.timer, NULL);
 }
 

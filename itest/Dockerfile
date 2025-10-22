@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 AS builder
+FROM ubuntu:24.04 AS builder
 RUN apt-get update && \
     apt-get install -y \
         libcleri-dev \
@@ -13,9 +13,9 @@ COPY ./include/ ./include/
 COPY ./Release/ ./Release/
 RUN cd ./Release && \
     make clean && \
-    CFLAGS="-Werror -std=gnu89" make
+    CFLAGS="-Werror -std=gnu89" make all
 
-FROM python
+FROM python:3.12
 RUN apt-get update && \
     apt-get install -y \
         valgrind \

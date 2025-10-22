@@ -36,7 +36,7 @@ class TestHTTPAPI(TestBase):
         await self.client0.connect()
 
         x = requests.get(
-            f'http://localhost:9020/get-version', auth=('sa', 'siri'))
+            'http://localhost:9020/get-version', auth=('sa', 'siri'))
 
         self.assertEqual(x.status_code, 200)
         v = x.json()
@@ -44,7 +44,7 @@ class TestHTTPAPI(TestBase):
         self.assertTrue(isinstance(v[0], str))
 
         x = requests.post(
-            f'http://localhost:9020/insert/dbtest',
+            'http://localhost:9020/insert/dbtest',
             auth=('iris', 'siri'),
             headers={'Content-Type': 'application/json'})
 
@@ -62,7 +62,7 @@ class TestHTTPAPI(TestBase):
         }
 
         x = requests.post(
-            f'http://localhost:9020/insert/dbtest',
+            'http://localhost:9020/insert/dbtest',
             data=json.dumps(data),
             auth=('iris', 'siri'),
             headers={'Content-Type': 'application/json'}
@@ -81,7 +81,7 @@ class TestHTTPAPI(TestBase):
         }
 
         x = requests.post(
-            f'http://localhost:9021/new-pool',
+            'http://localhost:9021/new-pool',
             data=json.dumps(data),
             auth=('sa', 'siri'),
             headers={'Content-Type': 'application/json'})
@@ -94,7 +94,7 @@ class TestHTTPAPI(TestBase):
 
         data = {'data': [[1579521271, 10], [1579521573, 20]]}
         x = requests.post(
-            f'http://localhost:9020/insert/dbtest',
+            'http://localhost:9020/insert/dbtest',
             json=data,
             auth=('iris', 'siri'))
 
@@ -103,7 +103,7 @@ class TestHTTPAPI(TestBase):
             'success_msg': 'Successfully inserted 2 point(s).'})
 
         x = requests.post(
-            f'http://localhost:9020/query/dbtest',
+            'http://localhost:9020/query/dbtest',
             json={'q': 'select * from "data"'},
             auth=('iris', 'siri'))
 
@@ -111,7 +111,7 @@ class TestHTTPAPI(TestBase):
         self.assertEqual(x.json(), data)
 
         x = requests.post(
-            f'http://localhost:9020/query/dbtest',
+            'http://localhost:9020/query/dbtest',
             json={'q': 'select * from "data"', 't': 'ms'},
             auth=('iris', 'siri'))
 
@@ -123,7 +123,7 @@ class TestHTTPAPI(TestBase):
         self.assertEqual(x.json(), data)
 
         x = requests.post(
-            f'http://localhost:9020/query/dbtest',
+            'http://localhost:9020/query/dbtest',
             data=qpack.packb({
                 'q': 'select sum(1579600000) from "data"',
                 't': 'ms'}),
@@ -136,7 +136,7 @@ class TestHTTPAPI(TestBase):
             {'data': [[1579600000000, 30]]})
 
         x = requests.post(
-            f'http://localhost:9021/new-account',
+            'http://localhost:9021/new-account',
             json={'account': 't', 'password': ''},
             auth=('sa', 'siri'))
 
@@ -146,7 +146,7 @@ class TestHTTPAPI(TestBase):
                 'service account name should have at least 2 characters'})
 
         x = requests.post(
-            f'http://localhost:9021/new-account',
+            'http://localhost:9021/new-account',
             json={'account': 'tt', 'password': 'pass'},
             auth=('sa', 'siri'))
 
@@ -163,19 +163,19 @@ class TestHTTPAPI(TestBase):
 
         auth = ('tt', 'pass')
         x = requests.post(
-            f'http://localhost:9021/new-replica', json=data, auth=auth)
+            'http://localhost:9021/new-replica', json=data, auth=auth)
 
         self.assertEqual(x.status_code, 400)
         self.assertEqual(x.json(), {
             'error_msg': "database name already exists: 'dbtest'"})
 
         x = requests.post(
-            f'http://localhost:9022/new-replica', json=data, auth=auth)
+            'http://localhost:9022/new-replica', json=data, auth=auth)
         self.assertEqual(x.status_code, 401)
 
         auth = ('sa', 'siri')
         x = requests.post(
-            f'http://localhost:9022/new-replica', json=data, auth=auth)
+            'http://localhost:9022/new-replica', json=data, auth=auth)
 
         self.assertEqual(x.status_code, 400)
         self.assertEqual(x.json(), {
@@ -185,7 +185,7 @@ class TestHTTPAPI(TestBase):
 
         data['port'] = 9000
         x = requests.post(
-            f'http://localhost:9022/new-replica', json=data, auth=auth)
+            'http://localhost:9022/new-replica', json=data, auth=auth)
         self.assertEqual(x.status_code, 200)
         self.assertEqual(x.json(), 'OK')
 
@@ -193,7 +193,7 @@ class TestHTTPAPI(TestBase):
         await self.assertIsRunning(self.db, self.client0, timeout=50)
 
         x = requests.get(
-            f'http://localhost:9022/get-databases', auth=auth)
+            'http://localhost:9022/get-databases', auth=auth)
         self.assertEqual(x.status_code, 200)
         self.assertEqual(x.json(), ['dbtest'])
 

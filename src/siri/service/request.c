@@ -1001,14 +1001,19 @@ static cproto_server_t SERVICE_on_get_databases(
 void siri_service_request_rollback(const char * dbpath)
 {
     size_t dbpath_len = strlen(dbpath);
-    char dbfn[dbpath_len + max_filename_sz];
-
+    char * dbfn = malloc(dbpath_len + max_filename_sz + 1);
+    if (dbfn == NULL)
+    {
+        log_error("Roll-back creating new database has failed.");
+        return;
+    }
     sprintf(dbfn, "%s%s", dbpath, DB_CONF_FN);
     unlink(dbfn);
     sprintf(dbfn, "%s%s", dbpath, DB_DAT_FN);
     unlink(dbfn);
     sprintf(dbfn, "%s%s", dbpath, REINDEX_FN);
     unlink(dbfn);
+    free(dbfn);
     if (rmdir(dbpath))
     {
         log_error("Roll-back creating new database has failed.");

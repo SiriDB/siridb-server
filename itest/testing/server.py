@@ -136,15 +136,16 @@ class Server:
                         ' -H' if self.HOLD_TERM else ''),
                 shell=True)
         elif self.TERMINAL == 'xterm':
-            self.proc = subprocess.Popen(
-               'xterm {}-title {} -geometry {} -e "{}{} --config {}"'
-               .format('-hold ' if self.HOLD_TERM else '',
-                       self.name,
-                       self.GEOMETRY,
-                       VALGRIND if self.MEM_CHECK else '',
-                       SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
-                       self.cfgfile),
-               shell=True)
+            self.proc = subprocess.Popen((
+                    'xterm {}-title {} -geometry {} -e "{}{} --config {} '
+                    '--log-colorized"'
+                ).format('-hold ' if self.HOLD_TERM else '',
+                self.name,
+                self.GEOMETRY,
+                VALGRIND if self.MEM_CHECK else '',
+                SIRIDBC.format(BUILDTYPE=self.BUILDTYPE),
+                self.cfgfile),
+                shell=True)
         elif self.TERMINAL is None:
             errfn = f'testdir/{self.test_title}-{self.name}-err.log'
             outfn = f'testdir/{self.test_title}-{self.name}-out.log'
