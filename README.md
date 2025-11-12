@@ -1,5 +1,6 @@
 [![CI](https://github.com/SiriDB/siridb-server/workflows/CI/badge.svg)](https://github.com/SiriDB/siridb-server/actions)
 [![Release Version](https://img.shields.io/github/release/SiriDB/siridb-server)](https://github.com/SiriDB/siridb-server/releases)
+[![Github stargazers](https://img.shields.io/github/stars/SiriDB/siridb-server)](https://github.com/SiriDB/siridb-server/stargazers)
 
 SiriDB Server
 =============
