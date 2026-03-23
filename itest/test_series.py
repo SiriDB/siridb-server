@@ -112,6 +112,21 @@ class TestSeries(TestBase):
                 'select * from "x", "string", "integer", "double", "nexist"'),
             expected)
 
+        bin_points = {
+            "binary": [
+                [1538660030, (b"\0\1\2\3").hex()]
+            ]
+        }
+
+        with open('test.png', 'rb') as fp:
+            image_x = fp.read()
+
+        bin_points['binary'].append([1538660031, image_x.hex()])
+
+        await self.client0.insert(bin_points)
+        points = await self.client0.query('select * from "binary"')
+        self.assertEqual(points, bin_points)
+
         self.client0.close()
 
 
