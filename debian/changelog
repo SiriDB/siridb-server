@@ -1,3 +1,10 @@
+siridb-server (2.0.54-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug with log selection points
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Mon, 13 Apr 2026 12:12:00 +0200
+
 siridb-server (2.0.53-0~cb1) unstable; urgency=medium
 
   * New upstream release
