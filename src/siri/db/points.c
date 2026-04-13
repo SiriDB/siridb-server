@@ -1272,7 +1272,7 @@ int siridb_points_unzip_string(
         return -1;
     }
 
-    if (POINTS_unpack_string(
+    if (n != 0 && POINTS_unpack_string(
             points->data + points->len, n, i, bits + offset, buf))
     {
         free(buf);
