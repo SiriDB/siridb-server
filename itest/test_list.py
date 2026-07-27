@@ -26,8 +26,8 @@ TIME_PRECISION = 's'
 class TestList(TestBase):
     title = 'Test list'
 
-    GEN_POINTS = functools.partial(
-        gen_points, n=1, time_precision=TIME_PRECISION)
+    GEN_POINTS = staticmethod(functools.partial(
+        gen_points, n=1, time_precision=TIME_PRECISION))
 
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):

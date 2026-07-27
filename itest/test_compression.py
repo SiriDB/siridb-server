@@ -26,8 +26,8 @@ TIME_PRECISION = 'ms'
 class TestCompression(TestBase):
     title = 'Test compression'
 
-    GEN_POINTS = functools.partial(
-        gen_points, time_precision=TIME_PRECISION)
+    GEN_POINTS = staticmethod(functools.partial(
+        gen_points, time_precision=TIME_PRECISION))
 
     async def _test_series(self, client):
 

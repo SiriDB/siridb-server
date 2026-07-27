@@ -26,8 +26,8 @@ TIME_PRECISION = 's'
 class TestExpiration(TestBase):
     title = 'Test shard expiration'
 
-    GEN_POINTS = functools.partial(
-        gen_points, n=1, time_precision=TIME_PRECISION)
+    GEN_POINTS = staticmethod(functools.partial(
+        gen_points, n=1, time_precision=TIME_PRECISION))
 
     async def _test_series(self, client):
 

@@ -27,14 +27,14 @@ TIME_PRECISION = 'ms'
 class TestIntegerLoad(TestBase):
     title = 'Test inserts and response'
 
-    GEN_POINTS = functools.partial(
+    GEN_POINTS = staticmethod(functools.partial(
         gen_points,
         tp=int,
         mi=-2**10,
         ma=2**10,
         n=5,
         time_precision=TIME_PRECISION,
-        ts_gap=3)
+        ts_gap=3))
 
     async def select(self, client, series, n):
         series = {s.name: s for s in series}
