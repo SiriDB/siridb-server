@@ -122,7 +122,7 @@ static int SHARD_load_idx(
         FILE * fp,
         int is_ts64);
 static inline int SHARD_init_fn(siridb_t * siridb, siridb_shard_t * shard);
-static int SHARD_grow(siridb_shard_t * shard);
+static int SHARD_grow(siridb_shard_t * shard, const size_t required_size);
 static size_t SHARD_write_header(
         siridb_t * siridb,
         siridb_series_t * series,
@@ -655,7 +655,7 @@ size_t siridb_shard_write_points(
     unsigned char * cdata = NULL;
 
     uint_fast32_t i;
-    size_t pos, header_sz;
+    size_t pos, header_sz, requred_size;
 
     if (shard->fp->fp == NULL)
     {
@@ -698,9 +698,10 @@ size_t siridb_shard_write_points(
         dsize = (siridb->time->ts_sz + 8) * len;
     }
 
-    if (shard->len > SHARD_GROW_SZ && (shard->len + dsize + 64 > shard->size))
+    requred_size = shard->len + dsize + 64;
+    if (shard->len > SHARD_GROW_SZ && requred_size > shard->size)
     {
-        SHARD_grow(shard);
+        SHARD_grow(shard, requred_size);
     }
 
     if (fseeko(fp, shard->len, SEEK_SET))
@@ -2128,13 +2129,14 @@ static size_t SHARD_write_header(
 }
 
 
-static int SHARD_grow(siridb_shard_t * shard)
+static int SHARD_grow(siridb_shard_t * shard, const size_t required_size)
 {
     assert (shard->fp);
 
     int buffer_fd = fileno(shard->fp->fp);
+    const size_t num_blocks = required_size / SHARD_GROW_SZ + 1;
 
-    shard->size = ((size_t) (shard->size / SHARD_GROW_SZ) + 2) * SHARD_GROW_SZ;
+    shard->size = num_blocks * SHARD_GROW_SZ;
 
     if (buffer_fd == -1)
     {

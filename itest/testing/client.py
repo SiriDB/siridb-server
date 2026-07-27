@@ -48,7 +48,8 @@ class Client:
                                  series,
                                  n=0.01,
                                  timeout=None,
-                                 points=functools.partial(gen_points, n=1)):
+                                 points=staticmethod(
+                                     functools.partial(gen_points, n=1))):
         random.shuffle(series)
 
         n = int(len(series) * n)

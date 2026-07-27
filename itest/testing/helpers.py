@@ -71,7 +71,7 @@ def gen_points(
     return [[ts, random_value(tp, mi, ma)] for ts in timestamps]
 
 
-def gen_data(points=functools.partial(gen_points), n=100):
+def gen_data(points=staticmethod(functools.partial(gen_points)), n=100):
     return {random_series_name(): points() for _ in range(n)}
 
 

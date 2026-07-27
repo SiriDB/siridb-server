@@ -104,8 +104,8 @@ TIME_PRECISION = 'ns'
 class TestSelectNano(TestBase):
     title = 'Test select and aggregate functions (ns)'
 
-    GEN_POINTS = functools.partial(
-        gen_points, n=1, time_precision=TIME_PRECISION)
+    GEN_POINTS = staticmethod(functools.partial(
+        gen_points, n=1, time_precision=TIME_PRECISION))
 
     @default_test_setup(1, time_precision=TIME_PRECISION)
     async def run(self):
