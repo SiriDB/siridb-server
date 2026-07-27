@@ -1,3 +1,10 @@
+siridb-server (2.0.55-0~cb1) unstable; urgency=medium
+
+  * New upstream release
+    - Fixed bug with growing shard size for log values
+
+ -- Jeroen van der Heijden <jeroen@cesbit.com>  Mon, 27 Jul 2026 14:15:00 +0200
+
 siridb-server (2.0.54-0~cb1) unstable; urgency=medium
 
   * New upstream release

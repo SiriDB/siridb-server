@@ -196,7 +196,6 @@ int siridb_series_add_pcache(
     if (pcache->len > siridb->buffer->len || series->buffer == NULL)
     {
         series->length += pcache->len;
-
         return siridb_shards_add_points(
                 siridb,
                 series,
