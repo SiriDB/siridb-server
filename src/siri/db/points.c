@@ -129,6 +129,10 @@ void siridb_points_tail(siridb_points_t * points, size_t n)
                 }
                 *(points->data + i) = *point;
             }
+            for (i = n; i < m; ++i)
+            {
+                free((points->data + i)->val.str);
+            }
         }
         else
         {
