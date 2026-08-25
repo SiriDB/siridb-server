@@ -117,13 +117,16 @@ void siridb_points_tail(siridb_points_t * points, size_t n)
 {
     if (n < points->len)
     {
-        size_t i;
-        siridb_point_t * point = points->data + (points->len - n);
+        size_t i, m = points->len - n;
+        siridb_point_t * point = points->data + m;
         if (points->tp == TP_STRING)
         {
             for (i = 0; i < n; ++i, ++point)
             {
-                free((points->data + i)->val.str);
+                if (i < m)
+                {
+                    free((points->data + i)->val.str);
+                }
                 *(points->data + i) = *point;
             }
         }

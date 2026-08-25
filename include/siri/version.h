@@ -6,7 +6,7 @@
 
 #define SIRIDB_VERSION_MAJOR 2
 #define SIRIDB_VERSION_MINOR 0
-#define SIRIDB_VERSION_PATCH 55
+#define SIRIDB_VERSION_PATCH 56
 
 /*
  * Use SIRIDB_VERSION_PRE_RELEASE for alpha release versions.
