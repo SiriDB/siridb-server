@@ -1,0 +1,14 @@
+// This will install SiriDB as ThingsDB module
+new_module('siridb', 'github.com/thingsdb/module-go-siridb');
+
+// Next, configure the module
+set_module_conf('siridb', {
+    username: 'iris',
+    password: 'siri',
+    database: 'dbtest',
+    servers: [
+        ["localhost", 9000]
+    ]
+});
+
+// Both a .query() and .insert() method are exposed with this module
