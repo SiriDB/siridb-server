@@ -39,6 +39,7 @@ const unsigned long int WARNING_PKG_SIZE = RESET_BUF_SIZE;
  *          can be larger if required.
  */
 #define MAX_QUERY_PKG_SIZE 65535
+#define MAX_AUTH_PKG_SIZE 1023
 
 #define DEFAULT_BACKLOG 128
 #define CHECK_SIRIDB(client__, siridb__)                                \
@@ -348,6 +349,29 @@ static void on_stream_data(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 
 static void on_auth_request(sirinet_stream_t * client, sirinet_pkg_t * pkg)
 {
+    if (pkg->len > MAX_AUTH_PKG_SIZE)
+    {
+        sirinet_pkg_t * package;
+
+        log_error(
+                "Received an auth request exceeding the maximum size. "
+                "(%" PRIu32 ", max size: %u)",
+                pkg->len,
+                MAX_AUTH_PKG_SIZE);
+
+        package = sirinet_pkg_err(
+                pkg->pid,
+                14,
+                CPROTO_ERR_AUTH_CREDENTIALS,
+                "Auth too long.");
+
+        if (package != NULL)
+        {
+            sirinet_pkg_send(client, package);
+        }
+
+        return;
+    }
     cproto_server_t rc;
     sirinet_pkg_t * package;
     qp_unpacker_t unpacker;

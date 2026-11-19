@@ -4,6 +4,11 @@
 #ifndef SIRIDB_USER_H_
 #define SIRIDB_USER_H_
 
+#define SIRIDB_MIN_PASSWORD_LEN 4
+#define SIRIDB_MAX_PASSWORD_LEN 128
+#define SIRIDB_MIN_USER_LEN 2
+#define SIRIDB_MAX_USER_LEN 60
+
 typedef struct siridb_user_s siridb_user_t;
 
 #include <qpack/qpack.h>

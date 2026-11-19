@@ -22,13 +22,33 @@ cproto_server_t siridb_auth_user_request(
 {
     siridb_t * siridb;
     siridb_user_t * user;
+    char username[SIRIDB_MAX_USER_LEN+1];
+    char password[SIRIDB_MAX_PASSWORD_LEN+1];
 
-    char username[qp_username->len + 1];
-    memcpy(username, qp_username->via.raw, qp_username->len);
+    /*
+     * Fixed possible stack overflow on malformed auth requests.
+     * Reported by Maximiliano Sebastián Quiroga.
+     */
+    if (qp_username->len > SIRIDB_MAX_USER_LEN ||
+        qp_password->len > SIRIDB_MAX_PASSWORD_LEN ||
+        qp_dbname->len > SIRIDB_MAX_DBNAME_LEN)
+    {
+        log_warning(
+            "User authentication request failed: "
+            "malformed auth request (field exceeds maximum length)");
+        return CPROTO_ERR_AUTH_CREDENTIALS;
+    }
+
+    if (qp_username->len)
+    {
+        memcpy(username, qp_username->via.raw, qp_username->len);
+    }
     username[qp_username->len] = 0;
 
-    char password[qp_password->len + 1];
-    memcpy(password, qp_password->via.raw, qp_password->len);
+    if (qp_password->len)
+    {
+        memcpy(password, qp_password->via.raw, qp_password->len);
+    }
     password[qp_password->len] = 0;
 
     if ((siridb = siridb_get_by_qp(siri.siridb_list, qp_dbname)) == NULL)
