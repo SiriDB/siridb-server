@@ -25,7 +25,10 @@ cproto_server_t siridb_auth_user_request(
     char username[SIRIDB_MAX_USER_LEN+1];
     char password[SIRIDB_MAX_PASSWORD_LEN+1];
 
-    /* reported by Maximiliano Sebastián Quiroga */
+    /*
+     * Fixed possible stack overflow on malformed auth requests.
+     * Reported by Maximiliano Sebastián Quiroga.
+     */
     if (qp_username->len > SIRIDB_MAX_USER_LEN ||
         qp_password->len > SIRIDB_MAX_PASSWORD_LEN ||
         qp_dbname->len > SIRIDB_MAX_DBNAME_LEN)
