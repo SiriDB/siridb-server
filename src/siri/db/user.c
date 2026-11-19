@@ -16,12 +16,6 @@
 #include <owcrypt/owcrypt.h>
 #include <string.h>
 
-#define SIRIDB_MIN_PASSWORD_LEN 4
-#define SIRIDB_MAX_PASSWORD_LEN 128
-#define SIRIDB_MIN_USER_LEN 2
-#define SIRIDB_MAX_USER_LEN 60
-
-
 /*
  * Creates a new user with reference counter zero.
  *
